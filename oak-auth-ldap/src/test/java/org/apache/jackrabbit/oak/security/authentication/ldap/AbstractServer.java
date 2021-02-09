@@ -24,9 +24,11 @@ import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.BindException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,7 +41,6 @@ import javax.naming.NamingException;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.directory.api.ldap.model.constants.SupportedSaslMechanisms;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
@@ -114,7 +115,7 @@ public abstract class AbstractServer {
      * @return a list of entries added to the server in the order they were added
      * @throws NamingException of the load fails
      */
-    protected List<LdifEntry> loadLdif(InputStream in) throws Exception {
+    public List<LdifEntry> loadLdif(InputStream in) throws Exception {
         if (in == null) {
             return EMPTY_LIST;
         }
@@ -122,7 +123,7 @@ public abstract class AbstractServer {
         return loadLdif(ldifReader);
     }
 
-    protected List<LdifEntry> loadLdif(LdifReader ldifReader) throws Exception {
+    public List<LdifEntry> loadLdif(LdifReader ldifReader) throws Exception {
         List<LdifEntry> entries = new ArrayList<LdifEntry>();
         for (LdifEntry ldifEntry : ldifReader) {
             Dn dn = ldifEntry.getDn();
@@ -339,7 +340,7 @@ public abstract class AbstractServer {
     protected void doDelete(File wkdir) throws IOException {
         if (doDelete) {
             if (wkdir.exists()) {
-                FileUtils.deleteDirectory(wkdir);
+                deleteDirectory(wkdir);
             }
 
             if (wkdir.exists()) {
@@ -348,7 +349,85 @@ public abstract class AbstractServer {
         }
     }
 
+//-----------------------------------------------------------------------------
 
+    public static void deleteDirectory(File directory) throws IOException {
+        if (directory.exists()) {
+            if (!isSymlink(directory)) {
+                cleanDirectory(directory);
+            }
+
+            if (!directory.delete()) {
+                String message = "Unable to delete directory " + directory + ".";
+                throw new IOException(message);
+            }
+        }
+    }
+
+    public static boolean isSymlink(File file) throws IOException {
+        if (file == null) {
+            throw new NullPointerException("File must not be null");
+        } else {
+            return Files.isSymbolicLink(file.toPath());
+        }
+    }
+
+    public static void cleanDirectory(File directory) throws IOException {
+        File[] files = verifiedListFiles(directory);
+        IOException exception = null;
+        File[] var3 = files;
+        int var4 = files.length;
+
+        for(int var5 = 0; var5 < var4; ++var5) {
+            File file = var3[var5];
+
+            try {
+                forceDelete(file);
+            } catch (IOException var8) {
+                exception = var8;
+            }
+        }
+
+        if (null != exception) {
+            throw exception;
+        }
+    }
+
+    private static File[] verifiedListFiles(File directory) throws IOException {
+        String message;
+        if (!directory.exists()) {
+            message = directory + " does not exist";
+            throw new IllegalArgumentException(message);
+        } else if (!directory.isDirectory()) {
+            message = directory + " is not a directory";
+            throw new IllegalArgumentException(message);
+        } else {
+            File[] files = directory.listFiles();
+            if (files == null) {
+                throw new IOException("Failed to list contents of " + directory);
+            } else {
+                return files;
+            }
+        }
+    }
+
+    public static void forceDelete(File file) throws IOException {
+        if (file.isDirectory()) {
+            deleteDirectory(file);
+        } else {
+            boolean filePresent = file.exists();
+            if (!file.delete()) {
+                if (!filePresent) {
+                    throw new FileNotFoundException("File does not exist: " + file);
+                }
+
+                String message = "Unable to delete file: " + file;
+                throw new IOException(message);
+            }
+        }
+    }
+
+//-----------------------------------------------------------------------------
     /**
      * Sets the contexts for this base class.  Values of user and password used to
      * set the respective JNDI properties.  These values can be overriden by the

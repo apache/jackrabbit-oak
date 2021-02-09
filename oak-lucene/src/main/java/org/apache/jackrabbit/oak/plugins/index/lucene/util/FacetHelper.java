@@ -92,7 +92,8 @@ public class FacetHelper {
                     facetsMap.put(facetField, facets);
 
                 } catch (IllegalArgumentException iae) {
-                    LOGGER.warn("facets for {} not yet indexed", facetField);
+                    LOGGER.debug(iae.getMessage(), iae);
+                    LOGGER.warn("facets for {} not yet indexed: " + iae, facetField);
                 }
             }
             if (facetsMap.size() > 0) {

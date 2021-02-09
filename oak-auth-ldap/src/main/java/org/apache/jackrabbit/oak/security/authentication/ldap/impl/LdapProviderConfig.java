@@ -620,7 +620,7 @@ public class LdapProviderConfig {
 
     /**
      * Defines the configuration of a connection pool. Currently we only define the max size.
-     * (documentation copied from {@link org.apache.commons.pool.impl.GenericObjectPool})
+     * (documentation copied from {@link org.apache.commons.pool2.impl.GenericObjectPool})
      */
     public static class PoolConfig {
 

@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.google.common.base.Supplier;
+import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
@@ -28,9 +29,12 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class CommitValueResolverTest {
@@ -38,19 +42,17 @@ public class CommitValueResolverTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
+    private CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
+
     private DocumentNodeStore ns;
 
     private CommitValueResolver resolver;
 
     @Before
     public void setup() {
-        ns = builderProvider.newBuilder().setUpdateLimit(20).setAsyncDelay(0).getNodeStore();
-        resolver = new CachingCommitValueResolver(0, new Supplier<RevisionVector>() {
-            @Override
-            public RevisionVector get() {
-                return ns.getSweepRevisions();
-            }
-        });
+        ns = builderProvider.newBuilder().setDocumentStore(store)
+                .setUpdateLimit(20).setAsyncDelay(0).getNodeStore();
+        resolver = newCachingCommitValueResolver(0);
     }
 
     @Test
@@ -203,6 +205,46 @@ public class CommitValueResolverTest {
         assertEquals(value, resolver.resolve(r, root));
     }
 
+    @Test
+    public void cacheEmptyCommitValue() throws Exception {
+        addNode("/foo");
+        // add changes and remove commit value
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo").setProperty("p", "v");
+        builder.child("bar");
+        TestUtils.merge(ns, builder);
+        Revision commitRev = ns.getHeadRevision().getRevision(ns.getClusterId());
+        assertNotNull(commitRev);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
+        NodeDocument.removeRevision(op, commitRev);
+        assertNotNull(store.findAndUpdate(NODES, op));
+
+        waitABit();
+
+        CommitValueResolver cvr = newCachingCommitValueResolver(100)
+                .withEmptyCommitValueCache(true, ns.getClock(), 0);
+        NodeDocument foo = getDocument("/foo");
+
+        // resolver without negative cache will look up previous docs every time
+        assertNull(resolver.resolve(commitRev, foo));
+        assertThat(countDocumentLookUps(() -> resolver.resolve(commitRev, foo)), greaterThan(0));
+
+        // resolver with negative cache will look up only the first time
+        assertNull(cvr.resolve(commitRev, foo));
+        assertThat(countDocumentLookUps(() -> cvr.resolve(commitRev, foo)), equalTo(0));
+    }
+
+    private int countDocumentLookUps(Callable<?> c) throws Exception {
+        int numCalls = store.getNumFindCalls(NODES);
+        c.call();
+        return store.getNumFindCalls(NODES) - numCalls;
+    }
+
+    private void waitABit() throws InterruptedException {
+        ns.getClock().getTimeIncreasing();
+        ns.getClock().getTimeIncreasing();
+    }
+
     private Revision addNode(String path) throws Exception {
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder nb = builder;
@@ -259,5 +301,9 @@ public class CommitValueResolverTest {
     private int getNumRevisions(String path) {
         NodeDocument doc = getDocument(path);
         return doc != null ? doc.getLocalRevisions().size() : 0;
+    }
+
+    private CachingCommitValueResolver newCachingCommitValueResolver(int cacheSize) {
+        return new CachingCommitValueResolver(cacheSize, () -> ns.getSweepRevisions());
     }
 }

@@ -21,7 +21,7 @@
     <parent>
         <artifactId>oak-parent</artifactId>
         <groupId>org.apache.jackrabbit</groupId>
-        <version>1.22.4-SNAPSHOT</version>
+        <version>1.22.7-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -31,7 +31,7 @@
     <packaging>bundle</packaging>
 
     <properties>
-        <netty.version>4.1.17.Final</netty.version>
+        <netty.version>4.1.52.Final</netty.version>
         <aws.version>1.11.700</aws.version>
     </properties>
 

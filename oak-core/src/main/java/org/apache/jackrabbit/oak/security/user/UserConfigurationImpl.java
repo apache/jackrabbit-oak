@@ -54,6 +54,7 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -191,8 +192,17 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         setParameters(ConfigurationParameters.of(properties));
     }
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
     private BlobAccessProvider blobAccessProvider;
+    
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC)
+    void bindBlobAccessProvider(BlobAccessProvider bap) {
+        blobAccessProvider = bap;
+    }
+
+    void unbindBlobAccessProvider(BlobAccessProvider bap) {
+        blobAccessProvider = DEFAULT_BLOB_ACCESS_PROVIDER;
+    }
 
     //----------------------------------------------< SecurityConfiguration >---
     @NotNull
@@ -262,9 +272,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new UserPrincipalProvider(root, this, namePathMapper);
     }
-
-    //-----------------------------------------------------------< internal >---
-
+    
     @NotNull
     private BlobAccessProvider getBlobAccessProvider() {
         BlobAccessProvider provider = blobAccessProvider;
@@ -279,8 +287,8 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         }
         if (provider == null) {
             provider = DEFAULT_BLOB_ACCESS_PROVIDER;
-            blobAccessProvider = provider;
         }
+        blobAccessProvider = provider;
         return provider;
     }
 }

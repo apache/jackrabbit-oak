@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.io.IOException;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.solr.client.solrj.SolrClient;
@@ -61,7 +60,7 @@ public class OakSolrServer extends SolrClient {
         SolrServerRegistry.Strategy strategy = isIndex ? SolrServerRegistry.Strategy.INDEXING : SolrServerRegistry.Strategy.SEARCHING;
         SolrClient solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
         if (solrServer == null) {
-            if (solrServerConfiguration instanceof EmbeddedSolrServerConfiguration) {
+            if (solrServerConfiguration.getClass().getName().indexOf("EmbeddedSolrServerConfiguration") >= 0) {
                 solrServer = solrServerProvider.getSolrServer();
                 // the same Solr server has to be used for both
                 SolrServerRegistry.register(solrServerConfiguration, solrServer, SolrServerRegistry.Strategy.INDEXING);

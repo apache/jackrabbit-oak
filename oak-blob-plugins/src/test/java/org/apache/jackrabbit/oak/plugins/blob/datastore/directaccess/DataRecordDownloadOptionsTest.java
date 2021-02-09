@@ -19,16 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
+import java.util.List;
+
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.junit.Test;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
-import org.junit.Test;
 
 public class DataRecordDownloadOptionsTest {
     private static final String MEDIA_TYPE_IMAGE_PNG = "image/png";
@@ -254,5 +258,50 @@ public class DataRecordDownloadOptionsTest {
                 getOptions(null, null, null, null),
                 null
         );
+    }
+
+    @Test
+    public void testGetContentDispositionWithSpecialCharacterFilenames() {
+        String umlautFilename = "Uml\u00e4utfile.jpg";
+        String umlautFilename_ISO_8859_1 = new String(
+                Charsets.ISO_8859_1.encode(umlautFilename).array(),
+                Charsets.ISO_8859_1
+        );
+        List<String> filenames = Lists.newArrayList(
+                "image.png",
+                "text.txt",
+                "filename with spaces.jpg",
+                "\"filename-with-double-quotes\".jpg",
+                "filename-with-one\"double-quote.jpg",
+                umlautFilename
+        );
+        List<String> iso_8859_1_filenames = Lists.newArrayList(
+                "image.png",
+                "text.txt",
+                "filename with spaces.jpg",
+                "\\\"filename-with-double-quotes\\\".jpg",
+                "filename-with-one\\\"double-quote.jpg",
+                umlautFilename_ISO_8859_1
+        );
+        List<String> rfc8187_filenames = Lists.newArrayList(
+                "image.png",
+                "text.txt",
+                "filename%20with%20spaces.jpg",
+                "%22filename-with-double-quotes%22.jpg",
+                "filename-with-one%22double-quote.jpg",
+                "Uml%C3%A4utfile.jpg"
+        );
+
+        for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
+            for (int i=0; i<filenames.size(); i++) {
+                String fileName = filenames.get(i);
+                String iso_8859_1_fileName = iso_8859_1_filenames.get(i);
+                String rfc8187_fileName = rfc8187_filenames.get(i);
+                verifyContentDispositionHeader(
+                        getOptions(null, null, fileName, dispositionType),
+                        getContentDispositionHeader(iso_8859_1_fileName, rfc8187_fileName, dispositionType)
+                );
+            }
+        }
     }
 }

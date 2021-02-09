@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.22.4-SNAPSHOT</version>
+  <version>1.22.7-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -44,7 +44,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.1</jackrabbit.version>
+    <jackrabbit.version>2.20.2</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -53,13 +53,13 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
-    <solr.version>6.6.6</solr.version>
+    <solr.version>8.6.3</solr.version>
     <mongo.driver.version>3.8.2</mongo.driver.version>
     <slf4j.api.version>1.7.30</slf4j.api.version>
     <slf4j.version>1.7.30</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.3</logback.version>
     <h2.version>1.4.194</h2.version>
-    <tika.version>1.24</tika.version>
+    <tika.version>1.24.1</tika.version>
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
@@ -622,7 +622,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.9</version>
+        <version>3.10</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -1072,7 +1072,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.10</version>
+          <version>42.2.12</version>
         </dependency>
       </dependencies>
     </profile>

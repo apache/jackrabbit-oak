@@ -19,15 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 
 /**
  * Contains download options for downloading a data record directly from a
@@ -155,9 +158,16 @@ public class DataRecordDownloadOptions {
     private String formatContentDispositionHeader(@NotNull final String dispositionType,
                                                   @NotNull final String fileName,
                                                   @Nullable final String rfc8187EncodedFileName) {
+        Charset ISO_8859_1 = Charsets.ISO_8859_1;
+        String iso_8859_1_fileName = new String(
+                ISO_8859_1.encode(fileName).array(),
+                ISO_8859_1
+        ).replace("\"", "\\\"");
         return null != rfc8187EncodedFileName ?
-                String.format("%s; filename=\"%s\"; filename*=UTF-8''%s", dispositionType, fileName, rfc8187EncodedFileName) :
-                String.format("%s; filename=\"%s\"", dispositionType, fileName);
+                String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+                        dispositionType, iso_8859_1_fileName, rfc8187EncodedFileName) :
+                String.format("%s; filename=\"%s\"",
+                        dispositionType, iso_8859_1_fileName);
     }
 
     private String rfc8187Encode(@NotNull final String input) {
