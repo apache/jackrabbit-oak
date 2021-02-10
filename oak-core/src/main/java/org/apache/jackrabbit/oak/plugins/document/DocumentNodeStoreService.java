@@ -33,6 +33,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -117,6 +120,8 @@ import org.slf4j.LoggerFactory;
                 "options are supported"
 )
 public class DocumentNodeStoreService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreService.class);
 
     private static final long MB = 1024 * 1024;
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
@@ -466,6 +471,19 @@ public class DocumentNodeStoreService {
                     
                     @Override
                     public void handleLeaseFailure() {
+                        if (LOG.isTraceEnabled()) {
+                            boolean createThreadDump  = System.getProperty(
+                                    "org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.CREATETHREADDUMPONLEASEFAILURE",
+                                    "false").equalsIgnoreCase("true");
+                            if (createThreadDump) {
+                                StringBuilder sb = new StringBuilder();
+                                ThreadMXBean tmxBean = ManagementFactory.getThreadMXBean();
+                                for (ThreadInfo info : tmxBean.dumpAllThreads(true, true)) {
+                                    sb.append(info.toString());
+                                }
+                                LOG.trace(sb.toString());
+                            }
+                        }
                         try {
                             // plan A: try stopping oak-core
                             log.error("handleLeaseFailure: stopping oak-core...");
