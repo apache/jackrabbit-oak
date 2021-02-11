@@ -471,7 +471,7 @@ public class DocumentNodeStoreService {
                     
                     @Override
                     public void handleLeaseFailure() {
-                        if (LOG.isTraceEnabled()) {
+                        if (LOG.isDebugEnabled()) {
                             boolean createThreadDump  = System.getProperty(
                                     "org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.CREATETHREADDUMPONLEASEFAILURE",
                                     "false").equalsIgnoreCase("true");
@@ -481,7 +481,7 @@ public class DocumentNodeStoreService {
                                 for (ThreadInfo info : tmxBean.dumpAllThreads(true, true)) {
                                     sb.append(info.toString());
                                 }
-                                LOG.trace(sb.toString());
+                                LOG.debug(sb.toString());
                             }
                         }
                         try {
