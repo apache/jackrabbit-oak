@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -574,7 +575,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return;
         }
 
-        String checkpointToRelease = afterCheckpoint;
+        AtomicReference<String> checkpointToReleaseRef = new AtomicReference<>(afterCheckpoint);
         boolean updatePostRunStatus = false;
         try {
             String newThreadName = "async-index-update-" + name;
@@ -582,17 +583,17 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             threadNameChanged = true;
             Thread.currentThread().setName(newThreadName);
             updatePostRunStatus = updateIndex(before, beforeCheckpoint, after,
-                    afterCheckpoint, afterTime, callback);
+                    afterCheckpoint, afterTime, callback, checkpointToReleaseRef);
 
             // the update succeeded, i.e. it no longer fails
             if (indexStats.didLastIndexingCycleFailed()) {
                 indexStats.fixed();
             }
 
-            // the update succeeded, so we can release the earlier checkpoint
+            // the update succeeded, so we are sure we can release the earlier checkpoint -
             // otherwise the new checkpoint associated with the failed update
-            // will get released in the finally block
-            checkpointToRelease = beforeCheckpoint;
+            // may still get released in the finally block (depending on where the index update failed)
+            checkpointToReleaseRef.set(beforeCheckpoint);
             indexStats.setReferenceCheckpoint(afterCheckpoint);
             indexStats.setProcessedCheckpoint("");
             indexStats.releaseTempCheckpoint(afterCheckpoint);
@@ -607,6 +608,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
             // null during initial indexing
             // and skip release if this cp was used in a split operation
+            String checkpointToRelease = checkpointToReleaseRef.get();
             if (checkpointToRelease != null
                     && !checkpointToRelease.equals(taskSplitter
                     .getLastReferencedCp())) {
@@ -758,7 +760,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     protected boolean updateIndex(NodeState before, String beforeCheckpoint,
                                   NodeState after, String afterCheckpoint, String afterTime,
-                                  AsyncUpdateCallback callback) throws CommitFailedException {
+                                  AsyncUpdateCallback callback,
+                                  AtomicReference<String> checkpointToReleaseRef) throws CommitFailedException {
         Stopwatch watch = Stopwatch.createStarted();
         boolean updatePostRunStatus = true;
         boolean progressLogged = false;
@@ -827,6 +830,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
             mergeWithConcurrencyCheck(store, validatorProviders, builder, beforeCheckpoint,
                     callback.lease, name);
+            // we successfully merged the change that updated the lane to the
+            // afterCheckpoint - so we need to release the beforeCheckpoint now
+            checkpointToReleaseRef.set(beforeCheckpoint);
             indexingFailed = false;
 
             if (indexUpdate.isReindexingPerformed()) {
