@@ -67,8 +67,8 @@ public class MongoBlobStore extends CachingBlobStore {
     private static final int DUPLICATE_KEY_ERROR_CODE = 11000;
 
     private static final CodecRegistry CODEC_REGISTRY = fromRegistries(
-            MongoClient.getDefaultCodecRegistry(),
-            fromCodecs(new MongoBlobCodec())
+            fromCodecs(new MongoBlobCodec()),
+            MongoClient.getDefaultCodecRegistry()
     );
 
     private final ReadPreference defaultReadPreference;

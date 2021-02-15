@@ -44,7 +44,7 @@
           <instructions>
             <Import-Package>
               <!-- OAK-7182 -->${guava.osgi.import},
-              com.mongodb*;version="[3.8, 4)";resolution:=optional,
+              com.mongodb*;version="[3.12, 4)";resolution:=optional,
               *
             </Import-Package>
             <Export-Package>
