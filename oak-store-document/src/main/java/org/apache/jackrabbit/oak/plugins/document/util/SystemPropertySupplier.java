@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.event.Level;
 
 /**
- * @deprecated please use org.apache.jackrabbit.oak.commons.SystemPropertySupplier
- * @see org.apache.jackrabbit.oak.commons.SystemPropertySupplier
+ * @deprecated please use org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier
+ * @see org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier
  */
 public class SystemPropertySupplier<T> implements Supplier<T> {
 
@@ -35,10 +35,10 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
         return new SystemPropertySupplier<U>(propName, defaultValue);
     }
 
-    private final org.apache.jackrabbit.oak.commons.SystemPropertySupplier<T> delegate;
+    private final org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier<T> delegate;
 
     private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue) throws IllegalArgumentException {
-        delegate = org.apache.jackrabbit.oak.commons.SystemPropertySupplier.create(propName, defaultValue);
+        delegate = org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier.create(propName, defaultValue);
     }
 
     @Override

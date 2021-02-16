@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.6.0")
-package org.apache.jackrabbit.oak.commons;
+@Version("1.0.0")
+package org.apache.jackrabbit.oak.commons.properties;
 
 import org.osgi.annotation.versioning.Version;
