@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -63,6 +64,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -72,7 +74,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1072,6 +1073,32 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         while (it.hasNext()) {
             assertEquals(SplitDocType.DEFAULT_NO_BRANCH, it.next().getSplitDocType());
         }
+    }
+
+    @Ignore("OAK-9358")
+    @Test
+    public void splitCandidatesCleanAfterBackgroundUpdate() throws Exception {
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // sneak in split candidate
+        ns.addSplitCandidate(Utils.getIdFromPath("/foo"));
+        ns.runBackgroundOperations();
+        assertThat(ns.getSplitCandidates(), empty());
+    }
+
+    @Ignore("OAK-9358")
+    @Test
+    public void splitCandidatesCleanAfterBackgroundUpdateWithUnknownId() throws Exception {
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // sneak in unknown split candidate
+        ns.addSplitCandidate(Utils.getIdFromPath("/bar"));
+        ns.runBackgroundOperations();
+        assertThat(ns.getSplitCandidates(), empty());
     }
 
     private static class TestRevisionContext implements RevisionContext {
