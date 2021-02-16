@@ -17,10 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
-import javax.management.NotCompliantMBeanException;
 import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Function;
@@ -48,20 +49,23 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     private static final String ISO_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS zzz";
     private static final TimeZone TZ_UTC = TimeZone.getTimeZone("UTC");
+    private static final String COMPOSITE_INFO = "composite.checkpoint.";
 
     private final DocumentNodeStore nodeStore;
     private final RepositoryStatistics repoStats;
     private final Iterable<ClusterNodeInfoDocument> clusterNodes;
+    private final long revisionGCMaxAgeMillis;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore,
                                RepositoryStatistics repoStats,
-                               Iterable<ClusterNodeInfoDocument> clusterNodes)
-            throws NotCompliantMBeanException {
+                               Iterable<ClusterNodeInfoDocument> clusterNodes,
+                               long revisionGCMaxAgeMillis) {
         super(DocumentNodeStoreMBean.class);
         this.nodeStore = nodeStore;
         this.repoStats = repoStats;
         this.clusterNodes = clusterNodes;
+        this.revisionGCMaxAgeMillis = revisionGCMaxAgeMillis;
     }
 
     @Override
@@ -264,4 +268,28 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
                 return "ERROR: Invalid cache name received.";
         }
     }
+
+    @Override
+    public String createCheckpoint(String revision, long lifetime, boolean force) {
+        Revision rev = Revision.fromString(revision);
+        long oldestTimestamp = nodeStore.getClock().getTime() - revisionGCMaxAgeMillis;
+        Revision oldestCheckpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
+        if (oldestCheckpoint != null) {
+            oldestTimestamp = Math.min(oldestTimestamp, oldestCheckpoint.getTimestamp());
+        }
+        if (force || oldestTimestamp < rev.getTimestamp()) {
+            Map<String, String> info = new HashMap<>();
+            info.put(COMPOSITE_INFO + "created", Long.toString(rev.getTimestamp()));
+            info.put(COMPOSITE_INFO + "expires", Long.toString(Utils.sum(rev.getTimestamp() + lifetime)));
+
+            String cp = nodeStore.getCheckpoints().create(lifetime, info, rev).toString();
+            log.info("Created checkpoint [{}] with lifetime {} for Revision {}", cp, lifetime, revision);
+            return cp;
+        } else {
+            throw new IllegalArgumentException(String.format("Cannot create a checkpoint for revision %s. " +
+                    "Revision timestamp is %d and oldest timestamp to keep is %d",
+                    revision, rev.getTimestamp(), oldestTimestamp));
+        }
+    }
+
 }

@@ -325,6 +325,7 @@ public class DocumentNodeStoreService {
         }
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
                 newArrayList(gcMonitor, loggingGCMonitor)));
+        mkBuilder.setRevisionGCMaxAge(TimeUnit.SECONDS.toMillis(config.versionGcMaxAgeInSecs()));
 
         nodeStore = mkBuilder.build();
 

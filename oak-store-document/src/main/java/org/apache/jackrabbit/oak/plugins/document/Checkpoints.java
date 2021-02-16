@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -89,15 +90,20 @@ class Checkpoints {
                 rv[0] = nodeStore.getHeadRevision();
             }
         });
-        createCounter.getAndIncrement();
-        performCleanupIfRequired();
-        UpdateOp op = new UpdateOp(ID, false);
-        long endTime = BigInteger.valueOf(nodeStore.getClock().getTime())
-                .add(BigInteger.valueOf(lifetimeInMillis))
-                .min(BigInteger.valueOf(Long.MAX_VALUE)).longValue();
-        op.setMapEntry(PROP_CHECKPOINT, r, new Info(endTime, rv[0], info).toString());
-        store.createOrUpdate(Collection.SETTINGS, op);
+        long endTime = Utils.sum(nodeStore.getClock().getTime(), lifetimeInMillis);
+        create(r, new Info(endTime, rv[0], info));
         return r;
+    }
+
+    public Revision create(long lifetimeInMillis,
+                           @NotNull Map<String, String> info,
+                           @NotNull Revision revision) {
+        if (revision.getTimestamp() > nodeStore.getClock().getTime()) {
+            throw new IllegalArgumentException("Cannot create checkpoint with a revision in the future: " + revision);
+        }
+        long endTime = Utils.sum(nodeStore.getClock().getTime(), lifetimeInMillis);
+        create(revision, new Info(endTime, null, info));
+        return revision;
     }
 
     public void release(String checkpoint) {
@@ -237,6 +243,14 @@ class Checkpoints {
             UpdateOp updateOp = new UpdateOp(ID, true);
             store.createOrUpdate(Collection.SETTINGS, updateOp);
         }
+    }
+
+    private void create(@NotNull Revision revision, @NotNull Info info) {
+        createCounter.getAndIncrement();
+        performCleanupIfRequired();
+        UpdateOp op = new UpdateOp(ID, false);
+        op.setMapEntry(PROP_CHECKPOINT, revision, info.toString());
+        store.createOrUpdate(Collection.SETTINGS, op);
     }
 
     private RevisionVector expand(Revision checkpoint) {

@@ -86,4 +86,18 @@ public interface DocumentNodeStoreMBean {
             @Description("Possible values are: DIFF, NODE, NODECHILDREN")
             @Name("name")
             String name);
+
+    @Description("Creates a checkpoint with the given revision and lifetime.")
+    String createCheckpoint(
+            @Description("The revision of the checkpoint to create.")
+            @Name("revision")
+            String revision,
+            @Description("The lifetime of the checkpoint in milliseconds.")
+            @Name("lifetime")
+            long lifetime,
+            @Description("Force create the checkpoint even when the revision " +
+                    "garbage collector may have cleaned up changes already " +
+                    "that are more recent than the revision checkpoint.")
+            @Name("force")
+            boolean force);
 }
