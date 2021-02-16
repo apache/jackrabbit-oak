@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-sudo: false
+os: linux
 dist: xenial
 services:
   - docker
 env:
   global:
-    - MONGODB=4.0.16
-  matrix:
+    - MONGODB=4.4.3
+  jobs:
     - MODULE=oak-jcr PROFILE="-PintegrationTesting" UT="-Dsurefire.skip.ut=true" MONGODB_MODE="--single"
     - MODULE=oak-jcr PROFILE="" UT="" MONGODB_MODE="--single"
     - MODULE=oak-store-document PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
@@ -34,8 +34,8 @@ env:
 before_install:
   - docker pull trekawek/azurite
 install:
-  - wget -N http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz -P $HOME/.mongodb
-  - tar --skip-old-files -C $HOME/.mongodb -xf $HOME/.mongodb/mongodb-linux-x86_64-${MONGODB}.tgz
+  - wget -N http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-${MONGODB}.tgz -P $HOME/.mongodb
+  - tar --skip-old-files -C $HOME/.mongodb -xf $HOME/.mongodb/mongodb-linux-x86_64-ubuntu1604-${MONGODB}.tgz
   - mkdir -p target/mongodb/data
   - cd target/mongodb
   - pyenv versions
@@ -46,7 +46,7 @@ install:
   - source mtools/bin/activate
   - pip install --upgrade pip
   - pip install python-dateutil psutil pymongo mtools
-  - mlaunch init ${MONGODB_MODE} --binarypath $HOME/.mongodb/mongodb-linux-x86_64-${MONGODB}/bin --dir ${TRAVIS_BUILD_DIR}/target/mongodb/data
+  - mlaunch init ${MONGODB_MODE} --binarypath $HOME/.mongodb/mongodb-linux-x86_64-ubuntu1604-${MONGODB}/bin --dir ${TRAVIS_BUILD_DIR}/target/mongodb/data
   - cd $TRAVIS_BUILD_DIR
   - mvn --batch-mode -DskipTests -Dbaseline.skip=true install -pl :${MODULE} -am -nsu
 script:   mvn --batch-mode clean verify -DtrimStackTrace=false -Dbaseline.skip=true ${UT} ${PROFILE} -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
