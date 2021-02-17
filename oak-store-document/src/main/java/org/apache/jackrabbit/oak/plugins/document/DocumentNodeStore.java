@@ -2485,6 +2485,7 @@ public final class DocumentNodeStore
         List<UpdateOp> splitOpsPhase2 = new ArrayList<>(initialCapacity);
         List<String> removeCandidates = new ArrayList<>(initialCapacity);
         for (String id : splitCandidates.keySet()) {
+            removeCandidates.add(id);
             NodeDocument doc = store.find(Collection.NODES, id);
             if (doc == null) {
                 continue;
@@ -2508,7 +2509,6 @@ public final class DocumentNodeStore
                     splitOpsPhase2.add(op);
                 }
             }
-            removeCandidates.add(id);
             if (splitOpsPhase1.size() >= getCreateOrUpdateBatchSize()
                     || splitOpsPhase2.size() >= getCreateOrUpdateBatchSize()) {
                 invalidatePaths(pathsToInvalidate);
@@ -2527,8 +2527,8 @@ public final class DocumentNodeStore
             invalidatePaths(pathsToInvalidate);
             batchSplit(splitOpsPhase1);
             batchSplit(splitOpsPhase2);
-            splitCandidates.keySet().removeAll(removeCandidates);
         }
+        splitCandidates.keySet().removeAll(removeCandidates);
     }
 
     private void invalidatePaths(@NotNull Set<Path> pathsToInvalidate) {
