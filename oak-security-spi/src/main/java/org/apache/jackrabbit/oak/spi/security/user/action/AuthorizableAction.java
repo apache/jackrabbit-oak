@@ -97,7 +97,7 @@ public interface AuthorizableAction {
      * <strong>before</strong> any {@code Root#commit()} call.
      *
      *
-     * @param user The new system user that has not yet been persisted;
+     * @param systemUser The new system user that has not yet been persisted;
      * e.g. the associated tree is still 'NEW'.
      * @param root The root associated with the user manager.
      * @param namePathMapper The {@code NamePathMapper} present with the editing session.
