@@ -55,7 +55,8 @@
               org.apache.jackrabbit.oak.commons.concurrent,
               org.apache.jackrabbit.oak.commons.io,
               org.apache.jackrabbit.oak.commons.json,
-              org.apache.jackrabbit.oak.commons.sort
+              org.apache.jackrabbit.oak.commons.sort,
+              org.apache.jackrabbit.oak.commons.properties
             </Export-Package>
           </instructions>
         </configuration>
