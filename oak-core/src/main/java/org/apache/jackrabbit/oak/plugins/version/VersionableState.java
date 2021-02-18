@@ -37,7 +37,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONEDCHILD;
@@ -51,7 +50,6 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
 
@@ -110,8 +108,6 @@ class VersionableState {
     private final NodeBuilder versionable;
     private final ReadWriteVersionManager vMgr;
     private final ReadOnlyNodeTypeManager ntMgr;
-    
-    private final boolean isFrozenNodeReferenceable;
 
     private VersionableState(@NotNull NodeBuilder version,
                              @NotNull NodeBuilder history,
@@ -124,21 +120,6 @@ class VersionableState {
         this.versionable = checkNotNull(versionable);
         this.vMgr = checkNotNull(vMgr);
         this.ntMgr = checkNotNull(ntMgr);
-        
-        boolean referenceableFound = false;
-        try {
-            NodeType[] superTypes = ntMgr.getNodeType(NT_FROZENNODE).getSupertypes();
-            for (NodeType superType : superTypes) {
-                if (superType.isNodeType(MIX_REFERENCEABLE)) {
-                    // OAK-9134: add uuid in older repositories with mix:referenceable in nt:frozenNode
-                    referenceableFound = true;
-                    break;
-                }
-            }
-        } catch (RepositoryException e) {
-            log.warn("Unable to access node type " + NT_FROZENNODE, e);
-        }
-        this.isFrozenNodeReferenceable = referenceableFound;
     }
 
     /**
@@ -194,10 +175,7 @@ class VersionableState {
                                         NodeBuilder node,
                                         String nodeId) {
         // initialize jcr:frozenNode
-        if (isFrozenNodeReferenceable) {
-            // OAK-9134: add uuid in older repositories with mix:referenceable in nt:frozenNode
-            frozen.setProperty(JCR_UUID, UUIDUtils.generateUUID(), Type.STRING);
-        }
+        frozen.setProperty(JCR_UUID, UUIDUtils.generateUUID(), Type.STRING);
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
         if (node.hasProperty(JCR_MIXINTYPES)) {

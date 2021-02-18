@@ -44,10 +44,10 @@ import static org.junit.Assert.assertTrue;
 
 public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
 
-    protected Tree versionable;
+    private Tree versionable;
     private String workspaceName;
 
-    protected ReadOnlyVersionManager versionManager;
+    private ReadOnlyVersionManager versionManager;
 
     @Override
     @Before
