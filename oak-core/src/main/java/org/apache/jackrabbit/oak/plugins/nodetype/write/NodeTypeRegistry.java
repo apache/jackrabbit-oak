@@ -52,7 +52,11 @@ public final class NodeTypeRegistry {
 
     private static final Logger LOG = LoggerFactory.getLogger(NodeTypeRegistry.class);
 
-    private static final boolean DEFAULT_REFERENCEABLE_FROZEN_NODE = false;
+    // OAK-9134 : the default for referenceableFrozenNode is true in the 1.22 branch.
+    // this is in contrast to it being false in newer versions.
+    // the reason for choosing true as the default is to maintain higher
+    // backwards compatibility and minimize an otherwise high impact in this branch.
+    private static final boolean DEFAULT_REFERENCEABLE_FROZEN_NODE = true;
 
     private final NodeTypeManager ntMgr;
 

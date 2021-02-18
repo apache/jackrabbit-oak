@@ -55,10 +55,10 @@ public class ReadOnlyVersionManagerNtTest extends ReadOnlyVersionManagerTest {
         Tree baseVersion = checkNotNull(versionManager.getBaseVersion(versionable));
         Tree frozen = baseVersion.getChild(VersionConstants.JCR_FROZENNODE);
         PropertyState uuid = frozen.getProperty("jcr:uuid");
-        if (oakReferenceableFrozenNode == null ||
-                "false".equals(oakReferenceableFrozenNode)) {
+        if ("false".equals(oakReferenceableFrozenNode)) {
             assertNull(uuid);
-        } else if ("true".equals(oakReferenceableFrozenNode)) {
+        } else if (oakReferenceableFrozenNode == null ||
+                "true".equals(oakReferenceableFrozenNode)) {
             assertNotNull(uuid);
         } else {
             fail("not supported");
