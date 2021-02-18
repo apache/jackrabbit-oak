@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -1075,7 +1074,6 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
     }
 
-    @Ignore("OAK-9358")
     @Test
     public void splitCandidatesCleanAfterBackgroundUpdate() throws Exception {
         DocumentNodeStore ns = mk.getNodeStore();
@@ -1088,7 +1086,6 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertThat(ns.getSplitCandidates(), empty());
     }
 
-    @Ignore("OAK-9358")
     @Test
     public void splitCandidatesCleanAfterBackgroundUpdateWithUnknownId() throws Exception {
         DocumentNodeStore ns = mk.getNodeStore();

@@ -2385,6 +2385,7 @@ public final class DocumentNodeStore
             String id = it.next();
             NodeDocument doc = store.find(Collection.NODES, id);
             if (doc == null) {
+                it.remove();
                 continue;
             }
             cleanCollisions(doc, collisionGarbageBatchSize);
