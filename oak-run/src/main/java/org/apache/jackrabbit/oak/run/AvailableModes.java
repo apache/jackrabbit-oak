@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.run;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.exporter.NodeStateExportCommand;
 import org.apache.jackrabbit.oak.index.IndexCommand;
+import org.apache.jackrabbit.oak.index.merge.IndexDiffCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 
@@ -48,6 +49,7 @@ public final class AvailableModes {
             .put("help", new HelpCommand())
             .put("history", new HistoryCommand())
             .put("index-merge", new IndexMergeCommand())
+            .put("index-diff", new IndexDiffCommand())
             .put(IndexCommand.NAME, new IndexCommand())
             .put(IOTraceCommand.NAME, new IOTraceCommand())
             .put(JsonIndexCommand.INDEX, new JsonIndexCommand())

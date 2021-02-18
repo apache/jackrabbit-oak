@@ -4,13 +4,14 @@
   "ancestor": {"value": 1, "a-old": 0},
   "custom": {"value": 2, "b-new": 3},
   "product": {"value": 1, "c-new": 4},
-  "expected": {"value": 2, "b-new": 3, "c-new": 4}
+  "expected": {"value": 2, "b-new": 3, "c-new": 4, "merges": ["/oak:index/test-1", "/oak:index/test-1-custom-1"]
+  }
 },
 {
   "ancestor": {"o": {"a": 1}},
   "custom": {"o": {"a": 2, "c": 10}},
   "product": {"o": {"a": 1, "p": 20}},
-  "expected": {"o": {"a": 2, "c": 10, "p": 20}}
+  "expected": {"merges": ["/oak:index/test-1", "/oak:index/test-1-custom-1"], "o": {"a": 2, "c": 10, "p": 20 }}
 },
 {
   "ancestor": {"o": {"a": 1}},
@@ -70,7 +71,7 @@
 
 
   , "custom": {
-// changed: facetc
+// changed: facets
     "jcr:primaryType": "nam:oak:QueryIndexDefinition",
     "compatVersion": 2,
     "includedPaths": ["/content/dam"],
@@ -195,7 +196,8 @@
           }
         }
       }
-    }
+    },
+    "merges": ["/oak:index/test-1", "/oak:index/test-1-custom-1"]
   }
 
 

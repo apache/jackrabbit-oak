@@ -35,6 +35,7 @@
     <groovy.version>2.4.17</groovy.version>
     <!--
       Size History:
+      + 56 MB MongoDB Java driver 3.12.7 (OAK-9357)
       + 55 MB Add support for segment persistent cache (OAK-7744)
       + 54 MB AWS support for segment-tar (OAK-8827)
       + 52 MB AWS java sdk update (OAK-8875)
@@ -46,7 +47,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>57671680</max.jar.size>
+    <max.jar.size>58720256</max.jar.size>
   </properties>
 
   <build>

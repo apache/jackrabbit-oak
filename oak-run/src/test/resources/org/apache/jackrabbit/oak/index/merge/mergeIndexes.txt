@@ -10,7 +10,7 @@
 		},
 		"expectedNew": {
 			"/oak:index/lucene-2": { "a": 1, "b": 11, "d": 100, "z": 2 },
-			"/oak:index/lucene-2-custom-1": { "a": 2, "b": 11, "c": 1, "d": 100 }
+			"/oak:index/lucene-2-custom-1": { "a": 2, "b": 11, "c": 1, "d": 100, "merges": ["/oak:index/lucene", "/oak:index/lucene-custom-1"] }
 		}
 	}
 ]

@@ -41,10 +41,10 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -341,6 +341,26 @@ public class JournalDiffLoaderTest {
         merge(ns, builder);
         DocumentNodeState after = ns.getRoot();
         new JournalDiffLoader(before, after, ns).call();
+    }
+
+    @Test
+    public void ignoreInvalidationEntries() throws Exception {
+        CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(store).clock(clock).setAsyncDelay(0)
+                .getNodeStore();
+        DocumentNodeState before = ns.getRoot();
+        for (int i = 0; i < 10; i++) {
+            NodeBuilder builder = ns.getRoot().builder();
+            builder.child("test").setProperty("binaryProp", ns.createBlob(new RandomStream(4097, i)));
+            ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            ns.runBackgroundOperations();
+        }
+        DocumentNodeState after = ns.getRoot();
+        store.resetCounters();
+        JournalDiffLoader diffLoader = new JournalDiffLoader(before, after, ns);
+        diffLoader.call();
+        assertEquals(0, store.getNumFindCalls(Collection.JOURNAL));
     }
 
     private static CacheStats getMemoryDiffStats(DocumentNodeStore ns) {

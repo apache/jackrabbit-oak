@@ -32,6 +32,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -371,6 +372,13 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
     @Test
     public void vectorSimilarityLargeData() throws Exception {
+        URL url = getClass().getResource("/org/apache/jackrabbit/oak/query/imagedata.txt");
+        if (url == null) {
+            // not found
+            return;
+        }
+        URI uri = url.toURI();
+
         final int similarImageCount = 10;
         IndexDefinitionBuilder builder = createIndex("fv");
         builder.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex();
@@ -388,7 +396,6 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
          Line 24: EMPTY_LINE
         Then this pattern repeats again with next Query Image name in line 25.
          */
-        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/imagedata.txt").toURI();
         File inputFile = new File(uri);
         Map<String, List<String>> expectedResults = new HashMap<>();
 

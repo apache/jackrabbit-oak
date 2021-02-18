@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;

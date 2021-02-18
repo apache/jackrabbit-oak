@@ -169,13 +169,8 @@ class JournalDiffLoader implements DiffCache.Loader {
                 // use revision with a timestamp of zero
                 from = new Revision(0, 0, to.getClusterId());
             }
-            StringSort invalidateOnly = JournalEntry.newSorter();
-            try {
-                stats.numJournalEntries += fillExternalChanges(changes, invalidateOnly,
-                        path, from, to, ns.getDocumentStore(), entry -> {}, null, null);
-            } finally {
-                invalidateOnly.close();
-            }
+            stats.numJournalEntries += fillExternalChanges(changes, null,
+                    path, from, to, ns.getDocumentStore(), entry -> {}, null, null);
         }
     }
 

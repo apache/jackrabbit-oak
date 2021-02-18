@@ -32,15 +32,14 @@ versions may also work, but are untested.
 
 Oak Release | MongoDB version
 ------------|----------------
-1.0.x | 2.6.x
-1.2.x | 3.2.x
 1.4.0 - 1.4.22 | 3.2.x
 1.4.23 or newer | 3.6.x
 1.6.0 - 1.6.13 | 3.2.x
 1.6.14 or newer | 3.6.x
 1.8.0 - 1.8.6 | 3.4.x
 1.8.7 or newer | 3.6.x
-1.10.x or newer | 4.0.x
+1.22.x or newer | 4.0.x
+1.40.0 or newer | 4.4.x
 
 For production deployments use a replica-set with at least three mongod
 instances and a majority write concern. Fewer than three instances (e.g. two

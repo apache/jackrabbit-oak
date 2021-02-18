@@ -28,18 +28,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 /**
- * Utility class for consistent handling of system properties.
- * <p>
- * It provides for:
- * <ul>
- * <li>TRACE level logging of getting the system property
- * <li>ERROR level logging when value does not parse or is invalid (where
- * validity can be checked by a {@link Predicate})
- * <li>(default) INFO level logging when value differs from default (log level
- * and message format can be overridden)
- * </ul>
- * <p>
- * The supported types are: {@link Boolean}, {@link Integer},  {@link Long}, {@link String}
+  * @deprecated please use org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier
+  * @see org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier
  */
 public class SystemPropertySupplier<T> implements Supplier<T> {
 

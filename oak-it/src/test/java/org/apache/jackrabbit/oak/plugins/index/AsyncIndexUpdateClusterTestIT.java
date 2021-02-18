@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -142,12 +143,12 @@ public class AsyncIndexUpdateClusterTestIT {
             protected boolean updateIndex(NodeState before,
                     String beforeCheckpoint, NodeState after,
                     String afterCheckpoint, String afterTime,
-                    AsyncUpdateCallback callback) throws CommitFailedException {
+                    AsyncUpdateCallback callback, AtomicReference<String> checkpointToReleaseRef) throws CommitFailedException {
                 if (MISSING_NODE == before) {
                     l.reindexing();
                 }
                 return super.updateIndex(before, beforeCheckpoint, after,
-                        afterCheckpoint, afterTime, callback);
+                        afterCheckpoint, afterTime, callback, checkpointToReleaseRef);
             }
         };
         aiu.setCloseTimeOut(1);
