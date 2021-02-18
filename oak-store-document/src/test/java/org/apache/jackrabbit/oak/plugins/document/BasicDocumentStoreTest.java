@@ -409,7 +409,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String id = "0:/" + generateId(2048, true);
         assertNull("find() with ultra-long id needs to return 'null'", super.ds.find(Collection.NODES, id));
 
-        if (! super.dsname.contains("Memory")) {
+        if (!super.dsname.contains("Memory") && !super.dsname.contains("MongoDB")) {
             UpdateOp up = new UpdateOp(id,  true);
             assertFalse("create() with ultra-long id needs to fail", super.ds.create(Collection.NODES, Collections.singletonList(up)));
         }
