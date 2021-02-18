@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
@@ -89,9 +93,24 @@ public final class NodeTypeRegistry {
 
     private void registerNodeTypes(InputStream stream, String systemId) {
         try {
-            CndImporter.registerNodeTypes(
-                    new InputStreamReader(stream, Charsets.UTF_8),
-                    systemId, ntMgr, nsReg, vf, false);
+            Reader reader = new InputStreamReader(stream, Charsets.UTF_8);
+            // OAK-9134: nt:frozenNode is not implementing mix:referenceable from JCR 2.0.
+            // This system property allows to add it back when initializing a repository.
+            boolean referenceableFrozenNode = Boolean.getBoolean("oak.referenceableFrozenNode");
+            if (referenceableFrozenNode) {
+                BufferedReader bufferedReader = new BufferedReader(reader);
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    if (line.trim().equals("[nt:frozenNode]")) {
+                        line = "[nt:frozenNode] > mix:referenceable";
+                    }
+                    result.append(line).append(System.lineSeparator());
+                }
+                reader = new StringReader(result.toString());
+            }
+
+            CndImporter.registerNodeTypes(reader, systemId, ntMgr, nsReg, vf, false);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to read " + systemId, e);
         } catch (ParseException e) {

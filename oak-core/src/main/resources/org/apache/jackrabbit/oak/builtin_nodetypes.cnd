@@ -416,7 +416,7 @@
 /**
  * @since 1.0
  */
-[nt:frozenNode] > mix:referenceable
+[nt:frozenNode]
   orderable
   - jcr:frozenPrimaryType (NAME) mandatory autocreated protected ABORT
   - jcr:frozenMixinTypes (NAME) protected multiple ABORT
