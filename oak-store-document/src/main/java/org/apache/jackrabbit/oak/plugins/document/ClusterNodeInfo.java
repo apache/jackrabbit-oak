@@ -835,7 +835,7 @@ public class ClusterNodeInfo {
      * @return {@code true} if the lease is considered expired, {@code false}
      *         otherwise.
      */
-    private boolean isLeaseExpired(long time) {
+    protected boolean isLeaseExpired(long time) {
         return time >= (leaseEndTime - leaseFailureMargin);
     }
 
