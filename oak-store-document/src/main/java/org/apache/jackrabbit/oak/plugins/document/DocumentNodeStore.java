@@ -883,6 +883,27 @@ public final class DocumentNodeStore
 
         Utils.joinQuietly(clusterUpdateThread);
 
+        // attempt diagnostics on lease update thread
+        boolean isLeaseExpired = clusterNodeInfo.isLeaseExpired(clock.getTime());
+        Thread.State leaseUpdateState = leaseUpdateThread.getState();
+        if (leaseUpdateState == Thread.State.TERMINATED) {
+            LOG.error("leaseUpdateThread (" + leaseUpdateThread.getName() + ") is terminated");
+        }
+
+        if (isLeaseExpired || LOG.isDebugEnabled()) {
+            StringBuilder message = new StringBuilder(
+                    "Status of lease update thread (" + leaseUpdateThread.getName() + "): " + leaseUpdateState + "; Stack Trace:");
+            for (StackTraceElement se : leaseUpdateThread.getStackTrace()) {
+                message.append("\n\tat ");
+                message.append(se.toString());
+            }
+            if (isLeaseExpired) {
+                LOG.info(message.toString());
+            } else {
+                LOG.debug(message.toString());
+            }
+        }
+
         // Stop lease update thread once no further document store operations
         // are required
         LOG.debug("Stopping LeaseUpdate thread...");
