@@ -151,7 +151,8 @@ public final class DefaultSegmentWriterBuilder {
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled)
+                createWriter(store, pooled),
+                store.getBinariesInlineThreshold()
         );
     }
 
@@ -187,7 +188,8 @@ public final class DefaultSegmentWriterBuilder {
                     public void flush(@NotNull SegmentStore store) {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
-                }
+                },
+                store.getBinariesInlineThreshold()
         );
     }
 
@@ -202,7 +204,8 @@ public final class DefaultSegmentWriterBuilder {
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled)
+                createWriter(store, pooled),
+                Segment.MEDIUM_LIMIT
         );
     }
 

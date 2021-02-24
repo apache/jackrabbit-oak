@@ -130,6 +130,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     protected final IOMonitor ioMonitor;
 
     protected final RemoteStoreMonitor remoteStoreMonitor;
+    
+    protected final int binariesInlineThreshold;
 
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
@@ -153,6 +155,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.ioMonitor = builder.getIOMonitor();
         this.remoteStoreMonitor = builder.getRemoteStoreMonitor();
         this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
+        this.binariesInlineThreshold = builder.getBinariesInlineThreshold();
     }
 
     static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
@@ -188,6 +191,10 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     @NotNull
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
+    }
+    
+    public int getBinariesInlineThreshold() {
+        return binariesInlineThreshold;
     }
 
     /**
