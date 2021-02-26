@@ -142,6 +142,10 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
         return super.compareAgainstBaseState(base, diff);
     }
 
+    NodeState getBaseState() {
+        return base;
+    }
+
     private boolean revisionEquals(AbstractDocumentNodeState a,
                                    AbstractDocumentNodeState b) {
         RevisionVector rv1 = a.getLastRevision();
