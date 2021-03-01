@@ -26,23 +26,62 @@ import static org.junit.Assert.assertTrue;
 import java.util.Calendar;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-public class LuceneIndexQueryTestSQL2OptimisationTest extends LuceneIndexQueryTest {
+public class LuceneIndexQueryTestSQL2OptimisationTest extends AbstractQueryTest {
+
+    Oak getOakRepo() {
+        LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
+        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
+                .with(new OpenSecurityProvider())
+                .with((QueryIndexProvider) provider)
+                .with((Observer) provider)
+                .with(new LuceneIndexEditorProvider())
+                .with(new QueryEngineSettings() {
+                    @Override
+                    public boolean isSql2Optimisation() {
+                        return true;
+                    }
+                });
+    }
 
     @Override
-    Oak getOakRepo() {
-        return super.getOakRepo().with(new QueryEngineSettings() {
-            @Override
-            public boolean isSql2Optimisation() {
-                return true;
-            }
-        });
+    protected ContentRepository createRepository() {
+        return getOakRepo().createContentRepository();
+    }
+
+    @Override
+    protected void createTestIndexNode() throws Exception {
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
+        props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+        TestUtil.enablePropertyIndex(props, "c1/p", false);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+        TestUtil.enablePropertyIndex(props, "a/name", false);
+        TestUtil.enablePropertyIndex(props, "b/name", false);
+        TestUtil.enableFunctionIndex(props, "length([name])");
+        TestUtil.enableFunctionIndex(props, "lower([name])");
+        TestUtil.enableFunctionIndex(props, "upper([name])");
+
+        root.commit();
     }
 
     @Test
