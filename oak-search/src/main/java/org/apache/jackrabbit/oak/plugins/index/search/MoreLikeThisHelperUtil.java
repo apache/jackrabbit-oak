@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -110,13 +109,11 @@ public class MoreLikeThisHelperUtil {
      */
     public static final String MLT_MIN_SHOULD_MATCH = "mlt.minshouldmatch";
 
-
-
     /*
     Returns param map for a query string of type mlt.fl=:path&mlt.mindf=0&stream.body=/test/a
      */
     public static Map<String, String> getParamMapFromMltQuery(String mltQueryString) {
-        Map<String, String> paramMap = new HashMap();
+        Map<String, String> paramMap = new HashMap<>();
         try {
             for (String param : mltQueryString.split("&")) {
                 String[] keyValuePair = param.split("=");
@@ -136,6 +133,5 @@ public class MoreLikeThisHelperUtil {
 
         return paramMap;
     }
-
 
 }

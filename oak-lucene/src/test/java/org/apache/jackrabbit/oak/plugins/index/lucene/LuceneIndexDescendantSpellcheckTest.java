@@ -62,9 +62,9 @@ public class LuceneIndexDescendantSpellcheckTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
 
         Jcr jcr = new Jcr()
-            .with(((QueryIndexProvider) provider))
-            .with((Observer) provider)
-            .with(new LuceneIndexEditorProvider());
+                .with(((QueryIndexProvider) provider))
+                .with((Observer) provider)
+                .with(new LuceneIndexEditorProvider());
 
         repository = jcr.createRepository();
         session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -120,9 +120,9 @@ public class LuceneIndexDescendantSpellcheckTest {
     }
 
     private void createSuggestIndex(Node rootNode, String name, String indexedNodeType, String indexedPropertyName)
-        throws Exception {
+            throws Exception {
         Node def = JcrUtils.getOrAddNode(rootNode, INDEX_DEFINITIONS_NAME)
-            .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
+                .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", name);
@@ -130,9 +130,9 @@ public class LuceneIndexDescendantSpellcheckTest {
         def.setProperty(EVALUATE_PATH_RESTRICTION, true);
 
         Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
-            .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
-            .addNode(FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
-            .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
+                .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
+                .addNode(FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
+                .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty(PROP_USE_IN_SPELLCHECK, true);
         propertyIdxDef.setProperty("name", indexedPropertyName);
@@ -140,8 +140,8 @@ public class LuceneIndexDescendantSpellcheckTest {
 
     private String createSpellcheckQuery(String nodeTypeName, String suggestFor, String rootPath) {
         return "SELECT [rep:spellcheck()] as spellcheck, [jcr:score] as score  FROM [" + nodeTypeName + "]" +
-            " WHERE spellcheck('" + suggestFor + "')" +
-            (rootPath==null?"":" AND ISDESCENDANTNODE([" + rootPath + "])");
+                " WHERE spellcheck('" + suggestFor + "')" +
+                (rootPath==null?"":" AND ISDESCENDANTNODE([" + rootPath + "])");
 
     }
 
@@ -167,16 +167,8 @@ public class LuceneIndexDescendantSpellcheckTest {
     @Test
     public void noDescendantSuggestsAll() throws Exception {
         validateSpellchecks(
-            createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", null),
-            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
-    }
-
-    //OAK-3994
-    @Test
-    public void rootIndexWithDescendantConstraint() throws Exception {
-        validateSpellchecks(
-            createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
-            newHashSet("test2", "test3"));
+                createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", null),
+                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
@@ -189,23 +181,8 @@ public class LuceneIndexDescendantSpellcheckTest {
 
         //Without path restriction indexing, descendant clause shouldn't be respected
         validateSpellchecks(
-            createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
-            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+                createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
+                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
-    //OAK-3994
-    @Test
-    public void unambiguousSubtreeIndexWithDescendantConstraint() throws Exception {
-        validateSpellchecks(
-            createSpellcheckQuery(NT_BASE, "taste", "/content3"),
-            newHashSet("test5", "test6"));
-    }
-
-    //OAK-3994
-    @Test
-    public void unambiguousSubtreeIndexWithSubDescendantConstraint() throws Exception {
-        validateSpellchecks(
-            createSpellcheckQuery(NT_BASE, "taste", "/content3/sC"),
-            newHashSet("test6"));
-    }
 }

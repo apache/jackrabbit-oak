@@ -179,12 +179,13 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Returns the keyword field name mapped in Elasticsearch for the specified property name.
      * @param propertyName the property name in the index rules
      * @return the field name identifier in Elasticsearch
-     * @throws IllegalArgumentException if the specified name is not part of this {@code ElasticIndexDefinition}
      */
     public String getElasticKeyword(String propertyName) {
         List<PropertyDefinition> propertyDefinitions = propertiesByName.get(propertyName);
         if (propertyDefinitions == null) {
-            throw new IllegalArgumentException(propertyName + " is not part of this ElasticIndexDefinition");
+            // if there are no property definitions we return the default keyword name
+            // this can happen for properties that were not explicitly defined (eg: created with a regex)
+            return propertyName + ".keyword";
         }
 
         String field = propertyName;

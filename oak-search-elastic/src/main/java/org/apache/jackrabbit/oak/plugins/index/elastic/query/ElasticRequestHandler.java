@@ -58,6 +58,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.InnerHitBuilder;
 import org.elasticsearch.index.query.MatchBoolPrefixQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.MoreLikeThisQueryBuilder;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.NestedQueryBuilder;
@@ -66,7 +67,6 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.WrapperQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
-import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -124,6 +124,7 @@ import static org.elasticsearch.index.query.QueryBuilders.moreLikeThisQuery;
 import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.nestedQuery;
 import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
+import static org.elasticsearch.index.query.QueryBuilders.simpleQueryStringQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 import static org.elasticsearch.index.query.QueryBuilders.wrapperQuery;
 
@@ -135,7 +136,6 @@ public class ElasticRequestHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticRequestHandler.class);
     private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
     protected final static String SUGGEST_PREFIX = "suggest?term=";
-    private static final String ES_TRIGRAM_SUFFIX = ".trigram";
     private static final List<FieldSortBuilder> DEFAULT_SORTS = Arrays.asList(
             SortBuilders.fieldSort("_score").order(SortOrder.DESC),
             SortBuilders.fieldSort(FieldNames.PATH).order(SortOrder.ASC) // tie-breaker
@@ -332,13 +332,6 @@ public class ElasticRequestHandler {
                 .map(pr -> FulltextIndex.parseFacetField(pr.first.getValue(Type.STRING)));
     }
 
-    public Stream<String> spellCheckFields() {
-        return StreamSupport
-                .stream(planResult.indexingRule.getProperties().spliterator(), false)
-                .filter(pd -> pd.useInSpellcheck)
-                .map(pd -> pd.name);
-    }
-
     private QueryBuilder similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
         BoolQueryBuilder query = boolQuery();
         if (!sp.isEmpty()) {
@@ -450,6 +443,8 @@ public class ElasticRequestHandler {
             String[] fieldsArray = fields.split(",");
             mlt = moreLikeThisQuery(fieldsArray, null, new Item[]{new Item(null, text)});
         }
+        // include the input doc to align the Lucene behaviour TODO: add configuration parameter
+        mlt.include(true);
 
         if (!shallowMltParams.isEmpty()) {
             BiConsumer<String, Consumer<String>> mltParamSetter = (key, setter) -> {
@@ -481,36 +476,31 @@ public class ElasticRequestHandler {
         return mlt;
     }
 
-    public PhraseSuggestionBuilder suggestQuery(String field, String spellCheckQuery) {
+    public PhraseSuggestionBuilder suggestQuery(String spellCheckQuery) {
         BoolQueryBuilder query = boolQuery()
-                .must(new MatchPhraseQueryBuilder(field, "{{suggestion}}"));
+                .must(new MatchPhraseQueryBuilder(FieldNames.SPELLCHECK, "{{suggestion}}"));
 
         nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
 
         PhraseSuggestionBuilder.CandidateGenerator candidateGeneratorBuilder =
-                new DirectCandidateGeneratorBuilder(getTrigramField(field)).suggestMode("missing");
+                new DirectCandidateGeneratorBuilder(FieldNames.SPELLCHECK).suggestMode("missing");
         return SuggestBuilders
-                .phraseSuggestion(getTrigramField(field))
+                .phraseSuggestion(FieldNames.SPELLCHECK)
                 .size(10)
                 .addCandidateGenerator(candidateGeneratorBuilder)
                 .text(spellCheckQuery)
                 .collateQuery(query.toString());
     }
 
-    public BoolQueryBuilder suggestMatchQuery(String suggestion, String[] fields) {
+    public BoolQueryBuilder suggestMatchQuery(String suggestion) {
         BoolQueryBuilder query = boolQuery()
-                .must(new MultiMatchQueryBuilder(suggestion, fields)
+                .must(new MatchQueryBuilder(FieldNames.SPELLCHECK, suggestion)
                         .operator(Operator.AND).fuzzyTranspositions(false)
-                        .autoGenerateSynonymsPhraseQuery(false)
-                        .type(MatchQuery.Type.PHRASE));
+                        .autoGenerateSynonymsPhraseQuery(false));
 
         nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
 
         return query;
-    }
-
-    private String getTrigramField(String field) {
-        return field + ES_TRIGRAM_SUFFIX;
     }
 
     private QueryBuilder fullTextQuery(FullTextExpression ft, final PlanResult pr) {
@@ -521,7 +511,14 @@ public class ElasticRequestHandler {
 
             @Override
             public boolean visit(FullTextContains contains) {
-                visitTerm(contains.getPropertyName(), contains.getRawText(), null, contains.isNot());
+                // this 'hack' is needed because NotFullTextSearchImpl transforms the raw text prepending a '-'. This causes
+                // a double negation since the contains is already of type NOT. The same does not happen in Lucene because
+                // at this stage the code is parsed with the standard lucene parser.
+                if (contains.getBase() instanceof FullTextTerm) {
+                    visitTerm(contains.getPropertyName(), ((FullTextTerm)contains.getBase()).getText(),null, contains.isNot());
+                } else {
+                    visitTerm(contains.getPropertyName(), contains.getRawText(), null, contains.isNot());
+                }
                 return true;
             }
 
@@ -789,9 +786,8 @@ public class ElasticRequestHandler {
             // and could contain other parts like renditions, node name, etc
             return multiMatchQuery.field(fieldName);
         } else {
-            return matchQuery(fieldName, text).operator(Operator.AND);
+            return simpleQueryStringQuery(text).field(fieldName).defaultOperator(Operator.AND);
         }
-
     }
 
     private QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,

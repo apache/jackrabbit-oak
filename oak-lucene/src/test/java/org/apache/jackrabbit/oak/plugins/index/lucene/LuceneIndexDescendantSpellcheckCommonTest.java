@@ -25,7 +25,6 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,19 +36,17 @@ public class LuceneIndexDescendantSpellcheckCommonTest extends IndexDescendantSp
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Override
-    protected Repository createJcrRepository() throws RepositoryException {
+    protected Repository createJcrRepository() {
         indexOptions = new LuceneIndexOptions();
         repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
-        Repository repository = jcr.createRepository();
-        return repository;
+        return jcr.createRepository();
     }
 
     @After
     public void shutdownExecutor() {
         executorService.shutdown();
     }
-
 
 }

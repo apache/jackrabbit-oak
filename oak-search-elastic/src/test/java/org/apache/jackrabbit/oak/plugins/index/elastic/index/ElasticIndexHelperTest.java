@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -90,9 +89,6 @@ public class ElasticIndexHelperTest {
 
         assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("false"));
 
-        assertThat(request.settings().get("analysis.filter.shingle.type"), nullValue());
-        assertThat(request.settings().get("analysis.filter.analyzer.trigram.type"), nullValue());
-
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> jsonMappings = mapper.readValue(request.mappings().streamInput(), Map.class);
         Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get("foo");
@@ -117,33 +113,6 @@ public class ElasticIndexHelperTest {
         CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(ElasticIndexNameHelper.getRemoteIndexName(definition), definition);
 
         assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("true"));
-    }
-
-    @Test
-    public void spellCheck() throws IOException {
-        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("type");
-        indexRule.property("foo").type("String").analyzed().useInSpellcheck();
-        indexRule.property("bar").type("String").analyzed();
-
-        NodeState nodeState = builder.build();
-
-        ElasticIndexDefinition definition =
-                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
-
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(ElasticIndexNameHelper.getRemoteIndexName(definition), definition);
-
-        assertThat(request.settings().get("analysis.filter.shingle.type"), is("shingle"));
-        assertThat(request.settings().get("analysis.analyzer.trigram.type"), is("custom"));
-
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> jsonMappings = mapper.readValue(request.mappings().streamInput(), Map.class);
-        Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get("foo");
-        Map fooFields = (Map) fooMapping.get("fields");
-        assertThat(fooFields.get("trigram"), notNullValue());
-        Map barMapping = (Map) ((Map) jsonMappings.get("properties")).get("bar");
-        Map barFields = (Map) barMapping.get("fields");
-        assertThat(barFields.get("trigram"), nullValue());
     }
 
 }

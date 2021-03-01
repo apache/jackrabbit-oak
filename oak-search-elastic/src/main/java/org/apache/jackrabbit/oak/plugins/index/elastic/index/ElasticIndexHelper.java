@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * Provides utility functions around Elasticsearch indexing
  */
 class ElasticIndexHelper {
-    
+
     private static final String ES_DENSE_VECTOR_DIM_PROP = "dims";
 
     public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
@@ -82,13 +82,12 @@ class ElasticIndexHelper {
                         settingsBuilder.field("preserve_original", indexDefinition.indexOriginalTerms());
                     }
                     settingsBuilder.endObject();
-                    if (indexDefinition.isSpellcheckEnabled()) {
-                        settingsBuilder.startObject("shingle")
-                                .field("type", "shingle")
-                                .field("min_shingle_size", 2)
-                                .field("max_shingle_size", 3)
-                                .endObject();
-                    }
+
+                    settingsBuilder.startObject("shingle")
+                            .field("type", "shingle")
+                            .field("min_shingle_size", 2)
+                            .field("max_shingle_size", 3)
+                            .endObject();
                 }
                 settingsBuilder.endObject();
 
@@ -108,13 +107,12 @@ class ElasticIndexHelper {
                         settingsBuilder.field("tokenizer", "path_hierarchy");
                     }
                     settingsBuilder.endObject();
-                    if (indexDefinition.isSpellcheckEnabled()) {
-                        settingsBuilder.startObject("trigram")
-                                .field("type", "custom")
-                                .field("tokenizer", "standard")
-                                .array("filter", "lowercase", "shingle")
-                                .endObject();
-                    }
+
+                    settingsBuilder.startObject("trigram")
+                            .field("type", "custom")
+                            .field("tokenizer", "standard")
+                            .array("filter", "lowercase", "shingle")
+                            .endObject();
                 }
                 settingsBuilder.endObject();
             }
@@ -158,12 +156,8 @@ class ElasticIndexHelper {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
             Type<?> type = null;
-            boolean useInSpellCheck = false;
             for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
-                if (pd.useInSpellcheck) {
-                    useInSpellCheck = true;
-                }
                 if (pd.useInSuggest) {
                     useInSuggest = true;
                 }
@@ -193,11 +187,6 @@ class ElasticIndexHelper {
                                     .field("type", "keyword")
                                     .field("ignore_above", 256)
                                     .endObject();
-                            if (useInSpellCheck) {
-                                mappingBuilder.startObject("trigram")
-                                        .field("type", "text").field("analyzer", "trigram")
-                                        .endObject();
-                            }
                         }
                         mappingBuilder.endObject();
                     } else {
@@ -210,6 +199,10 @@ class ElasticIndexHelper {
             }
             mappingBuilder.endObject();
         }
+
+        mappingBuilder.startObject(FieldNames.SPELLCHECK)
+                .field("type", "text").field("analyzer", "trigram")
+                .endObject();
 
         if (useInSuggest) {
             mappingBuilder.startObject(FieldNames.SUGGEST);

@@ -126,7 +126,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
         propertyIdxDef.setProperty("name", indexedPropertyName);
     }
 
-    private String createSuggestQuery(String nodeTypeName, String suggestFor, String rootPath) {
+    protected String createSuggestQuery(String nodeTypeName, String suggestFor, String rootPath) {
         return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeTypeName + "]" +
                 " WHERE suggest('" + suggestFor + "')" +
                 (rootPath == null ? "" : " AND ISDESCENDANTNODE([" + rootPath + "])");
@@ -146,9 +146,9 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
         return suggestions;
     }
 
-    private void validateSuggestions(String query, Set<String> expected) throws Exception {
+    protected void validateSuggestions(String query, Set<String> expected) {
         assertEventually(() -> {
-            Set<String> suggestions = null;
+            Set<String> suggestions;
             try {
                 suggestions = getSuggestions(query);
             } catch (Exception e) {
@@ -160,7 +160,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
 
     //Don't break suggestions :)
     @Test
-    public void noDescendantSuggestsAll() throws Exception {
+    public void noDescendantSuggestsAll() {
         validateSuggestions(
                 createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", null),
                 newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
@@ -168,26 +168,10 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
 
     //OAK-3994
     @Test
-    public void rootIndexWithDescendantConstraint() throws Exception {
+    public void rootIndexWithDescendantConstraint() {
         validateSuggestions(
                 createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
                 newHashSet("test2", "test3"));
-    }
-
-    @Ignore
-    //TODO ES failing --> if path restrictions are not enabled can we still get results with descendant filter as if path restrictions were enabled?
-    //OAK-3994
-    @Test
-    public void descendantSuggestionRequirePathRestrictionIndex() throws Exception {
-        Node rootIndexDef = root.getNode("oak:index/sugg-idx");
-        rootIndexDef.getProperty(EVALUATE_PATH_RESTRICTION).remove();
-        rootIndexDef.setProperty(REINDEX_PROPERTY_NAME, true);
-        session.save();
-
-        //Without path restriction indexing, descendant clause shouldn't be respected
-        validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     @Ignore("OAK-3992")
@@ -208,7 +192,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
 
     //OAK-3994
     @Test
-    public void unambiguousSubtreeIndexWithDescendantConstraint() throws Exception {
+    public void unambiguousSubtreeIndexWithDescendantConstraint() {
         validateSuggestions(
                 createSuggestQuery(NT_BASE, "te", "/content3"),
                 newHashSet("test5", "test6"));
@@ -216,7 +200,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
 
     //OAK-3994
     @Test
-    public void unambiguousSubtreeIndexWithSubDescendantConstraint() throws Exception {
+    public void unambiguousSubtreeIndexWithSubDescendantConstraint() {
         validateSuggestions(
                 createSuggestQuery(NT_BASE, "te", "/content3/sC"),
                 newHashSet("test6"));
@@ -224,7 +208,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
 
     @Ignore("OAK-3993")
     @Test
-    public void unionOnTwoDescendants() throws Exception {
+    public void unionOnTwoDescendants() {
         validateSuggestions(
                 createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1") +
                         " UNION " +
