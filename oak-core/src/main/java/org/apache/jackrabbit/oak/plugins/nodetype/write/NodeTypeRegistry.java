@@ -33,11 +33,14 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -46,6 +49,10 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  * node types required for a JCR repository running on Oak.
  */
 public final class NodeTypeRegistry {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NodeTypeRegistry.class);
+
+    private static final boolean DEFAULT_REFERENCEABLE_FROZEN_NODE = false;
 
     private final NodeTypeManager ntMgr;
 
@@ -96,7 +103,12 @@ public final class NodeTypeRegistry {
             Reader reader = new InputStreamReader(stream, Charsets.UTF_8);
             // OAK-9134: nt:frozenNode is not implementing mix:referenceable from JCR 2.0.
             // This system property allows to add it back when initializing a repository.
-            boolean referenceableFrozenNode = Boolean.getBoolean("oak.referenceableFrozenNode");
+            // PS: To keep supporting tests in fiddling this setting, the SystemPropertySupplier
+            // is evaluated here rather than in static code, where this is typically done.
+            final boolean referenceableFrozenNode = SystemPropertySupplier.create("oak.referenceableFrozenNode", DEFAULT_REFERENCEABLE_FROZEN_NODE)
+                    .loggingTo(LOG).formatSetMessage(
+                            (name, value) -> String.format("oak.referenceableFrozenNode set to: %s (using system property %s)", name, value))
+                    .get();
             if (referenceableFrozenNode) {
                 BufferedReader bufferedReader = new BufferedReader(reader);
                 StringBuilder result = new StringBuilder();
