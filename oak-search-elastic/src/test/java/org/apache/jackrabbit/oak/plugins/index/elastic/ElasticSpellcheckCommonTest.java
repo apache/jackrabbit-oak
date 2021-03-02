@@ -52,7 +52,6 @@ public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
         repositoryOptionsUtil = new ElasticTestRepositoryBuilder(elasticRule).build();
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
-        Repository repository = jcr.createRepository();
-        return repository;
+        return jcr.createRepository();
     }
 }

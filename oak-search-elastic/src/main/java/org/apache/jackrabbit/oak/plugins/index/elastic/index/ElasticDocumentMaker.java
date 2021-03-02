@@ -37,8 +37,8 @@ import java.util.List;
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
-                         @NotNull IndexDefinition definition,
-                         IndexDefinition.IndexingRule indexingRule, @NotNull String path) {
+                                @NotNull IndexDefinition definition,
+                                IndexDefinition.IndexingRule indexingRule, @NotNull String path) {
         super(textExtractor, definition, indexingRule, path);
     }
 
@@ -99,23 +99,32 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexSuggestValue(ElasticDocument doc, String value) {
-        doc.addSuggest(value);
+        if (value != null && value.length() > 0) {
+            doc.addSuggest(value);
+        }
     }
 
     @Override
     protected void indexSpellcheckValue(ElasticDocument doc, String value) {
-        // TODO: Figure out how to do spellcheck with ES (interwebs seems to say that it should be simple
-        // and don't need anything extra in indexed document
+        if (value != null && value.length() > 0) {
+            doc.addSpellcheck(value);
+        }
     }
 
     @Override
     protected void indexFulltextValue(ElasticDocument doc, String value) {
-        doc.addFulltext(value);
+        if (value != null && value.length() > 0) {
+            doc.addFulltext(value);
+        }
     }
 
+    /**
+     * We store the value in :fulltext only when the {@link PropertyDefinition} has a regular expression (that means we
+     * were not able to create a ft property at mapping time) or the property is not analyzed.
+     */
     @Override
     protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
-        return !pd.analyzed;
+        return pd.isRegexp || !pd.analyzed;
     }
 
     @Override

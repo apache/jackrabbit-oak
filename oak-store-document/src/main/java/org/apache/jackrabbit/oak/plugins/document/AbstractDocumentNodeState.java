@@ -83,7 +83,11 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
             // revision does not match: might still be equals
         } else if (that instanceof ModifiedNodeState) {
             ModifiedNodeState modified = (ModifiedNodeState) that;
-            if (modified.getBaseState() == this) {
+            NodeState baseState = modified.getBaseState();
+            if (baseState instanceof ModifiedDocumentNodeState) {
+                baseState = ((ModifiedDocumentNodeState) baseState).getBaseState();
+            }
+            if (baseState == this) {
                 return EqualsDiff.equals(this, modified);
             }
         }

@@ -25,6 +25,7 @@ import java.io.LineNumberReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -240,7 +241,7 @@ public abstract class AbstractQueryTest {
                     + " don't match expected "
                     + "results in " + input.getPath()
                     + "; compare the files for details; got=\n" +
-                    new String(data, "UTF-8"));
+                    new String(data, StandardCharsets.UTF_8));
         }
     }
 

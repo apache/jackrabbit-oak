@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -33,6 +32,7 @@ import javax.jcr.Node;
 import java.util.Set;
 
 import static com.google.common.collect.ImmutableSet.of;
+import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
@@ -45,7 +45,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-@SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQueryTest {
 
     protected NodeStore nodeStore;
@@ -74,7 +73,7 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
         assertEventually(() -> {
             assertFalse(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
             assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')"), containsString(indexOptions.getIndexType() + ":test1"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')", asList("/test/a/b"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')", singletonList("/test/a/b"));
         });
     }
 
@@ -95,7 +94,7 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
             assertFalse(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
             assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')"), containsString(indexOptions.getIndexType() + ":test1"));
 
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", asList("/test/c/d"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", singletonList("/test/c/d"));
         });
         //Make some change and then check
         Tree testc = root.getTree("/").getChild("test").getChild("c");
@@ -104,7 +103,7 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
         assertEventually(() -> {
             assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", asList("/test/c/d", "/test/c/e/f"));
             assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))"), containsString(indexOptions.getIndexType() + ":test1"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))", asList("/test/c/d"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))", singletonList("/test/c/d"));
         });
     }
 

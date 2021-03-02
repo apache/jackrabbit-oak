@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -29,34 +26,18 @@ import org.apache.jackrabbit.oak.plugins.index.StrictPathRestrictionWarnCommonTe
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public class LuceneStrictPathRestrictionWarnCommonTest extends StrictPathRestrictionWarnCommonTest {
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
-
-    private final String warnMessage = "Index definition of index used have path restrictions and query won't return nodes from " +
-            "those restricted paths";
-
-    private final String queryImplLogger = "org.apache.jackrabbit.oak.query.QueryImpl";
-
-    @Before
-    public void loggingAppenderStart() {
-        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        listAppender = new ListAppender<>();
-        listAppender.start();
-        context.getLogger(queryImplLogger).addAppender(listAppender);
-    }
 
     @After
     public void loggingAppenderStop() {

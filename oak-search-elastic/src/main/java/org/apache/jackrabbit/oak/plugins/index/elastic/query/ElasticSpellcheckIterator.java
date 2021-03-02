@@ -55,7 +55,6 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
     private final ElasticIndexNode indexNode;
     private final ElasticRequestHandler requestHandler;
     private final ElasticResponseHandler responseHandler;
-    private final String[] spellCheckFields;
     private final String spellCheckQuery;
 
     private Iterator<FulltextResultRow> internalIterator;
@@ -67,7 +66,6 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
         this.indexNode = indexNode;
         this.requestHandler = requestHandler;
         this.responseHandler = responseHandler;
-        this.spellCheckFields = requestHandler.spellCheckFields().toArray(String[]::new);
         this.spellCheckQuery = requestHandler.getPropertyRestrictionQuery().replace(SPELLCHECK_PREFIX, "");
     }
 
@@ -92,7 +90,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                     .map(s -> {
                         String text = s.getText().string();
                         suggestionTexts.offer(text);
-                        return requestHandler.suggestMatchQuery(text, spellCheckFields);
+                        return requestHandler.suggestMatchQuery(text);
                     })
                     .map(query -> SearchSourceBuilder.searchSource()
                             .query(query)
@@ -102,23 +100,19 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                             .source(searchSource))
                     .reduce(new MultiSearchRequest(), MultiSearchRequest::add, (ms, ms2) -> ms);
 
-            ArrayList<FulltextResultRow> results = new ArrayList<>();
-            MultiSearchResponse res = indexNode.getConnection().getClient().msearch(multiSearch, RequestOptions.DEFAULT);
-            for (MultiSearchResponse.Item response : res.getResponses()) {
-                boolean hasResults = false;
-                for (SearchHit doc : response.getResponse().getHits()) {
-                    if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
-                        hasResults = true;
-                        break;
+            if (!multiSearch.requests().isEmpty()) {
+                MultiSearchResponse res = indexNode.getConnection().getClient().msearch(multiSearch, RequestOptions.DEFAULT);
+                ArrayList<FulltextResultRow> results = new ArrayList<>();
+                for (MultiSearchResponse.Item response : res.getResponses()) {
+                    for (SearchHit doc : response.getResponse().getHits()) {
+                        if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
+                            results.add(new FulltextResultRow(suggestionTexts.poll()));
+                            break;
+                        }
                     }
                 }
-                String suggestion = suggestionTexts.poll();
-                if (hasResults) {
-                    results.add(new FulltextResultRow(suggestion));
-                }
+                this.internalIterator = results.iterator();
             }
-
-            this.internalIterator = results.iterator();
 
         } catch (IOException e) {
             LOG.error("Error processing suggestions for " + spellCheckQuery, e);
@@ -128,10 +122,8 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
 
     private Stream<PhraseSuggestion.Entry.Option> suggestions() throws IOException {
         final SuggestBuilder suggestBuilder = new SuggestBuilder();
-        for (int i = 0; i < spellCheckFields.length; i++) {
-            suggestBuilder.addSuggestion("oak:suggestion-" + i,
-                    requestHandler.suggestQuery(spellCheckFields[i], spellCheckQuery));
-        }
+        suggestBuilder.addSuggestion("oak:suggestion",
+                requestHandler.suggestQuery(spellCheckQuery));
 
         final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
                 .suggest(suggestBuilder);
@@ -145,7 +137,6 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                 .stream(searchResponse.getSuggest().spliterator(), false)
                 .map(s -> (PhraseSuggestion) s)
                 .flatMap(ps -> ps.getEntries().stream())
-                .flatMap(ps -> ps.getOptions().stream())
-                .sorted((o1, o2) -> Float.compare(o2.getScore(), o1.getScore()));
+                .flatMap(ps -> ps.getOptions().stream());
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -34,7 +33,6 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public class LuceneStrictPathRestrictionEnableCommonTest extends StrictPathRestrictionEnableCommonTest {
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);

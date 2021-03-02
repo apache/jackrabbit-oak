@@ -49,7 +49,7 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
     @Override
     String getRawText(PropertyValue v) {
         Iterable<String> terms = SPACE_SPLITTER.split(super.getRawText(v));
-        StringBuffer raw = new StringBuffer();
+        StringBuilder raw = new StringBuilder();
         for (String term : terms) {
             if (isKeyword(term)) {
                 raw.append(String.format("%s ", term));
@@ -63,7 +63,7 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
     private static boolean isKeyword(@NotNull String term) {
         return KEYWORDS.contains(checkNotNull(term).toLowerCase());
     }
-    
+
     @Override
     void restrictPropertyOnFilter(String propertyName, FilterImpl f) {
         // Intentionally left empty. A NOT CONTAINS() can be valid if the property is actually not

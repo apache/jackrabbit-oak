@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import ch.qos.logback.classic.LoggerContext;
@@ -39,7 +38,7 @@ import javax.jcr.Node;
 import java.util.Set;
 
 import static com.google.common.collect.ImmutableSet.of;
-import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -52,27 +51,24 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-@SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public abstract class StrictPathRestrictionWarnCommonTest extends AbstractQueryTest {
 
-    protected ListAppender<ILoggingEvent> listAppender = null;
+    protected ListAppender<ILoggingEvent> listAppender;
 
     protected NodeStore nodeStore;
     protected TestRepository repositoryOptionsUtil;
     protected Node indexNode;
     protected IndexOptions indexOptions;
 
-    private final String warnMessage = "Index definition of index used have path restrictions and query won't return nodes from " +
+    private static final String WARN_MESSAGE = "Index definition of index used have path restrictions and query won't return nodes from " +
             "those restricted paths";
-
-    private final String queryImplLogger = "org.apache.jackrabbit.oak.query.QueryImpl";
 
     @Before
     public void loggingAppenderStart() {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         listAppender = new ListAppender<>();
         listAppender.start();
-        context.getLogger(queryImplLogger).addAppender(listAppender);
+        context.getLogger("org.apache.jackrabbit.oak.query.QueryImpl").addAppender(listAppender);
     }
 
     @After
@@ -101,7 +97,7 @@ public abstract class StrictPathRestrictionWarnCommonTest extends AbstractQueryT
 
         assertEventually(() -> {
             assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')"), containsString(indexOptions.getIndexType() + ":test1"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')", asList("/test/a/b"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')", singletonList("/test/a/b"));
             // List appender should not have any warn logs as we are searching under right descendant as per path restrictions
             assertFalse(isWarnMessagePresent(listAppender));
             assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
@@ -126,7 +122,7 @@ public abstract class StrictPathRestrictionWarnCommonTest extends AbstractQueryT
 
         assertEventually(() -> {
             assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')"), containsString(indexOptions.getIndexType() + ":test1"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", asList("/test/c/d"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", singletonList("/test/c/d"));
             // List appender should not have any warn logs as we are searching under right descendant as per path restrictions
             assertFalse(isWarnMessagePresent(listAppender));
             assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
@@ -137,7 +133,7 @@ public abstract class StrictPathRestrictionWarnCommonTest extends AbstractQueryT
 
     private boolean isWarnMessagePresent(ListAppender<ILoggingEvent> listAppender) {
         for (ILoggingEvent loggingEvent : listAppender.list) {
-            if (loggingEvent.getMessage().contains(warnMessage)) {
+            if (loggingEvent.getMessage().contains(WARN_MESSAGE)) {
                 return true;
             }
         }
