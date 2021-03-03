@@ -32,11 +32,10 @@ public class UtilsTest {
 
     @Test
     public void frozenNodeNotReferenceable() {
-        // OAK-9134 : the backport from trunk to 1.22 branch changed the default of
-        // DEFAULT_REFERENCEABLE_FROZEN_NODE = true
-        // to keep backwards compatibility in that branch
-        // therefore this test is the opposite of what it is in trunk
-        assertTrue(Utils.isFrozenNodeReferenceable(InitialContentHelper.INITIAL_CONTENT));
+        // OAK-9134 / OAK-9290 : noticed other tests failing and changed
+        // INITIAL_CONTENT to be referenceableFrozenNodes == false
+        // (as the factory parameter suggests)
+        assertFalse(Utils.isFrozenNodeReferenceable(InitialContentHelper.INITIAL_CONTENT));
     }
 
     @Test

@@ -40,7 +40,7 @@ public class InitialContentHelper {
         if (referenceableFrozenNodes) {
             System.setProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY, "true");
         } else {
-            System.clearProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY);
+            System.setProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY, "false");
         }
         try {
             NodeStore store = new MemoryNodeStore();
