@@ -122,8 +122,12 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return false;
     }
 
-    void init() throws Exception {
-        init(false);
+    boolean isAutosave() {
+        return false;
+    }
+
+    boolean init() throws Exception {
+        return init(false);
     }
 
     boolean init(boolean createAction, Class<?>... extraInterfaces) throws Exception {

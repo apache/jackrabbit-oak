@@ -64,6 +64,10 @@ public class AutoSaveEnabledManager implements UserManager {
         this.root = root;
     }
 
+    public UserManager unwrap() {
+        return dlg;
+    }
+
     @Nullable
     @Override
     public Authorizable getAuthorizable(@NotNull String id) throws RepositoryException {

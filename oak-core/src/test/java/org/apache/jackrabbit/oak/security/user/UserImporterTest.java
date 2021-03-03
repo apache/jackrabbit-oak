@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -30,8 +31,11 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -57,6 +61,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -79,25 +84,45 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         assertFalse(importer.init(s, root, getNamePathMapper(), false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
+    @Test
+    public void testInitAutosaveEnabledUserManager() throws Exception {
+        UserManager umgr = new AutoSaveEnabledManager(getUserManager(root), root);
+        SecurityProvider sp = mock(SecurityProvider.class);
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(umgr).getMock();
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+
+        assertEquals(!isAutosave(), importer.init(mockJackrabbitSession(), root, getNamePathMapper(), false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), sp));
+    }
+
+    @Test
+    public void testInitInvalidUserManager() throws Exception {
+        UserManager umgr = mock(UserManager.class);
+        SecurityProvider sp = mock(SecurityProvider.class);
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(umgr).getMock();
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+
+        assertFalse(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), sp));
+    }
+
     @Test(expected = IllegalStateException.class)
     public void testInitAlreadyInitialized() throws Exception {
-        init();
+        assertTrue(init());
         importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider());
     }
 
     @Test
     public void testInitImportUUIDBehaviorRemove() throws Exception {
-        assertTrue(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
+        assertEquals(!isAutosave(), importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
     @Test
     public void testInitImportUUIDBehaviorReplace() throws Exception {
-        assertTrue(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
+        assertEquals(!isAutosave(), importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
     @Test
     public void testInitImportUUIDBehaviorThrow() throws Exception {
-        assertTrue(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW, new ReferenceChangeTracker(), getSecurityProvider()));
+        assertEquals(!isAutosave(), importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
     @Test
@@ -113,7 +138,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
     @Test
     public void testHandlePropInfoParentNotAuthorizable() throws Exception {
-        init();
+        assertTrue(init());
         assertFalse(importer.handlePropInfo(root.getTree(PathUtils.ROOT_PATH), mock(PropInfo.class), mock(PropertyDefinition.class)));
     }
 
@@ -128,14 +153,14 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
     @Test(expected = ConstraintViolationException.class)
     public void testHandleAuthorizableIdMismatch() throws Exception {
-        init();
+        assertTrue(init());
         Tree userTree = createUserTree();
         importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, "mismatch"), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false));
     }
 
     @Test(expected = AuthorizableExistsException.class)
     public void testHandleAuthorizableIdConflictExisting() throws Exception {
-        init();
+        assertTrue(init());
         Tree userTree = createUserTree();
         importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, testUser.getID()), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false));
     }
@@ -173,14 +198,14 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
     @Test(expected = IllegalArgumentException.class)
     public void testHandleEmptyPrincipalName() throws Exception {
-        init();
+        assertTrue(init());
         Tree userTree = createUserTree();
         importer.handlePropInfo(userTree, createPropInfo(REP_PRINCIPAL_NAME, ""), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testHandleEveryonePrincipalNameOnUser() throws Exception {
-        init();
+        assertTrue(init());
         Tree userTree = createUserTree();
         importer.handlePropInfo(userTree, createPropInfo(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false));
     }
@@ -439,7 +464,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
     @Test
     public void testPropertiesCompletedParentNotAuthorizable() throws Exception {
-        init();
+        assertTrue(init());
         importer.propertiesCompleted(root.getTree("/"));
     }
 
@@ -618,7 +643,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
-        importer.start(memberRefList);
+        assertTrue(importer.start(memberRefList));
         importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of());
     }
 
@@ -629,7 +654,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
-        importer.start(memberRefList);
+        assertTrue(importer.start(memberRefList));
         importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
     }
 
@@ -656,7 +681,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
         Tree repMembers = groupTree.addChild("memberTree");
         repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
-        importer.start(repMembers);
+        assertTrue(importer.start(repMembers));
         importer.startChildInfo(createNodeInfo("memberTree", NT_REP_MEMBERS), ImmutableList.of(createPropInfo("anyProp", "memberValue")));
     }
 
@@ -667,14 +692,25 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
-        importer.start(memberRefList);
+        assertTrue(importer.start(memberRefList));
         importer.startChildInfo(createNodeInfo("memberRef", NT_OAK_UNSTRUCTURED), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
     }
 
     //-------------------------------------------------------< endChildInfo >---
     @Test
-    public void testEndChildInfoIsNoop() {
+    public void testEndChildInfoIsNoop() throws Exception {
+        Root r = mock(Root.class);
+        NamePathMapper npmapper = mock(NamePathMapper.class);
+        ReferenceChangeTracker reftracker = mock(ReferenceChangeTracker.class);
+        SecurityProvider sp = mock(SecurityProvider.class);
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(r, npmapper)).thenReturn(getUserManager(root)).getMock();
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+
+        importer.init(mockJackrabbitSession(), r, npmapper, false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, reftracker, sp);
+        clearInvocations(r, npmapper, reftracker, sp);
+
         importer.endChildInfo();
+        verifyNoInteractions(r, npmapper, reftracker, sp);
     }
 
     //----------------------------------------------------------------< end >---
