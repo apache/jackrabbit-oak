@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
@@ -29,11 +33,14 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -42,6 +49,14 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  * node types required for a JCR repository running on Oak.
  */
 public final class NodeTypeRegistry {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NodeTypeRegistry.class);
+
+    // OAK-9134 : the default for referenceableFrozenNode is true in the 1.22 branch.
+    // this is in contrast to it being false in newer versions.
+    // the reason for choosing true as the default is to maintain higher
+    // backwards compatibility and minimize an otherwise high impact in this branch.
+    private static final boolean DEFAULT_REFERENCEABLE_FROZEN_NODE = true;
 
     private final NodeTypeManager ntMgr;
 
@@ -89,9 +104,29 @@ public final class NodeTypeRegistry {
 
     private void registerNodeTypes(InputStream stream, String systemId) {
         try {
-            CndImporter.registerNodeTypes(
-                    new InputStreamReader(stream, Charsets.UTF_8),
-                    systemId, ntMgr, nsReg, vf, false);
+            Reader reader = new InputStreamReader(stream, Charsets.UTF_8);
+            // OAK-9134: nt:frozenNode is not implementing mix:referenceable from JCR 2.0.
+            // This system property allows to add it back when initializing a repository.
+            // PS: To keep supporting tests in fiddling this setting, the SystemPropertySupplier
+            // is evaluated here rather than in static code, where this is typically done.
+            final boolean referenceableFrozenNode = SystemPropertySupplier.create("oak.referenceableFrozenNode", DEFAULT_REFERENCEABLE_FROZEN_NODE)
+                    .loggingTo(LOG).formatSetMessage(
+                            (name, value) -> String.format("oak.referenceableFrozenNode set to: %s (using system property %s)", name, value))
+                    .get();
+            if (referenceableFrozenNode) {
+                BufferedReader bufferedReader = new BufferedReader(reader);
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    if (line.trim().equals("[nt:frozenNode]")) {
+                        line = "[nt:frozenNode] > mix:referenceable";
+                    }
+                    result.append(line).append(System.lineSeparator());
+                }
+                reader = new StringReader(result.toString());
+            }
+
+            CndImporter.registerNodeTypes(reader, systemId, ntMgr, nsReg, vf, false);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to read " + systemId, e);
         } catch (ParseException e) {
