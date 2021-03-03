@@ -29,10 +29,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -43,13 +50,9 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -63,9 +66,11 @@ public class DefaultSegmentWriterTest {
 
     private final byte[] bytes = HELLO_WORLD.getBytes(Charsets.UTF_8);
 
+    private static final int SMALL_BINARIES_INLINE_THRESHOLD = 4;
+
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryFileStore store = new TemporaryFileStore(folder, false);
+    private TemporaryFileStore store = new TemporaryFileStore(folder, SMALL_BINARIES_INLINE_THRESHOLD);
 
     @Rule
     public RuleChain rules = RuleChain.outerRule(folder).around(store);
@@ -75,6 +80,14 @@ public class DefaultSegmentWriterTest {
     @Before
     public void setUp() throws Exception {
         writer = defaultSegmentWriterBuilder("test").build(store.fileStore());
+    }
+
+    @Test
+    public void testValueRecord() throws IOException {
+        InputStream stream = new ByteArrayInputStream(bytes);
+        RecordId valueId = writer.writeStream(stream);
+        SegmentBlob blob = new SegmentBlob(null, valueId);
+        assertEquals(HELLO_WORLD, IOUtils.toString(blob.getNewStream(), Charsets.UTF_8));
     }
 
     @Test

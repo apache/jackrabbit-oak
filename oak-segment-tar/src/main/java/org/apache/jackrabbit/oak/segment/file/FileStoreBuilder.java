@@ -408,7 +408,6 @@ public class FileStoreBuilder {
      * @return this instance
      */
     public FileStoreBuilder withBinariesInlineThreshold(int binariesInlineThreshold) {
-        checkArgument(binariesInlineThreshold <= Segment.MEDIUM_LIMIT);
         this.binariesInlineThreshold = binariesInlineThreshold;
         return this;
     }
