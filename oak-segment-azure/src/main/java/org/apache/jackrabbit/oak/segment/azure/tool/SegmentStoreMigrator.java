@@ -93,6 +93,10 @@ public class SegmentStoreMigrator implements Closeable  {
     }
 
     private Void migrateJournal() throws IOException {
+        if (revisionCount == 0) {
+            log.info("Number of revisions configured to be copied is 0. Skip copying journal.");
+            return null;
+        }
         log.info("{}/journal.log -> {}", sourceName, targetName);
         if (!source.getJournalFile().exists()) {
             log.info("No journal at {}; skipping.", sourceName);
