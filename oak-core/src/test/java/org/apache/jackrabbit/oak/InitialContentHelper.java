@@ -29,14 +29,32 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class InitialContentHelper {
 
-    public static final NodeState INITIAL_CONTENT = createInitialContent();
+    public static final NodeState INITIAL_CONTENT = createInitialContent(false);
 
-    private static NodeState createInitialContent() {
-        NodeStore store = new MemoryNodeStore();
-        EditorHook hook = new EditorHook(
-                new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
-        OakInitializer.initialize(store, new InitialContent(), hook);
-        return store.getRoot();
+    public static final NodeState INITIAL_CONTENT_FROZEN_NODE_REFERENCEABLE = createInitialContent(true);
+
+    private static final String REFERENCEABLE_FROZEN_NODE_PROPERTY = "oak.referenceableFrozenNode";
+
+    private static NodeState createInitialContent(boolean referenceableFrozenNodes) {
+        String propValue = System.getProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY);
+        if (referenceableFrozenNodes) {
+            System.setProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY, "true");
+        } else {
+            System.clearProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY);
+        }
+        try {
+            NodeStore store = new MemoryNodeStore();
+            EditorHook hook = new EditorHook(
+                    new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
+            OakInitializer.initialize(store, new InitialContent(), hook);
+            return store.getRoot();
+        } finally {
+            if (propValue != null) {
+                System.setProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY, propValue);
+            } else {
+                System.clearProperty(REFERENCEABLE_FROZEN_NODE_PROPERTY);
+            }
+        }
     }
 
     private InitialContentHelper() {}
