@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication;
+package org.apache.jackrabbit.oak.security.authentication.monitor;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMBean;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
+import org.jetbrains.annotations.NotNull;
 
 import javax.management.openmbean.CompositeData;
 
-/**
- * @deprecated Since Oak 1.40.0. A full implementation of {@code LoginModuleMonitor} and {@link LoginModuleMBean} has been added to oak-core.
- */
-@Deprecated
-public class LoginModuleStats implements LoginModuleMBean, LoginModuleMonitor {
+public class LoginModuleMonitorImpl implements LoginModuleMBean, LoginModuleMonitor {
 
     private final StatisticsProvider statisticsProvider;
 
@@ -36,19 +35,19 @@ public class LoginModuleStats implements LoginModuleMBean, LoginModuleMonitor {
 
     private final MeterStats loginErrors;
 
-    public LoginModuleStats(StatisticsProvider statisticsProvider) {
+    public LoginModuleMonitorImpl(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
-        this.loginErrors = statisticsProvider.getMeter(LOGIN_ERRORS, StatsOptions.DEFAULT);
+        loginErrors = statisticsProvider.getMeter(LOGIN_ERRORS, StatsOptions.DEFAULT);
     }
 
-    // -- LoginModuleMonitor
+    //------------------------------------------------------- < LoginModuleMonitor >---
 
     @Override
     public void loginError() {
         loginErrors.mark();
     }
 
-    // -- LoginModuleMBean
+    //----------------------------------------------------------< LoginModuleMBean >---
 
     @Override
     public long getLoginErrors() {
@@ -60,13 +59,15 @@ public class LoginModuleStats implements LoginModuleMBean, LoginModuleMonitor {
         return getTimeSeriesData(LOGIN_ERRORS, "Number of login errors.");
     }
 
-    // -- internal
+    //-----------------------------------------------------------------< internal >---
 
-    private CompositeData getTimeSeriesData(String name, String desc) {
+    @NotNull
+    private CompositeData getTimeSeriesData(@NotNull String name, @NotNull String desc) {
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);
     }
 
-    private TimeSeries getTimeSeries(String name) {
+    @NotNull
+    private TimeSeries getTimeSeries(@NotNull String name) {
         return statisticsProvider.getStats().getTimeSeries(name, true);
     }
 }

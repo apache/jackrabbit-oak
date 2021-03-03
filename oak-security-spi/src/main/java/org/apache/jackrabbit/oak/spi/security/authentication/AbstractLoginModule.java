@@ -592,6 +592,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         subject.getPublicCredentials().add(authInfo);
     }
 
+    @NotNull
     protected LoginModuleMonitor getLoginModuleMonitor() {
         if (loginModuleMonitor == null && callbackHandler != null) {
             RepositoryCallback rcb = new RepositoryCallback();
@@ -602,13 +603,13 @@ public abstract class AbstractLoginModule implements LoginModule {
                 log.error(e.getMessage(), e);
             }
         }
+        if (loginModuleMonitor == null) {
+            loginModuleMonitor = LoginModuleMonitor.NOOP;
+        }
         return loginModuleMonitor;
     }
 
     protected void onError() {
-        LoginModuleMonitor lmm = getLoginModuleMonitor();
-        if (lmm != null) {
-            lmm.loginError();
-        }
+        getLoginModuleMonitor().loginError();
     }
 }

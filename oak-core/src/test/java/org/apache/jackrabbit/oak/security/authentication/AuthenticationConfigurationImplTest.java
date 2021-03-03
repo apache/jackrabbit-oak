@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.security.authentication.monitor.LoginModuleMonitorImpl;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
@@ -103,7 +103,7 @@ public class AuthenticationConfigurationImplTest {
         assertEquals(1, Iterables.size(monitors));
 
         Monitor<?> m = monitors.iterator().next();
-        assertTrue(m instanceof LoginModuleStats);
-        assertTrue(f.get(authConfiguration) instanceof LoginModuleStats);
+        assertTrue(m instanceof LoginModuleMonitorImpl);
+        assertTrue(f.get(authConfiguration) instanceof LoginModuleMonitorImpl);
     }
 }

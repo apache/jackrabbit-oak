@@ -156,6 +156,7 @@
                                 <element>PACKAGE</element>
                                 <includes>
                                     <include>org.apache.jackrabbit.oak.security.authentication</include>
+                                    <include>org.apache.jackrabbit.oak.security.authentication.monitor</include>
                                     <include>org.apache.jackrabbit.oak.security.authentication.user</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization</include>
                                     <include>org.apache.jackrabbit.oak.security.internal</include>

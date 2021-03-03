@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authentication.monitor.LoginModuleMonitorImpl;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
@@ -330,7 +331,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         
         // register AuthenticationConfiguration to trigger MBean registration 
         AuthenticationConfigurationImpl mockAc = mock(AuthenticationConfigurationImpl.class);
-        when(mockAc.getMonitors(any(StatisticsProvider.class))).thenReturn(Collections.singleton(new LoginModuleStats(StatisticsProvider.NOOP)));
+        when(mockAc.getMonitors(any(StatisticsProvider.class))).thenReturn(Collections.singleton(new LoginModuleMonitorImpl(StatisticsProvider.NOOP)));
         registration.bindAuthenticationConfiguration(mockAc);
 
         // register required service
