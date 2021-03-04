@@ -55,7 +55,7 @@ public class ElasticConnectionRule extends ExternalResource {
     private ElasticConnection elasticConnection;
     private final String elasticConnectionString;
     private static final String INDEX_PREFIX = "ElasticTest_";
-    private static final String PLUGIN_DIGEST = "c4451aa794641dd3c9b0fdc64b553b71ca2f9a44689a7784b51669b5e557046d";
+    private static final String PLUGIN_DIGEST = "060117b4150c87274d9cff0925ec16e714f28a40906a53a2cd2a23322bbb3189";
     private static boolean useDocker = false;
 
     public ElasticConnectionRule(String elasticConnectionString) {
@@ -81,16 +81,16 @@ public class ElasticConnectionRule extends ExternalResource {
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
         // see if docker is to be used or not... initialize docker rule only if that's the case.
-        final String pluginVersion = "7.10.1.0";
+        final String pluginVersion = "7.10.2.3";
         final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
         final String localPluginPath = "target/" + pluginFileName;
         downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
         if (elasticConnectionString == null || getElasticConnectionFromString() == null) {
             checkIfDockerClientAvailable();
             elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT)
-                .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
+                    .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                     .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
-                .withCommand("bash /tmp/elasticstartscript.sh");
+                    .withCommand("bash /tmp/elasticstartscript.sh");
             s = elastic.apply(s, description);
             setUseDocker(true);
         }
