@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.ListCollectionsIterable;
@@ -336,5 +337,33 @@ class MongoTestDatabase implements MongoDatabase {
                                                          @NotNull List<? extends Bson> pipeline,
                                                          @NotNull Class<TResult> tResultClass) {
         return db.watch(clientSession, pipeline, tResultClass);
+    }
+
+    @NotNull
+    @Override
+    public AggregateIterable<Document> aggregate(@NotNull List<? extends Bson> pipeline) {
+        return db.aggregate(pipeline);
+    }
+
+    @NotNull
+    @Override
+    public <TResult> AggregateIterable<TResult> aggregate(@NotNull List<? extends Bson> pipeline,
+                                                          @NotNull Class<TResult> tResultClass) {
+        return db.aggregate(pipeline, tResultClass);
+    }
+
+    @NotNull
+    @Override
+    public AggregateIterable<Document> aggregate(@NotNull ClientSession clientSession,
+                                                 @NotNull List<? extends Bson> pipeline) {
+        return db.aggregate(clientSession, pipeline);
+    }
+
+    @NotNull
+    @Override
+    public <TResult> AggregateIterable<TResult> aggregate(@NotNull ClientSession clientSession,
+                                                          @NotNull List<? extends Bson> pipeline,
+                                                          @NotNull Class<TResult> tResultClass) {
+        return db.aggregate(clientSession, pipeline, tResultClass);
     }
 }
