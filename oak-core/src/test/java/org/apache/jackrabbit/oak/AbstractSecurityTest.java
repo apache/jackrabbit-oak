@@ -65,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -87,13 +88,16 @@ public abstract class AbstractSecurityTest {
     protected Root root;
 
     protected QueryEngineSettings querySettings;
-    private final RootProvider rootProvider = new RootProviderService(); 
+    private final RootProvider rootProvider = new RootProviderService();
     private final TreeProvider treeProvider = new TreeProviderService();
+
+    protected Whiteboard whiteboard;
 
     @Before
     public void before() throws Exception {
-        Oak oak = new Oak()
-                .with(new InitialContent())
+        Oak oak = new Oak();
+        whiteboard = oak.getWhiteboard();
+        oak.with(new InitialContent())
                 .with(new VersionHook())
                 .with(JcrConflictHandler.createJcrConflictHandler())
                 .with(new NamespaceEditorProvider())
@@ -144,6 +148,7 @@ public abstract class AbstractSecurityTest {
         return SecurityProviderBuilder.newBuilder().with(getSecurityConfigParameters())
                 .withRootProvider(rootProvider)
                 .withTreeProvider(treeProvider)
+                .withWhiteboard(whiteboard)
                 .build();
     }
 
@@ -204,7 +209,7 @@ public abstract class AbstractSecurityTest {
     protected PrincipalManager getPrincipalManager(Root root) {
         return getConfig(PrincipalConfiguration.class).getPrincipalManager(root, getNamePathMapper());
     }
-    
+
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
         AccessControlManager acMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
         if (acMgr instanceof JackrabbitAccessControlManager) {

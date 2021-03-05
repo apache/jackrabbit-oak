@@ -28,9 +28,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,8 +55,14 @@ public class ResultRowToAuthorizableTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        groupRrta = new ResultRowToAuthorizable(new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider()), root, AuthorizableType.GROUP);
-        userRrta = new ResultRowToAuthorizable(new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider()), root, AuthorizableType.USER);
+        groupRrta = createResultRowToAuthorizable(root, AuthorizableType.GROUP);
+        userRrta = createResultRowToAuthorizable(root, AuthorizableType.USER);
+    }
+
+    @NotNull
+    private ResultRowToAuthorizable createResultRowToAuthorizable(@NotNull Root r, @Nullable AuthorizableType targetType) {
+        UserManagerImpl umgr = new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider(), UserMonitor.NOOP);
+        return new ResultRowToAuthorizable(umgr, r, targetType);
     }
 
     private static ResultRow createResultRow(@NotNull String path) {
@@ -120,7 +128,7 @@ public class ResultRowToAuthorizableTest extends AbstractSecurityTest {
 
         try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
             Root r = cs.getLatestRoot();
-            ResultRowToAuthorizable rrta = new ResultRowToAuthorizable(new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider()), r, null);
+            ResultRowToAuthorizable rrta = createResultRowToAuthorizable(r, null);
             assertNull(rrta.apply(createResultRow(userPath)));
         }
     }

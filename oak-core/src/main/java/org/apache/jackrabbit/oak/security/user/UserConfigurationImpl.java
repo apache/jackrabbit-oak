@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitorImpl;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -48,6 +50,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Activate;
@@ -192,6 +196,8 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         setParameters(ConfigurationParameters.of(properties));
     }
 
+    private UserMonitor monitor = UserMonitor.NOOP;
+
     private BlobAccessProvider blobAccessProvider;
     
     @Reference(cardinality = ReferenceCardinality.OPTIONAL,
@@ -254,12 +260,18 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         return UserContext.getInstance();
     }
 
+    @Override
+    public @NotNull Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+        monitor = new UserMonitorImpl(statisticsProvider);
+        return Collections.singleton(monitor);
+    }
+
     //--------------------------------------------------< UserConfiguration >---
     @NotNull
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
         PartialValueFactory vf = new PartialValueFactory(namePathMapper, getBlobAccessProvider());
-        UserManager umgr = new UserManagerImpl(root, vf, getSecurityProvider());
+        UserManager umgr = new UserManagerImpl(root, vf, getSecurityProvider(), monitor);
         if (getParameters().getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false)) {
             return new AutoSaveEnabledManager(umgr, root);
         } else {

@@ -34,9 +34,14 @@ import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -54,6 +59,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -71,7 +77,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        userMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
+        userMgr = createUserManager(root, getPartialValueFactory());
     }
 
     @After
@@ -81,6 +87,10 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         } finally {
             super.after();
         }
+    }
+
+    private UserManagerImpl createUserManager(@NotNull Root root, @NotNull PartialValueFactory pvf) {
+        return new UserManagerImpl(root, pvf, getSecurityProvider(), UserMonitor.NOOP);
     }
 
     /**
@@ -134,7 +144,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     @Test(expected = RepositoryException.class)
     public void testAuthorizableByUnresolvablePath() throws Exception {
         NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("a","internal")));
-        UserManagerImpl um = new UserManagerImpl(root, new PartialValueFactory(mapper), getSecurityProvider());
+        UserManagerImpl um = createUserManager(root, new PartialValueFactory(mapper));
         um.getAuthorizableByPath(getTestUser().getPath());
     }
 
@@ -303,7 +313,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
                         try {
                             ContentSession admin = login(getAdminCredentials());
                             Root root = admin.getLatestRoot();
-                            UserManager userManager = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
+                            UserManager userManager = createUserManager(root, getPartialValueFactory());
                             userManager.createUser(userId, "pass", new PrincipalImpl(userId), "relPath");
                             root.commit();
                             admin.close();
@@ -400,5 +410,17 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     public void testCreateGroupWithExistingPrincipal() throws Exception {
         User u = getTestUser();
         userMgr.createGroup(u.getPrincipal());
+    }
+
+    @Test
+    public void testGetMonitor() {
+        assertSame(UserMonitor.NOOP, userMgr.getMonitor());
+
+        // initialize monitor as done in 'SecurityProviderRegistration'
+        UserConfiguration uc = getConfig(UserConfiguration.class);
+        uc.getMonitors(StatisticsProvider.NOOP);
+        UserManager umgr = uc.getUserManager(root, getNamePathMapper());
+        assertTrue(umgr instanceof UserManagerImpl);
+        assertTrue(((UserManagerImpl) umgr).getMonitor() instanceof UserMonitorImpl);
     }
 }

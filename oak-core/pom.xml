@@ -163,6 +163,7 @@
                                     <include>org.apache.jackrabbit.oak.security.principal</include>
                                     <include>org.apache.jackrabbit.oak.security.privilege</include>
                                     <include>org.apache.jackrabbit.oak.security.user.autosave</include>
+                                    <include>org.apache.jackrabbit.oak.security.user.monitor</include>
                                     <include>org.apache.jackrabbit.oak.security.user.query</include>
                                     <include>org.apache.jackrabbit.oak.security.user.whiteboard</include>
                                 </includes>

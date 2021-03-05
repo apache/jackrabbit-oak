@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import com.google.common.base.Predicates;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
@@ -39,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * GroupImpl...
@@ -75,13 +78,13 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
-        return getMembers(false);
+        return getMembersMonitored(false);
     }
 
     @NotNull
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
-        return getMembers(true);
+        return getMembersMonitored(true);
     }
 
     @Override
@@ -96,6 +99,13 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     @Override
     public boolean addMember(@NotNull Authorizable authorizable) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        boolean success = internalAddMember(authorizable);
+        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), 1, (success) ? 0 : 1, false);
+        return success;
+    }
+
+    private boolean internalAddMember(@NotNull Authorizable authorizable) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
@@ -132,11 +142,18 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     @Override
     public Set<String> addMembers(@NotNull String... memberIds) throws RepositoryException {
-        return updateMembers(false, memberIds);
+        return updateMembersMonitored(false, memberIds);
     }
 
     @Override
     public boolean removeMember(@NotNull Authorizable authorizable) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        boolean success = internalRemoveMember(authorizable);
+        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), 1, (success) ? 0 : 1, true);
+        return success;
+    }
+
+    private boolean internalRemoveMember(@NotNull Authorizable authorizable) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
@@ -162,10 +179,18 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     @Override
     public Set<String> removeMembers(@NotNull String... memberIds) throws RepositoryException {
-        return updateMembers(true, memberIds);
+        return updateMembersMonitored(true, memberIds);
     }
 
     //--------------------------------------------------------------------------
+    @NotNull
+    private Iterator<Authorizable> getMembersMonitored(boolean includeInherited) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        Iterator<Authorizable> members = getMembers(includeInherited);
+        getMonitor().doneGetMembers(watch.elapsed(NANOSECONDS), !includeInherited);
+        return members;
+    }
+
     /**
      * Internal implementation of {@link #getDeclaredMembers()} and {@link #getMembers()}.
      *
@@ -229,6 +254,14 @@ class GroupImpl extends AuthorizableImpl implements Group {
                 return mgr.isDeclaredMember(this.getTree(), authorizableTree);
             }
         }
+    }
+
+    @NotNull
+    private Set<String> updateMembersMonitored(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        Set<String> failed = updateMembers(isRemove, memberIds);
+        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), memberIds.length, failed.size(), isRemove);
+        return failed;
     }
 
     /**

@@ -32,7 +32,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
 /**
@@ -88,10 +87,10 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         equalAuthorizables.put(testUser, user);
         equalAuthorizables.put(testGroup, group);
 
-        for (Map.Entry entry : equalAuthorizables.entrySet()) {
-            assertEquals(entry.getKey(), entry.getValue());
-            assertEquals(entry.getValue(), entry.getKey());
-        }
+        equalAuthorizables.forEach((key, value) -> {
+            assertEquals(key, value);
+            assertEquals(value, key);
+        });
     }
 
     /**
@@ -112,10 +111,10 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         notEqual.put(testGroup, group);
         notEqual.put(testUser, differentId);
 
-        for (Map.Entry entry : notEqual.entrySet()) {
-            assertNotEquals(entry.getKey(), entry.getValue());
-            assertNotEquals(entry.getValue(), entry.getKey());
-        }
+        notEqual.forEach((key, value) -> {
+            assertNotEquals(key, value);
+            assertNotEquals(value, key);
+        });
     }
 
     /**
@@ -134,9 +133,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         sameHashCode.put(testUser, user);
         sameHashCode.put(testGroup, group);
 
-        for (Map.Entry entry : sameHashCode.entrySet()) {
-            assertEquals(entry.getKey().hashCode(), entry.getValue().hashCode());
-        }
+        sameHashCode.forEach((key, value) -> assertEquals(key.hashCode(), value.hashCode()));
 
         UserManager otherUserManager = getUserConfiguration().getUserManager(root, getNamePathMapper());
         user = otherUserManager.getAuthorizable(testUser.getID());
@@ -148,9 +145,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         notSameHashCode.put(testUser, user);
         notSameHashCode.put(testGroup, group);
 
-        for (Map.Entry entry : notSameHashCode.entrySet()) {
-            assertNotEquals(entry.getKey().hashCode(), entry.getValue().hashCode());
-        }
+        notSameHashCode.forEach((key, value) -> assertNotEquals(key.hashCode(), value.hashCode()));
     }
 
     @Test

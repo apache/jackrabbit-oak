@@ -29,10 +29,10 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -42,6 +42,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class GroupImplTest extends AbstractSecurityTest {
 
@@ -49,12 +54,13 @@ public class GroupImplTest extends AbstractSecurityTest {
 
     private UserManagerImpl uMgr;
     private GroupImpl group;
+    private final UserMonitor monitor = mock(UserMonitor.class);
 
     @Override
     public void before() throws Exception {
         super.before();
 
-        uMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
+        uMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider(), monitor);
         Group g = uMgr.createGroup(groupId);
 
         group = new GroupImpl(groupId, root.getTree(g.getPath()), uMgr);
@@ -63,10 +69,15 @@ public class GroupImplTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
+            clearInvocations(monitor);
             root.refresh();
         } finally {
             super.after();
         }
+    }
+
+    private void verifyMonitor(long failedCnt, boolean isRemove) {
+        verify(monitor).doneUpdateMembers(anyLong(), eq(1L), eq(failedCnt), eq(isRemove));
     }
 
     @Test
@@ -87,18 +98,21 @@ public class GroupImplTest extends AbstractSecurityTest {
 
     @Test
     public void testAddMemberInvalidAuthorizable() throws Exception {
-        assertFalse(group.addMember(Mockito.mock(Authorizable.class)));
+        assertFalse(group.addMember(mock(Authorizable.class)));
+        verifyMonitor(1, false);
     }
 
     @Test
     public void testAddMemberEveryone() throws Exception {
         Group everyoneGroup = uMgr.createGroup(EveryonePrincipal.getInstance());
         assertFalse(group.addMember(everyoneGroup));
+        verifyMonitor(1, false);
     }
 
     @Test
     public void testAddMemberItself() throws Exception {
         assertFalse(group.addMember(group));
+        verifyMonitor(1, false);
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -110,17 +124,19 @@ public class GroupImplTest extends AbstractSecurityTest {
 
     @Test
     public void testRemoveMemberInvalidAuthorizable() throws Exception {
-        assertFalse(group.removeMember(Mockito.mock(Authorizable.class)));
+        assertFalse(group.removeMember(mock(Authorizable.class)));
+        verifyMonitor(1, true);
     }
 
     @Test
     public void testRemoveNotMember() throws Exception {
         assertFalse(group.removeMember(getTestUser()));
+        verifyMonitor(1, true);
     }
 
     @Test
     public void testIsMemberInvalidAuthorizable() throws Exception {
-        assertFalse(group.isMember(Mockito.mock(Authorizable.class)));
+        assertFalse(group.isMember(mock(Authorizable.class)));
     }
 
     @Test

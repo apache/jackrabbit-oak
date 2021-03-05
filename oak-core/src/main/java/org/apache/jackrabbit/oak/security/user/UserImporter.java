@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -44,6 +46,9 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
@@ -74,6 +79,7 @@ import java.util.TreeSet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
@@ -166,6 +172,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      */
     private Map<String, Principal> principals = new HashMap<>();
 
+    private UserMonitor userMonitor = UserMonitor.NOOP;
+
     UserImporter(ConfigurationParameters config) {
         importBehavior = UserUtil.getImportBehavior(config);
     }
@@ -200,6 +208,14 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         userManager = initUserManager(securityProvider, root, namePathMapper);
         if (userManager == null) {
             return false;
+        }
+
+        if (securityProvider instanceof WhiteboardAware) {
+            Whiteboard whiteboard = ((WhiteboardAware) securityProvider).getWhiteboard();
+            UserMonitor monitor = WhiteboardUtils.getService(whiteboard, UserMonitor.class);
+            if (monitor != null) {
+                userMonitor = monitor;
+            }
         }
 
         initialized = true;
@@ -622,16 +638,19 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
             // handling non-existing members in case of best-effort
             if (!nonExisting.isEmpty()) {
+                Stopwatch watch = Stopwatch.createStarted();
                 log.debug("ImportBehavior.BESTEFFORT: Found {} entries of rep:members pointing to non-existing authorizables. Adding to rep:members.", nonExisting.size());
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
 
+                long totalSize = nonExisting.size();
                 Set<String> memberContentIds = Sets.newHashSet(nonExisting.keySet());
                 Set<String> failedContentIds = membershipProvider.addMembers(groupTree, nonExisting);
                 memberContentIds.removeAll(failedContentIds);
 
                 userManager.onGroupUpdate(gr, false, true, memberContentIds, failedContentIds);
+                userMonitor.doneUpdateMembers(watch.elapsed(NANOSECONDS), totalSize, failedContentIds.size(), false);
             }
         }
 

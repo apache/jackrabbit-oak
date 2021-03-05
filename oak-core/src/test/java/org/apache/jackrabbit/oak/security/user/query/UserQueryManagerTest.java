@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -555,7 +556,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     public void testFindWhenRootTreeIsSearchRoot() throws Exception {
         ConfigurationParameters config = ConfigurationParameters.of(PARAM_GROUP_PATH, PathUtils.ROOT_PATH);
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(UserConfiguration.NAME, config)).withRootProvider(getRootProvider()).withTreeProvider(getTreeProvider()).build();
-        UserManagerImpl umgr = new UserManagerImpl(root, getPartialValueFactory(), sp);
+        UserManagerImpl umgr = new UserManagerImpl(root, getPartialValueFactory(), sp, UserMonitor.NOOP);
         UserQueryManager uqm = new UserQueryManager(umgr, getNamePathMapper(), config, root);
 
         Iterator<Authorizable> result = uqm.findAuthorizables(REP_AUTHORIZABLE_ID, DEFAULT_ADMIN_ID, AuthorizableType.AUTHORIZABLE);
@@ -588,7 +589,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
             Root r = cs.getLatestRoot();
-            UserManagerImpl uMgr = new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider());
+            UserManagerImpl uMgr = new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider(), UserMonitor.NOOP);
             UserQueryManager uqm = new UserQueryManager(uMgr, getNamePathMapper(), ConfigurationParameters.EMPTY, r);
 
             Iterator<Authorizable> result = uqm.findAuthorizables("name", "userName", AuthorizableType.USER);
