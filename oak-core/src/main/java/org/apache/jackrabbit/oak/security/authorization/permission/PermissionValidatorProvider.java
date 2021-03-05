@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -117,5 +118,10 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     @NotNull
     Tree createReadOnlyTree(@NotNull NodeState nodeState) {
         return providerCtx.getTreeProvider().createReadOnlyTree(nodeState);
+    }
+
+    @NotNull
+    AuthorizationMonitor getAccessMonitor() {
+        return providerCtx.getMonitor();
     }
 }

@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -92,6 +94,8 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
     protected Principal testPrincipal;
     protected List<Principal> principals = new ArrayList<>();
 
+    private AuthorizationMonitor monitor;
+
     @Override
     @Before
     public void before() throws Exception {
@@ -107,6 +111,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         root.commit();
 
         PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(root);
+        monitor = mock(AuthorizationMonitor.class);
     }
 
     @Override
@@ -128,8 +133,17 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         }
     }
 
+    private ProviderCtx mockProviderContext(@NotNull MountInfoProvider mip, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+        ProviderCtx ctx = mock(ProviderCtx.class);
+        when(ctx.getMountInfoProvider()).thenReturn(mip);
+        when(ctx.getRootProvider()).thenReturn(rootProvider);
+        when(ctx.getTreeProvider()).thenReturn(treeProvider);
+        when(ctx.getMonitor()).thenReturn(monitor);
+        return ctx;
+    }
+
     private PermissionHook createPermissionHook(@NotNull String wspName) {
-        return new PermissionHook(wspName, RestrictionProvider.EMPTY, Mounts.defaultMountInfoProvider(), getRootProvider(), getTreeProvider());
+        return new PermissionHook(wspName, RestrictionProvider.EMPTY, mockProviderContext(Mounts.defaultMountInfoProvider(), getRootProvider(), getTreeProvider()));
     }
 
     private void addACE(@NotNull String path, @NotNull Principal principal, @NotNull String... privilegeNames) throws RepositoryException {
@@ -789,7 +803,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
     @Test
     public void testToString() {
         PermissionHook h1 = createPermissionHook("wspName");
-        PermissionHook h2 = new PermissionHook("default", mock(RestrictionProvider.class), mock(MountInfoProvider.class), mock(RootProvider.class), mock(TreeProvider.class));
+        PermissionHook h2 = new PermissionHook("default", mock(RestrictionProvider.class), mockProviderContext(mock(MountInfoProvider.class), mock(RootProvider.class), mock(TreeProvider.class)));
         assertEquals(h1.toString(), h2.toString());
     }
 

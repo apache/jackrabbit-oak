@@ -23,6 +23,9 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -31,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,11 +54,13 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class PermissionStoreEditorTest extends AbstractSecurityTest {
@@ -63,6 +69,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
     private PrivilegeBitsProvider bitsProvider;
     private RestrictionProvider restrictionProvider;
+
+    private final AuthorizationMonitor monitor = mock(AuthorizationMonitor.class);
 
     private TypePredicate isACE;
     private TypePredicate isGrantACE;
@@ -77,6 +85,11 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         NodeState rootState = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
         isACE = spy(new TypePredicate(rootState, NT_REP_ACE));
         isGrantACE = spy(new TypePredicate(rootState, NT_REP_GRANT_ACE));
+    }
+
+    @After
+    public void after() {
+        clearInvocations(monitor);
     }
 
     @NotNull
@@ -99,8 +112,18 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
     }
 
     @NotNull
+    private ProviderCtx getProviderCtx() {
+        ProviderCtx ctx = mock(ProviderCtx.class);
+        when(ctx.getMountInfoProvider()).thenReturn(mock(MountInfoProvider.class));
+        when(ctx.getRootProvider()).thenReturn(getRootProvider());
+        when(ctx.getTreeProvider()).thenReturn(getTreeProvider());
+        when(ctx.getMonitor()).thenReturn(monitor);
+        return ctx;
+    }
+
+    @NotNull
     private PermissionStoreEditor createPermissionStoreEditor(@NotNull NodeState nodeState, @NotNull NodeBuilder permissionRoot) {
-        return new PermissionStoreEditor("", AccessControlConstants.REP_REPO_POLICY, nodeState, permissionRoot, isACE, isGrantACE, bitsProvider, restrictionProvider, getTreeProvider());
+        return new PermissionStoreEditor("", AccessControlConstants.REP_REPO_POLICY, nodeState, permissionRoot, isACE, isGrantACE, bitsProvider, restrictionProvider, getProviderCtx());
     }
 
     @Test
@@ -111,11 +134,13 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         when(nodeState.getNames(JCR_MIXINTYPES)).thenReturn(Collections.emptySet());
         when(nodeState.getChildNode(anyString())).thenReturn(nodeState);
 
-        new PermissionStoreEditor("/test", AccessControlConstants.REP_POLICY, nodeState, mock(NodeBuilder.class), isACE, isGrantACE, bitsProvider, restrictionProvider, getTreeProvider());
+        new PermissionStoreEditor("/test", AccessControlConstants.REP_POLICY, nodeState, mock(NodeBuilder.class), isACE, isGrantACE, bitsProvider, restrictionProvider, getProviderCtx());
 
         verify(nodeState, times(3)).getChildNode(anyString());
         verify(isACE, times(3)).test(nodeState);
         verify(isGrantACE, never()).test(nodeState);
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -133,6 +158,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         verify(nodeState, times(3)).getChildNode(anyString());
         verify(isACE, times(3)).test(ace);
         verify(isGrantACE, times(3)).test(ace);
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -146,6 +173,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         verify(permissionsRoot, times(1)).hasChildNode("unknownPrincipal");
         verify(permissionsRoot, never()).getChildNode("unknownPrincipal");
+
+        verify(monitor).permissionError();
     }
 
     @Test
@@ -168,6 +197,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         verify(principalRoot, times(1)).getChildNode(anyString());
         verify(parent, times(1)).exists();
         verify(parent, never()).getProperty(anyString());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -194,6 +225,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         verify(parent, times(1)).getChildNode("collision");
         verify(parent, times(2)).getProperty(REP_ACCESS_CONTROLLED_PATH);
         verify(parent, never()).remove();
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -222,6 +255,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         verify(principalRoot, times(1)).getProperty(REP_NUM_PERMISSIONS);
         verify(principalRoot, never()).removeProperty(REP_NUM_PERMISSIONS);
         verify(principalRoot, never()).setProperty(anyString(), anyLong(), any(Type.class));
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -251,6 +286,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         verify(principalRoot, times(1)).getProperty(REP_NUM_PERMISSIONS);
         verify(principalRoot, times(1)).removeProperty(REP_NUM_PERMISSIONS);
         verify(principalRoot, never()).setProperty(anyString(), anyLong(), any(Type.class));
+
+        verify(monitor).permissionError();
     }
 
     @Test
@@ -286,6 +323,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         verify(collision, times(1)).setProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath());
         verify(collision, times(1)).child(anyString());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -310,5 +349,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         // only the existing 'entry' child gets removed. the collision is not touched
         verify(child, times(1)).remove();
+
+        verifyNoInteractions(monitor);
     }
 }

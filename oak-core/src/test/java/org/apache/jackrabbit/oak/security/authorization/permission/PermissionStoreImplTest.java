@@ -22,6 +22,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -45,6 +46,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class PermissionStoreImplTest extends AbstractSecurityTest implements PermissionConstants {
 
@@ -54,6 +61,8 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
 
     private String testPath = "/testPath";
     private String childPath = "/testPath/childNode";
+
+    private AuthorizationMonitor monitor = mock(AuthorizationMonitor.class);
 
     @Before
     public void before() throws Exception {
@@ -68,7 +77,7 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         addAcl(childPath, EveryonePrincipal.getInstance());
         root.commit();
 
-        permissionStore = new PermissionStoreImpl(root, root.getContentSession().getWorkspaceName(), getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
+        permissionStore = new PermissionStoreImpl(root, root.getContentSession().getWorkspaceName(), getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), monitor);
     }
 
     private void addAcl(@NotNull String path, @NotNull Principal principal) throws RepositoryException {
@@ -81,6 +90,8 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
     @After
     public void after() throws Exception {
         try {
+            clearInvocations(monitor);
+
             AccessControlManager acMgr = getAccessControlManager(root);
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
             acMgr.removePolicy(testPath, acl);
@@ -90,12 +101,18 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         }
     }
 
+    private void verifyAllLoadedInvoked() {
+        verify(monitor).permissionAllLoaded(anyLong());
+        verifyNoMoreInteractions(monitor);
+    }
+
     @Test
     public void testLoad() {
         PrincipalPermissionEntries entries = permissionStore.load(EveryonePrincipal.NAME);
         assertNotNull(entries);
         assertTrue(entries.isFullyLoaded());
         assertEquals(2, entries.getSize());
+        verifyAllLoadedInvoked();
     }
 
     @Test
@@ -104,6 +121,7 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         assertNotNull(entries);
         assertTrue(entries.isFullyLoaded());
         assertEquals(0, entries.getSize());
+        verifyAllLoadedInvoked();
     }
 
     @Test
@@ -126,6 +144,7 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
             assertNotNull(entries);
             assertTrue(entries.isFullyLoaded());
             assertEquals(3, entries.getSize());
+            verifyAllLoadedInvoked();
         } finally {
             root.refresh();
         }
@@ -150,6 +169,10 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
             assertNotNull(entries);
             assertTrue(entries.isFullyLoaded());
             assertEquals(2, entries.getSize());
+
+            verify(monitor).permissionAllLoaded(anyLong());
+            verify(monitor).permissionError();
+            verifyNoMoreInteractions(monitor);
         } finally {
             root.refresh();
         }
@@ -160,16 +183,19 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, testPath);
         assertNotNull(entries);
         assertFalse(entries.isEmpty());
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testLoadByPathWithoutEntries() {
         assertNull(permissionStore.load(EveryonePrincipal.NAME, testPath + "/notAccessControlled"));
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testLoadByPathMissingPrincipalRoot() {
         assertNull(permissionStore.load(testPrincipal.getName(), testPath));
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -225,11 +251,13 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
     @Test
     public void testGetNumEntries() {
         assertEquals(NumEntries.valueOf(2, true), permissionStore.getNumEntries(EveryonePrincipal.NAME, Long.MAX_VALUE));
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testGetNumEntriesMissingPrincipalRoot() {
         assertEquals(NumEntries.valueOf(0, true), permissionStore.getNumEntries(testPrincipal.getName(), Long.MAX_VALUE));
+        verifyNoInteractions(monitor);
     }
 
     @Test

@@ -25,8 +25,9 @@ import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.ValidationEntry;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -55,15 +56,17 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
     private final Map<String, List<AcEntry>> entries = Maps.newHashMap();
     private final NodeBuilder permissionRoot;
     private final PrivilegeBitsProvider bitsProvider;
+    private final AuthorizationMonitor monitor;
 
     PermissionStoreEditor(@NotNull String aclPath, @NotNull String name,
                           @NotNull NodeState node, @NotNull NodeBuilder permissionRoot,
                           @NotNull TypePredicate isACE, @NotNull TypePredicate isGrantACE,
                           @NotNull PrivilegeBitsProvider bitsProvider,
                           @NotNull RestrictionProvider restrictionProvider,
-                          @NotNull TreeProvider treeProvider) {
+                          @NotNull ProviderCtx providerCtx) {
         this.permissionRoot = permissionRoot;
         this.bitsProvider = bitsProvider;
+        this.monitor = providerCtx.getMonitor();
         if (name.equals(REP_REPO_POLICY)) {
             accessControlledPath = "";
         } else {
@@ -83,7 +86,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             if (isACE.test(ace)) {
                 boolean isAllow = isGrantACE.test(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
-                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), treeProvider.createReadOnlyTree(ace));
+                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), providerCtx.getTreeProvider().createReadOnlyTree(ace));
 
                 String principalName = Text.escapeIllegalJcrChars(ace.getString(REP_PRINCIPAL_NAME));
                 AcEntry entry = new AcEntry(principalName, index, isAllow, privilegeBits, restrictions);
@@ -155,9 +158,10 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                     }
                 }
                 if (removed) {
-                    updateNumEntries(principalName, principalRoot, -1);
+                    updateNumEntries(principalName, principalRoot, -1, monitor);
                 }
             } else {
+                monitor.permissionError();
                 log.error("Unable to remove permission entry {}: Principal root missing.", this);
             }
         }
@@ -212,7 +216,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             updateEntries(parent, entry.getValue());
 
             if (parent.isNew()) {
-                updateNumEntries(principalName, principalRoot, +1);
+                updateNumEntries(principalName, principalRoot, +1, monitor);
             }
         }
     }
@@ -229,7 +233,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
     }
 
-    private static void updateNumEntries(@NotNull String principalName, @NotNull NodeBuilder principalRoot, int cnt) {
+    private static void updateNumEntries(@NotNull String principalName, @NotNull NodeBuilder principalRoot, int cnt, @NotNull AuthorizationMonitor monitor) {
         PropertyState ps = principalRoot.getProperty(REP_NUM_PERMISSIONS);
         if (ps == null && !principalRoot.isNew()) {
             // existing principal root that doesn't have the rep:numEntries set
@@ -239,6 +243,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
         if  (numEntries < 0) {
             // numEntries unexpectedly turned negative
+            monitor.permissionError();
             log.error("NumEntries counter for principal '{}' turned negative -> removing 'rep:numPermissions' property.", principalName);
             principalRoot.removeProperty(REP_NUM_PERMISSIONS);
         } else {

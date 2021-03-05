@@ -40,6 +40,10 @@ public class PermissionEntryProviderImplTest {
     private final String GROUP_LONG_MAX_MINUS_10 = "groupLongMaxMinus10";
     private final String GROUP_50 = "group50";
 
+    private static PermissionEntryProviderImpl createPermissionEntryProviderImpl(@NotNull PermissionStore store, @NotNull Set<String> principalNames) {
+        return new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+    }
+
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2465">OAK-2465</a>
      */
@@ -55,7 +59,7 @@ public class PermissionEntryProviderImplTest {
         return Long.MAX_VALUE the cache should not be filled (-> the mock-cache
         implementation will fail.
         */
-        PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+        PermissionEntryProviderImpl provider = createPermissionEntryProviderImpl(store, principalNames);
 
         // test that PermissionEntryProviderImpl.noExistingNames nevertheless is
         // properly set
@@ -78,7 +82,7 @@ public class PermissionEntryProviderImplTest {
         entries must deal with the fact that the counter may become bigger that
         Long.MAX_VALUE
         */
-        PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+        PermissionEntryProviderImpl provider = createPermissionEntryProviderImpl(store, principalNames);
         assertFalse(getBooleanField(provider, "noExistingNames"));
 
         assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(EntryPredicate.create()));
@@ -95,7 +99,7 @@ public class PermissionEntryProviderImplTest {
         /*
         same as before but principal-set contains a name for which not entries exist
         */
-        PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+        PermissionEntryProviderImpl provider = createPermissionEntryProviderImpl(store, principalNames);
         assertFalse(getBooleanField(provider, "noExistingNames"));
     }
 
@@ -104,7 +108,7 @@ public class PermissionEntryProviderImplTest {
         MockPermissionStore store = new MockPermissionStore();
         Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
 
-        PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+        PermissionEntryProviderImpl provider = createPermissionEntryProviderImpl(store, principalNames);
         assertFalse(getBooleanField(provider, "noExistingNames"));
 
         // force init
@@ -117,7 +121,7 @@ public class PermissionEntryProviderImplTest {
         MockPermissionStore store = new MockPermissionStore();
         Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
 
-        PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+        PermissionEntryProviderImpl provider = createPermissionEntryProviderImpl(store, principalNames);
         assertFalse(getBooleanField(provider, "initialized"));
 
         provider.getEntryIterator(EntryPredicate.create());

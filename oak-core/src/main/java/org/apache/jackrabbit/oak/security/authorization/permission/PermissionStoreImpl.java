@@ -20,10 +20,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil;
@@ -45,17 +47,19 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     private static final Logger log = LoggerFactory.getLogger(PermissionStoreImpl.class);
 
     private final String permissionRootName;
-
     private final RestrictionProvider restrictionProvider;
+    private final AuthorizationMonitor monitor;
 
     private final Map<String, Tree> principalTreeMap = new HashMap<>();
 
     private Tree permissionsTree;
     private PrivilegeBitsProvider bitsProvider;
 
-    PermissionStoreImpl(@NotNull Root root, @NotNull String permissionRootName, @NotNull RestrictionProvider restrictionProvider) {
+    PermissionStoreImpl(@NotNull Root root, @NotNull String permissionRootName, @NotNull RestrictionProvider restrictionProvider,
+                        @NotNull AuthorizationMonitor monitor) {
         this.permissionRootName = permissionRootName;
         this.restrictionProvider = restrictionProvider;
+        this.monitor = monitor;
         reset(root);
     }
 
@@ -126,9 +130,10 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
             }
         }
         ret.setFullyLoaded(true);
-        long t1 = System.nanoTime();
+        long t = System.nanoTime()-t0;
+        monitor.permissionAllLoaded(t);
         if (log.isDebugEnabled()) {
-            log.debug(String.format("loaded %d entries in %.2fus for %s.%n", ret.getSize(), (t1 - t0) / 1000.0, principalName));
+            log.debug(String.format("loaded %d entries in %.2fus for %s.%n", ret.getSize(), t / 1000.0, principalName));
         }
         return ret;
     }
@@ -165,6 +170,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
                 }
             }
         } else {
+            monitor.permissionError();
             log.error("Permission entry at '{}' without rep:accessControlledPath property.", tree.getPath());
         }
     }

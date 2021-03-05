@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
@@ -53,7 +54,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -61,6 +64,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
@@ -68,6 +73,8 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
     private Tree t;
     private PermissionProvider pp;
     private JackrabbitAccessControlList acl;
+
+    private final AuthorizationMonitor monitor = mock(AuthorizationMonitor.class);
 
     @Before
     public void before() throws Exception {
@@ -83,6 +90,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
     @After
     public void after() throws Exception {
         try {
+            clearInvocations(monitor);
             if (acl != null) {
                 getAccessControlManager(root).removePolicy(acl.getPath(), acl);
             }
@@ -115,6 +123,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         when(ctx.getSecurityProvider()).thenReturn(getSecurityProvider());
         when(ctx.getTreeProvider()).thenReturn(getTreeProvider());
         when(ctx.getRootProvider()).thenReturn(getRootProvider());
+        when(ctx.getMonitor()).thenReturn(monitor);
 
         String wspName = root.getContentSession().getWorkspaceName();
         Root readonlyRoot = getRootProvider().createReadOnlyRoot(root);
@@ -134,6 +143,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
 
         assertTrue(validator instanceof VisibleValidator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("name"), false, Permissions.ADD_NODE);
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -147,6 +157,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         assertTrue(validator instanceof VisibleValidator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE);
         verify(pp, never()).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -160,6 +171,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         assertNull(validator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
         verify(pp, times(1)).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -175,6 +187,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         assertTrue(validator instanceof VisibleValidator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE);
         verify(pp, never()).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
+        verifyNoInteractions(monitor);
     }
 
     @Test(expected = CommitFailedException.class)
@@ -193,6 +206,10 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
             throw e;
+        } finally {
+            verify(monitor).accessViolation();
+            verify(monitor).permissionAllLoaded(anyLong());
+            verifyNoMoreInteractions(monitor);
         }
     }
 
@@ -203,6 +220,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
 
         assertNull(validator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("name"), true, Permissions.REMOVE_NODE);
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -216,6 +234,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         assertNull(validator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
         verify(pp, never()).isGranted(t.getChild("nonExistingDest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -229,6 +248,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         assertNull(validator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
         verify(pp, times(1)).isGranted(t.getChild("dest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -244,6 +264,7 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         assertNull(validator);
         verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
         verify(pp, never()).isGranted(t.getChild("dest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
+        verifyNoInteractions(monitor);
     }
 
     @Test(expected = CommitFailedException.class)
@@ -262,6 +283,10 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
             throw e;
+        } finally {
+            verify(monitor).accessViolation();
+            verify(monitor).permissionAllLoaded(anyLong());
+            verifyNoMoreInteractions(monitor);
         }
     }
 
@@ -282,6 +307,8 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
         } catch (CommitFailedException e){
             assertSame(exp, e);
             throw e;
+        } finally {
+            verifyNoInteractions(monitor);
         }
     }
 }

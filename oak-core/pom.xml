@@ -159,6 +159,7 @@
                                     <include>org.apache.jackrabbit.oak.security.authentication.monitor</include>
                                     <include>org.apache.jackrabbit.oak.security.authentication.user</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization</include>
+                                    <include>org.apache.jackrabbit.oak.security.authorization.monitor</include>
                                     <include>org.apache.jackrabbit.oak.security.internal</include>
                                     <include>org.apache.jackrabbit.oak.security.principal</include>
                                     <include>org.apache.jackrabbit.oak.security.privilege</include>

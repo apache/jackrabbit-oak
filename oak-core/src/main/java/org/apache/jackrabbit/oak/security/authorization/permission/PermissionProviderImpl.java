@@ -84,6 +84,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     public void refresh() {
         immutableRoot = providerCtx.getRootProvider().createReadOnlyRoot(root);
         getCompiledPermissions().refresh(immutableRoot, workspaceName);
+        providerCtx.getMonitor().permissionRefresh();
     }
 
     @NotNull
@@ -175,7 +176,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @NotNull
     protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider) {
-        return new PermissionStoreImpl(root, workspaceName, restrictionProvider);
+        return new PermissionStoreImpl(root, workspaceName, restrictionProvider, providerCtx.getMonitor());
     }
 
     private static boolean isVersionStorePath(@NotNull String oakPath) {
