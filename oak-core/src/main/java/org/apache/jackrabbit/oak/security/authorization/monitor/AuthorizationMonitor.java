@@ -42,6 +42,8 @@ public interface AuthorizationMonitor extends Monitor<AuthorizationMonitor> {
 
     /**
      * Called to record the time it takes to eagerly load all permissions for a given principal.
+     *
+     * @param timeTakenNanos Time in nanoseconds.
      */
     void permissionAllLoaded(long timeTakenNanos);
 }
