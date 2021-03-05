@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMBean;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
