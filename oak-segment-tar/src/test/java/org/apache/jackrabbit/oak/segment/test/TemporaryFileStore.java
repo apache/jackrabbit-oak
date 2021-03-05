@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -43,6 +44,8 @@ public class TemporaryFileStore extends ExternalResource {
 
     private FileStore store;
 
+    private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
+
     public TemporaryFileStore(TemporaryFolder folder, boolean standby) {
         this.folder = folder;
         this.standby = standby;
@@ -55,12 +58,20 @@ public class TemporaryFileStore extends ExternalResource {
         this.standby = standby;
     }
 
+    public TemporaryFileStore(TemporaryFolder folder, int binariesInlineThreshold) {
+        this.folder = folder;
+        this.standby = false;
+        this.blobStore = null;
+        this.binariesInlineThreshold = binariesInlineThreshold;
+    }
+
     @Override
     protected void before() throws Throwable {
         executor = Executors.newSingleThreadScheduledExecutor();
         FileStoreBuilder builder = fileStoreBuilder(folder.newFolder())
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
+                .withBinariesInlineThreshold(binariesInlineThreshold)
                 .withNodeDeduplicationCacheSize(1)
                 .withSegmentCacheSize(256)
                 .withStringCacheSize(0)

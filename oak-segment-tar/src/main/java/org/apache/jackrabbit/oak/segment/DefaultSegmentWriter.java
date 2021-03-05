@@ -112,19 +112,23 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
     @NotNull
     private final WriteOperationHandler writeOperationHandler;
+    
+    private final int binariesInlineThreshold;
 
     /**
      * Create a new instance of a {@code SegmentWriter}. Note the thread safety
      * properties pointed out in the class comment.
      *
-     * @param store                 store to write to
-     * @param reader                segment reader for the {@code store}
-     * @param idProvider            segment id provider for the {@code store}
-     * @param blobStore             the blog store or {@code null} for inlined
-     *                              blobs
-     * @param cacheManager          cache manager instance for the
-     *                              de-duplication caches used by this writer
-     * @param writeOperationHandler handler for write operations.
+     * @param store                   store to write to
+     * @param reader                  segment reader for the {@code store}
+     * @param idProvider              segment id provider for the {@code store}
+     * @param blobStore               the blob store or {@code null} for inlined
+     *                                blobs
+     * @param cacheManager            cache manager instance for the
+     *                                de-duplication caches used by this writer
+     * @param writeOperationHandler   handler for write operations.
+     * @param binariesInlineThreshold threshold in bytes, specifying the limit up to which
+     *                                blobs will be inlined
      */
     public DefaultSegmentWriter(
             @NotNull SegmentStore store,
@@ -132,7 +136,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
             @NotNull SegmentIdProvider idProvider,
             @Nullable BlobStore blobStore,
             @NotNull WriterCacheManager cacheManager,
-            @NotNull WriteOperationHandler writeOperationHandler
+            @NotNull WriteOperationHandler writeOperationHandler,
+            int binariesInlineThreshold
     ) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
@@ -140,6 +145,9 @@ public class DefaultSegmentWriter implements SegmentWriter {
         this.blobStore = blobStore;
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
+        checkArgument(binariesInlineThreshold >= 0);
+        checkArgument(binariesInlineThreshold <= Segment.MEDIUM_LIMIT);
+        this.binariesInlineThreshold = binariesInlineThreshold;
     }
 
     @Override
@@ -638,11 +646,13 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId internalWriteStream(@NotNull InputStream stream) throws IOException {
-            // Special case for short binaries (up to about 16kB):
+            // Special case for short binaries (up to about binariesInlineThreshold, 16kB by default):
             // store them directly as small- or medium-sized value records
-            byte[] data = new byte[Segment.MEDIUM_LIMIT];
+                    	
+            byte[] data = new byte[binariesInlineThreshold];
             int n = read(stream, data, 0, data.length);
-            if (n < Segment.MEDIUM_LIMIT) {
+            
+            if (n < binariesInlineThreshold) {
                 return writeValueRecord(n, data);
             }
 
@@ -650,6 +660,17 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 String blobId = blobStore.writeBlob(new SequenceInputStream(
                         new ByteArrayInputStream(data, 0, n), stream));
                 return writeBlobId(blobId);
+            }
+            
+            // handle case in which blob store is not configured and
+            // binariesInlineThreshold < Segment.MEDIUM_LIMIT
+            // store the binaries as small or medium sized value records 
+            
+            data = Arrays.copyOf(data, Segment.MEDIUM_LIMIT);
+            n += read(stream, data, n, Segment.MEDIUM_LIMIT - n);
+            
+            if (n < Segment.MEDIUM_LIMIT) {
+                return writeValueRecord(n, data);
             }
 
             data = Arrays.copyOf(data, Segment.MAX_SEGMENT_SIZE);
