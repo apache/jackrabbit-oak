@@ -28,10 +28,31 @@ public interface UserMonitor extends Monitor<UserMonitor> {
 
     UserMonitor NOOP = new UserMonitor() {};
 
+    /**
+     * Called to record the time it takes to compute the members of a group.
+     *
+     * @param timeTakenNanos The time in nanoseconds
+     * @param declaredOnly {@code true} if only declared members were retrieved; {@code false} if declared and
+     * inherited members were retrieved.
+     */
     default void doneGetMembers(long timeTakenNanos, boolean declaredOnly) {}
 
+    /**
+     * Called to record the time it takes to compute the group membership of a given user or group.
+     *
+     * @param timeTakenNanos The time in nanoseconds
+     * @param declaredOnly {@code true} if only declared membership was retrieved; {@code false} otherwise.
+     */
     default void doneMemberOf(long timeTakenNanos, boolean declaredOnly) {}
 
+    /**
+     * Called to record changes to members of a group.
+     *
+     * @param timeTakenNanos The time in nanoseconds
+     * @param totalProcessed The total number of processed members
+     * @param failed The number of unsuccessful updates (either members added or removed)
+     * @param isRemove {@code true} if members were being removed; {@code false} if added.
+     */
     default void doneUpdateMembers(long timeTakenNanos, long totalProcessed, long failed, boolean isRemove) {}
 
     default @NotNull Class<UserMonitor> getMonitorClass() {

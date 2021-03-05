@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -53,7 +54,7 @@ public class UserMonitorImpl implements UserMonitor {
     private final TimerStats memberOfTimer;
     private final TimerStats declaredMemberOfTimer;
 
-    public UserMonitorImpl(StatisticsProvider statisticsProvider) {
+    public UserMonitorImpl(@NotNull StatisticsProvider statisticsProvider) {
         addMembersFailed = statisticsProvider.getMeter(ADD_MEMBERS_FAILED, StatsOptions.DEFAULT);
         addMembersSucceeded = statisticsProvider.getMeter(ADD_MEMBERS_SUCCEEDED, StatsOptions.DEFAULT);
         addMembersTimer = statisticsProvider.getTimer(ADD_MEMBERS_TIMER, StatsOptions.METRICS_ONLY);
