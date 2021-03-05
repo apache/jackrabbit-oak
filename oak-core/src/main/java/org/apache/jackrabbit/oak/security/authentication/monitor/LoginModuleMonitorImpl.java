@@ -35,7 +35,7 @@ public class LoginModuleMonitorImpl implements LoginModuleMBean, LoginModuleMoni
 
     private final MeterStats loginErrors;
 
-    public LoginModuleMonitorImpl(StatisticsProvider statisticsProvider) {
+    public LoginModuleMonitorImpl(@NotNull StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         loginErrors = statisticsProvider.getMeter(LOGIN_ERRORS, StatsOptions.DEFAULT);
     }
