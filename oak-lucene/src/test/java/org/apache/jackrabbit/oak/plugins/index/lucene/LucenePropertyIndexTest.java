@@ -1252,7 +1252,50 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
                 asList("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
-            asList("/test/a", "/test/b", "/test/c"));
+                asList("/test/a", "/test/b", "/test/c"));
+    }
+
+    @Test
+    @Ignore("OAK-9373")
+    public void likeQueriesWithEscapedChars() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        idx.addChild(PROP_NODE).addChild("propa");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "foo%");
+        test.addChild("b").setProperty("propa", "%bar");
+        test.addChild("c").setProperty("propa", "foo%bar");
+        test.addChild("d").setProperty("propa", "foo_");
+        test.addChild("e").setProperty("propa", "_foo");
+        test.addChild("f").setProperty("propa", "foo_bar");
+        test.addChild("g").setProperty("propa", "foo%_bar");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo%'",
+                asList("/test/a", "/test/c", "/test/d", "/test/f", "/test/g"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo%'",
+                asList("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\%'",
+                asList("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%'",
+                asList("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%%'",
+                asList("/test/a", "/test/c", "/test/g"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '\\%b%'",
+                asList("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo_'",
+                asList("/test/a", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '_oo_'",
+                asList("/test/a", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\_'",
+                asList("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_'",
+                asList("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_%'",
+                asList("/test/d", "/test/f"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%\\_%'",
+                asList("/test/g"));
     }
 
     @Test
