@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.jetbrains.annotations.NotNull;
@@ -59,8 +61,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * {@code ExternalLoginModule} implements a {@code LoginModule} that uses an
@@ -115,6 +120,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     private Set<? extends Principal> principals;
     private AuthInfo authInfo;
+
+    private ExternalIdentityMonitor monitor;
 
     /**
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
@@ -185,6 +192,12 @@ public class ExternalLoginModule extends AbstractLoginModule {
             credentialsSupport = (CredentialsSupport) idp;
         } else {
             log.debug("No 'SupportedCredentials' configured. Using default implementation supporting 'SimpleCredentials'.");
+        }
+
+        monitor = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
+        if (monitor == null) {
+            log.debug("No ExternalIdentityMonitor registered.");
+            monitor = ExternalIdentityMonitor.NOOP;
         }
     }
 
@@ -268,6 +281,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         } catch (SyncException e) {
             log.error("SyncHandler {} throws sync exception for '{}'", syncHandler.getName(), logId, e);
             onError();
+            monitor.syncFailed(e);
             throw createLoginException(e, "Error while syncing user.");
         }
     }
@@ -364,6 +378,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     private void syncUser(@NotNull ExternalUser user, @Nullable UserManager userMgr) throws SyncException {
         Root root = getRootOrThrow();
         UserManager userManager = getUsermanagerOrThrow(userMgr);
+        Stopwatch watch = Stopwatch.createStarted();
         int numAttempt = 0;
         while (numAttempt++ < MAX_SYNC_ATTEMPTS) {
             SyncContext context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
@@ -376,6 +391,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                     timer.mark("commit");
                 }
                 debug("syncUser({}) {}, status: {}", user.getId(), timer.getString(), syncResult.getStatus().toString());
+                monitor.doneSyncExternalIdentity(watch.elapsed(NANOSECONDS), syncResult, numAttempt-1);
                 return;
             } catch (CommitFailedException e) {
                 log.warn("User synchronization failed during commit: {}. (attempt {}/{})", e, numAttempt, MAX_SYNC_ATTEMPTS);
@@ -396,13 +412,15 @@ public class ExternalLoginModule extends AbstractLoginModule {
         UserManager userManager = getUsermanagerOrThrow(userMgr);
         SyncContext context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
         try {
+            Stopwatch watch = Stopwatch.createStarted();
             DebugTimer timer = new DebugTimer();
             context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
-            context.sync(id);
+            SyncResult syncResult = context.sync(id);
             timer.mark("sync");
             root.commit();
             timer.mark("commit");
             debug("validateUser({}) {}", id, timer.getString());
+            monitor.doneSyncId(watch.elapsed(NANOSECONDS), syncResult);
         } catch (CommitFailedException e) {
             throw new SyncException("User synchronization failed during commit.", e);
         } finally {

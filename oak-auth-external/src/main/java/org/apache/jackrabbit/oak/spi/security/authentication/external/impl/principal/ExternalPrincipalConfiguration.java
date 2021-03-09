@@ -42,12 +42,16 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
@@ -84,6 +88,8 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
     private SyncConfigTracker syncConfigTracker;
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
+
+    private ExternalIdentityMonitor monitor = ExternalIdentityMonitor.NOOP;
 
     @SuppressWarnings("UnusedDeclaration")
     public ExternalPrincipalConfiguration() {
@@ -135,6 +141,12 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return Collections.singletonList(new ExternalIdentityImporter());
+    }
+
+    @Override
+    public @NotNull Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+        monitor = new ExternalIdentityMonitorImpl(statisticsProvider);
+        return Collections.singleton(monitor);
     }
 
     @NotNull
