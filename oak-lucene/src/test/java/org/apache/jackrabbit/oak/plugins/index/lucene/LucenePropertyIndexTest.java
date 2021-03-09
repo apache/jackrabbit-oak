@@ -1256,7 +1256,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    @Ignore("OAK-9373")
     public void likeQueriesWithEscapedChars() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
         idx.addChild(PROP_NODE).addChild("propa");
