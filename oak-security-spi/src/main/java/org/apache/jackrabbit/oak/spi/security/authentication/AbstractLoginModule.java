@@ -506,7 +506,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         SecurityProvider sp = getSecurityProvider();
         Root r = getRoot();
         if (r != null && sp != null) {
-            UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+            UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             userManager = uc.getUserManager(r, NamePathMapper.DEFAULT);
         }
 
