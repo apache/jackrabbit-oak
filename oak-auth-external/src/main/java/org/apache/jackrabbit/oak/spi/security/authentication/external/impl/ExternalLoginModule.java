@@ -209,7 +209,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
         try {
             // check if there exists a user with the given ID that has been synchronized
             // before into the repository.
-            SyncedIdentity sId = getSyncedIdentity(userId);
+            UserManager userManager = getUserManager();
+            SyncedIdentity sId = getSyncedIdentity(userId, userManager);
 
             // if there exists an authorizable with the given userid (syncedIdentity != null),
             // ignore it if any of the following conditions is met:
@@ -237,7 +238,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 //noinspection unchecked
                 sharedState.put(SHARED_KEY_LOGIN_NAME, externalUser.getId());
 
-                syncUser(externalUser);
+                syncUser(externalUser, userManager);
 
                 // login successful -> remember credentials for commit/logout
                 credentials = creds;
@@ -248,7 +249,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 if (sId != null) {
                     // invalidate the user if it exists as synced variant
                     log.debug("local user exists for '{}'. re-validating.", sId.getId());
-                    validateUser(sId.getId());
+                    validateUser(sId.getId(), userManager);
                 }
                 return false;
             }
@@ -258,14 +259,24 @@ public class ExternalLoginModule extends AbstractLoginModule {
             return false;
         } catch (LoginException e) {
             log.debug("IDP {} throws login exception for '{}': {}", idp.getName(), logId, e.getMessage());
+            getLoginModuleMonitor().loginFailed(e, creds);
             throw e;
-        } catch (SyncException | RepositoryException e) {
+        } catch (RepositoryException e) {
+            log.error("SyncHandler {} throws exception while obtaining synced identity for '{}'", syncHandler.getName(), logId, e);
             onError();
+            throw createLoginException(e, "Error while obtaining synced identity.");
+        } catch (SyncException e) {
             log.error("SyncHandler {} throws sync exception for '{}'", syncHandler.getName(), logId, e);
-            LoginException le = new LoginException("Error while syncing user.");
-            le.initCause(e);
-            throw le;
+            onError();
+            throw createLoginException(e, "Error while syncing user.");
         }
+    }
+
+    @NotNull
+    private static LoginException createLoginException(@NotNull Exception e, @NotNull String msg) {
+        LoginException le = new LoginException(msg);
+        le.initCause(e);
+        return le;
     }
 
     @Override
@@ -318,8 +329,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     @Nullable
-    private SyncedIdentity getSyncedIdentity(@Nullable String userId) throws RepositoryException {
-        UserManager userMgr = getUserManager();
+    private SyncedIdentity getSyncedIdentity(@Nullable String userId, @Nullable UserManager userMgr) throws RepositoryException {
         if (userId != null && userMgr != null) {
             return syncHandler.findIdentity(userMgr, userId);
         } else {
@@ -351,9 +361,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * @param user the external user
      * @throws SyncException if an error occurs
      */
-    private void syncUser(@NotNull ExternalUser user) throws SyncException {
+    private void syncUser(@NotNull ExternalUser user, @Nullable UserManager userMgr) throws SyncException {
         Root root = getRootOrThrow();
-        UserManager userManager = getUsermanagerOrThrow();
+        UserManager userManager = getUsermanagerOrThrow(userMgr);
         int numAttempt = 0;
         while (numAttempt++ < MAX_SYNC_ATTEMPTS) {
             SyncContext context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
@@ -381,9 +391,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * Initiates synchronization of a possible remove user
      * @param id the user id
      */
-    private void validateUser(@NotNull String id) throws SyncException {
+    private void validateUser(@NotNull String id, @NotNull UserManager userMgr) throws SyncException {
         Root root = getRootOrThrow();
-        UserManager userManager = getUsermanagerOrThrow();
+        UserManager userManager = getUsermanagerOrThrow(userMgr);
         SyncContext context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
         try {
             DebugTimer timer = new DebugTimer();
@@ -429,8 +439,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     @NotNull
-    private UserManager getUsermanagerOrThrow() throws SyncException {
-        UserManager userManager = getUserManager();
+    private static UserManager getUsermanagerOrThrow(@Nullable UserManager userManager) throws SyncException {
         if (userManager == null) {
             throw new SyncException("Cannot synchronize user. userManager == null");
         }
