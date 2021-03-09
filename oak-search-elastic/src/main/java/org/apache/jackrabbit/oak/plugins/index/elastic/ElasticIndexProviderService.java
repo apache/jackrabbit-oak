@@ -110,11 +110,13 @@ public class ElasticIndexProviderService {
                 description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation")
         String localTextExtractionDir();
 
-        @AttributeDefinition(name = "Remote index cleanup frequency", description = "Frequency (in seconds) of running remote index deletion scheduled task")
-        int remoteIndexCleanupFrequency() default 60;
+        @AttributeDefinition(name = "Remote index cleanup frequency", description = "Frequency (in seconds) of running remote index deletion scheduled task." +
+                "Set this to -1 to disable the task. Default is 1 hour.")
+        int remoteIndexCleanupFrequency() default 60*60;
 
-        @AttributeDefinition(name = "Remote index deletion threshold", description = "Time in seconds after which a remote index whose local index is not found gets deleted")
-        int remoteIndexDeletionThreshold() default 300;
+        @AttributeDefinition(name = "Remote index deletion threshold", description = "Time in seconds after which a remote index whose local index is not found gets deleted." +
+                "Default is 1 day.")
+        int remoteIndexDeletionThreshold() default 24*60*60;
     }
 
 
@@ -183,6 +185,9 @@ public class ElasticIndexProviderService {
         boolean reachable = elasticConnection.isAvailable();
         if (!reachable) {
             throw new IllegalArgumentException("Elastic server is not available - " + elasticConnection.toString());
+        }
+        if (contextConfig.remoteIndexCleanupFrequency() == -1) {
+            return;
         }
         ElasticIndexCleaner task = new ElasticIndexCleaner(elasticConnection, nodeStore, contextConfig.remoteIndexDeletionThreshold());
         oakRegs.add(scheduleWithFixedDelay(whiteboard, task, contextConfig.remoteIndexCleanupFrequency()));
