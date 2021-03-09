@@ -181,7 +181,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         store = docBuilderRO.build();
         wb.register(MongoDocumentStore.class, ds, emptyMap());
 
-        IndexHelper helper = new IndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
+        ExtendedIndexHelper helper = new ExtendedIndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
                 temporaryFolder.newFolder(), asList(TEST_INDEX_PATH));
         IndexerSupport support = new IndexerSupport(helper, checkpoint);
 

@@ -127,12 +127,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         String loginName = getLoginId(preAuthLogin);
         Authentication authentication = getUserAuthentication(loginName);
         if (authentication != null) {
-            if (preAuthLogin != null) {
-                success = authentication.authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED);
-            } else {
-                success = authentication.authenticate(credentials);
-            }
-
+            success = authenticate(preAuthLogin, authentication);
             if (success) {
                 log.debug("Adding Credentials to shared state.");
                 //noinspection unchecked
@@ -258,6 +253,16 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             }
         }
         return null;
+    }
+
+    private boolean authenticate(@Nullable PreAuthenticatedLogin preAuthLogin, @NotNull Authentication authentication) throws LoginException {
+        Credentials crds = (preAuthLogin != null) ? PreAuthenticatedLogin.PRE_AUTHENTICATED : credentials;
+        try {
+            return authentication.authenticate(crds);
+        } catch (LoginException e) {
+            getLoginModuleMonitor().loginFailed(e, crds);
+            throw e;
+        }
     }
 
     private AuthInfo createAuthInfo(@NotNull Set<? extends Principal> principals) {

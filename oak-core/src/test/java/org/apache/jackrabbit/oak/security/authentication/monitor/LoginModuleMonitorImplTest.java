@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.monitor;
 
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -25,8 +28,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -34,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,7 +77,29 @@ public class LoginModuleMonitorImplTest {
     @Test
     public void testConstructor() {
         LoginModuleMonitorImpl s = new LoginModuleMonitorImpl(sp);
-        verify(sp, times(1)).getMeter(anyString(), any(StatsOptions.class));
-        verify(sp, times(0)).getTimer(anyString(), any(StatsOptions.class));
+        verify(sp, times(5)).getMeter(anyString(), any(StatsOptions.class));
+        verify(sp, times(1)).getTimer(anyString(), any(StatsOptions.class));
+    }
+
+    @Test
+    public void testLoginFailed() {
+        LoginException e = new LoginException();
+        LoginModuleMonitorImpl s = new LoginModuleMonitorImpl(sp);
+        s.loginFailed(e, null);
+        SimpleCredentials sc = new SimpleCredentials("id", new char[0]);
+        s.loginFailed(e, sc);
+        s.loginFailed(e, new TokenCredentials("token"));
+        s.loginFailed(e, new ImpersonationCredentials(sc, AuthInfo.EMPTY));
+        verify(meter, times(4)).mark();
+        verify(meter, never()).mark(any(Long.class));
+    }
+
+    @Test
+    public void testPrincipalsCollected() {
+        LoginModuleMonitorImpl s = new LoginModuleMonitorImpl(sp);
+        s.principalsCollected(25, 4);
+        verify(meter, times(1)).mark(4);
+        verify(meter, never()).mark();
+        verify(timer, times(1)).update(25, TimeUnit.NANOSECONDS);
     }
 }

@@ -37,13 +37,13 @@ public class LuceneIndexHelper implements Closeable {
     private static final int BUFFER_SIZE_DEFAULT = 32;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final IndexHelper indexHelper;
+    private final ExtendedIndexHelper extendedIndexHelper;
     private IndexCopier indexCopier;
     private DirectoryFactory directoryFactory;
 
 
-    LuceneIndexHelper(IndexHelper indexHelper) {
-        this.indexHelper = indexHelper;
+    LuceneIndexHelper(ExtendedIndexHelper extendedIndexHelper) {
+        this.extendedIndexHelper = extendedIndexHelper;
     }
 
     public LuceneIndexEditorProvider createEditorProvider() throws IOException {
@@ -51,9 +51,9 @@ public class LuceneIndexHelper implements Closeable {
         if (directoryFactory != null) {
             editor = new LuceneIndexEditorProvider(
                     getIndexCopier(),
-                    indexHelper.getExtractedTextCache(),
+                    extendedIndexHelper.getExtractedTextCache(),
                     null,
-                    indexHelper.getMountInfoProvider()
+                    extendedIndexHelper.getMountInfoProvider()
             ) {
                 @Override
                 protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback,
@@ -64,13 +64,13 @@ public class LuceneIndexHelper implements Closeable {
         } else {
             editor = new LuceneIndexEditorProvider(
                     getIndexCopier(),
-                    indexHelper.getExtractedTextCache(),
+                    extendedIndexHelper.getExtractedTextCache(),
                     null,
-                    indexHelper.getMountInfoProvider()
+                    extendedIndexHelper.getMountInfoProvider()
             );
         }
 
-        editor.setBlobStore(indexHelper.getGCBlobStore());
+        editor.setBlobStore(extendedIndexHelper.getGCBlobStore());
 
         return editor;
     }
@@ -90,8 +90,8 @@ public class LuceneIndexHelper implements Closeable {
 
     private IndexCopier getIndexCopier() throws IOException {
         if (indexCopier == null) {
-            File indexWorkDir = new File(indexHelper.getWorkDir(), "indexWorkDir");
-            indexCopier = new IndexCopier(indexHelper.getExecutor(), indexWorkDir, true);
+            File indexWorkDir = new File(extendedIndexHelper.getWorkDir(), "indexWorkDir");
+            indexCopier = new IndexCopier(extendedIndexHelper.getExecutor(), indexWorkDir, true);
         }
         return indexCopier;
     }

@@ -139,4 +139,31 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
 
     }
 
+    @Test
+    public void preventIndexDeletionWhenSeedNotFound() throws Exception {
+        int indexDeletionThresholdTime = 5;
+        String indexId = createIndexAndContentNode("propa", "test1");
+        String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + indexId;
+        NodeState oakIndex = nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME);
+        NodeState indexState = oakIndex.getChildNode(indexId);
+        indexState.builder().remove();
+
+        root.refresh();
+        root.getTree(indexPath).removeProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
+        root.commit();
+
+        ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore, indexDeletionThresholdTime);
+        cleaner.run();
+
+        String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState,
+                indexPath);
+        assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName), RequestOptions.DEFAULT));
+
+        Thread.sleep(TimeUnit.SECONDS.toMillis(indexDeletionThresholdTime));
+        cleaner.run();
+
+        assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName), RequestOptions.DEFAULT));
+
+    }
+
 }

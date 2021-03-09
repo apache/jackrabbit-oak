@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -99,7 +98,7 @@ public class VisibleChangesTest {
 
             @Override
             public @NotNull AuthorizationMonitor getMonitor() {
-                throw new NotImplementedException();
+                throw new UnsupportedOperationException();
             }
         });
         hook.processCommit(ns.getRoot(), builder.getNodeState(), CommitInfo.EMPTY);

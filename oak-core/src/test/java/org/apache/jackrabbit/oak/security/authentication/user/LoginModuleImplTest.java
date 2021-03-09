@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
@@ -67,6 +69,7 @@ import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -79,8 +82,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class LoginModuleImplTest extends AbstractSecurityTest {
@@ -88,13 +99,20 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     private static final String USER_ID = "test";
     private static final String USER_ID_CASED = "TeSt";
     private static final String USER_PW = "pw";
+
+    private final LoginModuleMonitor monitor = mock(LoginModuleMonitor.class);
     private User user;
 
     @Override
     public void after() throws Exception {
-        if (user != null) {
-            user.remove();
-            root.commit();
+        try {
+            clearInvocations(monitor);
+            if (user != null) {
+                user.remove();
+                root.commit();
+            }
+        } finally {
+            super.after();
         }
     }
 
@@ -109,6 +127,39 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             user = userManager.createUser(USER_ID, USER_PW);
             root.commit();
         }
+    }
+
+    @NotNull
+    private CallbackHandler createCallbackHandler(@Nullable ContentRepository repository, @Nullable SecurityProvider securityProvider) {
+        return callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    ((RepositoryCallback) callback).setSecurityProvider(securityProvider);
+                    ((RepositoryCallback) callback).setContentRepository(repository);
+                    ((RepositoryCallback) callback).setLoginModuleMonitor(monitor);
+                } else if (callback instanceof CredentialsCallback) {
+                    // ignore
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
+            }
+        };
+    }
+
+    @NotNull
+    private CallbackHandler createCallbackHandler(@NotNull UserAuthenticationFactory authenticationFactory) {
+        ConfigurationParameters params = ConfigurationParameters.of(
+                UserConfiguration.NAME,
+                ConfigurationParameters.of(
+                        UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, authenticationFactory));
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(params).build();
+        return createCallbackHandler(getContentRepository(), sp);
+    }
+
+    private LoginModuleImpl createLoginModule(@NotNull Subject subject, @Nullable CallbackHandler cbh, @NotNull Map<String, ?> sharedState) {
+        LoginModuleImpl lm = new LoginModuleImpl();
+        lm.initialize(subject, cbh, sharedState, Maps.newHashMap());
+        return lm;
     }
 
     @Test(expected = LoginException.class)
@@ -265,6 +316,21 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         }
     }
 
+    @Test(expected = LoginException.class)
+    public void testFailedLoginWithMonitor() throws Exception {
+        createTestUser();
+
+        Credentials credentials = new SimpleCredentials(USER_ID, "wrongPw".toCharArray());
+        HashMap<String, Object> shared = Maps.newHashMap();
+        shared.put(SHARED_KEY_CREDENTIALS, credentials);
+        LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(getContentRepository(), getSecurityProvider()), shared);
+        try {
+            lm.login();
+        } finally {
+            verify(monitor).loginFailed(any(LoginException.class), eq(credentials));
+        }
+    }
+
     @Test
     public void LoginUnsupportedCredentials() throws Exception {
         Credentials unsupportedCredentials = mock(Credentials.class);
@@ -283,9 +349,10 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         };
 
         Subject subject = new Subject(false, ImmutableSet.of(), ImmutableSet.of(unsupportedCredentials), ImmutableSet.of());
-        LoginModuleImpl lm = new LoginModuleImpl();
-        lm.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl lm = createLoginModule(subject, cbh, Maps.newHashMap());
         assertFalse(lm.login());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -304,8 +371,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
 
         Subject subject = new Subject(false, ImmutableSet.of(foreignPrincipal), ImmutableSet.of(), ImmutableSet.of());
-        LoginModuleImpl lm = new LoginModuleImpl();
-        lm.initialize(subject, new TestCallbackHandler(uaf), sharedState, Maps.newHashMap());
+        LoginModuleImpl lm = createLoginModule(subject, createCallbackHandler(uaf), sharedState);
         assertTrue(lm.login());
         assertTrue(lm.commit());
 
@@ -327,6 +393,9 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertTrue(subject.getPublicCredentials().isEmpty());
         assertTrue(subject.getPrincipals().contains(foreignPrincipal));
         assertFalse(subject.getPrincipals().containsAll(principals));
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
@@ -339,8 +408,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
         Subject subject = new Subject();
         subject.setReadOnly();
-        LoginModuleImpl lm = new LoginModuleImpl();
-        lm.initialize(subject, new TestCallbackHandler(uaf), sharedState, Maps.newHashMap());
+        LoginModuleImpl lm = createLoginModule(subject, createCallbackHandler(uaf), sharedState);
         assertTrue(lm.login());
         assertTrue(lm.commit());
 
@@ -348,6 +416,27 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertTrue(subject.getPublicCredentials().isEmpty());
 
         assertTrue(lm.logout());
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
+    }
+
+    @Test(expected = LoginException.class)
+    public void testLoginPreAuthenticatedFails() throws Exception {
+        LoginException le = new LoginException();
+        Authentication authentication = when(mock(Authentication.class).authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED)).thenThrow(le).getMock();
+        UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+
+        Map<String, Object> sharedState = Maps.newHashMap();
+        sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
+
+        LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(uaf), sharedState);
+        try {
+            lm.login();
+        } finally {
+            verify(monitor).loginFailed(le, PreAuthenticatedLogin.PRE_AUTHENTICATED);
+            verifyNoMoreInteractions(monitor);
+        }
     }
 
     @Test
@@ -358,8 +447,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Principal unknownPrincipal = new PrincipalImpl("unknown");
         Subject subject = new Subject(true, Collections.singleton(unknownPrincipal), Collections.emptySet(), Collections.emptySet());
 
-        LoginModuleImpl lm = new LoginModuleImpl();
-        lm.initialize(subject, new TestCallbackHandler(new UserAuthenticationFactoryImpl()), sharedState, Maps.newHashMap());
+        LoginModuleImpl lm = createLoginModule(subject, createCallbackHandler(new UserAuthenticationFactoryImpl()), sharedState);
 
         assertTrue(lm.login());
         assertTrue(lm.commit());
@@ -371,113 +459,110 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
         assertFalse(subject.getPrincipals().isEmpty());
         assertTrue(subject.getPublicCredentials().isEmpty());
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
     public void testNullUserAuthentication() throws Exception {
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        CallbackHandler cbh = new TestCallbackHandler(mock(UserAuthenticationFactory.class));
-        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+        CallbackHandler cbh = createCallbackHandler(mock(UserAuthenticationFactory.class));
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testMissingUserAuthenticationFactory() throws Exception {
-        CallbackHandler cbh = callbacks -> {
-            for (Callback callback : callbacks) {
-                if (callback instanceof RepositoryCallback) {
-                    UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.EMPTY).getMock();
-                    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
-                    ((RepositoryCallback) callback).setSecurityProvider(sp);
-                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
-                } else {
-                    throw new UnsupportedCallbackException(callback);
-                }
-            }
-        };
+        UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.EMPTY).getMock();
+        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
+        CallbackHandler cbh = createCallbackHandler(getContentRepository(), sp);
 
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testMissingSecurityProviderGuestLogin() throws Exception {
-        CallbackHandler cbh = callbacks -> {
-            for (Callback callback : callbacks) {
-                if (callback instanceof RepositoryCallback) {
-                    ((RepositoryCallback) callback).setSecurityProvider(null);
-                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
-                } else {
-                    throw new UnsupportedCallbackException(callback);
-                }
-            }
-        };
+        CallbackHandler cbh = createCallbackHandler(getContentRepository(), null);
 
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(new Subject(false, ImmutableSet.of(), ImmutableSet.of(new GuestCredentials()), ImmutableSet.of()), cbh, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(false, ImmutableSet.of(), ImmutableSet.of(new GuestCredentials()), ImmutableSet.of()), cbh, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testMissingSecurityProvider() throws Exception {
-        CallbackHandler cbh = callbacks -> {
-            for (Callback callback : callbacks) {
-                if (callback instanceof RepositoryCallback) {
-                    ((RepositoryCallback) callback).setSecurityProvider(null);
-                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
-                } else {
-                    throw new UnsupportedCallbackException(callback);
-                }
-            }
-        };
+        CallbackHandler cbh = createCallbackHandler(getContentRepository(), null);
 
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testMissingRoot() throws Exception {
-        CallbackHandler cbh = callbacks -> {
-            for (Callback callback : callbacks) {
-                if (callback instanceof RepositoryCallback) {
-                    ((RepositoryCallback) callback).setSecurityProvider(getSecurityProvider());
-                    ((RepositoryCallback) callback).setContentRepository(null);
-                } else {
-                    throw new UnsupportedCallbackException(callback);
-                }
-            }
-        };
+        CallbackHandler cbh = createCallbackHandler(null, getSecurityProvider());
 
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+
+        verifyNoInteractions(monitor);
     }
 
     @Test
     public void testMissingCallbackHandler() throws Exception {
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(new Subject(), null, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), null, Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+
+        verifyNoInteractions(monitor);
+    }
+
+    @Test
+    public void testUnsupportedCredentialsCallback() throws Exception {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback cb : callbacks) {
+                if (cb instanceof RepositoryCallback) {
+                    RepositoryCallback rcb = (RepositoryCallback) cb;
+                    rcb.setLoginModuleMonitor(monitor);
+                    rcb.setContentRepository(getContentRepository());
+                    rcb.setSecurityProvider(getSecurityProvider());
+                } else {
+                    throw new UnsupportedCallbackException(cb);
+                }
+            }
+        };
+        LoginModuleImpl loginModule = createLoginModule(new Subject(), cbh, Maps.newHashMap());
+
+        assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
+
+        verify(monitor).loginError();
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
@@ -501,12 +586,11 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             }
         };
 
-        CallbackHandler cbh = new TestCallbackHandler(factory);
+        CallbackHandler cbh = createCallbackHandler(factory);
         SimpleCredentials creds = new SimpleCredentials("loginId", new char[0]);
         Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(creds), Sets.newHashSet());
 
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
 
@@ -517,6 +601,9 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertTrue(loginModule.logout());
         assertTrue(subject.getPrincipals().isEmpty());
         assertTrue(subject.getPublicCredentials().isEmpty());
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
@@ -540,11 +627,10 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             }
         };
 
-        CallbackHandler cbh = new TestCallbackHandler(factory);
+        CallbackHandler cbh = createCallbackHandler(factory);
         Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(), Sets.newHashSet());
 
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(subject, cbh, Maps.newHashMap());
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
 
@@ -555,6 +641,9 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertTrue(loginModule.logout());
         assertTrue(subject.getPublicCredentials().isEmpty());
         assertTrue(subject.getPrincipals().isEmpty());
+
+        verify(monitor, never()).principalsCollected(anyLong(), anyInt());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -565,8 +654,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         Map<String, Object> shared = Maps.newHashMap();
         shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()));
 
-        LoginModuleImpl loginModule = new LoginModuleImpl();
-        loginModule.initialize(subject, new TestCallbackHandler(new UserAuthenticationFactoryImpl()), shared, Maps.newHashMap());
+        LoginModuleImpl loginModule = createLoginModule(subject, createCallbackHandler(new UserAuthenticationFactoryImpl()), shared);
 
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
@@ -578,6 +666,9 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertNotNull(ai);
         assertTrue(ai.getPrincipals().contains(principal));
         assertTrue(ai.getPrincipals().contains(getTestUser().getPrincipal()));
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
@@ -601,30 +692,5 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             }
             return null;
         });
-    }
-
-    private class TestCallbackHandler implements CallbackHandler {
-
-        private final SecurityProvider sp;
-
-        private TestCallbackHandler(@NotNull UserAuthenticationFactory authenticationFactory) {
-            ConfigurationParameters params = ConfigurationParameters.of(
-                    UserConfiguration.NAME,
-                    ConfigurationParameters.of(
-                            UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, authenticationFactory));
-            this.sp = SecurityProviderBuilder.newBuilder().with(params).build();
-        }
-
-        @Override
-        public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
-            for (Callback callback : callbacks) {
-                if (callback instanceof RepositoryCallback) {
-                    ((RepositoryCallback) callback).setSecurityProvider(sp);
-                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
-                } else {
-                    throw new UnsupportedCallbackException(callback);
-                }
-            }
-        }
     }
 }

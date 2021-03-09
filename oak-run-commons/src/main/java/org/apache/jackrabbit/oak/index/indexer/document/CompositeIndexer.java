@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class CompositeIndexer implements NodeStateIndexer {
+
     private final List<NodeStateIndexer> indexers;
 
     public CompositeIndexer(List<NodeStateIndexer> indexers) {
@@ -81,5 +82,9 @@ public class CompositeIndexer implements NodeStateIndexer {
     @Override
     public void close() throws IOException {
 
+    }
+
+    public List<NodeStateIndexer> getIndexers() {
+        return indexers;
     }
 }

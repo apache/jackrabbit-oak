@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import static com.google.common.base.Strings.nullToEmpty;
 import static java.lang.Thread.currentThread;
 
 import java.io.BufferedInputStream;
@@ -822,8 +823,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 throw new NullPointerException("Could not determine domain for direct download");
             }
 
+            String cacheKey = identifier.toString()
+                    + domain
+                    + nullToEmpty(downloadOptions.getContentTypeHeader())
+                    + nullToEmpty(downloadOptions.getContentDispositionHeader());
             if (null != httpDownloadURICache) {
-                uri = httpDownloadURICache.getIfPresent(identifier.toString() + domain);
+                uri = httpDownloadURICache.getIfPresent(cacheKey);
             }
             if (null == uri) {
                 if (presignedDownloadURIVerifyExists) {
@@ -861,8 +866,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                         headers,
                         domain);
                 if (uri != null && httpDownloadURICache != null) {
-                    httpDownloadURICache.put(identifier.toString() + domain,
-                            uri);
+                    httpDownloadURICache.put(cacheKey, uri);
                 }
             }
         }

@@ -166,7 +166,7 @@ public class PersistentRedisCache extends AbstractPersistentCache {
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, Buffer buffer) {
+    public void writeSegmentInternal(long msb, long lsb, Buffer buffer) {
         String segmentId = new UUID(msb, lsb).toString();
         Buffer bufferCopy = buffer.duplicate();
 

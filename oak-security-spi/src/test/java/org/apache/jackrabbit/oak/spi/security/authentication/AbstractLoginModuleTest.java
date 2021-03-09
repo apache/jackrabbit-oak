@@ -57,6 +57,7 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
@@ -72,6 +73,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -97,20 +100,20 @@ public class AbstractLoginModuleTest {
         return lm;
     }
 
-    private static AbstractLoginModule initLoginModule(@NotNull CallbackHandler cbh, @NotNull LoginModuleMonitor monitor) {
-        AbstractLoginModule lm = new TestLoginModule(TestCredentials.class, monitor);
-        initialize(lm, new Subject(), cbh, Collections.emptyMap());
-        return lm;
-    }
-
     private static AbstractLoginModule initLoginModule(@NotNull Subject subject) {
-        AbstractLoginModule lm = new TestLoginModule(TestCredentials.class, null);
+        AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
         initialize(lm, subject, mock(CallbackHandler.class), Collections.emptyMap());
         return lm;
     }
 
     private static void initialize(@NotNull AbstractLoginModule loginModule, @NotNull Subject subject, @Nullable CallbackHandler cbh, @NotNull Map<String, ?> sharedState) {
         loginModule.initialize(subject, cbh, sharedState, null);
+    }
+
+    private static void setMonitor(@NotNull AbstractLoginModule loginModule, @NotNull LoginModuleMonitor monitor) throws Exception {
+        Field f = AbstractLoginModule.class.getDeclaredField("loginModuleMonitor");
+        f.setAccessible(true);
+        f.set(loginModule, monitor);
     }
 
     private static ContentRepository mockContentRepository(@Nullable ContentSession contentSession) throws Exception {
@@ -230,6 +233,7 @@ public class AbstractLoginModuleTest {
         assertFalse(subject.getPrincipals().contains(p));
         assertTrue(Collections.disjoint(subject.getPrincipals(), principals));
         assertTrue(subject.getPrincipals().contains(foreignPrincipal));
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -284,6 +288,7 @@ public class AbstractLoginModuleTest {
         // subject must not be altered by logout
         assertTrue(subject.getPublicCredentials().contains(creds));
         assertTrue(subject.getPrincipals().contains(unknownPrincipal));
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -305,6 +310,7 @@ public class AbstractLoginModuleTest {
         assertTrue(subject.getPublicCredentials().contains(creds));
         assertTrue(subject.getPrincipals().contains(unknownPrincipal));
         assertFalse(subject.getPrincipals().contains(p));
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -326,6 +332,7 @@ public class AbstractLoginModuleTest {
         assertTrue(subject.getPublicCredentials().contains(creds));
         assertTrue(subject.getPrincipals().contains(unknownPrincipal));
         assertTrue(subject.getPrincipals().contains(p));
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -356,6 +363,7 @@ public class AbstractLoginModuleTest {
         // trigger creation of system-session
         loginModule.getRoot();
         assertTrue(loginModule.abort());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -366,7 +374,7 @@ public class AbstractLoginModuleTest {
 
         CallbackHandler cbh = new TestCallbackHandler(cr, mock(SecurityProvider.class));
 
-        AbstractLoginModule loginModule = initLoginModule(cbh, monitor);
+        AbstractLoginModule loginModule = initLoginModule(cbh);
         loginModule.getRoot();
         loginModule.clearState();
         verify(monitor).loginError();
@@ -385,6 +393,7 @@ public class AbstractLoginModuleTest {
         loginModule.getRoot();
         loginModule.closeSystemSession();
         verify(cs, times(1)).close();
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -487,16 +496,20 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
-    public void testGetCredentialsIOException() {
-        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(true), monitor);
+    public void testGetCredentialsIOException() throws Exception {
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(true));
+        setMonitor(lm, monitor);
+
         assertNull(lm.getCredentials());
         verify(monitor, times(1)).loginError();
         verifyNoMoreInteractions(monitor);
     }
 
     @Test
-    public void testGetCredentialsUnsupportedCallbackException() {
-        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(false), monitor);
+    public void testGetCredentialsUnsupportedCallbackException() throws Exception {
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(false));
+        setMonitor(lm, monitor);
+
         assertNull(lm.getCredentials());
         verify(monitor, times(1)).loginError();
         verifyNoMoreInteractions(monitor);
@@ -558,19 +571,24 @@ public class AbstractLoginModuleTest {
         assertNotNull(root);
         // root is stored as field -> second access returns the same object
         assertSame(root, loginModule.getRoot());
+        verifyNoInteractions(monitor);
     }
 
     @Test
-    public void testGetRootIOException() {
-        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(true), monitor);
+    public void testGetRootIOException() throws Exception {
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(true));
+        setMonitor(lm, monitor);
+
         assertNull(lm.getRoot());
         verify(monitor).loginError();
         verifyNoMoreInteractions(monitor);
     }
 
     @Test
-    public void testGetRootUnsupportedCallbackException() {
-        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(false), monitor);
+    public void testGetRootUnsupportedCallbackException() throws Exception {
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(false));
+        setMonitor(lm, monitor);
+
         assertNull(lm.getRoot());
         verify(monitor).loginError();
         verifyNoMoreInteractions(monitor);
@@ -590,6 +608,7 @@ public class AbstractLoginModuleTest {
         assertNotNull(securityProvider);
         // securityProvider is stored as field -> second access returns the same object
         assertSame(securityProvider, loginModule.getSecurityProvider());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -658,6 +677,7 @@ public class AbstractLoginModuleTest {
         assertNotNull(userManager);
         // usermanager is stored as field -> second access returns the same object
         assertSame(userManager, loginModule.getUserManager());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -708,6 +728,7 @@ public class AbstractLoginModuleTest {
         CallbackHandler cbh = new TestCallbackHandler(cp, mock(SecurityProvider.class));
         AbstractLoginModule loginModule = initLoginModule(cbh);
         assertNull(loginModule.getUserManager());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -718,6 +739,7 @@ public class AbstractLoginModuleTest {
         CallbackHandler cbh = new TestCallbackHandler(cp, null);
         AbstractLoginModule loginModule = initLoginModule(cbh);
         assertNull(loginModule.getUserManager());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -730,6 +752,7 @@ public class AbstractLoginModuleTest {
         assertNotNull(principalProvider);
         // principalProvider is stored as field -> second access returns the same object
         assertSame(principalProvider, loginModule.getPrincipalProvider());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -765,6 +788,7 @@ public class AbstractLoginModuleTest {
         CallbackHandler cbh = new TestCallbackHandler(cp, sp);
         AbstractLoginModule loginModule = initLoginModule(cbh);
         assertEquals(pp, loginModule.getPrincipalProvider());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -780,6 +804,7 @@ public class AbstractLoginModuleTest {
         CallbackHandler cbh = new TestCallbackHandler(cp, mock(SecurityProvider.class));
         AbstractLoginModule loginModule = initLoginModule(cbh);
         assertNull(loginModule.getPrincipalProvider());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -790,6 +815,7 @@ public class AbstractLoginModuleTest {
         CallbackHandler cbh = new TestCallbackHandler(cp, null);
         AbstractLoginModule loginModule = initLoginModule(cbh);
         assertNull(loginModule.getPrincipalProvider());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -804,6 +830,7 @@ public class AbstractLoginModuleTest {
 
         assertFalse(principals.isEmpty());
         assertEquals(principalProvider.getPrincipals(userId), principals);
+        verify(monitor).principalsCollected(anyLong(), anyInt());
     }
 
 
@@ -830,6 +857,7 @@ public class AbstractLoginModuleTest {
 
         assertFalse(principals.isEmpty());
         assertEquals(expected, principals);
+        verify(monitor).principalsCollected(anyLong(), anyInt());
     }
 
     @Test
@@ -838,6 +866,7 @@ public class AbstractLoginModuleTest {
 
         Set<? extends Principal> principals = loginModule.getPrincipals(new PrincipalImpl("principalName"));
         assertTrue(principals.isEmpty());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -905,15 +934,9 @@ public class AbstractLoginModuleTest {
     private static final class TestLoginModule extends AbstractLoginModule {
 
         private final Class<?> supportedCredentialsClass;
-        private final LoginModuleMonitor mon;
 
         private TestLoginModule(@NotNull Class<?> supportedCredentialsClass) {
-            this(supportedCredentialsClass, null);
-        }
-
-        private TestLoginModule(@NotNull Class<?> supportedCredentialsClass, @Nullable LoginModuleMonitor mon) {
             this.supportedCredentialsClass = supportedCredentialsClass;
-            this.mon = mon;
         }
 
         @NotNull
@@ -931,18 +954,9 @@ public class AbstractLoginModuleTest {
         public boolean commit() {
             throw new UnsupportedOperationException();
         }
-
-        @Override
-        protected @NotNull LoginModuleMonitor getLoginModuleMonitor() {
-            if (mon != null) {
-                return mon;
-            } else {
-                return super.getLoginModuleMonitor();
-            }
-        }
     }
 
-    private static final class TestCallbackHandler implements CallbackHandler {
+    private final class TestCallbackHandler implements CallbackHandler {
 
         private Whiteboard whiteboard = null;
         private UserManager userManager = null;
@@ -985,7 +999,7 @@ public class AbstractLoginModuleTest {
                     RepositoryCallback rcb = (RepositoryCallback) cb;
                     rcb.setContentRepository(contentRepository);
                     rcb.setSecurityProvider(securityProvider);
-                    rcb.setLoginModuleMonitor(LoginModuleMonitor.NOOP);
+                    rcb.setLoginModuleMonitor(monitor);
                 } else {
                     throw new UnsupportedCallbackException(cb);
                 }

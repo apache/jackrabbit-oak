@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -1061,5 +1062,24 @@ public class Utils {
                     timestampToString(rev.getTimestamp()), timestampToString(now));
             throw new DocumentStoreException(msg);
         }
+    }
+
+    /**
+     * Calculates the sum of the given long values. The implementation protects
+     * against overflow by returning {@code Long#MAX_VALUE} when the result
+     * would actually be bigger than that. Similarly, {@code Long#MIN_VALUE} is
+     * returned when the result would actually be smaller than that.
+     *
+     * @param addends the values.
+     * @return the sum of the values.
+     */
+    public static long sum(long... addends) {
+        BigInteger result = BigInteger.ZERO;
+        for (long value : addends) {
+            result = result.add(BigInteger.valueOf(value));
+        }
+        result = result.max(BigInteger.valueOf(Long.MIN_VALUE));
+        result = result.min(BigInteger.valueOf(Long.MAX_VALUE));
+        return result.longValue();
     }
 }

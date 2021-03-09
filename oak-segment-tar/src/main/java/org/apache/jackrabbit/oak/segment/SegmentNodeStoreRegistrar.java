@@ -147,6 +147,8 @@ class SegmentNodeStoreRegistrar {
 
         boolean hasCachePersistence();
 
+        boolean updateCacheAfterWrite();
+
         boolean registerDescriptors();
 
         boolean dispatchChanges();
@@ -248,7 +250,7 @@ class SegmentNodeStoreRegistrar {
 
             if (cfg.hasCachePersistence()) {
                 cfg.getLogger().info("Using persistent cache for the custom persistence [{}]", customPersistence);
-                customPersistence = new CachingPersistence(cfg.getPersistentCache(), customPersistence);
+                customPersistence = new CachingPersistence(cfg.getPersistentCache(), customPersistence, cfg.updateCacheAfterWrite());
             }
 
             if (cfg.hasSplitPersistence()) {

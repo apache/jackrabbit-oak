@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.jcr.ValueFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -45,9 +46,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Defau
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
@@ -186,6 +190,13 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         assertFalse(importers.isEmpty());
         assertEquals(1, importers.size());
         assertTrue(importers.get(0) instanceof ExternalIdentityImporter);
+    }
+
+    @Test
+    public void testGetMonitors() {
+        Iterable<Monitor<?>> monitors = externalPrincipalConfiguration.getMonitors(StatisticsProvider.NOOP);
+        assertEquals(1, Iterables.size(monitors));
+        assertTrue(monitors.iterator().next() instanceof ExternalIdentityMonitorImpl);
     }
 
     @Test

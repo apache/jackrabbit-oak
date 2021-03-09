@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Answers;
+
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
 
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -42,6 +48,27 @@ public class LoginModuleMonitorTest {
     }
 
     @Test
+    public void testLoginFailed() {
+        LoginException e = new LoginException();
+        Credentials creds = new SimpleCredentials("uid", new char[0]);
+
+        noop.loginFailed(e, creds);
+        verifyNoInteractions(monitor);
+
+        monitor.loginFailed(e, creds);
+        verify(monitor, times(1)).loginFailed(e, creds);
+    }
+
+    @Test
+    public void testPrincipalsCollected() {
+        noop.principalsCollected(38, 7);
+        verifyNoInteractions(monitor);
+
+        monitor.principalsCollected(21, 11);
+        verify(monitor, times(1)).principalsCollected(21, 11);
+    }
+
+    @Test
     public void testGetMonitorClass() {
         assertSame(LoginModuleMonitor.class, noop.getMonitorClass());
         assertSame(LoginModuleMonitor.class, monitor.getMonitorClass());
@@ -57,6 +84,16 @@ public class LoginModuleMonitorTest {
 
         @Override
         public void loginError() {
+            //nop
+        }
+
+        @Override
+        public void loginFailed(@NotNull LoginException loginException, @Nullable Credentials creds) {
+            //nop
+        }
+
+        @Override
+        public void principalsCollected(long timeTakenNanos, int numberOfPrincipals) {
             //nop
         }
     }

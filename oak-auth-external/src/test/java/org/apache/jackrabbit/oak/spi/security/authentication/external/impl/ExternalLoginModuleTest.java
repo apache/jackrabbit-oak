@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
@@ -38,14 +40,19 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
 import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.Credentials;
@@ -75,6 +82,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -82,6 +93,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -92,6 +105,23 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     private final Whiteboard wb = spy(new DefaultWhiteboard());
     private final ExternalIdentityProviderManager extIPMgr = mock(ExternalIdentityProviderManager.class);
     private final SyncManager syncManager = mock(SyncManager.class);
+    private final LoginModuleMonitor monitor = mock(LoginModuleMonitor.class);
+    private final ExternalIdentityMonitor externalIdentityMonitor = mock(ExternalIdentityMonitor.class);
+
+    @Before
+    public void before() throws Exception {
+        super.before();
+        wb.register(ExternalIdentityMonitor.class, externalIdentityMonitor, Collections.emptyMap());
+    }
+
+    @After
+    public void after() throws Exception {
+        try {
+            clearInvocations(externalIdentityMonitor, monitor, syncManager, extIPMgr);
+        } finally {
+            super.after();
+        }
+    }
 
     private CallbackHandler createCallbackHandler(@Nullable Whiteboard wb, @Nullable ContentRepository contentRepository, @Nullable SecurityProvider securityProvider, @Nullable Credentials creds) {
         return callbacks -> {
@@ -101,13 +131,20 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
                 } else if (cb instanceof RepositoryCallback) {
                     ((RepositoryCallback) cb).setContentRepository(contentRepository);
                     ((RepositoryCallback) cb).setSecurityProvider(securityProvider);
+                    ((RepositoryCallback) cb).setLoginModuleMonitor(monitor);
                 } else if (cb instanceof CredentialsCallback) {
                     ((CredentialsCallback) cb).setCredentials(creds);
-                }else {
+                } else {
                     throw new UnsupportedCallbackException(cb);
                 }
             }
         };
+    }
+
+    private void verifySyncException(@NotNull Exception e) {
+        assertTrue(e.getCause() instanceof SyncException);
+        verify(externalIdentityMonitor).syncFailed((SyncException) e.getCause());
+        verifyNoMoreInteractions(externalIdentityMonitor);
     }
 
     @Test
@@ -123,6 +160,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -131,6 +169,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -142,9 +181,11 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         verify(extIPMgr, times(1)).getProvider("idp");
         verify(syncManager, times(1)).getSyncHandler("syncHandler");
+
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -153,6 +194,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), Collections.emptyMap(), Collections.singletonMap(PARAM_IDP_NAME, ""));
         verify(extIPMgr, never()).getProvider("");
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -161,6 +203,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), Collections.emptyMap(), Collections.singletonMap(PARAM_SYNC_HANDLER_NAME, ""));
         verify(syncManager, never()).getSyncHandler("");
+        verifyNoInteractions(monitor);
     }
 
 
@@ -169,6 +212,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -180,6 +224,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -201,6 +246,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -230,6 +276,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         assertTrue(loginModule.logout());
         assertTrue(subject.getPublicCredentials().isEmpty());
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
@@ -269,6 +318,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertTrue(subject.getPublicCredentials(AuthInfo.class).isEmpty());
         // predefined principal must _not_ be removed
         assertTrue(subject.getPrincipals().contains(principal));
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
@@ -303,6 +355,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertTrue(loginModule.logout());
         assertTrue(subject.getPublicCredentials().isEmpty());
         assertTrue(subject.getPrincipals().isEmpty());
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test
@@ -328,6 +383,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertNotNull(getUserManager(root).getAuthorizable(ID_TEST_USER));
 
         assertTrue(loginModule.logout());
+
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test(expected = LoginException.class)
@@ -345,8 +403,11 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         try {
             loginModule.login();
         } catch (LoginException e) {
-            assertTrue(e.getCause() instanceof SyncException);
+            verifySyncException(e);
             throw e;
+        } finally {
+            verify(monitor, times(2)).loginError();
+            verifyNoMoreInteractions(monitor);
         }
     }
 
@@ -370,8 +431,11 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         try {
             loginModule.login();
         } catch (LoginException e) {
-            assertTrue(e.getCause() instanceof SyncException);
+            verifySyncException(e);
             throw e;
+        } finally {
+            verify(monitor, times(2)).loginError();
+            verifyNoMoreInteractions(monitor);
         }
     }
 
@@ -400,8 +464,11 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         try {
             loginModule.login();
         } catch (LoginException e) {
-            assertTrue(e.getCause() instanceof SyncException);
+            verifySyncException(e);
             throw e;
+        } finally {
+            verify(monitor).loginError();
+            verifyNoMoreInteractions(monitor);
         }
     }
 
@@ -429,6 +496,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
+
+        verify(externalIdentityMonitor).doneSyncId(anyLong(), any(SyncResult.class));
+        verifyNoInteractions(monitor);
     }
 
     @Test(expected = LoginException.class)
@@ -459,8 +529,57 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         try {
             loginModule.login();
         } catch (LoginException e) {
-            assertTrue(e.getCause() instanceof SyncException);
+            verifySyncException(e);
             throw e;
+        } finally {
+            verify(monitor).loginError();
+            verifyNoMoreInteractions(monitor);
         }
+    }
+
+    @Test(expected = LoginException.class)
+    public void testLoginFailed() throws Exception {
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(new TestIdentityProvider());
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        Credentials credentials = new SimpleCredentials(ID_TEST_USER, "wrongpassword".toCharArray());
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), credentials);
+
+        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        try {
+            loginModule.login();
+        } finally {
+            verify(monitor).loginFailed(any(LoginException.class), eq(credentials));
+            verifyNoMoreInteractions(monitor);
+        }
+    }
+
+    @Test
+    public void testSyncUser() throws Exception {
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(new TestIdentityProvider());
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        Credentials crds = new SimpleCredentials("testUser", new char[0]);
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), crds);
+
+        loginModule.initialize(new Subject(), cbh, new HashMap<>(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertTrue(loginModule.login());
+        root.refresh();
+        Authorizable a = getUserManager(root).getAuthorizable("testUser");
+        assertNotNull(a);
+        assertTrue(a.hasProperty(REP_EXTERNAL_ID));
+
+        assertTrue(loginModule.commit());
+        assertTrue(loginModule.logout());
+
+        verify(externalIdentityMonitor).doneSyncExternalIdentity(anyLong(), any(SyncResult.class), anyInt());
+        verify(monitor).principalsCollected(anyLong(), anyInt());
+        verifyNoMoreInteractions(externalIdentityMonitor, monitor);
     }
 }

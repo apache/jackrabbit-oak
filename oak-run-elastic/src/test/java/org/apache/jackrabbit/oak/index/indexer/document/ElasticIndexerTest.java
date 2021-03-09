@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -55,7 +57,7 @@ public class ElasticIndexerTest {
 
         FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, true);
         ElasticIndexer indexer = new ElasticIndexer(idxDefn, mock(FulltextBinaryTextExtractor.class), builder,
-                mock(IndexingProgressReporter.class), indexWriter);
+                mock(IndexingProgressReporter.class), indexWriter, mock(ElasticIndexEditorProvider.class), mock(IndexHelper.class));
 
         NodeState testNode = EMPTY_NODE.builder().setProperty("foo", "bar").getNodeState();
 

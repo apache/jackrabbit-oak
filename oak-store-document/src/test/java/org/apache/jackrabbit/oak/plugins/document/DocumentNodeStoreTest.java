@@ -136,6 +136,8 @@ public class DocumentNodeStoreTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreTest.class);
 
+    private static final long ONE_MINUTE = TimeUnit.MINUTES.toMillis(1);
+
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
@@ -4122,6 +4124,52 @@ public class DocumentNodeStoreTest {
         assertEquals(0, store.getNumQueryCalls(NODES));
     }
 
+    @Test
+    public void createCheckpointWithRevision() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        RevisionVector head = ns.getHeadRevision();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        Revision r = head.getRevision(ns.getClusterId());
+        assertNotNull(r);
+        String ref = ns.getCheckpoints().create(ONE_MINUTE, Collections.emptyMap(), r).toString();
+        NodeState root = ns.retrieve(ref);
+        assertNotNull(root);
+        assertFalse(root.hasChildNode("foo"));
+    }
+
+    @Test
+    public void expandCheckpointWithRevision() throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).setClusterId(1)
+                .getNodeStore();
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("foo");
+        merge(ns1, builder);
+        ns1.runBackgroundOperations();
+        RevisionVector head = ns1.getHeadRevision();
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).setClusterId(2)
+                .getNodeStore();
+        builder = ns2.getRoot().builder();
+        builder.child("bar");
+        merge(ns2, builder);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+        assertTrue(ns1.getRoot().hasChildNode("bar"));
+
+        Revision r = head.getRevision(ns1.getClusterId());
+        assertNotNull(r);
+        String ref = ns1.getCheckpoints().create(ONE_MINUTE, Collections.emptyMap(), r).toString();
+        NodeState root = ns1.retrieve(ref);
+        assertNotNull(root);
+        assertTrue(root.hasChildNode("foo"));
+        assertFalse(root.hasChildNode("bar"));
+    }
+    
     private void getChildNodeCountTest(int numChildren,
                                        Iterable<Long> maxValues,
                                        Iterable<Long> expectedValues)

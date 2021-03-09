@@ -260,6 +260,12 @@ public class SegmentNodeStoreService {
         boolean cachePersistence() default false;
 
         @AttributeDefinition(
+                name = "Cache update on write",
+                description = "If value is true it enables updating the cache after new segment is persisted"
+        )
+        boolean updateCacheAfterWrite() default false;
+
+        @AttributeDefinition(
             name = "Backup directory",
             description = "Directory (relative to current working directory) for storing repository backups. " +
                 "Defaults to 'repository.home/segmentstore-backup'."
@@ -507,6 +513,11 @@ public class SegmentNodeStoreService {
             @Override
             public boolean hasCachePersistence() {
                 return configuration.cachePersistence();
+            }
+
+            @Override
+            public boolean updateCacheAfterWrite() {
+                return configuration.updateCacheAfterWrite();
             }
 
             @Override

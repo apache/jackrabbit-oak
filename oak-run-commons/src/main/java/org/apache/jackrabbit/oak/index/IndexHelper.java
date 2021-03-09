@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -41,12 +40,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
-import org.apache.jackrabbit.oak.plugins.index.datastore.DataStoreTextWriter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexPrinter;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexInfoProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexInfoProvider;
-import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -64,20 +59,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class IndexHelper implements Closeable{
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final NodeStore store;
-    private final File outputDir;
-    private final File workDir;
-    private IndexInfoServiceImpl indexInfoService;
+    protected final NodeStore store;
+    protected final File outputDir;
+    protected final File workDir;
     private IndexPathService indexPathService;
     private AsyncIndexInfoService asyncIndexInfoService;
-    private final List<String> indexPaths;
+    protected final List<String> indexPaths;
     private final Whiteboard whiteboard;
-    private LuceneIndexHelper luceneIndexHelper;
     private Executor executor;
     private final Closer closer = Closer.create();
     private final BlobStore blobStore;
     private final StatisticsProvider statisticsProvider;
-    private ExtractedTextCache extractedTextCache;
+    private IndexInfoServiceImpl indexInfoService;
+
 
     IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
                 File outputDir, File workDir, List<String> indexPaths) {
@@ -147,25 +141,6 @@ public class IndexHelper implements Closeable{
         return blobStore instanceof GarbageCollectableBlobStore ? (GarbageCollectableBlobStore) blobStore : null;
     }
 
-    public LuceneIndexHelper getLuceneIndexHelper(){
-        if (luceneIndexHelper == null) {
-            luceneIndexHelper = new LuceneIndexHelper(this);
-            closer.register(luceneIndexHelper);
-        }
-        return luceneIndexHelper;
-    }
-
-    public ExtractedTextCache getExtractedTextCache() {
-        if (extractedTextCache == null) {
-            extractedTextCache = new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
-        }
-        return extractedTextCache;
-    }
-
-    public void setPreExtractedTextDir(File dir) throws IOException {
-        getExtractedTextCache().setExtractedTextProvider(new DataStoreTextWriter(dir, true));
-    }
-
     @Nullable
     public <T> T getService(@NotNull Class<T> type) {
         return WhiteboardUtils.getService(whiteboard, type);
@@ -176,7 +151,7 @@ public class IndexHelper implements Closeable{
         closer.close();
     }
 
-    private AsyncIndexInfoService getAsyncIndexInfoService() {
+    protected AsyncIndexInfoService getAsyncIndexInfoService() {
         if (asyncIndexInfoService == null) {
             asyncIndexInfoService = new AsyncIndexInfoServiceImpl(store);
         }
@@ -191,9 +166,9 @@ public class IndexHelper implements Closeable{
         return indexInfoService;
     }
 
-    private void bindIndexInfoProviders(IndexInfoServiceImpl indexInfoService) {
-        indexInfoService.bindInfoProviders(new LuceneIndexInfoProvider(store, getAsyncIndexInfoService(), workDir));
-        indexInfoService.bindInfoProviders(new PropertyIndexInfoProvider(store));
+    protected void bindIndexInfoProviders(IndexInfoServiceImpl indexInfoService) {
+        // Override this if needed in Extended IndexHelper
+        // Only applicable for Lucene and Property Index as of now
     }
 
     private ThreadPoolExecutor createExecutor() {

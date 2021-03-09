@@ -35,6 +35,7 @@ public class ElasticIndexOptions extends IndexOptions {
     private final OptionSpec<String> apiKeySecret;
     private final OptionSpec<Integer> port;
     private final OptionSpec<String> indexPrefix;
+    private final OptionSpec<Void> applyIndexDef;
 
 
     public ElasticIndexOptions(OptionParser parser) {
@@ -51,6 +52,7 @@ public class ElasticIndexOptions extends IndexOptions {
                 .withRequiredArg().ofType(String.class);
         indexPrefix = parser.accepts("indexPrefix", "Elastic indexPrefix")
                 .withRequiredArg().ofType(String.class);
+        applyIndexDef = parser.accepts("applyIndexDef", "Apply Index Definitions to repo specified by --index-definitions-file");
     }
 
     public String getElasticScheme() {
@@ -75,5 +77,9 @@ public class ElasticIndexOptions extends IndexOptions {
 
     public String getIndexPrefix() {
         return indexPrefix.value(options);
+    }
+
+    public boolean isApplyIndexDef() {
+        return options.has(applyIndexDef);
     }
 }

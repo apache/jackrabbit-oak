@@ -1151,9 +1151,23 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
     }
 
+    private static void replaceWildcard(StringBuilder sb, int position, char oldWildcard, char newWildcard) {
+        if (sb.charAt(position) == oldWildcard) {
+            int escapeCount = 0;
+            for (int m = position - 1; m >= 0 && sb.charAt(m) == WildcardQuery.WILDCARD_ESCAPE; m--,escapeCount++);
+            if (escapeCount % 2 == 0) {
+                sb.setCharAt(position, newWildcard);
+            }
+        }
+    }
+
     private static Query createLikeQuery(String name, String first) {
-        first = first.replace('%', WildcardQuery.WILDCARD_STRING);
-        first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
+        StringBuilder firstBuilder = new StringBuilder(first);
+        for (int k = 0; k < firstBuilder.length(); k++) {
+            replaceWildcard(firstBuilder, k, '%', WildcardQuery.WILDCARD_STRING);
+            replaceWildcard(firstBuilder, k, '_', WildcardQuery.WILDCARD_CHAR);
+        }
+        first = firstBuilder.toString();
 
         int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
         int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);

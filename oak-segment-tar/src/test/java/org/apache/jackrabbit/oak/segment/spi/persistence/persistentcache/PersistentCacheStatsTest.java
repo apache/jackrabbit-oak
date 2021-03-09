@@ -188,7 +188,7 @@ public class PersistentCacheStatsTest {
         }
 
         @Override
-        public void writeSegment(long msb, long lsb, Buffer buffer) {
+        public void writeSegmentInternal(long msb, long lsb, Buffer buffer) {
             segments.put(new UUID(msb, lsb), buffer);
         }
 
