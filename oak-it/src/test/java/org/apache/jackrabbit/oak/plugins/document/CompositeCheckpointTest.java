@@ -57,8 +57,9 @@ public class CompositeCheckpointTest {
     public void createCheckpointOnGlobal() {
         Revision r = global.getHeadRevision().getRevision(global.getClusterId());
         assertNotNull(r);
-        String checkpoint = global.getMBean().createCheckpoint(
+        String result = global.getMBean().createCheckpoint(
                 r.toString(), TimeUnit.HOURS.toMillis(1), false);
+        String checkpoint = result.substring(result.indexOf("[") + 1, result.indexOf("]"));
         assertNotNull(composite.retrieve(checkpoint));
     }
 }

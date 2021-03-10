@@ -96,7 +96,8 @@ public class DocumentNodeStoreMBeanTest {
         Revision r = ns.getHeadRevision().getRevision(ns.getClusterId());
         assertNotNull(r);
         String revisionString = new Revision(r.getTimestamp() - SLIGHTLY_OLDER_THAN_REVISION_GC_MAX_AGE_MILLIS, 0, r.getClusterId()).toString();
-        String checkpoint = bean.createCheckpoint(revisionString, ONE_HOUR, true);
+        String result = bean.createCheckpoint(revisionString, ONE_HOUR, true);
+        String checkpoint = result.substring(result.indexOf("[") + 1, result.indexOf("]"));
         assertNotNull(ns.retrieve(checkpoint));
     }
 
@@ -106,7 +107,8 @@ public class DocumentNodeStoreMBeanTest {
         Revision r = ns.getHeadRevision().getRevision(ns.getClusterId());
         assertNotNull(r);
         String revisionString = new Revision(r.getTimestamp() - ONE_HOUR, 0, r.getClusterId()).toString();
-        String checkpoint = bean.createCheckpoint(revisionString, ONE_HOUR, false);
+        String result = bean.createCheckpoint(revisionString, ONE_HOUR, false);
+        String checkpoint = result.substring(result.indexOf("[") + 1, result.indexOf("]"));
         assertNotNull(ns.retrieve(checkpoint));
     }
 }

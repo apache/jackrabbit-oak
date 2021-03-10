@@ -284,7 +284,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
             String cp = nodeStore.getCheckpoints().create(lifetime, info, rev).toString();
             log.info("Created checkpoint [{}] with lifetime {} for Revision {}", cp, lifetime, revision);
-            return cp;
+            return String.format("Created checkpoint [%s] with lifetime %d for Revision %s", cp, lifetime, revision);
         } else {
             throw new IllegalArgumentException(String.format("Cannot create a checkpoint for revision %s. " +
                     "Revision timestamp is %d and oldest timestamp to keep is %d",
