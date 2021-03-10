@@ -421,6 +421,24 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         verifyNoMoreInteractions(monitor);
     }
 
+    @Test(expected = LoginException.class)
+    public void testLoginPreAuthenticatedFails() throws Exception {
+        LoginException le = new LoginException();
+        Authentication authentication = when(mock(Authentication.class).authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED)).thenThrow(le).getMock();
+        UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+
+        Map<String, Object> sharedState = Maps.newHashMap();
+        sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
+
+        LoginModuleImpl lm = createLoginModule(new Subject(), createCallbackHandler(uaf), sharedState);
+        try {
+            lm.login();
+        } finally {
+            verify(monitor).loginFailed(le, PreAuthenticatedLogin.PRE_AUTHENTICATED);
+            verifyNoMoreInteractions(monitor);
+        }
+    }
+
     @Test
     public void testLoginWithReadOnlySubject() throws Exception {
         Map<String, Object> sharedState = Maps.newHashMap();
