@@ -1269,12 +1269,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("e").setProperty("propa", "_foo");
         test.addChild("f").setProperty("propa", "foo_bar");
         test.addChild("g").setProperty("propa", "foo%_bar");
+        test.addChild("h").setProperty("propa", "foo\\bar");
+        test.addChild("i").setProperty("propa", "foo\\\\%bar");
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo%'",
-                asList("/test/a", "/test/c", "/test/d", "/test/f", "/test/g"));
+                asList("/test/a", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h", "/test/i"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo%'",
-                asList("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g"));
+                asList("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g", "/test/h", "/test/i"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\%'",
                 asList("/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%'",
@@ -1295,6 +1297,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 asList("/test/d", "/test/f"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%\\_%'",
                 asList("/test/g"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\\\bar'",
+                asList("/test/h"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\%'",
+                asList("/test/h", "/test/i"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\\\%%'",
+                asList("/test/i"));
     }
 
     @Test

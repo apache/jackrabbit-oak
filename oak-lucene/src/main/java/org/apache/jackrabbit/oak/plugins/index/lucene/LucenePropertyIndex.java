@@ -1154,11 +1154,19 @@ public class LucenePropertyIndex extends FulltextIndex {
     private static Query createLikeQuery(String name, String first) {
         StringBuilder firstBuilder = new StringBuilder(first);
         for (int k = 0; k < firstBuilder.length(); k++) {
-            if (firstBuilder.charAt(k) == '%' && !(k > 0 && firstBuilder.charAt(k-1) == '\\')) {
-                firstBuilder.setCharAt(k, WildcardQuery.WILDCARD_STRING);
+            if (firstBuilder.charAt(k) == '%') {
+                int escapeCount = 0;
+                for (int m = k - 1; m >= 0 && firstBuilder.charAt(m) == '\\'; m--,escapeCount++);
+                if (escapeCount % 2 == 0) {
+                    firstBuilder.setCharAt(k, WildcardQuery.WILDCARD_STRING);
+                }
             }
-            if (firstBuilder.charAt(k) == '_' && !(k > 0 && firstBuilder.charAt(k-1) == '\\')) {
-                firstBuilder.setCharAt(k, WildcardQuery.WILDCARD_CHAR);
+            if (firstBuilder.charAt(k) == '_') {
+                int escapeCount = 0;
+                for (int m = k - 1; m >= 0 && firstBuilder.charAt(m) == '\\'; m--,escapeCount++);
+                if (escapeCount % 2 == 0) {
+                    firstBuilder.setCharAt(k, WildcardQuery.WILDCARD_CHAR);
+                }
             }
         }
         first = firstBuilder.toString();
