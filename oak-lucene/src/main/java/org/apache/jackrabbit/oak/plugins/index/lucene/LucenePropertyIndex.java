@@ -1151,23 +1151,21 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
     }
 
+    private static void replaceWildcard(StringBuilder sb, int position, char oldWildcard, char newWildcard) {
+        if (sb.charAt(position) == oldWildcard) {
+            int escapeCount = 0;
+            for (int m = position - 1; m >= 0 && sb.charAt(m) == WildcardQuery.WILDCARD_ESCAPE; m--,escapeCount++);
+            if (escapeCount % 2 == 0) {
+                sb.setCharAt(position, newWildcard);
+            }
+        }
+    }
+
     private static Query createLikeQuery(String name, String first) {
         StringBuilder firstBuilder = new StringBuilder(first);
         for (int k = 0; k < firstBuilder.length(); k++) {
-            if (firstBuilder.charAt(k) == '%') {
-                int escapeCount = 0;
-                for (int m = k - 1; m >= 0 && firstBuilder.charAt(m) == '\\'; m--,escapeCount++);
-                if (escapeCount % 2 == 0) {
-                    firstBuilder.setCharAt(k, WildcardQuery.WILDCARD_STRING);
-                }
-            }
-            if (firstBuilder.charAt(k) == '_') {
-                int escapeCount = 0;
-                for (int m = k - 1; m >= 0 && firstBuilder.charAt(m) == '\\'; m--,escapeCount++);
-                if (escapeCount % 2 == 0) {
-                    firstBuilder.setCharAt(k, WildcardQuery.WILDCARD_CHAR);
-                }
-            }
+            replaceWildcard(firstBuilder, k, '%', WildcardQuery.WILDCARD_STRING);
+            replaceWildcard(firstBuilder, k, '_', WildcardQuery.WILDCARD_CHAR);
         }
         first = firstBuilder.toString();
 
