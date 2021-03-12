@@ -48,7 +48,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -158,7 +157,6 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 
-    @Ignore("OAK-9384")
     @Test
     public void downloadURIsWithVaryingOptions() throws Exception {
         ConfigurableDataRecordAccessProvider dataStore = this.getDataStore();
