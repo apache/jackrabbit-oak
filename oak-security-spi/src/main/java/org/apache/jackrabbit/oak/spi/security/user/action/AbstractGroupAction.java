@@ -53,7 +53,7 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMembersAddedContentId(Group group, Iterable<String> memberContentIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 

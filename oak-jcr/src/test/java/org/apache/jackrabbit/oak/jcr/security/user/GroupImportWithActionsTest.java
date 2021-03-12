@@ -142,7 +142,7 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         }
 
         @Override
-        public void onMembersAddedContentId(Group group, Iterable<String> memberContentIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             onMembersAddedContentIdCalled = true;
         }
     }

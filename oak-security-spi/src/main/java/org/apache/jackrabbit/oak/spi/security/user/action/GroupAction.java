@@ -20,6 +20,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.RepositoryException;
 
@@ -57,7 +58,7 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMemberAdded(Group group, Authorizable member, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * Multiple members were added to the {@link Group}. The members are provided as an iterable
@@ -70,7 +71,7 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMembersAdded(Group group, Iterable<String> memberIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * Multiple members were added to the {@link Group} during XML group import.
@@ -86,7 +87,7 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMembersAddedContentId(Group group, Iterable<String> memberContentIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * A specific {@link Authorizable} was removed from the {@link Group}.
@@ -98,7 +99,7 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMemberRemoved(Group group, Authorizable member, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onMemberRemoved(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * Multiple members were removed from the {@link Group}. The members are provided as an iterable
@@ -111,5 +112,5 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMembersRemoved(Group group, Iterable<String> memberIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onMembersRemoved(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 }
