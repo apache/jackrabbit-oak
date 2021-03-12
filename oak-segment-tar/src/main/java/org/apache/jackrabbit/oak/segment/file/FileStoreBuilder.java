@@ -600,6 +600,7 @@ public class FileStoreBuilder {
                 "version=" + getClass().getPackage().getImplementationVersion() +
                 ", directory=" + directory +
                 ", blobStore=" + blobStore +
+                ", binariesInlineThreshold=" + binariesInlineThreshold +
                 ", maxFileSize=" + maxFileSize +
                 ", segmentCacheSize=" + segmentCacheSize +
                 ", stringCacheSize=" + stringCacheSize +
