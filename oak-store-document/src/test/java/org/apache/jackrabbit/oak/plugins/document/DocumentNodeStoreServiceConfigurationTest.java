@@ -53,7 +53,6 @@ public class DocumentNodeStoreServiceConfigurationTest {
         Configuration config = createConfiguration();
         assertEquals(DocumentNodeStoreService.DEFAULT_URI, config.mongouri());
         assertEquals(DocumentNodeStoreService.DEFAULT_DB, config.db());
-        assertEquals(DocumentNodeStoreService.DEFAULT_SO_KEEP_ALIVE, config.socketKeepAlive());
         assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS, config.mongoLeaseSocketTimeout());
         assertEquals(DocumentNodeStoreService.DEFAULT_CACHE, config.cache());
         assertEquals(DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE, config.nodeCachePercentage());
@@ -90,14 +89,6 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "mongouri", uri);
         Configuration config = createConfiguration();
         assertEquals(uri, config.mongouri());
-    }
-
-    @Test
-    public void presetSocketKeepAlive() throws Exception {
-        boolean keepAlive = !DocumentNodeStoreService.DEFAULT_SO_KEEP_ALIVE;
-        addConfigurationEntry(preset, "socketKeepAlive", keepAlive);
-        Configuration config = createConfiguration();
-        assertEquals(keepAlive, config.socketKeepAlive());
     }
 
     @Test

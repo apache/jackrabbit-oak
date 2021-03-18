@@ -39,7 +39,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         extends DocumentNodeStoreBuilder<T> {
 
     private final MongoClock mongoClock = new MongoClock();
-    private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
     private boolean clientSessionDisabled = false;
@@ -95,25 +94,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public T setMongoDB(@NotNull MongoClient client,
                         @NotNull String dbName) {
         return setMongoDB(client, dbName, 16);
-    }
-
-    /**
-     * Enables or disables the socket keep-alive option for MongoDB. The default
-     * is enabled.
-     *
-     * @param enable whether to enable or disable it.
-     * @return this
-     */
-    public T setSocketKeepAlive(boolean enable) {
-        this.socketKeepAlive = enable;
-        return thisBuilder();
-    }
-
-    /**
-     * @return whether socket keep-alive is enabled.
-     */
-    public boolean isSocketKeepAlive() {
-        return socketKeepAlive;
     }
 
     /**

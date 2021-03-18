@@ -146,31 +146,31 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
     @Override
     @Deprecated
     public long count() {
-        return collection.count();
+        return this.countDocuments();
     }
 
     @Override
     @Deprecated
     public long count(@NotNull Bson filter) {
-        return collection.count(filter);
+        return this.countDocuments(filter);
     }
 
     @Override
     @Deprecated
     public long count(@NotNull Bson filter, @NotNull CountOptions options) {
-        return collection.count(filter, options);
+        return this.countDocuments(filter, options);
     }
 
     @Override
     @Deprecated
     public long count(@NotNull ClientSession clientSession) {
-        return collection.count(clientSession);
+        return this.countDocuments(clientSession);
     }
 
     @Override
     @Deprecated
     public long count(@NotNull ClientSession clientSession, @NotNull Bson filter) {
-        return collection.count(clientSession, filter);
+        return this.countDocuments(clientSession, filter);
     }
 
     @Override
@@ -178,7 +178,7 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
     public long count(@NotNull ClientSession clientSession,
                       @NotNull Bson filter,
                       @NotNull CountOptions options) {
-        return collection.count(clientSession, filter, options);
+        return this.countDocuments(clientSession, filter, options);
     }
 
     @Override

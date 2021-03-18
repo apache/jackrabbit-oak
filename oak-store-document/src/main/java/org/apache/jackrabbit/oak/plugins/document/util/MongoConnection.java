@@ -32,6 +32,7 @@ import com.mongodb.client.MongoDatabase;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -144,10 +145,9 @@ public class MongoConnection {
      */
     public static MongoClientOptions.Builder getDefaultBuilder() {
         return new MongoClientOptions.Builder()
-                .description("MongoConnection for Oak DocumentMK")
+                .applicationName("Oak DocumentMK")
                 .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
-                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .threadsAllowedToBlockForConnectionMultiplier(100);
+                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS);
     }
 
     public static String toString(MongoClientOptions opts) {
@@ -155,11 +155,8 @@ public class MongoConnection {
                 .add("connectionsPerHost", opts.getConnectionsPerHost())
                 .add("connectTimeout", opts.getConnectTimeout())
                 .add("socketTimeout", opts.getSocketTimeout())
-                .add("socketKeepAlive", opts.isSocketKeepAlive())
                 .add("maxWaitTime", opts.getMaxWaitTime())
                 .add("heartbeatFrequency", opts.getHeartbeatFrequency())
-                .add("threadsAllowedToBlockForConnectionMultiplier",
-                        opts.getThreadsAllowedToBlockForConnectionMultiplier())
                 .add("readPreference", opts.getReadPreference().getName())
                 .add("writeConcern", opts.getWriteConcern())
                 .toString();
@@ -203,7 +200,8 @@ public class MongoConnection {
      */
     public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
         WriteConcern w;
-        if (client.getReplicaSetStatus() != null) {
+
+        if (MongoUtils.isReplicaSet(client)) {
             w = WriteConcern.MAJORITY;
         } else {
             w = WriteConcern.ACKNOWLEDGED;
@@ -224,7 +222,7 @@ public class MongoConnection {
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
                                                     @NotNull MongoDatabase db) {
         ReadConcern r;
-        if (checkNotNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
+        if (MongoUtils.isReplicaSet(client) && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
         } else {
             r = ReadConcern.LOCAL;
@@ -267,7 +265,7 @@ public class MongoConnection {
             throw new IllegalArgumentException(
                     "Unknown write concern: " + wc);
         }
-        if (client.getReplicaSetStatus() != null) {
+        if (MongoUtils.isReplicaSet(client)) {
             return w >= 2;
         } else {
             return w >= 1;
@@ -286,7 +284,8 @@ public class MongoConnection {
     public static boolean isSufficientReadConcern(@NotNull MongoClient client,
                                                   @NotNull ReadConcern rc) {
         ReadConcernLevel r = readConcernLevel(checkNotNull(rc));
-        if (client.getReplicaSetStatus() == null) {
+
+        if (!MongoUtils.isReplicaSet(client)) {
             return true;
         } else {
             return REPLICA_RC.contains(r);

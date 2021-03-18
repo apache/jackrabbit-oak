@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -170,17 +171,15 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         Bson sort = Filters.eq(MODIFIED_IN_SECS, 1);
         List<Long> result = new ArrayList<>(1);
         getNodeCollection().find(query).sort(sort).limit(1).forEach(
-                new Block<BasicDBObject>() {
-            @Override
-            public void apply(BasicDBObject document) {
-                NodeDocument doc = store.convertFromDBObject(NODES, document);
-                long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
+                (Consumer<? super BasicDBObject>) document -> {
+                    NodeDocument doc = store.convertFromDBObject(NODES, document);
+                    long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
+                    }
+                    result.add(modifiedMs);
                 }
-                result.add(modifiedMs);
-            }
-        });
+        );
         if (result.isEmpty()) {
             LOG.debug("getOldestDeletedOnceTimestamp() -> none found, return current time");
             result.add(clock.getTime());
@@ -248,7 +247,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         getNodeCollection()
                 .withReadPreference(store.getConfiguredReadPreference(NODES))
                 .find(query).projection(keys)
-                .forEach((Block<BasicDBObject>) doc -> ids.add(getID(doc)));
+                .forEach((Consumer<? super BasicDBObject>) doc -> ids.add(getID(doc)));
 
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
         Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, ids);

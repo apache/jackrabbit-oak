@@ -1977,7 +1977,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private boolean secondariesWithinAcceptableLag() {
-        return getClient().getReplicaSetStatus() == null
+        return !MongoUtils.isReplicaSet(connection.getClient())
                 || connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 

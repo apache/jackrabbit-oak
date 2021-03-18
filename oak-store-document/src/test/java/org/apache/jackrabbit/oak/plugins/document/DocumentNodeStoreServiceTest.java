@@ -150,18 +150,6 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
-    public void keepAlive() throws Exception {
-        Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
-        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
-        MockOsgi.activate(service, context.bundleContext());
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
-    }
-
-    @Test
     public void continuousRGCDefault() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
@@ -201,42 +189,6 @@ public class DocumentNodeStoreServiceTest {
         assertTrue(dns.getNodeCachePredicate().apply(Path.fromString("/c/d/e")));
 
         assertFalse(dns.getNodeCachePredicate().apply(Path.fromString("/x")));
-    }
-
-    @Test
-    public void preset() throws Exception {
-        MockOsgi.setConfigForPid(context.bundleContext(),
-                Configuration.PRESET_PID,
-                DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
-        MockOsgi.activate(preset, context.bundleContext());
-
-        MockOsgi.setConfigForPid(context.bundleContext(), PID, newConfig(repoHome));
-        MockOsgi.activate(service, context.bundleContext());
-
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        assertNotNull(mds);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
-    }
-
-    @Test
-    public void presetOverride() throws Exception {
-        MockOsgi.setConfigForPid(context.bundleContext(),
-                Configuration.PRESET_PID,
-                DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
-        MockOsgi.activate(preset, context.bundleContext());
-
-        Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, false);
-        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
-
-        MockOsgi.activate(service, context.bundleContext());
-
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertFalse(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
     @Test
