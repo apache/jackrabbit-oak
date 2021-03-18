@@ -22,14 +22,16 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -75,6 +77,8 @@ class UnlockUpgradeCommand implements Command {
         try {
             String uri = nonOptions.get(0);
             if (uri.startsWith(MONGODB_PREFIX)) {
+                MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
+                builder.addClusterListener(new MongoUtils.ReplicaSetStatusListener());
                 MongoClientURI clientURI = new MongoClientURI(uri);
                 if (clientURI.getDatabase() == null) {
                     System.err.println("Database missing in MongoDB URI: " + clientURI.getURI());

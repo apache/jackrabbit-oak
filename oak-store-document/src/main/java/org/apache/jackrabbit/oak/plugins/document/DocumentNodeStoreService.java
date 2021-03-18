@@ -132,7 +132,6 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
-    static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -273,7 +272,6 @@ public class DocumentNodeStoreService {
         } else {
             String uri = config.mongouri();
             String db = config.db();
-            boolean soKeepAlive = config.socketKeepAlive();
 
             MongoClientURI mongoURI = new MongoClientURI(uri);
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
@@ -292,7 +290,6 @@ public class DocumentNodeStoreService {
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
             configureBuilder(builder);
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
-            builder.setSocketKeepAlive(soKeepAlive);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             mkBuilder = builder;

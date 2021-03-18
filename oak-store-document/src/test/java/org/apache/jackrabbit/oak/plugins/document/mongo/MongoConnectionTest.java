@@ -19,17 +19,17 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.ReadConcern;
-import com.mongodb.ReplicaSetStatus;
 import com.mongodb.WriteConcern;
-
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import com.mongodb.event.ClusterListener;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -85,26 +85,6 @@ public class MongoConnectionTest {
         sufficientReadConcernSingleNode(ReadConcern.MAJORITY, true);
     }
 
-    @Test
-    public void socketKeepAlive() throws Exception {
-        assumeTrue(MongoUtils.isAvailable());
-        MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.socketKeepAlive(false);
-        MongoConnection c = new MongoConnection(MongoUtils.URL, options);
-        try {
-            assertFalse(c.getMongoClient().getMongoClientOptions().isSocketKeepAlive());
-        } finally {
-            c.close();
-        }
-        // default is with keep-alive (starting with 3.6 driver)
-        c = new MongoConnection(MongoUtils.URL);
-        try {
-            assertTrue(c.getMongoClient().getMongoClientOptions().isSocketKeepAlive());
-        } finally {
-            c.close();
-        }
-    }
-
     private void sufficientWriteConcernReplicaSet(WriteConcern w,
                                                   boolean sufficient) {
         sufficientWriteConcern(w, true, sufficient);
@@ -139,14 +119,16 @@ public class MongoConnectionTest {
     }
 
     private MongoClient mockMongoClient(boolean replicaSet) {
-        ReplicaSetStatus status;
-        if (replicaSet) {
-            status = mock(ReplicaSetStatus.class);
-        } else {
-            status = null;
-        }
+        MongoUtils.ReplicaSetStatusListener mockListener = mock(MongoUtils.ReplicaSetStatusListener.class);
+        when(mockListener.isReplicaSet()).thenReturn(replicaSet);
+
+        List<ClusterListener> listenerList = new ArrayList<>();
+        listenerList.add(mockListener);
+
         MongoClient client = mock(MongoClient.class);
-        when(client.getReplicaSetStatus()).thenReturn(status);
+        MongoClientOptions options = mock(MongoClientOptions.class);
+        when(client.getMongoClientOptions()).thenReturn(options);
+        when(options.getClusterListeners()).thenReturn(listenerList);
         return client;
     }
 }
