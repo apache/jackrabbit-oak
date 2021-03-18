@@ -870,6 +870,34 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void oakPathNullExclude() throws ExecutionException, InterruptedException, RepositoryException {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath(TEST_PATH)
+                .setIsDeep(true)
+                .setExcludedPaths(TEST_PATH + "/c", TEST_PATH + "/d",  "/x/y","/m/[n]")
+                .setEventTypes(ALL_EVENTS);
+        oManager.addEventListener(listener, filter);
+
+        Node n = getNode(TEST_PATH);
+        listener.expectAdd(listener.expectAdd(
+                listener.expectAdd(n.addNode("a")).addNode("a1")).setProperty("p", "q"));
+        listener.expectAdd(
+                listener.expectAdd(n.addNode("b")).setProperty("p", "q"));
+        n.addNode("c").addNode("c1").setProperty("p", "q");
+        n.addNode("d").setProperty("p", "q");
+        getAdminSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+
+    @Test
     public void parentPathExclude() throws ExecutionException, InterruptedException, RepositoryException {
         assumeTrue(observationManager instanceof JackrabbitObservationManager);
 
