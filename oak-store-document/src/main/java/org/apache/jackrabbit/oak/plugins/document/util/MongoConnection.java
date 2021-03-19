@@ -147,7 +147,8 @@ public class MongoConnection {
         return new MongoClientOptions.Builder()
                 .applicationName("Oak DocumentMK")
                 .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
-                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS);
+                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
+                .addClusterListener(new MongoUtils.ReplicaSetStatusListener());
     }
 
     public static String toString(MongoClientOptions opts) {
