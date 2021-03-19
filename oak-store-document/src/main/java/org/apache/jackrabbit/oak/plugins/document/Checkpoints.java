@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.math.BigInteger;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -67,8 +65,6 @@ class Checkpoints {
     private final DocumentNodeStore nodeStore;
 
     private final DocumentStore store;
-
-    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final AtomicInteger createCounter = new AtomicInteger();
 
@@ -127,7 +123,7 @@ class Checkpoints {
         SortedMap<Revision, Info> checkpoints = getCheckpoints();
 
         if(checkpoints.isEmpty()){
-            log.debug("No checkpoint registered so far");
+            LOG.debug("No checkpoint registered so far");
             return null;
         }
 
@@ -151,7 +147,7 @@ class Checkpoints {
 
         if (op.hasChanges()) {
             store.findAndUpdate(Collection.SETTINGS, op);
-            log.debug("Purged {} expired checkpoints", op.getChanges().size());
+            LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
         }
 
         return lastAliveRevision;
