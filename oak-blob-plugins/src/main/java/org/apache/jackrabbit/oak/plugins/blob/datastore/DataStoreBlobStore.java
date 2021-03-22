@@ -759,6 +759,7 @@ public class DataStoreBlobStore
         this.repositoryId = repositoryId;
         addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repositoryId));
+        log.info("repositoryId registered in blobstore - [{}]", repositoryId);
     }
 
     @Override
