@@ -60,13 +60,12 @@ public class BlobThroughPutTest {
 
     static {
         BiMap<WriteConcern,String> bimap = HashBiMap.create();
-        bimap.put(WriteConcern.FSYNC_SAFE,"FSYNC_SAFE");
-        bimap.put(WriteConcern.JOURNAL_SAFE,"JOURNAL_SAFE");
+        // FSYNC_SAFE, JOURNAL_SAFE, REPLICAS_SAFE and SAFE doesn't exist anymore
+        bimap.put(WriteConcern.JOURNALED,"JOURNALED");
 //        bimap.put(WriteConcern.MAJORITY,"MAJORITY");
         bimap.put(WriteConcern.UNACKNOWLEDGED,"UNACKNOWLEDGED");
-        bimap.put(WriteConcern.NORMAL,"NORMAL");
-//        bimap.put(WriteConcern.REPLICAS_SAFE,"REPLICAS_SAFE");
-        bimap.put(WriteConcern.SAFE,"SAFE");
+//        bimap.put(WriteConcern.W2,"W2");
+        bimap.put(WriteConcern.ACKNOWLEDGED,"ACKNOWLEDGED");
         namedConcerns = Maps.unmodifiableBiMap(bimap);
     }
 
@@ -128,7 +127,7 @@ public class BlobThroughPutTest {
             for (int writers : WRITERS) {
                 prepareDB(nodes, blobs);
                 final Benchmark b = new Benchmark(nodes, blobs);
-                Result r = b.run(readers, writers, remote, WriteConcern.SAFE);
+                Result r = b.run(readers, writers, remote, WriteConcern.ACKNOWLEDGED);
                 results.add(r);
             }
         }

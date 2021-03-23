@@ -219,7 +219,7 @@ public class ReplicaSetResilienceIT {
                     new MongoClientOptions.Builder().requiredReplicaSetName("rs").build())) {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
-                    address = c.getReplicaSetStatus().getMaster();
+                    address = org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getPrimaryAddress(c);
                     if (address == null) {
                         LOG.info("Primary unavailable. Waiting one second...");
                         try {

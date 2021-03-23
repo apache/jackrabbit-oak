@@ -40,6 +40,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public class MongoConnection {
 
+    public static final String MONGODB_PREFIX = "mongodb://";
+
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
@@ -148,7 +150,7 @@ public class MongoConnection {
                 .applicationName("Oak DocumentMK")
                 .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
                 .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .addClusterListener(new MongoUtils.ReplicaSetStatusListener());
+                .addClusterListener(new MongoUtils.OakClusterListener());
     }
 
     public static String toString(MongoClientOptions opts) {

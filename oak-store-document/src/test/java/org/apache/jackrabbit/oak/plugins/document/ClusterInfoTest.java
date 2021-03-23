@@ -89,11 +89,11 @@ public class ClusterInfoTest {
         assertEquals(WriteConcern.MAJORITY, mem.getWriteConcern());
 
         op = new UpdateOp(list.get(0).getId(), false);
-        op.set("readWriteMode", "read:nearest, write:fsynced");
+        op.set("readWriteMode", "read:nearest, write:journaled");
         mem.findAndUpdate(Collection.CLUSTER_NODES, op);
         ns1.renewClusterIdLease();
         assertEquals(ReadPreference.nearest(), mem.getReadPreference());
-        assertEquals(WriteConcern.FSYNCED, mem.getWriteConcern());
+        assertEquals(WriteConcern.JOURNALED, mem.getWriteConcern());
 
         ns1.dispose();
         ns2.dispose();

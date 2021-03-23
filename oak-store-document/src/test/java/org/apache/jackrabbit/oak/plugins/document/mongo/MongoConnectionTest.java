@@ -52,25 +52,15 @@ public class MongoConnectionTest {
         sufficientWriteConcernReplicaSet(WriteConcern.ACKNOWLEDGED, false);
         sufficientWriteConcernReplicaSet(WriteConcern.JOURNALED, false);
         sufficientWriteConcernReplicaSet(WriteConcern.MAJORITY, true);
-        sufficientWriteConcernReplicaSet(WriteConcern.FSYNC_SAFE, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.FSYNCED, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.JOURNAL_SAFE, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.NORMAL, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.REPLICA_ACKNOWLEDGED, true);
-        sufficientWriteConcernReplicaSet(WriteConcern.REPLICAS_SAFE, true);
-        sufficientWriteConcernReplicaSet(WriteConcern.SAFE, false);
+        sufficientWriteConcernReplicaSet(WriteConcern.W1, false);
+        sufficientWriteConcernReplicaSet(WriteConcern.W2, true);
+        sufficientWriteConcernReplicaSet(WriteConcern.W3, true);
         sufficientWriteConcernReplicaSet(WriteConcern.UNACKNOWLEDGED, false);
 
         sufficientWriteConcernSingleNode(WriteConcern.ACKNOWLEDGED, true);
         sufficientWriteConcernSingleNode(WriteConcern.JOURNALED, true);
         sufficientWriteConcernSingleNode(WriteConcern.MAJORITY, true);
-        sufficientWriteConcernSingleNode(WriteConcern.FSYNC_SAFE, true);
-        sufficientWriteConcernSingleNode(WriteConcern.FSYNCED, true);
-        sufficientWriteConcernSingleNode(WriteConcern.JOURNAL_SAFE, true);
-        sufficientWriteConcernSingleNode(WriteConcern.NORMAL, false);
-        sufficientWriteConcernSingleNode(WriteConcern.REPLICA_ACKNOWLEDGED, true);
-        sufficientWriteConcernSingleNode(WriteConcern.REPLICAS_SAFE, true);
-        sufficientWriteConcernSingleNode(WriteConcern.SAFE, true);
+        sufficientWriteConcernSingleNode(WriteConcern.W1, true);
         sufficientWriteConcernSingleNode(WriteConcern.UNACKNOWLEDGED, false);
     }
 
@@ -119,7 +109,7 @@ public class MongoConnectionTest {
     }
 
     private MongoClient mockMongoClient(boolean replicaSet) {
-        MongoUtils.ReplicaSetStatusListener mockListener = mock(MongoUtils.ReplicaSetStatusListener.class);
+        MongoUtils.OakClusterListener mockListener = mock(MongoUtils.OakClusterListener.class);
         when(mockListener.isReplicaSet()).thenReturn(replicaSet);
 
         List<ClusterListener> listenerList = new ArrayList<>();
