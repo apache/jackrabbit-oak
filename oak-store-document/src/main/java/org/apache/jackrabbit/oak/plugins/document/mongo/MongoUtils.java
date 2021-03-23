@@ -25,6 +25,7 @@ import com.mongodb.MongoNotPrimaryException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.MongoWriteConcernException;
 import com.mongodb.ReadPreference;
+import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcernException;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
@@ -226,20 +227,71 @@ public class MongoUtils {
      * @return {@code true} if part of Replica Set, {@code false} otherwise.
      */
     public static boolean isReplicaSet(@NotNull MongoClient client) {
-        for (ClusterListener clusterListener : client.getMongoClientOptions().getClusterListeners()) {
-            if (clusterListener instanceof ReplicaSetStatusListener) {
-                ReplicaSetStatusListener replClusterListener = (ReplicaSetStatusListener) clusterListener;
-                return replClusterListener.isReplicaSet();
-            }
+        OakClusterListener listener = getOakClusterListener(client);
+        if (listener != null) {
+            return listener.isReplicaSet();
         }
-        LOG.warn("Method isReplicaSet called for a MongoClient without any ReplicaSetStatusListener!");
+        System.out.println("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
+        LOG.warn("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
         return false;
     }
 
-    public static class ReplicaSetStatusListener implements ClusterListener {
+    /**
+     * Returns the {@ServerAddress} of the MongoDB cluster.
+     *
+     * @param client the mongo client.
+     * @return {@ServerAddress} of the cluster. {@null} if not connected or no listener was available.
+     */
+    public static ServerAddress getAddress(@NotNull MongoClient client) {
+        OakClusterListener listener = getOakClusterListener(client);
+        if (listener != null) {
+            return listener.getServerAddress();
+        }
+        System.out.println("Method getAddress called for a MongoClient without any OakClusterListener!");
+        LOG.warn("Method getAddress called for a MongoClient without any OakClusterListener!");
+        return null;
+    }
+
+    /**
+     * Returns the {@ServerAddress} of the MongoDB cluster primary node.
+     *
+     * @param client the mongo client.
+     * @return {@ServerAddress} of the primary. {@null} if not connected or no listener was available.
+     */
+    public static ServerAddress getPrimaryAddress(@NotNull MongoClient client) {
+        OakClusterListener listener = getOakClusterListener(client);
+        if (listener != null) {
+            return listener.getPrimaryAddress();
+        }
+        return null;
+    }
+
+    private static OakClusterListener getOakClusterListener(@NotNull MongoClient client) {
+        for (ClusterListener clusterListener : client.getMongoClientOptions().getClusterListeners()) {
+            if (clusterListener instanceof OakClusterListener) {
+                OakClusterListener replClusterListener = (OakClusterListener) clusterListener;
+                return replClusterListener;
+            }
+        }
+        System.out.println("No OakClusterListener found for this MongoClient!");
+        LOG.warn("No OakClusterListener found for this MongoClient!");
+        return null;
+    }
+
+    public static class OakClusterListener implements ClusterListener {
 
         private boolean replicaSet = false;
         private boolean connected = false;
+        private ServerAddress serverAddress;
+        private ServerAddress primaryAddress;
+
+        public ServerAddress getServerAddress() {
+            return serverAddress;
+        }
+
+        public ServerAddress getPrimaryAddress() {
+            return primaryAddress;
+        }
 
         public boolean isReplicaSet() {
             // Sometimes we need to wait a few seconds in case the connection was just created, the listener
@@ -267,6 +319,8 @@ public class MongoUtils {
             for (ServerDescription sd : event.getNewDescription().getServerDescriptions()) {
                 if (sd.getState() == ServerConnectionState.CONNECTED) {
                     connected = true;
+                    serverAddress = sd.getAddress();
+                    primaryAddress = new ServerAddress(sd.getPrimary());
                     if (sd.isReplicaSetMember()) {
                         // Can't assign directly the result of the function because in some cases the cluster
                         // type is UNKNOWN, mainly when the cluster is changing it's PRIMARY.

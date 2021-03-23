@@ -109,7 +109,7 @@ public class MongoUtils {
             // configured URL is invalid
             return null;
         }
-        StringBuilder uri = new StringBuilder("mongodb://");
+        StringBuilder uri = new StringBuilder(MongoConnection.MONGODB_PREFIX);
         String separator = "";
         for (String host : clientURI.getHosts()) {
             uri.append(separator);
