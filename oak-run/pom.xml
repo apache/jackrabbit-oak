@@ -293,7 +293,7 @@
     </dependency>
     <dependency>
       <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
+      <artifactId>mongodb-driver-legacy</artifactId>
     </dependency>
     <dependency>
       <groupId>org.mapdb</groupId>

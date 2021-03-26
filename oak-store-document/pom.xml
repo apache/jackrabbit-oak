@@ -162,7 +162,7 @@
     <!-- Optional dependencies for different persistence backends -->
     <dependency>
       <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
+      <artifactId>mongodb-driver-legacy</artifactId>
       <optional>true</optional>
     </dependency>
 

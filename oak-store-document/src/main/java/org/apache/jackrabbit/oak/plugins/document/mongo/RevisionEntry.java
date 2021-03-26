@@ -86,12 +86,6 @@ public class RevisionEntry implements DBObject {
     }
 
     @Override
-    @Deprecated
-    public boolean containsKey(String s) {
-        return containsField(s);
-    }
-
-    @Override
     public boolean containsField(String s) {
         return revision.toString().equals(s);
     }

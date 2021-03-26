@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -64,7 +63,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
-import com.mongodb.Block;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -171,7 +169,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         Bson sort = Filters.eq(MODIFIED_IN_SECS, 1);
         List<Long> result = new ArrayList<>(1);
         getNodeCollection().find(query).sort(sort).limit(1).forEach(
-                (Consumer<? super BasicDBObject>) document -> {
+                document -> {
                     NodeDocument doc = store.convertFromDBObject(NODES, document);
                     long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
                     if (LOG.isDebugEnabled()) {
@@ -247,7 +245,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         getNodeCollection()
                 .withReadPreference(store.getConfiguredReadPreference(NODES))
                 .find(query).projection(keys)
-                .forEach((Consumer<? super BasicDBObject>) doc -> ids.add(getID(doc)));
+                .forEach(doc -> ids.add(getID(doc)));
 
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
         Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, ids);
