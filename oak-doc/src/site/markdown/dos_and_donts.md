@@ -94,3 +94,25 @@ only upon demand (see [OAK-4567](https://issues.apache.org/jira/browse/OAK-4567)
 this is that Oak internally uses various classes from the `nio` package that implement 
 `InterruptibleChannel`, which are [asynchronously closed](http://docs.oracle.com/javase/7/docs/api/java/nio/channels/InterruptibleChannel.html) 
 when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).  
+
+### Tree traversal
+
+As explained in [Understanding the node state model](https://jackrabbit.apache.org/oak/docs/architecture/nodestate.html), Oak stores content in a tree hierarchy. 
+Considering that, when traversing the path to access parent or child nodes, even though being equivalent operations, 
+it is preferable to use JCR Node API instead of Session API. The reason being is that session API uses an absolute path, 
+and to get to the desired parent or child node, all ancestor nodes will have to be traversed before reaching the target node. 
+Traversal for each ancestor node includes building the node state and associating it with 
+TreePermission (check [Permission Evaluation in Detail](https://jackrabbit.apache.org/oak/docs/security/permission/evaluation.html)), 
+where this is not needed when using Node API and relative paths.
+```
+Node c = session.getNode("/a/b/c");
+Node d = null;
+
+// get child node
+d = session.getNode("/a/b/c/d");
+d = c.getNode("d");                             // preferred way to fetch the child node
+
+// get parent node
+c = session.getNode("/a/b/c");
+c = d.getParent();                              // preferred way to fetch the parent node
+```
