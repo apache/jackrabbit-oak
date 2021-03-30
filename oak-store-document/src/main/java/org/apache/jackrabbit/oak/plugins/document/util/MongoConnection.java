@@ -33,6 +33,7 @@ import com.mongodb.client.MongoDatabase;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoClusterListener;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -150,7 +151,7 @@ public class MongoConnection {
                 .applicationName("Oak DocumentMK")
                 .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
                 .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .addClusterListener(new MongoUtils.OakClusterListener());
+                .addClusterListener(new MongoClusterListener());
     }
 
     public static String toString(MongoClientOptions opts) {

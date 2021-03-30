@@ -109,7 +109,7 @@ public class MongoConnectionTest {
     }
 
     private MongoClient mockMongoClient(boolean replicaSet) {
-        MongoUtils.OakClusterListener mockListener = mock(MongoUtils.OakClusterListener.class);
+        MongoClusterListener mockListener = mock(MongoClusterListener.class);
         when(mockListener.isReplicaSet()).thenReturn(replicaSet);
 
         List<ClusterListener> listenerList = new ArrayList<>();
