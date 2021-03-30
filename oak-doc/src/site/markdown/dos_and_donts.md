@@ -99,7 +99,7 @@ when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](htt
 
 As explained in [Understanding the node state model](https://jackrabbit.apache.org/oak/docs/architecture/nodestate.html), Oak stores content in a tree hierarchy. 
 Considering that, when traversing the path to access parent or child nodes, even though being equivalent operations, 
-it is preferable to use JCR Node API instead of Session API. The reason being is that session API uses an absolute path, 
+it is preferable to use JCR Node API instead of Session API. The reason behind is that session API uses an absolute path, 
 and to get to the desired parent or child node, all ancestor nodes will have to be traversed before reaching the target node. 
 Traversal for each ancestor node includes building the node state and associating it with 
 TreePermission (check [Permission Evaluation in Detail](https://jackrabbit.apache.org/oak/docs/security/permission/evaluation.html)), 
