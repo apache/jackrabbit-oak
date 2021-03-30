@@ -42,7 +42,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.mongodb.Block;
 import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoClient;
@@ -71,6 +70,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.ModificationStamp;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -1977,7 +1977,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private boolean secondariesWithinAcceptableLag() {
-        return !MongoUtils.isReplicaSet(connection.getClient())
+        return !MongoConnection.isReplicaSet(connection.getClient())
                 || connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 

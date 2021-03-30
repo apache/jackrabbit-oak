@@ -41,7 +41,6 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getAddress;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -205,7 +204,7 @@ public class MongoStatusTest {
                     response.put("errmsg", new BsonString("command serverStatus requires authentication"));
                     response.put("code", new BsonInt32(13));
                     response.put("codeName", new BsonString("Unauthorized"));
-                    ServerAddress address = getAddress(this);
+                    ServerAddress address = MongoConnection.getAddress(this);
 
                     if (address == null) {
                         // OAK-8459: use dummy/default address instead

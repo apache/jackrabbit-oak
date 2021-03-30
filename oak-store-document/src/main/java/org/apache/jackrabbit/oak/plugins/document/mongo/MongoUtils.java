@@ -18,30 +18,24 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoNotPrimaryException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.MongoWriteConcernException;
 import com.mongodb.ReadPreference;
-import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcernException;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.connection.ServerVersion;
-import com.mongodb.event.ClusterListener;
-import com.mongodb.event.ClusterOpeningEvent;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -53,8 +47,6 @@ import static com.google.common.base.Preconditions.checkArgument;
  * Provides static utility methods for MongoDB.
  */
 public class MongoUtils {
-
-    private static final Logger LOG = LoggerFactory.getLogger(MongoUtils.class);
 
     /**
      * Forces creation of an index on a field, if one does not already exist.
@@ -212,66 +204,4 @@ public class MongoUtils {
     static int getNodeNameLimit(final @NotNull MongoStatus status) {
         return status.isVersion(4, 2) ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
     }
-
-    /**
-     * Returns {@code true} if the MongoDB server is part of a Replica Set,
-     * {@code false} otherwise. The Replica Set Status is achieved by the
-     * ReplicaSetStatusListener, which is triggered whenever the cluster
-     * description changes.
-     *
-     * @param client the mongo client.
-     * @return {@code true} if part of Replica Set, {@code false} otherwise.
-     */
-    public static boolean isReplicaSet(@NotNull MongoClient client) {
-        MongoClusterListener listener = getOakClusterListener(client);
-        if (listener != null) {
-            return listener.isReplicaSet();
-        }
-        System.out.println("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
-        LOG.warn("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
-        return false;
-    }
-
-    /**
-     * Returns the {@ServerAddress} of the MongoDB cluster.
-     *
-     * @param client the mongo client.
-     * @return {@ServerAddress} of the cluster. {@null} if not connected or no listener was available.
-     */
-    public static ServerAddress getAddress(@NotNull MongoClient client) {
-        MongoClusterListener listener = getOakClusterListener(client);
-        if (listener != null) {
-            return listener.getServerAddress();
-        }
-        System.out.println("Method getAddress called for a MongoClient without any OakClusterListener!");
-        LOG.warn("Method getAddress called for a MongoClient without any OakClusterListener!");
-        return null;
-    }
-
-    /**
-     * Returns the {@ServerAddress} of the MongoDB cluster primary node.
-     *
-     * @param client the mongo client.
-     * @return {@ServerAddress} of the primary. {@null} if not connected or no listener was available.
-     */
-    public static ServerAddress getPrimaryAddress(@NotNull MongoClient client) {
-        MongoClusterListener listener = getOakClusterListener(client);
-        if (listener != null) {
-            return listener.getPrimaryAddress();
-        }
-        return null;
-    }
-
-    private static MongoClusterListener getOakClusterListener(@NotNull MongoClient client) {
-        for (ClusterListener clusterListener : client.getMongoClientOptions().getClusterListeners()) {
-            if (clusterListener instanceof MongoClusterListener) {
-                MongoClusterListener replClusterListener = (MongoClusterListener) clusterListener;
-                return replClusterListener;
-            }
-        }
-        System.out.println("No OakClusterListener found for this MongoClient!");
-        LOG.warn("No OakClusterListener found for this MongoClient!");
-        return null;
-    }
-
 }
