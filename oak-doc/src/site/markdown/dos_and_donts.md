@@ -108,11 +108,11 @@ where this is not needed when using Node API and relative paths.
 Node c = session.getNode("/a/b/c");
 Node d = null;
 
-// get child node
+// get the child node
 d = session.getNode("/a/b/c/d");
 d = c.getNode("d");                             // preferred way to fetch the child node
 
-// get parent node
+// get the parent node
 c = session.getNode("/a/b/c");
 c = d.getParent();                              // preferred way to fetch the parent node
 ```
