@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.TestUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
@@ -219,7 +220,7 @@ public class ReplicaSetResilienceIT {
                     new MongoClientOptions.Builder().requiredReplicaSetName("rs").build())) {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
-                    address = org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getPrimaryAddress(c);
+                    address = MongoConnection.getPrimaryAddress(c);
                     if (address == null) {
                         LOG.info("Primary unavailable. Waiting one second...");
                         try {
