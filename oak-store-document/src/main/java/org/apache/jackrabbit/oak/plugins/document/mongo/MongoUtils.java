@@ -32,10 +32,6 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.connection.ServerVersion;
-import com.mongodb.connection.ServerConnectionState;
-import com.mongodb.connection.ServerDescription;
-import com.mongodb.event.ClusterClosedEvent;
-import com.mongodb.event.ClusterDescriptionChangedEvent;
 import com.mongodb.event.ClusterListener;
 import com.mongodb.event.ClusterOpeningEvent;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
@@ -227,7 +223,7 @@ public class MongoUtils {
      * @return {@code true} if part of Replica Set, {@code false} otherwise.
      */
     public static boolean isReplicaSet(@NotNull MongoClient client) {
-        OakClusterListener listener = getOakClusterListener(client);
+        MongoClusterListener listener = getOakClusterListener(client);
         if (listener != null) {
             return listener.isReplicaSet();
         }
@@ -243,7 +239,7 @@ public class MongoUtils {
      * @return {@ServerAddress} of the cluster. {@null} if not connected or no listener was available.
      */
     public static ServerAddress getAddress(@NotNull MongoClient client) {
-        OakClusterListener listener = getOakClusterListener(client);
+        MongoClusterListener listener = getOakClusterListener(client);
         if (listener != null) {
             return listener.getServerAddress();
         }
@@ -259,17 +255,17 @@ public class MongoUtils {
      * @return {@ServerAddress} of the primary. {@null} if not connected or no listener was available.
      */
     public static ServerAddress getPrimaryAddress(@NotNull MongoClient client) {
-        OakClusterListener listener = getOakClusterListener(client);
+        MongoClusterListener listener = getOakClusterListener(client);
         if (listener != null) {
             return listener.getPrimaryAddress();
         }
         return null;
     }
 
-    private static OakClusterListener getOakClusterListener(@NotNull MongoClient client) {
+    private static MongoClusterListener getOakClusterListener(@NotNull MongoClient client) {
         for (ClusterListener clusterListener : client.getMongoClientOptions().getClusterListeners()) {
-            if (clusterListener instanceof OakClusterListener) {
-                OakClusterListener replClusterListener = (OakClusterListener) clusterListener;
+            if (clusterListener instanceof MongoClusterListener) {
+                MongoClusterListener replClusterListener = (MongoClusterListener) clusterListener;
                 return replClusterListener;
             }
         }
@@ -278,56 +274,4 @@ public class MongoUtils {
         return null;
     }
 
-    public static class OakClusterListener implements ClusterListener {
-
-        private boolean replicaSet = false;
-        private boolean connected = false;
-        private ServerAddress serverAddress;
-        private ServerAddress primaryAddress;
-
-        public ServerAddress getServerAddress() {
-            return serverAddress;
-        }
-
-        public ServerAddress getPrimaryAddress() {
-            return primaryAddress;
-        }
-
-        public boolean isReplicaSet() {
-            // Sometimes we need to wait a few seconds in case the connection was just created, the listener
-            // didn't have time to receive the description from the cluster.
-            try {
-                int trials = 30;
-                while (!connected && trials > 0) {
-                    trials--;
-                    Thread.sleep(500);
-                }
-            } catch (InterruptedException e) {}
-            return replicaSet;
-        }
-
-        @Override
-        public void clusterOpening(ClusterOpeningEvent event) {
-        }
-
-        @Override
-        public void clusterClosed(ClusterClosedEvent event) {
-        }
-
-        @Override
-        public void clusterDescriptionChanged(final ClusterDescriptionChangedEvent event) {
-            for (ServerDescription sd : event.getNewDescription().getServerDescriptions()) {
-                if (sd.getState() == ServerConnectionState.CONNECTED) {
-                    connected = true;
-                    serverAddress = sd.getAddress();
-                    primaryAddress = new ServerAddress(sd.getPrimary());
-                    if (sd.isReplicaSetMember()) {
-                        // Can't assign directly the result of the function because in some cases the cluster
-                        // type is UNKNOWN, mainly when the cluster is changing it's PRIMARY.
-                        replicaSet = true;
-                    }
-                }
-            }
-        }
-    }
 }
