@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.AssumptionViolatedException;
@@ -78,7 +79,7 @@ public class DocumentMongoFixture extends NodeStoreFixture {
     }
 
     protected MongoClient createClient() {
-        return new MongoClient(new MongoClientURI(uri));
+        return new MongoClient(new MongoClientURI(uri, MongoConnection.getDefaultBuilder()));
     }
 
     protected String getDBName(String suffix) {
