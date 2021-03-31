@@ -48,8 +48,8 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryWriter entryWriter;
     private long entryCount = 0;
 
-    private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
+    private boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
 
     public FlatFileNodeStoreBuilder(Iterable<NodeStateEntry> nodeStates, File workDir) {
         this.nodeStates = nodeStates;
