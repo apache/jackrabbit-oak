@@ -49,7 +49,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -63,16 +62,23 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleW
 @Designate(ocd = ElasticIndexProviderService.Config.class)
 public class ElasticIndexProviderService {
 
+    protected static final String OAK_ELASTIC_PREFIX = "oak.elastic.";
+
+    protected static final String PROP_DISABLED = "disabled";
     protected static final String PROP_INDEX_PREFIX = "indexPrefix";
-    protected static final String PROP_ELASTIC_SCHEME = ElasticConnection.SCHEME_PROP;
-    protected static final String PROP_ELASTIC_HOST = ElasticConnection.HOST_PROP;
-    protected static final String PROP_ELASTIC_PORT = ElasticConnection.PORT_PROP;
-    protected static final String PROP_ELASTIC_API_KEY_ID = ElasticConnection.API_KEY_ID_PROP;
-    protected static final String PROP_ELASTIC_API_KEY_SECRET = ElasticConnection.API_KEY_SECRET_PROP;
+    protected static final String PROP_ELASTIC_SCHEME = "elasticsearch.scheme";
+    protected static final String PROP_ELASTIC_HOST = "elasticsearch.host";
+    protected static final String PROP_ELASTIC_PORT = "elasticsearch.port";
+    protected static final String PROP_ELASTIC_API_KEY_ID = "elasticsearch.apiKeyId";
+    protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
 
     @ObjectClassDefinition(name = "ElasticIndexProviderService", description = "Apache Jackrabbit Oak ElasticIndexProvider")
     public @interface Config {
+        @AttributeDefinition(name = "Disable the OAK Elastic service",
+                description = "If true, does not start the Elastic component")
+        boolean disabled() default false;
+
         @AttributeDefinition(name = "Extracted text cache size (MB)",
                 description = "Cache size in MB for caching extracted text for some time. When set to 0 then " +
                         "cache would be disabled")
@@ -145,11 +151,15 @@ public class ElasticIndexProviderService {
     private File textExtractionDir;
 
     private ElasticConnection elasticConnection;
-    private ElasticIndexProvider indexProvider;
-    private String indexPrefix;
 
     @Activate
-    private void activate(BundleContext bundleContext, Config config) throws IOException {
+    private void activate(BundleContext bundleContext, Config config) {
+        boolean disabled = Boolean.parseBoolean(System.getProperty(OAK_ELASTIC_PREFIX + PROP_DISABLED, Boolean.toString(config.disabled())));
+        if (disabled) {
+            LOG.info("Component disabled by configuration");
+            return;
+        }
+
         whiteboard = new OsgiWhiteboard(bundleContext);
 
         //initializeTextExtractionDir(bundleContext, config);
@@ -181,10 +191,10 @@ public class ElasticIndexProviderService {
         }
     }
 
-    private void registerIndexCleaner(Config contextConfig) throws IOException {
-        boolean reachable = elasticConnection.isAvailable();
-        if (!reachable) {
-            throw new IllegalArgumentException("Elastic server is not available - " + elasticConnection.toString());
+    private void registerIndexCleaner(Config contextConfig) {
+        if (!elasticConnection.isAvailable()) {
+            LOG.warn("The Elastic cluster at {} is not reachable. The index cleaner job has not been enabled", elasticConnection);
+            return;
         }
         if (contextConfig.remoteIndexCleanupFrequency() == -1) {
             return;
@@ -194,7 +204,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexProvider(BundleContext bundleContext) {
-        indexProvider = new ElasticIndexProvider(elasticConnection, new ElasticMetricHandler(statisticsProvider));
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(elasticConnection, new ElasticMetricHandler(statisticsProvider));
 
         // register observer needed for index tracking
         regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
@@ -271,7 +281,7 @@ public class ElasticIndexProviderService {
 
     private ElasticConnection getElasticConnection(Config contextConfig) {
         // system properties have priority, get mandatory params first
-        indexPrefix = System.getProperty(PROP_INDEX_PREFIX, contextConfig.indexPrefix());
+        String indexPrefix = System.getProperty(PROP_INDEX_PREFIX, contextConfig.indexPrefix());
         final String scheme = System.getProperty(PROP_ELASTIC_SCHEME, contextConfig.elasticsearch_scheme());
         final String host = System.getProperty(PROP_ELASTIC_HOST, contextConfig.elasticsearch_host());
         final String portString = System.getProperty(PROP_ELASTIC_PORT, contextConfig.elasticsearch_port());
