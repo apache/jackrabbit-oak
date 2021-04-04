@@ -44,7 +44,7 @@ import static org.mockito.Mockito.verify;
 
 public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
 
-    /*@Rule
+    @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Before
@@ -149,5 +149,5 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
 
         verify(ioMonitorAdapter, times(1)).beforeSegmentRead(eq(segmentFile), eq(segmentUUID.getMostSignificantBits()), eq(segmentUUID.getLeastSignificantBits()), anyInt());
         verify(ioMonitorAdapter, times(1)).afterSegmentRead(eq(segmentFile), eq(segmentUUID.getMostSignificantBits()), eq(segmentUUID.getLeastSignificantBits()), anyInt(), anyLong());
-    }*/
+    }
 }
