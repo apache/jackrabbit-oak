@@ -19,9 +19,7 @@
 package org.apache.jackrabbit.oak.index;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
-import org.apache.jackrabbit.oak.index.indexer.document.ElasticIndexerProvider;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexerProvider;
+import org.apache.jackrabbit.oak.index.indexer.document.*;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 
 import java.io.IOException;
@@ -30,11 +28,8 @@ import java.util.List;
 /*
 Out of band indexer for Elasticsearch. Provides support to index document store for  given index definitions or reindex existing indexes
  */
-public class ElasticDocumentStoreIndexer extends DocumentStoreIndexer {
+public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
     private final IndexHelper indexHelper;
-    private final List<NodeStateIndexerProvider> indexerProviders;
-    private final IndexerSupport indexerSupport;
-
     private final String indexPrefix;
     private final String scheme;
     private final String host;
@@ -48,15 +43,13 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexer {
                                        String apiKeyId, String apiSecretId) throws IOException {
         super(indexHelper, indexerSupport);
         this.indexHelper = indexHelper;
-        this.indexerSupport = indexerSupport;
-        this.indexerProviders = createProviders();
-
         this.indexPrefix = indexPrefix;
         this.scheme = scheme;
         this.host = host;
         this.port = port;
         this.apiKeyId = apiKeyId;
         this.apiSecretId = apiSecretId;
+        setProviders();
     }
 
     protected List<NodeStateIndexerProvider> createProviders() {
@@ -66,6 +59,20 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexer {
 
         providers.forEach(closer::register);
         return providers;
+    }
+    /*
+    Used to provision elastic index before starting indexing
+    Otherwise proper alias naming and mapping will not be applied
+     */
+    @Override
+    protected void preIndexOpertaions(List<NodeStateIndexer> indexers) {
+        // For all the available indexers check if it's an ElasticIndexer
+        // and then provision the index
+        for (NodeStateIndexer indexer : indexers) {
+            if (indexer instanceof ElasticIndexer) {
+                ((ElasticIndexer) indexer).provisionIndex();
+            }
+        }
     }
 
     private NodeStateIndexerProvider createElasticIndexerProvider() {

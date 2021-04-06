@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -64,7 +65,8 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
 
         FulltextIndexWriter<ElasticDocument> indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, CommitInfo.EMPTY, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
-        return new ElasticIndexer(idxDefinition, textExtractor, definition, progressReporter, indexWriter);
+        ElasticIndexEditorProvider elasticIndexEditorProvider = new ElasticIndexEditorProvider(coordinate, null);
+        return new ElasticIndexer(idxDefinition, textExtractor, definition, progressReporter, indexWriter, elasticIndexEditorProvider, indexHelper);
     }
 
     @Override

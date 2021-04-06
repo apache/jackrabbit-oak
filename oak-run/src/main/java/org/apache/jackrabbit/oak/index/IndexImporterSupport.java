@@ -37,12 +37,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 
 class IndexImporterSupport {
-    private final IndexHelper indexHelper;
+    private final ExtendedIndexHelper extendedIndexHelper;
     private final NodeStore nodeStore;
 
-    public IndexImporterSupport(IndexHelper indexHelper) {
-        this.indexHelper = indexHelper;
-        this.nodeStore = indexHelper.getNodeStore();
+    public IndexImporterSupport(ExtendedIndexHelper extendedIndexHelper) {
+        this.extendedIndexHelper = extendedIndexHelper;
+        this.nodeStore = extendedIndexHelper.getNodeStore();
     }
 
     public void importIndex(File importDir) throws IOException, CommitFailedException {
@@ -52,7 +52,7 @@ class IndexImporterSupport {
     }
 
     private void addImportProviders(IndexImporter importer) {
-        importer.addImporterProvider(new LuceneIndexImporter(indexHelper.getGCBlobStore()));
+        importer.addImporterProvider(new LuceneIndexImporter(extendedIndexHelper.getGCBlobStore()));
     }
 
     private AsyncIndexerLock createLock() {
@@ -65,7 +65,7 @@ class IndexImporterSupport {
     }
 
     private IndexEditorProvider createIndexEditorProvider() throws IOException {
-        MountInfoProvider mip = indexHelper.getMountInfoProvider();
+        MountInfoProvider mip = extendedIndexHelper.getMountInfoProvider();
         //Later we can add support for property index and other indexes here
         return new CompositeIndexEditorProvider(
                 createLuceneEditorProvider(),
@@ -75,6 +75,6 @@ class IndexImporterSupport {
     }
 
     private IndexEditorProvider createLuceneEditorProvider() throws IOException {
-        return indexHelper.getLuceneIndexHelper().createEditorProvider();
+        return extendedIndexHelper.getLuceneIndexHelper().createEditorProvider();
     }
 }

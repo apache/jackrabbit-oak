@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.index.IndexHelper;
+import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
@@ -44,15 +44,15 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     private final ExtractedTextCache textCache =
             new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
-    private final IndexHelper indexHelper;
+    private final ExtendedIndexHelper extendedIndexHelper;
     private final DirectoryFactory dirFactory;
     private final LuceneIndexWriterFactory indexWriterFactory;
 
-    public LuceneIndexerProvider(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
-        this.indexHelper = indexHelper;
+    public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
+        this.extendedIndexHelper = extendedIndexHelper;
         this.dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
-        this.indexWriterFactory = new DefaultIndexWriterFactory(indexHelper.getMountInfoProvider(),
-                dirFactory, indexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
+        this.indexWriterFactory = new DefaultIndexWriterFactory(extendedIndexHelper.getMountInfoProvider(),
+                dirFactory, extendedIndexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
     }
 
     @Override

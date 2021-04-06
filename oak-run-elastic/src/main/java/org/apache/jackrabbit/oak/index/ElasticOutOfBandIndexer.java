@@ -32,7 +32,7 @@ import static java.util.Arrays.asList;
 /*
 Out of band indexer for Elasticsearch. Provides support to index segment store for  given index definitions or reindex existing indexes
  */
-public class ElasticOutOfBandIndexer extends OutOfBandIndexer {
+public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
     private final String indexPrefix;
     private final String scheme;
     private final String host;
