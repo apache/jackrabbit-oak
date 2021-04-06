@@ -889,6 +889,134 @@ class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
         return doc;
     }
 
+    @NotNull
+    @Override
+    public UpdateResult updateOne(@NotNull Bson filter,
+                                  @NotNull List<? extends Bson> update) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateOne(filter, update);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult updateOne(@NotNull Bson filter,
+                                  @NotNull List<? extends Bson> update,
+                                  @NotNull UpdateOptions updateOptions) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateOne(filter, update, updateOptions);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult updateOne(@NotNull ClientSession clientSession,
+                                  @NotNull Bson filter,
+                                  @NotNull List<? extends Bson> update) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateOne(clientSession, filter, update);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult updateOne(@NotNull ClientSession clientSession,
+                                  @NotNull Bson filter,
+                                  @NotNull List<? extends Bson> update,
+                                  @NotNull UpdateOptions updateOptions) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateOne(clientSession, filter, update, updateOptions);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult updateMany(@NotNull Bson filter,
+                                   @NotNull List<? extends Bson> update) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateMany(filter, update);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult updateMany(@NotNull Bson filter,
+                                   @NotNull List<? extends Bson> update,
+                                   @NotNull UpdateOptions updateOptions) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateMany(filter, update, updateOptions);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult updateMany(@NotNull ClientSession clientSession,
+                                   @NotNull Bson filter,
+                                   @NotNull List<? extends Bson> update) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateMany(clientSession, filter, update);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult updateMany(@NotNull ClientSession clientSession,
+                                   @NotNull Bson filter,
+                                   @NotNull List<? extends Bson> update,
+                                   @NotNull UpdateOptions updateOptions) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.updateMany(clientSession, filter, update, updateOptions);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @Override
+    public TDocument findOneAndUpdate(@NotNull Bson filter,
+                                      @NotNull List<? extends Bson> update) {
+        maybeThrowExceptionBeforeUpdate();
+        TDocument doc = collection.findOneAndUpdate(filter, update);
+        maybeThrowExceptionAfterUpdate();
+        return doc;
+    }
+
+    @Override
+    public TDocument findOneAndUpdate(@NotNull Bson filter,
+                                      @NotNull List<? extends Bson> update,
+                                      @NotNull FindOneAndUpdateOptions options) {
+        maybeThrowExceptionBeforeUpdate();
+        TDocument doc = collection.findOneAndUpdate(filter, update, options);
+        maybeThrowExceptionAfterUpdate();
+        return doc;
+    }
+
+    @Override
+    public TDocument findOneAndUpdate(@NotNull ClientSession clientSession,
+                                      @NotNull Bson filter,
+                                      @NotNull List<? extends Bson> update) {
+        maybeThrowExceptionBeforeUpdate();
+        TDocument doc = collection.findOneAndUpdate(clientSession, filter, update);
+        maybeThrowExceptionAfterUpdate();
+        return doc;
+    }
+
+    @Override
+    public TDocument findOneAndUpdate(@NotNull ClientSession clientSession,
+                                      @NotNull Bson filter,
+                                      @NotNull List<? extends Bson> update,
+                                      @NotNull FindOneAndUpdateOptions options) {
+        maybeThrowExceptionBeforeUpdate();
+        TDocument doc = collection.findOneAndUpdate(clientSession, filter, update, options);
+        maybeThrowExceptionAfterUpdate();
+        return doc;
+    }
+
     @Override
     public void drop() {
         collection.drop();

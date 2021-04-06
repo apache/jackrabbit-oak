@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
+import com.mongodb.ServerAddress;
 import com.mongodb.TransactionOptions;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.TransactionBody;
 import com.mongodb.session.ServerSession;
 
 import org.bson.BsonDocument;
@@ -136,6 +138,39 @@ class MongoSessionFactory {
         @Override
         public void abortTransaction() {
             session.abortTransaction();
+        }
+
+        @Override
+        public ServerAddress getPinnedServerAddress() {
+            return session.getPinnedServerAddress();
+        }
+
+        @Override
+        public void setPinnedServerAddress(ServerAddress address) {
+            session.setPinnedServerAddress(address);
+        }
+
+        @NotNull
+        @Override
+        public <T> T withTransaction(@NotNull TransactionBody<T> transactionBody) {
+            return session.withTransaction(transactionBody);
+        }
+
+        @NotNull
+        @Override
+        public <T> T withTransaction(@NotNull TransactionBody<T> transactionBody,
+                                     @NotNull TransactionOptions options) {
+            return session.withTransaction(transactionBody, options);
+        }
+
+        @Override
+        public BsonDocument getRecoveryToken() {
+            return session.getRecoveryToken();
+        }
+
+        @Override
+        public void setRecoveryToken(BsonDocument recoveryToken) {
+            session.setRecoveryToken(recoveryToken);
         }
 
         @Override
