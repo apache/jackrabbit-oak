@@ -18,22 +18,36 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeType;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code Utils} provide some utility methods.
  */
-final class Utils {
+public final class Utils {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
+
     private Utils() {
     }
 
@@ -76,6 +90,47 @@ final class Utils {
             throw new IllegalStateException("Node does not have a jcr:primaryType");
         }
         return primaryType;
+    }
+
+    /**
+     * Returns {@code true} iff there is a {@code nt:frozenNode} definition and
+     * the definition has a {@code mix:referenceable} supertype.
+     *
+     * @param root the root of a repository from where to read the node type
+     *      information.
+     * @return {@code true} if frozen nodes are referenceable, {@code false}
+     *      otherwise.
+     */
+    public static boolean isFrozenNodeReferenceable(@NotNull NodeState root) {
+        return isFrozenNodeReferenceable(
+                ReadOnlyNodeTypeManager.getInstance(
+                        RootFactory.createReadOnlyRoot(root),
+                        NamePathMapper.DEFAULT));
+    }
+
+    /**
+     * Returns {@code true} iff there is a {@code nt:frozenNode} definition and
+     * the definition has a {@code mix:referenceable} supertype.
+     *
+     * @param ntMgr a node type manager to access the node types.
+     * @return {@code true} if frozen nodes are referenceable, {@code false}
+     *      otherwise.
+     */
+    public static boolean isFrozenNodeReferenceable(@NotNull ReadOnlyNodeTypeManager ntMgr) {
+        try {
+            NodeType[] superTypes = ntMgr.getNodeType(NT_FROZENNODE).getSupertypes();
+            for (NodeType superType : superTypes) {
+                if (superType.isNodeType(MIX_REFERENCEABLE)) {
+                    // OAK-9134: add uuid in older repositories with mix:referenceable in nt:frozenNode
+                    return true;
+                }
+            }
+        } catch (NoSuchNodeTypeException e) {
+            LOG.info("Repository does not define nt:frozenNode. Assuming frozen nodes are not referenceable.");
+        } catch (RepositoryException e) {
+            throw new RuntimeException(e);
+        }
+        return false;
     }
 
     static <T> T throwProtected(String path) throws CommitFailedException {

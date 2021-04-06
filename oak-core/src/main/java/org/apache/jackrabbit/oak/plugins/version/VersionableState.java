@@ -124,21 +124,7 @@ class VersionableState {
         this.versionable = checkNotNull(versionable);
         this.vMgr = checkNotNull(vMgr);
         this.ntMgr = checkNotNull(ntMgr);
-        
-        boolean referenceableFound = false;
-        try {
-            NodeType[] superTypes = ntMgr.getNodeType(NT_FROZENNODE).getSupertypes();
-            for (NodeType superType : superTypes) {
-                if (superType.isNodeType(MIX_REFERENCEABLE)) {
-                    // OAK-9134: add uuid in older repositories with mix:referenceable in nt:frozenNode
-                    referenceableFound = true;
-                    break;
-                }
-            }
-        } catch (RepositoryException e) {
-            log.warn("Unable to access node type " + NT_FROZENNODE, e);
-        }
-        this.isFrozenNodeReferenceable = referenceableFound;
+        this.isFrozenNodeReferenceable = Utils.isFrozenNodeReferenceable(ntMgr);
     }
 
     /**

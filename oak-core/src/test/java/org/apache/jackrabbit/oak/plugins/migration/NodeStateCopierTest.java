@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -27,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.builder;
@@ -39,6 +41,9 @@ public class NodeStateCopierTest {
 
     private final PropertyState primaryType =
             createProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+    private final PropertyState ntFrozenNode =
+            createProperty("jcr:primaryType", "nt:frozenNode", Type.NAME);
 
     @Test
     public void shouldCreateMissingAncestors() throws CommitFailedException, IOException {
@@ -275,6 +280,57 @@ public class NodeStateCopierTest {
                 .childNodeAdded("/content/foo")
                 .childNodeChanged("/content")
                 .childNodeDeleted("/content/bar")
+                .verify(before, after);
+    }
+
+    @Test
+    public void shouldIgnoreUUIDOfFrozenNode() throws Exception {
+        final NodeStore source = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
+        final NodeStore target = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
+
+        final NodeBuilder builder = source.getRoot().builder();
+        final PropertyState uuid = createProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+        create(builder, "/jcr:system/jcr:versionStorage/frozen", ntFrozenNode, uuid);
+        commit(source, builder);
+
+        final NodeState before = target.getRoot();
+        builder()
+                .withReferenceableFrozenNodes(false)
+                .copy(source, target);
+        final NodeState after = target.getRoot();
+
+        expectDifference()
+                .strict()
+                .childNodeChanged("/jcr:system")
+                .childNodeChanged("/jcr:system/jcr:versionStorage")
+                .childNodeAdded("/jcr:system/jcr:versionStorage/frozen")
+                .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:primaryType")
+                .verify(before, after);
+    }
+
+    @Test
+    public void shouldIncludeUUIDOfFrozenNode() throws Exception {
+        final NodeStore source = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
+        final NodeStore target = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
+
+        final NodeBuilder builder = source.getRoot().builder();
+        final PropertyState uuid = createProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+        create(builder, "/jcr:system/jcr:versionStorage/frozen", ntFrozenNode, uuid);
+        commit(source, builder);
+
+        final NodeState before = target.getRoot();
+        builder()
+                .withReferenceableFrozenNodes(true)
+                .copy(source, target);
+        final NodeState after = target.getRoot();
+
+        expectDifference()
+                .strict()
+                .childNodeChanged("/jcr:system")
+                .childNodeChanged("/jcr:system/jcr:versionStorage")
+                .childNodeAdded("/jcr:system/jcr:versionStorage/frozen")
+                .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:uuid")
+                .propertyAdded("/jcr:system/jcr:versionStorage/frozen/jcr:primaryType")
                 .verify(before, after);
     }
 
