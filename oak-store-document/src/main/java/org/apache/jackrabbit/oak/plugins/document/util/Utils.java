@@ -58,6 +58,8 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isRevisionsEntry;
 
 /**
  * Utility methods.
@@ -103,6 +105,26 @@ public class Utils {
         @Override
         public boolean apply(@Nullable String input) {
             return Utils.isPropertyName(input) || isDeletedEntry(input);
+        }
+    };
+
+    /**
+     * A predicate for property, _deleted, _commitRoot or _revisions names.
+     */
+    public static final Predicate<String> PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS = new Predicate<String>() {
+        @Override
+        public boolean apply(@Nullable String input) {
+            return Utils.isPropertyName(input) || isDeletedEntry(input) || isCommitRootEntry(input) || isRevisionsEntry(input);
+        }
+    };
+
+    /**
+     * A predicate for _commitRoot and _revisions names.
+     */
+    public static final Predicate<String> COMMITROOT_OR_REVISIONS = new Predicate<String>() {
+        @Override
+        public boolean apply(@Nullable String input) {
+            return isCommitRootEntry(input) || isRevisionsEntry(input);
         }
     };
 
@@ -983,7 +1005,9 @@ public class Utils {
     public static void joinQuietly(Thread... threads) {
         for (Thread t : threads) {
             try {
-                t.join();
+                if (t != null) {
+                    t.join();
+                }
             } catch (InterruptedException e) {
                 // ignore
             }
