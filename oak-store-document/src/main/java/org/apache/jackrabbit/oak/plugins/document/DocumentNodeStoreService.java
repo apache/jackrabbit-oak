@@ -293,6 +293,7 @@ public class DocumentNodeStoreService {
             configureBuilder(builder);
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
             builder.setSocketKeepAlive(soKeepAlive);
+            builder.setLeaseSocketTimeout(config.leaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             mkBuilder = builder;
 

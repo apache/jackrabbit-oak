@@ -279,10 +279,11 @@ public class MongoDocumentStore implements DocumentStore {
 
         LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
-                "clientSessionSupported {}, clientSessionInUse {}, {}, " +
-                "serverStatus {}",
+                "leaseSocketTimeout {}, clientSessionSupported {}, " +
+                "clientSessionInUse {}, {}, serverStatus {}",
                 status.getVersion(), maxReplicationLagMillis,
                 maxDeltaForModTimeIdxSecs, disableIndexHint,
+                builder.getLeaseSocketTimeout(),
                 status.isClientSessionSupported(), useClientSession,
                 db.getWriteConcern(), status.getServerDetails());
     }
