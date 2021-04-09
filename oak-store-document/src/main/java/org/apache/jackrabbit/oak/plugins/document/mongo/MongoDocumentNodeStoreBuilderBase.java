@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBClient.newMongoDBClient;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConnection.newMongoDBConnection;
 
 /**
  * A base builder implementation for a {@link DocumentNodeStore} backed by
@@ -81,7 +81,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public T setMongoDB(@NotNull MongoClient client,
                         @NotNull String dbName,
                         int blobCacheSizeMB) {
-        return setMongoDB(new MongoDBClient(client, client.getDatabase(dbName),
+        return setMongoDB(new MongoDBConnection(client, client.getDatabase(dbName),
                 new MongoStatus(client, dbName), mongoClock), blobCacheSizeMB);
     }
 
@@ -209,14 +209,14 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return mongoClock;
     }
 
-    MongoDBClient createMongoDBClient(int socketTimeout) {
+    MongoDBConnection createMongoDBClient(int socketTimeout) {
         if (uri == null || name == null) {
             throw new IllegalStateException("Cannot create MongoDB client without 'uri' or 'name'");
         }
-        return newMongoDBClient(uri, name, mongoClock, socketTimeout, socketKeepAlive);
+        return newMongoDBConnection(uri, name, mongoClock, socketTimeout, socketKeepAlive);
     }
 
-    private T setMongoDB(@NotNull MongoDBClient client,
+    private T setMongoDB(@NotNull MongoDBConnection client,
                          int blobCacheSizeMB) {
         client.checkReadWriteConcern();
         this.mongoStatus = client.getStatus();

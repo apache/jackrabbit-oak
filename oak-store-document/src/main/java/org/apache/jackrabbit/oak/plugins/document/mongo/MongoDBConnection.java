@@ -37,9 +37,9 @@ import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.re
  * Simple struct that contains {@code MongoClient}, {@code MongoDatabase} and
  * {@code MongoStatus}.
  */
-final class MongoDBClient {
+final class MongoDBConnection {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoDBClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDBConnection.class);
 
     private final MongoClient client;
     private final MongoDatabase db;
@@ -47,10 +47,10 @@ final class MongoDBClient {
     private final MongoClock clock;
     private final MongoSessionFactory sessionFactory;
 
-    MongoDBClient(@NotNull MongoClient client,
-                  @NotNull MongoDatabase database,
-                  @NotNull MongoStatus status,
-                  @NotNull MongoClock clock) {
+    MongoDBConnection(@NotNull MongoClient client,
+                      @NotNull MongoDatabase database,
+                      @NotNull MongoStatus status,
+                      @NotNull MongoClock clock) {
         this.client = checkNotNull(client);
         this.db = checkNotNull(database);
         this.status = checkNotNull(status);
@@ -58,11 +58,11 @@ final class MongoDBClient {
         this.sessionFactory = new MongoSessionFactory(client, clock);
     }
 
-    static MongoDBClient newMongoDBClient(@NotNull String uri,
-                                          @NotNull String name,
-                                          @NotNull MongoClock clock,
-                                          int socketTimeout,
-                                          boolean socketKeepAlive) {
+    static MongoDBConnection newMongoDBConnection(@NotNull String uri,
+                                                  @NotNull String name,
+                                                  @NotNull MongoClock clock,
+                                                  int socketTimeout,
+                                                  boolean socketKeepAlive) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
         options.addServerMonitorListener(serverMonitorListener);
@@ -82,7 +82,7 @@ final class MongoDBClient {
                 && !MongoConnection.hasReadConcern(uri)) {
             db = db.withReadConcern(MongoConnection.getDefaultReadConcern(client, db));
         }
-        return new MongoDBClient(client, db, status, clock);
+        return new MongoDBConnection(client, db, status, clock);
     }
 
     @NotNull

@@ -156,8 +156,8 @@ public class MongoDocumentStore implements DocumentStore {
     private final MongoCollection<BasicDBObject> settings;
     private final MongoCollection<BasicDBObject> journal;
 
-    private final MongoDBClient client;
-    private final MongoDBClient clusterNodesClient;
+    private final MongoDBConnection connection;
+    private final MongoDBConnection clusterNodesConnection;
 
     private final NodeDocumentCache nodesCache;
 
@@ -244,12 +244,12 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
-    public MongoDocumentStore(MongoClient client, MongoDatabase db,
+    public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
         MongoStatus status = builder.getMongoStatus();
         if (status == null) {
-            status = new MongoStatus(client, db.getName());
+            status = new MongoStatus(connection, db.getName());
         }
         status.checkVersion();
         metadata = ImmutableMap.<String,String>builder()
@@ -257,13 +257,13 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", status.getVersion())
                 .build();
 
-        this.client = new MongoDBClient(client, db, status, builder.getMongoClock());
-        this.clusterNodesClient = getOrCreateClusterNodesClient(builder);
+        this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
+        this.clusterNodesConnection = getOrCreateClusterNodesConnection(builder);
         stats = builder.getDocumentStoreStatsCollector();
-        nodes = this.client.getCollection(Collection.NODES.toString());
-        clusterNodes = this.clusterNodesClient.getCollection(Collection.CLUSTER_NODES.toString());
-        settings = this.client.getCollection(Collection.SETTINGS.toString());
-        journal = this.client.getCollection(Collection.JOURNAL.toString());
+        nodes = this.connection.getCollection(Collection.NODES.toString());
+        clusterNodes = this.clusterNodesConnection.getCollection(Collection.CLUSTER_NODES.toString());
+        settings = this.connection.getCollection(Collection.SETTINGS.toString());
+        journal = this.connection.getCollection(Collection.JOURNAL.toString());
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
@@ -289,14 +289,14 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @NotNull
-    private MongoDBClient getOrCreateClusterNodesClient(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
-        MongoDBClient mc;
+    private MongoDBConnection getOrCreateClusterNodesConnection(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
+        MongoDBConnection mc;
         int leaseSocketTimeout = builder.getLeaseSocketTimeout();
         if (leaseSocketTimeout > 0) {
             mc = builder.createMongoDBClient(leaseSocketTimeout);
         } else {
-            // use same client
-            mc = client;
+            // use same connection
+            mc = connection;
         }
         return mc;
     }
@@ -1553,11 +1553,11 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     MongoDatabase getDatabase() {
-        return client.getDatabase();
+        return connection.getDatabase();
     }
 
     MongoClient getClient() {
-        return client.getClient();
+        return connection.getClient();
     }
 
     private static Bson getByKeyQuery(String key) {
@@ -1566,9 +1566,9 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void dispose() {
-        client.close();
-        if (clusterNodesClient != client) {
-            clusterNodesClient.close();
+        connection.close();
+        if (clusterNodesConnection != connection) {
+            clusterNodesConnection.close();
         }
         try {
             nodesCache.close();
@@ -1593,7 +1593,7 @@ public class MongoDocumentStore implements DocumentStore {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
         List<MongoCollection<?>> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
         all.forEach(c -> toMapBuilder(builder,
-                client.getDatabase().runCommand(
+                connection.getDatabase().runCommand(
                     new BasicDBObject("collStats", c.getNamespace().getCollectionName()),
                         BasicDBObject.class),
                 c.getNamespace().getCollectionName()));
@@ -1868,12 +1868,12 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private boolean withClientSession() {
-        return client.getStatus().isClientSessionSupported() && useClientSession;
+        return connection.getStatus().isClientSessionSupported() && useClientSession;
     }
 
     private boolean secondariesWithinAcceptableLag() {
         return getClient().getReplicaSetStatus() == null
-                || client.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
+                || connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 
     private void lagTooHigh() {
@@ -1908,13 +1908,13 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private ClientSession createClientSession(Collection<?> collection) {
-        MongoDBClient dbClient;
+        MongoDBConnection dbConnection;
         if (Collection.CLUSTER_NODES == collection) {
-            dbClient = clusterNodesClient;
+            dbConnection = clusterNodesConnection;
         } else {
-            dbClient = client;
+            dbConnection = connection;
         }
-        return dbClient.createClientSession();
+        return dbConnection.createClientSession();
     }
 
     interface DocumentStoreCallable<T> {
