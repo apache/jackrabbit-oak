@@ -68,6 +68,13 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
     boolean socketKeepAlive() default DocumentNodeStoreService.DEFAULT_SO_KEEP_ALIVE;
 
     @AttributeDefinition(
+            name = "MongoDB socket timeout for lease update operations",
+            description = "Socket timeout for lease update operations in " +
+                    "milliseconds. Note that this value can be " +
+                    "overridden via framework property 'oak.mongo.leaseSocketTimeout'")
+    int mongoLeaseSocketTimeout() default DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS;
+
+    @AttributeDefinition(
             name = "Cache Size (in MB)",
             description = "Cache size in MB. This is distributed among various caches used in DocumentNodeStore")
     int cache() default DocumentNodeStoreService.DEFAULT_CACHE;
