@@ -115,7 +115,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
     @Test
     public void presetLeaseSocketTimeout() throws Exception {
         int timeout = DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS / 2;
-        addConfigurationEntry(preset, "leaseSocketTimeout", timeout);
+        addConfigurationEntry(preset, "mongoLeaseSocketTimeout", timeout);
         Configuration config = createConfiguration();
         assertEquals(timeout, config.mongoLeaseSocketTimeout());
     }
