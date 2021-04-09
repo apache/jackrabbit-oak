@@ -72,7 +72,7 @@ public class MongoDockerRule extends DockerRule {
         return getContainer().getPortBinding("27017/tcp").getPort();
     }
 
-    public boolean isDockerAvailable() {
+    public static boolean isDockerAvailable() {
         return DOCKER_AVAILABLE;
     }
 }
