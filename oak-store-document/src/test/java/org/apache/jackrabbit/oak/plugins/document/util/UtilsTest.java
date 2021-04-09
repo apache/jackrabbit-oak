@@ -443,6 +443,22 @@ public class UtilsTest {
         assertEquals(startTime2, r2.getTimestamp());
     }
 
+    @Test
+    public void sum() {
+        assertEquals(0, Utils.sum());
+        assertEquals(42, Utils.sum(7, 15, 20));
+        assertEquals(-12, Utils.sum(-7, 15, -20));
+        assertEquals(42, Utils.sum(Long.MAX_VALUE, 43, Long.MIN_VALUE));
+
+        assertEquals(Long.MAX_VALUE, Utils.sum(Long.MAX_VALUE));
+        assertEquals(Long.MAX_VALUE - 1, Utils.sum(Long.MAX_VALUE, -1));
+        assertEquals(Long.MAX_VALUE, Utils.sum(Long.MAX_VALUE, 1));
+
+        assertEquals(Long.MIN_VALUE, Utils.sum(Long.MIN_VALUE));
+        assertEquals(Long.MIN_VALUE + 1, Utils.sum(Long.MIN_VALUE, 1));
+        assertEquals(Long.MIN_VALUE, Utils.sum(Long.MIN_VALUE, -1));
+    }
+
     private static ClusterNodeInfoDocument mockedClusterNodeInfo(int clusterId,
                                                                  long startTime) {
         ClusterNodeInfoDocument info = Mockito.mock(ClusterNodeInfoDocument.class);

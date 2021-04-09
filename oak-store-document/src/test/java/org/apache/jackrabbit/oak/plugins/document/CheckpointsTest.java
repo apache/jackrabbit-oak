@@ -28,21 +28,25 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class CheckpointsTest {
+
+    private static final long ONE_HOUR = TimeUnit.HOURS.toMillis(1);
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -51,10 +55,14 @@ public class CheckpointsTest {
 
     private DocumentNodeStore store;
 
+    private Checkpoints checkpoints;
+
     @Before
     public void setUp() throws InterruptedException {
         clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
         store = builderProvider.newBuilder().clock(clock).getNodeStore();
+        checkpoints = new Checkpoints(store);
     }
 
     @Test
@@ -417,5 +425,33 @@ public class CheckpointsTest {
         assertNotNull(root);
         assertTrue(root.hasChildNode("foo"));
         assertFalse(root.hasChildNode("bar"));
+    }
+
+    @Test
+    public void createCheckpointWithRevision() {
+        Revision r = new Revision(clock.getTime(), 0, store.getClusterId());
+        assertNotNull(r);
+        assertEquals(r, checkpoints.create(ONE_HOUR, Collections.emptyMap(), r));
+        RevisionVector rv = checkpoints.retrieve(r.toString());
+        assertNotNull(rv);
+    }
+
+    @Test
+    public void createCheckpointWithRevisionTwice() {
+        Revision r = new Revision(clock.getTime(), 0, store.getClusterId());
+        assertNotNull(r);
+        assertEquals(r, checkpoints.create(ONE_HOUR, Collections.emptyMap(), r));
+        assertEquals(r, checkpoints.create(ONE_HOUR * 3, Collections.emptyMap(), r));
+        Checkpoints.Info info = checkpoints.getCheckpoints().get(r);
+        assertNotNull(info);
+        assertThat(info.getExpiryTime(), greaterThan(store.getClock().getTime() + ONE_HOUR * 2));
+    }
+
+    @Test
+    public void createCheckpointWithRevisionInFuture() {
+        long time = store.getClock().getTime() + ONE_HOUR;
+        Revision r = new Revision(time, 0, store.getClusterId());
+        Map<String, String> info = Collections.emptyMap();
+        Assert.assertThrows(IllegalArgumentException.class, () -> checkpoints.create(ONE_HOUR, info, r));
     }
 }

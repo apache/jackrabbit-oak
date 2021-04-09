@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -65,6 +66,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
 /**
  * A generic builder for a {@link DocumentNodeStore}. By default the builder
@@ -148,6 +150,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private int commitValueCacheSize = 10000;
     private boolean cacheEmptyCommitValue = false;
     private long maxRevisionAgeMillis = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
+    private long maxRevisionGCAgeMillis = TimeUnit.SECONDS.toMillis(DEFAULT_VER_GC_MAX_AGE);
     private GCMonitor gcMonitor = new LoggingGCMonitor(
             LoggerFactory.getLogger(VersionGarbageCollector.class));
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
@@ -609,6 +612,21 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     public long getJournalGCMaxAge() {
         return maxRevisionAgeMillis;
+    }
+
+    public T setRevisionGCMaxAge(long maxRevisionGCAgeMillis) {
+        this.maxRevisionGCAgeMillis = maxRevisionGCAgeMillis;
+        return thisBuilder();
+    }
+
+    /**
+     * The maximum age for changes in milliseconds. Older changes are candidates
+     * for revision garbage collection.
+     *
+     * @return maximum age in milliseconds.
+     */
+    public long getRevisionGCMaxAge() {
+        return maxRevisionGCAgeMillis;
     }
 
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {

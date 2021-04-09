@@ -65,7 +65,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.jcr.PropertyType;
-import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -3486,13 +3485,10 @@ public final class DocumentNodeStore
     }
 
     private DocumentNodeStoreMBean createMBean(DocumentNodeStoreBuilder<?> builder) {
-        try {
-            return new DocumentNodeStoreMBeanImpl(this,
-                    builder.getStatisticsProvider().getStats(),
-                    clusterNodes.values());
-        } catch (NotCompliantMBeanException e) {
-            throw new IllegalStateException(e);
-        }
+        return new DocumentNodeStoreMBeanImpl(this,
+                builder.getStatisticsProvider().getStats(),
+                clusterNodes.values(),
+                builder.getRevisionGCMaxAge());
     }
 
     private static abstract class NodeStoreTask implements Runnable {
