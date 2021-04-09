@@ -279,6 +279,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         }
         if (force || oldestTimestamp < rev.getTimestamp()) {
             Map<String, String> info = new HashMap<>();
+            // Below properties are only needed when the DocumentNodeStore is
+            // used in a composite NodeStore setup. This is a bit ugly because
+            // it introduces a dependency on an implementation detail of the
+            // CompositeNodeStore implementation. The module oak-it therefore
+            // has a CompositeCheckpointTest to prevent a regression should the
+            // implementation ever change.
             info.put(COMPOSITE_INFO + "created", Long.toString(rev.getTimestamp()));
             info.put(COMPOSITE_INFO + "expires", Long.toString(Utils.sum(rev.getTimestamp() + lifetime)));
 
