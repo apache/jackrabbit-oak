@@ -50,7 +50,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentNodeStoreService.DEFAULT_URI, config.mongouri());
         assertEquals(DocumentNodeStoreService.DEFAULT_DB, config.db());
         assertEquals(DocumentNodeStoreService.DEFAULT_SO_KEEP_ALIVE, config.socketKeepAlive());
-        assertEquals(DocumentNodeStoreService.DEFAULT_LEASE_SO_TIMEOUT_MILLIS, config.leaseSocketTimeout());
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS, config.mongoLeaseSocketTimeout());
         assertEquals(DocumentNodeStoreService.DEFAULT_CACHE, config.cache());
         assertEquals(DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE, config.nodeCachePercentage());
         assertEquals(DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE, config.prevDocCachePercentage());
@@ -114,10 +114,10 @@ public class DocumentNodeStoreServiceConfigurationTest {
 
     @Test
     public void presetLeaseSocketTimeout() throws Exception {
-        int timeout = DocumentNodeStoreService.DEFAULT_LEASE_SO_TIMEOUT_MILLIS / 2;
+        int timeout = DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS / 2;
         addConfigurationEntry(preset, "leaseSocketTimeout", timeout);
         Configuration config = createConfiguration();
-        assertEquals(timeout, config.leaseSocketTimeout());
+        assertEquals(timeout, config.mongoLeaseSocketTimeout());
     }
 
     @Test

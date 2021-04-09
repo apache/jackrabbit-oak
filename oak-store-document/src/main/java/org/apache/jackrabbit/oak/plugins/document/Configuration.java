@@ -72,7 +72,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
             description = "Socket timeout for lease update operations in " +
                     "milliseconds. Note that this value can be " +
                     "overridden via framework property 'oak.mongo.leaseSocketTimeout'")
-    int leaseSocketTimeout() default DocumentNodeStoreService.DEFAULT_LEASE_SO_TIMEOUT_MILLIS;
+    int mongoLeaseSocketTimeout() default DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS;
 
     @AttributeDefinition(
             name = "Cache Size (in MB)",

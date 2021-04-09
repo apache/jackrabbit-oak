@@ -77,7 +77,7 @@ final class DocumentNodeStoreServiceConfiguration {
      * Name of framework property to configure socket timeout for lease update
      * operations on MongoDB.
      */
-    private static final String FWK_PROP_LEASE_SO_TIMEOUT = "oak.mongo.leaseSocketTimeout";
+    private static final String FWK_PROP_MONGO_LEASE_SO_TIMEOUT = "oak.mongo.leaseSocketTimeout";
 
     /**
      * Name of the framework property to configure the update limit.
@@ -101,7 +101,7 @@ final class DocumentNodeStoreServiceConfiguration {
             .put(PROP_URI, FWK_PROP_URI)
             .put(PROP_HOME, PROP_HOME)
             .put(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE)
-            .put(PROP_LEASE_SO_TIMEOUT, FWK_PROP_LEASE_SO_TIMEOUT)
+            .put(PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT)
             .put(PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT)
             .build();
 
