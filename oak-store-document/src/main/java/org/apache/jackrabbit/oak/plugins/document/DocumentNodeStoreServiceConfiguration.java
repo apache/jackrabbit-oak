@@ -74,6 +74,12 @@ final class DocumentNodeStoreServiceConfiguration {
     private static final String FWK_PROP_SO_KEEP_ALIVE = "oak.mongo.socketKeepAlive";
 
     /**
+     * Name of framework property to configure socket timeout for lease update
+     * operations on MongoDB.
+     */
+    private static final String FWK_PROP_MONGO_LEASE_SO_TIMEOUT = "oak.mongo.leaseSocketTimeout";
+
+    /**
      * Name of the framework property to configure the update limit.
      */
     private static final String FWK_PROP_UPDATE_LIMIT = "update.limit";
@@ -82,6 +88,7 @@ final class DocumentNodeStoreServiceConfiguration {
     private static final String PROP_URI = "mongouri";
     private static final String PROP_HOME = "repository.home";
     static final String PROP_SO_KEEP_ALIVE = "socketKeepAlive";
+    static final String PROP_LEASE_SO_TIMEOUT = "leaseSocketTimeout";
     static final String PROP_UPDATE_LIMIT = "updateLimit";
 
     /**
@@ -89,13 +96,14 @@ final class DocumentNodeStoreServiceConfiguration {
      * property names are mapped to framework properties by prefixing them with
      * {@link #DEFAULT_FWK_PREFIX}.
      */
-    private static final Map<String, String> FWK_PROP_MAPPING = ImmutableMap.of(
-            PROP_DB, FWK_PROP_DB,
-            PROP_URI, FWK_PROP_URI,
-            PROP_HOME, PROP_HOME,
-            PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE,
-            PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT
-    );
+    private static final Map<String, String> FWK_PROP_MAPPING = new ImmutableMap.Builder<String, String>()
+            .put(PROP_DB, FWK_PROP_DB)
+            .put(PROP_URI, FWK_PROP_URI)
+            .put(PROP_HOME, PROP_HOME)
+            .put(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE)
+            .put(PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT)
+            .put(PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT)
+            .build();
 
     private DocumentNodeStoreServiceConfiguration() {
     }

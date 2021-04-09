@@ -37,22 +37,23 @@ class MongoSessionFactory {
 
     private final ClientSessionOptions options;
 
+    private final MongoClock clock;
+
     private BsonDocument clusterTime;
 
     private BsonTimestamp operationTime;
 
-    MongoSessionFactory(MongoClient client) {
+    MongoSessionFactory(@NotNull MongoClient client,
+                        @NotNull MongoClock clock) {
         this.client = client;
+        this.clock = clock;
         this.options = ClientSessionOptions.builder()
                 .causallyConsistent(true).build();
     }
 
     ClientSession createClientSession() {
         ClientSession s = client.startSession(options);
-        synchronized (this) {
-            s.advanceClusterTime(clusterTime);
-            s.advanceOperationTime(operationTime);
-        }
+        clock.advanceSession(s);
         return new TrackingClientSession(s);
     }
 
@@ -175,12 +176,7 @@ class MongoSessionFactory {
 
         @Override
         public void close() {
-            synchronized (this) {
-                session.advanceClusterTime(clusterTime);
-                clusterTime = session.getClusterTime();
-                session.advanceOperationTime(operationTime);
-                operationTime = session.getOperationTime();
-            }
+            clock.advanceSessionAndClock(session);
             session.close();
         }
     }
