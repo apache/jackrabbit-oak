@@ -133,6 +133,7 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
+    static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
     static final boolean DEFAULT_CUSTOM_BLOB_STORE = false;
@@ -292,6 +293,7 @@ public class DocumentNodeStoreService {
             configureBuilder(builder);
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
             builder.setSocketKeepAlive(soKeepAlive);
+            builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             mkBuilder = builder;
 

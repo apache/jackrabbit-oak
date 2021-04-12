@@ -19,10 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.concurrent.TimeUnit;
 
 import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
-import com.mongodb.ReadConcernLevel;
-import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -30,13 +26,10 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConnection.newMongoDBConnection;
 
 /**
  * A base builder implementation for a {@link DocumentNodeStore} backed by
@@ -45,12 +38,14 @@ import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.re
 public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentNodeStoreBuilderBase<T>>
         extends DocumentNodeStoreBuilder<T> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentNodeStoreBuilder.class);
-
+    private final MongoClock mongoClock = new MongoClock();
     private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
     private boolean clientSessionDisabled = false;
+    private int leaseSocketTimeout = 0;
+    private String uri;
+    private String name;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -69,23 +64,9 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public T setMongoDB(@NotNull String uri,
                         @NotNull String name,
                         int blobCacheSizeMB) {
-        CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
-        MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.addServerMonitorListener(serverMonitorListener);
-        options.socketKeepAlive(socketKeepAlive);
-        MongoClient client = new MongoClient(new MongoClientURI(uri, options));
-        MongoStatus status = new MongoStatus(client, name);
-        serverMonitorListener.addListener(status);
-        MongoDatabase db = client.getDatabase(name);
-        if (!MongoConnection.hasWriteConcern(uri)) {
-            db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
-        }
-        if (status.isMajorityReadConcernSupported()
-                && status.isMajorityReadConcernEnabled()
-                && !MongoConnection.hasReadConcern(uri)) {
-            db = db.withReadConcern(MongoConnection.getDefaultReadConcern(client, db));
-        }
-        setMongoDB(client, db, status, blobCacheSizeMB);
+        this.uri = uri;
+        this.name = name;
+        setMongoDB(createMongoDBClient(0), blobCacheSizeMB);
         return thisBuilder();
     }
 
@@ -100,8 +81,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public T setMongoDB(@NotNull MongoClient client,
                         @NotNull String dbName,
                         int blobCacheSizeMB) {
-        return setMongoDB(client, client.getDatabase(dbName),
-                new MongoStatus(client, dbName), blobCacheSizeMB);
+        return setMongoDB(new MongoDBConnection(client, client.getDatabase(dbName),
+                new MongoStatus(client, dbName), mongoClock), blobCacheSizeMB);
     }
 
     /**
@@ -155,11 +136,32 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return clientSessionDisabled;
     }
 
+    /**
+     * Sets a socket timeout for lease update operations.
+     *
+     * @param timeoutMillis the socket timeout in milliseconds.
+     * @return this builder.
+     */
+    public T setLeaseSocketTimeout(int timeoutMillis) {
+
+        this.leaseSocketTimeout = timeoutMillis;
+        return thisBuilder();
+    }
+
+    /**
+     * @return the lease socket timeout in milliseconds. If none is set, then
+     *      zero is returned.
+     */
+    int getLeaseSocketTimeout() {
+        return leaseSocketTimeout;
+    }
+
     public T setMaxReplicationLag(long duration, TimeUnit unit){
         maxReplicationLagMillis = unit.toMillis(duration);
         return thisBuilder();
     }
 
+    @Override
     public VersionGCSupport createVersionGCSupport() {
         DocumentStore store = getDocumentStore();
         if (store instanceof MongoDocumentStore) {
@@ -169,6 +171,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         }
     }
 
+    @Override
     public Iterable<ReferencedBlob> createReferencedBlobs(DocumentNodeStore ns) {
         final DocumentStore store = getDocumentStore();
         if (store instanceof MongoDocumentStore) {
@@ -178,6 +181,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         }
     }
 
+    @Override
     public MissingLastRevSeeker createMissingLastRevSeeker() {
         final DocumentStore store = getDocumentStore();
         if (store instanceof MongoDocumentStore) {
@@ -201,33 +205,27 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return maxReplicationLagMillis;
     }
 
-    private T setMongoDB(@NotNull MongoClient client,
-                         @NotNull MongoDatabase db,
-                         MongoStatus status,
-                         int blobCacheSizeMB) {
-        if (!MongoConnection.isSufficientWriteConcern(client, db.getWriteConcern())) {
-            LOG.warn("Insufficient write concern: " + db.getWriteConcern()
-                    + " At least " + MongoConnection.getDefaultWriteConcern(client) + " is recommended.");
-        }
-        if (status.isMajorityReadConcernSupported() && !status.isMajorityReadConcernEnabled()) {
-            LOG.warn("The read concern should be enabled on mongod using --enableMajorityReadConcern");
-        } else if (status.isMajorityReadConcernSupported() && !MongoConnection.isSufficientReadConcern(client, db.getReadConcern())) {
-            ReadConcernLevel currentLevel = readConcernLevel(db.getReadConcern());
-            ReadConcernLevel recommendedLevel = readConcernLevel(MongoConnection.getDefaultReadConcern(client, db));
-            if (currentLevel == null) {
-                LOG.warn("Read concern hasn't been set. At least " + recommendedLevel + " is recommended.");
-            } else {
-                LOG.warn("Insufficient read concern: " + currentLevel + ". At least " + recommendedLevel + " is recommended.");
-            }
-        }
+    MongoClock getMongoClock() {
+        return mongoClock;
+    }
 
-        this.mongoStatus = status;
+    MongoDBConnection createMongoDBClient(int socketTimeout) {
+        if (uri == null || name == null) {
+            throw new IllegalStateException("Cannot create MongoDB client without 'uri' or 'name'");
+        }
+        return newMongoDBConnection(uri, name, mongoClock, socketTimeout, socketKeepAlive);
+    }
+
+    private T setMongoDB(@NotNull MongoDBConnection client,
+                         int blobCacheSizeMB) {
+        client.checkReadWriteConcern();
+        this.mongoStatus = client.getStatus();
         this.documentStoreSupplier = memoize(() -> new MongoDocumentStore(
-                client, db, MongoDocumentNodeStoreBuilderBase.this));
+                client.getClient(), client.getDatabase(), MongoDocumentNodeStoreBuilderBase.this));
 
         if (this.blobStoreSupplier == null) {
             this.blobStoreSupplier = memoize(
-                    () -> new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L, MongoDocumentNodeStoreBuilderBase.this));
+                    () -> new MongoBlobStore(client.getDatabase(), blobCacheSizeMB * 1024 * 1024L, MongoDocumentNodeStoreBuilderBase.this));
         }
 
         return thisBuilder();
