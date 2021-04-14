@@ -332,7 +332,7 @@ public class ImporterImpl implements Importer {
     }
 
     @Override
-    public void startNode(NodeInfo nodeInfo, List<PropInfo> propInfos)
+    public void startNode(@NotNull NodeInfo nodeInfo, @NotNull List<PropInfo> propInfos)
             throws RepositoryException {
         Tree parent = parents.peek();
         Tree tree = null;
@@ -473,7 +473,7 @@ public class ImporterImpl implements Importer {
 
 
     @Override
-    public void endNode(NodeInfo nodeInfo) throws RepositoryException {
+    public void endNode(@NotNull NodeInfo nodeInfo) throws RepositoryException {
         Tree parent = parents.pop();
         if (parent == null) {
             if (pnImporter != null) {

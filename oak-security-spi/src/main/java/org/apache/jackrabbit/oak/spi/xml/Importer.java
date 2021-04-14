@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import javax.jcr.RepositoryException;
@@ -47,8 +48,7 @@ public interface Importer {
      *                  (list of {@link PropInfo} instances)
      * @throws RepositoryException on a repository error
      */
-    void startNode(NodeInfo nodeInfo, List<PropInfo> propInfos)
-            throws RepositoryException;
+    void startNode(@NotNull NodeInfo nodeInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException;
 
     /**
      * Called to end the import of a node. This method is called after
@@ -62,7 +62,7 @@ public interface Importer {
      * @param nodeInfo information about the node being imported
      * @throws RepositoryException on a repository error
      */
-    void endNode(NodeInfo nodeInfo) throws RepositoryException;
+    void endNode(@NotNull NodeInfo nodeInfo) throws RepositoryException;
 
     /**
      * Called once at the end of the content import.

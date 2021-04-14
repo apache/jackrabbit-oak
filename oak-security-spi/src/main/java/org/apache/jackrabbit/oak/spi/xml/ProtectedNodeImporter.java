@@ -86,8 +86,8 @@ public interface ProtectedNodeImporter extends ProtectedItemImporter {
      * If {@link #start(Tree)} hasn't been called before, this method returns
      * silently.
      *
-     * @param childInfo
-     * @param propInfos
+     * @param childInfo The {@link NodeInfo} for the new protected child.
+     * @param propInfos The properties of that child.
      * @throws IllegalStateException If called in an illegal state.
      * @throws javax.jcr.nodetype.ConstraintViolationException If the given
      * infos contain invalid or incomplete data and therefore cannot be properly

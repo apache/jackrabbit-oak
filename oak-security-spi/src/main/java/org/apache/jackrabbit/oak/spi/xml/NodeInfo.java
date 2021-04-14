@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.xml;
 
 import java.util.Collections;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Information about a node being imported. This class is used
@@ -58,8 +59,8 @@ public class NodeInfo {
      * @param mixinTypeNames names of the mixin types of the node being imported
      * @param uuid uuid of the node being imported
      */
-    public NodeInfo(String name, String primaryTypeName, Iterable<String> mixinTypeNames,
-                    String uuid) {
+    public NodeInfo(@NotNull String name, @Nullable String primaryTypeName, @Nullable Iterable<String> mixinTypeNames,
+                    @Nullable String uuid) {
         this.name = name;
         this.primaryTypeName = primaryTypeName;
         this.mixinTypeNames = (mixinTypeNames == null) ? Collections.<String>emptyList() : mixinTypeNames;
@@ -71,6 +72,7 @@ public class NodeInfo {
      *
      * @return node name
      */
+    @NotNull
     public String getName() {
         return name;
     }
@@ -80,6 +82,7 @@ public class NodeInfo {
      *
      * @return primary type name
      */
+    @Nullable
     public String getPrimaryTypeName() {
         return primaryTypeName;
     }
@@ -99,6 +102,7 @@ public class NodeInfo {
      *
      * @return node uuid
      */
+    @Nullable
     public String getUUID() {
         return uuid;
     }
