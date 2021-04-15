@@ -61,7 +61,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -154,7 +153,23 @@ public class ExternalLoginModule extends AbstractLoginModule {
             return;
         }
 
-        String idpName = options.getConfigValue(PARAM_IDP_NAME, "");
+        initializeIdpManager(options.getConfigValue(PARAM_IDP_NAME, ""), whiteboard);
+        initializeSyncManager(options.getConfigValue(PARAM_SYNC_HANDLER_NAME, ""), whiteboard);
+
+        if (idp instanceof CredentialsSupport) {
+            credentialsSupport = (CredentialsSupport) idp;
+        } else {
+            log.debug("No 'SupportedCredentials' configured. Using default implementation supporting 'SimpleCredentials'.");
+        }
+
+        monitor = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
+        if (monitor == null) {
+            log.debug("No ExternalIdentityMonitor registered.");
+            monitor = ExternalIdentityMonitor.NOOP;
+        }
+    }
+    
+    private void initializeIdpManager(@NotNull String idpName, @NotNull Whiteboard whiteboard) {
         if (idpName.isEmpty()) {
             log.error("External login module needs IPD name. Will not be used for login.");
         } else {
@@ -170,8 +185,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 }
             }
         }
+    }
 
-        String syncHandlerName = options.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
+    private void initializeSyncManager(@NotNull String syncHandlerName, @NotNull Whiteboard whiteboard) {
         if (syncHandlerName.isEmpty()) {
             log.error("External login module needs SyncHandler name. Will not be used for login.");
         } else {
@@ -186,18 +202,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
                     log.error("No SyncHandler found with name {}. Will not be used for login.", syncHandlerName);
                 }
             }
-        }
-
-        if (idp instanceof CredentialsSupport) {
-            credentialsSupport = (CredentialsSupport) idp;
-        } else {
-            log.debug("No 'SupportedCredentials' configured. Using default implementation supporting 'SimpleCredentials'.");
-        }
-
-        monitor = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
-        if (monitor == null) {
-            log.debug("No ExternalIdentityMonitor registered.");
-            monitor = ExternalIdentityMonitor.NOOP;
         }
     }
 
@@ -233,24 +237,12 @@ public class ExternalLoginModule extends AbstractLoginModule {
             if (ignore(sId, preAuthLogin)) {
                 return false;
             }
-
-            if (preAuthLogin != null) {
-                externalUser = idp.getUser(preAuthLogin.getUserId());
-            } else {
-                externalUser = idp.authenticate(creds);
-            }
-
+            
+            externalUser = getExternalUser(preAuthLogin, creds);
             if (externalUser != null) {
                 log.debug("IDP {} returned valid user {}", idp.getName(), externalUser);
 
-                if (creds != null) {
-                    //noinspection unchecked
-                    sharedState.put(SHARED_KEY_CREDENTIALS, creds);
-                }
-
-                //noinspection unchecked
-                sharedState.put(SHARED_KEY_LOGIN_NAME, externalUser.getId());
-
+                updateSharedState(creds, externalUser);
                 syncUser(externalUser, userManager);
 
                 // login successful -> remember credentials for commit/logout
@@ -284,6 +276,24 @@ public class ExternalLoginModule extends AbstractLoginModule {
             monitor.syncFailed(e);
             throw createLoginException(e, "Error while syncing user.");
         }
+    }
+    
+    @Nullable
+    private ExternalUser getExternalUser(@Nullable PreAuthenticatedLogin preAuthLogin, @NotNull Credentials creds) throws ExternalIdentityException, LoginException {
+        if (preAuthLogin != null) {
+            return idp.getUser(preAuthLogin.getUserId());
+        } else {
+            return idp.authenticate(creds);
+        }
+    }
+    
+    private void updateSharedState(@Nullable Credentials creds, @NotNull ExternalUser externalUser) {
+        if (creds != null) {
+            //noinspection unchecked
+            sharedState.put(SHARED_KEY_CREDENTIALS, creds);
+        }
+        //noinspection unchecked
+        sharedState.put(SHARED_KEY_LOGIN_NAME, externalUser.getId());
     }
 
     @NotNull
@@ -325,7 +335,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     @Override
     public boolean logout() throws LoginException {
-        Set creds = Stream.of(credentials, authInfo).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Object> creds = Stream.of(credentials, authInfo).filter(Objects::nonNull).collect(Collectors.toSet());
         return logout((creds.isEmpty() ? null : creds), principals);
     }
 
@@ -380,7 +390,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
         UserManager userManager = getUsermanagerOrThrow(userMgr);
         Stopwatch watch = Stopwatch.createStarted();
         int numAttempt = 0;
-        while (numAttempt++ < MAX_SYNC_ATTEMPTS) {
+        boolean success = false;
+        while (!success && numAttempt++ < MAX_SYNC_ATTEMPTS) {
             SyncContext context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
             try {
                 DebugTimer timer = new DebugTimer();
@@ -392,7 +403,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 }
                 debug("syncUser({}) {}, status: {}", user.getId(), timer.getString(), syncResult.getStatus().toString());
                 monitor.doneSyncExternalIdentity(watch.elapsed(NANOSECONDS), syncResult, numAttempt-1);
-                return;
+                success = true;
             } catch (CommitFailedException e) {
                 log.warn("User synchronization failed during commit: {}. (attempt {}/{})", e, numAttempt, MAX_SYNC_ATTEMPTS);
                 root.refresh();
@@ -400,7 +411,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 context.close();
             }
         }
-        throw new SyncException("User synchronization failed during commit after " + MAX_SYNC_ATTEMPTS + " attempts");
+        if (!success) {
+            throw new SyncException("User synchronization failed during commit after " + MAX_SYNC_ATTEMPTS + " attempts");
+        }
     }
 
     /**
