@@ -79,6 +79,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class TreeUtilTest extends AbstractTreeTest {
@@ -316,6 +317,30 @@ public class TreeUtilTest extends AbstractTreeTest {
         TreeUtil.addChild(parent, "name", NT_OAK_UNSTRUCTURED, typeRoot, "userid");
 
         verify(t, times(1)).setOrderableChildren(true);
+    }
+    
+    @Test
+    public void testAddChildWithDefaultChildType() throws Exception {
+        Tree t = mock(Tree.class);
+        Tree parent = when(mockTree("/some/tree", true).addChild("name")).thenReturn(t).getMock();
+        when(parent.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
+
+        Tree defWithChild = mock(Tree.class);
+        when(defWithChild.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
+        when(defWithChild.getChild("name")).thenReturn(defWithChild);
+        when(defWithChild.getChildren()).thenReturn(ImmutableList.of(defWithChild));
+        when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithChild);
+        
+        Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+        when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
+        when(ntDef.getProperty(JCR_IS_ABSTRACT)).thenReturn(PropertyStates.createProperty(JCR_IS_ABSTRACT, true, Type.BOOLEAN));
+        
+        TreeUtil.addChild(parent, "name", null, typeRoot, "userid");
+        verify(parent).addChild("name");
+        verify(t).setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+        verifyNoMoreInteractions(t);
+        
+        verify(ntDef, never()).getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
     }
 
     @Test(expected = AccessDeniedException.class)
