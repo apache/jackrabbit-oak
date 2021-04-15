@@ -30,7 +30,11 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TreeTypeProviderTest extends AbstractTreeTest {
 
@@ -126,6 +130,17 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
         assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.DEFAULT));
         assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.HIDDEN));
         assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.VERSION));
+    }
+
+    @Test
+    public void testGetTypeForTypeAware() {
+        Tree t = mockTree("/path", null, true, TreeTypeAware.class);
+        when(((TreeTypeAware) t).getType()).thenReturn(TreeType.VERSION);
+
+        assertSame(TreeType.VERSION, typeProvider.getType(t));
+        assertSame(TreeType.VERSION, typeProvider.getType(t, TreeType.ACCESS_CONTROL));
+
+        verify(t, never()).getParent();
     }
 
     @Test

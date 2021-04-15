@@ -150,7 +150,7 @@ public abstract class TreeLocation {
     private static class NodeLocation extends TreeLocation {
         private final Tree tree;
 
-        public NodeLocation(Tree tree) {
+        public NodeLocation(@NotNull Tree tree) {
             this.tree = tree;
         }
 
