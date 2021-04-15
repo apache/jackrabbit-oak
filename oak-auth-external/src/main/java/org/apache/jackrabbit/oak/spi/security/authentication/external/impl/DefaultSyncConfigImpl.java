@@ -269,7 +269,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     )
     public static final String PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = "enableRFC7613UsercaseMappedProfile";
 
-    private static final long MILLIS_PER_HOUR = 60 * 60 * 1000;
+    private static final long MILLIS_PER_HOUR = 60 * 60 * 1000L;
     private static final ConfigurationParameters.Milliseconds ONE_HOUR = ConfigurationParameters.Milliseconds.of(MILLIS_PER_HOUR);
     private static final ConfigurationParameters.Milliseconds ONE_DAY = ConfigurationParameters.Milliseconds.of(24 * MILLIS_PER_HOUR);
 

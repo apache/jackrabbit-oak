@@ -43,7 +43,7 @@ final class SyncConfigTracker extends ServiceTracker {
 
     private final SyncHandlerMappingTracker mappingTracker;
 
-    private Set<ServiceReference> enablingRefs = new HashSet<>();
+    private final Set<ServiceReference> enablingRefs = new HashSet<>();
     private boolean isEnabled = false;
 
     SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {

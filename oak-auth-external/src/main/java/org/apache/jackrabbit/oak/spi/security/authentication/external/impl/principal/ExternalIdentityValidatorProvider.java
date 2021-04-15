@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import java.security.Principal;
-import java.util.Map;
-import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -31,6 +28,10 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+
+import java.security.Principal;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * {@code ValidatorProvider} used to assure that the system maintained properties
@@ -58,47 +59,6 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
 
     }
 
-    private void checkAddModifyProperties(@NotNull NodeState parent, @NotNull String name, @NotNull PropertyState propertyState, boolean isModify) throws CommitFailedException {
-        if (RESERVED_PROPERTY_NAMES.contains(name)) {
-            Type<?> type = propertyState.getType();
-            if (REP_EXTERNAL_PRINCIPAL_NAMES.equals(name)) {
-                if (!isSystem) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 70, ERROR_MSGS.get(70));
-                }
-                if (!Type.STRINGS.equals(type) || !propertyState.isArray()) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 71, ERROR_MSGS.get(71));
-                }
-                if (!parent.hasProperty(REP_EXTERNAL_ID)) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 72, ERROR_MSGS.get(72));
-                }
-            }
-            if (REP_EXTERNAL_ID.equals(name) && protectedExternalIds) {
-                if (isModify && !isSystem) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 74, ERROR_MSGS.get(74));
-                }
-                if (!Type.STRING.equals(type) || propertyState.isArray()) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 75, ERROR_MSGS.get(75));
-                }
-            }
-        }
-    }
-
-    private void checkRemoveProperties(@NotNull NodeState parent, @NotNull String name) throws CommitFailedException {
-        if (RESERVED_PROPERTY_NAMES.contains(name)) {
-            if (REP_EXTERNAL_ID.equals(name)) {
-                if (parent.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 73, ERROR_MSGS.get(73));
-                }
-                if (protectedExternalIds && !isSystem) {
-                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 74, ERROR_MSGS.get(74));
-                }
-            }
-            if (REP_EXTERNAL_PRINCIPAL_NAMES.equals(name) && !isSystem) {
-                throw new CommitFailedException(CommitFailedException.CONSTRAINT, 70, ERROR_MSGS.get(70));
-            }
-        }
-    }
-
     @Override
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         return new ExternalIdentityValidator(after, true);
@@ -124,9 +84,52 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
             checkAddModifyProperties(parent, before.getName(), after, modifiedParent);
         }
 
+        private void checkAddModifyProperties(@NotNull NodeState parent, @NotNull String name, @NotNull PropertyState propertyState, boolean isModify) throws CommitFailedException {
+            if (!RESERVED_PROPERTY_NAMES.contains(name)) {
+                return;
+            }
+            if (REP_EXTERNAL_PRINCIPAL_NAMES.equals(name)) {
+                checkIsSystem();
+                if (!Type.STRINGS.equals(propertyState.getType()) || !propertyState.isArray()) {
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 71, ERROR_MSGS.get(71));
+                }
+                if (!parent.hasProperty(REP_EXTERNAL_ID)) {
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 72, ERROR_MSGS.get(72));
+                }
+            }
+            if (REP_EXTERNAL_ID.equals(name) && protectedExternalIds) {
+                if (isModify && !isSystem) {
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 74, ERROR_MSGS.get(74));
+                }
+                if (!Type.STRING.equals(propertyState.getType()) || propertyState.isArray()) {
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 75, ERROR_MSGS.get(75));
+                }
+            }
+        }
+
         @Override
         public void propertyDeleted(PropertyState before) throws CommitFailedException {
-            checkRemoveProperties(parent, before.getName());
+            String name = before.getName();
+            if (!RESERVED_PROPERTY_NAMES.contains(name)) {
+                return;
+            }
+            if (REP_EXTERNAL_PRINCIPAL_NAMES.equals(name)) {
+                checkIsSystem();
+            } 
+            if (REP_EXTERNAL_ID.equals(name)) {
+                if (parent.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 73, ERROR_MSGS.get(73));
+                }
+                if (protectedExternalIds && !isSystem) {
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 74, ERROR_MSGS.get(74));
+                }
+            }
+        }
+        
+        private void checkIsSystem() throws CommitFailedException {
+            if (!isSystem) {
+                throw new CommitFailedException(CommitFailedException.CONSTRAINT, 70, ERROR_MSGS.get(70));
+            }
         }
 
         @Override
