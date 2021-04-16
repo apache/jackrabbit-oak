@@ -70,6 +70,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
         super(supportedRestrictions());
     }
 
+    @NotNull
     private static Map<String, RestrictionDefinition> supportedRestrictions() {
         RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
         RestrictionDefinition nts = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
@@ -82,7 +83,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     @NotNull
     @Override
-    public RestrictionPattern getPattern(String oakPath, @NotNull Tree tree) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
         if (oakPath == null) {
             return RestrictionPattern.EMPTY;
         } else {
@@ -134,7 +135,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
     }
 
     @Override
-    public void validateRestrictions(String oakPath, @NotNull Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws AccessControlException {
         super.validateRestrictions(oakPath, aceTree);
 
         Tree restrictionsTree = getRestrictionsTree(aceTree);

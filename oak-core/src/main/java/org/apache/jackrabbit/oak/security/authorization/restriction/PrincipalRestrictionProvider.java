@@ -47,7 +47,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     private final RestrictionProvider base;
 
-    public PrincipalRestrictionProvider(RestrictionProvider base) {
+    public PrincipalRestrictionProvider(@NotNull RestrictionProvider base) {
         this.base = base;
     }
 
@@ -96,14 +96,14 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
         Set<Restriction> rs = Sets.newHashSet(restrictions);
         rs.removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
         base.writeRestrictions(oakPath, aceTree, rs);
     }
 
     @Override
-    public void validateRestrictions(String oakPath, @NotNull Tree aceTree) throws RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
         base.validateRestrictions(oakPath, aceTree);
     }
 

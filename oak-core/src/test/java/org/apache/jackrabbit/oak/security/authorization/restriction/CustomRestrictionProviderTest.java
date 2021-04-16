@@ -225,6 +225,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
             super(supportedRestrictions());
         }
 
+        @NotNull
         private static Map<String, RestrictionDefinition> supportedRestrictions() {
             RestrictionDefinition dates = new RestrictionDefinitionImpl(RESTRICTION_NAME, Type.STRING, false);
             return Collections.singletonMap(dates.getName(), dates);
@@ -234,7 +235,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
         @NotNull
         @Override
-        public RestrictionPattern getPattern(String oakPath, @NotNull Tree tree) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
             if (oakPath != null) {
                 PropertyState property = tree.getProperty(RESTRICTION_NAME);
                 if (property != null) {

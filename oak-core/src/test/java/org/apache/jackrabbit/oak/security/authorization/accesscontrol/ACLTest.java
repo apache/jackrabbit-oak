@@ -855,9 +855,9 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
     //--------------------------------------------------------------------------
 
-    private final class TestRestrictionProvider extends AbstractRestrictionProvider {
+    private static final class TestRestrictionProvider extends AbstractRestrictionProvider {
 
-        private TestRestrictionProvider(String name, Type type, boolean isMandatory) {
+        private TestRestrictionProvider(@NotNull String name, @NotNull Type type, boolean isMandatory) {
             super(Collections.singletonMap(name, new RestrictionDefinitionImpl(name, type, isMandatory)));
         }
 

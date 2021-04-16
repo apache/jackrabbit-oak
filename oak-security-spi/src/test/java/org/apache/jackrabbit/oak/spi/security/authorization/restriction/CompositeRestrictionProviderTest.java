@@ -91,7 +91,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         }
         return new AbstractRestrictionProvider(builder.build()) {
             @Override
-            public @NotNull Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
+            public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
                 if (toRead != null) {
                     return ImmutableSet.of(toRead);
                 } else {
@@ -122,7 +122,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     }
 
     private Tree getAceTree(Restriction... restrictions) {
-        Tree restrictionsTree = mock(Tree.class);;
+        Tree restrictionsTree = mock(Tree.class);
         when(restrictionsTree.getName()).thenReturn(REP_RESTRICTIONS);
         when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME));
         List<PropertyState> properties = new ArrayList<>();
@@ -145,7 +145,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testEmpty() {
-        assertSame(RestrictionProvider.EMPTY, CompositeRestrictionProvider.newInstance(Collections.<RestrictionProvider>emptySet()));
+        assertSame(RestrictionProvider.EMPTY, CompositeRestrictionProvider.newInstance(Collections.emptySet()));
     }
 
     @Test

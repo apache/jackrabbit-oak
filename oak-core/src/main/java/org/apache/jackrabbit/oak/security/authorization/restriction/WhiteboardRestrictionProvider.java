@@ -68,7 +68,7 @@ public class WhiteboardRestrictionProvider
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
         getProvider().writeRestrictions(oakPath, aceTree, restrictions);
     }
 
@@ -90,6 +90,7 @@ public class WhiteboardRestrictionProvider
     }
 
     //------------------------------------------------------------< private >---
+    @NotNull
     private RestrictionProvider getProvider() {
         return CompositeRestrictionProvider.newInstance(getServices());
     }

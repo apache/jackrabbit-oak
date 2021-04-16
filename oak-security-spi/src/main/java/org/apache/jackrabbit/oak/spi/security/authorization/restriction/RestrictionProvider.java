@@ -107,7 +107,7 @@ public interface RestrictionProvider {
      * @throws RepositoryException If an error occurs while writing the
      * restrictions.
      */
-    void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException;
+    void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException;
 
     /**
      * Validate the restrictions present with the specified ACE tree.
@@ -178,7 +178,7 @@ public interface RestrictionProvider {
         }
 
         @Override
-        public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) {
+        public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) {
             // nothing to do
         }
 

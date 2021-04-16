@@ -92,7 +92,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
         for (Restriction r : restrictions) {
             RestrictionProvider rp = getProvider(oakPath, getName(r));
             rp.writeRestrictions(oakPath, aceTree, Collections.singleton(r));
@@ -144,6 +144,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     //------------------------------------------------------------< private >---
+    @NotNull
     private RestrictionProvider getProvider(@Nullable String oakPath, @NotNull String oakName) throws AccessControlException {
         for (RestrictionProvider rp : providers) {
             for (RestrictionDefinition def : rp.getSupportedRestrictions(oakPath)) {
@@ -155,6 +156,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
         throw new AccessControlException("Unsupported restriction (path = " + oakPath + "; name = " + oakName + ')');
     }
 
+    @NotNull
     private Map<String, RestrictionDefinition> getSupported(@Nullable String oakPath) {
         Map<String, RestrictionDefinition> supported = new HashMap<>();
         for (RestrictionProvider rp : providers) {
@@ -165,7 +167,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
         return supported;
     }
 
-    private static boolean hasRestrictionProperty(Tree aceTree, String name) {
+    private static boolean hasRestrictionProperty(@NotNull Tree aceTree, @NotNull String name) {
         if (aceTree.hasProperty(name)) {
             return true;
         }
@@ -173,7 +175,8 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
         return restrictionTree.exists() && restrictionTree.hasProperty(name);
     }
 
-    private static String getName(Restriction restriction) {
+    @NotNull
+    private static String getName(@NotNull Restriction restriction) {
         return restriction.getDefinition().getName();
     }
 }
