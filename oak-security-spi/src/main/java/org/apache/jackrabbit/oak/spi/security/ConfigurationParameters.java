@@ -140,9 +140,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
             return (ConfigurationParameters) map;
         }
         Map<String, Object> options = new HashMap<>(map.size());
-        for (Map.Entry<?,?> e : map.entrySet()) {
-            options.put(String.valueOf(e.getKey()), e.getValue());
-        }
+        map.forEach((key, value) -> options.put(String.valueOf(key), value));
         return new ConfigurationParameters(options);
     }
 
@@ -213,7 +211,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
     public <T> T getConfigValue(@NotNull String key, @Nullable T defaultValue,
                                 @Nullable Class<T> targetClass) {
         if (options.containsKey(key)) {
-            return convert(options.get(key), defaultValue, targetClass);
+            Object property = options.get(key);
+            return (property == null) ? null : convert(property, getTargetClass(property, defaultValue, targetClass));
         } else {
             return defaultValue;
         }
@@ -233,7 +232,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param key The name of the configuration option.
      * @param defaultValue The default value to return if no such entry exists
      * or to use for conversion.
-     * @return The original or converted configuration value or {@code null}.
+     * @return The original or converted configuration value or {@code defaultValue} if no entry for the given key exists.
      */
     @NotNull
     public <T> T getConfigValue(@NotNull String key, @NotNull T defaultValue) {
@@ -241,70 +240,90 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (property == null) {
             return defaultValue;
         } else {
-            T value = convert(property, defaultValue, null);
+            T value = convert(property, getTargetClass(property, defaultValue, null));
             return (value == null) ? defaultValue : value;
         }
     }
 
     //--------------------------------------------------------< private >---
-    @SuppressWarnings("unchecked")
-    @Nullable
-    private static <T> T convert(@Nullable Object configProperty, @Nullable T defaultValue, @Nullable Class<T> targetClass) {
-        if (configProperty == null) {
-            return null;
-        }
-        String str = configProperty.toString();
-        Class clazz = targetClass;
+    @NotNull
+    private static Class<?>  getTargetClass(@NotNull Object configProperty, @Nullable Object defaultValue, @Nullable Class<?> targetClass) {
+        Class<?> clazz = targetClass;
         if (clazz == null) {
             clazz = (defaultValue == null)
                     ? configProperty.getClass()
                     : defaultValue.getClass();
         }
+        return clazz;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Nullable
+    private static <T> T convert(@NotNull Object configProperty, @NotNull Class<?> clazz) {
+        String str = configProperty.toString();
+        if (clazz.isAssignableFrom(configProperty.getClass())) {
+            return (T) configProperty;
+        } else if (clazz == String.class) {
+            return (T) str;
+        } else if (clazz == Milliseconds.class) {
+            Milliseconds ret = Milliseconds.of(str);
+            return ret == null ? null : (T) ret;
+        } else if (clazz == Boolean.class || clazz == boolean.class) {
+            return (T) Boolean.valueOf(str);
+        } else if (clazz == String[].class){
+            return (T) PropertiesUtil.toStringArray(configProperty);
+        } else if (clazz == Set.class || Set.class.isAssignableFrom(clazz)) {
+            return (T) convertToSet(configProperty, clazz);
+        } else {
+            return (T) convertToNumber(str, clazz);
+        }
+    }
+    
+    @NotNull
+    private static Object convertToNumber(@NotNull String str, @NotNull Class<?> clazz) {
         try {
-            if (clazz.isAssignableFrom(configProperty.getClass())) {
-                return (T) configProperty;
-            } else if (clazz == String.class) {
-                return (T) str;
-            } else if (clazz == Milliseconds.class) {
-                Milliseconds ret = Milliseconds.of(str);
-                return (T) ret == null ? defaultValue : (T) ret;
-            } else if (clazz == Integer.class || clazz == int.class) {
-                return (T) Integer.valueOf(str);
+            if (clazz == Integer.class || clazz == int.class) {
+                return Integer.valueOf(str);
             } else if (clazz == Long.class || clazz == long.class) {
-                return (T) Long.valueOf(str);
+                return Long.valueOf(str);
             } else if (clazz == Float.class || clazz == float.class) {
-                return (T) Float.valueOf(str);
+                return Float.valueOf(str);
             } else if (clazz == Double.class || clazz == double.class) {
-                return (T) Double.valueOf(str);
-            } else if (clazz == Boolean.class || clazz == boolean.class) {
-                return (T) Boolean.valueOf(str);
-            } else if (clazz == String[].class){
-                return (T) PropertiesUtil.toStringArray(configProperty, (String[]) defaultValue);
-            } else if (clazz == Set.class || Set.class.isAssignableFrom(clazz)) {
-                if (configProperty instanceof Set) {
-                    return (T) configProperty;
-                } else if (configProperty instanceof Collection<?>) {
-                    return (T) ImmutableSet.copyOf((Collection<?>) configProperty);
-                } else if (configProperty.getClass().isArray()) {
-                    return (T) ImmutableSet.copyOf((Object[]) configProperty);
-                } else {
-                    String[] arr = PropertiesUtil.toStringArray(configProperty);
-                    if (arr != null) {
-                        return (T) ImmutableSet.copyOf(arr);
-                    } else {
-                        log.warn("Unsupported target type {} for value {}", clazz.getName(), str);
-                        throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName());
-                    }
-                }
+                return Double.valueOf(str);
             } else {
                 // unsupported target type
                 log.warn("Unsupported target type {} for value {}", clazz.getName(), str);
-                throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName());
+                throw conversionFailedException(str, clazz.getName(), null);
             }
         } catch (NumberFormatException e) {
             log.warn("Invalid value {}; cannot be parsed into {}", str, clazz.getName());
-            throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName(), e);
+            throw conversionFailedException(str, clazz.getName(), e);
         }
+    }
+    
+    @NotNull
+    private static Set<?> convertToSet(@NotNull Object configProperty, @NotNull Class<?> clazz) {
+        if (configProperty instanceof Set) {
+            return (Set) configProperty;
+        } else if (configProperty instanceof Collection<?>) {
+            return ImmutableSet.copyOf((Collection<?>) configProperty);
+        } else if (configProperty.getClass().isArray()) {
+            return ImmutableSet.copyOf((Object[]) configProperty);
+        } else {
+            String[] arr = PropertiesUtil.toStringArray(configProperty);
+            if (arr != null) {
+                return ImmutableSet.copyOf(arr);
+            } else {
+                String str = configProperty.toString();
+                log.warn("Unsupported target type {} for value {}", clazz.getName(), str);
+                throw conversionFailedException(str, clazz.getName(), null);
+            }
+        }
+    }
+    
+    @NotNull
+    private static IllegalArgumentException conversionFailedException(@NotNull String str, @NotNull String className, @Nullable Exception e) {
+        return new IllegalArgumentException("Cannot convert config entry " + str + " to " + className, e);
     }
 
     //-------------------------------------------< Map interface delegation >---
@@ -353,8 +372,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @Override
     public Object put(String key, Object value) {
-        // we rely on the immutability of the delegated map to throw the correct exceptions.
-        return options.put(key, value);
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -362,8 +380,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @Override
     public Object remove(Object key) {
-        // we rely on the immutability of the delegated map to throw the correct exceptions.
-        return options.remove(key);
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -371,8 +388,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @Override
     public void putAll(@NotNull Map<? extends String, ?> m) {
-        // we rely on the immutability of the delegated map to throw the correct exceptions.
-        options.putAll(m);
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -380,8 +396,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @Override
     public void clear() {
-        // we rely on the immutability of the delegated map to throw the correct exceptions.
-        options.clear();
+        throw new UnsupportedOperationException();
     }
 
     /**
