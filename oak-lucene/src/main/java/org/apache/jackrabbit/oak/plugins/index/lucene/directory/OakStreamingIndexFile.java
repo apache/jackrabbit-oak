@@ -113,7 +113,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
         if (blob != null) {
             this.length = blob.length();
             if (uniqueKey != null) {
-                this.length -= uniqueKey.length;
+                this.length = Math.max(0, this.length - uniqueKey.length);
             }
         }
 
