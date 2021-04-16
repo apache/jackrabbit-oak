@@ -40,8 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Reads and writes privilege definitions from and to the repository content
- * without applying any validation.
+ * Allows to obtain the internal {@link PrivilegeBits representation} of privileges (or their names) and to covert the 
+ * internal representation back to privilege names.
  */
 public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
@@ -69,9 +69,10 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Returns the bits for the given privilege names
+     * Returns the bits for the given privilege names.
+     * 
      * @param privilegeNames the names
-     * @return the privilege bits
+     * @return the privilege bits representing the given privilege names.
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull String... privilegeNames) {
@@ -83,9 +84,10 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Returns the bits for the given privilege names
+     * Returns the bits for the given privilege names.
+     * 
      * @param privilegeNames the names
-     * @return the privilege bits
+     * @return the privilege bits representing the given privilege names.
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Iterable<String> privilegeNames) {
@@ -119,11 +121,11 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Returns the bits for the given privileges
+     * Returns the bits for the given array of privileges.
      *
-     * @param privileges the privileges
+     * @param privileges An array of privileges
      * @param nameMapper the name mapper
-     * @return the privilege bits
+     * @return the privilege bits representing the given array of privileges.
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
@@ -131,7 +133,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Resolve the given privilege bits to a set of privilege names.
+     * Resolve the given privilege bits to the corresponding set of privilege names.
      *
      * @param privilegeBits An instance of privilege bits.
      * @return The names of the registered privileges associated with the given
@@ -139,7 +141,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      *         be ignored.
      */
     @NotNull
-    public Set<String> getPrivilegeNames(PrivilegeBits privilegeBits) {
+    public Set<String> getPrivilegeNames(@Nullable PrivilegeBits privilegeBits) {
         if (privilegeBits == null || privilegeBits.isEmpty()) {
             return Collections.emptySet();
         }
@@ -164,26 +166,32 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             if (bitsToNames.containsKey(pb)) {
                 privilegeNames = bitsToNames.get(pb);
             } else {
-                privilegeNames = new HashSet<>();
-                Set<String> aggregates = new HashSet<>();
-                for (Tree child : privilegesTree.getChildren()) {
-                    PrivilegeBits bits = PrivilegeBits.getInstance(child);
-                    if (pb.includes(bits)) {
-                        privilegeNames.add(child.getName());
-                        if (child.hasProperty(REP_AGGREGATES)) {
-                            aggregates.addAll(PrivilegeUtil.readDefinition(child).getDeclaredAggregateNames());
-                        }
-                    }
-                }
-                privilegeNames.removeAll(aggregates);
+                privilegeNames = collectPrivilegeNames(privilegesTree, pb);
                 bitsToNames.put(pb, ImmutableSet.copyOf(privilegeNames));
             }
             return privilegeNames;
         }
     }
 
+    @NotNull
+    private static Set<String> collectPrivilegeNames(@NotNull Tree privilegesTree, @NotNull PrivilegeBits pb) {
+        Set<String> privilegeNames = new HashSet<>();
+        Set<String> aggregates = new HashSet<>();
+        for (Tree child : privilegesTree.getChildren()) {
+            PrivilegeBits bits = PrivilegeBits.getInstance(child);
+            if (pb.includes(bits)) {
+                privilegeNames.add(child.getName());
+                if (child.hasProperty(REP_AGGREGATES)) {
+                    aggregates.addAll(PrivilegeUtil.readDefinition(child).getDeclaredAggregateNames());
+                }
+            }
+        }
+        privilegeNames.removeAll(aggregates);
+        return privilegeNames;
+    }
+
     /**
-     * Return the names of the non-aggregate privileges corresponding to the
+     * Return the names of the non-aggregate privilege names corresponding to the
      * specified {@code privilegeNames}.
      *
      * @param privilegeNames The privilege names to be converted.
@@ -200,7 +208,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 return ImmutableSet.of(privName);
             } else if (aggregation.containsKey(privName)) {
                 return aggregation.get(privName);
-            } else if (AGGREGATE_PRIVILEGES.keySet().contains(privName)) {
+            } else if (AGGREGATE_PRIVILEGES.containsKey(privName)) {
                 Set<String> aggregates = resolveBuiltInAggregation(privName);
                 aggregation.put(privName, aggregates);
                 return aggregates;
@@ -217,10 +225,12 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         }
     }
 
+    @NotNull
     private Iterable<String> extractAggregatedPrivileges(@NotNull Iterable<String> privilegeNames) {
         return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges());
     }
 
+    @NotNull
     private Set<String> resolveBuiltInAggregation(@NotNull String privilegeName) {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
         for (String name : AGGREGATE_PRIVILEGES.get(privilegeName)) {
