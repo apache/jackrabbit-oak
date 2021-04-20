@@ -43,19 +43,24 @@ final class Util implements AccessControlConstants {
      */
     private Util() {}
 
-    static void checkValidPrincipal(@Nullable Principal principal,
-                                    @NotNull PrincipalManager principalManager) throws AccessControlException {
-        checkValidPrincipal(principal, principalManager, ImportBehavior.ABORT);
-    }
-
-    static boolean checkValidPrincipal(@Nullable Principal principal,
-                                       @NotNull PrincipalManager principalManager,
-                                       int importBehavior) throws AccessControlException {
+    @NotNull
+    static Principal checkValidPrincipal(@Nullable Principal principal) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (name == null || name.isEmpty()) {
             throw new AccessControlException("Invalid principal " + name);
         }
+        return principal;
+    }
+    
+    static void checkValidPrincipal(@Nullable Principal principal,
+                                    @NotNull PrincipalManager principalManager) throws AccessControlException {
+        checkValidPrincipal(checkValidPrincipal(principal), principalManager, ImportBehavior.ABORT);
+    }
 
+    static boolean checkValidPrincipal(@NotNull Principal principal,
+                                       @NotNull PrincipalManager principalManager,
+                                       int importBehavior) throws AccessControlException {
+        String name = principal.getName();
         if (importBehavior == ImportBehavior.BESTEFFORT) {
             return true;
         } else {

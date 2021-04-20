@@ -51,18 +51,17 @@ abstract class ACL extends AbstractAccessControlList {
 
     private final List<ACE> entries = new ArrayList<>();
 
-    ACL(@Nullable String oakPath, @Nullable List<ACE> entries,
-        @NotNull NamePathMapper namePathMapper) {
+    ACL(@Nullable String oakPath, @Nullable List<ACE> entries, @NotNull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
         if (entries != null) {
             this.entries.addAll(entries);
         }
     }
 
-    abstract ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException;
-    abstract boolean checkValidPrincipal(Principal principal) throws AccessControlException;
-    abstract PrivilegeManager getPrivilegeManager();
-    abstract PrivilegeBits getPrivilegeBits(Privilege[] privileges);
+    abstract @NotNull ACE createACE(@NotNull Principal principal, @NotNull PrivilegeBits privilegeBits, boolean isAllow, @NotNull Set<Restriction> restrictions) throws RepositoryException;
+    abstract boolean checkValidPrincipal(@Nullable Principal principal) throws AccessControlException;
+    abstract @NotNull PrivilegeManager getPrivilegeManager();
+    abstract @NotNull PrivilegeBits getPrivilegeBits(@NotNull Privilege[] privileges);
 
     //------------------------------------------< AbstractAccessControlList >---
     @NotNull

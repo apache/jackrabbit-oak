@@ -47,7 +47,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 
-public abstract class AbstractAccessControlTest extends AbstractSecurityTest implements PrivilegeConstants {
+public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
     static final String TEST_PATH = "/testPath";
 
@@ -67,7 +67,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
         root.commit();
 
         testPrincipal = getTestUser().getPrincipal();
-        testPrivileges = privilegesFromNames(JCR_ADD_CHILD_NODES, JCR_LOCK_MANAGEMENT);
+        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_LOCK_MANAGEMENT);
 
         privilegeManager = getPrivilegeManager(root);
         principalManager = getPrincipalManager(root);
@@ -173,23 +173,26 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
             }
 
             @Override
-            ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
+            @NotNull
+            ACE createACE(@NotNull Principal principal, @NotNull PrivilegeBits privilegeBits, boolean isAllow, @NotNull Set<Restriction> restrictions) throws RepositoryException {
                 return createEntry(principal, privilegeBits, isAllow, restrictions);
             }
 
             @Override
-            boolean checkValidPrincipal(Principal principal) throws AccessControlException {
+            boolean checkValidPrincipal(@Nullable Principal principal) throws AccessControlException {
                 Util.checkValidPrincipal(principal, principalManager);
                 return true;
             }
 
             @Override
+            @NotNull
             PrivilegeManager getPrivilegeManager() {
                 return privilegeManager;
             }
 
             @Override
-            PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
+            @NotNull
+            PrivilegeBits getPrivilegeBits(@NotNull Privilege[] privileges) {
                 return new PrivilegeBitsProvider(root).getBits(privileges, getNamePathMapper());
             }
         };

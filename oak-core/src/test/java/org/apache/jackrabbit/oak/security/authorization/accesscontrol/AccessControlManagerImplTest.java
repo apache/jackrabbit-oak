@@ -26,10 +26,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
@@ -47,17 +44,14 @@ import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -114,7 +108,7 @@ import static org.mockito.Mockito.when;
 /**
  * Tests for the default {@code AccessControlManager} implementation.
  */
-public class AccessControlManagerImplTest extends AbstractSecurityTest implements AccessControlConstants {
+public class AccessControlManagerImplTest extends AbstractAccessControlTest implements AccessControlConstants {
 
     private static final String TEST_LOCAL_PREFIX = "test";
     private static final String TEST_PREFIX = "jr";
@@ -142,16 +136,13 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
             }
         };
         nsRegistry.registerNamespace(TEST_PREFIX, TEST_URI);
-
-        NameMapper nameMapper = new GlobalNameMapper(root);
-        npMapper = new NamePathMapperImpl(nameMapper);
-
+        
         acMgr = new AccessControlManagerImpl(root, npMapper, getSecurityProvider());
 
         TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), testName, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
 
-        valueFactory = new ValueFactoryImpl(root, npMapper);
+        valueFactory = getValueFactory(root);
 
         testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, JCR_READ);
         testPrincipal = getTestUser().getPrincipal();
@@ -171,6 +162,10 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     @NotNull
     @Override
     protected NamePathMapper getNamePathMapper() {
+        if (npMapper == null) {
+            NameMapper nameMapper = new GlobalNameMapper(root);
+            npMapper = new NamePathMapperImpl(nameMapper);
+        }
         return npMapper;
     }
 
@@ -184,17 +179,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     private AccessControlManagerImpl createAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new AccessControlManagerImpl(root, namePathMapper, getSecurityProvider());
     }
-
-    @NotNull
-    private RestrictionProvider getRestrictionProvider() {
-        return getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
-    }
-
-    @NotNull
-    private PrivilegeBitsProvider getBitsProvider() {
-        return new PrivilegeBitsProvider(root);
-    }
-
+    
     @NotNull
     private static Set<Principal> getEveryonePrincipalSet() {
         return ImmutableSet.of(EveryonePrincipal.getInstance());
@@ -207,38 +192,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
 
     @NotNull
     private ACL createPolicy(@Nullable String path) {
-        final PrincipalManager pm = getPrincipalManager(root);
-        final PrivilegeManager pvMgr = getPrivilegeManager(root);
-        final RestrictionProvider rp = getRestrictionProvider();
-        return new ACL(path, null, getNamePathMapper()) {
-
-            @Override
-            ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            boolean checkValidPrincipal(Principal principal) throws AccessControlException {
-                Util.checkValidPrincipal(principal, pm);
-                return true;
-            }
-
-            @Override
-            PrivilegeManager getPrivilegeManager() {
-                return pvMgr;
-            }
-
-            @Override
-            PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
-                return getBitsProvider().getBits(privileges, getNamePathMapper());
-            }
-
-            @NotNull
-            @Override
-            public RestrictionProvider getRestrictionProvider() {
-                return rp;
-            }
-        };
+        return createACL(path, Collections.emptyList(), getNamePathMapper());
     }
 
     @NotNull
@@ -826,7 +780,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         Tree aclNode = root.getTree(testPath + '/' + REP_POLICY);
         Tree aceNode = TreeUtil.addChild(aclNode, "testACE", NT_REP_DENY_ACE);
         aceNode.setProperty(REP_PRINCIPAL_NAME, "invalidPrincipal");
-        aceNode.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
+        aceNode.setProperty(REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.NAMES);
 
         // reading policies with unknown principal name should not fail.
         AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
@@ -1398,7 +1352,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         acl = (ACL) acMgr.getPolicies(testPath)[0];
         assertEquals(4, acl.getAccessControlEntries().length);
 
-        Iterable<Tree> aceTrees = root.getTree(testPath).getChild(AccessControlConstants.REP_POLICY).getChildren();
+        Iterable<Tree> aceTrees = root.getTree(testPath).getChild(REP_POLICY).getChildren();
         String[] aceNodeNames = Iterables.toArray(Iterables.transform(aceTrees, Tree::getName), String.class);
         assertArrayEquals(new String[]{"allow", "allow1", "deny2", "deny3"}, aceNodeNames);
     }

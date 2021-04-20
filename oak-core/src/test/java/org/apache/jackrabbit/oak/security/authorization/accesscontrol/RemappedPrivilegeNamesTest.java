@@ -86,7 +86,7 @@ public class RemappedPrivilegeNamesTest extends AbstractAccessControlTest {
 
         getAccessControlManager(root).setPolicy(acl.getPath(), acl);
         Tree aceTree = root.getTree(acl.getPath()).getChild(REP_POLICY).getChildren().iterator().next();
-        Iterable<String> privNames = TreeUtil.getNames(aceTree, REP_PRIVILEGES);
+        Iterable<String> privNames = TreeUtil.getNames(aceTree, PrivilegeConstants.REP_PRIVILEGES);
         assertTrue(Iterables.elementsEqual(ImmutableList.of(PrivilegeConstants.JCR_READ), privNames));
     }
 }
