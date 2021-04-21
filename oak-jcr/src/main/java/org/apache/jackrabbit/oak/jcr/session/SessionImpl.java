@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
 
@@ -775,6 +776,12 @@ public class SessionImpl implements JackrabbitSession {
     @NotNull
     public UserManager getUserManager() throws RepositoryException {
         return sessionContext.getUserManager();
+    }
+
+    @Override
+    @NotNull
+    public Set<Principal> getPrincipals() throws RepositoryException {
+        return sd.getContentSession().getAuthInfo().getPrincipals();
     }
 
     @Override

@@ -23,15 +23,21 @@ import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Session;
+
+import java.security.Principal;
+import java.util.Set;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Jackrabbit specific extension of the JCR {@link javax.jcr.Session} interface.
  */
+@ProviderType
 public interface JackrabbitSession extends Session {
 
     /**
@@ -252,4 +258,12 @@ public interface JackrabbitSession extends Session {
      */
     Node getNodeOrNull(final String absPath) throws RepositoryException;
 
+    /**
+     * Returns the set of principals associated with this session.
+     *
+     * @return the associated principals (may be the empty set if no principal are associated).
+     * @throws RepositoryException If an error occurs.
+     * @since 1.40.0
+     */
+    Set<Principal> getPrincipals() throws RepositoryException;
 }
