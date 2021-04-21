@@ -55,6 +55,7 @@ import org.apache.jackrabbit.commons.xml.Exporter;
 import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
 import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
@@ -783,5 +784,11 @@ public class SessionImpl implements JackrabbitSession {
             return sd.getContentSession().toString();
         }
         return "null";
+    }
+    
+    //---------------------------------------------------< only used internally > ---
+    @NotNull
+    public ContentSession getContentSession() {
+        return sd.getContentSession();
     }
 }

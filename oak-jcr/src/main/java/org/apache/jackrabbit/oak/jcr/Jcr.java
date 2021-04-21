@@ -26,11 +26,14 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.Repository;
+import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -392,4 +395,12 @@ public class Jcr {
         return repository;
     }
 
+    @NotNull
+    public static ContentSession toContentSession(Session session) {
+        if (!(session instanceof SessionImpl)) {
+            throw new IllegalStateException("Given JCR session is not backed by an Apache Oak repository!");
+        }
+        SessionImpl sessionImpl = SessionImpl.class.cast(session);
+        return sessionImpl.getContentSession();
+    }
 }
