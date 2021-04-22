@@ -40,6 +40,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class RecoveryLockTest {
 
@@ -180,6 +183,49 @@ public class RecoveryLockTest {
         // an active entry with a valid lease
         assertFalse(lock1.acquireRecoveryLock(1));
         assertFalse(lock1.acquireRecoveryLock(2));
+    }
+
+    @Test
+    // OAK-9401: Reproduce a bug that happens when the cluster is not active having a null leaseEndTime
+    public void breakRecoveryLockOfNotActiveCluster() throws Exception {
+        // Create a mocked version of the DocumentStore, to replace a method later during the test
+        DocumentStore store = spy(new MemoryDocumentStore());
+
+        info1 = ClusterNodeInfo.getInstance(store, RecoveryHandler.NOOP,
+                null, "node1", 1);
+        RecoveryLock recLock = new RecoveryLock(store, clock, 1);
+
+        // expire clusterId 1
+        clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+        MissingLastRevSeeker seeker = new MissingLastRevSeeker(store, clock);
+
+        Semaphore recovering = new Semaphore(0);
+        Semaphore recovered = new Semaphore(0);
+        // simulate new startup and get info again
+        Future<ClusterNodeInfo> infoFuture = executor.submit(() ->
+                ClusterNodeInfo.getInstance(store, clusterId -> {
+                    assertTrue(recLock.acquireRecoveryLock(1));
+                    recovering.release();
+                    recovered.acquireUninterruptibly();
+                    recLock.releaseRecoveryLock(true);
+                    return true;
+        }, null, "node1", 1));
+        // wait until submitted task is in recovery
+        recovering.acquireUninterruptibly();
+
+        // OAK-9401: Reproduce a bug that happens when the cluster is not active having a null leaseEndTime
+        // create a mocked copy of the ClusterNodeInfoDocument to be able to edit it, as the original is immutable
+        ClusterNodeInfoDocument realClusterInfo = spy(store.find(CLUSTER_NODES, String.valueOf(1)));
+        ClusterNodeInfoDocument mockClusterInfo = spy(CLUSTER_NODES.newDocument(store));
+        realClusterInfo.deepCopy(mockClusterInfo);
+
+        mockClusterInfo.put(ClusterNodeInfo.LEASE_END_KEY, null);
+        doReturn(false).when(mockClusterInfo).isActive();
+        when(store.find(CLUSTER_NODES, String.valueOf(1))).thenCallRealMethod().thenReturn(mockClusterInfo);
+
+        // clusterId 2 should be able to acquire (break) the recovery lock, instead of
+        // throwing "java.lang.NullPointerException: Lease End Time not set"
+        assertTrue(recLock.acquireRecoveryLock(2));
     }
 
     private ClusterNodeInfoDocument infoDocument(int clusterId) {
