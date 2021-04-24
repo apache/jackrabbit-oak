@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -37,11 +41,6 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-
-import com.google.common.base.Objects;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.primitives.Longs;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -61,8 +60,10 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.osgi.framework.BundleContext;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.Longs;
 
 @Component
 @References({
@@ -299,8 +300,19 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         filterConfigs.remove(getObjectName(config));
     }
 
-    private static ObjectName getObjectName(Map<String, ?> config){
-        return checkNotNull((ObjectName) config.get("jmx.objectname"),
+    static ObjectName getObjectName(Map<String, ?> config){
+        Object value = config.get("jmx.objectname");
+        ObjectName name = null;
+        if ( value instanceof String ) {
+            try {
+                name = new ObjectName((String)value);
+            } catch (MalformedObjectNameException e) {
+                // ignore name will be null in this case
+            }
+        } else if ( value instanceof ObjectName ) {
+            name = (ObjectName) value;
+        }
+        return checkNotNull(name,
                 "No 'jmx.objectname' property defined for MBean %s", config);
     }
 
