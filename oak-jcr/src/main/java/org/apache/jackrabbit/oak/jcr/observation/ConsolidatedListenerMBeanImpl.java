@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -186,7 +187,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         List<BackgroundObserverMBean> observers = Lists.newArrayList();
 
         for (Map.Entry<ObjectName, BackgroundObserverMBean> o : bgObservers.entrySet()){
-           String listenerId = getListenerId(o.getKey());
+            String listenerId = getListenerId(o.getKey());
             if (listenerId == null){
                 observers.add(o.getValue());
             }
@@ -271,12 +272,12 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
 
     @SuppressWarnings("unused")
     protected void bindChangeProcessorMBean(ChangeProcessorMBean mbean, Map<String, ?> config){
-    	changeProcessors.put(getObjectName(config), mbean);
+        changeProcessors.put(getObjectName(config), mbean);
     }
 
     @SuppressWarnings("unused")
     protected void unbindChangeProcessorMBean(ChangeProcessorMBean mbean, Map<String, ?> config){
-    	changeProcessors.remove(getObjectName(config));
+        changeProcessors.remove(getObjectName(config));
     }
 
     @SuppressWarnings("unused")
@@ -299,9 +300,19 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         filterConfigs.remove(getObjectName(config));
     }
 
-    private static ObjectName getObjectName(Map<String, ?> config){
-        return checkNotNull((ObjectName) config.get("jmx.objectname"),
-                "No 'jmx.objectname' property defined for MBean %s", config);
+    static ObjectName getObjectName(Map<String, ?> config) {
+        Object value = config.get("jmx.objectname");
+        ObjectName name = null;
+        if (value instanceof String) {
+            try {
+                name = new ObjectName((String) value);
+            } catch (MalformedObjectNameException e) {
+                // ignore name will be null in this case
+            }
+        } else if (value instanceof ObjectName) {
+            name = (ObjectName) value;
+        }
+        return checkNotNull(name, "No 'jmx.objectname' property defined for MBean %s", config);
     }
 
     private static String getListenerId(ObjectName name){
