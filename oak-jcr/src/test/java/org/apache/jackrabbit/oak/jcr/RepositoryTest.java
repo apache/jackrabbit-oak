@@ -143,7 +143,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
         String[] attributeNames = session.getAttributeNames();
         assertTrue(attributeNames.length >= 1); // additional attributes may be exposed
-        assertEquals(RepositoryImpl.REFRESH_INTERVAL, attributeNames[0]);
         assertEquals(42L, session.getAttribute(RepositoryImpl.REFRESH_INTERVAL));
         session.logout();
     }
