@@ -142,7 +142,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 Collections.<String, Object>singletonMap(RepositoryImpl.REFRESH_INTERVAL, 42));
 
         String[] attributeNames = session.getAttributeNames();
-        assertTrue(attributeNames.length >= 1); // additional attributes may be exposed
+        assertTrue(Arrays.asList(attributeNames).contains(RepositoryImpl.REFRESH_INTERVAL));
         assertEquals(42L, session.getAttribute(RepositoryImpl.REFRESH_INTERVAL));
         session.logout();
     }
@@ -156,8 +156,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             session = getRepository().login(sc, null);
             String[] attributeNames = session.getAttributeNames();
-            assertTrue(attributeNames.length >= 1); // additional attributes may be exposed
-            assertEquals("attr", attributeNames[0]);
+            assertTrue(Arrays.asList(attributeNames).contains("attr"));
             assertEquals("val", session.getAttribute("attr"));
         } finally {
             if (session != null) {
