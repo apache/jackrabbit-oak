@@ -323,7 +323,7 @@ See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644).
 Session Attributes
 ------------------
 
-Oak exposes the following attributes via [`Session.getAttribute(...)`][1] and [`Session.getAttributeNames()`][2].
+Oak exposes the following attributes via [`Session.getAttribute(...)`][1] and [`Session.getAttributeNames()`][2] in addition to the ones set through [Credentials][3]' attributes passed to [Repository.login(...)][4].
 
 Attribute Name | Attribute Value Type | Description
 --- | --- | ---
@@ -334,3 +334,5 @@ Attribute Name | Attribute Value Type | Description
 [0]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
 [1]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttribute(java.lang.String)
 [2]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttributeNames()
+[3]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Credentials.html
+[4]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)
