@@ -94,6 +94,13 @@ public class RepositoryImpl implements JackrabbitRepository {
     public static final String RELAXED_LOCKING = "oak.relaxed-locking";
 
     /**
+     * Name of the session attribute exposing the associated principals
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-9415">OAK-9415</a>
+     */
+    public static final String BOUND_PRINCIPALS = "oak.bound-principals";
+
+    /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);

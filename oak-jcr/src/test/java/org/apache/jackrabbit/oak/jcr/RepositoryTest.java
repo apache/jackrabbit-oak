@@ -38,12 +38,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
@@ -86,6 +90,7 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
+import org.apache.jackrabbit.core.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -96,6 +101,7 @@ import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.slf4j.LoggerFactory;
 
 public class RepositoryTest extends AbstractRepositoryTest {
@@ -132,19 +138,30 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void login() throws RepositoryException {
-        assertNotNull(getAdminSession());
+        Session session = getAdminSession();
+        assertNotNull(session);
+        Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
+        assertNotNull(principals);
+        Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("admin", "everyone"));
+        assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
     }
 
     @Test
     public void loginWithAttribute() throws RepositoryException {
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put(RepositoryImpl.REFRESH_INTERVAL, 42);
+        attributes.put(RepositoryImpl.BOUND_PRINCIPALS, Collections.singleton(new AdminPrincipal("admin")));
         Session session = ((JackrabbitRepository) getRepository()).login(
-                new GuestCredentials(), null,
-                Collections.<String, Object>singletonMap(RepositoryImpl.REFRESH_INTERVAL, 42));
+                new GuestCredentials(), null, attributes);
 
         String[] attributeNames = session.getAttributeNames();
-        assertEquals(1, attributeNames.length);
-        assertEquals(RepositoryImpl.REFRESH_INTERVAL, attributeNames[0]);
+        assertTrue(Arrays.asList(attributeNames).contains(RepositoryImpl.REFRESH_INTERVAL));
         assertEquals(42L, session.getAttribute(RepositoryImpl.REFRESH_INTERVAL));
+        Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
+        assertNotNull(principals);
+        // admin must not be contained in the principals (altough added in the login attributes)
+        Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("anonymous", "everyone"));
+        assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
         session.logout();
     }
 
@@ -157,8 +174,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             session = getRepository().login(sc, null);
             String[] attributeNames = session.getAttributeNames();
-            assertEquals(1, attributeNames.length);
-            assertEquals("attr", attributeNames[0]);
+            assertTrue(Arrays.asList(attributeNames).contains("attr"));
             assertEquals("val", session.getAttribute("attr"));
         } finally {
             if (session != null) {
