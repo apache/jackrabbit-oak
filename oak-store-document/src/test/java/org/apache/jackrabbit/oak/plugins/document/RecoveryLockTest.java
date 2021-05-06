@@ -223,7 +223,7 @@ public class RecoveryLockTest {
         doReturn(false).when(mockClusterInfo).isActive();
         when(store.find(CLUSTER_NODES, String.valueOf(1))).thenCallRealMethod().thenReturn(mockClusterInfo);
 
-        // clusterId 2 should be able to acquire (break) the recovery lock, instead of
+        // clusterId 2 should be able to acquire (break) the recovery lock, instead of 
         // throwing "java.lang.NullPointerException: Lease End Time not set"
         assertTrue(recLock.acquireRecoveryLock(2));
     }
