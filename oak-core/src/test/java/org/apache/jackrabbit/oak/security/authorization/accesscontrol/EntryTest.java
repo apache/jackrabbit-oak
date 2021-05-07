@@ -90,6 +90,11 @@ public class EntryTest extends AbstractAccessControlTest {
             throws RepositoryException {
         return createEntry(testPrincipal, isAllow, null, privilegeNames);
     }
+    
+    @NotNull
+    private ACE createEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow) throws RepositoryException {
+        return createEntry(principal, privileges, isAllow, Collections.emptySet());
+    }
 
     private ACE createEntry(Set<Restriction> restrictions) throws Exception {
         return createEntry(testPrincipal, true, restrictions, PrivilegeConstants.JCR_READ);

@@ -185,14 +185,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         return ImmutableSet.of(EveryonePrincipal.getInstance());
     }
 
-    private static void assertPolicies(@Nullable AccessControlPolicy[] policies, long expectedSize) {
-        assertNotNull(policies);
-        assertEquals(expectedSize, policies.length);
-    }
-
     @NotNull
-    private ACL createPolicy(@Nullable String path) {
-        return createACL(path, Collections.emptyList(), getNamePathMapper());
+    private ACL createPolicy(@Nullable String path) throws RepositoryException {
+        return createACL(path, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
     }
 
     @NotNull
@@ -1479,30 +1474,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         acMgr.getApplicablePolicies((Principal) null);
     }
 
-    @Test(expected = AccessControlException.class)
-    public void testGetApplicablePoliciesInvalidPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
-        int i = 0;
-        while (unknown != null) {
-            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
-        }
-        unknown = new InvalidTestPrincipal("unknown" + i);
-
-        acMgr.getApplicablePolicies(unknown);
-    }
-
-    @Test
-    public void testGetApplicablePoliciesInternalPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
-        int i = 0;
-        while (unknown != null) {
-            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
-        }
-        unknown = new PrincipalImpl("unknown" + i);
-
-        assertPolicies(acMgr.getApplicablePolicies(unknown), 1);
-    }
-
     @Test
     public void testGetApplicablePoliciesByPrincipal() throws Exception {
         List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
@@ -1531,29 +1502,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     @Test(expected = AccessControlException.class)
     public void testGetPoliciesNullPrincipal() throws Exception {
         acMgr.getPolicies((Principal) null);
-    }
-
-    @Test(expected = AccessControlException.class)
-    public void testGetPoliciesInvalidPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
-        int i = 0;
-        while (unknown != null) {
-            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
-        }
-        unknown = new InvalidTestPrincipal("unknown" + i);
-
-        acMgr.getPolicies(unknown);
-    }
-
-    @Test
-    public void testGetPoliciesInternalPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
-        int i = 0;
-        while (unknown != null) {
-            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
-        }
-        unknown = new PrincipalImpl("unknown" + i);
-        assertPolicies(acMgr.getPolicies(unknown), 0);
     }
 
     @Test
@@ -1623,28 +1571,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     @Test(expected = AccessControlException.class)
     public void testGetEffectivePoliciesSetContainingNullPrincipal() throws Exception {
         acMgr.getEffectivePolicies(new HashSet<>(Arrays.asList(EveryonePrincipal.getInstance(), null, testPrincipal)));
-    }
-
-    @Test
-    public void testGetEffectivePoliciesInvalidPrincipals() throws Exception {
-        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
-        int i = 0;
-        while (unknown != null) {
-            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
-        }
-        unknown = new InvalidTestPrincipal("unknown" + i);
-        try {
-            acMgr.getEffectivePolicies(Collections.singleton(unknown));
-            fail("Unknown principal should be detected.");
-        } catch (AccessControlException e) {
-            // success
-        }
-        try {
-            acMgr.getEffectivePolicies(ImmutableSet.of(unknown, EveryonePrincipal.getInstance(), testPrincipal));
-            fail("Unknown principal should be detected.");
-        } catch (AccessControlException e) {
-            // success
-        }
     }
 
     @Test
