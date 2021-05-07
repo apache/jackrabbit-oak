@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -56,7 +57,6 @@ public class RecoveryLockTest {
     private RecoveryLock lock2 = new RecoveryLock(store, clock, 2);
 
     private ClusterNodeInfo info1;
-    private ClusterNodeInfo info2;
 
     @Before
     public void before() throws Exception {
@@ -69,6 +69,7 @@ public class RecoveryLockTest {
     @After
     public void after() {
         ClusterNodeInfo.resetClockToDefault();
+        new ExecutorCloser(executor).close();
     }
 
     @Test
