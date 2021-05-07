@@ -197,12 +197,11 @@ public class RecoveryLockTest {
 
         // expire clusterId 1
         clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
-        MissingLastRevSeeker seeker = new MissingLastRevSeeker(store, clock);
 
         Semaphore recovering = new Semaphore(0);
         Semaphore recovered = new Semaphore(0);
         // simulate new startup and get info again
-        Future<ClusterNodeInfo> infoFuture = executor.submit(() ->
+        executor.submit(() ->
                 ClusterNodeInfo.getInstance(store, clusterId -> {
                     assertTrue(recLock.acquireRecoveryLock(1));
                     recovering.release();
@@ -226,6 +225,9 @@ public class RecoveryLockTest {
         // clusterId 2 should be able to acquire (break) the recovery lock, instead of 
         // throwing "java.lang.NullPointerException: Lease End Time not set"
         assertTrue(recLock.acquireRecoveryLock(2));
+
+        // let submitted task complete
+        recovered.release();
     }
 
     private ClusterNodeInfoDocument infoDocument(int clusterId) {
