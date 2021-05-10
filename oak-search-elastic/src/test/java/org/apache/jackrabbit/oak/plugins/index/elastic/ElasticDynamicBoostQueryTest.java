@@ -106,6 +106,38 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         });
     }
 
+    @Test
+    public void dynamicBoostWithAdditionalTags() throws CommitFailedException {
+        configureIndex();
+
+        Tree test = createNodeWithType(root.getTree("/"), "test", NT_UNSTRUCTURED);
+        Tree item1Metadata = createNodeWithMetadata(test, "item1", "flower with a lot of colors");
+        Tree item1Color1 = createNodeWithType(item1Metadata,"color1", NT_UNSTRUCTURED);
+        item1Color1.setProperty("name", "red");
+        item1Color1.setProperty("confidence", 9.0);
+        Tree item1Color2 = createNodeWithType(item1Metadata,"color2", NT_UNSTRUCTURED);
+        item1Color2.setProperty("name", "blue");
+        item1Color2.setProperty("confidence", 1.0);
+
+        Tree item2Metadata = createNodeWithMetadata(test, "item2", "flower with a lot of colors");
+        Tree item2Color1 = createNodeWithType(item2Metadata,"color1", NT_UNSTRUCTURED);
+        item2Color1.setProperty("name", "blue");
+        item2Color1.setProperty("confidence", 9.0);
+        Tree item2Color2 = createNodeWithType(item2Metadata,"color2", NT_UNSTRUCTURED);
+        item2Color2.setProperty("name", "red");
+        item2Color2.setProperty("confidence", 1.0);
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
+                    XPATH, Arrays.asList("/test/item1", "/test/item2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red flower')",
+                    Arrays.asList("/test/item1", "/test/item2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue flower')",
+                    Arrays.asList("/test/item2", "/test/item1"));
+        });
+    }
+
     private void configureIndex() throws CommitFailedException {
         NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
         IndexDefinitionBuilder builder = createIndex(true, "dam:Asset", "title", "dynamicBoost");
