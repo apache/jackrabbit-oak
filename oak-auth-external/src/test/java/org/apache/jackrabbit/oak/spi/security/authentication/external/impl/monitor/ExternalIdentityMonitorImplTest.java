@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.moni
 
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
-import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
@@ -32,6 +31,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -42,9 +42,9 @@ import static org.mockito.Mockito.when;
 
 public class ExternalIdentityMonitorImplTest {
 
-    private final MeterStats meter = mock(MeterStats.class);
+    private final MeterStats failed = mock(MeterStats.class);
     private final TimerStats timer = mock(TimerStats.class);
-    private final CounterStats counter = mock(CounterStats.class);
+    private final MeterStats retries = mock(MeterStats.class);
 
     private StatisticsProvider statisticsProvider;
     private ExternalIdentityMonitorImpl monitor;
@@ -57,14 +57,14 @@ public class ExternalIdentityMonitorImplTest {
 
     @After
     public void after() {
-        clearInvocations(meter, timer, statisticsProvider);
+        clearInvocations(retries, failed, timer, statisticsProvider);
     }
 
     private StatisticsProvider mockStatisticsProvider() {
         StatisticsProvider statisticsProvider = mock(StatisticsProvider.class);
-        when(statisticsProvider.getMeter(anyString(), any(StatsOptions.class))).thenReturn(meter);
+        when(statisticsProvider.getMeter(eq("security.authentication.external.sync_external_identity.retries"), any(StatsOptions.class))).thenReturn(retries);
+        when(statisticsProvider.getMeter(eq("security.authentication.external.sync.failed"), any(StatsOptions.class))).thenReturn(failed);
         when(statisticsProvider.getTimer(anyString(), any(StatsOptions.class))).thenReturn(timer);
-        when(statisticsProvider.getCounterStats(anyString(), any(StatsOptions.class))).thenReturn(counter);
         return statisticsProvider;
     }
 
@@ -73,16 +73,25 @@ public class ExternalIdentityMonitorImplTest {
         verify(statisticsProvider, times(2)).getMeter(anyString(), any(StatsOptions.class));
         verify(statisticsProvider, times(2)).getTimer(anyString(), any(StatsOptions.class));
         verifyNoMoreInteractions(statisticsProvider);
-        verifyNoInteractions(meter);
-        verifyNoInteractions(timer);
+        verifyNoInteractions(failed, retries, timer);
     }
 
     @Test
     public void testDoneSyncExternalIdentity() {
         monitor.doneSyncExternalIdentity(20, mock(SyncResult.class), 34);
         verify(timer).update(20, NANOSECONDS);
-        verify(meter).mark(34);
-        verifyNoMoreInteractions(meter, timer);
+        verify(retries).mark(34);
+        verifyNoMoreInteractions(retries, timer);
+        verifyNoInteractions(failed);
+    }
+
+
+    @Test
+    public void testDoneSyncExternalIdentityNoRetry() {
+        monitor.doneSyncExternalIdentity(20, mock(SyncResult.class), 0);
+        verify(timer).update(20, NANOSECONDS);
+        verifyNoMoreInteractions(timer);
+        verifyNoInteractions(retries, failed);
     }
 
     @Test
@@ -90,15 +99,15 @@ public class ExternalIdentityMonitorImplTest {
         monitor.doneSyncId(5,  mock(SyncResult.class));
         verify(timer).update(5, NANOSECONDS);
         verifyNoMoreInteractions(timer);
-        verifyNoInteractions(meter);
+        verifyNoInteractions(retries, failed);
     }
 
     @Test
     public void testSyncFailed() {
         monitor.syncFailed(mock(SyncException.class));
-        verify(meter).mark();
-        verifyNoMoreInteractions(meter);
-        verifyNoInteractions(timer);
+        verify(failed).mark();
+        verifyNoMoreInteractions(failed);
+        verifyNoInteractions(retries, timer);
     }
 
     @Test
