@@ -182,6 +182,7 @@
                             <rule>
                                 <element>PACKAGE</element>
                                 <includes>
+                                    <include>org.apache.jackrabbit.oak.security.authentication.token</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.accesscontrol</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.composite</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.permission</include>
@@ -196,22 +197,6 @@
                                         <counter>BRANCH</counter>
                                         <value>COVEREDRATIO</value>
                                         <minimum>0.99</minimum>
-                                    </limit>
-                                </limits>
-                            </rule>
-                            <rule>
-                                <element>PACKAGE</element>
-                                <includes>
-                                    <include>org.apache.jackrabbit.oak.security.authentication.token</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>*Test</exclude>
-                                </excludes>
-                                <limits>
-                                    <limit>
-                                        <counter>BRANCH</counter>
-                                        <value>COVEREDRATIO</value>
-                                        <minimum>0.97</minimum>
                                     </limit>
                                 </limits>
                             </rule>

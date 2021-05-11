@@ -249,7 +249,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 credentials = creds;
                 return true;
             } else {
-                debug("IDP {} returned null for {}", idp.getName(), logId.toString());
+                log.debug("IDP {} returned null for {}", idp.getName(), logId);
 
                 if (sId != null) {
                     // invalidate the user if it exists as synced variant
@@ -365,15 +365,15 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (syncedIdentity != null) {
             ExternalIdentityRef externalIdRef = syncedIdentity.getExternalIdRef();
             if (externalIdRef == null) {
-                debug("ignoring local user: {}", syncedIdentity.getId());
+                log.debug("ignoring local user: {}", syncedIdentity.getId());
                 return true;
             } else if (!idp.getName().equals(externalIdRef.getProviderName())) {
-                debug("ignoring foreign identity: {} (idp={})", externalIdRef.getString(), idp.getName());
+                log.debug("ignoring foreign identity: {} (idp={})", externalIdRef.getString(), idp.getName());
                 return true;
             }
 
             if (preAuthLogin != null && !syncHandler.requiresSync(syncedIdentity)) {
-                debug("pre-authenticated external user {} does not require syncing.", syncedIdentity.toString());
+                log.debug("pre-authenticated external user {} does not require syncing.", syncedIdentity);
                 return true;
             }
         }
@@ -401,7 +401,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                     root.commit();
                     timer.mark("commit");
                 }
-                debug("syncUser({}) {}, status: {}", user.getId(), timer.getString(), syncResult.getStatus().toString());
+                log.debug("syncUser({}) {}, status: {}", user.getId(), timer, syncResult.getStatus());
                 monitor.doneSyncExternalIdentity(watch.elapsed(NANOSECONDS), syncResult, numAttempt-1);
                 success = true;
             } catch (CommitFailedException e) {
@@ -432,7 +432,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             timer.mark("sync");
             root.commit();
             timer.mark("commit");
-            debug("validateUser({}) {}", id, timer.getString());
+            log.debug("validateUser({}) {}", id, timer);
             monitor.doneSyncId(watch.elapsed(NANOSECONDS), syncResult);
         } catch (CommitFailedException e) {
             throw new SyncException("User synchronization failed during commit.", e);
@@ -475,12 +475,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
             throw new SyncException("Cannot synchronize user. userManager == null");
         }
         return userManager;
-    }
-
-    private static void debug(@NotNull String msg, String... args) {
-        if (log.isDebugEnabled()) {
-            log.debug(msg, args);
-        }
     }
 
     //------------------------------------------------< AbstractLoginModule >---

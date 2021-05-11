@@ -155,6 +155,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return the concatenated path
      * @deprecated Since Oak 1.3.10. Please use {@link PathUtils#concatRelativePaths(String...)} instead.
      */
+    @Deprecated
     public static String joinPaths(String... paths) {
         return PathUtils.concatRelativePaths(paths);
     }
@@ -257,7 +258,7 @@ public class DefaultSyncContext implements SyncContext {
             } else {
                 throw new IllegalArgumentException("identity must be user or group but was: " + identity);
             }
-            debug("sync({}) -> {} {}", ref.getString(), identity.getId(), timer.getString());
+            log.debug("sync({}) -> {} {}", ref.getString(), identity.getId(), timer);
             if (created) {
                 ret.setStatus(SyncResult.Status.ADD);
             }
@@ -306,7 +307,7 @@ public class DefaultSyncContext implements SyncContext {
                     timer.mark("sync");
                 }
             }
-            debug("sync({}) -> {} {}", id, ref.getString(), timer.getString());
+            log.debug("sync({}) -> {} {}", id, ref.getString(), timer);
             return ret;
         } catch (RepositoryException | ExternalIdentityException e) {
             throw new SyncException(e);
@@ -502,7 +503,7 @@ public class DefaultSyncContext implements SyncContext {
         if (depth <= 0) {
             return;
         }
-        debug("Syncing membership '{}' -> '{}'", external.getExternalId().getString(), auth.getID());
+        log.debug("Syncing membership '{}' -> '{}'", external.getExternalId().getString(), auth.getID());
 
         final DebugTimer timer = new DebugTimer();
         Iterable<ExternalIdentityRef> externalGroups;
@@ -585,7 +586,7 @@ public class DefaultSyncContext implements SyncContext {
             log.debug("- removing member '{}' for group '{}'", auth.getID(), grp.getID());
         }
         timer.mark("removing");
-        debug("syncMembership({}) {}", external.getId(), timer.getString());
+        log.debug("syncMembership({}) {}", external.getId(), timer);
     }
 
     /**
@@ -665,13 +666,13 @@ public class DefaultSyncContext implements SyncContext {
     protected boolean isExpired(@NotNull Authorizable auth, long expirationTime, @NotNull String type) throws RepositoryException {
         Value[] values = auth.getProperty(REP_LAST_SYNCED);
         if (values == null || values.length == 0) {
-            debug("{} of {} '{}' need sync. {} not set.", type, auth.isGroup() ? "group" : "user", auth.getID(), REP_LAST_SYNCED);
+            log.debug("{} of {} '{}' need sync. {} not set.", type, authType(auth), auth.getID(), REP_LAST_SYNCED);
             return true;
         } else if (now - values[0].getLong() > expirationTime) {
-            debug("{} of {} '{}' need sync. {} expired ({} > {})", type, auth.isGroup() ? "group" : "user", auth.getID(), now - values[0].getLong(), expirationTime, REP_LAST_SYNCED);
+            log.debug("{} of {} '{}' need sync. {} expired ({} > {})", type, authType(auth), auth.getID(), now - values[0].getLong(), expirationTime, REP_LAST_SYNCED);
             return true;
         } else {
-            debug("{} of {} '{}' do not need sync.", type, auth.isGroup() ? "group" : "user", auth.getID());
+            log.debug("{} of {} '{}' do not need sync.", type, authType(auth), auth.getID());
             return false;
         }
     }
@@ -756,9 +757,7 @@ public class DefaultSyncContext implements SyncContext {
         return idp.getName().equals(ref.getProviderName());
     }
 
-    private static void debug(@NotNull String mgs, @NotNull Object... objects) {
-        if (log.isDebugEnabled()) {
-            log.debug(mgs, objects);
-        }
+    private static String authType(@NotNull Authorizable a) {
+        return a.isGroup() ? "group" : "user";
     }
 }
