@@ -159,7 +159,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      * memberships during processing. if both would be handled only via the reference tracker {@link Membership#process()}
      * would remove the members from the property importer.
      */
-    private Map<String, Membership> memberships = new HashMap<>();
+    private final Map<String, Membership> memberships = new HashMap<>();
 
     /**
      * Temporary store for the pw an imported new user to be able to call
@@ -170,7 +170,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     /**
      * Remember all new principals for impersonation handling.
      */
-    private Map<String, Principal> principals = new HashMap<>();
+    private final Map<String, Principal> principals = new HashMap<>();
 
     private UserMonitor userMonitor = UserMonitor.NOOP;
 

@@ -162,7 +162,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
     private class AGP extends AbstractGroupPrincipal {
 
-        private Authorizable member;
+        private final Authorizable member;
         private boolean isEveryone;
 
         AGP() throws Exception {

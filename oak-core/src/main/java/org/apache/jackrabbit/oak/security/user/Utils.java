@@ -16,15 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.AccessDeniedException;
+import javax.jcr.RepositoryException;
 
 final class Utils {
 
@@ -72,5 +76,22 @@ final class Utils {
 
     static boolean canHavePasswordExpired(@NotNull User user, @NotNull ConfigurationParameters config) {
         return !user.isAdmin() || config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
+    }
+    
+    static boolean isEveryone(@NotNull Authorizable authorizable) {
+        return authorizable.isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName(authorizable));
+    }
+    
+    @Nullable
+    private static String getPrincipalName(@NotNull Authorizable authorizable) {
+        if (authorizable instanceof AuthorizableImpl) {
+            return ((AuthorizableImpl) authorizable).getPrincipalNameOrNull();
+        } else {
+            try {
+                return authorizable.getPrincipal().getName();
+            } catch (RepositoryException e) {
+                return null;
+            }
+        }
     }
 }

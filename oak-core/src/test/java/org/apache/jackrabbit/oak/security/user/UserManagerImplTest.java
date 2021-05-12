@@ -71,7 +71,7 @@ import static org.mockito.Mockito.when;
 public class UserManagerImplTest extends AbstractSecurityTest {
 
     private UserManagerImpl userMgr;
-    private String testUserId = "testUser";
+    private final String testUserId = "testUser";
 
     @Before
     public void before() throws Exception {

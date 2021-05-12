@@ -165,13 +165,10 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         } else {
             Tree memberTree = authorizableImpl.getTree();
-
             boolean success = getMembershipProvider().removeMember(getTree(), memberTree);
-
             if (success) {
                 getUserManager().onGroupUpdate(this, true, authorizable);
             }
-
             return success;
         }
     }
@@ -203,15 +200,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         UserManagerImpl userMgr = getUserManager();
         if (isEveryone()) {
-            String propName = getUserManager().getNamePathMapper().getJcrName((REP_PRINCIPAL_NAME));
+            String propName = userMgr.getNamePathMapper().getJcrName((REP_PRINCIPAL_NAME));
             Iterator<Authorizable> result = Iterators.filter(userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE), Predicates.notNull());
-            return Iterators.filter(result,
-                    authorizable -> {
-                        if (authorizable instanceof AuthorizableImpl) {
-                            return !((AuthorizableImpl) authorizable).isEveryone();
-                        }
-                        return true;
-                    }
+            return Iterators.filter(result, authorizable -> !Utils.isEveryone(authorizable)
             );
         } else {
             Iterator<String> oakPaths = getMembershipProvider().getMembers(getTree(), includeInherited);

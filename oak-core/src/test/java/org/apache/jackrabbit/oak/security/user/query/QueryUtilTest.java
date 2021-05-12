@@ -50,14 +50,13 @@ import static org.mockito.Mockito.when;
 
 public class QueryUtilTest {
 
-    private PartialValueFactory valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
+    private final PartialValueFactory valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
 
     private static void assertSearchRoot(@NotNull Map<AuthorizableType, String> mapping, @NotNull ConfigurationParameters params) {
-        for (AuthorizableType type : mapping.keySet()) {
-            String s = mapping.get(type);
+        mapping.forEach((key, s) -> {
             String expected = (PathUtils.denotesRoot(s)) ? QueryConstants.SEARCH_ROOT_PATH : QueryConstants.SEARCH_ROOT_PATH + s;
-            assertEquals(expected, QueryUtil.getSearchRoot(type, params));
-        }
+            assertEquals(expected, QueryUtil.getSearchRoot(key, params));
+        });
     }
 
     @Test
@@ -156,9 +155,7 @@ public class QueryUtilTest {
                 AuthorizableType.GROUP, UserConstants.NT_REP_GROUP,
                 AuthorizableType.AUTHORIZABLE, UserConstants.NT_REP_AUTHORIZABLE);
 
-        for (AuthorizableType type : ntNames.keySet()) {
-            assertEquals(ntNames.get(type), QueryUtil.getNodeTypeName(type));
-        }
+        ntNames.forEach((key, value) -> assertEquals(value, QueryUtil.getNodeTypeName(key)));
     }
 
     @Test

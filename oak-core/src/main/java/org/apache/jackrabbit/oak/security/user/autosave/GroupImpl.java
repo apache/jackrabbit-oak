@@ -110,7 +110,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
     }
 
-    private boolean isValid(@NotNull Authorizable a) {
+    private static boolean isValid(@NotNull Authorizable a) {
         return a instanceof AuthorizableImpl;
     }
 }

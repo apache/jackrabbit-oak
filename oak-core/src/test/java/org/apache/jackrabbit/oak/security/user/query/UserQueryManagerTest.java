@@ -80,7 +80,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     private Value v;
 
-    private List<Group> groups = new ArrayList<>();
+    private final List<Group> groups = new ArrayList<>();
 
     @Before
     public void before() throws Exception {

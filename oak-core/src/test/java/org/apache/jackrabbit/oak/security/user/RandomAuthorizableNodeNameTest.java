@@ -40,7 +40,7 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
 
     private final String id = "id";
 
-    private AuthorizableNodeName nameGenerator = new RandomAuthorizableNodeName();
+    private final AuthorizableNodeName nameGenerator = new RandomAuthorizableNodeName();
 
     @Override
     public void after() throws Exception {

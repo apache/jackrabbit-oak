@@ -107,7 +107,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public void changePassword(String password) throws RepositoryException {
+    public void changePassword(@Nullable String password) throws RepositoryException {
         if (password == null) {
             throw new RepositoryException("Attempt to set 'null' password for user " + getID());
         }

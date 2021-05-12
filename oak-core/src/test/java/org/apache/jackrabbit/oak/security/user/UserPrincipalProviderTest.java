@@ -24,20 +24,22 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Arrays;
@@ -309,5 +311,17 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
         Iterator<? extends Principal> it = upp.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
         assertNotNull(it);
         assertFalse(it.hasNext());
+    }
+    
+    @Test
+    public void testCreatePrincipalInvalidType() throws Exception {
+        Method m = UserPrincipalProvider.class.getDeclaredMethod("createPrincipal", Tree.class);
+        m.setAccessible(true);
+        
+        assertNull(m.invoke(principalProvider, (Tree)null));
+        
+        PropertyState ps = PropertyStates.createProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
+        Tree tree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(ps).getMock();
+        assertNull(m.invoke(principalProvider, tree));
     }
 }

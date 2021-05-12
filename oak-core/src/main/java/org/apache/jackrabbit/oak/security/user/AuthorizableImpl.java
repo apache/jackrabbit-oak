@@ -192,9 +192,20 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         }
     }
 
+    @Nullable 
+    String getPrincipalNameOrNull() {
+        if (principalName == null) {
+            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
+            if (pNameProp != null) {
+                principalName = pNameProp.getValue(STRING);
+            }
+        }
+        return principalName;
+    }
+    
     @NotNull
     String getPrincipalName() throws RepositoryException {
-        String pName = internalGetPrincipalName();
+        String pName = getPrincipalNameOrNull();
         if (pName == null) {
             String msg = "Authorizable without principal name " + id;
             log.warn(msg);
@@ -231,18 +242,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * is member of; {@code false} otherwise.
      */
     boolean isEveryone() {
-        return isGroup() && EveryonePrincipal.NAME.equals(internalGetPrincipalName());
-    }
-
-    @Nullable
-    private String internalGetPrincipalName() {
-        if (principalName == null) {
-            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
-            if (pNameProp != null) {
-                principalName = pNameProp.getValue(STRING);
-            }
-        }
-        return principalName;
+        return Utils.isEveryone(this);
     }
 
     /**

@@ -16,18 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.ImportUUIDBehavior;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
 
 public class UserImporterSessionAutosaveTest extends UserImporterTest {
 
