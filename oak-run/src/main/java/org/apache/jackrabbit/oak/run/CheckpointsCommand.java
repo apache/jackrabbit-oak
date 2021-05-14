@@ -68,6 +68,7 @@ class CheckpointsCommand implements Command {
                     System.err.println("Could not create DocumentNodeStoreBuilder");
                     System.exit(1);
                 }
+                builder.setClusterInvisible(true);
                 DocumentNodeStore nodeStore = builder.build();
                 closer.register(Utils.asCloseable(nodeStore));
                 cps = Checkpoints.onDocumentMK(nodeStore);
