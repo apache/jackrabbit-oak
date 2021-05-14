@@ -320,6 +320,19 @@ With the document storage backend (MongoDB, RDBMS), there is currently
 a limit of 150 UTF-8 bytes on the length of the node names.
 See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644).
 
+MongoDB Document Limit
+----------------------
+
+MongoDB has a document size limit of 16 MB. When using the document storage
+backend on MongoDB, adding a node with large String properties may fail because
+their combined size hits this limit. Consider storing large String values as
+Binary instead. Oak will put those values in the BlobStore, and the document
+only contains a much smaller reference to the Binary value.
+
+This limitation can also be hit when a node has many orderable child nodes
+because Oak internally stores the sequence of child node names in a hidden
+property. See also [do's and don'ts](dos_and_donts.html).
+
 Session Attributes
 ------------------
 
