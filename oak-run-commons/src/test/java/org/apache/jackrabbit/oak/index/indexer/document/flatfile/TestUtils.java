@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -63,7 +64,7 @@ public class TestUtils {
     }
 
     static Iterable<NodeStateEntry> createEntries(List<String> paths) {
-        return Iterables.transform(paths, p -> new NodeStateEntry(createNodeState(p), p));
+        return Iterables.transform(paths, p -> new NodeStateEntryBuilder(createNodeState(p), p).build());
     }
 
     private static NodeState createNodeState(String p) {

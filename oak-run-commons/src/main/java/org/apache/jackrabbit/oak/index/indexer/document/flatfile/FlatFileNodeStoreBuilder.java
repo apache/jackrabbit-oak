@@ -42,6 +42,7 @@ public class FlatFileNodeStoreBuilder {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
     private final File workDir;
+    private File existingDataDumpDir;
     private Set<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
     private PathElementComparator comparator;
@@ -63,6 +64,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withPreferredPathElements(Set<String> preferredPathElements) {
         this.preferredPathElements = preferredPathElements;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withExistingDataDumpDir(File existingDataDumpDir) {
+        this.existingDataDumpDir = existingDataDumpDir;
         return this;
     }
 
@@ -103,7 +109,7 @@ public class FlatFileNodeStoreBuilder {
     private SortStrategy createSortStrategy(File dir){
         if (useTraverseWithSort) {
             log.info("Using TraverseWithSortStrategy");
-            return new TraverseWithSortStrategy(nodeStates, comparator, entryWriter, dir, useZip);
+            return new TraverseWithSortStrategy(nodeStates, comparator, entryWriter, dir, existingDataDumpDir, useZip);
         } else {
             log.info("Using StoreAndSortStrategy");
             return new StoreAndSortStrategy(nodeStates, comparator, entryWriter, dir, useZip);

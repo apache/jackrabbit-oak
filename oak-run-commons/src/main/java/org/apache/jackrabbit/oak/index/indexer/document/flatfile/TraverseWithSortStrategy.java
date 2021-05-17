@@ -27,6 +27,7 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -78,14 +79,18 @@ class TraverseWithSortStrategy implements SortStrategy {
     private File sortWorkDir;
     private List<File> sortedFiles = new ArrayList<>();
     private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
+    private NodeStateEntry lastSavedNodeStateEntry;
+    private final File existingDataDumpDir;
 
 
     TraverseWithSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
+                             NodeStateEntryWriter entryWriter, File storeDir, File existingDataDumpDir,
+                             boolean compressionEnabled) {
         this.nodeStates = nodeStates;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
+        this.existingDataDumpDir = existingDataDumpDir;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
     }
 
@@ -94,6 +99,13 @@ class TraverseWithSortStrategy implements SortStrategy {
         logFlags();
         configureMemoryListener();
         sortWorkDir = createdSortWorkDir(storeDir);
+        if (existingDataDumpDir != null) {
+            //include all sorted files from an incomplete previous run
+            for (File file : existingDataDumpDir.listFiles()) {
+                log.info("Including existing sorted file {}", file.getName());
+                sortedFiles.add(file);
+            }
+        }
         writeToSortedFiles();
         return sortStoreFile();
     }
@@ -154,6 +166,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         //Holder line consist only of json and not 'path|json'
         NodeStateHolder h = new StateInBytesHolder(e.getPath(), jsonText);
         entryBatch.add(h);
+        lastSavedNodeStateEntry = e;
         updateMemoryUsed(h);
 
     }
@@ -181,8 +194,9 @@ class TraverseWithSortStrategy implements SortStrategy {
                 textSize += text.length() + 1;
             }
         }
-        log.info("Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}",
-                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w);
+        log.info("Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}",
+                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w,
+                lastSavedNodeStateEntry.getLastModified());
         sortedFiles.add(newtmpfile);
     }
 

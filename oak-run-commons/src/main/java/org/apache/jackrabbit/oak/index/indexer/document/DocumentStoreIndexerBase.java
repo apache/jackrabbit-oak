@@ -99,7 +99,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         NodeStateEntryTraverser nsep =
                 new NodeStateEntryTraverser(rootDocumentState.getRootRevision(),
-                        nodeStore, getMongoDocumentStore())
+                        nodeStore, getMongoDocumentStore(), indexerSupport.getModifiedSince())
                         .withProgressCallback(this::reportDocumentRead)
                         .withPathPredicate(indexer::shouldInclude);
         closer.register(nsep);
@@ -111,6 +111,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(nsep, indexHelper.getWorkDir())
                 .withBlobStore(indexHelper.getGCBlobStore())
                 .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
+                .withExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
                 .build();
         closer.register(flatFileStore);
 

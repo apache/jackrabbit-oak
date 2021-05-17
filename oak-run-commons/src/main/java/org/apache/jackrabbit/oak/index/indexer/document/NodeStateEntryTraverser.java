@@ -50,20 +50,25 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     private final RevisionVector rootRevision;
     private final DocumentNodeStore documentNodeStore;
     private final MongoDocumentStore documentStore;
+    /**
+     * Traverse only those node states which have been modified on or after this.
+     */
+    private final long modifiedSince;
 
     private Consumer<String> progressReporter = id -> {};
     private Predicate<String> pathPredicate = path -> true;
 
     public NodeStateEntryTraverser(DocumentNodeStore documentNodeStore,
                                    MongoDocumentStore documentStore) {
-        this(documentNodeStore.getHeadRevision(), documentNodeStore, documentStore);
+        this(documentNodeStore.getHeadRevision(), documentNodeStore, documentStore, 0);
     }
 
     public NodeStateEntryTraverser(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                   MongoDocumentStore documentStore) {
+                                   MongoDocumentStore documentStore, long modifiedSince) {
         this.rootRevision = rootRevision;
         this.documentNodeStore = documentNodeStore;
         this.documentStore = documentStore;
+        this.modifiedSince = modifiedSince;
     }
 
     @NotNull
@@ -115,7 +120,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         return transform(
                 concat(singleton(nodeState),
                     nodeState.getAllBundledNodesStates()),
-                dns -> new NodeStateEntry(dns, dns.getPath().toString())
+                dns -> new NodeStateEntryBuilder(dns, dns.getPath().toString()).withLastModified(doc.getModified()).build()
         );
     }
 
@@ -127,7 +132,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, id -> includeId(id));
+                .getAllDocuments(Collection.NODES, modifiedSince, id -> includeId(id));
     }
 
     private boolean includeId(String id) {
