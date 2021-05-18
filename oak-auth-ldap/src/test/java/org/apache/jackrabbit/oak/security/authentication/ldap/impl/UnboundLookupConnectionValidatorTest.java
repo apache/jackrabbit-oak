@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 public class UnboundLookupConnectionValidatorTest {
 
-    private UnboundLookupConnectionValidator validator = new UnboundLookupConnectionValidator();
+    private final UnboundLookupConnectionValidator validator = new UnboundLookupConnectionValidator();
 
     @Test
     public void testValidateThrowsException() throws Exception {

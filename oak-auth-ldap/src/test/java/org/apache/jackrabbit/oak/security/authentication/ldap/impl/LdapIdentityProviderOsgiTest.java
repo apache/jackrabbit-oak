@@ -35,7 +35,7 @@ public class LdapIdentityProviderOsgiTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private LdapIdentityProvider provider = new LdapIdentityProvider();
+    private final LdapIdentityProvider provider = new LdapIdentityProvider();
 
     @Before
     public void before() throws Exception {

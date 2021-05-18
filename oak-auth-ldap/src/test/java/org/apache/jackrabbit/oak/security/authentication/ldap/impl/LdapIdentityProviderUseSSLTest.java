@@ -64,7 +64,7 @@ public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProvider
 
     @Test
     public void testAuthenticate() throws Exception {
-        authenticateInternal(idp, TEST_USER1_DN);
+        assertAuthenticate(idp, TEST_USER1_UID, TEST_USER1_DN, TEST_USER1_DN);
     }
 
     @Test

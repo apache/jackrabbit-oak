@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.security.user.MembershipWriter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import javax.jcr.SimpleCredentials;
 import java.util.Collection;
 
 @RunWith(Parameterized.class)
@@ -61,7 +60,8 @@ public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
     }
 
     @Override
-    protected LdapProviderConfig createProviderConfig(String[] userProperties) {
+    @NotNull
+    protected LdapProviderConfig createProviderConfig(@NotNull String[] userProperties) {
         LdapProviderConfig config = super.createProviderConfig(userProperties);
         config.getAdminPoolConfig()
                 .setMaxActive(2)
@@ -75,6 +75,6 @@ public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testAuthenticateValidate() throws Exception {
-        authenticateValidateInternal(idp, expectedId);
+        assertAuthenticate(idp, new SimpleCredentials(TEST_USER1_UID, "pass".toCharArray()), expectedId, TEST_USER1_DN);
     }
 }
