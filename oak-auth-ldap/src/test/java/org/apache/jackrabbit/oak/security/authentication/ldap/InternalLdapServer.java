@@ -29,8 +29,8 @@ public class InternalLdapServer extends AbstractServer {
 
     public static final String ADMIN_PW = "secret";
 
-    public InternalLdapServer() {
-        super();
+    public InternalLdapServer(boolean enableSSL) {
+        super(enableSSL);
     }
 
     public void setUp() throws Exception {

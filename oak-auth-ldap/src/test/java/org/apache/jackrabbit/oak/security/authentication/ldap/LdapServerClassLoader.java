@@ -62,13 +62,17 @@ public class LdapServerClassLoader extends URLClassLoader {
     }
 
     public Proxy createAndSetupServer() throws Exception {
+        return createAndSetupServer(false);
+    }
+    
+    public Proxy createAndSetupServer(boolean useSSL) throws Exception {
         final Proxy proxy = new Proxy();
         final Exception[] ex = new Exception[] { null };
         Runnable r = () -> {
             try {
                 proxy.serverClass = loadClass(InternalLdapServer.class.getCanonicalName());
-                Constructor<?> constructor = proxy.serverClass.getConstructor(new Class[0]);
-                proxy.server = constructor.newInstance(new Object[0]);
+                Constructor<?> constructor = proxy.serverClass.getConstructor(Boolean.TYPE);
+                proxy.server = constructor.newInstance(useSSL);
                 proxy.serverClass.getMethod("setUp", new Class[0]).invoke(proxy.server);
                 proxy.port = (int) proxy.serverClass.getMethod("getPort", new Class[0]).invoke(proxy.server);
             } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {

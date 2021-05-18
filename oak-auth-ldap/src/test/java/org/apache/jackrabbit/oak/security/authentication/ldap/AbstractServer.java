@@ -104,8 +104,13 @@ public abstract class AbstractServer {
     protected DirectoryService directoryService;
 
     protected LdapServer ldapServer;
+    
+    protected boolean enableSSL = false;
 
-
+    public AbstractServer(boolean enableSSL) {
+        this.enableSSL = enableSSL;
+    }
+    
     /**
      * Loads an LDIF from an input stream and adds the entries it contains to
      * the server.  It appears as though the administrator added these entries
@@ -257,7 +262,10 @@ public abstract class AbstractServer {
     }
 
     protected void setupLdapServer() throws Exception {
-        ldapServer.setTransports(new TcpTransport(port));
+        TcpTransport transport = new TcpTransport((port));
+        transport.enableSSL(enableSSL);
+        
+        ldapServer.setTransports(transport);
         ldapServer.setDirectoryService(directoryService);
         ldapServer.addExtendedOperationHandler(new StartTlsHandler());
         ldapServer.addExtendedOperationHandler(new StoredProcedureExtendedOperationHandler());

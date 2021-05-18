@@ -76,11 +76,14 @@ public abstract class AbstractLdapIdentityProviderTest {
 
     protected LdapIdentityProvider idp;
     protected LdapProviderConfig providerConfig;
+    
+    protected boolean useSSL;
+    protected boolean useTLS;
 
     @Before
     public void before() throws Exception {
         LdapServerClassLoader serverClassLoader = LdapServerClassLoader.createServerClassLoader();
-        proxy = serverClassLoader.createAndSetupServer();
+        proxy = serverClassLoader.createAndSetupServer(useSSL);
         proxy.loadLdif(getClass().getResourceAsStream(TUTORIAL_LDIF));
         idp = createIDP();
     }
