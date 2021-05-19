@@ -18,13 +18,11 @@ package org.apache.jackrabbit.oak.security.user;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -36,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -164,8 +163,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final boolean fullText, final int searchType, long offset,
-            long limit) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final boolean fullText, final int searchType, long offset, long limit) {
         if (offset < 0) {
             offset = 0;
         }
@@ -197,13 +195,7 @@ class UserPrincipalProvider implements PrincipalProvider {
                     Predicates.notNull());
 
             // everyone is injected only in complete set, not on pages
-            boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
-            if (noRange && matchesEveryone(nameHint, searchType)) {
-                principals = Iterators.concat(principals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
-                return Iterators.filter(principals, new EveryonePredicate());
-            } else {
-                return principals;
-            }
+            return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
         } catch (ParseException e) {
             log.debug(e.getMessage());
             return Collections.emptyIterator();
@@ -381,11 +373,6 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    private static boolean matchesEveryone(String nameHint, int searchType) {
-        return searchType != PrincipalManager.SEARCH_TYPE_NOT_GROUP &&
-                (nameHint == null || EveryonePrincipal.NAME.contains(nameHint));
-    }
-
     //--------------------------------------------------------------------------
     /**
      * Function to covert an authorizable tree (as obtained from the query result) to a principal.
@@ -394,28 +381,6 @@ class UserPrincipalProvider implements PrincipalProvider {
         @Override
         public Principal apply(ResultRow resultRow) {
             return createPrincipal(resultRow.getTree(null));
-        }
-    }
-
-    /**
-     * Predicate to make sure the everyone principal is only included once in
-     * the result set.
-     */
-    private static final class EveryonePredicate implements Predicate<Principal> {
-        private boolean servedEveryone = false;
-        @Override
-        public boolean apply(Principal principal) {
-            if (EveryonePrincipal.NAME.equals(principal.getName())) {
-                if (servedEveryone) {
-                    return false;
-                } else {
-                    servedEveryone = true;
-                    return true;
-                }
-            } else {
-                // not everyone
-                return true;
-            }
         }
     }
 
