@@ -33,16 +33,18 @@ public class CachingPersistence implements SegmentNodeStorePersistence {
     private final SegmentNodeStorePersistence delegate;
 
     private final PersistentCache persistentCache;
+    private final boolean updateCacheAfterWrite;
 
-    public CachingPersistence(PersistentCache persistentCache, SegmentNodeStorePersistence delegate) {
+    public CachingPersistence(PersistentCache persistentCache, SegmentNodeStorePersistence delegate, boolean updateCacheAfterWrite) {
         this.delegate = delegate;
         this.persistentCache = persistentCache;
+        this.updateCacheAfterWrite = updateCacheAfterWrite;
     }
 
     @Override
     public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
             FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException {
-        return  new CachingArchiveManager(persistentCache, delegate.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor));
+        return  new CachingArchiveManager(persistentCache, delegate.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor), updateCacheAfterWrite);
     }
 
     @Override

@@ -137,7 +137,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, Buffer buffer) {
+    public void writeSegmentInternal(long msb, long lsb, Buffer buffer) {
         String segmentId = new UUID(msb, lsb).toString();
         File segmentFile = new File(directory, segmentId);
         File tempSegmentFile = new File(directory, segmentId + System.nanoTime() + ".part");

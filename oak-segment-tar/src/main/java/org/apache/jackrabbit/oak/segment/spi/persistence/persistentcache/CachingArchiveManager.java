@@ -34,10 +34,12 @@ public class CachingArchiveManager implements SegmentArchiveManager {
     private final SegmentArchiveManager delegate;
 
     private final PersistentCache persistentCache;
+    private final boolean updateCacheAfterWrite;
 
-    public CachingArchiveManager(PersistentCache persistentCache, SegmentArchiveManager delegate) {
+    public CachingArchiveManager(PersistentCache persistentCache, SegmentArchiveManager delegate, boolean updateCacheAfterWrite) {
         this.delegate = delegate;
         this.persistentCache = persistentCache;
+        this.updateCacheAfterWrite = updateCacheAfterWrite;
     }
 
     @Override
@@ -57,7 +59,11 @@ public class CachingArchiveManager implements SegmentArchiveManager {
 
     @Override
     public @NotNull SegmentArchiveWriter create(@NotNull String archiveName) throws IOException {
-        return delegate.create(archiveName);
+        SegmentArchiveWriter archiveWriterDelegate = delegate.create(archiveName);
+        if (updateCacheAfterWrite) {
+            return new CachingSegmentArchiveWriter(persistentCache, archiveWriterDelegate);
+        }
+        return archiveWriterDelegate;
     }
 
     @Override

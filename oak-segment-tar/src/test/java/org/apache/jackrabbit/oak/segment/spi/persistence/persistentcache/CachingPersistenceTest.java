@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -59,7 +60,9 @@ public class CachingPersistenceTest {
         FileStore fileStore = null;
         try {
 
-            fileStoreBuilder = getFileStoreBuilderWithCachingPersistence(false);
+            fileStoreBuilder = createFileStoreBuilder();
+            SegmentNodeStorePersistence customPersistence = new CachingPersistence(new MemoryPersistentCache(false), new TarPersistence(getFileStoreFolder()), false);
+            fileStoreBuilder.withCustomPersistence(customPersistence);
 
             fileStore = fileStoreBuilder.build();
 
@@ -71,7 +74,7 @@ public class CachingPersistenceTest {
             //close file store so that TarReader is used to read the segment
             fileStore.close();
 
-            fileStoreBuilder = getFileStoreBuilderWithCachingPersistence(false);
+            fileStoreBuilder = getFileStoreBuilderWithCachingPersistence(false, false);
             fileStore = fileStoreBuilder.build();
 
             Segment segment = fileStore.readSegment(id);
@@ -80,7 +83,8 @@ public class CachingPersistenceTest {
             fileStore.close();
 
             // Construct file store that will simulate throwing RepositoryNotReachableException when reading a segment
-            fileStoreBuilder = getFileStoreBuilderWithCachingPersistence(true);
+            fileStoreBuilder = getFileStoreBuilderWithCachingPersistence(true, false);
+
             fileStore = fileStoreBuilder.build();
 
             try {
@@ -95,18 +99,128 @@ public class CachingPersistenceTest {
         }
     }
 
+    @Test
+    public void testSegmentSavedInCacheOnWrite() throws IOException, InvalidFileStoreVersionException {
+        FileStoreBuilder fileStoreBuilder;
+        FileStore fileStore = null;
+        try {
+            //segments not persisted in cache on segment write
+            fileStoreBuilder = createFileStoreBuilder();
+            MemoryPersistentCache memoryPersistentCache = new MemoryPersistentCache(false);
+            SegmentNodeStorePersistence customPersistence = new CachingPersistence(memoryPersistentCache, new TarPersistence(getFileStoreFolder()), false);
+            fileStoreBuilder.withCustomPersistence(customPersistence);
+
+            fileStore = fileStoreBuilder.build();
+
+            SegmentId id = new SegmentId(fileStore, 5, 5);
+            byte[] buffer = new byte[2];
+            fileStore.writeSegment(id, buffer, 0, 2);
+
+            assertTrue(fileStore.containsSegment(id));
+
+            assertFalse("Segment should not be saved in cache", memoryPersistentCache.containsSegment(5, 5));
+
+            fileStore.close();
+
+
+            //Create new file store and on segment write, save segment in the cache
+            fileStoreBuilder = createFileStoreBuilder();
+            memoryPersistentCache = new MemoryPersistentCache(false);
+            customPersistence = new CachingPersistence(memoryPersistentCache, new TarPersistence(getFileStoreFolder()), true);
+            fileStoreBuilder.withCustomPersistence(customPersistence);
+
+            fileStore = fileStoreBuilder.build();
+
+            id = new SegmentId(fileStore, 6, 6);
+            buffer = new byte[2];
+            fileStore.writeSegment(id, buffer, 0, 2);
+
+            assertTrue(fileStore.containsSegment(id));
+
+            assertTrue("Segment should be saved in cache as well", memoryPersistentCache.containsSegment(6, 6));
+
+        } finally {
+            if (fileStore != null) {
+                fileStore.close();
+            }
+        }
+    }
+
+    @Test
+    public void testUpdateCacheChainOnWrite() throws IOException, InvalidFileStoreVersionException {
+        FileStoreBuilder fileStoreBuilder;
+        FileStore fileStore = null;
+        try {
+            fileStoreBuilder = createFileStoreBuilder();
+            MemoryPersistentCache persistentCache1 = new MemoryPersistentCache(false);
+            MemoryPersistentCache persistentCache2 = new MemoryPersistentCache(false);
+            persistentCache1.linkWith(persistentCache2);
+            //segments persisted in cache on segment write
+            SegmentNodeStorePersistence customPersistence = new CachingPersistence(persistentCache1, new TarPersistence(getFileStoreFolder()), true);
+            fileStoreBuilder.withCustomPersistence(customPersistence);
+
+            fileStore = fileStoreBuilder.build();
+
+            SegmentId id = new SegmentId(fileStore, 5, 5);
+            byte[] buffer = new byte[2];
+            fileStore.writeSegment(id, buffer, 0, 2);
+
+            assertTrue(fileStore.containsSegment(id));
+
+            // Segment should be written to both caches.
+
+            assertTrue("Segment should be saved in cache", persistentCache1.containsSegment(5, 5));
+            assertTrue("Segment should be saved in cache", persistentCache2.containsSegment(5, 5));
+
+        } finally {
+            if (fileStore != null) {
+                fileStore.close();
+            }
+        }
+    }
+
+    @Test
+    public void testCachesLoadedAfterMiss() {
+        MemoryPersistentCache persistentCache1 = new MemoryPersistentCache(false);
+        MemoryPersistentCache persistentCache2 = new MemoryPersistentCache(false);
+        persistentCache1.linkWith(persistentCache2);
+
+        byte[] buffer = new byte[2];
+        Buffer segment = Buffer.wrap(buffer);
+
+        // caches do not contain segment
+        assertFalse(persistentCache1.containsSegment(5, 5));
+        assertFalse(persistentCache2.containsSegment(5, 5));
+
+        // get segment from cache
+        persistentCache1.readSegment(5, 5, () -> segment);
+
+        //verify segment loaded to both caches
+        assertTrue(persistentCache1.containsSegment(5, 5));
+        assertTrue(persistentCache2.containsSegment(5, 5));
+    }
+
     /**
      * @param repoNotReachable - if set to true, {@code RepositoryNotReachableException} will be thrown when calling {@code SegmentArchiveReader}#readSegment
      * @return
      */
     @NotNull
-    private FileStoreBuilder getFileStoreBuilderWithCachingPersistence(boolean repoNotReachable) {
+    private FileStoreBuilder getFileStoreBuilderWithCachingPersistence(boolean repoNotReachable, boolean updateCacheAfterWrite) {
         FileStoreBuilder fileStoreBuilder;
         fileStoreBuilder = fileStoreBuilder(getFileStoreFolder());
         fileStoreBuilder.withSegmentCacheSize(10);
 
-        SegmentNodeStorePersistence customPersistence = new CachingPersistence(new MemoryPersistentCache(repoNotReachable), new TarPersistence(getFileStoreFolder()));
+        SegmentNodeStorePersistence customPersistence = new CachingPersistence(new MemoryPersistentCache(repoNotReachable), new TarPersistence(getFileStoreFolder()), updateCacheAfterWrite);
         fileStoreBuilder.withCustomPersistence(customPersistence);
+        return fileStoreBuilder;
+    }
+
+    @NotNull
+    private FileStoreBuilder createFileStoreBuilder() {
+        FileStoreBuilder fileStoreBuilder;
+        fileStoreBuilder = fileStoreBuilder(getFileStoreFolder());
+        fileStoreBuilder.withSegmentCacheSize(10);
+
         return fileStoreBuilder;
     }
 
@@ -137,7 +251,7 @@ public class CachingPersistenceTest {
         }
 
         @Override
-        public void writeSegment(long msb, long lsb, Buffer buffer) {
+        public void writeSegmentInternal(long msb, long lsb, Buffer buffer) {
             segments.put(String.valueOf(msb) + lsb, buffer);
         }
 

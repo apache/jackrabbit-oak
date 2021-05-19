@@ -81,7 +81,7 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
 
             if (segment != null) {
                 recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), true);
-                writeSegment(msb, lsb, segment);
+                writeSegmentInternal(msb, lsb, segment);
             }
 
             return segment;
@@ -121,6 +121,23 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
         }
         segmentCacheStats.loadTime.addAndGet(loadTime);
     }
+
+    @Override
+    public void writeSegment(long msb, long lsb, Buffer buffer) {
+        writeSegmentInternal(msb, lsb, buffer);
+        if (nextCache != null) {
+            nextCache.writeSegment(msb, lsb, buffer);
+        }
+    }
+
+    /**
+     * This method writes a segment the cache, and does not try to write the same segment to the next cache in chain.
+     *
+     * @param msb the most significant bits of the identifier of the segment
+     * @param lsb the least significant bits of the identifier of the segment
+     * @param buffer the byte buffer containing the segment data
+     */
+    public  abstract void writeSegmentInternal(long msb, long lsb, Buffer buffer);
 
     /**
      * @return Statistics for this cache.
