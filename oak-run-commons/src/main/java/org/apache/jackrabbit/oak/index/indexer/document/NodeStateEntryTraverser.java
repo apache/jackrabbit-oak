@@ -53,22 +53,35 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     /**
      * Traverse only those node states which have been modified on or after this.
      */
-    private final long modifiedSince;
+    private final long documentModificationLowerLimit;
+    /**
+     * Traverse only those node states which have been modified before this.
+     */
+    private final long documentModificationUpperLimit;
 
     private Consumer<String> progressReporter = id -> {};
     private Predicate<String> pathPredicate = path -> true;
 
-    public NodeStateEntryTraverser(DocumentNodeStore documentNodeStore,
+    private final String id;
+
+    public NodeStateEntryTraverser(String id, DocumentNodeStore documentNodeStore,
                                    MongoDocumentStore documentStore) {
-        this(documentNodeStore.getHeadRevision(), documentNodeStore, documentStore, 0);
+        this(id, documentNodeStore.getHeadRevision(), documentNodeStore, documentStore, 0, Long.MAX_VALUE);
     }
 
-    public NodeStateEntryTraverser(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                   MongoDocumentStore documentStore, long modifiedSince) {
+    public NodeStateEntryTraverser(String id, RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
+                                   MongoDocumentStore documentStore, long documentModificationLowerLimit,
+                                   long documentModificationUpperLimit) {
+        this.id = id;
         this.rootRevision = rootRevision;
         this.documentNodeStore = documentNodeStore;
         this.documentStore = documentStore;
-        this.modifiedSince = modifiedSince;
+        this.documentModificationLowerLimit = documentModificationLowerLimit;
+        this.documentModificationUpperLimit = documentModificationUpperLimit;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @NotNull
@@ -132,7 +145,8 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, modifiedSince, id -> includeId(id));
+                .getAllDocuments(Collection.NODES, documentModificationLowerLimit, documentModificationUpperLimit,
+                        id -> includeId(id));
     }
 
     private boolean includeId(String id) {

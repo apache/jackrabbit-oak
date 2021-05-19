@@ -25,13 +25,12 @@ import java.io.IOException;
 import java.lang.management.MemoryNotificationInfo;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -40,12 +39,11 @@ import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
 import static java.lang.management.MemoryType.HEAP;
@@ -53,11 +51,9 @@ import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
-class TraverseWithSortStrategy implements SortStrategy {
+class TraverseWithSortStrategy implements Callable<List<File>> {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
@@ -65,10 +61,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
     private final boolean compressionEnabled;
-    private final Charset charset = UTF_8;
     private final Comparator<NodeStateHolder> comparator;
-    private NotificationEmitter emitter;
-    private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
     private final long maxMemoryBytes = maxMemory * ONE_GB;
@@ -77,63 +70,36 @@ class TraverseWithSortStrategy implements SortStrategy {
     private long entryCount;
     private long memoryUsed;
     private File sortWorkDir;
-    private List<File> sortedFiles = new ArrayList<>();
-    private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
+    private final List<File> sortedFiles = new ArrayList<>();
+    private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
-    private final File existingDataDumpDir;
+    private final String taskID;
 
-
-    TraverseWithSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, File existingDataDumpDir,
-                             boolean compressionEnabled) {
+    TraverseWithSortStrategy(String taskID, NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
+                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
+        this.taskID = taskID;
         this.nodeStates = nodeStates;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
-        this.existingDataDumpDir = existingDataDumpDir;
-        this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        this.comparator = comparator;
     }
 
-    @Override
-    public File createSortedStoreFile() throws IOException {
-        logFlags();
-        configureMemoryListener();
-        sortWorkDir = createdSortWorkDir(storeDir);
-        if (existingDataDumpDir != null) {
-            //include all sorted files from an incomplete previous run
-            for (File file : existingDataDumpDir.listFiles()) {
-                log.info("Including existing sorted file {}", file.getName());
-                sortedFiles.add(file);
-            }
+    public List<File> call() {
+        try {
+            logFlags();
+            configureMemoryListener();
+            sortWorkDir = createdSortWorkDir();
+            writeToSortedFiles();
+            return sortedFiles;
+        } catch (IOException e) {
+            log.error(taskID + " could not complete download ", e);
         }
-        writeToSortedFiles();
-        return sortStoreFile();
+        return Collections.emptyList();
     }
 
-    @Override
     public long getEntryCount() {
         return entryCount;
-    }
-
-    private File sortStoreFile() throws IOException {
-        log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
-        Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
-            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
-            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-            ExternalSort.mergeSortedFiles(sortedFiles,
-                    writer,
-                    comparator,
-                    charset,
-                    true, //distinct
-                    compressionEnabled, //useZip
-                    func2,
-                    func1
-            );
-        }
-        log.info("Merging of sorted files completed in {}", w);
-        return sortedFile;
     }
 
     private void writeToSortedFiles() throws IOException {
@@ -150,8 +116,8 @@ class TraverseWithSortStrategy implements SortStrategy {
         entryBatch.clear();
         entryBatch.trimToSize();
 
-        log.info("Dumped {} nodestates in json format in {}",entryCount, w);
-        log.info("Created {} sorted files of size {} to merge",
+        log.info("{} Dumped {} nodestates in json format in {}",taskID, entryCount, w);
+        log.info("{} Created {} sorted files of size {} to merge", taskID,
                 sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
     }
 
@@ -194,7 +160,7 @@ class TraverseWithSortStrategy implements SortStrategy {
                 textSize += text.length() + 1;
             }
         }
-        log.info("Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}",
+        log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w,
                 lastSavedNodeStateEntry.getLastModified());
         sortedFiles.add(newtmpfile);
@@ -211,15 +177,16 @@ class TraverseWithSortStrategy implements SortStrategy {
         memoryUsed += h.getMemorySize();
     }
 
-    private static File createdSortWorkDir(File storeDir) throws IOException {
-        File sortedFileDir = new File(storeDir, "sort-work-dir");
+    private File createdSortWorkDir() throws IOException {
+        File sortedFileDir = new File(storeDir, "sort-work-dir-" + taskID);
         FileUtils.forceMkdir(sortedFileDir);
         return sortedFileDir;
     }
 
     private void logFlags() {
-        log.info("Min heap memory (GB) to be required : {} ({})", minMemory, OAK_INDEXER_MIN_MEMORY);
-        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
+        log.info("Starting task {}", taskID);
+        log.info("{} Min heap memory (GB) to be required : {} ({})", taskID, minMemory, OAK_INDEXER_MIN_MEMORY);
+        log.info("{} Max heap memory (GB) to be used for merge sort : {} ({})", taskID, maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
     }
 
     //~-------------------------------------< memory management >
@@ -227,25 +194,25 @@ class TraverseWithSortStrategy implements SortStrategy {
     private void configureMemoryListener() {
         MemoryPoolMXBean pool = getMemoryPool();
         if (pool == null) {
-            log.warn("Unable to setup monitoring of available memory. " +
-                    "Would use configured maxMemory limit of {} GB", maxMemory);
+            log.warn("{} Unable to setup monitoring of available memory. " +
+                    "Would use configured maxMemory limit of {} GB", taskID, maxMemory);
             useMaxMemory = true;
             return;
         }
 
-        emitter = (NotificationEmitter) getMemoryMXBean();
-        listener = new MemoryListener();
+        NotificationEmitter emitter = (NotificationEmitter) getMemoryMXBean();
+        MemoryListener listener = new MemoryListener();
         emitter.addNotificationListener(listener, null, null);
         MemoryUsage usage = pool.getCollectionUsage();
         long maxMemory = usage.getMax();
         long warningThreshold = minMemory * ONE_GB;
         if (warningThreshold > maxMemory) {
-            log.warn("Configured minimum memory {} GB more than available memory ({})." +
-                    "Overriding configuration accordingly.", minMemory, humanReadableByteCount(maxMemory));
+            log.warn("{} Configured minimum memory {} GB more than available memory ({})." +
+                    "Overriding configuration accordingly.", taskID, minMemory, humanReadableByteCount(maxMemory));
             warningThreshold = maxMemory;
         }
-        log.info("Setting up a listener to monitor pool '{}' and trigger batch save " +
-                "if memory drop below {} GB (max {})", pool.getName(), minMemory, humanReadableByteCount(maxMemory));
+        log.info("{} Setting up a listener to monitor pool '{}' and trigger batch save " +
+                "if memory drop below {} GB (max {})", taskID, pool.getName(), minMemory, humanReadableByteCount(maxMemory));
         pool.setCollectionUsageThreshold(warningThreshold);
         checkMemory(usage);
     }
@@ -256,11 +223,11 @@ class TraverseWithSortStrategy implements SortStrategy {
         long avail = maxMemory - usedMemory;
         if (avail > minMemoryBytes) {
             sufficientMemory.set(true);
-            log.info("Available memory level {} is good. Current batch size {}", humanReadableByteCount(avail), entryBatch.size());
+            log.info("{} Available memory level {} is good. Current batch size {}", taskID, humanReadableByteCount(avail), entryBatch.size());
         } else {
             sufficientMemory.set(false);
-            log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
-                    humanReadableByteCount(avail), minMemory);
+            log.info("{} Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
+                    taskID, humanReadableByteCount(avail), minMemory);
         }
     }
 

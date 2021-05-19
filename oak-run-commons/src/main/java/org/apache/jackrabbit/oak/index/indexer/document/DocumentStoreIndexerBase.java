@@ -34,8 +34,10 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -65,8 +67,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     protected final IndexHelper indexHelper;
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
-    private final IndexingProgressReporter progressReporter =
-            new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
     private final Set<String> indexerPaths = new HashSet<>();
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
@@ -79,14 +79,16 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     }
 
     public void reindex() throws CommitFailedException, IOException {
-        configureEstimators();
+        IndexingProgressReporter progressReporter =
+                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+        configureEstimators(progressReporter);
 
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
 
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder);
+        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
         if (indexer.isEmpty()) {
             return;
         }
@@ -97,18 +99,36 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
-        NodeStateEntryTraverser nsep =
-                new NodeStateEntryTraverser(rootDocumentState.getRootRevision(),
-                        nodeStore, getMongoDocumentStore(), indexerSupport.getModifiedSince())
-                        .withProgressCallback(this::reportDocumentRead)
-                        .withPathPredicate(indexer::shouldInclude);
-        closer.register(nsep);
+        DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
+        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, indexerSupport.getModifiedSince() ,10);
+        List<NodeStateEntryTraverser> nodeStateEntryTraversers = new ArrayList<>();
 
-        //As first traversal is for dumping change the message prefix
-        progressReporter.setMessagePrefix("Dumping");
+        for (int i = 0; i < lastModifiedBreakPoints.size(); i++) {
+            long start = lastModifiedBreakPoints.get(i);
+            long end = i < lastModifiedBreakPoints.size() - 1 ? lastModifiedBreakPoints.get(i+1) : Long.MAX_VALUE;
+            IndexingProgressReporter progressReporterPerTask =
+                    new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+            String entryTraverserID = "NSET" + i;
+            //As first traversal is for dumping change the message prefix
+            progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
+            NodeStateEntryTraverser nsep =
+                    new NodeStateEntryTraverser(entryTraverserID, rootDocumentState.getRootRevision(),
+                            nodeStore, getMongoDocumentStore(), start, end)
+                            .withProgressCallback((id) -> {
+                                try {
+                                    progressReporterPerTask.traversedNode(() -> id);
+                                } catch (CommitFailedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                traversalLog.trace(id);
+                            })
+                            .withPathPredicate(indexer::shouldInclude);
+            closer.register(nsep);
+            nodeStateEntryTraversers.add(nsep);
+        }
 
         //TODO Use flatFileStore only if we have relative nodes to be indexed
-        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(nsep, indexHelper.getWorkDir())
+        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(nodeStateEntryTraversers, indexHelper.getWorkDir())
                 .withBlobStore(indexHelper.getGCBlobStore())
                 .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
                 .withExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
@@ -126,7 +146,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         Stopwatch indexerWatch = Stopwatch.createStarted();
         for (NodeStateEntry entry : flatFileStore) {
-            reportDocumentRead(entry.getPath());
+            reportDocumentRead(entry.getPath(), progressReporter);
             indexer.index(entry);
         }
 
@@ -143,7 +163,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
-    private void configureEstimators() {
+    private void configureEstimators(IndexingProgressReporter progressReporter) {
         StatisticsProvider statsProvider = indexHelper.getStatisticsProvider();
         if (statsProvider instanceof MetricStatisticsProvider) {
             MetricRegistry registry = ((MetricStatisticsProvider) statsProvider).getRegistry();
@@ -170,7 +190,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         closer.close();
     }
 
-    private void reportDocumentRead(String id) {
+    private void reportDocumentRead(String id, IndexingProgressReporter progressReporter) {
         try {
             progressReporter.traversedNode(() -> id);
         } catch (CommitFailedException e) {
@@ -179,7 +199,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         traversalLog.trace(id);
     }
 
-    protected CompositeIndexer prepareIndexers(NodeStore copyOnWriteStore, NodeBuilder builder) {
+    protected CompositeIndexer prepareIndexers(NodeStore copyOnWriteStore, NodeBuilder builder,
+                                               IndexingProgressReporter progressReporter) {
         NodeState root = copyOnWriteStore.getRoot();
         List<NodeStateIndexer> indexers = new ArrayList<>();
         for (String indexPath : indexHelper.getIndexPaths()) {

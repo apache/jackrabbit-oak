@@ -22,11 +22,13 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +42,7 @@ public class FlatFileNodeStoreBuilder {
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Iterable<NodeStateEntry> nodeStates;
+    private final List<NodeStateEntryTraverser> nodeStatesProviders;
     private final File workDir;
     private File existingDataDumpDir;
     private Set<String> preferredPathElements = Collections.emptySet();
@@ -52,8 +54,8 @@ public class FlatFileNodeStoreBuilder {
     private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
 
-    public FlatFileNodeStoreBuilder(Iterable<NodeStateEntry> nodeStates, File workDir) {
-        this.nodeStates = nodeStates;
+    public FlatFileNodeStoreBuilder(List<NodeStateEntryTraverser> nodeStatesProviders, File workDir) {
+        this.nodeStatesProviders = nodeStatesProviders;
         this.workDir = workDir;
     }
 
@@ -109,10 +111,10 @@ public class FlatFileNodeStoreBuilder {
     private SortStrategy createSortStrategy(File dir){
         if (useTraverseWithSort) {
             log.info("Using TraverseWithSortStrategy");
-            return new TraverseWithSortStrategy(nodeStates, comparator, entryWriter, dir, existingDataDumpDir, useZip);
+            return new MultithreadedTraversalWithSort(nodeStatesProviders, comparator, blobStore, dir, existingDataDumpDir, useZip);
         } else {
             log.info("Using StoreAndSortStrategy");
-            return new StoreAndSortStrategy(nodeStates, comparator, entryWriter, dir, useZip);
+            return new StoreAndSortStrategy(nodeStatesProviders.get(0), comparator, entryWriter, dir, useZip);
         }
     }
 

@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.bson.BsonDocument;
-import org.bson.BsonString;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -43,8 +42,8 @@ public class MongoDocumentTraverser {
         this.mongoStore = mongoStore;
     }
 
-    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, long modifiedSince,
-                                                                     Predicate<String> filter) {
+    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, long modifiedLowerLimit,
+                                                                     long modifiedUpperLimit, Predicate<String> filter) {
         if (!disableReadOnlyCheck) {
             checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
         }
@@ -53,11 +52,19 @@ public class MongoDocumentTraverser {
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
         Iterable<BasicDBObject> cursor;
-        if (modifiedSince > 0) {
-            StringBuilder queryString = new StringBuilder();
-            queryString.append("{").append(NodeDocument.MODIFIED_IN_SECS).append(":").append("{$gte:").append(modifiedSince)
-                    .append("}}");
-            BsonDocument query = BsonDocument.parse(queryString.toString());
+        String rangeString = "{";
+        if (modifiedLowerLimit > 0) {
+            rangeString += "$gte:" + modifiedLowerLimit;
+            if (modifiedUpperLimit != Long.MAX_VALUE) {
+                rangeString += ",";
+            }
+        }
+        if (modifiedUpperLimit != Long.MAX_VALUE) {
+            rangeString += "$lt:" + modifiedUpperLimit;
+        }
+        rangeString += "}";
+        if (rangeString.length() > 2) {
+            BsonDocument query = BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + rangeString + "}");
             cursor = dbCollection
                     .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
                     .find(query);
