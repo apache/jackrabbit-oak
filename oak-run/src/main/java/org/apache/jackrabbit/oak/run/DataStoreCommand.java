@@ -64,6 +64,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
@@ -110,7 +111,6 @@ public class DataStoreCommand implements Command {
     public static final String NAME = "datastore";
     private static final String summary = "Provides DataStore management operations";
     private static final String DELIM = ",";
-    private static final String PROP_DIRLISTING = "dirListing";
 
     private Options opts;
     private DataStoreOptions dataStoreOpts;
@@ -479,7 +479,7 @@ public class DataStoreCommand implements Command {
 
         private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState state) {
             if (useDirListing) {
-                PropertyState dirListing = state.getProperty(PROP_DIRLISTING);
+                PropertyState dirListing = state.getProperty(OakDirectory.PROP_DIR_LISTING);
                 if (dirListing != null && dirListing.isArray()) {
                     return StreamSupport.stream(dirListing.getValue(Type.STRINGS).spliterator(), false)
                             .map(name -> new AbstractChildNodeEntry() {

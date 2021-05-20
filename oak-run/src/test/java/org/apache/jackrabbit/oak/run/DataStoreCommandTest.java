@@ -70,6 +70,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -272,7 +273,7 @@ public class DataStoreCommandTest {
     private static void setDirListing(NodeBuilder parent) {
         List<String> names = StreamSupport.stream(parent.getChildNodeNames().spliterator(), false)
                 .collect(Collectors.toList());
-        parent.setProperty("dirListing", names, STRINGS);
+        parent.setProperty(OakDirectory.PROP_DIR_LISTING, names, STRINGS);
     }
 
     protected static void delete(String nodeId, NodeStore nodeStore) throws CommitFailedException {
