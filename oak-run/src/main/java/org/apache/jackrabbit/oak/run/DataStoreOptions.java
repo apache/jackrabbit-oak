@@ -53,6 +53,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<Void> verbose;
     private final OptionSpec<String> verboseRootPath;
     private final OptionSpec<String> verbosePathInclusionRegex;
+    private final OptionSpec<Void> useDirListing;
     private final OptionSpec<Boolean> resetLoggingConfig;
     private OptionSpec<String> exportMetrics;
     private static final String DELIM = ",";
@@ -106,6 +107,8 @@ public class DataStoreOptions implements OptionsBean {
         verbosePathInclusionRegex = parser.accepts("verbosePathInclusionRegex", "Regex to provide an inclusion list for " +
                 "nodes that will be scanned under the path provided with the option --verboseRootPath").availableIf(verboseRootPath).
                 withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
+
+        useDirListing = parser.accepts("useDirListing", "Use dirListing property for efficient reading of Lucene index files");
 
         resetLoggingConfig =
             parser.accepts("reset-log-config", "Reset logging config for testing purposes only").withOptionalArg()
@@ -236,6 +239,10 @@ public class DataStoreOptions implements OptionsBean {
 
     public List<String> getVerboseInclusionRegex() {
         return options.valuesOf(verbosePathInclusionRegex);
+    }
+
+    public boolean isUseDirListing() {
+        return options.has(useDirListing);
     }
 
     public boolean sweepIfRefsPastRetention() {

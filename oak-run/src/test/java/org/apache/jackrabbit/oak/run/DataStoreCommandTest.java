@@ -34,6 +34,8 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Function;
@@ -68,6 +70,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -98,6 +101,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REFERENCES;
@@ -165,6 +169,11 @@ public class DataStoreCommandTest {
 
     private static Data prepareData(StoreFixture storeFixture, DataStoreFixture blobFixture, int numBlobs,
         int numMaxDeletions, int missingDataStore, boolean createMultiLevelNodes) throws Exception {
+        return prepareData(storeFixture, blobFixture, numBlobs, numMaxDeletions, missingDataStore, createMultiLevelNodes, false);
+    }
+
+    private static Data prepareData(StoreFixture storeFixture, DataStoreFixture blobFixture, int numBlobs,
+        int numMaxDeletions, int missingDataStore, boolean createMultiLevelNodes, boolean useDirListing) throws Exception {
 
         DataStoreBlobStore blobStore = blobFixture.getDataStore();
         NodeStore store = storeFixture.getNodeStore();
@@ -212,10 +221,13 @@ public class DataStoreCommandTest {
                     data.deleted.add(chunk);
                 }
             }
+            NodeBuilder parent = a;
             if (createMultiLevelNodes) {
-                map.get(pathRoot).child("c" + i).setProperty("x", b);
-            } else {
-                a.child("c" + i).setProperty("x", b);
+                parent = map.get(pathRoot);
+            }
+            parent.child("c" + i).setProperty("x", b);
+            if (useDirListing) {
+                setDirListing(parent);
             }
         }
 
@@ -256,6 +268,12 @@ public class DataStoreCommandTest {
         storeFixture.postDataPrepare();
 
         return data;
+    }
+
+    private static void setDirListing(NodeBuilder parent) {
+        List<String> names = StreamSupport.stream(parent.getChildNodeNames().spliterator(), false)
+                .collect(Collectors.toList());
+        parent.setProperty(OakDirectory.PROP_DIR_LISTING, names, STRINGS);
     }
 
     protected static void delete(String nodeId, NodeStore nodeStore) throws CommitFailedException {
@@ -492,6 +510,23 @@ public class DataStoreCommandTest {
             return;
         }
         assertFalse(true);
+    }
+
+    @Test
+    public void testDumpRefWithUseDirListing() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1, true, true);
+        storeFixture.close();
+
+        additionalParams += " --useDirListing --verboseRootPath /foo --verbosePathInclusionRegex /*/test";
+
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).contains("/foo")) {
+                data.addedSubset.add(id);
+            }
+        }
+
+        testDumpRef(dump, data, true, true);
     }
 
     @Test
