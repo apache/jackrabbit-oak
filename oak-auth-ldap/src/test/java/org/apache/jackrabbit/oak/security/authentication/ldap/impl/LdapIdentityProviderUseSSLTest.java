@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,20 +37,27 @@ import static org.junit.Assert.assertNotNull;
 @RunWith(Parameterized.class)
 public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProviderTest {
     
+    private static final String PROTOCOL = "TLSv1.2";
+    
     @Parameterized.Parameters(name = "LdapConfiguration with {2}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] {false, false, "useSSL=false, useTLS=false"},
-                new Object[] {true, false, "useSSL=true, useTLS=false"},
-                new Object[] {false, true, "useSSL=false, useTLS=true"},
-                new Object[] {true, true, "useSSL=true, useTLS=true"}
+                new Object[] {false, false, null, "useSSL=false, useTLS=false, enabled_protocols=NA"},
+                new Object[] {true, false, null, "useSSL=true, useTLS=false, enabled_protocols=NA"},
+                new Object[] {true, false, new String[] {PROTOCOL}, "useSSL=true, useTLS=false, enabled_protocols=["+PROTOCOL+"]"},
+                new Object[] {false, true, null, "useSSL=false, useTLS=true, enabled_protocols=NA"},
+                new Object[] {false, true, new String[] {PROTOCOL}, "useSSL=false, useTLS=true, enabled_protocols=["+PROTOCOL+"]"},
+                new Object[] {true, true, new String[0], "useSSL=true, useTLS=true, enabled_protocols=[]"}
         );
     }
+    
+    private final String[] enabledProtocols;
 
-    public LdapIdentityProviderUseSSLTest(boolean useSSL, boolean useTLS, String name) {
+    public LdapIdentityProviderUseSSLTest(boolean useSSL, boolean useTLS, @Nullable String[] enabledProtocols, @NotNull String name) {
         super();
         this.useSSL = useSSL;
         this.useTLS = useTLS;
+        this.enabledProtocols = enabledProtocols;
     }
 
     @Override
@@ -59,6 +67,9 @@ public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProvider
         config.setUseSSL(useSSL);
         config.setUseTLS(useTLS);
         config.setNoCertCheck(true);
+        if (enabledProtocols != null) {
+            config.setEnabledProtocols(enabledProtocols);
+        }
         return config;
     }
 

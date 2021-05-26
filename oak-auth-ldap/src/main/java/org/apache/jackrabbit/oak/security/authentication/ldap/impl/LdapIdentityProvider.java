@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,7 +28,6 @@ import java.util.NoSuchElementException;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
-import javax.net.ssl.SSLContext;
 import javax.security.auth.login.LoginException;
 
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -124,11 +122,6 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
      * user connection factory
      */
     private PoolableUnboundConnectionFactory userConnectionFactory;
-
-    /**
-     * SSL protocols (initialized on init)
-     */
-    private String[] enabledSSLProtocols;
 
     /**
      * Default constructor for OSGi
@@ -502,15 +495,6 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             throw new IllegalStateException("Provider already initialized.");
         }
 
-        // make sure the JVM supports the TLSv1.1
-        try {
-            enabledSSLProtocols = null;
-            SSLContext.getInstance("TLSv1.1");
-        } catch (NoSuchAlgorithmException e) {
-            log.warn("JDK does not support TLSv1.1. Disabling it.");
-            enabledSSLProtocols = new String[]{"TLSv1"};
-        }
-
         // setup admin connection pool
         LdapConnectionConfig cc = createConnectionConfig();
         String bindDN = config.getBindDN();
@@ -573,8 +557,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             cc.setTrustManagers(new NoVerificationTrustManager());
         }
 
-        if (enabledSSLProtocols != null) {
-            cc.setEnabledProtocols(enabledSSLProtocols);
+        String[] enabledProtocols = config.enabledProtocols();
+        if (enabledProtocols != null && enabledProtocols.length > 0) {
+            cc.setEnabledProtocols(enabledProtocols);
         }
 
         return cc;

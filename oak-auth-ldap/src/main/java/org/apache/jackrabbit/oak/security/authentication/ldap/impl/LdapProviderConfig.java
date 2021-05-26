@@ -128,6 +128,17 @@ public class LdapProviderConfig {
             boolValue = PARAM_NO_CERT_CHECK_DEFAULT
     )
     public static final String PARAM_NO_CERT_CHECK = "host.noCertCheck";
+    
+    /**
+     * @see #enabledProtocols() 
+     */
+    @Property(
+            label = "Enabled Protocols",
+            description = "Allows to explicitly set the enabled protocols on the LdapConnectionConfig.",
+            value = {},
+            cardinality = Integer.MAX_VALUE
+    )
+    public static final String PARAM_ENABLED_PROTOCOLS = "host.enabledProtocols";
 
     /**
      * @see #getBindDN()
@@ -927,6 +938,10 @@ public class LdapProviderConfig {
             cfg.getUserPoolConfig().setTimeBetweenEvictionRunsMillis(msTberUser.value);
         }
 
+        String[] enabledProtocols = params.getConfigValue(PARAM_ENABLED_PROTOCOLS, new String[0]);
+        if (enabledProtocols.length > 0) {
+            cfg.setEnabledProtocols(enabledProtocols);
+        }
         return cfg;
     }
 
@@ -941,6 +956,8 @@ public class LdapProviderConfig {
     private boolean useTLS = PARAM_USE_TLS_DEFAULT;
 
     private boolean noCertCheck = PARAM_NO_CERT_CHECK_DEFAULT;
+    
+    private String[] enabledProtocols = null;
 
     private String bindDN = PARAM_BIND_DN_DEFAULT;
 
@@ -1107,6 +1124,30 @@ public class LdapProviderConfig {
     @NotNull
     public LdapProviderConfig setNoCertCheck(boolean noCertCheck) {
         this.noCertCheck = noCertCheck;
+        return this;
+    }
+
+    /**
+     * Configures whether enabled protocols should be set on the {@code LdapConnectionConfig}.
+     *
+     * @return an array of enabled protocols or null if no protocols should be explicitly enabled
+     */
+    @Nullable
+    public String[] enabledProtocols() {
+        return enabledProtocols;
+    }
+
+    /**
+     * Configures the enabled protocols to be set to the {@code LdapConnectionConfig}. By default no protocols are 
+     * set explicitly.
+     * 
+     * @param enabledProtocols The protocols to be enabled on the {@code LdapConnectionConfig}.
+     * @return {@code this}
+     * @see #enabledProtocols()
+     */
+    @NotNull
+    public LdapProviderConfig setEnabledProtocols(@NotNull String... enabledProtocols) {
+        this.enabledProtocols = enabledProtocols;
         return this;
     }
 
@@ -1387,6 +1428,7 @@ public class LdapProviderConfig {
         sb.append(", useSSL=").append(useSSL);
         sb.append(", useTLS=").append(useTLS);
         sb.append(", noCertCheck=").append(noCertCheck);
+        sb.append(", enabledProtocols=").append(enabledProtocols);
         sb.append(", bindDN='").append(bindDN).append('\'');
         sb.append(", bindPassword='***'");
         sb.append(", searchTimeout=").append(searchTimeout);
