@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.20
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.21
 
 Introduction
 ------------
@@ -7,25 +7,35 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.20 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.21 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.20
+Changes in Oak 1.6.21
 ---------------------
+
+Technical task
+
+    [OAK-7329] - RDB*Store for SQLServer: name the PK index for better readability
+    [OAK-8147] - RDBBlobStore: add perf logging for JDBC read operations
+    [OAK-8411] - RDBConnectionHandler: add minimal open connection stats in TRACE log level
+    [OAK-8915] - RDBDocumentStore: use setNString() for columns known to be of type N*CHAR
 
 Bug
 
-    [OAK-8870] - UserAuthentication.authenticate should remove pw attribute
+    [OAK-6048] - Java 8 compilation failure in ConfigurationParametersTest.java
 
-Task
+Improvement
 
-    [OAK-8813] - oak-it-osgi: cover oak-solr-osgi bundle
+    [OAK-9261] - Upgrade Apache Solr to 8.6.3 and remove Embedded Solr Server
+    [OAK-9294] - Document that Java 8 is needed for Oak 1.4 and 1.6 in the future
 
+Test
 
+    [OAK-8535] - oak-it-osgi fails with encrypted credentials in settings.xml
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
