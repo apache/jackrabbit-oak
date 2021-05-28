@@ -27,6 +27,7 @@ Technical task
 Bug
 
     [OAK-6048] - Java 8 compilation failure in ConfigurationParametersTest.java
+    [OAK-9448] - javadoc errors in oak 1.6
 
 Improvement
 
