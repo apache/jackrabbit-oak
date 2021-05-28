@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * An {@link org.apache.jackrabbit.oak.spi.commit.Observer} looking for changes on persisted Solr server configuration nodes.
- * If any change is done there, the related {@link org.apache.solr.client.solrj.SolrServer}s are shutdown and unregistered
+ * If any change is done there, the related {@link org.apache.solr.client.solrj.SolrClient}s are shutdown and unregistered
  * from the {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry}
  */
 public class NodeStateSolrServersObserver extends DiffObserver {

@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConf
 import org.apache.solr.client.solrj.SolrClient;
 
 /**
- * A registry for {@link org.apache.solr.client.solrj.SolrServer}s
+ * A registry for {@link org.apache.solr.client.solrj.SolrClient}s
  */
 public class SolrServerRegistry {
 
