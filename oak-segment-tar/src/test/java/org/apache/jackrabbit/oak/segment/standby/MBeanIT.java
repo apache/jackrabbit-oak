@@ -99,7 +99,7 @@ public class MBeanIT extends TestBase {
     public void testClientEmptyConfigNoServer() throws Exception {
         MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
-        try (StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientFileStore.fileStore(), false, getClientTimeout(), false, folder.newFolder())) {
+        try (StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientFileStore.fileStore(), false, getClientTimeout(), false, folder.newFolder(), null, null)) {
             clientSync.start();
             clientSync.run();
 
@@ -136,7 +136,7 @@ public class MBeanIT extends TestBase {
         System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Foo");
         MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status;
-        try (StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientFileStore.fileStore(), false, getClientTimeout(), false, folder.newFolder())) {
+        try (StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientFileStore.fileStore(), false, getClientTimeout(), false, folder.newFolder(), null, null)) {
             clientSync.start();
             clientSync.run();
 
@@ -164,7 +164,7 @@ public class MBeanIT extends TestBase {
                 .withFileStore(serverFileStore.fileStore())
                 .withBlobChunkSize(MB)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientFileStore.fileStore(), false, getClientTimeout(), false, folder.newFolder())
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientFileStore.fileStore(), false, getClientTimeout(), false, folder.newFolder(), null, null)
         ) {
             serverSync.start();
             serverFileStore.fileStore().flush();

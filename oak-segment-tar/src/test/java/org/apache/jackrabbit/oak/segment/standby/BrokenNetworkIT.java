@@ -73,7 +73,7 @@ public class BrokenNetworkIT extends TestBase {
                 .withBlobChunkSize(MB)
                 .withSecureConnection(false)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientStore, false, getClientTimeout(), false, folder.newFolder());
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientStore, false, getClientTimeout(), false, folder.newFolder(), null, null);
         ) {
             serverSync.start();
             clientSync.run();
@@ -98,7 +98,7 @@ public class BrokenNetworkIT extends TestBase {
                 .withBlobChunkSize(MB)
                 .withSecureConnection(true)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder());
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder(), null, null);
         ) {
             serverSync.start();
             clientSync.run();
@@ -179,7 +179,7 @@ public class BrokenNetworkIT extends TestBase {
 
             try (
                 NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort(), flipPosition, skipPosition, skipBytes);
-                StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), proxyPort.getPort(), clientStore, ssl, getClientTimeout(), false, spoolFolder)
+                StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), proxyPort.getPort(), clientStore, ssl, getClientTimeout(), false, spoolFolder, null, null)
             ) {
                 clientSync.run();
             }
@@ -191,7 +191,7 @@ public class BrokenNetworkIT extends TestBase {
                 serverStore.flush();
             }
 
-            try (StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientStore, ssl, getClientTimeout(), false, spoolFolder)) {
+            try (StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientStore, ssl, getClientTimeout(), false, spoolFolder, null, null)) {
                 clientSync.run();
             }
         }

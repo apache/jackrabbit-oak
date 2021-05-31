@@ -23,6 +23,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 
 import io.netty.bootstrap.Bootstrap;
@@ -76,7 +77,7 @@ class StandbyClient implements AutoCloseable {
 
     private Channel channel;
 
-    StandbyClient(String host, int port, NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs, File spoolFolder) throws InterruptedException {
+    StandbyClient(String host, int port, NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs, File spoolFolder, String sslCertificate, String sslChain) throws InterruptedException {
         this.clientId = clientId;
         this.readTimeoutMs = readTimeoutMs;
 
@@ -94,7 +95,13 @@ class StandbyClient implements AutoCloseable {
                     ChannelPipeline p = ch.pipeline();
 
                     if (secure) {
-                        p.addLast(SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build().newHandler(ch.alloc()));
+                        SslContext sslContext;
+                        if (sslCertificate != null && !"".equals(sslCertificate)) {
+                            sslContext = SslContextBuilder.forClient().keyManager(new File(sslChain), new File(sslCertificate)).build();
+                        } else {
+                            sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+                        }
+                        p.addLast(sslContext.newHandler(ch.alloc()));
                     }
 
                     p.addLast(new ReadTimeoutHandler(readTimeoutMs, TimeUnit.MILLISECONDS));

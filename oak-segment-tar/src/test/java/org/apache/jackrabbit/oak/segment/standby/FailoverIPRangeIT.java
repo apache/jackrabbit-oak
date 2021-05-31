@@ -163,7 +163,7 @@ public class FailoverIPRangeIT extends TestBase {
                 .withBlobChunkSize(MB)
                 .withAllowedClientIPRanges(ipRanges)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(host, serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder())
+            StandbyClientSync clientSync = new StandbyClientSync(host, serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder(), null, null)
         ) {
             serverSync.start();
             addTestContent(store, "server");

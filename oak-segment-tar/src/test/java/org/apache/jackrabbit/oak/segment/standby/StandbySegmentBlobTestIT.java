@@ -99,7 +99,7 @@ public class StandbySegmentBlobTestIT extends TestBase {
                 .withFileStore(primary)
                 .withBlobChunkSize(MB)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder(), null, null)
         ) {
             serverSync.start();
             addTestContent(store, "server");

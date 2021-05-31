@@ -67,7 +67,7 @@ public class RecoverTestIT extends TestBase {
                 .withFileStore(storeS)
                 .withBlobChunkSize(MB)
                 .build();
-            StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder())
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder(), null, null)
         ) {
             serverSync.start();
             store = SegmentNodeStoreBuilders.builder(storeS).build();

@@ -117,6 +117,23 @@ public class StandbyStoreService {
         )
         boolean standby_autoclean() default true;
 
+        @AttributeDefinition(
+                name = "SSL Certificate",
+                description = "The file name which contains the SSL certificate. If this is empty, a certificate will be generated on-the-fly."
+        )
+        String sslCertificate();
+
+        @AttributeDefinition(
+                name = "SSL Certificate Chain",
+                description = "The file name which contains the SSL certificate chain."
+        )
+        String sslCertChain();
+
+        @AttributeDefinition(
+                name = "SSL Validate Client",
+                description = "Validate the client's SSL certificate."
+        )
+        boolean sslValidateClient() default false;
     }
 
     @Reference(policy = STATIC, policyOption = GREEDY)
@@ -158,14 +175,26 @@ public class StandbyStoreService {
         int port = config.port();
         String[] ranges = config.primary_allowed$_$client$_$ip$_$ranges();
         boolean secure = config.secure();
+        String sslServerCert = config.sslCertificate();
+        String sslServerChain = config.sslCertChain();
+        boolean sslValidateClient = config.sslValidateClient();
 
-        StandbyServerSync standbyServerSync = StandbyServerSync.builder()
+        StandbyServerSync.Builder builder = StandbyServerSync.builder()
             .withPort(port)
             .withFileStore(fileStore)
             .withBlobChunkSize(BLOB_CHUNK_SIZE)
             .withAllowedClientIPRanges(ranges)
-            .withSecureConnection(secure)
-            .build();
+            .withSecureConnection(secure);
+
+        if (secure) {
+            builder.withSecureConnection(true);
+            if (sslServerCert != null && !"".equals(sslServerCert)) {
+                builder.withSSLCertificate(sslServerCert)
+                       .withSSLChain(sslServerChain)
+                       .withSSLClientValidation(sslValidateClient);
+            }
+        }
+        StandbyServerSync standbyServerSync = builder.build();
 
         closer.register(standbyServerSync);
         standbyServerSync.start();
@@ -180,8 +209,10 @@ public class StandbyStoreService {
         boolean secure = config.secure();
         int readTimeout = config.standby_readtimeout();
         boolean clean = config.standby_autoclean();
+        String sslClientCert = config.sslCertificate();
+        String sslCertChain = config.sslCertChain();
 
-        StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
+        StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()), sslClientCert, sslCertChain);
         closer.register(standbyClientSync);
 
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();

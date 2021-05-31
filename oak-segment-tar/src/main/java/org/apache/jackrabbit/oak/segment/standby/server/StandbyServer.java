@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.File;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +41,7 @@ import io.netty.handler.codec.compression.SnappyFrameEncoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
@@ -104,6 +106,12 @@ class StandbyServer implements AutoCloseable {
 
         private StandbyBlobReader standbyBlobReader;
 
+        private String sslCertificate;
+
+        private String sslChain;
+
+        private boolean sslClientValidation;
+
         private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
             this.storeProvider = storeProvider;
@@ -150,6 +158,21 @@ class StandbyServer implements AutoCloseable {
             return this;
         }
 
+        Builder withSSLCertificate(String sslCertificate) {
+            this.sslCertificate = sslCertificate;
+            return this;
+        }
+
+        Builder withSSLChain(String sslChain) {
+            this.sslChain = sslChain;
+            return this;
+        }
+
+        Builder withSSLClientValidation(boolean sslValidateClient) {
+            this.sslClientValidation = sslValidateClient;
+            return this;
+        }
+
         StandbyServer build() throws CertificateException, SSLException {
             checkState(storeProvider != null);
 
@@ -180,8 +203,12 @@ class StandbyServer implements AutoCloseable {
         this.port = builder.port;
 
         if (builder.secure) {
-            SelfSignedCertificate ssc = new SelfSignedCertificate();
-            sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            if (builder.sslCertificate != null && !"".equals(builder.sslCertificate)) {
+                sslContext = SslContextBuilder.forServer(new File(builder.sslChain), new File(builder.sslCertificate)).build();
+            } else {
+                SelfSignedCertificate ssc = new SelfSignedCertificate();
+                sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            }
         }
 
         bossGroup = new NioEventLoopGroup(1, new NamedThreadFactory("primary-run"));
@@ -205,7 +232,9 @@ class StandbyServer implements AutoCloseable {
                 p.addLast(new ClientFilterHandler(new ClientIpFilter(builder.allowedClientIPRanges)));
 
                 if (sslContext != null) {
-                    p.addLast("ssl", sslContext.newHandler(ch.alloc()));
+                    SslHandler handler = sslContext.newHandler(ch.alloc());
+                    handler.engine().setNeedClientAuth(builder.sslClientValidation);
+                    p.addLast("ssl", handler);
                 }
 
                 // Decoders

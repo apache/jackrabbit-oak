@@ -73,6 +73,10 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final AtomicBoolean active = new AtomicBoolean(false);
 
+    private final String sslCertificate;
+
+    private final String sslChain;
+
     private int failedRequests;
 
     private long lastSuccessfulRequest;
@@ -95,7 +99,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         return s;
     }
 
-    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean, File spoolFolder) {
+    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean, File spoolFolder, String sslCertificate, String sslChain) {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.syncStartTimestamp = -1;
@@ -111,6 +115,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
         this.execution = new StandbyClientSyncExecution(fileStore, () -> running);
         this.spoolFolder = spoolFolder;
+        this.sslCertificate = sslCertificate;
+        this.sslChain = sslChain;
         try {
             ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
@@ -161,7 +167,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
                 GCGeneration genBefore = headGeneration(fileStore);
 
-                try (StandbyClient client = new StandbyClient(host, port, group, observer.getID(), secure, readTimeoutMs, spoolFolder)) {
+                try (StandbyClient client = new StandbyClient(host, port, group, observer.getID(), secure, readTimeoutMs, spoolFolder, sslCertificate, sslChain)) {
                     execution.execute(client);
                 }
 

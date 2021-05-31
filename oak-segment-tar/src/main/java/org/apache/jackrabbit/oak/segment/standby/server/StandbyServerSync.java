@@ -63,6 +63,12 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
 
         private StandbySegmentReader standbySegmentReader;
 
+        private String sslCertificate;
+
+        private String sslChain;
+
+        private boolean sslValidateClient;
+
         private Builder() {
             // Prevent external instantiation
         }
@@ -119,6 +125,21 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
             return this;
         }
 
+        public Builder withSSLCertificate(String sslCertificate) {
+            this.sslCertificate = sslCertificate;
+            return this;
+        }
+
+        public Builder withSSLChain(String sslChain) {
+            this.sslChain = sslChain;
+            return this;
+        }
+
+        public Builder withSSLClientValidation(boolean sslValidateClient) {
+            this.sslValidateClient = sslValidateClient;
+            return this;
+        }
+
         public StandbyServerSync build() {
             checkArgument(port > 0);
             checkArgument(fileStore != null);
@@ -156,6 +177,12 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
 
     private StandbyServer server;
 
+    private final String sslCertificate;
+
+    private final String sslChain;
+
+    private final boolean sslValidateClient;
+
     private StandbyServerSync(Builder builder) {
         this.port = builder.port;
         this.fileStore = builder.fileStore;
@@ -166,6 +193,9 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         this.standbyHeadReader = builder.standbyHeadReader;
         this.standbyReferencesReader = builder.standbyReferencesReader;
         this.standbySegmentReader = builder.standbySegmentReader;
+        this.sslCertificate = builder.sslCertificate;
+        this.sslChain = builder.sslChain;
+        this.sslValidateClient = builder.sslValidateClient;
         this.observer = new CommunicationObserver("primary");
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
@@ -196,7 +226,7 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         state = STATUS_STARTING;
 
         try {
-            server = StandbyServer.builder(port, this, blobChunkSize)
+            StandbyServer.Builder builder = StandbyServer.builder(port, this, blobChunkSize)
                 .secure(secure)
                 .allowIPRanges(allowedClientIPRanges)
                 .withStateConsumer(this)
@@ -204,8 +234,15 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
                 .withStandbyBlobReader(standbyBlobReader)
                 .withStandbyHeadReader(standbyHeadReader)
                 .withStandbyReferencesReader(standbyReferencesReader)
-                .withStandbySegmentReader(standbySegmentReader)
-                .build();
+                .withStandbySegmentReader(standbySegmentReader);
+            if (secure) {
+                if (sslCertificate != null && !"".equals(sslCertificate)) {
+                    builder.withSSLCertificate(sslCertificate)
+                           .withSSLChain(sslChain)
+                           .withSSLClientValidation(sslValidateClient);
+                }
+            }
+            server = builder.build();
             server.start();
 
             state = STATUS_RUNNING;

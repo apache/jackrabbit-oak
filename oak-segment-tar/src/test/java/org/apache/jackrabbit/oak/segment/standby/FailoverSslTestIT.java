@@ -64,7 +64,7 @@ public class FailoverSslTestIT extends TestBase {
                 .withBlobChunkSize(MB)
                 .withSecureConnection(true)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder());
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder(), null, null);
         ) {
             assertTrue(synchronizeAndCompareHead(serverSync, clientSync));
         }
@@ -81,7 +81,7 @@ public class FailoverSslTestIT extends TestBase {
                 .withBlobChunkSize(MB)
                 .withSecureConnection(true)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder());
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder(), null, null);
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
         }
@@ -97,7 +97,7 @@ public class FailoverSslTestIT extends TestBase {
                 .withFileStore(storeS)
                 .withBlobChunkSize(MB)
                 .build();
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder());
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder(), null, null);
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
         }
