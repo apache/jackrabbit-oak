@@ -254,7 +254,7 @@ public class ImportTest extends AbstractJCRTest {
     }
 
     public void testMissingMandatoryProperty() throws Exception {
-        // jcr:data must be BINARY not BOOLEAN -> should fail
+        // jcr:data property missing
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"resourceName\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
                     "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Resource</sv:value></sv:property>" +
