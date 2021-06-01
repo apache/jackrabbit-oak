@@ -26,8 +26,8 @@ to start learning about Oak.
 There is also the [Jackrabbit 3 wiki page](https://jackrabbit.apache.org/archive/wiki/JCR/Jackrabbit-3_115513423.html), which
 is mostly outdated though and should only be consulted for historical research.
 
-To get started developing Oak, checkout the sources from [svn](https://svn.apache.org/repos/asf/jackrabbit/oak/trunk), 
-or [fork them](https://github.com/apache/jackrabbit-oak) on GitHub. Then build the latest sources with Maven 3 and 
+To get started developing Oak, clone the [Git repository](https://github.com/apache/jackrabbit-oak), 
+or fork it on [GitHub](https://github.com/apache/jackrabbit-oak). Then build the latest sources with Maven 3 and 
 Java 8 (or higher) like this:
 
     mvn clean install
@@ -39,6 +39,8 @@ To enable all integration tests, including the JCR TCK, use:
 Before committing changes or submitting a patch, please make sure that the above integration testing
 build passes without errors. If you like, you can enable integration tests by default by setting the
 `OAK_INTEGRATION_TESTING` environment variable.
+
+Please also refer to the documentation [Developing with Git](./developing-with-git.html)
 
 MongoDB integration
 -------------------

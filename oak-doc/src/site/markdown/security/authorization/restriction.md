@@ -302,8 +302,8 @@ The time-based `RestrictionPattern` used by the example provider above.
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 <!-- hidden references -->
-[GlobPattern]: http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/restriction/GlobPattern.java?view=markup
-[GlobRestrictionTest]: http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L8_GlobRestrictionTest.java?view=markup
+[GlobPattern]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/restriction/GlobPattern.java?view=markup
+[GlobRestrictionTest]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L8_GlobRestrictionTest.java?view=markup
 [Restriction]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/Restriction.html
 [RestrictionDefinition]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionDefinition.html
 [RestrictionPattern]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionPattern.html
