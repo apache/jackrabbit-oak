@@ -20,15 +20,17 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.File;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
@@ -49,16 +51,21 @@ public class FlatFileStoreTest {
     @Test
     public void basicTest() throws Exception {
         List<String> paths = createTestPaths();
-        NodeStateEntryTraverser traverser = new NodeStateEntryTraverser("", null, null,
-                null, 0, Long.MAX_VALUE) {
-            @Override
-            public @NotNull Iterator<NodeStateEntry> iterator() {
-                return TestUtils.createEntries(paths).iterator();
-            }
-        };
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(Collections.singletonList(traverser), folder.getRoot());
+        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(new ArrayList<Long>(){{add(0L);}}, folder.getRoot());
         FlatFileStore flatStore = builder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
+                .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {
+                    @Override
+                    public NodeStateEntryTraverser create(LastModifiedRange range) {
+                        return new NodeStateEntryTraverser("NS-1", null, null,
+                                null, range) {
+                            @Override
+                            public @NotNull Iterator<NodeStateEntry> iterator() {
+                                return TestUtils.createEntries(paths).iterator();
+                            }
+                        };
+                    }
+                })
                 .build();
 
         List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)

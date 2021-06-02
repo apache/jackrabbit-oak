@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -78,6 +80,51 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         this.indexerProviders = createProviders();
     }
 
+    private static class MongoNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
+
+        private static final AtomicInteger traverserInstanceCounter = new AtomicInteger(0);
+        final RevisionVector rootRevision;
+        final DocumentNodeStore documentNodeStore;
+        final MongoDocumentStore documentStore;
+        final Logger traversalLogger;
+        final CompositeIndexer indexer;
+        final Closer closer;
+
+        public MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
+                                                   MongoDocumentStore documentStore, Logger traversalLogger,
+                                                   CompositeIndexer indexer, Closer closer) {
+            this.rootRevision = rootRevision;
+            this.documentNodeStore = documentNodeStore;
+            this.documentStore = documentStore;
+            this.traversalLogger = traversalLogger;
+            this.indexer = indexer;
+            this.closer = closer;
+        }
+
+        @Override
+        public NodeStateEntryTraverser create(LastModifiedRange lastModifiedRange) {
+            IndexingProgressReporter progressReporterPerTask =
+                    new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+            String entryTraverserID = "NSET" + traverserInstanceCounter.incrementAndGet();
+            //As first traversal is for dumping change the message prefix
+            progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
+            NodeStateEntryTraverser nsep =
+                    new NodeStateEntryTraverser(entryTraverserID, rootRevision,
+                            documentNodeStore, documentStore, lastModifiedRange)
+                            .withProgressCallback((id) -> {
+                                try {
+                                    progressReporterPerTask.traversedNode(() -> id);
+                                } catch (CommitFailedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                traversalLogger.trace(id);
+                            })
+                            .withPathPredicate(indexer::shouldInclude);
+            closer.register(nsep);
+            return nsep;
+        }
+    }
+
     public void reindex() throws CommitFailedException, IOException {
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
@@ -101,39 +148,18 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
         List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, indexerSupport.getModifiedSince() ,10);
-        List<NodeStateEntryTraverser> nodeStateEntryTraversers = new ArrayList<>();
 
-        for (int i = 0; i < lastModifiedBreakPoints.size(); i++) {
-            long start = lastModifiedBreakPoints.get(i);
-            long end = i < lastModifiedBreakPoints.size() - 1 ? lastModifiedBreakPoints.get(i+1) : Long.MAX_VALUE;
-            IndexingProgressReporter progressReporterPerTask =
-                    new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
-            String entryTraverserID = "NSET" + i;
-            //As first traversal is for dumping change the message prefix
-            progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
-            NodeStateEntryTraverser nsep =
-                    new NodeStateEntryTraverser(entryTraverserID, rootDocumentState.getRootRevision(),
-                            nodeStore, getMongoDocumentStore(), start, end)
-                            .withProgressCallback((id) -> {
-                                try {
-                                    progressReporterPerTask.traversedNode(() -> id);
-                                } catch (CommitFailedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                traversalLog.trace(id);
-                            })
-                            .withPathPredicate(indexer::shouldInclude);
-            closer.register(nsep);
-            nodeStateEntryTraversers.add(nsep);
-        }
-
+        Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
         //TODO Use flatFileStore only if we have relative nodes to be indexed
-        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(nodeStateEntryTraversers, indexHelper.getWorkDir())
+        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(lastModifiedBreakPoints, indexHelper.getWorkDir())
                 .withBlobStore(indexHelper.getGCBlobStore())
                 .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
                 .withExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
+                .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
+                        nodeStore, getMongoDocumentStore(), traversalLog, indexer, closer))
                 .build();
         closer.register(flatFileStore);
+        log.info("Completed the flat file store build in {}", flatFileStoreWatch);
 
         progressReporter.reset();
         if (flatFileStore.getEntryCount() > 0){

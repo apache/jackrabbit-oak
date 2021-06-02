@@ -29,7 +29,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.management.Notification;
@@ -39,8 +41,11 @@ import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +58,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
-class TraverseWithSortStrategy implements Callable<List<File>> {
+class TraverseAndSortTask implements Callable<List<File>> {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
@@ -74,15 +79,31 @@ class TraverseWithSortStrategy implements Callable<List<File>> {
     private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
+    private final Queue<String> completedTasks;
+    private final Queue<Callable<List<File>>> newTasksQueue;
+    private final Phaser phaser;
+    private long lastModifiedUpperBound;
+    private final BlobStore blobStore;
+    private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
 
-    TraverseWithSortStrategy(String taskID, NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
-        this.taskID = taskID;
+    TraverseAndSortTask(NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
+                        BlobStore blobStore, File storeDir, boolean compressionEnabled,
+                        Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
+                        Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory) {
+        this.taskID = "TWS-" + nodeStates.getId();
         this.nodeStates = nodeStates;
-        this.entryWriter = entryWriter;
+        this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedUpperBound();
+        this.blobStore = blobStore;
+        this.entryWriter = new NodeStateEntryWriter(blobStore);
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.comparator = comparator;
+        this.completedTasks = completedTasks;
+        this.newTasksQueue = newTasksQueue;
+        this.phaser = phaser;
+        this.nodeStateEntryTraverserFactory = nodeStateEntryTraverserFactory;
+        phaser.register();
+        log.debug("Task {} registered to phaser", taskID);
     }
 
     public List<File> call() {
@@ -91,6 +112,9 @@ class TraverseWithSortStrategy implements Callable<List<File>> {
             configureMemoryListener();
             sortWorkDir = createdSortWorkDir();
             writeToSortedFiles();
+            log.info("Completed task {}", taskID);
+            phaser.arriveAndDeregister();
+            completedTasks.add(taskID);
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
@@ -105,6 +129,9 @@ class TraverseWithSortStrategy implements Callable<List<File>> {
     private void writeToSortedFiles() throws IOException {
         Stopwatch w = Stopwatch.createStarted();
         for (NodeStateEntry e : nodeStates) {
+            if (e.getLastModified() == lastModifiedUpperBound) {
+                break;
+            }
             entryCount++;
             addEntry(e);
         }
@@ -125,6 +152,18 @@ class TraverseWithSortStrategy implements Callable<List<File>> {
         if (isMemoryLow()) {
             sortAndSaveBatch();
             reset();
+        }
+
+        if (lastModifiedUpperBound - e.getLastModified() > 1) {
+            long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
+            if (completedTasks.poll() != null) {
+                log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
+                //newTasksQueue.add(new LastModifiedRange(splitPoint, this.lastModifiedUpperBound));
+                newTasksQueue.add(new TraverseAndSortTask(nodeStateEntryTraverserFactory.create(new LastModifiedRange(splitPoint,
+                        this.lastModifiedUpperBound)), comparator, blobStore, storeDir, compressionEnabled, completedTasks,
+                        newTasksQueue, phaser, nodeStateEntryTraverserFactory));
+                this.lastModifiedUpperBound = splitPoint;
+            }
         }
 
         String jsonText = entryWriter.asJson(e.getNodeState());

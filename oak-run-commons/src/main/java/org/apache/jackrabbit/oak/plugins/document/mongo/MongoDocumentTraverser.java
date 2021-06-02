@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.bson.BsonDocument;
+import org.bson.BsonInt64;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -67,7 +68,7 @@ public class MongoDocumentTraverser {
             BsonDocument query = BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + rangeString + "}");
             cursor = dbCollection
                     .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
-                    .find(query);
+                    .find(query).sort(new BsonDocument().append(NodeDocument.MODIFIED_IN_SECS, new BsonInt64(1)));
         } else {
             cursor = dbCollection
                     .withReadPreference(mongoStore.getConfiguredReadPreference(collection))

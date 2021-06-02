@@ -27,8 +27,8 @@ import java.util.Set;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,20 +42,22 @@ public class FlatFileNodeStoreBuilder {
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final List<NodeStateEntryTraverser> nodeStatesProviders;
+    //private final List<NodeStateEntryTraverser> nodeStatesProviders;
+    private final List<Long> lastModifiedBreakPoints;
     private final File workDir;
     private File existingDataDumpDir;
     private Set<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
     private PathElementComparator comparator;
     private NodeStateEntryWriter entryWriter;
+    private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
 
     private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
 
-    public FlatFileNodeStoreBuilder(List<NodeStateEntryTraverser> nodeStatesProviders, File workDir) {
-        this.nodeStatesProviders = nodeStatesProviders;
+    public FlatFileNodeStoreBuilder(List<Long> lastModifiedBreakPoints, File workDir) {
+        this.lastModifiedBreakPoints = lastModifiedBreakPoints;
         this.workDir = workDir;
     }
 
@@ -71,6 +73,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withExistingDataDumpDir(File existingDataDumpDir) {
         this.existingDataDumpDir = existingDataDumpDir;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withNodeStateEntryTraverserFactory(NodeStateEntryTraverserFactory factory) {
+        this.nodeStateEntryTraverserFactory = factory;
         return this;
     }
 
@@ -111,10 +118,12 @@ public class FlatFileNodeStoreBuilder {
     private SortStrategy createSortStrategy(File dir){
         if (useTraverseWithSort) {
             log.info("Using TraverseWithSortStrategy");
-            return new MultithreadedTraversalWithSort(nodeStatesProviders, comparator, blobStore, dir, existingDataDumpDir, useZip);
+            return new MultithreadedTraversalWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
+                    blobStore, dir, existingDataDumpDir, useZip);
         } else {
             log.info("Using StoreAndSortStrategy");
-            return new StoreAndSortStrategy(nodeStatesProviders.get(0), comparator, entryWriter, dir, useZip);
+            return new StoreAndSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(lastModifiedBreakPoints.get(0),
+                    Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
         }
     }
 
@@ -123,7 +132,7 @@ public class FlatFileNodeStoreBuilder {
         log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
 
         String strategy = useTraverseWithSort ?
-                TraverseWithSortStrategy.class.getSimpleName() : StoreAndSortStrategy.class.getSimpleName();
+                TraverseAndSortTask.class.getSimpleName() : StoreAndSortStrategy.class.getSimpleName();
         log.info("Sort strategy : {} ({})", strategy, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 
