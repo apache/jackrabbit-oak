@@ -154,12 +154,12 @@ public class StandbyStoreService {
         String mode = config.mode();
 
         if (mode.equals("primary")) {
-            bootstrapMaster(config, fileStore);
+            bootstrapPrimary(config, fileStore);
             return;
         }
 
         if (mode.equals("standby")) {
-            bootstrapSlave(context, config, fileStore);
+            bootstrapSecondary(context, config, fileStore);
             return;
         }
 
@@ -171,7 +171,7 @@ public class StandbyStoreService {
         closer.close();
     }
 
-    private void bootstrapMaster(Configuration config, FileStore fileStore) {
+    private void bootstrapPrimary(Configuration config, FileStore fileStore) {
         int port = config.port();
         String[] ranges = config.primary_allowed$_$client$_$ip$_$ranges();
         boolean secure = config.secure();
@@ -202,7 +202,7 @@ public class StandbyStoreService {
         log.info("Started primary on port {} with allowed IP ranges {}", port, ranges);
     }
 
-    private void bootstrapSlave(ComponentContext context, Configuration config, FileStore fileStore) {
+    private void bootstrapSecondary(ComponentContext context, Configuration config, FileStore fileStore) {
         int port = config.port();
         long interval = config.interval();
         String host = config.primary_host();
