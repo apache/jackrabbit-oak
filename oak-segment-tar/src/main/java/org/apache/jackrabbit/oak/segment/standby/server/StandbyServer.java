@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.File;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +41,7 @@ import io.netty.handler.codec.compression.SnappyFrameEncoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
@@ -50,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.RequestDecoder;
+import org.apache.jackrabbit.oak.segment.standby.netty.SSLSubjectMatcher;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,6 +107,14 @@ class StandbyServer implements AutoCloseable {
 
         private StandbyBlobReader standbyBlobReader;
 
+        private String sslKeyFile;
+
+        private String sslChainFile;
+
+        private boolean sslClientValidation;
+
+        public String sslClientSubjectPattern;
+
         private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
             this.storeProvider = storeProvider;
@@ -150,6 +161,26 @@ class StandbyServer implements AutoCloseable {
             return this;
         }
 
+        Builder withSSLKeyFile(String sslKeyFile) {
+            this.sslKeyFile = sslKeyFile;
+            return this;
+        }
+
+        Builder withSSLChainFile(String sslChainFile) {
+            this.sslChainFile = sslChainFile;
+            return this;
+        }
+
+        Builder withSSLClientValidation(boolean sslValidateClient) {
+            this.sslClientValidation = sslValidateClient;
+            return this;
+        }
+
+        Builder withSSLClientSubjectPattern(String sslClientSubjectPattern) {
+            this.sslClientSubjectPattern = sslClientSubjectPattern;
+            return this;
+        }
+
         StandbyServer build() throws CertificateException, SSLException {
             checkState(storeProvider != null);
 
@@ -180,8 +211,12 @@ class StandbyServer implements AutoCloseable {
         this.port = builder.port;
 
         if (builder.secure) {
-            SelfSignedCertificate ssc = new SelfSignedCertificate();
-            sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
+                sslContext = SslContextBuilder.forServer(new File(builder.sslChainFile), new File(builder.sslKeyFile)).build();
+            } else {
+                SelfSignedCertificate ssc = new SelfSignedCertificate();
+                sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            }
         }
 
         bossGroup = new NioEventLoopGroup(1, new NamedThreadFactory("primary-run"));
@@ -205,7 +240,13 @@ class StandbyServer implements AutoCloseable {
                 p.addLast(new ClientFilterHandler(new ClientIpFilter(builder.allowedClientIPRanges)));
 
                 if (sslContext != null) {
-                    p.addLast("ssl", sslContext.newHandler(ch.alloc()));
+                    SslHandler handler = sslContext.newHandler(ch.alloc());
+                    handler.engine().setNeedClientAuth(builder.sslClientValidation);
+                    p.addLast("ssl", handler);
+
+                    if (builder.sslClientSubjectPattern != null) {
+                        p.addLast(new SSLSubjectMatcher(builder.sslClientSubjectPattern));
+                    }
                 }
 
                 // Decoders
