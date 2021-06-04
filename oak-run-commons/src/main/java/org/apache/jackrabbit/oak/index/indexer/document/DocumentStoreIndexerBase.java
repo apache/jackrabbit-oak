@@ -286,7 +286,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     private long getEstimatedDocumentCount(){
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
-            return mongoConnection.getDatabase().getCollection("nodes").count();
+            return mongoConnection.getDatabase().getCollection("nodes").estimatedDocumentCount();
         }
         return 0;
     }
