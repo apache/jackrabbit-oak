@@ -118,16 +118,16 @@ public class StandbyStoreService {
         boolean standby_autoclean() default true;
 
         @AttributeDefinition(
-                name = "SSL Certificate",
-                description = "The file name which contains the SSL certificate. If this is empty, a certificate will be generated on-the-fly."
+                name = "SSL Key File",
+                description = "The file name which contains the SSL key. If this is empty, a key will be generated on-the-fly."
         )
-        String sslCertificate();
+        String sslKeyFile();
 
         @AttributeDefinition(
-                name = "SSL Certificate Chain",
+                name = "SSL Certificate Chain File",
                 description = "The file name which contains the SSL certificate chain."
         )
-        String sslCertChain();
+        String sslChainFile();
 
         @AttributeDefinition(
                 name = "SSL Validate Client",
@@ -187,8 +187,8 @@ public class StandbyStoreService {
         int port = config.port();
         String[] ranges = config.primary_allowed$_$client$_$ip$_$ranges();
         boolean secure = config.secure();
-        String sslServerCert = config.sslCertificate();
-        String sslServerChain = config.sslCertChain();
+        String sslKeyFile = config.sslKeyFile();
+        String sslChainFile = config.sslChainFile();
         boolean sslValidateClient = config.sslValidateClient();
         String sslClientSubjectPattern = config.sslClientSubjectPattern();
 
@@ -200,9 +200,9 @@ public class StandbyStoreService {
 
         if (secure) {
             builder.withSecureConnection(true);
-            if (sslServerCert != null && !"".equals(sslServerCert)) {
-                builder.withSSLKeyFile(sslServerCert)
-                       .withSSLChainFile(sslServerChain)
+            if (sslKeyFile != null && !"".equals(sslKeyFile)) {
+                builder.withSSLKeyFile(sslKeyFile)
+                       .withSSLChainFile(sslChainFile)
                        .withSSLClientValidation(sslValidateClient)
                        .withSSLClientSubjectPattern(sslClientSubjectPattern);
             }
@@ -230,8 +230,8 @@ public class StandbyStoreService {
         if (config.secure()) {
             builder
                 .withSecureConnection(true)
-                .withSSLKeyFile(config.sslCertificate())
-                .withSSLChainFile(config.sslCertChain())
+                .withSSLKeyFile(config.sslKeyFile())
+                .withSSLChainFile(config.sslChainFile())
                 .withSSLServerSubjectPattern(config.sslClientSubjectPattern())
             ;
         }
