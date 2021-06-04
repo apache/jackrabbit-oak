@@ -58,8 +58,21 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, MB, true);
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder());
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(storeS)
+                .withBlobChunkSize(MB)
+                .withSecureConnection(true)
+                .build();
+            StandbyClientSync clientSync = StandbyClientSync.builder()
+                .withHost(getServerHost())
+                .withPort(serverPort.getPort())
+                .withFileStore(storeC)
+                .withSecureConnection(true)
+                .withReadTimeoutMs(getClientTimeout())
+                .withAutoClean(false)
+                .withSpoolFolder(folder.newFolder())
+                .build()
         ) {
             assertTrue(synchronizeAndCompareHead(serverSync, clientSync));
         }
@@ -70,8 +83,21 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, MB, true);
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder());
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(storeS)
+                .withBlobChunkSize(MB)
+                .withSecureConnection(true)
+                .build();
+            StandbyClientSync clientSync = StandbyClientSync.builder()
+                .withHost(getServerHost())
+                .withPort(serverPort.getPort())
+                .withFileStore(storeC)
+                .withSecureConnection(false)
+                .withReadTimeoutMs(getClientTimeout())
+                .withAutoClean(false)
+                .withSpoolFolder(folder.newFolder())
+                .build()
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
         }
@@ -82,8 +108,20 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, MB);
-            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder());
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(storeS)
+                .withBlobChunkSize(MB)
+                .build();
+            StandbyClientSync clientSync = StandbyClientSync.builder()
+                .withHost(getServerHost())
+                .withPort(serverPort.getPort())
+                .withFileStore(storeC)
+                .withSecureConnection(true)
+                .withReadTimeoutMs(getClientTimeout())
+                .withAutoClean(false)
+                .withSpoolFolder(folder.newFolder())
+                .build()
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
         }
