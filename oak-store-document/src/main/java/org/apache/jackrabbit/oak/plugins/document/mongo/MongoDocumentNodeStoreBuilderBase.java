@@ -97,6 +97,18 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
+     * Enables or disables the socket keep-alive option for MongoDB. The default
+     * is enabled.
+     *
+     * @param enable whether to enable or disable it.
+     * @return this
+     */
+    @Deprecated
+    public T setSocketKeepAlive(boolean enable) {
+        return thisBuilder();
+    }
+
+    /**
      * Disables the use of a client session available with MongoDB 3.6 and
      * newer. By default the MongoDocumentStore will use a client session if
      * available. That is, when connected to MongoDB 3.6 and newer.

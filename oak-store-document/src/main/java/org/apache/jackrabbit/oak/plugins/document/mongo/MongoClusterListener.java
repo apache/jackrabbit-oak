@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.mongodb.ServerAddress;
 import com.mongodb.connection.ServerConnectionState;
 import com.mongodb.connection.ServerDescription;
-import com.mongodb.event.ClusterClosedEvent;
 import com.mongodb.event.ClusterDescriptionChangedEvent;
 import com.mongodb.event.ClusterListener;
-import com.mongodb.event.ClusterOpeningEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -32,42 +31,31 @@ public class MongoClusterListener implements ClusterListener {
     // Sometimes we need to wait a few seconds in case the connection was just created, the listener
     // didn't have time to receive the description from the cluster. This latch is used to check
     // if the connection was properly initialized.
-    private final CountDownLatch latch;
+    private final CountDownLatch LATCH;
+    private final int LATCH_AWAIT_TIMEOUT = 15;
     private boolean replicaSet = false;
     private ServerAddress serverAddress;
     private ServerAddress primaryAddress;
 
     public MongoClusterListener() {
-        latch = new CountDownLatch(1);
+        LATCH = new CountDownLatch(1);
     }
 
+    @Nullable
     public ServerAddress getServerAddress() {
-        try {
-            latch.await(15, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {}
+        waitForLatch();
         return serverAddress;
     }
 
+    @Nullable
     public ServerAddress getPrimaryAddress() {
-        try {
-            latch.await(15, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {}
+        waitForLatch();
         return primaryAddress;
     }
 
     public boolean isReplicaSet() {
-        try {
-            latch.await(15, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {}
+        waitForLatch();
         return replicaSet;
-    }
-
-    @Override
-    public void clusterOpening(ClusterOpeningEvent event) {
-    }
-
-    @Override
-    public void clusterClosed(ClusterClosedEvent event) {
     }
 
     @Override
@@ -81,8 +69,14 @@ public class MongoClusterListener implements ClusterListener {
                     // type is UNKNOWN, mainly when the cluster is changing it's PRIMARY.
                     replicaSet = true;
                 }
-                latch.countDown();
+                LATCH.countDown();
             }
         }
+    }
+
+    private void waitForLatch() {
+        try {
+            LATCH.await(LATCH_AWAIT_TIMEOUT, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {}
     }
 }

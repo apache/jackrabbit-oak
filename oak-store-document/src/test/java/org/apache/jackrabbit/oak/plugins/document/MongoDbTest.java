@@ -201,8 +201,7 @@ public class MongoDbTest {
 
     private static BasicDBObject explain(MongoCollection<BasicDBObject> collection,
                                          Bson query) {
-        //TODO: Determine if this test is still needed. Modifiers is removed in driver 4, so this has to be reworked
-        return collection.find(query)/*.modifiers(new BasicDBObject("$explain", true))*/.first();
+        return collection.find(query).explain(BasicDBObject.class);
     }
 
     private static void log(String msg) {

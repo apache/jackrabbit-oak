@@ -47,7 +47,7 @@ public class MongoConnection {
 
     public static final String MONGODB_PREFIX = "mongodb://";
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MongoConnection.class);
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
@@ -323,7 +323,6 @@ public class MongoConnection {
         if (listener != null) {
             return listener.isReplicaSet();
         }
-        System.out.println("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
         LOG.warn("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
         return false;
     }
@@ -339,7 +338,6 @@ public class MongoConnection {
         if (listener != null) {
             return listener.getServerAddress();
         }
-        System.out.println("Method getAddress called for a MongoClient without any OakClusterListener!");
         LOG.warn("Method getAddress called for a MongoClient without any OakClusterListener!");
         return null;
     }
@@ -365,8 +363,6 @@ public class MongoConnection {
                 return replClusterListener;
             }
         }
-        System.out.println("No OakClusterListener found for this MongoClient!");
-        LOG.warn("No OakClusterListener found for this MongoClient!");
         return null;
     }
 }

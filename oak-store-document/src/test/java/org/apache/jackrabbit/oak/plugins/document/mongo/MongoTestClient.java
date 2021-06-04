@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 
