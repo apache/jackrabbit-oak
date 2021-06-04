@@ -19,19 +19,43 @@
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.runWithRetry;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printMessage;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescription;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeTypeFromPathOrUri;
 
-import com.google.common.base.Stopwatch;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.channels.FileChannel;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.Segment;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 
-import java.io.PrintWriter;
+import com.google.common.base.Stopwatch;
 
 /**
  * Perform a full-copy of repository data at segment level.
@@ -64,6 +88,10 @@ public class SegmentCopy {
         private PrintWriter errWriter;
 
         private Integer revisionsCount = Integer.MAX_VALUE;
+
+        private Boolean flat;
+
+        private Integer maxSizeGb;
 
         private Builder() {
             // Prevent external instantiation.
@@ -155,6 +183,29 @@ public class SegmentCopy {
         }
 
         /**
+         * If enabled, the segments hierarchy will be copied without any
+         * TAR archive being created, in a flat hierarchy.
+         *
+         * @param flat flag controlling the copying in flat hierarchy
+         * @return this builder.
+         */
+        public Builder withFlat(Boolean flat) {
+            this.flat = flat;
+            return this;
+        }
+
+        /**
+         * Parameter for configuring the maximum size of the segment store transfer
+         *
+         * @param maxSizeGb the maximum size up to which repository data will be copied
+         * @return this builder.
+         */
+        public Builder withMaxSizeGb(Integer maxSizeGb) {
+            this.maxSizeGb = maxSizeGb;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Check} command.
          *
          * @return an instance of {@link Runnable}.
@@ -169,6 +220,8 @@ public class SegmentCopy {
         }
     }
 
+    private static final int READ_THREADS = 20;
+
     private final String source;
 
     private final String destination;
@@ -179,10 +232,15 @@ public class SegmentCopy {
 
     private final Integer revisionCount;
 
+    private final Boolean flat;
+
+    private final Integer maxSizeGb;
+
     private SegmentNodeStorePersistence srcPersistence;
 
     private SegmentNodeStorePersistence destPersistence;
 
+    private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
 
     public SegmentCopy(Builder builder) {
         this.source = builder.source;
@@ -190,6 +248,8 @@ public class SegmentCopy {
         this.srcPersistence = builder.srcPersistence;
         this.destPersistence = builder.destPersistence;
         this.revisionCount = builder.revisionsCount;
+        this.flat = builder.flat;
+        this.maxSizeGb = builder.maxSizeGb;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
     }
@@ -203,28 +263,113 @@ public class SegmentCopy {
         String srcDescription = storeDescription(srcType, source);
         String destDescription = storeDescription(destType, destination);
 
-        try {
-            if (srcPersistence == null || destPersistence == null) {
+        if (flat && destType == SegmentStoreType.TAR) {
+            try {
                 srcPersistence = newSegmentNodeStorePersistence(srcType, source);
-                destPersistence = newSegmentNodeStorePersistence(destType, destination);
+
+                SegmentArchiveManager sourceManager = srcPersistence.createArchiveManager(false, false,
+                        new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+                int maxArchives = maxSizeGb * 4;
+                int count = 0;
+
+                List<String> archivesList = sourceManager.listArchives();
+                archivesList.sort(Collections.reverseOrder());
+
+                for (String archiveName : archivesList) {
+                    if (count == maxArchives - 1) {
+                        printMessage(outWriter, "Stopping transfer after reaching {0} GB at archive {1}", maxSizeGb,
+                                archiveName);
+                        break;
+                    }
+
+                    printMessage(outWriter, "{0}/{1} -> {2}", source, archiveName, destination);
+
+                    SegmentArchiveReader reader = sourceManager.forceOpen(archiveName);
+
+                    List<Future<Segment>> futures = new ArrayList<>();
+                    for (SegmentArchiveEntry entry : reader.listSegments()) {
+                        futures.add(executor.submit(() -> runWithRetry(() -> {
+                            Segment segment = new Segment(entry);
+                            segment.read(reader);
+                            return segment;
+                        }, 16, 5)));
+                    }
+
+                    File directory = new File(destination);
+                    directory.mkdir();
+
+                    for (Future<Segment> future : futures) {
+                        Segment segment = future.get();
+                        runWithRetry(() -> {
+                            final byte[] array = segment.data.array();
+                            String segmentId = new UUID(segment.entry.getMsb(), segment.entry.getLsb()).toString();
+                            File segmentFile = new File(directory, segmentId);
+                            File tempSegmentFile = new File(directory, segmentId + System.nanoTime() + ".part");
+                            Buffer buffer = Buffer.wrap(array);
+
+                            Buffer bufferCopy = buffer.duplicate();
+
+                            try {
+                                try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
+                                    bufferCopy.write(channel);
+                                }
+                                try {
+                                    Files.move(tempSegmentFile.toPath(), segmentFile.toPath(),
+                                            StandardCopyOption.ATOMIC_MOVE);
+                                } catch (AtomicMoveNotSupportedException e) {
+                                    Files.move(tempSegmentFile.toPath(), segmentFile.toPath());
+                                }
+                            } catch (Exception e) {
+                                printMessage(errWriter, "Error writing segment {0} to cache: {1} ", segmentId, e);
+                                e.printStackTrace(errWriter);
+                                try {
+                                    Files.deleteIfExists(segmentFile.toPath());
+                                    Files.deleteIfExists(tempSegmentFile.toPath());
+                                } catch (IOException i) {
+                                    printMessage(errWriter, "Error while deleting corrupted segment file {0} {1}",
+                                            segmentId, i);
+                                }
+                            }
+                            return null;
+                        }, 16, 5);
+                    }
+
+                    count++;
+                }
+            } catch (IOException | InterruptedException | ExecutionException e) {
+                watch.stop();
+                printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source,
+                        destination);
+                e.printStackTrace(errWriter);
+                return 1;
+            }
+        } else {
+            try {
+                if (srcPersistence == null || destPersistence == null) {
+                    srcPersistence = newSegmentNodeStorePersistence(srcType, source);
+                    destPersistence = newSegmentNodeStorePersistence(destType, destination);
+                }
+
+                printMessage(outWriter, "Started segment-copy transfer!");
+                printMessage(outWriter, "Source: {0}", srcDescription);
+                printMessage(outWriter, "Destination: {0}", destDescription);
+
+                SegmentStoreMigrator migrator = new SegmentStoreMigrator.Builder()
+                        .withSourcePersistence(srcPersistence, srcDescription)
+                        .withTargetPersistence(destPersistence, destDescription).withRevisionCount(revisionCount)
+                        .build();
+
+                migrator.migrate();
+
+            } catch (Exception e) {
+                watch.stop();
+                printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source,
+                        destination);
+                e.printStackTrace(errWriter);
+                return 1;
             }
 
-            printMessage(outWriter, "Started segment-copy transfer!");
-            printMessage(outWriter, "Source: {0}", srcDescription);
-            printMessage(outWriter, "Destination: {0}", destDescription);
-
-            SegmentStoreMigrator migrator = new SegmentStoreMigrator.Builder()
-                    .withSourcePersistence(srcPersistence, srcDescription)
-                    .withTargetPersistence(destPersistence, destDescription)
-                    .withRevisionCount(revisionCount)
-                    .build();
-
-            migrator.migrate();
-        } catch (Exception e) {
-            watch.stop();
-            printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source, destination);
-            e.printStackTrace(errWriter);
-            return 1;
         }
 
         watch.stop();

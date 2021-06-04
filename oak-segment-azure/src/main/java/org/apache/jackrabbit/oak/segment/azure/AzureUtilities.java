@@ -103,6 +103,8 @@ public final class AzureUtilities {
         StorageUri storageUri = new StorageUri(new URI(uri));
         CloudBlobContainer container = new CloudBlobContainer(storageUri, credentials);
 
+        container.createIfNotExists();
+
         return container.getDirectoryReference(dir);
     }
 

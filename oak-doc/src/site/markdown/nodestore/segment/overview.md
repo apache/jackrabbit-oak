@@ -678,7 +678,7 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 ### <a name="segment-copy"/> Segment-Copy
 ```
-java -jar oak-run.jar segment-copy SOURCE DESTINATION [--last <REV_COUNT>]
+java -jar oak-run.jar segment-copy SOURCE DESTINATION [--last <REV_COUNT>] [--flat] [--max-size-gb <MAX_SIZE_GB>]
 ```
 
 The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure or AWS Segment Store), saving the resulted Segment Store at `DESTINATION`. 
@@ -688,10 +688,14 @@ If `--last` option is present, the tool will start with the most recent revision
 `SOURCE` must be a valid path/uri to an existing Segment Store. 
 `DESTINATION` must be a valid path/uri for the resulting Segment Store. 
 
-The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be copied from the journal (default is 1).
-
 Both are specified as `PATH | cloud-prefix:URI`. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
+
+The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be copied from the journal (default is 1).
+
+The optional `--flat [Boolean]` argument can be specified for allowing the copy process to write the segments at `DESTINATION` in a flat hierarchy, that is without writing them in tar archives. 
+
+The optional `--max-size-gb <MAX_SIZE_GB>` argument can be used for specifying to copy up to `MAX_SIZE_GB` segments from `SOURCE`.
 
 To enable logging during segment copy a Logback configuration file has to be injected via the `logback.configurationFile` property.
 
@@ -801,11 +805,11 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact [--force] [--mmap] [--compactor] PATH | cloud-prefix:URI
+java -jar oak-run.jar compact [--force] [--mmap] [--compactor] SOURCE [--target-path DESTINATION] [--persistent-cache-path PERSISTENT_CACHE_PATH] [--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>]
 ```
 
-The `compact` command performs offline compaction of the local/remote Segment Store at `PATH`/`URI`. 
-`PATH`/`URI` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store and AWS Segment Store the supported remote Segment Stores. 
+The `compact` command performs offline compaction of the local/remote Segment Store at `SOURCE`. 
+`SOURCE` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store and AWS Segment Store the supported remote Segment Stores. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
 If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non 
@@ -819,6 +823,14 @@ mapped access is used on 64 bit systems and file access is used on 32 bit system
 Windows, regular file access is always enforced and this option is ignored.
 
 The optional `--compactor [String]` argument can be used to pick the compactor type to be used. Valid choices are *classic* and *diff*. While the former is slower, it might be more stable, due to lack of optimisations employed by the *diff* compactor which compacts the checkpoints on top of each other. If not specified, *diff* compactor is used.
+
+In order to speed up offline compaction for remote Segment Stores, three new options were introduced for configuring the destination segment store where compacted archives will be written and also to configure a persistent disk cache for speeding up segments reading during compaction. All three options detailed below **apply only for remote Segment Stores**.
+
+The required `--target-path DESTINATION` argument allows to specify a destination where compacted segments will be written. `DESTINATION` must be a valid path/uri for the new compacted Segment Store.
+
+The required `--persistent-cache-path PERSISTENT_CACHE_PATH` argument allows to specify the path for the persistent disk cache. `PERSISTENT_CACHE_PATH` must be a valid path.
+
+The optional `--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>` argument allows to limit the maximum size of the persistent disk cache to `<PERSISTENT_CACHE_SIZE_GB>`. If not specified, the default size will be limited to `50` GB.
 
 To enable logging during offline compaction a Logback configuration file has to be injected 
 via the `logback.configurationFile` property. In addition the `compaction-progress-log`
