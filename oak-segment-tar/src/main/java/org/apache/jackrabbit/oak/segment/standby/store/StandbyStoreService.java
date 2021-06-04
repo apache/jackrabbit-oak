@@ -134,6 +134,18 @@ public class StandbyStoreService {
                 description = "Validate the client's SSL certificate."
         )
         boolean sslValidateClient() default false;
+
+        @AttributeDefinition(
+            name = "SSL Server Certificate Subject Pattern",
+            description = "The server certificate subject must match this pattern in order to be accepted by the client."
+        )
+        String sslServerSubjectPattern();
+
+        @AttributeDefinition(
+            name = "SSL Client Certificate Subject Pattern",
+            description = "The client certificate subject must match this pattern in order to be accepted by the server."
+        )
+        String sslClientSubjectPattern();
     }
 
     @Reference(policy = STATIC, policyOption = GREEDY)
@@ -178,20 +190,21 @@ public class StandbyStoreService {
         String sslServerCert = config.sslCertificate();
         String sslServerChain = config.sslCertChain();
         boolean sslValidateClient = config.sslValidateClient();
+        String sslClientSubjectPattern = config.sslClientSubjectPattern();
 
         StandbyServerSync.Builder builder = StandbyServerSync.builder()
             .withPort(port)
             .withFileStore(fileStore)
             .withBlobChunkSize(BLOB_CHUNK_SIZE)
-            .withAllowedClientIPRanges(ranges)
-            .withSecureConnection(secure);
+            .withAllowedClientIPRanges(ranges);
 
         if (secure) {
             builder.withSecureConnection(true);
             if (sslServerCert != null && !"".equals(sslServerCert)) {
-                builder.withSSLCertificate(sslServerCert)
-                       .withSSLChain(sslServerChain)
-                       .withSSLClientValidation(sslValidateClient);
+                builder.withSSLKeyFile(sslServerCert)
+                       .withSSLChainFile(sslServerChain)
+                       .withSSLClientValidation(sslValidateClient)
+                       .withSSLClientSubjectPattern(sslClientSubjectPattern);
             }
         }
         StandbyServerSync standbyServerSync = builder.build();
@@ -203,25 +216,35 @@ public class StandbyStoreService {
     }
 
     private void bootstrapSecondary(ComponentContext context, Configuration config, FileStore fileStore) {
-        int port = config.port();
-        long interval = config.interval();
-        String host = config.primary_host();
-        boolean secure = config.secure();
-        int readTimeout = config.standby_readtimeout();
-        boolean clean = config.standby_autoclean();
-        String sslClientCert = config.sslCertificate();
-        String sslCertChain = config.sslCertChain();
 
-        StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()), sslClientCert, sslCertChain);
+        StandbyClientSync.Builder builder = StandbyClientSync.builder()
+            .withHost(config.primary_host())
+            .withPort(config.port())
+            .withFileStore(fileStore)
+            .withSecureConnection(config.secure())
+            .withReadTimeoutMs(config.standby_readtimeout())
+            .withAutoClean(config.standby_autoclean())
+            .withSpoolFolder(new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()))
+            ;
+
+        if (config.secure()) {
+            builder
+                .withSecureConnection(true)
+                .withSSLKeyFile(config.sslCertificate())
+                .withSSLChainFile(config.sslCertChain())
+                .withSSLServerSubjectPattern(config.sslClientSubjectPattern())
+            ;
+        }
+        StandbyClientSync standbyClientSync = builder.build();
         closer.register(standbyClientSync);
 
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
-        dictionary.put("scheduler.period", interval);
+        dictionary.put("scheduler.period", config.interval());
         dictionary.put("scheduler.concurrent", false);
         ServiceRegistration registration = context.getBundleContext().registerService(Runnable.class.getName(), standbyClientSync, dictionary);
         closer.register(registration::unregister);
 
-        log.info("Started standby on port {} with {}s sync frequency", port, interval);
+        log.info("Started standby on port {} with {}s sync frequency", config.port(), config.interval());
     }
 
 }

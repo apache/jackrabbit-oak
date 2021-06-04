@@ -45,6 +45,80 @@ import org.slf4j.LoggerFactory;
 
 public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnable, Closeable {
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+
+        private String host;
+        private int port;
+        private FileStore fileStore;
+        private boolean secure;
+        private int readTimeoutMs;
+        private boolean autoClean;
+        private File spoolFolder;
+        private String sslKeyFile;
+        private String sslChainFile;
+        private String sslServerSubjectPattern;
+
+        private Builder() {}
+
+        public Builder withHost(String host) {
+            this.host = host;
+            return this;
+        }
+
+        public Builder withPort(int port) {
+            this.port = port;
+            return this;
+        }
+
+        public Builder withFileStore(FileStore fileStore) {
+            this.fileStore = fileStore;
+            return this;
+        }
+
+        public Builder withSecureConnection(boolean secure) {
+            this.secure = secure;
+            return this;
+        }
+
+        public Builder withReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
+            return this;
+        }
+
+        public Builder withAutoClean(boolean autoClean) {
+            this.autoClean = autoClean;
+            return this;
+        }
+
+        public Builder withSpoolFolder(File spoolFolder) {
+            this.spoolFolder = spoolFolder;
+            return this;
+        }
+
+        public Builder withSSLKeyFile(String sslKeyFile) {
+            this.sslKeyFile = sslKeyFile;
+            return this;
+        }
+
+        public Builder withSSLChainFile(String sslChainFile) {
+            this.sslChainFile = sslChainFile;
+            return this;
+        }
+
+        public Builder withSSLServerSubjectPattern(String sslServerSubjectPattern) {
+            this.sslServerSubjectPattern = sslServerSubjectPattern;
+            return this;
+        }
+
+        public StandbyClientSync build() {
+            return new StandbyClientSync(this);
+        }
+    }
+
     public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
 
     private static final Logger log = LoggerFactory.getLogger(StandbyClientSync.class);
@@ -73,9 +147,11 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final AtomicBoolean active = new AtomicBoolean(false);
 
-    private final String sslCertificate;
+    private final String sslKeyFile;
 
-    private final String sslChain;
+    private final String sslChainFile;
+
+    private final String sslServerSubjectPattern;
 
     private int failedRequests;
 
@@ -99,24 +175,25 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         return s;
     }
 
-    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean, File spoolFolder, String sslCertificate, String sslChain) {
+    private StandbyClientSync(Builder builder) {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.syncStartTimestamp = -1;
         this.syncEndTimestamp = -1;
         this.failedRequests = 0;
-        this.host = host;
-        this.port = port;
-        this.secure = secure;
-        this.readTimeoutMs = readTimeoutMs;
-        this.autoClean = autoClean;
-        this.fileStore = store;
+        this.host = builder.host;
+        this.port = builder.port;
+        this.secure = builder.secure;
+        this.readTimeoutMs = builder.readTimeoutMs;
+        this.autoClean = builder.autoClean;
+        this.fileStore = builder.fileStore;
         this.observer = new CommunicationObserver(clientId());
         this.group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
         this.execution = new StandbyClientSyncExecution(fileStore, () -> running);
-        this.spoolFolder = spoolFolder;
-        this.sslCertificate = sslCertificate;
-        this.sslChain = sslChain;
+        this.spoolFolder = builder.spoolFolder;
+        this.sslKeyFile = builder.sslKeyFile;
+        this.sslChainFile = builder.sslChainFile;
+        this.sslServerSubjectPattern = builder.sslServerSubjectPattern;
         try {
             ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
@@ -167,7 +244,17 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
                 GCGeneration genBefore = headGeneration(fileStore);
 
-                try (StandbyClient client = new StandbyClient(host, port, group, observer.getID(), secure, readTimeoutMs, spoolFolder, sslCertificate, sslChain)) {
+                try (StandbyClient client = StandbyClient.builder()
+                     .withHost(host)
+                     .withPort(port)
+                     .withGroup(group)
+                     .withClientId(observer.getID())
+                     .withSecure(secure)
+                     .withReadTimeoutMs(readTimeoutMs)
+                     .withSpoolFolder(spoolFolder)
+                     .withSSLKeyFile(sslKeyFile)
+                     .withSSLChainFile(sslChainFile)
+                     .withSSLServerSubjectPattern(sslServerSubjectPattern).build()) {
                     execution.execute(client);
                 }
 

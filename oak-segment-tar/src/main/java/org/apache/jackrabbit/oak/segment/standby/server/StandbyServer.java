@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.RequestDecoder;
+import org.apache.jackrabbit.oak.segment.standby.netty.SSLSubjectMatcher;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,11 +107,13 @@ class StandbyServer implements AutoCloseable {
 
         private StandbyBlobReader standbyBlobReader;
 
-        private String sslCertificate;
+        private String sslKeyFile;
 
-        private String sslChain;
+        private String sslChainFile;
 
         private boolean sslClientValidation;
+
+        public String sslClientSubjectPattern;
 
         private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
@@ -158,18 +161,23 @@ class StandbyServer implements AutoCloseable {
             return this;
         }
 
-        Builder withSSLCertificate(String sslCertificate) {
-            this.sslCertificate = sslCertificate;
+        Builder withSSLKeyFile(String sslKeyFile) {
+            this.sslKeyFile = sslKeyFile;
             return this;
         }
 
-        Builder withSSLChain(String sslChain) {
-            this.sslChain = sslChain;
+        Builder withSSLChainFile(String sslChainFile) {
+            this.sslChainFile = sslChainFile;
             return this;
         }
 
         Builder withSSLClientValidation(boolean sslValidateClient) {
             this.sslClientValidation = sslValidateClient;
+            return this;
+        }
+
+        Builder withSSLClientSubjectPattern(String sslClientSubjectPattern) {
+            this.sslClientSubjectPattern = sslClientSubjectPattern;
             return this;
         }
 
@@ -203,8 +211,8 @@ class StandbyServer implements AutoCloseable {
         this.port = builder.port;
 
         if (builder.secure) {
-            if (builder.sslCertificate != null && !"".equals(builder.sslCertificate)) {
-                sslContext = SslContextBuilder.forServer(new File(builder.sslChain), new File(builder.sslCertificate)).build();
+            if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
+                sslContext = SslContextBuilder.forServer(new File(builder.sslChainFile), new File(builder.sslKeyFile)).build();
             } else {
                 SelfSignedCertificate ssc = new SelfSignedCertificate();
                 sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
@@ -235,6 +243,10 @@ class StandbyServer implements AutoCloseable {
                     SslHandler handler = sslContext.newHandler(ch.alloc());
                     handler.engine().setNeedClientAuth(builder.sslClientValidation);
                     p.addLast("ssl", handler);
+                }
+
+                if (builder.sslClientSubjectPattern != null) {
+                    p.addLast(new SSLSubjectMatcher(builder.sslClientSubjectPattern));
                 }
 
                 // Decoders
