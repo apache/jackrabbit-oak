@@ -193,7 +193,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         if (uri == null || name == null) {
             throw new IllegalStateException("Cannot create MongoDB client without 'uri' or 'name'");
         }
-        return newMongoDBConnection(uri, name, mongoClock, socketTimeout, socketKeepAlive);
+        return newMongoDBConnection(uri, name, mongoClock, socketTimeout);
     }
 
     private T setMongoDB(@NotNull MongoDBConnection client,

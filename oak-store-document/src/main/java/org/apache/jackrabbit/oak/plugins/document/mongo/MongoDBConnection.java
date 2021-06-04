@@ -61,12 +61,10 @@ final class MongoDBConnection {
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
                                                   @NotNull String name,
                                                   @NotNull MongoClock clock,
-                                                  int socketTimeout,
-                                                  boolean socketKeepAlive) {
+                                                  int socketTimeout) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
         options.addServerMonitorListener(serverMonitorListener);
-        options.socketKeepAlive(socketKeepAlive);
         if (socketTimeout > 0) {
             options.socketTimeout(socketTimeout);
         }

@@ -68,6 +68,7 @@ final class DocumentNodeStoreServiceConfiguration {
      */
     private static final String FWK_PROP_DB = "oak.mongo.db";
 
+    /**
      * Name of framework property to configure socket timeout for lease update
      * operations on MongoDB.
      */
