@@ -125,7 +125,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     }
 
     //------------------------------------------------------------< private >---
-    private void validateNext(PrivilegeBits bits) throws CommitFailedException {
+    private void validateNext(@NotNull PrivilegeBits bits) throws CommitFailedException {
         PrivilegeBits next = PrivilegeBits.getInstance(getPrivilegesTree(rootAfter).getProperty(REP_NEXT));
         if (!next.equals(bits.nextBits())) {
             throw new CommitFailedException(CONSTRAINT, 43, "Next bits not updated");
@@ -133,7 +133,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     }
 
     @NotNull
-    private Tree getPrivilegesTree(Root root) throws CommitFailedException {
+    private static Tree getPrivilegesTree(@NotNull Root root) throws CommitFailedException {
         Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
         if (!privilegesTree.exists()) {
             throw new CommitFailedException(CONSTRAINT, 44, "Privilege store not initialized.");
@@ -155,19 +155,19 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
      *          If any of
      *          the checks listed above fails.
      */
-    private void validateDefinition(Tree definitionTree) throws CommitFailedException {
+    private void validateDefinition(@NotNull Tree definitionTree) throws CommitFailedException {
         PrivilegeBits newBits = PrivilegeBits.getInstance(definitionTree);
         if (newBits.isEmpty()) {
             throw new CommitFailedException(CONSTRAINT, 48, "PrivilegeBits are missing.");
         }
 
-        Set<String> privNames = bitsProvider.getPrivilegeNames(newBits);
+        Set<String> privilegeNames = bitsProvider.getPrivilegeNames(newBits);
         PrivilegeDefinition definition = PrivilegeUtil.readDefinition(definitionTree);
         Set<String> declaredNames = definition.getDeclaredAggregateNames();
 
         // non-aggregate privilege
         if (declaredNames.isEmpty()) {
-            if (!privNames.isEmpty()) {
+            if (!privilegeNames.isEmpty()) {
                 throw new CommitFailedException(CONSTRAINT, 49, "PrivilegeBits already in used.");
             }
             validateNext(newBits);
@@ -180,7 +180,16 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         }
 
         // aggregation of >1 privileges
-        Map<String, PrivilegeDefinition> definitions = new PrivilegeDefinitionReader(rootBefore).readDefinitions();
+        validateAggregation(definition.getName(), declaredNames, new PrivilegeDefinitionReader(rootBefore).readDefinitions());
+
+        PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[0]));
+        if (!newBits.equals(aggrBits)) {
+            throw new CommitFailedException(CONSTRAINT, 53, "Invalid privilege bits for aggregated privilege definition.");
+        }
+    }
+    
+    private static void validateAggregation(@NotNull String definitionName, @NotNull Set<String> declaredNames , 
+                                            @NotNull Map<String, PrivilegeDefinition> definitions) throws CommitFailedException {
         for (String aggrName : declaredNames) {
             // aggregated privilege not registered
             if (!definitions.containsKey(aggrName)) {
@@ -188,7 +197,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
             }
 
             // check for circular aggregation
-            if (isCircularAggregation(definition.getName(), aggrName, definitions)) {
+            if (isCircularAggregation(definitionName, aggrName, definitions)) {
                 String msg = "Detected circular aggregation within custom privilege caused by " + aggrName;
                 throw new CommitFailedException(CONSTRAINT, 52, msg);
             }
@@ -203,29 +212,24 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
             // test for exact same aggregation or aggregation with the same net effect
             if (declaredNames.equals(existingDeclared) || aggregateNames.equals(resolveAggregates(existingDeclared, definitions))) {
-                String msg = "Custom aggregate privilege '" + definition.getName() + "' is already covered by '" + existing.getName() + '\'';
+                String msg = "Custom aggregate privilege '" + definitionName + "' is already covered by '" + existing.getName() + '\'';
                 throw new CommitFailedException(CONSTRAINT, 53, msg);
             }
         }
-
-        PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[0]));
-        if (!newBits.equals(aggrBits)) {
-            throw new CommitFailedException(CONSTRAINT, 53, "Invalid privilege bits for aggregated privilege definition.");
-        }
     }
 
-    private static boolean isCircularAggregation(String privilegeName, String aggregateName,
-                                                 Map<String, PrivilegeDefinition> definitions) {
+    private static boolean isCircularAggregation(@NotNull String privilegeName, @NotNull String aggregateName,
+                                                 @NotNull Map<String, PrivilegeDefinition> definitions) {
         if (privilegeName.equals(aggregateName)) {
             return true;
         }
 
-        PrivilegeDefinition aggrPriv = definitions.get(aggregateName);
-        if (aggrPriv.getDeclaredAggregateNames().isEmpty()) {
+        PrivilegeDefinition aggrDefinition = definitions.get(aggregateName);
+        if (aggrDefinition.getDeclaredAggregateNames().isEmpty()) {
             return false;
         } else {
             boolean isCircular = false;
-            for (String name : aggrPriv.getDeclaredAggregateNames()) {
+            for (String name : aggrDefinition.getDeclaredAggregateNames()) {
                 if (privilegeName.equals(name)) {
                     return true;
                 }
@@ -237,7 +241,8 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         }
     }
 
-    private static Set<String> resolveAggregates(Set<String> declared, Map<String, PrivilegeDefinition> definitions) throws CommitFailedException {
+    @NotNull
+    private static Set<String> resolveAggregates(@NotNull Set<String> declared, @NotNull Map<String, PrivilegeDefinition> definitions) throws CommitFailedException {
         Set<String> aggregateNames = new HashSet<>();
         for (String name : declared) {
             PrivilegeDefinition d = definitions.get(name);

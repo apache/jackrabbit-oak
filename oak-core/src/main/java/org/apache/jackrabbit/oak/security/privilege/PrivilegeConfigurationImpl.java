@@ -46,7 +46,7 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
     //---------------------------------------------< PrivilegeConfiguration >---
     @NotNull
     @Override
-    public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
+    public PrivilegeManager getPrivilegeManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new PrivilegeManagerImpl(root, namePathMapper);
     }
 
