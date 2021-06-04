@@ -97,7 +97,15 @@ public class SlowServerIT {
             // binary is requested, the delay on the server guarantees that the
             // timeout on the client will expire.
 
-            StandbyClientSync client = new StandbyClientSync("localhost", serverPort.getPort(), secondary, false, 1000, false, folder.newFolder())
+            StandbyClientSync client = StandbyClientSync.builder()
+                .withHost("localhost")
+                .withPort(serverPort.getPort())
+                .withFileStore(secondary)
+                .withSecureConnection(false)
+                .withReadTimeoutMs(1000)
+                .withAutoClean(false)
+                .withSpoolFolder(folder.newFolder())
+                .build()
         ) {
             server.start();
             client.run();
