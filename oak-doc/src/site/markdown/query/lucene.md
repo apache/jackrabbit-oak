@@ -408,6 +408,14 @@ nodeScopeIndex
   explicit property definition provided then it would only be included if
   `nodeScopeIndex` is set to true.
 
+  Note : If an index definition consists of any property with nodeScopeIndex set to
+  true, then it will index the node name for all the nodes (with node type
+  matching to or a child type of the one defined in the indexRule).
+  This could result in large index size in case of indexRules on broader node types such as nt:base.
+
+  So it's advisable to use nodeScopeIndex for broader node types only if it's absolutely
+  needed to support queries like _jcr:contains(., 'foo')_
+
 analyzed
 : Set this to true if the property is used as part of `contains`. Example
     * _//element(*, app:Asset)[jcr:contains(type, 'image')]_
