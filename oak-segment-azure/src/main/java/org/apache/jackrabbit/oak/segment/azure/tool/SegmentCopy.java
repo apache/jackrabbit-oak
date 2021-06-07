@@ -89,9 +89,9 @@ public class SegmentCopy {
 
         private Integer revisionsCount = Integer.MAX_VALUE;
 
-        private Boolean flat;
+        private Boolean flat = false;
 
-        private Integer maxSizeGb;
+        private Integer maxSizeGb = 1;
 
         private Builder() {
             // Prevent external instantiation.
