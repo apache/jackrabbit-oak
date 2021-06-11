@@ -43,8 +43,14 @@
       <mime>image/tiff</mime>
       <mime>image/vnd.wap.wbmp</mime>
       <mime>image/x-icon</mime>
-      <mime>image/x-psd</mime>
       <mime>image/x-xcf</mime>
+      <!-- Disable all PSDd mimes -->
+      <mime>application/photoshop</mime>
+      <mime>application/psd</mime>
+      <mime>application/x-photoshop</mime>
+      <mime>image/psd</mime>
+      <mime>image/vnd.adobe.photoshop</mime>
+      <mime>image/x-psd</mime>
     </parser>
   </parsers>
   <service-loader initializableProblemHandler="ignore" dynamic="true"/>
