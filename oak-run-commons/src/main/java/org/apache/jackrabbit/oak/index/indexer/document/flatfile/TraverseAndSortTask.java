@@ -129,7 +129,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
     private void writeToSortedFiles() throws IOException {
         Stopwatch w = Stopwatch.createStarted();
         for (NodeStateEntry e : nodeStates) {
-            if (e.getLastModified() == lastModifiedUpperBound) {
+            if (e.getLastModified() >= lastModifiedUpperBound) {
                 break;
             }
             entryCount++;
