@@ -23,7 +23,6 @@ import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

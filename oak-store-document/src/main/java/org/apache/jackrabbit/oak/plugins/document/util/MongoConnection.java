@@ -34,7 +34,6 @@ import com.mongodb.client.MongoDatabase;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.mongodb.event.ClusterListener;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoClusterListener;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
