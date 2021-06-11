@@ -80,6 +80,7 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreRemovesMixin <!-- OAK-9459 -->
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest
       org.apache.jackrabbit.test.api.version.MergeCheckedoutSubNodeTest
