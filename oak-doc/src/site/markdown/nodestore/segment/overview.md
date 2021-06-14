@@ -46,7 +46,7 @@ Oak Segment Tar is an Oak storage backend that stores content as various types o
 
   * *Locality*. Segments are written so that related records, like a node and its immediate children, usually end up stored in the same segment. This makes tree traversals very fast and avoids most cache misses for typical clients that access more than one related node per session.
 
-The content tree and all its revisions are stored in a collection of immutable *records* within *segments*. Each segment is identified by a UUID and typically contains a continuous subset of the content tree, for example a node with its properties and closest child nodes. Some segments might also be used to store commonly occurring property values or other shared data. Segments can be to up to 256KiB in size. See [Segments and records](records.html) for a detailed description of the segments and records. 
+The content tree and all its revisions are stored in a collection of immutable *records* within *segments*. Each segment is identified by a UUID and typically contains a continuous subset of the content tree, for example a node with its properties and closest child nodes. Some segments might also be used to store commonly occurring property values or other shared data. Segments can be up to 256KiB in size. See [Segments and records](records.html) for a detailed description of the segments and records. 
 
 Segments are collectively stored in *tar files* and check-summed to ensure their integrity. Tar files also contain an index of the tar segments, the graph of segment references of all segments it contains and an index of all external binaries referenced from the segments in the tar file. See [Structure of TAR files](tar.html) for details.
  
@@ -278,7 +278,7 @@ TarMK GC #2: compaction interrupted
 
 ##### <a name="how-does-compaction-deal-with-checkpoints"/> How does compaction deal with checkpoints?
 
-Since checkpoints share a lot of common data between themselves and between the actual content compaction handles them individually deduplicating as much content as possible. The following messages will be printed to the log during the process.
+Since checkpoints share a lot of common data between themselves and between the actual content, compaction handles them individually, deduplicating as much content as possible. The following messages will be printed to the log during the process.
 
 ```
 TarMK GC #2: Found checkpoint 4b2ee46a-d7cf-45e7-93c3-799d538f85e6 created at Wed Nov 29 15:31:43 CET 2017.
