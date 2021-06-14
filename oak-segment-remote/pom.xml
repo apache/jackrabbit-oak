@@ -46,6 +46,7 @@
               </Import-Package>
               <Export-Package>
               	org.apache.jackrabbit.oak.segment.remote,
+                org.apache.jackrabbit.oak.segment.remote.persistentcache,
               	org.apache.jackrabbit.oak.segment.remote.queue
               </Export-Package>
               <Embed-Dependency>
