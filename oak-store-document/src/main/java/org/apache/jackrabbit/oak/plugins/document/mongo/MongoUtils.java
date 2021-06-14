@@ -41,7 +41,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Provides static utility methods for MongoDB.
  */
-public class MongoUtils {
+class MongoUtils {
 
     /**
      * Forces creation of an index on a field, if one does not already exist.
