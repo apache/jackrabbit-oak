@@ -58,10 +58,19 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
+/**
+ * A callable representing a task for traversing/downloading the nodes states from the node store and creating sorted files
+ * based on the downloaded data.
+ */
 class TraverseAndSortTask implements Callable<List<File>> {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
+    /**
+     * Iterable over the nodeStates this task is supposed to traverse. Note that the iteration could stop without traversing
+     * all the node states from this iterable, if this task decides to split up and offer some of its work to another
+     * {@link TraverseAndSortTask}
+     */
     private final Iterable<NodeStateEntry> nodeStates;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
@@ -79,12 +88,25 @@ class TraverseAndSortTask implements Callable<List<File>> {
     private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
+    /**
+     * Queue to which the {@link #taskID} of completed tasks is added.
+     */
     private final Queue<String> completedTasks;
+    /**
+     * Queue to which any newly created tasks should be added. New tasks are created when this task decides it needs to split up.
+     */
     private final Queue<Callable<List<File>>> newTasksQueue;
+    /**
+     * {@link Phaser} used to signal the creation and completion events of this task. Task is registered to this phaser inside the
+     * constructor itself, so that it is not possible to have any created task which is not registered to this phaser.
+     */
     private final Phaser phaser;
+    /**
+     * The node states which have a last modified time greater than or equal to this would not be considered by this task.
+     */
     private long lastModifiedUpperBound;
     private final BlobStore blobStore;
-    private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
+    private final NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
 
     TraverseAndSortTask(NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
@@ -154,11 +176,17 @@ class TraverseAndSortTask implements Callable<List<File>> {
             reset();
         }
 
-        if (lastModifiedUpperBound - e.getLastModified() > 1) {
+        long remainingNumberOfNodeStates = lastModifiedUpperBound - e.getLastModified();
+        // check if this task can be split
+        if (remainingNumberOfNodeStates > 1) {
             long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
+            /*
+              If there is a completed task, there is a chance of some worker thread being idle, so we create a new task from
+              the current task. To split, we reduce the traversal upper bound for this task and pass on the node states from
+              the new upper bound to the original upper bound to a new task.
+             */
             if (completedTasks.poll() != null) {
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
-                //newTasksQueue.add(new LastModifiedRange(splitPoint, this.lastModifiedUpperBound));
                 newTasksQueue.add(new TraverseAndSortTask(nodeStateEntryTraverserFactory.create(new LastModifiedRange(splitPoint,
                         this.lastModifiedUpperBound)), comparator, blobStore, storeDir, compressionEnabled, completedTasks,
                         newTasksQueue, phaser, nodeStateEntryTraverserFactory));

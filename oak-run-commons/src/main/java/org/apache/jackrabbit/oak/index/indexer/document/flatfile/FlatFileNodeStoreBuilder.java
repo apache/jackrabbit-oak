@@ -42,7 +42,6 @@ public class FlatFileNodeStoreBuilder {
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    //private final List<NodeStateEntryTraverser> nodeStatesProviders;
     private final List<Long> lastModifiedBreakPoints;
     private final File workDir;
     private File existingDataDumpDir;

@@ -49,22 +49,54 @@ import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
+/**
+ * This class implements a sort strategy where node store is concurrently traversed for downloading node states by
+ * multiple threads (number of threads is configurable via java system property <code>dataDumpThreadPoolSize</code>).
+ * The traverse/download and sort tasks are submitted to an executor service. Each of those tasks create some sorted files which
+ * are then merged (sorted) into one.
+ */
 public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Charset charset = UTF_8;
     private final boolean compressionEnabled;
+    /**
+     * Directory where sorted files will be created.
+     */
     private final File storeDir;
+    /**
+     * Comparator used for comparing node states for creating sorted files.
+     */
     private final Comparator<NodeStateHolder> comparator;
     private final ConcurrentLinkedQueue<File> sortedFiles;
-    private final ConcurrentLinkedQueue<String> completedTasks;
+    /**
+     * Queue for traverse/download and sort tasks. After an initial creation of tasks, new tasks could be added to this queue
+     * dynamically as already executing tasks decide to split up to provide more tasks for possibly idle threads.
+     */
     private final BlockingQueue<Callable<List<File>>> taskQueue;
+    /**
+     * Phaser used for coordination with the traverse/download and sort tasks. All created tasks must register to this phaser
+     * in the phase {@link Phases#WAITING_FOR_TASK_SPLITS}. If a task is created after this phase has advanced, its results
+     * may get lost.
+     */
     private final Phaser phaser;
-    private final BlobStore blobStore;
+    /**
+     * This poison pill is added to {@link #taskQueue} to indicate that no more new tasks would be submitted to this queue.
+     */
     private static final Callable<List<File>> POISON_PILL = () -> null;
 
+    /**
+     * Indicates the various phases of {@link #phaser}
+     */
     private enum Phases {
+        /**
+         * This phase indicates we are in a state where new traverse/download and sort tasks could be created. After this
+         * phase advances we don't expect any more new traverse/download and sort tasks to be created.
+         */
         WAITING_FOR_TASK_SPLITS(0),
+        /**
+         * This phase indicates we are waiting for results from previously created tasks.
+         */
         WAITING_FOR_RESULTS(1);
 
         private final int value;
@@ -78,6 +110,21 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
         }
     }
 
+    /**
+     * Constructor.
+     * @param nodeStateEntryTraverserFactory factory class for creating {@link NodeStateEntryTraverser}s.
+     * @param lastModifiedBreakPoints list of last modified values. We create initial {@link NodeStateEntryTraverser}s based
+     *                                on entries in this list. For every pair of valid indices (i, i+1) of this list, we create
+     *                                a traverser whose lower limit is the last modified value at index i and upper limit is
+     *                                the last modified value at index i+1. For the last entry of this list, we create a traverser
+     *                                with lower limit equal to that value and upper limit equal to {@link Long#MAX_VALUE}.
+     * @param pathComparator comparator used to help with sorting of node state entries.
+     * @param blobStore blob store
+     * @param storeDir Directory where sorted files will be created.
+     * @param existingDataDumpDir directory containing files from a previous incomplete run (which need to be merged with the results
+     *                            from current run, if the current run has resumed from the point where previous run stopped)
+     * @param compressionEnabled if true, the created files would be compressed
+     */
     MultithreadedTraversalWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                            List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                            BlobStore blobStore, File storeDir, File existingDataDumpDir,
@@ -93,9 +140,7 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
             }
         }
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
-        this.blobStore = blobStore;
         taskQueue = new LinkedBlockingQueue<>();
-        completedTasks = new ConcurrentLinkedQueue<>();
         phaser = new Phaser() {
             @Override
             protected boolean onAdvance(int phase, int registeredParties) {
@@ -103,6 +148,12 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
                 return phase == Phases.WAITING_FOR_RESULTS.value && registeredParties == 0;
             }
         };
+        createInitialTasks(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, blobStore);
+    }
+
+    private void createInitialTasks(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
+                                    List<Long> lastModifiedBreakPoints, BlobStore blobStore) {
+        ConcurrentLinkedQueue<String> completedTasks = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < lastModifiedBreakPoints.size(); i++) {
             long start = lastModifiedBreakPoints.get(i);
             long end = i < lastModifiedBreakPoints.size() - 1 ? lastModifiedBreakPoints.get(i+1) : Long.MAX_VALUE;
@@ -153,10 +204,20 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
         return sortedFile;
     }
 
+    /**
+     * Class responsible for -
+     * <ol>
+     *     <li>Watching {@link #taskQueue} for new tasks</li>
+     *     <li>Submitting those tasks to an {@link ExecutorService}</li>
+     *     <li>Collecting the results (sorted files) created by those tasks into one place</li>
+     * </ol>
+     */
     private class TaskRunner implements Runnable {
 
         private final ExecutorService executorService;
-        private final int threadPoolSize = Integer.parseInt(System.getProperty("dataDumpThreadPoolSize", "4"));//Runtime.getRuntime().availableProcessors();
+        private static final String DEFAULT_NUMBER_OF_THREADS = "4";
+        private static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
+        private final int threadPoolSize = Integer.parseInt(System.getProperty(PROP_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_THREADS));
 
         public TaskRunner() {
             this.executorService = Executors.newFixedThreadPool(threadPoolSize);
