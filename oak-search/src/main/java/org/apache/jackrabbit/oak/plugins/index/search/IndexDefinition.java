@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -179,6 +180,19 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
             OrderEntry.Order.DESCENDING);
 
+    /**
+     * Dynamic boost uses index time boosting. This requires to have a separate field for each unique term that needs to
+     * be boosted. With a high number of terms (thousands), this could result in a sparse index that requires extra disk
+     * space. Usually, dynamicBoost and similarityTags are configured on the same field. In this case, similarityTags
+     * work on the same set of terms without the need to store boost values. This does not affect the index size. With
+     * oak.search.dynamicBoostLite=lucene no index time boosting is used for lucene types indexes. The terms will affect
+     * the query match clause but the scores won't be the same. In summary, in lite mode the query will have the same
+     * recall but lower precision.
+     */
+    private final static String DYNAMIC_BOOST_LITE_NAME = "oak.search.dynamicBoostLite";
+    protected final static List<String> DYNAMIC_BOOST_LITE =
+            Arrays.asList(System.getProperty(DYNAMIC_BOOST_LITE_NAME, "").split(","));
+
     protected final boolean fullTextEnabled;
 
     protected final NodeState definition;
@@ -266,6 +280,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     private final boolean deprecated;
 
     private final boolean testMode;
+
+    private final boolean dynamicBoostLite;
 
     /**
      * See {@link FulltextIndexConstants#PROP_VALUE_REGEX}
@@ -440,6 +456,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
             this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
             this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
+            this.dynamicBoostLite = getOptionalValue(defn, "dynamicBoostLite",
+                    defn.getProperty("type") != null &&
+                            DYNAMIC_BOOST_LITE.contains(defn.getProperty("type").getValue(Type.STRING))
+            );
         } catch (IllegalStateException e) {
             log.error("Config error for index definition at {} . Please correct the index definition "
                     + "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
@@ -469,6 +489,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return true;
+    }
+
+    public boolean isDynamicBoostLiteEnabled() {
+        return dynamicBoostLite;
     }
 
     public boolean isFullTextEnabled() {

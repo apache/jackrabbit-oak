@@ -128,6 +128,20 @@ public class DynamicBoostTest extends AbstractQueryTest {
                         "]", log);
     }
 
+    @Test public void withDynamicBoostLite() throws Exception {
+        NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
+        Tree props = createIndex("dam:Asset", true);
+        Tree pt = createNodeWithType(props, "predictedTags", UNSTRUCTURED);
+        pt.setProperty("name", "jcr:content/metadata/predictedTags/.*");
+        pt.setProperty("isRegexp", true);
+        pt.setProperty("dynamicBoost", true);
+        pt.setProperty("propertyIndex", true);
+        root.commit();
+
+        String log = runTest(LuceneDocumentMaker.class, true);
+        assertEquals("[]", log);
+    }
+
     @Test public void withDynamicBoostMissingProperty() throws Exception {
         NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
         Tree props = createIndex("dam:Asset");
@@ -215,9 +229,14 @@ public class DynamicBoostTest extends AbstractQueryTest {
     }
 
     private Tree createIndex(String nodeType) throws Exception {
+        return createIndex(nodeType, false);
+    }
+
+    private Tree createIndex(String nodeType, boolean lite) throws Exception {
         Tree rootTree = root.getTree("/");
         Tree index = createTestIndexNode(rootTree, LuceneIndexConstants.TYPE_LUCENE);
         index.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        index.setProperty("dynamicBoostLite", lite);
         return TestUtil.newRulePropTree(index, nodeType);
     }
 
