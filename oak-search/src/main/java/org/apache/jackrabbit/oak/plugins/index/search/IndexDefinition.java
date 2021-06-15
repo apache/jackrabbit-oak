@@ -79,10 +79,12 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DYNAMIC_BOOST_LITE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.*;
 import static org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
@@ -456,9 +458,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
             this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
             this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
-            this.dynamicBoostLite = getOptionalValue(defn, "dynamicBoostLite",
-                    defn.getProperty("type") != null &&
-                            DYNAMIC_BOOST_LITE.contains(defn.getProperty("type").getValue(Type.STRING))
+            this.dynamicBoostLite = getOptionalValue(defn, DYNAMIC_BOOST_LITE_PROPERTY_NAME,
+                    defn.getProperty(TYPE_PROPERTY_NAME) != null &&
+                            DYNAMIC_BOOST_LITE.contains(defn.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING))
             );
         } catch (IllegalStateException e) {
             log.error("Config error for index definition at {} . Please correct the index definition "
