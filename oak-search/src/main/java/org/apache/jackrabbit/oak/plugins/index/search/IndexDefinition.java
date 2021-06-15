@@ -607,10 +607,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return maxExtractLength;
     }
 
-    public String getScorerProviderName() {
-        return scorerProviderName;
-    }
-
     public PathFilter getPathFilter() {
         return pathFilter;
     }
@@ -1683,7 +1679,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Iterable<String> getMixinTypeNames(NodeState state) {
         PropertyState property = state.getProperty(JcrConstants.JCR_MIXINTYPES);
-        return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
+        return property != null ? property.getValue(Type.NAMES) : Collections.emptyList();
     }
 
     private static boolean hasOrderableChildren(NodeState state){

@@ -194,14 +194,14 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
     private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
-    private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    private final static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
     public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
     private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
     public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
     private final boolean CACHE_FACET_RESULTS =
             Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
 
-    private static double MIN_COST = 2.1;
+    private final static double MIN_COST = 2.1;
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
     private static final Logger LOG = LoggerFactory

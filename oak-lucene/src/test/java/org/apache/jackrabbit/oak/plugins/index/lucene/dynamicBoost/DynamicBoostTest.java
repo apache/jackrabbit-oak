@@ -206,13 +206,13 @@ public class DynamicBoostTest extends AbstractQueryTest {
 
             // we try with an array:
             t.getParent().setProperty("updateCount", 5);
-            t.setProperty("confidence", new ArrayList<String>(), Type.STRINGS);
+            t.setProperty("confidence", new ArrayList<>(), Type.STRINGS);
             root.commit();
 
             // we try with an array:
             if (nameProperty) {
                 t.getParent().setProperty("updateCount", 6);
-                t.setProperty("name", new ArrayList<String>(), Type.STRINGS);
+                t.setProperty("name", new ArrayList<>(), Type.STRINGS);
                 root.commit();
             }
 

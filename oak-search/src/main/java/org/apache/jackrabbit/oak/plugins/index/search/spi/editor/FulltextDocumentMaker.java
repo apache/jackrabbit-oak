@@ -224,7 +224,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in "
                             + "path {}",
                     getIndexName(),
-                    Type.fromTag(idxDefinedTag, false), property.toString(),
+                    Type.fromTag(idxDefinedTag, false), property,
                     Type.fromTag(tag, false), path);
             tag = idxDefinedTag;
         }
@@ -373,7 +373,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     "[{}] Ordered property defined with type {} differs from property {} with type {} in "
                             + "path {}",
                     getIndexName(),
-                    Type.fromTag(idxDefinedTag, false), property.toString(),
+                    Type.fromTag(idxDefinedTag, false), property,
                     Type.fromTag(tag, false), path);
             tag = idxDefinedTag;
         }
