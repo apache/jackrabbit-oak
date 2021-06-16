@@ -326,7 +326,7 @@ public class IndexCommand implements Command {
 
     private IndexerSupport createIndexerSupport(ExtendedIndexHelper extendedIndexHelper, String checkpoint) {
         IndexerSupport indexerSupport = new IndexerSupport(extendedIndexHelper, checkpoint)
-                .withModifiedSince(indexOpts.modifiedSince()).withExistingDataDumpDir(indexOpts.getExistingDataDumpDir());
+                .withExistingDataDumpDir(indexOpts.getExistingDataDumpDir());
 
         File definitions = indexOpts.getIndexDefinitionsFile();
         if (definitions != null) {

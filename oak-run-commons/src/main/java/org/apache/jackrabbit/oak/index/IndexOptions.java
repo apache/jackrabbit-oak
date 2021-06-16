@@ -58,7 +58,6 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<String> indexPaths;
     private final OptionSpec<String> checkpoint;
     private final Set<String> operationNames;
-    private final OptionSpec<Long> modifiedSince;
     private final OptionSpec<File> existingDataDumpDirOpt;
 
 
@@ -104,8 +103,6 @@ public class IndexOptions implements OptionsBean {
         //Set of options which define action
         actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
         operationNames = collectionOperationNames(actionOpts);
-        modifiedSince = parser.accepts("modified-since", "The last modified (_modified) value of document(s) from which" +
-                " indexing needs to start.").withRequiredArg().ofType(Long.class).defaultsTo(0L);
         existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing mongo document dumps from previous incomplete run")
                 .withRequiredArg().ofType(File.class);
     }
@@ -183,10 +180,6 @@ public class IndexOptions implements OptionsBean {
 
     public int consistencyCheckLevel(){
         return consistencyCheck.value(options);
-    }
-
-    public long modifiedSince() {
-        return modifiedSince.value(options);
     }
 
     public boolean isReindex() {

@@ -66,7 +66,6 @@ public class IndexerSupport {
     private File localIndexDir;
     private File indexDefinitions;
     private String checkpoint;
-    private long modifiedSince;
     private File existingDataDumpDir;
 
     public IndexerSupport(IndexHelper indexHelper, String checkpoint) {
@@ -74,18 +73,9 @@ public class IndexerSupport {
         this.checkpoint = checkpoint;
     }
 
-    public IndexerSupport withModifiedSince(long modifiedSince) {
-        this.modifiedSince = modifiedSince;
-        return this;
-    }
-
     public IndexerSupport withExistingDataDumpDir(File existingDataDumpDir) {
         this.existingDataDumpDir = existingDataDumpDir;
         return this;
-    }
-
-    public long getModifiedSince() {
-        return modifiedSince;
     }
 
     public File getExistingDataDumpDir() {

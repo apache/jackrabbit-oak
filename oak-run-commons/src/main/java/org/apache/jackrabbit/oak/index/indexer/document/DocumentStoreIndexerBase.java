@@ -147,7 +147,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
         DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
-        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, indexerSupport.getModifiedSince() ,10);
+        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
         //TODO Use flatFileStore only if we have relative nodes to be indexed
