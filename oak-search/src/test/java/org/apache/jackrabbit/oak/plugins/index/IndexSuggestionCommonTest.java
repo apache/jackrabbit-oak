@@ -444,6 +444,35 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         });
     }
 
+    @Test
+    public void testDuplicateSuggestions() throws Exception {
+        String nodeType = JcrConstants.NT_UNSTRUCTURED;
+        String suggestProp1 = "des";
+
+        createSuggestIndex("index-suggest", nodeType, suggestProp1);
+
+        Node indexedNode = root.addNode("indexedNode", nodeType);
+        indexedNode.setProperty(suggestProp1, "Hello World");
+        indexedNode = root.addNode("indexedNode2", nodeType);
+        indexedNode.setProperty(suggestProp1, "Hello World");
+        indexedNode = root.addNode("indexedNode3", nodeType);
+        indexedNode.setProperty(suggestProp1, "Hello Oak");
+
+        session.save();
+
+        String suggQuery = createSuggestQuery(nodeType, "Hello");
+        QueryManager queryManager = session.getWorkspace().getQueryManager();
+        assertEventually(() -> {
+            try {
+                List<String> resultSet = getAllResults(queryManager, suggQuery);
+                assertEquals("There should not be any duplicate suggestions.",
+                        2, resultSet.size());
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     private static void assertEventually(Runnable r) {
         TestUtils.assertEventually(r, 3000 * 3);
     }
