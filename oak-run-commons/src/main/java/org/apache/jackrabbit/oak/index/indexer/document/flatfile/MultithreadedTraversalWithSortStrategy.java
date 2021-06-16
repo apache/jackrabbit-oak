@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -29,9 +30,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -44,6 +50,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
@@ -117,28 +124,23 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
      *                                on entries in this list. For every pair of valid indices (i, i+1) of this list, we create
      *                                a traverser whose lower limit is the last modified value at index i and upper limit is
      *                                the last modified value at index i+1. For the last entry of this list, we create a traverser
-     *                                with lower limit equal to that value and upper limit equal to {@link Long#MAX_VALUE}.
+     *                                with lower limit equal to that value and upper limit equal to {@link Long#MAX_VALUE}. NOTE -
+     *                                This parameter is only read when {@code existingDataDumpDir} parameter is null.
      * @param pathComparator comparator used to help with sorting of node state entries.
      * @param blobStore blob store
      * @param storeDir Directory where sorted files will be created.
      * @param existingDataDumpDir directory containing files from a previous incomplete run (which need to be merged with the results
-     *                            from current run, if the current run has resumed from the point where previous run stopped)
+     *                            from current run, if the current run has resumed from the point where previous run stopped). If this
+     *                            is not null, the {@code lastModifiedBreakPoints} parameter is ignored.
      * @param compressionEnabled if true, the created files would be compressed
      */
     MultithreadedTraversalWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                            List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                            BlobStore blobStore, File storeDir, File existingDataDumpDir,
-                                           boolean compressionEnabled) {
+                                           boolean compressionEnabled) throws IOException {
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new ConcurrentLinkedQueue<>();
-        if (existingDataDumpDir != null) {
-            //include all sorted files from an incomplete previous run
-            for (File file : existingDataDumpDir.listFiles()) {
-                log.info("Including existing sorted file {}", file.getName());
-                sortedFiles.add(file);
-            }
-        }
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
@@ -148,20 +150,67 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
                 return phase == Phases.WAITING_FOR_RESULTS.value && registeredParties == 0;
             }
         };
-        createInitialTasks(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, blobStore);
+        createInitialTasks(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, blobStore, existingDataDumpDir);
     }
 
     private void createInitialTasks(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
-                                    List<Long> lastModifiedBreakPoints, BlobStore blobStore) {
+                                    List<Long> lastModifiedBreakPoints, BlobStore blobStore, File existingDataDumpDir)
+            throws IOException {
         ConcurrentLinkedQueue<String> completedTasks = new ConcurrentLinkedQueue<>();
-        for (int i = 0; i < lastModifiedBreakPoints.size(); i++) {
-            long start = lastModifiedBreakPoints.get(i);
-            long end = i < lastModifiedBreakPoints.size() - 1 ? lastModifiedBreakPoints.get(i+1) : Long.MAX_VALUE;
-            LastModifiedRange range = new LastModifiedRange(start, end);
-            NodeStateEntryTraverser nodeStateEntryTraverser = nodeStateEntryTraverserFactory.create(range);
-            taskQueue.add(new TraverseAndSortTask(nodeStateEntryTraverser, comparator,
-                    blobStore, storeDir, compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory));
+        if (existingDataDumpDir != null) {
+            List<LastModifiedRange> previousState = new ArrayList<>();
+            //include all sorted files from an incomplete previous run
+            for (File existingSortWorkDir : existingDataDumpDir.listFiles()) {
+                if (!existingSortWorkDir.isDirectory()) {
+                    log.info("Not a directory {}. Skipping it.", existingSortWorkDir.getAbsolutePath());
+                    continue;
+                }
+                long start = DirectoryHelper.getLastModifiedTimeFromDirName(existingSortWorkDir);
+                long end = DirectoryHelper.getLastModifiedOfLastDownloadedDocument(existingSortWorkDir);
+                if (end == -1) {
+                    log.debug("Ignoring directory {} as it is empty", existingSortWorkDir.getAbsolutePath());
+                    continue;
+                }
+                previousState.add(new LastModifiedRange(start, end, false));
+                log.info("Including existing sorted files from directory {}", existingSortWorkDir.getAbsolutePath());
+                DirectoryHelper.getDataFiles(existingSortWorkDir).forEach(file -> {
+                    log.debug("Including existing sorted file {}", file.getName());
+                    sortedFiles.add(file);
+                });
+            }
+            resumeFromPreviousState(previousState, nodeStateEntryTraverserFactory, blobStore, completedTasks);
+        } else {
+            for (int i = 0; i < lastModifiedBreakPoints.size(); i++) {
+                long start = lastModifiedBreakPoints.get(i);
+                long end = i < lastModifiedBreakPoints.size() - 1 ? lastModifiedBreakPoints.get(i + 1) : Long.MAX_VALUE;
+                addTask(start, end, nodeStateEntryTraverserFactory, blobStore, completedTasks);
+            }
         }
+    }
+
+    private void resumeFromPreviousState(List<LastModifiedRange> previousState,
+                                         NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
+                                         ConcurrentLinkedQueue<String> completedTasks) {
+        previousState.sort(Comparator.comparing(LastModifiedRange::getLastModifiedLowerBound));
+        for (int i = 0; i < previousState.size(); i++) {
+            LastModifiedRange currentRange = previousState.get(i);
+            LastModifiedRange nextRange = i < previousState.size() - 1 ? previousState.get(i+1) : null;
+            if (nextRange != null && currentRange.checkOverlap(nextRange)) {
+                throw new IllegalStateException("Range overlap between " + currentRange + " and " + nextRange);
+            }
+            long start = currentRange.getLastModifiedUpperBound();
+            long end = nextRange != null ? nextRange.getLastModifiedLowerBound() : Long.MAX_VALUE;
+            addTask(start, end, nodeStateEntryTraverserFactory, blobStore, completedTasks);
+        }
+    }
+
+
+    private void addTask(long start, long end, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
+                         ConcurrentLinkedQueue<String> completedTasks) {
+        LastModifiedRange range = new LastModifiedRange(start, end);
+        NodeStateEntryTraverser nodeStateEntryTraverser = nodeStateEntryTraverserFactory.create(range);
+        taskQueue.add(new TraverseAndSortTask(nodeStateEntryTraverser, comparator,
+                blobStore, storeDir, compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory));
     }
 
     @Override
@@ -252,5 +301,50 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
             }
             executorService.shutdown();
         }
+    }
+
+    static class DirectoryHelper {
+
+        private static final String PREFIX = "sort-work-dir-";
+        private static final String LAST_MODIFIED_TIME_DELIMITER = "-from-";
+        private static final String STATUS_FILE_NAME = "completion-status";
+        private static final Logger log = LoggerFactory.getLogger(DirectoryHelper.class);
+
+        static File createdSortWorkDir(File storeDir, String taskID, long lastModifiedLowerBound) throws IOException {
+            File sortedFileDir = new File(storeDir, PREFIX + taskID + LAST_MODIFIED_TIME_DELIMITER + lastModifiedLowerBound);
+            FileUtils.forceMkdir(sortedFileDir);
+            return sortedFileDir;
+        }
+
+        static long getLastModifiedTimeFromDirName(File dir) {
+            if (!dir.isDirectory()) {
+                throw new IllegalArgumentException(dir.getAbsolutePath() + " is not a directory");
+            }
+            return Long.parseLong(dir.getName().substring(dir.getName().lastIndexOf(LAST_MODIFIED_TIME_DELIMITER) +
+                    LAST_MODIFIED_TIME_DELIMITER.length()));
+        }
+
+        static void markCompletionTill(File sortWorkDir, long lastModifiedTime) {
+            try {
+                Files.write(Paths.get(sortWorkDir.getAbsolutePath() + "/" + STATUS_FILE_NAME), ("" + lastModifiedTime).getBytes(),
+                        StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (IOException e) {
+                log.warn("Resuming download will not be accurate. Could not save completion status = " + lastModifiedTime
+                        + " in " + sortWorkDir.getAbsolutePath(), e);
+            }
+        }
+
+        static long getLastModifiedOfLastDownloadedDocument(File sortWorkDir) throws IOException {
+            File statusFile = new File(sortWorkDir.getAbsolutePath() + "/" + STATUS_FILE_NAME);
+            if (!statusFile.exists()) {
+                return -1;
+            }
+            return Long.parseLong(Files.readAllLines(statusFile.toPath()).get(0));
+        }
+
+        static Stream<File> getDataFiles(File sortWorkDir) {
+            return Arrays.stream(sortWorkDir.listFiles()).filter(f -> !f.getName().equals(STATUS_FILE_NAME));
+        }
+
     }
 }

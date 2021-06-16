@@ -102,6 +102,10 @@ class TraverseAndSortTask implements Callable<List<File>> {
      */
     private final Phaser phaser;
     /**
+     * The node states which have a last modified time less than this would not be considered by this task.
+     */
+    private final long lastModifiedLowerBound;
+    /**
      * The node states which have a last modified time greater than or equal to this would not be considered by this task.
      */
     private long lastModifiedUpperBound;
@@ -114,6 +118,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory) {
         this.taskID = "TWS-" + nodeStates.getId();
         this.nodeStates = nodeStates;
+        this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedLowerBound();
         this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedUpperBound();
         this.blobStore = blobStore;
         this.entryWriter = new NodeStateEntryWriter(blobStore);
@@ -132,7 +137,8 @@ class TraverseAndSortTask implements Callable<List<File>> {
         try {
             logFlags();
             configureMemoryListener();
-            sortWorkDir = createdSortWorkDir();
+            sortWorkDir = MultithreadedTraversalWithSortStrategy.DirectoryHelper.createdSortWorkDir(storeDir, taskID,
+                    lastModifiedLowerBound);
             writeToSortedFiles();
             log.info("Completed task {}", taskID);
             phaser.arriveAndDeregister();
@@ -230,6 +236,8 @@ class TraverseAndSortTask implements Callable<List<File>> {
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w,
                 lastSavedNodeStateEntry.getLastModified());
+        MultithreadedTraversalWithSortStrategy.DirectoryHelper.markCompletionTill(sortWorkDir,
+                lastSavedNodeStateEntry.getLastModified());
         sortedFiles.add(newtmpfile);
     }
 
@@ -242,12 +250,6 @@ class TraverseAndSortTask implements Callable<List<File>> {
 
     private void updateMemoryUsed(NodeStateHolder h) {
         memoryUsed += h.getMemorySize();
-    }
-
-    private File createdSortWorkDir() throws IOException {
-        File sortedFileDir = new File(storeDir, "sort-work-dir-" + taskID);
-        FileUtils.forceMkdir(sortedFileDir);
-        return sortedFileDir;
     }
 
     private void logFlags() {

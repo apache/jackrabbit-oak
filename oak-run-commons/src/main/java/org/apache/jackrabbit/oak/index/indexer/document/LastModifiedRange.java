@@ -22,10 +22,19 @@ public class LastModifiedRange {
 
     private final long lastModifiedLowerBound;
     private final long lastModifiedUpperBound;
+    private final boolean isUpperBoundExclusive;
 
     public LastModifiedRange(long lastModifiedLowerBound, long lastModifiedUpperBound) {
+        this(lastModifiedLowerBound, lastModifiedUpperBound, true);
+    }
+
+    public LastModifiedRange(long lastModifiedLowerBound, long lastModifiedUpperBound, boolean isUpperBoundExclusive) {
+        if (lastModifiedUpperBound < lastModifiedLowerBound) {
+            throw new IllegalArgumentException("Invalid range (" + lastModifiedLowerBound + ", " + lastModifiedUpperBound + ")");
+        }
         this.lastModifiedLowerBound = lastModifiedLowerBound;
         this.lastModifiedUpperBound = lastModifiedUpperBound;
+        this.isUpperBoundExclusive = isUpperBoundExclusive;
     }
 
     public long getLastModifiedLowerBound() {
@@ -34,5 +43,23 @@ public class LastModifiedRange {
 
     public long getLastModifiedUpperBound() {
         return lastModifiedUpperBound;
+    }
+
+    public boolean checkOverlap(LastModifiedRange range) {
+        boolean rangeOnLeft, rangeOnRight;
+        rangeOnRight = isUpperBoundExclusive ? lastModifiedUpperBound <= range.getLastModifiedLowerBound()
+                : lastModifiedUpperBound < range.getLastModifiedLowerBound();
+        rangeOnLeft = isUpperBoundExclusive ? range.getLastModifiedUpperBound() <= lastModifiedLowerBound :
+                range.getLastModifiedUpperBound() < lastModifiedLowerBound;
+        return !(rangeOnLeft || rangeOnRight);
+    }
+
+    @Override
+    public String toString() {
+        return "LastModifiedRange{" +
+                "lastModifiedLowerBound=" + lastModifiedLowerBound +
+                ", lastModifiedUpperBound=" + lastModifiedUpperBound +
+                ", isUpperBoundExclusive=" + isUpperBoundExclusive +
+                '}';
     }
 }

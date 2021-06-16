@@ -151,7 +151,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
         //TODO Use flatFileStore only if we have relative nodes to be indexed
-        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(lastModifiedBreakPoints, indexHelper.getWorkDir())
+        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
+                .withLastModifiedBreakPoints(lastModifiedBreakPoints)
                 .withBlobStore(indexHelper.getGCBlobStore())
                 .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
                 .withExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())

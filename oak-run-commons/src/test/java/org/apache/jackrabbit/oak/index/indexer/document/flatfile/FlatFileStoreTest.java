@@ -51,7 +51,7 @@ public class FlatFileStoreTest {
     @Test
     public void basicTest() throws Exception {
         List<String> paths = createTestPaths();
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(new ArrayList<Long>(){{add(0L);}}, folder.getRoot());
+        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot());
         FlatFileStore flatStore = builder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {

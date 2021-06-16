@@ -42,7 +42,7 @@ public class FlatFileNodeStoreBuilder {
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final List<Long> lastModifiedBreakPoints;
+    private List<Long> lastModifiedBreakPoints;
     private final File workDir;
     private File existingDataDumpDir;
     private Set<String> preferredPathElements = Collections.emptySet();
@@ -55,9 +55,13 @@ public class FlatFileNodeStoreBuilder {
     private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
 
-    public FlatFileNodeStoreBuilder(List<Long> lastModifiedBreakPoints, File workDir) {
-        this.lastModifiedBreakPoints = lastModifiedBreakPoints;
+    public FlatFileNodeStoreBuilder(File workDir) {
         this.workDir = workDir;
+    }
+
+    public FlatFileNodeStoreBuilder withLastModifiedBreakPoints(List<Long> lastModifiedBreakPoints) {
+        this.lastModifiedBreakPoints = lastModifiedBreakPoints;
+        return this;
     }
 
     public FlatFileNodeStoreBuilder withBlobStore(BlobStore blobStore) {
@@ -114,7 +118,7 @@ public class FlatFileNodeStoreBuilder {
         }
     }
 
-    private SortStrategy createSortStrategy(File dir){
+    private SortStrategy createSortStrategy(File dir) throws IOException {
         if (useTraverseWithSort) {
             log.info("Using TraverseWithSortStrategy");
             return new MultithreadedTraversalWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
