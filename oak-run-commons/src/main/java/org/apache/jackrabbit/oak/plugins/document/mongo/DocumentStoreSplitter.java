@@ -36,7 +36,7 @@ import java.util.List;
 
 public class DocumentStoreSplitter {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(DocumentStoreSplitter.class);
 
     MongoDocumentStore mongoStore;
 
@@ -69,7 +69,7 @@ public class DocumentStoreSplitter {
         return simpleSplit(oldest, latest, parts);
     }
 
-    List<Long> simpleSplit(long start, long end, int parts) {
+    public static List<Long> simpleSplit(long start, long end, int parts) {
         long stepSize = (end - start)/parts;
         List<Long> steps = new ArrayList<>();
         StringBuilder splitPoints = new StringBuilder();

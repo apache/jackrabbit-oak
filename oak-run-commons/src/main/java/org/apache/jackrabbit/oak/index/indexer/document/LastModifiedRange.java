@@ -54,6 +54,11 @@ public class LastModifiedRange {
         return !(rangeOnLeft || rangeOnRight);
     }
 
+    public boolean contains(Long lastModifiedValue) {
+        return lastModifiedValue >= lastModifiedLowerBound &&
+                (isUpperBoundExclusive ? lastModifiedValue < lastModifiedUpperBound : lastModifiedValue <= lastModifiedUpperBound);
+    }
+
     @Override
     public String toString() {
         return "LastModifiedRange{" +
