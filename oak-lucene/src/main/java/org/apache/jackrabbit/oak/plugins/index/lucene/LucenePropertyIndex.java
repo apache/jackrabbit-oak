@@ -745,6 +745,11 @@ public class LucenePropertyIndex extends FulltextIndex {
     }
 
     @Override
+    protected boolean checkIsIndexActive() {
+        return filterReplacedIndexes();
+    }
+
+    @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
         return () -> {
             LuceneIndexNode indexNode = acquireIndexNode(plan);
