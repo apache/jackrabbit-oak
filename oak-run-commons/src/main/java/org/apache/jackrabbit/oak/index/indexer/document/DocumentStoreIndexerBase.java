@@ -90,7 +90,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         private final CompositeIndexer indexer;
         private final Closer closer;
 
-        public MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
+        private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
                                                    MongoDocumentStore documentStore, Logger traversalLogger,
                                                    CompositeIndexer indexer, Closer closer) {
             this.rootRevision = rootRevision;
