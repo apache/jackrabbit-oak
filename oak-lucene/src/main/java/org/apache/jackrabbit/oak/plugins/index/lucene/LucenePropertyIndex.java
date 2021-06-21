@@ -201,7 +201,6 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final boolean CACHE_FACET_RESULTS =
             Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
 
-    private static double MIN_COST = 2.1;
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
     private static final Logger LOG = LoggerFactory
@@ -239,11 +238,6 @@ public class LucenePropertyIndex extends FulltextIndex {
             LOG.info(CACHE_FACET_RESULTS_NAME + " = " + CACHE_FACET_RESULTS);
             FLAG_CACHE_FACET_RESULTS_CHANGE = false;
         }
-    }
-
-    @Override
-    public double getMinimumCost() {
-        return MIN_COST;
     }
 
     @Override
