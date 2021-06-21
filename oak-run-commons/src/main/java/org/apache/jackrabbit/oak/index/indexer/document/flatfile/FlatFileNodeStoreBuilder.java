@@ -52,8 +52,22 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
 
-    private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
+    private final boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final SortStrategy sortStrategy = SortStrategy.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT,
+            SortStrategy.MULTITHREADED_TRAVERSE_WITH_SORT.name()));
+
+    private enum SortStrategy {
+
+        SORT_AND_STORE(StoreAndSortStrategy.class.getSimpleName()),
+        TRAVERSE_WITH_SORT(TraverseWithSortStrategy.class.getSimpleName()),
+        MULTITHREADED_TRAVERSE_WITH_SORT(MultithreadedTraverseWithSortStrategy.class.getSimpleName());
+
+        private final String value;
+
+        SortStrategy(String value) {
+            this.value = value;
+        }
+    }
 
     public FlatFileNodeStoreBuilder(File workDir) {
         this.workDir = workDir;
@@ -111,32 +125,31 @@ public class FlatFileNodeStoreBuilder {
             }
         } else {
             File flatFileStoreDir = createStoreDir();
-            SortStrategy strategy = createSortStrategy(flatFileStoreDir);
+            org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy strategy = createSortStrategy(flatFileStoreDir);
             File result = strategy.createSortedStoreFile();
             entryCount = strategy.getEntryCount();
             return result;
         }
     }
 
-    private SortStrategy createSortStrategy(File dir) throws IOException {
-        if (useTraverseWithSort) {
-            log.info("Using TraverseWithSortStrategy");
-            return new MultithreadedTraversalWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                    blobStore, dir, existingDataDumpDir, useZip);
-        } else {
-            log.info("Using StoreAndSortStrategy");
-            return new StoreAndSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(lastModifiedBreakPoints.get(0),
-                    Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
+    private org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy createSortStrategy(File dir) throws IOException {
+        switch (sortStrategy) {
+            case SORT_AND_STORE: log.info("Using StoreAndSortStrategy");
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
+                        Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
+            case TRAVERSE_WITH_SORT: log.info("Using TraverseWithSortStrategy");
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
+                        Long.MAX_VALUE)) , comparator, entryWriter, dir, useZip);
+            default: log.info("Using MultithreadedTraverseWithSortStrategy");
+                return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
+                        blobStore, dir, existingDataDumpDir, useZip);
         }
     }
 
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
         log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
-
-        String strategy = useTraverseWithSort ?
-                TraverseAndSortTask.class.getSimpleName() : StoreAndSortStrategy.class.getSimpleName();
-        log.info("Sort strategy : {} ({})", strategy, OAK_INDEXER_TRAVERSE_WITH_SORT);
+        log.info("Sort strategy : {} ({})", sortStrategy.value, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 
     private File createStoreDir() throws IOException {

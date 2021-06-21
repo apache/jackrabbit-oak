@@ -155,8 +155,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, lastModifiedRange.getLastModifiedFrom(),
-                        lastModifiedRange.getLastModifiedTo(), id -> includeId(id));
+                .getAllDocuments(Collection.NODES, lastModifiedRange, id -> includeId(id));
     }
 
     private boolean includeId(String id) {

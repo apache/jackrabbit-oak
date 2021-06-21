@@ -61,7 +61,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  * The traverse/download and sort tasks are submitted to an executor service. Each of those tasks create some sorted files which
  * are then merged (sorted) into one.
  */
-public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
+public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Charset charset = UTF_8;
@@ -133,10 +133,10 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
      *                            is not null, the {@code lastModifiedBreakPoints} parameter is ignored.
      * @param compressionEnabled if true, the created files would be compressed
      */
-    MultithreadedTraversalWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
-                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
-                                           BlobStore blobStore, File storeDir, File existingDataDumpDir,
-                                           boolean compressionEnabled) throws IOException {
+    MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
+                                          List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
+                                          BlobStore blobStore, File storeDir, File existingDataDumpDir,
+                                          boolean compressionEnabled) throws IOException {
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new ConcurrentLinkedQueue<>();

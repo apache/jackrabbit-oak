@@ -25,6 +25,7 @@ import com.google.common.collect.FluentIterable;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -43,8 +44,8 @@ public class MongoDocumentTraverser {
         this.mongoStore = mongoStore;
     }
 
-    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, long modifiedLowerLimit,
-                                                                     long modifiedUpperLimit, Predicate<String> filter) {
+    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, LastModifiedRange lastModifiedRange,
+                                                                     Predicate<String> filter) {
         if (!disableReadOnlyCheck) {
             checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
         }
@@ -53,26 +54,18 @@ public class MongoDocumentTraverser {
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
         Iterable<BasicDBObject> cursor;
-        String rangeString = "{";
-        if (modifiedLowerLimit > 0) {
-            rangeString += "$gte:" + modifiedLowerLimit;
-            if (modifiedUpperLimit != Long.MAX_VALUE) {
-                rangeString += ",";
-            }
-        }
-        if (modifiedUpperLimit != Long.MAX_VALUE) {
-            rangeString += "$lt:" + modifiedUpperLimit;
-        }
-        rangeString += "}";
-        if (rangeString.length() > 2) {
+        if (lastModifiedRange.coversAllDocuments()) {
+            cursor = dbCollection
+                    .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
+                    .find();
+        } else {
+            String rangeString = "{$gte:" + lastModifiedRange.getLastModifiedFrom() + ",";
+            rangeString += lastModifiedRange.isUpperBoundExclusive() ? "$lt:" : "$lte:";
+            rangeString += lastModifiedRange.getLastModifiedTo() + "}";
             BsonDocument query = BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + rangeString + "}");
             cursor = dbCollection
                     .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
                     .find(query).sort(new BsonDocument().append(NodeDocument.MODIFIED_IN_SECS, new BsonInt64(1)));
-        } else {
-            cursor = dbCollection
-                    .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
-                    .find();
         }
 
         CloseableIterable<BasicDBObject> closeableCursor = CloseableIterable.wrap(cursor);

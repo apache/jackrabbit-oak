@@ -45,6 +45,10 @@ public class LastModifiedRange {
         return lastModifiedTo;
     }
 
+    public boolean isUpperBoundExclusive() {
+        return isUpperBoundExclusive;
+    }
+
     public boolean checkOverlap(LastModifiedRange range) {
         boolean rangeOnLeft, rangeOnRight;
         rangeOnRight = isUpperBoundExclusive ? lastModifiedTo <= range.getLastModifiedFrom()
@@ -57,6 +61,10 @@ public class LastModifiedRange {
     public boolean contains(Long lastModifiedValue) {
         return lastModifiedValue >= lastModifiedFrom &&
                 (isUpperBoundExclusive ? lastModifiedValue < lastModifiedTo : lastModifiedValue <= lastModifiedTo);
+    }
+
+    public boolean coversAllDocuments() {
+        return lastModifiedFrom == 0 && lastModifiedTo == Long.MAX_VALUE;
     }
 
     @Override
