@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -191,15 +190,15 @@ public class MultithreadedTraversalWithSortStrategy implements SortStrategy {
     private void resumeFromPreviousState(List<LastModifiedRange> previousState,
                                          NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                                          ConcurrentLinkedQueue<String> completedTasks) {
-        previousState.sort(Comparator.comparing(LastModifiedRange::getLastModifiedLowerBound));
+        previousState.sort(Comparator.comparing(LastModifiedRange::getLastModifiedFrom));
         for (int i = 0; i < previousState.size(); i++) {
             LastModifiedRange currentRange = previousState.get(i);
             LastModifiedRange nextRange = i < previousState.size() - 1 ? previousState.get(i+1) : null;
             if (nextRange != null && currentRange.checkOverlap(nextRange)) {
                 throw new IllegalStateException("Range overlap between " + currentRange + " and " + nextRange);
             }
-            long start = currentRange.getLastModifiedUpperBound();
-            long end = nextRange != null ? nextRange.getLastModifiedLowerBound() : Long.MAX_VALUE;
+            long start = currentRange.getLastModifiedTo();
+            long end = nextRange != null ? nextRange.getLastModifiedFrom() : Long.MAX_VALUE;
             addTask(start, end, nodeStateEntryTraverserFactory, blobStore, completedTasks);
         }
     }

@@ -20,51 +20,47 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 public class LastModifiedRange {
 
-    private final long lastModifiedLowerBound;
-    private final long lastModifiedUpperBound;
+    private final long lastModifiedFrom;
+    private final long lastModifiedTo;
     private final boolean isUpperBoundExclusive;
 
-    public LastModifiedRange(long lastModifiedLowerBound, long lastModifiedUpperBound) {
-        this(lastModifiedLowerBound, lastModifiedUpperBound, true);
+    public LastModifiedRange(long lastModifiedFrom, long lastModifiedTo) {
+        this(lastModifiedFrom, lastModifiedTo, true);
     }
 
-    public LastModifiedRange(long lastModifiedLowerBound, long lastModifiedUpperBound, boolean isUpperBoundExclusive) {
-        if (lastModifiedUpperBound < lastModifiedLowerBound) {
-            throw new IllegalArgumentException("Invalid range (" + lastModifiedLowerBound + ", " + lastModifiedUpperBound + ")");
+    public LastModifiedRange(long lastModifiedFrom, long lastModifiedTo, boolean isUpperBoundExclusive) {
+        if (lastModifiedTo < lastModifiedFrom) {
+            throw new IllegalArgumentException("Invalid range (" + lastModifiedFrom + ", " + lastModifiedTo + ")");
         }
-        this.lastModifiedLowerBound = lastModifiedLowerBound;
-        this.lastModifiedUpperBound = lastModifiedUpperBound;
+        this.lastModifiedFrom = lastModifiedFrom;
+        this.lastModifiedTo = lastModifiedTo;
         this.isUpperBoundExclusive = isUpperBoundExclusive;
     }
 
-    public long getLastModifiedLowerBound() {
-        return lastModifiedLowerBound;
+    public long getLastModifiedFrom() {
+        return lastModifiedFrom;
     }
 
-    public long getLastModifiedUpperBound() {
-        return lastModifiedUpperBound;
+    public long getLastModifiedTo() {
+        return lastModifiedTo;
     }
 
     public boolean checkOverlap(LastModifiedRange range) {
         boolean rangeOnLeft, rangeOnRight;
-        rangeOnRight = isUpperBoundExclusive ? lastModifiedUpperBound <= range.getLastModifiedLowerBound()
-                : lastModifiedUpperBound < range.getLastModifiedLowerBound();
-        rangeOnLeft = isUpperBoundExclusive ? range.getLastModifiedUpperBound() <= lastModifiedLowerBound :
-                range.getLastModifiedUpperBound() < lastModifiedLowerBound;
+        rangeOnRight = isUpperBoundExclusive ? lastModifiedTo <= range.getLastModifiedFrom()
+                : lastModifiedTo < range.getLastModifiedFrom();
+        rangeOnLeft = isUpperBoundExclusive ? range.getLastModifiedTo() <= lastModifiedFrom :
+                range.getLastModifiedTo() < lastModifiedFrom;
         return !(rangeOnLeft || rangeOnRight);
     }
 
     public boolean contains(Long lastModifiedValue) {
-        return lastModifiedValue >= lastModifiedLowerBound &&
-                (isUpperBoundExclusive ? lastModifiedValue < lastModifiedUpperBound : lastModifiedValue <= lastModifiedUpperBound);
+        return lastModifiedValue >= lastModifiedFrom &&
+                (isUpperBoundExclusive ? lastModifiedValue < lastModifiedTo : lastModifiedValue <= lastModifiedTo);
     }
 
     @Override
     public String toString() {
-        return "LastModifiedRange{" +
-                "lastModifiedLowerBound=" + lastModifiedLowerBound +
-                ", lastModifiedUpperBound=" + lastModifiedUpperBound +
-                ", isUpperBoundExclusive=" + isUpperBoundExclusive +
-                '}';
+        return "LastModifiedRange [" + lastModifiedFrom + ", " + lastModifiedTo + (isUpperBoundExclusive ? ")" : "]");
     }
 }

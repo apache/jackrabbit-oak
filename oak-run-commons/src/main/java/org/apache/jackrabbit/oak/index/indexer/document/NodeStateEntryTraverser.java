@@ -137,7 +137,13 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         return transform(
                 concat(singleton(nodeState),
                     nodeState.getAllBundledNodesStates()),
-                dns -> new NodeStateEntryBuilder(dns, dns.getPath().toString()).withLastModified(doc.getModified()).build()
+                dns -> {
+                    NodeStateEntry.NodeStateEntryBuilder builder =  new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
+                    if (doc.getModified() != null) {
+                        builder.withLastModified(doc.getModified());
+                    }
+                    return builder.build();
+                }
         );
     }
 
@@ -149,8 +155,8 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, lastModifiedRange.getLastModifiedLowerBound(),
-                        lastModifiedRange.getLastModifiedUpperBound(), id -> includeId(id));
+                .getAllDocuments(Collection.NODES, lastModifiedRange.getLastModifiedFrom(),
+                        lastModifiedRange.getLastModifiedTo(), id -> includeId(id));
     }
 
     private boolean includeId(String id) {

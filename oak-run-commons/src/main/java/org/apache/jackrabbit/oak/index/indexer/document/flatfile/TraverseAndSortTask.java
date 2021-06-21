@@ -40,7 +40,6 @@ import javax.management.NotificationListener;
 import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Stopwatch;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -118,8 +117,8 @@ class TraverseAndSortTask implements Callable<List<File>> {
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory) {
         this.taskID = "TWS-" + nodeStates.getId();
         this.nodeStates = nodeStates;
-        this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedLowerBound();
-        this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedUpperBound();
+        this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedFrom();
+        this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedTo();
         this.blobStore = blobStore;
         this.entryWriter = new NodeStateEntryWriter(blobStore);
         this.storeDir = storeDir;

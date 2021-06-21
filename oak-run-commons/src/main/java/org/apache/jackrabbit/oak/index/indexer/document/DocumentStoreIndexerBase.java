@@ -83,12 +83,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     private static class MongoNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
 
         private static final AtomicInteger traverserInstanceCounter = new AtomicInteger(0);
-        final RevisionVector rootRevision;
-        final DocumentNodeStore documentNodeStore;
-        final MongoDocumentStore documentStore;
-        final Logger traversalLogger;
-        final CompositeIndexer indexer;
-        final Closer closer;
+        private final RevisionVector rootRevision;
+        private final DocumentNodeStore documentNodeStore;
+        private final MongoDocumentStore documentStore;
+        private final Logger traversalLogger;
+        private final CompositeIndexer indexer;
+        private final Closer closer;
 
         public MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
                                                    MongoDocumentStore documentStore, Logger traversalLogger,

@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;

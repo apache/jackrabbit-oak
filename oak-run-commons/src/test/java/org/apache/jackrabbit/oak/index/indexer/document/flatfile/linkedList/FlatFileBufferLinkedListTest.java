@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

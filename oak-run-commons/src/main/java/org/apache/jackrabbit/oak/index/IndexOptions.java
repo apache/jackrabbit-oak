@@ -103,7 +103,8 @@ public class IndexOptions implements OptionsBean {
         //Set of options which define action
         actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
         operationNames = collectionOperationNames(actionOpts);
-        existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing mongo document dumps from previous incomplete run")
+        existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing document store dumps" +
+                " from previous incomplete run")
                 .withRequiredArg().ofType(File.class);
     }
 

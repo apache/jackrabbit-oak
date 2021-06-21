@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;

@@ -51,9 +51,9 @@ public class LuceneIndexerTest {
 
         NodeState testNode = EMPTY_NODE.builder().setProperty("foo","bar").getNodeState();
 
-        assertTrue(indexer.index(new NodeStateEntryBuilder(testNode, "/content/x").build()));
-        assertFalse(indexer.index(new NodeStateEntryBuilder(testNode, "/x").build()));
-        assertFalse(indexer.index(new NodeStateEntryBuilder(testNode, "/").build()));
+        assertTrue(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/content/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/").build()));
     }
 
 }

@@ -104,7 +104,7 @@ public class FlatFileStoreTest {
                 .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {
                     @Override
                     public NodeStateEntryTraverser create(LastModifiedRange range) {
-                        return new NodeStateEntryTraverser("NS-" + range.getLastModifiedLowerBound(), null, null,
+                        return new NodeStateEntryTraverser("NS-" + range.getLastModifiedFrom(), null, null,
                                 null, range) {
                             @Override
                             public @NotNull Iterator<NodeStateEntry> iterator() {
@@ -113,7 +113,7 @@ public class FlatFileStoreTest {
                                 if (paths.isEmpty()) {
                                     return Collections.emptyIterator();
                                 }
-                                return TestUtils.createEntriesWithLastModified(paths, range.getLastModifiedLowerBound()).iterator();
+                                return TestUtils.createEntriesWithLastModified(paths, range.getLastModifiedFrom()).iterator();
                             }
                         };
                     }
