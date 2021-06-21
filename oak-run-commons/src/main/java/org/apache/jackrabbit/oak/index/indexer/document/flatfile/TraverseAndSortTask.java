@@ -141,11 +141,12 @@ class TraverseAndSortTask implements Callable<List<File>> {
                     lastModifiedLowerBound);
             writeToSortedFiles();
             log.info("Completed task {}", taskID);
-            phaser.arriveAndDeregister();
             completedTasks.add(taskID);
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
+        } finally {
+            phaser.arriveAndDeregister();
         }
         return Collections.emptyList();
     }
