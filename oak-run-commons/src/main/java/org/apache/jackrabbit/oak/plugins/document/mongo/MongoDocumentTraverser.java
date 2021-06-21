@@ -60,8 +60,7 @@ public class MongoDocumentTraverser {
                     .find();
         } else {
             String rangeString = "{$gte:" + lastModifiedRange.getLastModifiedFrom() + ",";
-            rangeString += lastModifiedRange.isUpperBoundExclusive() ? "$lt:" : "$lte:";
-            rangeString += lastModifiedRange.getLastModifiedTo() + "}";
+            rangeString += "$lt:" + lastModifiedRange.getLastModifiedTo() + "}";
             BsonDocument query = BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + rangeString + "}");
             cursor = dbCollection
                     .withReadPreference(mongoStore.getConfiguredReadPreference(collection))

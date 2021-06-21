@@ -170,7 +170,9 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                     log.debug("Ignoring directory {} as it is empty", existingSortWorkDir.getAbsolutePath());
                     continue;
                 }
-                previousState.add(new LastModifiedRange(start, end, false));
+                // adding 1 to end since document with last modified equal to end was being worked upon and upper limit
+                // in LastModifiedRange is exclusive
+                previousState.add(new LastModifiedRange(start, end + 1));
                 log.info("Including existing sorted files from directory {}", existingSortWorkDir.getAbsolutePath());
                 DirectoryHelper.getDataFiles(existingSortWorkDir).forEach(file -> {
                     log.debug("Including existing sorted file {}", file.getName());
@@ -197,7 +199,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             if (nextRange != null && currentRange.checkOverlap(nextRange)) {
                 throw new IllegalStateException("Range overlap between " + currentRange + " and " + nextRange);
             }
-            long start = currentRange.getLastModifiedTo();
+            long start = currentRange.getLastModifiedTo() - 1;
             long end = nextRange != null ? nextRange.getLastModifiedFrom() : Long.MAX_VALUE;
             addTask(start, end, nodeStateEntryTraverserFactory, blobStore, completedTasks);
         }

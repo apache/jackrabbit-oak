@@ -22,19 +22,13 @@ public class LastModifiedRange {
 
     private final long lastModifiedFrom;
     private final long lastModifiedTo;
-    private final boolean isUpperBoundExclusive;
 
     public LastModifiedRange(long lastModifiedFrom, long lastModifiedTo) {
-        this(lastModifiedFrom, lastModifiedTo, true);
-    }
-
-    public LastModifiedRange(long lastModifiedFrom, long lastModifiedTo, boolean isUpperBoundExclusive) {
         if (lastModifiedTo < lastModifiedFrom) {
             throw new IllegalArgumentException("Invalid range (" + lastModifiedFrom + ", " + lastModifiedTo + ")");
         }
         this.lastModifiedFrom = lastModifiedFrom;
         this.lastModifiedTo = lastModifiedTo;
-        this.isUpperBoundExclusive = isUpperBoundExclusive;
     }
 
     public long getLastModifiedFrom() {
@@ -45,22 +39,15 @@ public class LastModifiedRange {
         return lastModifiedTo;
     }
 
-    public boolean isUpperBoundExclusive() {
-        return isUpperBoundExclusive;
-    }
-
     public boolean checkOverlap(LastModifiedRange range) {
         boolean rangeOnLeft, rangeOnRight;
-        rangeOnRight = isUpperBoundExclusive ? lastModifiedTo <= range.getLastModifiedFrom()
-                : lastModifiedTo < range.getLastModifiedFrom();
-        rangeOnLeft = isUpperBoundExclusive ? range.getLastModifiedTo() <= lastModifiedFrom :
-                range.getLastModifiedTo() < lastModifiedFrom;
+        rangeOnRight = lastModifiedTo <= range.getLastModifiedFrom();
+        rangeOnLeft = range.getLastModifiedTo() <= lastModifiedFrom;
         return !(rangeOnLeft || rangeOnRight);
     }
 
     public boolean contains(Long lastModifiedValue) {
-        return lastModifiedValue >= lastModifiedFrom &&
-                (isUpperBoundExclusive ? lastModifiedValue < lastModifiedTo : lastModifiedValue <= lastModifiedTo);
+        return lastModifiedValue >= lastModifiedFrom && lastModifiedValue < lastModifiedTo;
     }
 
     public boolean coversAllDocuments() {
@@ -69,6 +56,6 @@ public class LastModifiedRange {
 
     @Override
     public String toString() {
-        return "LastModifiedRange [" + lastModifiedFrom + ", " + lastModifiedTo + (isUpperBoundExclusive ? ")" : "]");
+        return "LastModifiedRange [" + lastModifiedFrom + ", " + lastModifiedTo + ")";
     }
 }
