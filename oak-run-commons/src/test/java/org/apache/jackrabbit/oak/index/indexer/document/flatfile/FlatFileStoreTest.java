@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -42,6 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +93,7 @@ public class FlatFileStoreTest {
     }
 
     @Test
-    public void parallelTest() throws Exception {
+    public void parallelDownload() throws Exception {
         Map<Long, List<String>> map = createPathsWithTimestamps();
         List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
         List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
@@ -101,23 +104,7 @@ public class FlatFileStoreTest {
         FlatFileStore flatStore = builder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(lastModifiedBreakpoints)
-                .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {
-                    @Override
-                    public NodeStateEntryTraverser create(LastModifiedRange range) {
-                        return new NodeStateEntryTraverser("NS-" + range.getLastModifiedFrom(), null, null,
-                                null, range) {
-                            @Override
-                            public @NotNull Iterator<NodeStateEntry> iterator() {
-                                List<String> paths = new ArrayList<>();
-                                map.keySet().stream().filter(range::contains).forEach(time -> paths.addAll(map.get(time)));
-                                if (paths.isEmpty()) {
-                                    return Collections.emptyIterator();
-                                }
-                                return TestUtils.createEntriesWithLastModified(paths, range.getLastModifiedFrom()).iterator();
-                            }
-                        };
-                    }
-                })
+                .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, false))
                 .build();
 
         List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
@@ -127,6 +114,108 @@ public class FlatFileStoreTest {
         List<String> sortedPaths = TestUtils.sortPaths(paths);
 
         assertEquals(sortedPaths, entryPaths);
+    }
+
+    @Test
+    public void resumePreviousUnfinishedDownload() throws Exception {
+        Map<Long, List<String>> map = createPathsWithTimestamps();
+        List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+        List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
+        lastModifiedValues.sort(Long::compare);
+        List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
+                lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
+        FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
+        TestMemoryManager memoryManager = new TestMemoryManager(true);
+        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new TestMemoryManager(true));
+        FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
+                .withPreferredPathElements(preferred)
+                .withLastModifiedBreakPoints(lastModifiedBreakpoints)
+                .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, true))
+                .build();
+
+        List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                .map(NodeStateEntry::getPath)
+                .collect(Collectors.toList());
+
+        assertEquals(Collections.emptyList(), entryPaths);
+        memoryManager.isMemoryLow = false;
+        flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
+                .withPreferredPathElements(preferred)
+                .withLastModifiedBreakPoints(lastModifiedBreakpoints)
+                .withExistingDataDumpDir(folder.getRoot().listFiles()[0])
+                .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, false))
+                .build();
+
+        entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                .map(NodeStateEntry::getPath)
+                .collect(Collectors.toList());
+
+        List<String> sortedPaths = TestUtils.sortPaths(paths);
+        assertEquals(sortedPaths, entryPaths);
+    }
+
+    private static class TestMemoryManager implements MemoryManager {
+
+        boolean isMemoryLow;
+
+        public TestMemoryManager(boolean isMemoryLow) {
+            this.isMemoryLow = isMemoryLow;
+        }
+
+        @Override
+        public boolean isMemoryLow() {
+            return isMemoryLow;
+        }
+
+        @Override
+        public void updateMemoryUsed(long memory) {
+
+        }
+    }
+
+    private static class TestNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
+
+        final Map<Long, List<String>> pathData;
+        final boolean interrupt;
+
+        public TestNodeStateEntryTraverserFactory(Map<Long, List<String>> pathData, boolean interrupt) {
+            this.pathData = pathData;
+            this.interrupt = interrupt;
+        }
+
+        @Override
+        public NodeStateEntryTraverser create(LastModifiedRange range) {
+            return new NodeStateEntryTraverser("NS-" + range.getLastModifiedFrom(), null, null,
+                    null, range) {
+                @Override
+                public @NotNull Iterator<NodeStateEntry> iterator() {
+                    List<String> paths = new ArrayList<>();
+                    pathData.keySet().stream().filter(range::contains).forEach(time -> paths.addAll(pathData.get(time)));
+                    if (paths.isEmpty()) {
+                        return Collections.emptyIterator();
+                    }
+                    Iterator<NodeStateEntry> nodeStateEntryIterator = TestUtils.createEntriesWithLastModified(paths,
+                            range.getLastModifiedFrom()).iterator();
+                    AtomicInteger returnCount = new AtomicInteger(0);
+                    return new Iterator<NodeStateEntry>() {
+                        @Override
+                        public boolean hasNext() {
+                            return nodeStateEntryIterator.hasNext();
+                        }
+
+                        @Override
+                        public NodeStateEntry next() {
+                            if (interrupt && returnCount.get() == paths.size()/2) {
+                                throw new IllegalStateException("Framed exception.");
+                            }
+                            returnCount.incrementAndGet();
+                            return nodeStateEntryIterator.next();
+                        }
+                    };
+                }
+            };
+        }
+
     }
 
     private List<String> createTestPaths() {

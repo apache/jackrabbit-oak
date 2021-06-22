@@ -91,6 +91,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      */
     private static final Callable<List<File>> POISON_PILL = () -> null;
 
+    private final MemoryManager memoryManager;
+
     /**
      * Indicates the various phases of {@link #phaser}
      */
@@ -136,7 +138,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, File existingDataDumpDir,
-                                          boolean compressionEnabled) throws IOException {
+                                          boolean compressionEnabled, MemoryManager memoryManager) throws IOException {
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new ConcurrentLinkedQueue<>();
@@ -149,6 +151,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                 return phase == Phases.WAITING_FOR_RESULTS.value && registeredParties == 0;
             }
         };
+        this.memoryManager = memoryManager;
         createInitialTasks(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, blobStore, existingDataDumpDir);
     }
 
@@ -210,8 +213,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                          ConcurrentLinkedQueue<String> completedTasks) {
         LastModifiedRange range = new LastModifiedRange(start, end);
         NodeStateEntryTraverser nodeStateEntryTraverser = nodeStateEntryTraverserFactory.create(range);
-        taskQueue.add(new TraverseAndSortTask(nodeStateEntryTraverser, comparator,
-                blobStore, storeDir, compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory));
+        taskQueue.add(new TraverseAndSortTask(nodeStateEntryTraverser, comparator, blobStore, storeDir,
+                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
     }
 
     @Override

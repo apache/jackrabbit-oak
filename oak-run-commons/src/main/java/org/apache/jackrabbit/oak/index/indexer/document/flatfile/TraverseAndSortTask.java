@@ -62,9 +62,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  * based on the downloaded data.
  */
 class TraverseAndSortTask implements Callable<List<File>> {
-    private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
     /**
      * Iterable over the nodeStates this task is supposed to traverse. Note that the iteration could stop without traversing
      * all the node states from this iterable, if this task decides to split up and offer some of its work to another
@@ -75,11 +73,6 @@ class TraverseAndSortTask implements Callable<List<File>> {
     private final File storeDir;
     private final boolean compressionEnabled;
     private final Comparator<NodeStateHolder> comparator;
-    private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
-    private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
-    private final long maxMemoryBytes = maxMemory * ONE_GB;
-    private final long minMemoryBytes = minMemory * ONE_GB;
-    private boolean useMaxMemory;
     private long entryCount;
     private long memoryUsed;
     private File sortWorkDir;
@@ -110,11 +103,13 @@ class TraverseAndSortTask implements Callable<List<File>> {
     private long lastModifiedUpperBound;
     private final BlobStore blobStore;
     private final NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
+    private final MemoryManager memoryManager;
 
     TraverseAndSortTask(NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
-                        Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory) {
+                        Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
+                                MemoryManager memoryManager) {
         this.taskID = "TWS-" + nodeStates.getId();
         this.nodeStates = nodeStates;
         this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedFrom();
@@ -128,6 +123,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
         this.newTasksQueue = newTasksQueue;
         this.phaser = phaser;
         this.nodeStateEntryTraverserFactory = nodeStateEntryTraverserFactory;
+        this.memoryManager = memoryManager;
         phaser.register();
         log.debug("Task {} registered to phaser", taskID);
     }
@@ -135,7 +131,6 @@ class TraverseAndSortTask implements Callable<List<File>> {
     public List<File> call() {
         try {
             logFlags();
-            configureMemoryListener();
             sortWorkDir = MultithreadedTraverseWithSortStrategy.DirectoryHelper.createdSortWorkDir(storeDir, taskID,
                     lastModifiedLowerBound);
             writeToSortedFiles();
@@ -177,7 +172,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
     }
 
     private void addEntry(NodeStateEntry e) throws IOException {
-        if (isMemoryLow()) {
+        if (memoryManager.isMemoryLow()) {
             sortAndSaveBatch();
             reset();
         }
@@ -195,7 +190,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
                 newTasksQueue.add(new TraverseAndSortTask(nodeStateEntryTraverserFactory.create(new LastModifiedRange(splitPoint,
                         this.lastModifiedUpperBound)), comparator, blobStore, storeDir, compressionEnabled, completedTasks,
-                        newTasksQueue, phaser, nodeStateEntryTraverserFactory));
+                        newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
                 this.lastModifiedUpperBound = splitPoint;
             }
         }
@@ -212,8 +207,8 @@ class TraverseAndSortTask implements Callable<List<File>> {
 
     private void reset() {
         entryBatch.clear();
+        memoryManager.updateMemoryUsed(-1 * memoryUsed);
         memoryUsed = 0;
-        sufficientMemory.set(true);
     }
 
     private void sortAndSaveBatch() throws IOException {
@@ -241,98 +236,13 @@ class TraverseAndSortTask implements Callable<List<File>> {
         sortedFiles.add(newtmpfile);
     }
 
-    private boolean isMemoryLow() {
-        if (useMaxMemory){
-            return memoryUsed > maxMemoryBytes;
-        }
-        return !sufficientMemory.get();
+    private void logFlags() {
+        log.info("Starting task {}", taskID);
     }
 
     private void updateMemoryUsed(NodeStateHolder h) {
         memoryUsed += h.getMemorySize();
+        memoryManager.updateMemoryUsed(h.getMemorySize());
     }
 
-    private void logFlags() {
-        log.info("Starting task {}", taskID);
-        log.info("{} Min heap memory (GB) to be required : {} ({})", taskID, minMemory, OAK_INDEXER_MIN_MEMORY);
-        log.info("{} Max heap memory (GB) to be used for merge sort : {} ({})", taskID, maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
-    }
-
-    //~-------------------------------------< memory management >
-
-    private void configureMemoryListener() {
-        MemoryPoolMXBean pool = getMemoryPool();
-        if (pool == null) {
-            log.warn("{} Unable to setup monitoring of available memory. " +
-                    "Would use configured maxMemory limit of {} GB", taskID, maxMemory);
-            useMaxMemory = true;
-            return;
-        }
-
-        NotificationEmitter emitter = (NotificationEmitter) getMemoryMXBean();
-        MemoryListener listener = new MemoryListener();
-        emitter.addNotificationListener(listener, null, null);
-        MemoryUsage usage = pool.getCollectionUsage();
-        long maxMemory = usage.getMax();
-        long warningThreshold = minMemory * ONE_GB;
-        if (warningThreshold > maxMemory) {
-            log.warn("{} Configured minimum memory {} GB more than available memory ({})." +
-                    "Overriding configuration accordingly.", taskID, minMemory, humanReadableByteCount(maxMemory));
-            warningThreshold = maxMemory;
-        }
-        log.info("{} Setting up a listener to monitor pool '{}' and trigger batch save " +
-                "if memory drop below {} GB (max {})", taskID, pool.getName(), minMemory, humanReadableByteCount(maxMemory));
-        pool.setCollectionUsageThreshold(warningThreshold);
-        checkMemory(usage);
-    }
-
-    private void checkMemory(MemoryUsage usage) {
-        long maxMemory = usage.getMax();
-        long usedMemory = usage.getUsed();
-        long avail = maxMemory - usedMemory;
-        if (avail > minMemoryBytes) {
-            sufficientMemory.set(true);
-            log.info("{} Available memory level {} is good. Current batch size {}", taskID, humanReadableByteCount(avail), entryBatch.size());
-        } else {
-            sufficientMemory.set(false);
-            log.info("{} Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
-                    taskID, humanReadableByteCount(avail), minMemory);
-        }
-    }
-
-    //Taken from GCMemoryBarrier
-    private class MemoryListener implements NotificationListener {
-        @Override
-        public void handleNotification(Notification notification,
-                                       Object handback) {
-            if (notification
-                    .getType()
-                    .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
-                if (sufficientMemory.get()) {
-                    CompositeData cd = (CompositeData) notification
-                            .getUserData();
-                    MemoryNotificationInfo info = MemoryNotificationInfo
-                            .from(cd);
-                    checkMemory(info.getUsage());
-                }
-            }
-        }
-    }
-
-    private static MemoryPoolMXBean getMemoryPool() {
-        long maxSize = 0;
-        MemoryPoolMXBean maxPool = null;
-        for (MemoryPoolMXBean pool : getMemoryPoolMXBeans()) {
-            if (HEAP == pool.getType()
-                    && pool.isCollectionUsageThresholdSupported()) {
-                // Get usage after a GC, which is more stable, if available
-                long poolSize = pool.getCollectionUsage().getMax();
-                // Keep the pool with biggest size, by default it should be Old Gen Space
-                if (poolSize > maxSize) {
-                    maxPool = pool;
-                }
-            }
-        }
-        return maxPool;
-    }
 }

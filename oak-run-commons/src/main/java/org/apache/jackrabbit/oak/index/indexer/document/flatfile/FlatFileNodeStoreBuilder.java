@@ -142,8 +142,12 @@ public class FlatFileNodeStoreBuilder {
                         Long.MAX_VALUE)) , comparator, entryWriter, dir, useZip);
             default: log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDir, useZip);
+                        blobStore, dir, existingDataDumpDir, useZip, getMemoryManager());
         }
+    }
+
+    MemoryManager getMemoryManager() {
+        return new DefaultMemoryManager();
     }
 
     private void logFlags() {
