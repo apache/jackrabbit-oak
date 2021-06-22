@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.AccessCondition;
+import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
@@ -103,10 +104,14 @@ public class AzureRepositoryLock implements RepositoryLock {
                     lastUpdate = System.currentTimeMillis();
                 }
             } catch (StorageException e) {
-                log.error("Can't renew the lease", e);
-                shutdownHook.run();
-                doUpdate = false;
-                return;
+                if (e.getErrorCode().equals(StorageErrorCodeStrings.OPERATION_TIMED_OUT)) {
+                    log.warn("Could not renew the lease due to the operation timeout. Retry in progress ...", e);
+                } else {
+                    log.error("Can't renew the lease", e);
+                    shutdownHook.run();
+                    doUpdate = false;
+                    return;
+                }
             }
             try {
                 Thread.sleep(100);
