@@ -200,7 +200,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     //------------------------------------------------------------< private >---
     @Nullable
-    private String getIdpName(@NotNull Tree userTree) {
+    private static String getIdpName(@NotNull Tree userTree) {
         PropertyState ps = userTree.getProperty(REP_EXTERNAL_ID);
         if (ps != null) {
             return ExternalIdentityRef.fromString(ps.getValue(Type.STRING)).getProviderName();
@@ -209,6 +209,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
+    @NotNull
     private Set<Principal> getGroupPrincipals(@Nullable Authorizable authorizable) throws RepositoryException {
         if (authorizable != null && !authorizable.isGroup()) {
             Tree userTree = root.getTree(authorizable.getPath());
@@ -218,6 +219,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
+    @NotNull
     private Set<Principal> getGroupPrincipals(@NotNull Tree userTree) {
         if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER)) {
             PropertyState ps = userTree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
@@ -298,7 +300,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      */
     private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
 
-        private ExternalGroupPrincipal(String principalName) {
+        private ExternalGroupPrincipal(@NotNull String principalName) {
             super(principalName);
 
         }
