@@ -167,16 +167,19 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                     log.info("Not a directory {}. Skipping it.", existingSortWorkDir.getAbsolutePath());
                     continue;
                 }
-                long start = DirectoryHelper.getLastModifiedTimeFromDirName(existingSortWorkDir);
-                long end = DirectoryHelper.getLastModifiedOfLastDownloadedDocument(existingSortWorkDir);
-                if (end == -1) {
-                    log.debug("Ignoring directory {} as it is empty", existingSortWorkDir.getAbsolutePath());
-                    continue;
+                boolean downloadCompleted = DirectoryHelper.hasCompleted(existingSortWorkDir);
+                if (!downloadCompleted) {
+                    long start = DirectoryHelper.getLastModifiedTimeFromDirName(existingSortWorkDir);
+                    long end = DirectoryHelper.getLastModifiedOfLastDownloadedDocument(existingSortWorkDir);
+                    /*
+                     Adding 1 to end since document with last modified equal to end was being worked upon and upper limit
+                     in LastModifiedRange is exclusive. Also if end is -1, that means we didn't find any download updates
+                     in this folder. So we create an empty range (lower limit = upper limit) and retry this folder from beginning.
+                     */
+                    previousState.add(new LastModifiedRange(start, end != -1 ? end + 1 : start));
                 }
-                // adding 1 to end since document with last modified equal to end was being worked upon and upper limit
-                // in LastModifiedRange is exclusive
-                previousState.add(new LastModifiedRange(start, end + 1));
-                log.info("Including existing sorted files from directory {}", existingSortWorkDir.getAbsolutePath());
+                log.info("Including existing sorted files from directory {} (hasCompleted={})",
+                        existingSortWorkDir.getAbsolutePath(), downloadCompleted);
                 DirectoryHelper.getDataFiles(existingSortWorkDir).forEach(file -> {
                     log.debug("Including existing sorted file {}", file.getName());
                     sortedFiles.add(file);
@@ -194,7 +197,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private void resumeFromPreviousState(List<LastModifiedRange> previousState,
                                          NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
-                                         ConcurrentLinkedQueue<String> completedTasks) {
+                                         ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         previousState.sort(Comparator.comparing(LastModifiedRange::getLastModifiedFrom));
         for (int i = 0; i < previousState.size(); i++) {
             LastModifiedRange currentRange = previousState.get(i);
@@ -210,7 +213,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
 
     private void addTask(long start, long end, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
-                         ConcurrentLinkedQueue<String> completedTasks) {
+                         ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         LastModifiedRange range = new LastModifiedRange(start, end);
         NodeStateEntryTraverser nodeStateEntryTraverser = nodeStateEntryTraverserFactory.create(range);
         taskQueue.add(new TraverseAndSortTask(nodeStateEntryTraverser, comparator, blobStore, storeDir,
@@ -312,6 +315,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         private static final String PREFIX = "sort-work-dir-";
         private static final String LAST_MODIFIED_TIME_DELIMITER = "-from-";
         private static final String STATUS_FILE_NAME = "completion-status";
+        private static final String COMPLETION_MARKER_FILE_NAME = "completed";
         private static final Logger log = LoggerFactory.getLogger(DirectoryHelper.class);
 
         static File createdSortWorkDir(File storeDir, String taskID, long lastModifiedLowerBound) throws IOException {
@@ -326,6 +330,20 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             }
             return Long.parseLong(dir.getName().substring(dir.getName().lastIndexOf(LAST_MODIFIED_TIME_DELIMITER) +
                     LAST_MODIFIED_TIME_DELIMITER.length()));
+        }
+
+        static void markCompleted(File sortWorkDir) {
+            try {
+                Files.write(Paths.get(sortWorkDir.getAbsolutePath() + "/" + COMPLETION_MARKER_FILE_NAME), ("completed").getBytes(),
+                        StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (IOException e) {
+                log.warn("Resuming download will not be accurate. Could not mark the directory "
+                        + sortWorkDir.getAbsolutePath() + " completed.", e);
+            }
+        }
+
+        static boolean hasCompleted(File sortWorkDir) {
+            return new File(sortWorkDir + "/" + COMPLETION_MARKER_FILE_NAME).exists();
         }
 
         static void markCompletionTill(File sortWorkDir, long lastModifiedTime) {
@@ -347,7 +365,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         }
 
         static Stream<File> getDataFiles(File sortWorkDir) {
-            return Arrays.stream(sortWorkDir.listFiles()).filter(f -> !f.getName().equals(STATUS_FILE_NAME));
+            return Arrays.stream(sortWorkDir.listFiles()).filter(f -> !STATUS_FILE_NAME.equals(f.getName()) &&
+                    !COMPLETION_MARKER_FILE_NAME.equals(f.getName()));
         }
 
     }

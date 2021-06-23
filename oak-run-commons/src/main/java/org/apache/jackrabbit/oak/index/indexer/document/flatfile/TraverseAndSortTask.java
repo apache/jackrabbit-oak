@@ -19,26 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.lang.management.MemoryNotificationInfo;
-import java.lang.management.MemoryPoolMXBean;
-import java.lang.management.MemoryUsage;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Phaser;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.management.Notification;
-import javax.management.NotificationEmitter;
-import javax.management.NotificationListener;
-import javax.management.openmbean.CompositeData;
-
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -48,14 +28,20 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.lang.management.ManagementFactory.getMemoryMXBean;
-import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
-import static java.lang.management.MemoryType.HEAP;
-import static org.apache.commons.io.FileUtils.ONE_GB;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Phaser;
+
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.MultithreadedTraverseWithSortStrategy.DirectoryHelper;
 
 /**
  * A callable representing a task for traversing/downloading the nodes states from the node store and creating sorted files
@@ -109,7 +95,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
-                                MemoryManager memoryManager) {
+                                MemoryManager memoryManager) throws IOException {
         this.taskID = "TWS-" + nodeStates.getId();
         this.nodeStates = nodeStates;
         this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedFrom();
@@ -124,6 +110,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
         this.phaser = phaser;
         this.nodeStateEntryTraverserFactory = nodeStateEntryTraverserFactory;
         this.memoryManager = memoryManager;
+        sortWorkDir = DirectoryHelper.createdSortWorkDir(storeDir, taskID, lastModifiedLowerBound);
         phaser.register();
         log.debug("Task {} registered to phaser", taskID);
     }
@@ -131,11 +118,10 @@ class TraverseAndSortTask implements Callable<List<File>> {
     public List<File> call() {
         try {
             logFlags();
-            sortWorkDir = MultithreadedTraverseWithSortStrategy.DirectoryHelper.createdSortWorkDir(storeDir, taskID,
-                    lastModifiedLowerBound);
             writeToSortedFiles();
             log.info("Completed task {}", taskID);
             completedTasks.add(taskID);
+            DirectoryHelper.markCompleted(sortWorkDir);
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
@@ -177,9 +163,9 @@ class TraverseAndSortTask implements Callable<List<File>> {
             reset();
         }
 
-        long remainingNumberOfNodeStates = lastModifiedUpperBound - e.getLastModified();
+        long remainingNumberOfTimestamps = lastModifiedUpperBound - e.getLastModified();
         // check if this task can be split
-        if (remainingNumberOfNodeStates > 1) {
+        if (remainingNumberOfTimestamps > 1) {
             long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
             /*
               If there is a completed task, there is a chance of some worker thread being idle, so we create a new task from
@@ -231,7 +217,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w,
                 lastSavedNodeStateEntry.getLastModified());
-        MultithreadedTraverseWithSortStrategy.DirectoryHelper.markCompletionTill(sortWorkDir,
+        DirectoryHelper.markCompletionTill(sortWorkDir,
                 lastSavedNodeStateEntry.getLastModified());
         sortedFiles.add(newtmpfile);
     }

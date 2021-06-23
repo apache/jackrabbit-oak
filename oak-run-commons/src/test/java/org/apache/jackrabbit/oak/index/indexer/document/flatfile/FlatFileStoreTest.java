@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,12 +27,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -55,10 +55,12 @@ import static org.junit.Assert.assertEquals;
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class FlatFileStoreTest {
 
-    Logger logger = LoggerFactory.getLogger(FlatFileStoreTest.class);
+    static Logger logger = LoggerFactory.getLogger(FlatFileStoreTest.class);
+
+    private static final String BUILD_TARGET_FOLDER = "target";
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+    public TemporaryFolder folder = new TemporaryFolder(new File(BUILD_TARGET_FOLDER));
 
     private Set<String> preferred = singleton("jcr:content");
 
@@ -127,10 +129,11 @@ public class FlatFileStoreTest {
         FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
         TestMemoryManager memoryManager = new TestMemoryManager(true);
         Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new TestMemoryManager(true));
+        TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(map, true);
         FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(lastModifiedBreakpoints)
-                .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, true))
+                .withNodeStateEntryTraverserFactory(nsetf)
                 .build();
 
         List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
@@ -139,11 +142,14 @@ public class FlatFileStoreTest {
 
         assertEquals(Collections.emptyList(), entryPaths);
         memoryManager.isMemoryLow = false;
+        nsetf.interrupt = false;
+        File oldDataDir = new File(BUILD_TARGET_FOLDER + "/old-data"+System.currentTimeMillis());
+        FileUtils.copyDirectory(folder.getRoot().listFiles()[0], oldDataDir);
         flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(lastModifiedBreakpoints)
-                .withExistingDataDumpDir(folder.getRoot().listFiles()[0])
-                .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, false))
+                .withExistingDataDumpDir(oldDataDir)
+                .withNodeStateEntryTraverserFactory(nsetf)
                 .build();
 
         entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
@@ -151,7 +157,9 @@ public class FlatFileStoreTest {
                 .collect(Collectors.toList());
 
         List<String> sortedPaths = TestUtils.sortPaths(paths);
+        assertEquals(paths.size(), nsetf.getTotalProvidedDocCount());
         assertEquals(sortedPaths, entryPaths);
+        FileUtils.deleteDirectory(oldDataDir);
     }
 
     private static class TestMemoryManager implements MemoryManager {
@@ -175,12 +183,37 @@ public class FlatFileStoreTest {
 
     private static class TestNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
 
+        /**
+         * Map of timestamps and paths which were created at those timestamps.
+         */
         final Map<Long, List<String>> pathData;
-        final boolean interrupt;
+        /**
+         * If this is true, iterators obtained from {@link NodeStateEntryTraverser}s this factory creates, throw an
+         * exception when reaching the middle of data they are iterating.
+         */
+        boolean interrupt;
+        /**
+         * Keeps count of all the node states that have been iterated using all the {@link NodeStateEntryTraverser}s this
+         * factory has created till now.
+         */
+        final AtomicInteger providedDocuments;
+        /**
+         * Mapping from timestamps to the number of nodes states that have been iterated for those timestamps using the
+         * {@link NodeStateEntryTraverser}s created by this factory.
+         */
+        final ConcurrentHashMap<Long, Integer> returnCounts;
+        /**
+         * This keeps count of the node states that will be returned again if the same instance of this factory is used
+         * for creating {@link NodeStateEntryTraverser}s in a subsequent run of a failed flat file store creation.
+         */
+        final AtomicInteger duplicateDocs;
 
         public TestNodeStateEntryTraverserFactory(Map<Long, List<String>> pathData, boolean interrupt) {
             this.pathData = pathData;
             this.interrupt = interrupt;
+            this.providedDocuments = new AtomicInteger(0);
+            this.returnCounts = new ConcurrentHashMap<>();
+            this.duplicateDocs = new AtomicInteger(0);
         }
 
         @Override
@@ -197,7 +230,12 @@ public class FlatFileStoreTest {
                     Iterator<NodeStateEntry> nodeStateEntryIterator = TestUtils.createEntriesWithLastModified(paths,
                             range.getLastModifiedFrom()).iterator();
                     AtomicInteger returnCount = new AtomicInteger(0);
+                    int breakPoint = paths.size()/2;
+                    String traverserId = getId();
                     return new Iterator<NodeStateEntry>() {
+
+                        long lastReturnedDocLastModified = -1;
+
                         @Override
                         public boolean hasNext() {
                             return nodeStateEntryIterator.hasNext();
@@ -205,15 +243,25 @@ public class FlatFileStoreTest {
 
                         @Override
                         public NodeStateEntry next() {
-                            if (interrupt && returnCount.get() == paths.size()/2) {
+                            if (interrupt && returnCount.get() == breakPoint) {
+                                duplicateDocs.addAndGet(returnCounts.getOrDefault(lastReturnedDocLastModified, 0));
                                 throw new IllegalStateException("Framed exception.");
                             }
                             returnCount.incrementAndGet();
-                            return nodeStateEntryIterator.next();
+                            providedDocuments.incrementAndGet();
+                            NodeStateEntry next = nodeStateEntryIterator.next();
+                            logger.info("Returning {} to {}",next.getPath(), traverserId);
+                            lastReturnedDocLastModified = next.getLastModified();
+                            returnCounts.compute(next.getLastModified(), (k,v) -> v == null ? 1 : v+1);
+                            return next;
                         }
                     };
                 }
             };
+        }
+
+        int getTotalProvidedDocCount() {
+            return providedDocuments.get() - duplicateDocs.get();
         }
 
     }
@@ -222,29 +270,37 @@ public class FlatFileStoreTest {
         return asList("/a", "/b", "/c", "/a/b w", "/a/jcr:content", "/a/b", "/", "/b/l");
     }
 
-    private Map<Long, List<String>> createPathsWithTimestamps() throws InterruptedException {
-        Random random = new Random();
+    /**
+     * @return a map with keys denoting timestamp and values denoting paths which were created at those timestamps.
+     */
+    private Map<Long, List<String>> createPathsWithTimestamps() {
         Map<Long, List<String>> map = new HashMap<>();
-        for (int i = 1; i <= 20; i++) {
-            long cur = System.currentTimeMillis();
-            List<String> paths = new ArrayList<>();
-            for(int j = 1; j <= i*5; j++) {
-                paths.add("/" + getRandomWord(random, 4 + random.nextInt(7)));
-            }
-            logger.debug("Putting " + cur + " - " + paths);
-            map.put(cur, paths);
-            Thread.sleep(2);
-        }
+        map.put(10L, new ArrayList<String>() {{
+            add("/a");
+        }});
+        map.put(20L, new ArrayList<String>() {{
+            add("/b");
+            add("/b/b");
+        }});
+        map.put(30L, new ArrayList<String>() {{
+            add("/c");
+            add("/c/c");
+            add("/c/c/c");
+        }});
+        map.put(40L, new ArrayList<String>() {{
+            add("/d");
+            add("/d/d");
+            add("/d/d/d");
+            add("/d/d/d/d");
+        }});
+        map.put(50L, new ArrayList<String>() {{
+            add("/e");
+            add("/e/e");
+            add("/e/e/e");
+            add("/e/e/e/e");
+            add("/e/e/e/e/e");
+        }});
         return map;
-    }
-
-    private String getRandomWord(Random random, int length) {
-        String s = "";
-        for (int i = 0; i < length; i++) {
-            s += (char) ('a' + random.nextInt(26));
-        }
-        //adding nano time to reduce the possibility of an already generated word being generated again
-        return s + System.nanoTime();
     }
 
 }
