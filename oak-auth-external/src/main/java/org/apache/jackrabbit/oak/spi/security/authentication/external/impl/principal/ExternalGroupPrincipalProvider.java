@@ -58,7 +58,6 @@ import javax.jcr.Value;
 import javax.jcr.query.Query;
 import java.security.Principal;
 import java.text.ParseException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -68,7 +67,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -114,7 +112,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         this.namePathMapper = namePathMapper;
 
         userManager = uc.getUserManager(root, namePathMapper);
-        autoMembershipPrincipals = new AutoMembershipPrincipals(autoMembershipMapping);
+        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping);
     }
 
     //--------------------------------------------------< PrincipalProvider >---
@@ -231,7 +229,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 }
 
                 // add existing group principals as defined with the _autoMembership_ option.
-                groupPrincipals.addAll(autoMembershipPrincipals.get(getIdpName(userTree)));
+                groupPrincipals.addAll(autoMembershipPrincipals.getPrincipals(getIdpName(userTree)));
                 return groupPrincipals;
             }
         }
@@ -451,61 +449,6 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 }
             }
             return null;
-        }
-    }
-
-    private final class AutoMembershipPrincipals {
-
-        private final Map<String, String[]> autoMembershipMapping;
-        private final Map<String, Set<Principal>> principalMap;
-
-        private AutoMembershipPrincipals(@NotNull Map<String, String[]> autoMembershipMapping) {
-            this.autoMembershipMapping = autoMembershipMapping;
-            this.principalMap = new ConcurrentHashMap<>(autoMembershipMapping.size());
-        }
-
-        @NotNull
-        private Collection<Principal> get(@Nullable String idpName) {
-            if (idpName == null) {
-                return ImmutableSet.of();
-            }
-
-            Set<Principal> principals;
-            if (!principalMap.containsKey(idpName)) {
-                principals = collectAutomembershipPrincipals(idpName);
-                principalMap.put(idpName, principals);
-            } else {
-                principals = principalMap.get(idpName);
-            }
-            return principals;
-        }
-
-        @NotNull
-        private Set<Principal> collectAutomembershipPrincipals(@NotNull String idpName) {
-            String[] vs = autoMembershipMapping.get(idpName);
-            if (vs == null) {
-                return ImmutableSet.of();
-            }
-
-            ImmutableSet.Builder<Principal> builder = ImmutableSet.builder();
-            for (String groupId : vs) {
-                try {
-                    Authorizable gr = userManager.getAuthorizable(groupId);
-                    if (gr != null && gr.isGroup()) {
-                        Principal grPrincipal = gr.getPrincipal();
-                        if (GroupPrincipals.isGroup(grPrincipal)) {
-                            builder.add(grPrincipal);
-                        } else {
-                            log.warn("Principal of group {} is not of group type -> Ignoring", groupId);
-                        }
-                    } else {
-                        log.warn("Configured auto-membership group {} does not exist -> Ignoring", groupId);
-                    }
-                } catch (RepositoryException e) {
-                    log.debug("Failed to retrieved 'auto-membership' group with id {}", groupId, e);
-                }
-            }
-            return builder.build();
         }
     }
 }
