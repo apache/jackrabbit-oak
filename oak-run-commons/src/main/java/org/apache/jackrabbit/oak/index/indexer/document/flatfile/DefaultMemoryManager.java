@@ -138,9 +138,9 @@ public class DefaultMemoryManager implements MemoryManager {
             log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
                     humanReadableByteCount(avail), minMemory);
             new Thread(() -> {
-                log.debug("Waiting for all tasks to finish dumping their data");
+                log.info("Waiting for all tasks to finish dumping their data");
                 phaser.awaitAdvance(phaser.getPhase());
-                log.debug("All tasks have finished dumping their data");
+                log.info("All tasks have finished dumping their data");
                 sufficientMemory.set(true);
             }, "Wait-For-Dump").start();
         }

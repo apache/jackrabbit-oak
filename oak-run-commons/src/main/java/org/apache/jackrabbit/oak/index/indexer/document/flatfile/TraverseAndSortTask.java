@@ -121,8 +121,15 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
 
     @Override
     public void memoryLow(Phaser phaser) {
-        this.dataDumpNotifyingPhaser = phaser;
+        if (entryBatch.isEmpty()) {
+            log.info("{} No data to save. Immediately signalling memory manager.", taskID);
+            phaser.register();
+            phaser.arriveAndDeregister();
+            return;
+        }
+        dataDumpNotifyingPhaser = phaser;
         dataDumpNotifyingPhaser.register();
+        log.info("{} Setting dumpData to true", taskID);
         dumpData.set(true);
     }
 
@@ -219,7 +226,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         }
         dumpData.set(false);
         if (dataDumpNotifyingPhaser != null) {
-            log.debug("{} Finished saving data to disk. Notifying memory listener.", taskID);
+            log.info("{} Finished saving data to disk. Notifying memory listener.", taskID);
             dataDumpNotifyingPhaser.arriveAndDeregister();
             dataDumpNotifyingPhaser = null;
         }
