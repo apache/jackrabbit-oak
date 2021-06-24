@@ -28,6 +28,8 @@ import javax.management.openmbean.CompositeData;
 import java.lang.management.MemoryNotificationInfo;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -50,23 +52,27 @@ public class DefaultMemoryManager implements MemoryManager {
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
     private final long maxMemoryBytes = maxMemory * ONE_GB;
     private final long minMemoryBytes = minMemory * ONE_GB;
-    private final boolean useMaxMemory;
     private final AtomicLong memoryUsed;
+    private final MemoryPoolMXBean pool;
+    private final ConcurrentLinkedQueue<MemoryManagerClient> clients;
+    private final MemoryManager.Type type;
 
     public DefaultMemoryManager() {
-        MemoryPoolMXBean pool = getMemoryPool();
+        pool = getMemoryPool();
         memoryUsed = new AtomicLong(0);
+        clients = new ConcurrentLinkedQueue<>();
         if (pool == null) {
+            type = Type.SELF_MANAGED;
             log.warn("Unable to setup monitoring of available memory. " +
                     "Would use configured maxMemory limit of {} GB", maxMemory);
-            useMaxMemory = true;
             return;
         }
-        useMaxMemory = false;
-        configureMemoryListener(pool);
+        type = Type.JMX_BASED;
+        configureMemoryListener();
+        logFlags();
     }
 
-    private void configureMemoryListener(MemoryPoolMXBean pool) {
+    private void configureMemoryListener() {
         NotificationEmitter emitter = (NotificationEmitter) getMemoryMXBean();
         MemoryListener listener = new MemoryListener();
         emitter.addNotificationListener(listener, null, null);
@@ -84,15 +90,38 @@ public class DefaultMemoryManager implements MemoryManager {
         checkMemory(usage);
     }
 
-    public boolean isMemoryLow() {
-        if (useMaxMemory){
-            return memoryUsed.get() > maxMemoryBytes;
-        }
-        return !sufficientMemory.get();
+    @Override
+    public Type getType() {
+        return type;
     }
 
-    public void updateMemoryUsed(long memory) {
+    @Override
+    public boolean isMemoryLow() {
+        if (type != Type.SELF_MANAGED) {
+            throw new UnsupportedOperationException("Not a self managed memory manager");
+        }
+        return memoryUsed.get() > maxMemoryBytes;
+    }
+
+    @Override
+    public void changeMemoryUsedBy(long memory) {
+        if (type != Type.SELF_MANAGED) {
+            throw new UnsupportedOperationException("Not a self managed memory manager");
+        }
         memoryUsed.addAndGet(memory);
+    }
+
+    @Override
+    public boolean registerClient(MemoryManagerClient client) {
+        if (type != Type.JMX_BASED) {
+            throw new UnsupportedOperationException("Not a self managed memory manager");
+        }
+        if (!sufficientMemory.get()) {
+            log.info("Can't register new client now. Not enough memory.");
+            return false;
+        }
+        clients.add(client);
+        return true;
     }
 
     private void checkMemory(MemoryUsage usage) {
@@ -103,9 +132,17 @@ public class DefaultMemoryManager implements MemoryManager {
             sufficientMemory.set(true);
             log.info("Available memory level {} is good.", humanReadableByteCount(avail));
         } else {
+            Phaser phaser = new Phaser();
+            clients.forEach(c -> c.memoryLow(phaser));
             sufficientMemory.set(false);
             log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
                     humanReadableByteCount(avail), minMemory);
+            new Thread(() -> {
+                log.debug("Waiting for all tasks to finish dumping their data");
+                phaser.awaitAdvance(phaser.getPhase());
+                log.debug("All tasks have finished dumping their data");
+                sufficientMemory.set(true);
+            }, "Wait-For-Dump").start();
         }
     }
 

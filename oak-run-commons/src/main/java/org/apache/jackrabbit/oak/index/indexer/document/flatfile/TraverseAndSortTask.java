@@ -36,8 +36,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
@@ -47,7 +49,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.Multithr
  * A callable representing a task for traversing/downloading the nodes states from the node store and creating sorted files
  * based on the downloaded data.
  */
-class TraverseAndSortTask implements Callable<List<File>> {
+class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final Logger log = LoggerFactory.getLogger(getClass());
     /**
      * Iterable over the nodeStates this task is supposed to traverse. Note that the iteration could stop without traversing
@@ -61,11 +63,13 @@ class TraverseAndSortTask implements Callable<List<File>> {
     private final Comparator<NodeStateHolder> comparator;
     private long entryCount;
     private long memoryUsed;
-    private File sortWorkDir;
+    private final File sortWorkDir;
     private final List<File> sortedFiles = new ArrayList<>();
     private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
+    private final AtomicBoolean dumpData = new AtomicBoolean(false);
+    private volatile Phaser dataDumpNotifyingPhaser;
     /**
      * Queue to which the {@link #taskID} of completed tasks is added.
      */
@@ -115,8 +119,25 @@ class TraverseAndSortTask implements Callable<List<File>> {
         log.debug("Task {} registered to phaser", taskID);
     }
 
+    @Override
+    public void memoryLow(Phaser phaser) {
+        this.dataDumpNotifyingPhaser = phaser;
+        dataDumpNotifyingPhaser.register();
+        dumpData.set(true);
+    }
+
     public List<File> call() {
         try {
+            Random random = new Random();
+            while (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType()) && !memoryManager.registerClient(this)) {
+                int sleepDuration = 1000 + random.nextInt(500);
+                log.info("{} Could not register to memory manager. Sleeping {} ms before retrying", taskID, sleepDuration);
+                try {
+                    Thread.sleep(sleepDuration);
+                } catch (InterruptedException e) {
+                    log.warn(taskID + " Interrupted while sleeping while trying to register to memory manager", e);
+                }
+            }
             logFlags();
             writeToSortedFiles();
             log.info("Completed task {}", taskID);
@@ -158,7 +179,7 @@ class TraverseAndSortTask implements Callable<List<File>> {
     }
 
     private void addEntry(NodeStateEntry e) throws IOException {
-        if (memoryManager.isMemoryLow()) {
+        if ((MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType()) && memoryManager.isMemoryLow()) || dumpData.get()) {
             sortAndSaveBatch();
             reset();
         }
@@ -193,7 +214,15 @@ class TraverseAndSortTask implements Callable<List<File>> {
 
     private void reset() {
         entryBatch.clear();
-        memoryManager.updateMemoryUsed(-1 * memoryUsed);
+        if (MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType())) {
+            memoryManager.changeMemoryUsedBy(-1 * memoryUsed);
+        }
+        dumpData.set(false);
+        if (dataDumpNotifyingPhaser != null) {
+            log.debug("{} Finished saving data to disk. Notifying memory listener.", taskID);
+            dataDumpNotifyingPhaser.arriveAndDeregister();
+            dataDumpNotifyingPhaser = null;
+        }
         memoryUsed = 0;
     }
 
@@ -228,7 +257,9 @@ class TraverseAndSortTask implements Callable<List<File>> {
 
     private void updateMemoryUsed(NodeStateHolder h) {
         memoryUsed += h.getMemorySize();
-        memoryManager.updateMemoryUsed(h.getMemorySize());
+        if (MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType())) {
+            memoryManager.changeMemoryUsedBy(h.getMemorySize());
+        }
     }
 
 }

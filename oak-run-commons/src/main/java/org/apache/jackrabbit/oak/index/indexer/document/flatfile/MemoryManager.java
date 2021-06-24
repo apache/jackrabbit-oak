@@ -18,10 +18,49 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+/**
+ * Implementations of this interface can be used to get updates about remaining heap memory.
+ */
 public interface MemoryManager {
+    /**
+     * Indicates type of memory management this instance does.
+     */
+    enum Type {
+        /**
+         * Uses JMX memory management mbeans for tracking available memory.
+         */
+        JMX_BASED,
+        /**
+         * Maintains memory usage itself. Different users can share this instance and indicate the increase/decrease in
+         * their memory usage by calling {@link #changeMemoryUsedBy(long)}, and check if the total memory used by all
+         * users of this calls causes the available memory to become low using {@link #isMemoryLow()}
+         */
+        SELF_MANAGED
+    }
 
+    Type getType();
+
+    /**
+     * Register a client with this memory manager. All registered clients are informed when available memory level is low.
+     * If memory level is already low, client is not registered.
+     * NOTE - this method should only be used with {@link Type#JMX_BASED} instance types, otherwise the behaviour is undefined.
+     * @param client client to register
+     * @return true if client got registered, false otherwise.
+     */
+    boolean registerClient(MemoryManagerClient client);
+
+    /**
+     * Checks if available memory is low.
+     * NOTE - this method should only be used with {@link Type#SELF_MANAGED} instance types, otherwise the behaviour is undefined.
+     * @return true if available memory is low, false otherwise.
+     */
     boolean isMemoryLow();
 
-    void updateMemoryUsed(long memory);
+    /**
+     * Adds the provided memory value to existing memory usage. Callers of this method could also provide negative values
+     * to indicate reduction in memory usage.
+     * NOTE - this method should only be used with {@link Type#SELF_MANAGED} instance types, otherwise the behaviour is undefined.
+     */
+    void changeMemoryUsedBy(long memory);
 
 }

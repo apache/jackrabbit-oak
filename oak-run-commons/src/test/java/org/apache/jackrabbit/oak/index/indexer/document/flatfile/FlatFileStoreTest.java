@@ -171,13 +171,23 @@ public class FlatFileStoreTest {
         }
 
         @Override
+        public Type getType() {
+            return Type.SELF_MANAGED;
+        }
+
+        @Override
         public boolean isMemoryLow() {
             return isMemoryLow;
         }
 
         @Override
-        public void updateMemoryUsed(long memory) {
+        public void changeMemoryUsedBy(long memory) {
 
+        }
+
+        @Override
+        public boolean registerClient(MemoryManagerClient client) {
+            return false;
         }
     }
 
