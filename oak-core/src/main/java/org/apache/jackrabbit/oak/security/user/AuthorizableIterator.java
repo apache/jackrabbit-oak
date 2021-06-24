@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -27,7 +27,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RangeIterator;
 import javax.jcr.RepositoryException;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -39,17 +42,44 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
 
     private final Iterator<Authorizable> authorizables;
     private final long size;
+    private final Set<String> servedIds;
 
     static AuthorizableIterator create(Iterator<String> authorizableOakPaths,
                                        UserManagerImpl userManager,
                                        AuthorizableType authorizableType) {
         Iterator<Authorizable> it = Iterators.transform(authorizableOakPaths, new PathToAuthorizable(userManager, authorizableType));
         long size = getSize(authorizableOakPaths);
-        return new AuthorizableIterator(Iterators.filter(it, Predicates.notNull()), size);
+        return new AuthorizableIterator(it, size, false);
+    }
+    
+    static AuthorizableIterator create(boolean filterDuplicates, @NotNull Iterator<? extends Authorizable> it1, @NotNull Iterator<? extends Authorizable> it2) {
+        long size = 0;
+        for (Iterator<?> it : new Iterator[] {it1, it2}) {
+            long l = getSize(it);
+            if (l == -1) {
+                size = -1;
+                break;
+            } else {
+                size = LongUtils.safeAdd(size, l);
+            }
+        }
+        return new AuthorizableIterator(Iterators.concat(it1, it2), size, filterDuplicates);
     }
 
-    private AuthorizableIterator(Iterator<Authorizable> authorizables, long size) {
-        this.authorizables = authorizables;
+    private AuthorizableIterator(Iterator<Authorizable> authorizables, long size, boolean filterDuplicates) {
+        if (filterDuplicates)  {
+            this.servedIds = new HashSet<>();
+            this.authorizables = Iterators.filter(authorizables, authorizable -> {
+                if (authorizable == null) {
+                    return false;
+                }
+                String id = Utils.getIdOrNull(authorizable);
+                return id != null && servedIds.add(id);
+            });
+        } else {
+            this.servedIds = null;
+            this.authorizables = Iterators.filter(authorizables, Objects::nonNull);
+        }
         this.size = size;
     }
 
@@ -76,9 +106,13 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
 
     //--------------------------------------------------------------------------
 
-    private static long getSize(Iterator<String> it) {
+    private static long getSize(Iterator<?> it) {
         if (it instanceof RangeIterator) {
             return ((RangeIterator) it).getSize();
+        } else if (it instanceof AuthorizableIterator) {
+            return ((AuthorizableIterator) it).getSize();
+        } else if (!it.hasNext()) {
+            return 0;
         } else {
             return -1;
         }

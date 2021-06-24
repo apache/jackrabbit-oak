@@ -94,4 +94,13 @@ final class Utils {
             }
         }
     }
+    
+    @Nullable
+    static String getIdOrNull(@NotNull Authorizable authorizable) {
+        try {
+            return authorizable.getID();
+        } catch (RepositoryException e) {
+            return null;
+        }
+    }
 }

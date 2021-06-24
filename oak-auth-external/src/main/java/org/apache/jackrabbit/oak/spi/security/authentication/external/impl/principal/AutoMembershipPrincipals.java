@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,6 +47,37 @@ final class AutoMembershipPrincipals {
         this.principalMap = new ConcurrentHashMap<>(autoMembershipMapping.size());
     }
 
+    boolean isConfiguredPrincipal(@NotNull Principal groupPrincipal) {
+        initPrincipalMap();
+        String name = groupPrincipal.getName();
+        for (Set<Principal> principals : principalMap.values()) {
+            if (principals.stream().anyMatch(principal -> name.equals(principal.getName()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    Set<String> getConfiguredIdpNames(@NotNull Principal groupPrincipal) {
+        initPrincipalMap();
+        String name = groupPrincipal.getName();
+        Set<String> idpNames = new HashSet<>(principalMap.size());
+        principalMap.forEach((idpName, principals) -> {
+            if (principals.stream().anyMatch(principal -> name.equals(principal.getName()))) {
+                idpNames.add(idpName);
+            }
+        });
+        return idpNames;
+    }
+
+    private void initPrincipalMap() {
+        if (principalMap.isEmpty() && !autoMembershipMapping.isEmpty()) {
+            for (String idpName : autoMembershipMapping.keySet()) {
+                getPrincipals(idpName);
+            }
+        }
+    }
+    
     @NotNull
     Collection<Principal> getPrincipals(@Nullable String idpName) {
         if (idpName == null) {
