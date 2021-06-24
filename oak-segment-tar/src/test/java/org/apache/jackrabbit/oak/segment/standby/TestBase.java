@@ -241,4 +241,99 @@ public class TestBase {
             "pKHE9hkL/dxsEBXkVdaRHzrfxCBxsP3b3EmOJ4xdl1phGhedUk/+RUWGY8VSnyaq\n" +
             "uVMy1feUqV+AebfUSPzPVubV\n" +
         "-----END PRIVATE KEY-----\n";
+
+    static final String encryptedClientKey =
+        "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" +
+            "MIIE6TAbBgkqhkiG9w0BBQMwDgQIZuy9oMDzt8wCAggABIIEyH7Rbg5VcLV/ZDqp\n" +
+            "AJ6tzPqMlnLVtspB/qk5nZRz2/n42yaqgO2eO7DJ5qNbBGZ6KzLosC6DHd1aXA7E\n" +
+            "8l5RTWQj0u16ANeKsjJ86o5/MRJkeUMh2tPLdVcG0e5nifgbWzXYpS6LuwKQpGEL\n" +
+            "ufSAWhF9BY1hMe58qzCFBsFjrd0tB232sDOnhopaLiO5tQ6h3iMvwK/EPXJGPKHX\n" +
+            "5++DlV/QNaENb/EsCvPlrRgpSWn6dAJ1kemKcvLbnHzTwK88B1n3GUr1B3Z+0jSV\n" +
+            "9IGNeIRVz97KGxW0v33SD1Kw4QpPH+PHH/HhmJ48Vv/mf1rINwA/yRE0iS89glhW\n" +
+            "NPh5O7HD2l2qZZDq74RUfvSzaW738/108ppck/uo+nOvEHnl346XJ7Etbp+fRYj1\n" +
+            "y/irfT7yZ1ZMUkms39M+yBwCp/AqdhvJemOLCAgSJcWWWsNnNqlQlJJsuvkcRPBr\n" +
+            "foYAsPWnZRcowZLyQ80gG5ZKoTa8Kyf/V2CuULHwYv16MLf0koLpGAEjd4QDLrun\n" +
+            "ybsRisrAFupgxNBLovyh6I4b97n0Qeotf/iIfmBOH7azYqpmvgJxNB6hNVwz2LAM\n" +
+            "JgnirRgY+FEdAyTd44/qPQpwXoz4ac3wrdGEU0oLwKk/J2bX1Eqh3tfziPycCO6v\n" +
+            "2IC3WGP59/ty3T1xA/LI0TqInAkUD+0Rkp1HhmPL4xEL/bGLL5FViFkybjO6pgoK\n" +
+            "xjq/dqTbrnmjyhVIjfdCbl2MFEsqUgemH/5J5o75P6mS0HOBaK6ERI9tM6dHz5Wk\n" +
+            "2AbwUUvEebLA6zR5+57dFKSQXhOOekRCQ9w8gDhPHMxyYp3YAdiFitweY/5Xhokt\n" +
+            "l3OXtLPNiqONcYp/Xkz5/CgsjoIHDGgQGy4sWYUQYCdAFXP8/ogR4zVpsUBP0Hjv\n" +
+            "9isg5MlXEEj+YOFYQr/HbON9zxP4LhzuYUWynvVJDfPxY1x7JI+aequHZRPj9Qct\n" +
+            "X6Va5c+G8q87fj/qCJCplGslhJsxBidTQw88+wNeVAVPd+456bszwIE5ey7glvTb\n" +
+            "gwmU4mXDm75T+PW3Y7Gz1HZ9ZCMuUBelBEKxVSOOXCxkO4zzfI9PVxVzkqfurVOO\n" +
+            "9R9i3gV3J6rQj98XtbvBTSrq9nylnzRiFSP2T0aRNLVRmGBahm9YIK+kll/VM2uL\n" +
+            "VzUYPJv22Q/cXR2lkwNFbScOGNzJ3UXiuWOM1CkBgadoHpKhmD4IypvMpA/B0tTL\n" +
+            "l4kL0z7Cg50kXYY77pl6cxorRnPs9fTpPWTPymqWp8Se+pfn/Fxqz11xD0P45Rlo\n" +
+            "0CHLS3536c2zX3/1Uh4ZIGTAwoWeiCfizTnaS7GbIniqJ1/KVx9L5gIu/uWHGSnY\n" +
+            "sU/gOHQw+HxkYGXYI5AqWUp79CZUEnKsNVZDAexKWraG3TBJSydZcyl3OcEfez+f\n" +
+            "ISw//WpK5Wc+Zc+KabT8eWGwN1bIV/5HP1hSx6kggtQBs6BSkEDirzzzvQeIvdol\n" +
+            "ddjGSudEjO2EBE25utg+5omiR8uCQwwInNNOr2otMikmWRgQ3AuIuqxYAF0qH1+f\n" +
+            "n6ePw/b30oy4xIKWz8Kxrn8oPLYgs1Dl3lF6LjRwq1urC2leYb6ZPaX5QjdarMJp\n" +
+            "sxOT5nOmsaG0vinlsQ==\n" +
+        "-----END ENCRYPTED PRIVATE KEY-----";
+
+    static final String encryptedServerKey =
+        "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" +
+            "MIIE6TAbBgkqhkiG9w0BBQMwDgQIto3hFjULIx0CAggABIIEyNWG0f8x6yY3XeE+\n" +
+            "WZjuFYe5WG4ftC8hvKgYCY1NhkFSH3R4FIkAdRanuskUI9rU6tzXEEVKpnsMNTf5\n" +
+            "AhQz/bI4fdu57vyz/ujwmdBMtP9m5hBjyfcJq6w/g1bECC6garbeTYvXgUljyV1n\n" +
+            "h8WQ4rClFhAZ1Qrujc6DTd63BGVoGxY+Jxe6FA2mZj2Z1bCsiWFGU0ShnU+QDF/O\n" +
+            "2SPcHHy37uckIdSrSFAuY8+iwQ5fL5mRH3Gw1CopQY07R8RKyRKpuZV56zJDXmGv\n" +
+            "j0NfJul26EmqXJSTLJyMlYdIP+xSPo50qTWqOl7w37fRcAw7duVP2jIlHJEJD9Y1\n" +
+            "UJe4ypihLp402Amw19wnsaxwk9PDDUd7kN1xFQMJ/eVF5k2hEL3m+2g6PbuFoSHt\n" +
+            "FVQEMDGqeAIPvrUr9FwO0qU7x0hJ1ce/v6IyYhJwbuVDzUFP0nHalTSVM/lXOshO\n" +
+            "dUqY97hOMh+q9drNUCQM08gq3XD/HQP/zA6LYH+X9Ts9Y0R+cocOXwbxc2jKAimo\n" +
+            "MwmP9bSD9MPabGGTv4ZeTVK9JTq4uetCk3ehqNEpS7d69bq0pJ3F6xvGaL7GjiQA\n" +
+            "8YyEUFtbyaBDgg4iwIiPsy/jo7h6Gj1Io/TjcDnp38h1YMTrER2nljB8lSm3t7DA\n" +
+            "5KOzLKHvvB8gUfMiM3OzbIcXtBJIWWidELToqEljAVHWt054yaI4oX1laHOa3zPG\n" +
+            "yriTUARkp5lA2llrm9E1AevlOxpUz3cr94ohvSI40QZgehcvraHJ7FCP7SUi54uY\n" +
+            "o7MRDe27zLsjYRoSLD6saSFL1XigjCa4dpOu3yN8q/R0NyjmBySxOlPbglyl/OmD\n" +
+            "czWFvUQcHcuSsPosbp30nsDD5SIGY6p+XR8tqJdKrCh+vgFlQPb1OkvGcXD7uzjI\n" +
+            "0jYVc23pUwrM3oynAjll2uEBlMfHsdYTB5ehv/sp7tqnc3/VbPhW9WOercbQvVnq\n" +
+            "Gb13aL4ra94glERJFH5LitvmjkylD6tjOttDONYg9ow1dA5g2q/A7WD0UV4TrW2w\n" +
+            "LRze30kKG2p94DE1if54VMA91QLhU3YwntDSk8jZ6bO7rG91d98npwHWZfMzJI6J\n" +
+            "blHM5gaAmHCTvwX6/Px/tS+8HmG5l8BBBqz70gh24uYjMgsTWsfRsjfypBmXzEFt\n" +
+            "JiFJIBwGQ0uHDM2JXqIdCf1em875eK3XR6qvrQDPiA5HVXFaGdRGbx0aK7lzDHrn\n" +
+            "7cn02kNLb4/kbZnpj04p7/j6dpfGLMnkSH7Pxx4f0cfirfDvcZQwjpl/n4bHnIxT\n" +
+            "Qv6XWq67dQObvbiCZF14CayEEqNU6Q9wq+EBji2739FhAAbZ0P1Uj792wk50tOgg\n" +
+            "+EqXzCGaqSRn7RrMEiQQTGBson9L6aBlNxyBRH6LMLAsvcKzlYB5zMQHwObd/eaU\n" +
+            "43WdwOly9CLeJbTpPNvZoeDGT7jdin3XiuauMnDa4W1wwKHKgpbD543ScZfIkNm1\n" +
+            "Wcibp27rE4/5eIsNyQnxkDRN7f3x0a9iwhlgrToXGabileLsonx3Jdf/YXgiqiQY\n" +
+            "4lLGr4EIVjKg8YbJvpnrEZQNeTHwPr8/N5N51VZvoVePBq/ZnBi9EK/aCL+f+0Dx\n" +
+            "yZio9eDGsuOXwR7iOg==\n" +
+        "-----END ENCRYPTED PRIVATE KEY-----";
+
+    static final String encryptedArbitraryKey =
+        "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" +
+            "MIIE6TAbBgkqhkiG9w0BBQMwDgQIT+Z6cmw0caMCAggABIIEyCCZWzPzrAGr7nsi\n" +
+            "ifNxQbX0GO6wYb3ND7yinc/0Yw+d38l0S5LTLg+5GD7SbXfoMmC44rUxSGnBV5Bj\n" +
+            "/bUW30B/s0+I3Ya1pXXyVP98vjy71Pspw/sHH3tYU73fPdqzh538Jf9qEgqgaJej\n" +
+            "MRdiQfQmXexmkyeWAYQutbONrwfuH8NqLGxuPjrc21WjKkijnv9X8CuUk6M1MCPc\n" +
+            "jN2iPhTsYiOkgKkyjF817792jDBYJHtoOuG5OmhSAdw6I3Tm5TRqAO/6IGPuDqWb\n" +
+            "7ho3ZyLBxBaLHTOawQkGm842lhwn5fACCCYNGsQhVGdbZN4KVgSYzJwvGw8vaawE\n" +
+            "VhD+zcDzhAydlhMXwFxDMgoZD5qRZujuDoBLgBYrDFDDEUfDNoUJSmWPpHXVc2tq\n" +
+            "RBiP3xb152lWiqRcXLZVHfXfxT79qZAxvlRBUgYEA/u2ud3p2/7R9UBvRzE6P6IA\n" +
+            "9ZuO6CgJgGvHXY2u721/MvvhY/75X1c1t0VJsdU2H6+E34QDtSqmQD08zBlZw5TK\n" +
+            "qltQpxgjMO1jtdEuHWPbR5Aoa5smOL9qBleptSGsm0I5zET+hv4y3f5AHIx3X3xy\n" +
+            "UH6Nw30oQtSbbZzPX4sqZuzA66W9Z4yW3Pn1EYcpuacypty/gvRZrvnwb6gYNB+h\n" +
+            "XTTaikNiGebcAZhSukcKmL3mjlpbUZC3Bjbz5AstZJyd0tMSaw0E4C8VQQHYyX5X\n" +
+            "lteW1O2TvHyGdeb0LNwsXzIMqsqmgsuNsms12Xx7KurxhPGk3Za2SdXQUASSryWX\n" +
+            "XPlKxlQDDM9DvSQsRw6BCUoUKZ/2YiXnnL/zrY1+xegXumwolgT8Dsu6CFxvzT7E\n" +
+            "16/4FeaVDB0/A5nmR71gkwm/b/JJL/Qj0H+E0rhCyZJeW9ddg4IWolEFTvCrVmHG\n" +
+            "gZ8DQIHJHSPilG8gdjzJ8cs89pctswnjuLMI2wT2/jqtM76Ibr9d0eIB6CzT17dh\n" +
+            "ASchmnUUXgjY/djAO8M3LuMUgu6OTCpIwAjfz7DOaakI42Dvrz0sTCkBwjD3XY7v\n" +
+            "1EyxoxCPoxTlHE1BLNgT5OD0B9SPC9aQLt+DOcDXVh8vQvIGtqMbxthIoi61XTeo\n" +
+            "sm35wkdiC0wSCgqPKIiz/LcyaWcOwbK2F7Q1dKluBT29L6X35FLqbp8RNZLJSX18\n" +
+            "53gJJLH4Hd7XcAn2Sat+vyuY3Z3vNiFMmx+vbho3ZgGL5KTNdmpN1fM7EqpGOUfp\n" +
+            "easRPOw3P1KuVqTVCvm/osf4VniV3xCvgwffJ/kOlHChnIrHGZpeBFmiV4xk7ucb\n" +
+            "7PSVt8BLV2+krXSTijFepeuVckitj3Kf4o++WePE6wlPi0rPYG47IE10xHojSKgr\n" +
+            "xdEonxiGL07/MEdI9+9PHLg5+ZakymRmMnEcJdpd7+WxaFy8jhvCCZ+7ppZBpYQC\n" +
+            "azdkciNz9d/YZRQH5M6VGk1VqqkQbenasUuZpXAxDOraLPlq801JyYyPqeROAgb8\n" +
+            "hTQXseAe+7lHWpmUGKuN0Y9EcV/3fiAP+PeMt/QXeGF5jcRVGWLs6nDVOaBQ/SB3\n" +
+            "syFXwJR6WtajR5OC7dEGZPTxaNfiu4GFuE73i3cVEJH2MH7+c/yB/40RJQdJ4kd6\n" +
+            "7KJYwr8P4TrNulM60Q==\n" +
+        "-----END ENCRYPTED PRIVATE KEY-----\n";
+
+    static final String secretPassword = "secret";
 }
