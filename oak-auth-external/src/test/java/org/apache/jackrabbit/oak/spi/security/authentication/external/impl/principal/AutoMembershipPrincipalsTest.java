@@ -31,9 +31,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -84,7 +86,8 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
     @Test
     public void testEmptyMapping() {
         Map<String, String[]> m = spy(new HashMap<>());
-        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(userManager, m);
+        UserManager um = spy(userManager);
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(um, m);
         
         assertTrue(amprincipals.getPrincipals(null).isEmpty());
         assertTrue(amprincipals.getPrincipals(IDP_VALID_AM).isEmpty());
@@ -92,5 +95,52 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         verify(m, times(1)).size();
         verify(m, times(1)).get(anyString());
         verifyNoMoreInteractions(m);
+
+        assertFalse(amprincipals.isConfiguredPrincipal(() -> AUTOMEMBERSHIP_GROUP_ID_1));
+        assertTrue(amprincipals.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_1).isEmpty());
+
+        verify(m, never()).isEmpty();
+        verifyNoMoreInteractions(m);
+        verifyNoInteractions(um);
+    }
+
+    @Test
+    public void testEmptyMapping2() {
+        Map<String, String[]> m = spy(new HashMap<>());
+        UserManager um = spy(userManager);
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(um, m);
+
+        assertFalse(amprincipals.isConfiguredPrincipal(() -> AUTOMEMBERSHIP_GROUP_ID_1));
+        assertFalse(amprincipals.isConfiguredPrincipal(() -> AUTOMEMBERSHIP_GROUP_ID_2));
+        assertFalse(amprincipals.isConfiguredPrincipal(() -> NON_EXISTING_GROUP_ID));
+
+        assertTrue(amprincipals.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_1).isEmpty());
+        assertTrue(amprincipals.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_2).isEmpty());
+        assertTrue(amprincipals.getConfiguredIdpNames(() -> NON_EXISTING_GROUP_ID).isEmpty());
+
+        verify(m, times(6)).isEmpty();
+        verify(m).size();
+        verifyNoMoreInteractions(m);
+
+        assertTrue(amprincipals.getPrincipals(null).isEmpty());
+        assertTrue(amprincipals.getPrincipals(IDP_VALID_AM).isEmpty());
+
+        verify(m, times(1)).get(anyString());
+        verifyNoMoreInteractions(m);
+        verifyNoInteractions(um);
+    }
+
+    @Test
+    public void testIsConfiguredPrincipal() {
+        assertTrue(amp.isConfiguredPrincipal(() -> AUTOMEMBERSHIP_GROUP_ID_1));
+        assertTrue(amp.isConfiguredPrincipal(() -> AUTOMEMBERSHIP_GROUP_ID_2));
+        assertFalse(amp.isConfiguredPrincipal(() -> NON_EXISTING_GROUP_ID));
+    }
+
+    @Test
+    public void testGetConfiguredIdpNames() {
+        assertEquals(ImmutableSet.of(IDP_VALID_AM, IDP_MIXED_AM), amp.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_1));
+        assertEquals(ImmutableSet.of(IDP_VALID_AM), amp.getConfiguredIdpNames(() -> AUTOMEMBERSHIP_GROUP_ID_2));
+        assertTrue(amp.getConfiguredIdpNames(() -> NON_EXISTING_GROUP_ID).isEmpty());
     }
 }
