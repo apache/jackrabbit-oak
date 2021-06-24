@@ -39,6 +39,7 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
@@ -124,6 +125,12 @@ public class StandbyStoreService {
         String sslKeyFile();
 
         @AttributeDefinition(
+            name = "SSL Key Password",
+            description = "Password for the SSL key. If this is empty, an unencrypted key is expected.",
+            type = AttributeType.PASSWORD)
+        String sslKeyPassword() default "";
+
+        @AttributeDefinition(
                 name = "SSL Certificate Chain File",
                 description = "The file name which contains the SSL certificate chain."
         )
@@ -136,16 +143,10 @@ public class StandbyStoreService {
         boolean sslValidateClient() default false;
 
         @AttributeDefinition(
-            name = "SSL Server Certificate Subject Pattern",
-            description = "The server certificate subject must match this pattern in order to be accepted by the client."
+            name = "SSL Certificate Subject Pattern",
+            description = "The peer certificate's subject must match this pattern in order to be accepted."
         )
-        String sslServerSubjectPattern();
-
-        @AttributeDefinition(
-            name = "SSL Client Certificate Subject Pattern",
-            description = "The client certificate subject must match this pattern in order to be accepted by the server."
-        )
-        String sslClientSubjectPattern();
+        String sslSubjectPattern();
     }
 
     @Reference(policy = STATIC, policyOption = GREEDY)
@@ -190,7 +191,7 @@ public class StandbyStoreService {
         String sslKeyFile = config.sslKeyFile();
         String sslChainFile = config.sslChainFile();
         boolean sslValidateClient = config.sslValidateClient();
-        String sslClientSubjectPattern = config.sslClientSubjectPattern();
+        String sslSubjectPattern = config.sslSubjectPattern();
 
         StandbyServerSync.Builder builder = StandbyServerSync.builder()
             .withPort(port)
@@ -201,7 +202,11 @@ public class StandbyStoreService {
             .withSSLKeyFile(sslKeyFile)
             .withSSLChainFile(sslChainFile)
             .withSSLClientValidation(sslValidateClient)
-            .withSSLClientSubjectPattern(sslClientSubjectPattern);
+            .withSSLSubjectPattern(sslSubjectPattern);
+
+        if (!"".equals(config.sslKeyPassword())) {
+            builder.withSSLKeyPassword(config.sslKeyPassword());
+        }
 
         StandbyServerSync standbyServerSync = builder.build();
 
@@ -224,7 +229,11 @@ public class StandbyStoreService {
             .withSecureConnection(config.secure())
             .withSSLKeyFile(config.sslKeyFile())
             .withSSLChainFile(config.sslChainFile())
-            .withSSLServerSubjectPattern(config.sslClientSubjectPattern());
+            .withSSLSubjectPattern(config.sslSubjectPattern());
+
+        if (!"".equals(config.sslKeyPassword())) {
+            builder.withSSLKeyPassword(config.sslKeyPassword());
+        }
 
         StandbyClientSync standbyClientSync = builder.build();
         closer.register(standbyClientSync);

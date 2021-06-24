@@ -73,8 +73,9 @@ class StandbyClient implements AutoCloseable {
         private int readTimeoutMs;
         private File spoolFolder;
         private String sslKeyFile;
+        private String sslKeyPassword;
         private String sslChainFile;
-        public String sslServerSubjectPattern;
+        public String sslSubjectPattern;
 
         private Builder() {}
 
@@ -118,13 +119,18 @@ class StandbyClient implements AutoCloseable {
             return this;
         }
 
+        public Builder withSSLKeyPassword(String sslKeyPassword) {
+            this.sslKeyPassword = sslKeyPassword;
+            return this;
+        }
+
         public Builder withSSLChainFile(String sslChainFile) {
             this.sslChainFile = sslChainFile;
             return this;
         }
 
-        public Builder withSSLServerSubjectPattern(String sslServerSubjectPattern) {
-            this.sslServerSubjectPattern = sslServerSubjectPattern;
+        public Builder withSSLSubjectPattern(String sslServerSubjectPattern) {
+            this.sslSubjectPattern = sslServerSubjectPattern;
             return this;
         }
 
@@ -169,14 +175,14 @@ class StandbyClient implements AutoCloseable {
                     if (builder.secure) {
                         SslContext sslContext;
                         if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
-                            sslContext = SslContextBuilder.forClient().keyManager(new File(builder.sslChainFile), new File(builder.sslKeyFile)).build();
+                            sslContext = SslContextBuilder.forClient().keyManager(new File(builder.sslChainFile), new File(builder.sslKeyFile), builder.sslKeyPassword).build();
                         } else {
                             sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
                         }
                         p.addLast("ssl", sslContext.newHandler(ch.alloc()));
 
-                        if (builder.sslServerSubjectPattern != null) {
-                            p.addLast(new SSLSubjectMatcher(builder.sslServerSubjectPattern));
+                        if (builder.sslSubjectPattern != null) {
+                            p.addLast(new SSLSubjectMatcher(builder.sslSubjectPattern));
                         }
                     }
 

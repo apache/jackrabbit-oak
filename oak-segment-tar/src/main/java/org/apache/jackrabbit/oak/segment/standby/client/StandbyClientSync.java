@@ -59,8 +59,9 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         private boolean autoClean;
         private File spoolFolder;
         private String sslKeyFile;
+        private String sslKeyPassword;
         private String sslChainFile;
-        private String sslServerSubjectPattern;
+        private String sslSubjectPattern;
 
         private Builder() {}
 
@@ -104,13 +105,18 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
             return this;
         }
 
+        public Builder withSSLKeyPassword(String sslKeyPassword) {
+            this.sslKeyPassword = sslKeyPassword;
+            return this;
+        }
+
         public Builder withSSLChainFile(String sslChainFile) {
             this.sslChainFile = sslChainFile;
             return this;
         }
 
-        public Builder withSSLServerSubjectPattern(String sslServerSubjectPattern) {
-            this.sslServerSubjectPattern = sslServerSubjectPattern;
+        public Builder withSSLSubjectPattern(String sslSubjectPattern) {
+            this.sslSubjectPattern = sslSubjectPattern;
             return this;
         }
 
@@ -149,9 +155,11 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final String sslKeyFile;
 
+    private final String sslKeyPassword;
+
     private final String sslChainFile;
 
-    private final String sslServerSubjectPattern;
+    private final String sslSubjectPattern;
 
     private int failedRequests;
 
@@ -192,8 +200,9 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.execution = new StandbyClientSyncExecution(fileStore, () -> running);
         this.spoolFolder = builder.spoolFolder;
         this.sslKeyFile = builder.sslKeyFile;
+        this.sslKeyPassword = builder.sslKeyPassword;
         this.sslChainFile = builder.sslChainFile;
-        this.sslServerSubjectPattern = builder.sslServerSubjectPattern;
+        this.sslSubjectPattern = builder.sslSubjectPattern;
         try {
             ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
@@ -253,8 +262,9 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                      .withReadTimeoutMs(readTimeoutMs)
                      .withSpoolFolder(spoolFolder)
                      .withSSLKeyFile(sslKeyFile)
+                     .withSSLKeyPassword(sslKeyPassword)
                      .withSSLChainFile(sslChainFile)
-                     .withSSLServerSubjectPattern(sslServerSubjectPattern).build()) {
+                     .withSSLSubjectPattern(sslSubjectPattern).build()) {
                     execution.execute(client);
                 }
 

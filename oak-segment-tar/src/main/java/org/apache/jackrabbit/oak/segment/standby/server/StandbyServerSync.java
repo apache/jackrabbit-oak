@@ -69,7 +69,9 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
 
         private boolean sslValidateClient;
 
-        public String sslClientSubjectPattern;
+        private String sslKeyPassword;
+
+        private String sslSubjectPattern;
 
         private Builder() {
             // Prevent external instantiation
@@ -132,6 +134,11 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
             return this;
         }
 
+        public Builder withSSLKeyPassword(String sslKeyPassword) {
+            this.sslKeyPassword = sslKeyPassword;
+            return this;
+        }
+
         public Builder withSSLChainFile(String sslChainFile) {
             this.sslChainFile = sslChainFile;
             return this;
@@ -142,8 +149,8 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
             return this;
         }
 
-        public Builder withSSLClientSubjectPattern(String sslClientSubjectPattern) {
-            this.sslClientSubjectPattern = sslClientSubjectPattern;
+        public Builder withSSLSubjectPattern(String sslSubjectPattern) {
+            this.sslSubjectPattern = sslSubjectPattern;
             return this;
         }
 
@@ -153,7 +160,6 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
             checkArgument(blobChunkSize > 0);
             return new StandbyServerSync(this);
         }
-
     }
 
     private static final Logger log = LoggerFactory.getLogger(StandbyServer.class);
@@ -184,13 +190,15 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
 
     private StandbyServer server;
 
-    private final String sslCertificate;
+    private final String sslKeyFile;
 
-    private final String sslChain;
+    private final String sslKeyPassword;
+
+    private final String sslChainFile;
 
     private final boolean sslValidateClient;
 
-    private final String sslClientSubjectPattern;
+    private final String sslSubjectPattern;
 
     private StandbyServerSync(Builder builder) {
         this.port = builder.port;
@@ -202,10 +210,11 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         this.standbyHeadReader = builder.standbyHeadReader;
         this.standbyReferencesReader = builder.standbyReferencesReader;
         this.standbySegmentReader = builder.standbySegmentReader;
-        this.sslCertificate = builder.sslKeyFile;
-        this.sslChain = builder.sslChainFile;
+        this.sslKeyFile = builder.sslKeyFile;
+        this.sslKeyPassword = builder.sslKeyPassword;
+        this.sslChainFile = builder.sslChainFile;
         this.sslValidateClient = builder.sslValidateClient;
-        this.sslClientSubjectPattern = builder.sslClientSubjectPattern;
+        this.sslSubjectPattern = builder.sslSubjectPattern;
         this.observer = new CommunicationObserver("primary");
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
@@ -245,10 +254,11 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
                 .withStandbyHeadReader(standbyHeadReader)
                 .withStandbyReferencesReader(standbyReferencesReader)
                 .withStandbySegmentReader(standbySegmentReader)
-                .withSSLKeyFile(sslCertificate)
-                .withSSLChainFile(sslChain)
+                .withSSLKeyFile(sslKeyFile)
+                .withSSLKeyPassword(sslKeyPassword)
+                .withSSLChainFile(sslChainFile)
                 .withSSLClientValidation(sslValidateClient)
-                .withSSLClientSubjectPattern(sslClientSubjectPattern);
+                .withSSLSubjectPattern(sslSubjectPattern);
 
             server = builder.build();
             server.start();
