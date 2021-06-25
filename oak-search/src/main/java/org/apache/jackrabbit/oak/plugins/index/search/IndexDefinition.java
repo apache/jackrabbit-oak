@@ -1684,7 +1684,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Iterable<String> getMixinTypeNames(NodeState state) {
         PropertyState property = state.getProperty(JcrConstants.JCR_MIXINTYPES);
-        return property != null ? property.getValue(Type.NAMES) : Collections.emptyList();
+        return property != null ? property.getValue(NAMES) : Collections.emptyList();
     }
 
     private static boolean hasOrderableChildren(NodeState state){
