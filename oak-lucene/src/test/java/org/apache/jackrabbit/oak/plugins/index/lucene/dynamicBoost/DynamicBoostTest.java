@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexAugmentorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
@@ -236,7 +237,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         Tree rootTree = root.getTree("/");
         Tree index = createTestIndexNode(rootTree, LuceneIndexConstants.TYPE_LUCENE);
         index.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
-        index.setProperty("dynamicBoostLite", lite);
+        index.setProperty(IndexConstants.DYNAMIC_BOOST_LITE_PROPERTY_NAME, lite);
         return TestUtil.newRulePropTree(index, nodeType);
     }
 

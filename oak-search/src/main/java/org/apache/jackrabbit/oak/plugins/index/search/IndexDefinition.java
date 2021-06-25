@@ -190,6 +190,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      * oak.search.dynamicBoostLite=lucene no index time boosting is used for lucene types indexes. The terms will affect
      * the query match clause but the scores won't be the same. In summary, in lite mode the query will have the same
      * recall but lower precision.
+     *
+     * WARNING: dynamicBoostLite needs similarityTags. In case there are no similarityTags, the query won't return the
+     * expected results.
      */
     private final static String DYNAMIC_BOOST_LITE_NAME = "oak.search.dynamicBoostLite";
     protected final static List<String> DYNAMIC_BOOST_LITE =
