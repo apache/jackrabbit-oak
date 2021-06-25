@@ -69,7 +69,7 @@ public class MongoUtils {
         }
         // fallback to docker based MongoDB if available
         MongoDockerRule dockerRule = new MongoDockerRule();
-        if (dockerRule.isDockerAvailable()) {
+        if (MongoDockerRule.isDockerAvailable()) {
             AtomicInteger port = new AtomicInteger();
             try {
                 dockerRule.apply(new Statement() {

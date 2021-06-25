@@ -156,10 +156,8 @@ public class MongoDocumentStore implements DocumentStore {
     private final MongoCollection<BasicDBObject> settings;
     private final MongoCollection<BasicDBObject> journal;
 
-    private final MongoClient client;
-    private final MongoStatus status;
-    private final MongoSessionFactory sessionFactory;
-    private final MongoDatabase db;
+    private final MongoDBConnection connection;
+    private final MongoDBConnection clusterNodesConnection;
 
     private final NodeDocumentCache nodesCache;
 
@@ -246,28 +244,26 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
-    public MongoDocumentStore(MongoClient client, MongoDatabase db,
+    public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
-        MongoStatus mongoStatus = builder.getMongoStatus();
-        if (mongoStatus == null) {
-            mongoStatus = new MongoStatus(client, db.getName());
+        MongoStatus status = builder.getMongoStatus();
+        if (status == null) {
+            status = new MongoStatus(connection, db.getName());
         }
-        mongoStatus.checkVersion();
+        status.checkVersion();
         metadata = ImmutableMap.<String,String>builder()
                 .put("type", "mongo")
-                .put("version", mongoStatus.getVersion())
+                .put("version", status.getVersion())
                 .build();
 
-        this.client = client;
-        this.status = mongoStatus;
-        this.sessionFactory = new MongoSessionFactory(client);
-        this.db = db;
+        this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
+        this.clusterNodesConnection = getOrCreateClusterNodesConnection(builder);
         stats = builder.getDocumentStoreStatsCollector();
-        nodes = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
-        clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString(), BasicDBObject.class);
-        settings = db.getCollection(Collection.SETTINGS.toString(), BasicDBObject.class);
-        journal = db.getCollection(Collection.JOURNAL.toString(), BasicDBObject.class);
+        nodes = this.connection.getCollection(Collection.NODES.toString());
+        clusterNodes = this.clusterNodesConnection.getCollection(Collection.CLUSTER_NODES.toString());
+        settings = this.connection.getCollection(Collection.SETTINGS.toString());
+        journal = this.connection.getCollection(Collection.JOURNAL.toString());
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
@@ -275,7 +271,7 @@ public class MongoDocumentStore implements DocumentStore {
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
         if (!readOnly) {
-            ensureIndexes(mongoStatus);
+            ensureIndexes(status);
         }
 
         this.nodeLocks = new StripedNodeDocumentLocks();
@@ -283,19 +279,33 @@ public class MongoDocumentStore implements DocumentStore {
 
         LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
-                "clientSessionSupported {}, clientSessionInUse {}, {}, " +
-                "serverStatus {}",
-                mongoStatus.getVersion(), maxReplicationLagMillis,
+                "leaseSocketTimeout {}, clientSessionSupported {}, " +
+                "clientSessionInUse {}, {}, serverStatus {}",
+                status.getVersion(), maxReplicationLagMillis,
                 maxDeltaForModTimeIdxSecs, disableIndexHint,
+                builder.getLeaseSocketTimeout(),
                 status.isClientSessionSupported(), useClientSession,
-                db.getWriteConcern(), mongoStatus.getServerDetails());
+                db.getWriteConcern(), status.getServerDetails());
+    }
+
+    @NotNull
+    private MongoDBConnection getOrCreateClusterNodesConnection(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
+        MongoDBConnection mc;
+        int leaseSocketTimeout = builder.getLeaseSocketTimeout();
+        if (leaseSocketTimeout > 0) {
+            mc = builder.createMongoDBClient(leaseSocketTimeout);
+        } else {
+            // use same connection
+            mc = connection;
+        }
+        return mc;
     }
 
     private void ensureIndexes(@NotNull MongoStatus mongoStatus) {
         // reading documents in the nodes collection and checking
         // existing indexes is performed against the MongoDB primary
         // this ensures the information is up-to-date and accurate
-        boolean emptyNodesCollection = execute(session -> MongoUtils.isCollectionEmpty(nodes, session));
+        boolean emptyNodesCollection = execute(session -> MongoUtils.isCollectionEmpty(nodes, session), Collection.NODES);
 
         // compound index on _modified and _id
         if (emptyNodesCollection) {
@@ -573,7 +583,7 @@ public class MongoDocumentStore implements DocumentStore {
                     dbCollection.find(getByKeyQuery(key)).into(result);
                 }
                 return null;
-            });
+            }, collection);
 
             if(result.isEmpty()) {
                 docFound = false;
@@ -727,7 +737,7 @@ public class MongoDocumentStore implements DocumentStore {
                     }
                 }
                 return null;
-            });
+            }, collection);
             resultSize = list.size();
 
             if (cacheChangesTracker != null) {
@@ -765,7 +775,7 @@ public class MongoDocumentStore implements DocumentStore {
                     dbCollection.deleteOne(filter);
                 }
                 return null;
-            });
+            }, collection);
         } catch (Exception e) {
             throw DocumentStoreException.convert(e, "Remove failed for " + key);
         } finally {
@@ -790,7 +800,7 @@ public class MongoDocumentStore implements DocumentStore {
                             dbCollection.deleteMany(query);
                         }
                         return null;
-                    });
+                    }, collection);
                 } catch (Exception e) {
                     throw DocumentStoreException.convert(e, "Remove failed for " + keyBatch);
                 } finally {
@@ -834,7 +844,7 @@ public class MongoDocumentStore implements DocumentStore {
                                 result = dbCollection.deleteMany(query);
                             }
                             return result.getDeletedCount();
-                        });
+                        }, collection);
                     } catch (Exception e) {
                         throw DocumentStoreException.convert(e, "Remove failed for " + batch);
                     } finally {
@@ -874,7 +884,7 @@ public class MongoDocumentStore implements DocumentStore {
                         result = dbCollection.deleteMany(query);
                     }
                     return result.getDeletedCount();
-                }), Integer.MAX_VALUE);
+                }, collection), Integer.MAX_VALUE);
             } catch (Exception e) {
                 throw DocumentStoreException.convert(e, "Remove failed for " + collection + ": " +
                     indexedProperty + " in (" + startValue + ", " + endValue + ")");
@@ -945,7 +955,7 @@ public class MongoDocumentStore implements DocumentStore {
                         } else {
                             return dbCollection.updateOne(query, update);
                         }
-                    });
+                    }, collection);
                     if (result.getModifiedCount() > 0) {
                         // success, update cached document
                         if (collection == Collection.NODES) {
@@ -969,7 +979,7 @@ public class MongoDocumentStore implements DocumentStore {
                 } else {
                     return dbCollection.findOneAndUpdate(query, update, options);
                 }
-            });
+            }, collection);
 
             if (oldNode == null && upsert) {
                 newEntry = true;
@@ -1221,7 +1231,7 @@ public class MongoDocumentStore implements DocumentStore {
                     docs.put(foundDoc.getId(), foundDoc);
                 }
                 return null;
-            });
+            }, collection);
         }
         return docs;
     }
@@ -1261,7 +1271,7 @@ public class MongoDocumentStore implements DocumentStore {
                 } else {
                     return dbCollection.bulkWrite(writes, options);
                 }
-            });
+            }, collection);
         } catch (MongoBulkWriteException e) {
             bulkResult = e.getWriteResult();
             for (BulkWriteError err : e.getWriteErrors()) {
@@ -1346,7 +1356,7 @@ public class MongoDocumentStore implements DocumentStore {
                         dbCollection.insertMany(inserts);
                     }
                     return null;
-                });
+                }, collection);
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
                         nodesCache.putIfAbsent((NodeDocument) doc);
@@ -1543,11 +1553,11 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     MongoDatabase getDatabase() {
-        return db;
+        return connection.getDatabase();
     }
 
     MongoClient getClient() {
-        return client;
+        return connection.getClient();
     }
 
     private static Bson getByKeyQuery(String key) {
@@ -1556,7 +1566,10 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void dispose() {
-        client.close();
+        connection.close();
+        if (clusterNodesConnection != connection) {
+            clusterNodesConnection.close();
+        }
         try {
             nodesCache.close();
         } catch (IOException e) {
@@ -1580,7 +1593,7 @@ public class MongoDocumentStore implements DocumentStore {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
         List<MongoCollection<?>> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
         all.forEach(c -> toMapBuilder(builder,
-                db.runCommand(
+                connection.getDatabase().runCommand(
                     new BasicDBObject("collStats", c.getNamespace().getCollectionName()),
                         BasicDBObject.class),
                 c.getNamespace().getCollectionName()));
@@ -1787,7 +1800,7 @@ public class MongoDocumentStore implements DocumentStore {
         // date object is correctly taking care of time zones.
         final BasicDBObject isMaster;
         try {
-            isMaster = db.runCommand(new BasicDBObject("isMaster", 1), BasicDBObject.class);
+            isMaster = getDatabase().runCommand(new BasicDBObject("isMaster", 1), BasicDBObject.class);
             if (isMaster == null) {
                 // OAK-4107 / OAK-4515 : extra safety
                 LOG.warn("determineServerTimeDifferenceMillis: db.isMaster returned null - cannot determine time difference - assuming 0ms.");
@@ -1855,12 +1868,12 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private boolean withClientSession() {
-        return status.isClientSessionSupported() && useClientSession;
+        return connection.getStatus().isClientSessionSupported() && useClientSession;
     }
 
     private boolean secondariesWithinAcceptableLag() {
-        return client.getReplicaSetStatus() == null
-                || status.getReplicaSetLagEstimate() < acceptableLagMillis;
+        return getClient().getReplicaSetStatus() == null
+                || connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 
     private void lagTooHigh() {
@@ -1875,21 +1888,33 @@ public class MongoDocumentStore implements DocumentStore {
      * the scope of the {@link DocumentStoreCallable#call(ClientSession)}.
      * 
      * @param callable the callable.
+     * @param collection the collection this callable operates on.
      * @param <T> the return type of the callable.
      * @return the result of the callable.
      * @throws DocumentStoreException if the callable throws an exception.
      */
-    private <T> T execute(DocumentStoreCallable<T> callable)
+    private <T> T execute(@NotNull DocumentStoreCallable<T> callable,
+                          @NotNull Collection<?> collection)
             throws DocumentStoreException {
         T result;
         if (withClientSession()) {
-            try (ClientSession session = sessionFactory.createClientSession()) {
+            try (ClientSession session = createClientSession(collection)) {
                 result = callable.call(session);
             }
         } else {
             result = callable.call(null);
         }
         return result;
+    }
+
+    private ClientSession createClientSession(Collection<?> collection) {
+        MongoDBConnection dbConnection;
+        if (Collection.CLUSTER_NODES == collection) {
+            dbConnection = clusterNodesConnection;
+        } else {
+            dbConnection = connection;
+        }
+        return dbConnection.createClientSession();
     }
 
     interface DocumentStoreCallable<T> {

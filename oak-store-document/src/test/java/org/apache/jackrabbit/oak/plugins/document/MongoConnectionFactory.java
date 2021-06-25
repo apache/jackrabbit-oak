@@ -38,7 +38,7 @@ public class MongoConnectionFactory extends ExternalResource {
     @Override
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
-        if (mongo.isDockerAvailable()) {
+        if (MongoDockerRule.isDockerAvailable()) {
             s = mongo.apply(s, description);
         }
         return s;
@@ -53,7 +53,7 @@ public class MongoConnectionFactory extends ExternalResource {
     public MongoConnection getConnection(String dbName) {
         // first try MongoDB running on configured host and port
         MongoConnection c = MongoUtils.getConnection(dbName);
-        if (c == null && mongo.isDockerAvailable()) {
+        if (c == null && MongoDockerRule.isDockerAvailable()) {
             // fall back to docker if available
             c = new MongoConnection("localhost", mongo.getPort(), dbName);
         }

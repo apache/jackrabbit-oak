@@ -103,6 +103,14 @@ public class TestUtils {
         Revision.resetClockToDefault();
     }
 
+    public static void setClusterNodeInfoClock(Clock c) {
+        ClusterNodeInfo.setClock(c);
+    }
+
+    public static void resetClusterNodeInfoClockToDefault() {
+        ClusterNodeInfo.resetClockToDefault();
+    }
+
     public static void persistToBranch(NodeBuilder builder) {
         if (builder instanceof DocumentRootBuilder) {
             ((DocumentRootBuilder) builder).persist();
