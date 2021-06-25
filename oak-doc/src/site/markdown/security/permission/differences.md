@@ -106,7 +106,7 @@ implementations is no longer supported with Oak. Since there are no permissions
 installed by default this flag has become superfluous.
 
 <!-- hidden references -->
-[Permissions]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.java
-[PermissionHook]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/permission/PermissionHook.java
+[Permissions]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.java
+[PermissionHook]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/permission/PermissionHook.java
 [OAK-444]: https://issues.apache.org/jira/browse/OAK-444
 [JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963

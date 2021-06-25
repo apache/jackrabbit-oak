@@ -43,4 +43,4 @@ RTC or CTR is up to the committer.
  
 [1]: https://svn.apache.org/repos/asf/jackrabbit/oak/trunk
 [2]: https://github.com/apache/jackrabbit-oak
-[3]: http://svn.apache.org/viewvc/jackrabbit/oak/trunk/
+[3]: https://github.com/apache/jackrabbit-oak/tree/trunk/

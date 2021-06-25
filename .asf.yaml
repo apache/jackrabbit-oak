@@ -1,0 +1,10 @@
+# https://cwiki.apache.org/confluence/x/7guYBw
+github:
+  description: "Apache Jackrabbit Oak"
+  homepage: "https://jackrabbit.apache.org/oak/"
+  labels:
+    - java
+    - jackrabbit
+    - jcr
+    - repository
+    - database

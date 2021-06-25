@@ -78,8 +78,6 @@ The following components have been moved to the Jackrabbit Attic:
   - oak-mk-remote     - MicroKernel remoting  (see OAK-2693)
   - oak-it/mk         - integration tests for MicroKernel
 
-
-
 License
 -------
 
