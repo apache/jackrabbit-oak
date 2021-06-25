@@ -235,8 +235,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final Map<String, Aggregate> aggregates;
 
-    private final String scorerProviderName;
-
     private final boolean hasCustomTikaConfig;
 
     private final Map<String, String> customTikaMimeTypeMappings;
@@ -430,7 +428,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.maxExtractLength = determineMaxExtractLength();
             this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
                     DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
-            this.scorerProviderName = getOptionalValue(defn, FulltextIndexConstants.PROP_SCORER_PROVIDER, null);
             this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
             this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
             this.queryPaths = getOptionalValues(defn, IndexConstants.QUERY_PATHS, Type.STRINGS, String.class);
