@@ -75,6 +75,8 @@ See also [OAK-5210].
   to new instances of the `PrincipalProvider`.
 - Note, that in the initial version (Oak 1.6) only the `user.autoMembership` 
   configuration is respected (see also [OAK-5194] and [OAK-5195])
+- With [OAK-9462] an implementation of `DynamicMembershipProvider` will be registered 
+  and reflect autoMembership for synchronized external users in the User Management API (see below).
   
 #### Effect of Dynamic Membership on other Security Modules
   
@@ -106,8 +108,8 @@ user management feature but limit the synchronized information to the principal
 names and the membership relation between a given `java.security.acl.Group` principal 
 and external user accounts.
 
-The user management API will consequently no longer be knowledgeable of external 
-group identities (exception: groups that have been synchronized before enabling 
+The user management API will consequently no longer be knowledgeable of **external 
+group identities** (exception: groups that have been synchronized before enabling 
 the feature will remain untouched and will be synchronized according to the 
 sync configuration).
 
@@ -116,6 +118,12 @@ While this behavior does not affect default authentication and authorization mod
 of external identities. Those application won't be able to benefit from the dynamic 
 membership feature until dynamic groups can be created with the 
 Jackrabbit [User Management API](../../user.html) (see [OAK-2687]).
+
+Note however, that with [OAK-9462] groups listed in the **autoMembership** configuration 
+parameters will have dynamic group membership of external user identities reflected 
+in the corresponding API calls, most notably `Group.isMember`, `Group.isDeclaredMember`, 
+`Group.getMembers`, `Group.getDeclaredMembers` as well as `Authorizable.memberOf`
+and `Authorizable.declaredMemberOf()`.
 
 ##### Authentication
 
@@ -144,3 +152,4 @@ membership configuration.
 [OAK-5194]: https://issues.apache.org/jira/browse/OAK-5194
 [OAK-5195]: https://issues.apache.org/jira/browse/OAK-5195
 [OAK-5210]: https://issues.apache.org/jira/browse/OAK-5210
+[OAK-9462]: https://issues.apache.org/jira/browse/OAK-9462

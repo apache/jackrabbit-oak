@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -27,8 +26,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.user.AbstractUserTest;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
-import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +44,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ResultRowToAuthorizableTest extends AbstractSecurityTest {
+public class ResultRowToAuthorizableTest extends AbstractUserTest {
 
     private ResultRowToAuthorizable groupRrta;
     private ResultRowToAuthorizable userRrta;
@@ -61,7 +60,7 @@ public class ResultRowToAuthorizableTest extends AbstractSecurityTest {
 
     @NotNull
     private ResultRowToAuthorizable createResultRowToAuthorizable(@NotNull Root r, @Nullable AuthorizableType targetType) {
-        UserManagerImpl umgr = new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider(), UserMonitor.NOOP);
+        UserManagerImpl umgr = createUserManagerImpl(r);
         return new ResultRowToAuthorizable(umgr, r, targetType);
     }
 
