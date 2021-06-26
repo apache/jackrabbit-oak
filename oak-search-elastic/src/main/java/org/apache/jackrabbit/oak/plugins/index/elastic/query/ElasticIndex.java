@@ -164,4 +164,9 @@ class ElasticIndex extends FulltextIndex {
     protected boolean filterReplacedIndexes() {
         return true;
     }
+
+    @Override
+    protected boolean checkIsIndexActive() {
+        return false;
+    }
 }
