@@ -17,7 +17,8 @@
 
 Downloads
 =========
-The latest Oak sources are available for cloning from [GitHub](https://github.com/apache/jackrabbit-oak).
+The latest Oak sources are available for checkout from [svn](https://svn.apache.org/repos/asf/jackrabbit/oak/trunk),
+or you can [clone or fork them](https://github.com/apache/jackrabbit-oak) on GitHub.
 
 See the Jackrabbit [Downloads](http://jackrabbit.apache.org/downloads.html)
 page for stable releases.

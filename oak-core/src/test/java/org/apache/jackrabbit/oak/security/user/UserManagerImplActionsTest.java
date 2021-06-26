@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.security.user;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -55,7 +57,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-public class UserManagerImplActionsTest extends AbstractUserTest {
+public class UserManagerImplActionsTest extends AbstractSecurityTest {
 
     private final AuthorizableActionProvider actionProvider = mock(AuthorizableActionProvider.class);
     private final AuthorizableAction action = mock(AuthorizableAction.class, withSettings().extraInterfaces(GroupAction.class, UserAction.class));
@@ -65,7 +67,7 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
     @Before
     public void before() throws Exception {
         super.before();
-        userMgr = createUserManagerImpl(root);
+        userMgr = new UserManagerImpl(root, new PartialValueFactory(getNamePathMapper()), securityProvider, UserMonitor.NOOP);
         reset(action);
     }
 
@@ -77,11 +79,6 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
         } finally {
             super.after();
         }
-    }
-
-    @Override
-    protected UserMonitor getUserMonitor() {
-        return UserMonitor.NOOP;
     }
 
     @Override

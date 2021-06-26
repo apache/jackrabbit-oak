@@ -40,10 +40,10 @@ Check that the following files contains the right versions
     
 ## 2. Revert the local changes
 
-You'll have a bunch of files locally that are not committed to Git.
+You'll have a bunch of files locally that are not committed to svn.
 Just to have a clean situation clean up everything
 
-    $ git clean -f
+    $ svn st | grep '^?' | awk '{print $2}' | xargs rm
     
 ## 3. Actual branching
 

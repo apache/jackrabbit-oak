@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -91,7 +90,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     }
 
     private UserManagerImpl createUserManager(@NotNull Root root, @NotNull PartialValueFactory pvf) {
-        return new UserManagerImpl(root, pvf, getSecurityProvider(), UserMonitor.NOOP, mock(DynamicMembershipService.class));
+        return new UserManagerImpl(root, pvf, getSecurityProvider(), UserMonitor.NOOP);
     }
 
     /**

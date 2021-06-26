@@ -40,8 +40,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
@@ -86,15 +84,11 @@ public class UserManagerImpl implements UserManager {
 
     private UserQueryManager queryManager;
     private ReadOnlyNodeTypeManager ntMgr;
-    
-    private final DynamicMembershipService dynamicMembership;
-    private DynamicMembershipProvider dynamicMembershipProvider;
-    
+
     public UserManagerImpl(@NotNull Root root,
                            @NotNull PartialValueFactory valueFactory,
                            @NotNull SecurityProvider securityProvider,
-                           @NotNull UserMonitor monitor, 
-                           @NotNull DynamicMembershipService dynamicMembershipService) {
+                           @NotNull UserMonitor monitor) {
         this.root = root;
         this.valueFactory = valueFactory;
         this.namePathMapper = valueFactory.getNamePathMapper();
@@ -105,7 +99,6 @@ public class UserManagerImpl implements UserManager {
         this.config = uc.getParameters();
         this.userProvider = new UserProvider(root, config);
         this.membershipProvider = new MembershipProvider(root, config);
-        this.dynamicMembership = dynamicMembershipService;
         this.actionProvider = getActionProvider(config);
     }
 
@@ -452,14 +445,6 @@ public class UserManagerImpl implements UserManager {
     @NotNull
     MembershipProvider getMembershipProvider() {
         return membershipProvider;
-    }
-    
-    @NotNull 
-    DynamicMembershipProvider getDynamicMembershipProvider() {
-        if (dynamicMembershipProvider == null) {
-            dynamicMembershipProvider = dynamicMembership.getDynamicMembershipProvider(root, this, namePathMapper);
-        }
-        return dynamicMembershipProvider;
     }
 
     @NotNull

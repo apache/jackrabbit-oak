@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -37,8 +36,6 @@ import java.util.Hashtable;
 
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_DEFAULT_DEPTH;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -57,16 +54,6 @@ public class UserConfigurationImplOSGiTest extends AbstractSecurityTest {
 
         ConfigurationParameters params = userConfiguration.getParameters();
         assertEquals(8, params.getConfigValue(PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH).intValue());
-    }
-    
-    @Test
-    public void testDeactivate() {
-        UserConfiguration userConfiguration = new UserConfigurationImpl(getSecurityProvider());
-        ServiceRegistration sr = context.bundleContext().registerService(new String[] {UserConfiguration.class.getName(), SecurityConfiguration.class.getName()}, 
-                userConfiguration, null);
-        assertNotNull(context.getService(UserConfiguration.class));
-        sr.unregister();
-        assertNull(context.getService(UserConfiguration.class));
     }
 
     @Test

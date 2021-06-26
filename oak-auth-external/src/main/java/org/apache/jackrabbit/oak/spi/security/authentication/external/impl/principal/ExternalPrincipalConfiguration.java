@@ -40,14 +40,12 @@ import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.Monitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -86,8 +84,6 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     
     private SyncConfigTracker syncConfigTracker;
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
-    
-    private ServiceRegistration automembershipRegistration;
 
     private ExternalIdentityMonitor monitor = ExternalIdentityMonitor.NOOP;
 
@@ -166,8 +162,6 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
         syncConfigTracker = new SyncConfigTracker(bundleContext, syncHandlerMappingTracker);
         syncConfigTracker.open();
-        
-        automembershipRegistration = bundleContext.registerService(DynamicMembershipService.class.getName(), new AutomembershipService(syncConfigTracker), null);
     }
 
     @SuppressWarnings("UnusedDeclaration")
@@ -178,10 +172,6 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         }
         if (syncHandlerMappingTracker != null) {
             syncHandlerMappingTracker.close();
-        }
-        
-        if (automembershipRegistration != null) {
-            automembershipRegistration.unregister();
         }
     }
 

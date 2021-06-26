@@ -16,20 +16,23 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.junit.Test;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlManager;
-import java.util.Set;
-import java.util.UUID;
+
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -38,21 +41,24 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-public abstract class AbstractRemoveMembersByIdTest extends AbstractUserTest {
+public abstract class AbstractRemoveMembersByIdTest extends AbstractSecurityTest {
 
     static final String[] NON_EXISTING_IDS = new String[] {"nonExisting1", "nonExisting2"};
 
     Group testGroup;
     Group memberGroup;
-    
+
+    private final UserMonitor monitor = mock(UserMonitor.class);
+
     @Override
     public void before() throws Exception {
         super.before();
 
-        UserManager uMgr = createUserManagerImpl(root);
+        UserManager uMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider(), monitor);
         for (String id : NON_EXISTING_IDS) {
             assertNull(uMgr.getAuthorizable(id));
         }

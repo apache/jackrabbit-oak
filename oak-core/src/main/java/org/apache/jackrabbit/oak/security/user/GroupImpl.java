@@ -16,8 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
+
+import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -26,19 +35,11 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -110,14 +111,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         }
 
-        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
-        if (dmp.coversAllMembers(this)) {
-            log.debug("Attempt to add member to dynamic group {}", getID());
-            return false;
-        }
         AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
-        if (authorizableImpl.isEveryone()) {
-            log.debug("Attempt to create membership for everyone group.");
+        if (isEveryone() || authorizableImpl.isEveryone()) {
+            log.debug("Attempt to add member to everyone group or create membership for it.");
             return false;
         }
 
@@ -163,15 +159,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         }
 
-        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
-        if (dmp.coversAllMembers(this)) {
-            log.debug("Attempt to remove member from dynamic group {}", getID());
-            return false;
-        }
-        
         AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
-        if (authorizableImpl.isEveryone()) {
-            log.debug("Attempt to remove membership for everyone group.");
+        if (isEveryone() || authorizableImpl.isEveryone()) {
+            log.debug("Attempt to remove member from everyone group or remove membership for it.");
             return false;
         } else {
             Tree memberTree = authorizableImpl.getTree();
@@ -209,22 +199,20 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         UserManagerImpl userMgr = getUserManager();
-
-        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
-        Iterator<Authorizable> dynamicMembers = dmp.getMembers(this, includeInherited);
-        if (dmp.coversAllMembers(this)) {
-            return dynamicMembers;
+        if (isEveryone()) {
+            String propName = userMgr.getNamePathMapper().getJcrName((REP_PRINCIPAL_NAME));
+            Iterator<Authorizable> result = Iterators.filter(userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE), Predicates.notNull());
+            return Iterators.filter(result, authorizable -> !Utils.isEveryone(authorizable)
+            );
+        } else {
+            Iterator<String> oakPaths = getMembershipProvider().getMembers(getTree(), includeInherited);
+            if (oakPaths.hasNext()) {
+                AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, userMgr, AuthorizableType.AUTHORIZABLE);
+                return new RangeIteratorAdapter(iterator, iterator.getSize());
+            } else {
+                return RangeIteratorAdapter.EMPTY;
+            }
         }
-
-        // dynamic membership didn't cover all members -> extract from group-tree
-        Iterator<String> oakPaths = getMembershipProvider().getMembers(getTree(), includeInherited);
-        if (!oakPaths.hasNext()) {
-            return dynamicMembers;
-        }
-        
-        AuthorizableIterator members = AuthorizableIterator.create(oakPaths, userMgr, AuthorizableType.AUTHORIZABLE);
-        AuthorizableIterator allMembers = AuthorizableIterator.create(true, dynamicMembers, members);
-        return new RangeIteratorAdapter(allMembers, allMembers.getSize()); 
     }
 
     /**
@@ -241,22 +229,21 @@ class GroupImpl extends AuthorizableImpl implements Group {
         if (!isValidAuthorizableImpl(authorizable)) {
             return false;
         }
-        if (getID().equals(authorizable.getID()) || ((AuthorizableImpl) authorizable).isEveryone()) {
+
+        if (getID().equals(authorizable.getID())) {
             return false;
-        }
-
-        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
-        if (dmp.isMember(this, authorizable, includeInherited)) {
+        } else if (isEveryone()) {
             return true;
-        }
-
-        // no dynamic membership -> regular membership provider needs to evaluate
-        Tree authorizableTree = ((AuthorizableImpl) authorizable).getTree();
-        MembershipProvider mgr = getUserManager().getMembershipProvider();
-        if (includeInherited) {
-            return mgr.isMember(this.getTree(), authorizableTree);
+        } else if (((AuthorizableImpl) authorizable).isEveryone()) {
+            return false;
         } else {
-            return mgr.isDeclaredMember(this.getTree(), authorizableTree);
+            Tree authorizableTree = ((AuthorizableImpl) authorizable).getTree();
+            MembershipProvider mgr = getUserManager().getMembershipProvider();
+            if (includeInherited) {
+                return mgr.isMember(this.getTree(), authorizableTree);
+            } else {
+                return mgr.isDeclaredMember(this.getTree(), authorizableTree);
+            }
         }
     }
 
@@ -285,10 +272,9 @@ class GroupImpl extends AuthorizableImpl implements Group {
         Set<String> failedIds = Sets.newHashSet(memberIds);
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
-        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
-        if (dmp.coversAllMembers(this)) {
-            String msg = "Attempt to add to or remove from dynamic group {}.";
-            log.debug(msg, getID());
+        if (isEveryone()) {
+            String msg = "Attempt to add or remove from everyone group.";
+            log.debug(msg);
             return failedIds;
         }
 

@@ -35,19 +35,28 @@ version of `<version>1.16-SNAPSHOT</version>`.
 
 ### What version shall I use?
 
-Open the Git working directory where trunk is and issue a
+Open the svn directory where trunk is and issue a
 
-    $ git pull
-    $ git rev-parse --short HEAD
+    $ svn up
+    $ svn info
 
 you will see something like
 
-    9c7d7bf569
+    Working Copy Root Path: /apache/oak-svn-1.0
+    URL: https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.0
+    Repository Root: https://svn.apache.org/repos/asf
+    Repository UUID: 13f79535-47bb-0310-9956-ffa450edef68
+    Revision: 1708581
+    Node Kind: directory
+    Schedule: normal
+    Last Changed Author: chetanm
+    Last Changed Rev: 1708547
+    Last Changed Date: 2015-10-14 06:56:40 +0100 (Wed, 14 Oct 2015)
 
-which is the short Git hash of the most recent commit.
+what you're interested is the revision number. In our case: `1708581`.
 
 This means you'll produce a bundle with a version of
-`1.15-R9c7d7bf569`.
+`1.15-R2708581`.
 
 **Note that the produced version is lower then the official release
   you're working on. 1.15 vs 1.16.0**
@@ -71,19 +80,28 @@ version of `<version>1.0.23-SNAPSHOT</version>`.
 
 ### What version shall I use?
 
-Open the Git working directory where the relevant branch (in the example 1.0) is and issue a
+Open the svn directory where the 1.0 branch is and issue a
 
-    $ git pull
-    $ git rev-parse --short HEAD
+    $ svn up
+    $ svn info
 
 you will see something like
 
-        9c7d7bf569
+    Working Copy Root Path: /apache/oak-svn-1.0
+    URL: https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.0
+    Repository Root: https://svn.apache.org/repos/asf
+    Repository UUID: 13f79535-47bb-0310-9956-ffa450edef68
+    Revision: 1708581
+    Node Kind: directory
+    Schedule: normal
+    Last Changed Author: chetanm
+    Last Changed Rev: 1708547
+    Last Changed Date: 2015-10-14 06:56:40 +0100 (Wed, 14 Oct 2015)
 
-which is the short Git hash of the most recent commit in that branch.
+what you're interested is the revision number. In our case: `1708581`.
 
 This means you'll produce a bundle with a version of
-`1.0.22-R9c7d7bf569`.
+`1.0.22-R2708581`.
 
 **Note that the produced version is lower then the official release
   you're working on. 1.0.22 vs 1.0.23**
@@ -103,18 +121,18 @@ fix is going to be released.
 
 ### Changing the version in all the poms.
 
-Now. From our examples above you either want to produce `1.0.22-R9c7d7bf569`` 
-or `1.15-R9c7d7bf569`. For sake of simplicity we'll detail only the `1.0.22-R9c7d7bf569` 
-case. For `1.15-R9c7d7bf569` you simply have to change the version.
+Now. From our examples above you either want to produce `1.0.22-R2708581` 
+or `1.15-R2708581`. For sake of simplicty we'll detail only the `1.0.22-R2708581` 
+case. For `1.15-R2708581` you simply have to change the version.
 
 Go into `oak-parent` and issue the following maven command.
 
-    oak-parent$ mvn versions:set -DnewVersion=1.0.22-R9c7d7bf569
+    oak-parent$ mvn versions:set -DnewVersion=1.0.22-R2708581
 
 you may encounter the following exception. Simply ignore it. Nothing
 went wrong.
 
-    java.io.FileNotFoundException: .../oak-parent/oak-parent (No such file or directory)
+    java.io.FileNotFoundException: /oak-svn-1.0/oak-parent/oak-parent (No such file or directory)
 
 ### Building the release
 
@@ -123,13 +141,13 @@ Now you can build the release as usual
     jackrabbit-oak$ mvn clean install
 
 and you'll have a full oak build with the version
-`1.0.22-R9c7d7bf569`. Go into `oak-core/target` and take the produced
+`1.0.22-R2708581`. Go into `oak-core/target` and take the produced
 jar.
 
-### Re-setting the working directory
+### Re-setting the svn branch
 
-You don't want to commit the changes in Git just reset the
-branch to the original state
+You don't want to commit the changes back to svn so we reset the
+branch as the original state
 
     jackrabbit-oak$ mvn versions:revert
 

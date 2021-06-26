@@ -284,7 +284,7 @@ public class SessionContext implements NamePathMapper {
     @NotNull
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         // TODO: take non-security related importers into account as well (proper configuration)
-        List<ProtectedItemImporter> importers = new ArrayList<>();
+        List<ProtectedItemImporter> importers = new ArrayList<ProtectedItemImporter>();
         for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
             importers.addAll(sc.getProtectedItemImporters());
         }

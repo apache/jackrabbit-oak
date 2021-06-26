@@ -27,7 +27,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
@@ -55,10 +54,8 @@ import org.apache.jackrabbit.oak.stats.Monitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
@@ -180,12 +177,6 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
 
-    private UserMonitor monitor = UserMonitor.NOOP;
-
-    private BlobAccessProvider blobAccessProvider;
-
-    private final DynamicMembershipTracker dynamicMembership = new DynamicMembershipTracker();
-    
     public UserConfigurationImpl() {
         super();
     }
@@ -201,17 +192,16 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     // reference to @Configuration class needed for correct DS xml generation
-    private void activate(Configuration configuration, BundleContext bundleContext, Map<String, Object> properties) {
+    private void activate(Configuration configuration, Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
-        dynamicMembership.start(new OsgiWhiteboard(bundleContext));
     }
+
+    private UserMonitor monitor = UserMonitor.NOOP;
+
+    private BlobAccessProvider blobAccessProvider;
     
-    @Deactivate
-    private void deactivate() {
-        dynamicMembership.stop();
-    }
-    
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC)
     void bindBlobAccessProvider(BlobAccessProvider bap) {
         blobAccessProvider = bap;
     }
@@ -261,7 +251,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.singletonList(new UserImporter(getParameters()));
+        return Collections.<ProtectedItemImporter>singletonList(new UserImporter(getParameters()));
     }
 
     @NotNull
@@ -281,7 +271,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
         PartialValueFactory vf = new PartialValueFactory(namePathMapper, getBlobAccessProvider());
-        UserManagerImpl umgr = new UserManagerImpl(root, vf, getSecurityProvider(), monitor, dynamicMembership);
+        UserManager umgr = new UserManagerImpl(root, vf, getSecurityProvider(), monitor);
         if (getParameters().getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false)) {
             return new AutoSaveEnabledManager(umgr, root);
         } else {
