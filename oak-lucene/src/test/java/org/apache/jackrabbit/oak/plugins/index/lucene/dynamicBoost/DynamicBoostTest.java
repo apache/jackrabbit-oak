@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexAugmentorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
@@ -128,6 +129,20 @@ public class DynamicBoostTest extends AbstractQueryTest {
                         "]", log);
     }
 
+    @Test public void withDynamicBoostLite() throws Exception {
+        NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
+        Tree props = createIndex("dam:Asset", true);
+        Tree pt = createNodeWithType(props, "predictedTags", UNSTRUCTURED);
+        pt.setProperty("name", "jcr:content/metadata/predictedTags/.*");
+        pt.setProperty("isRegexp", true);
+        pt.setProperty("dynamicBoost", true);
+        pt.setProperty("propertyIndex", true);
+        root.commit();
+
+        String log = runTest(LuceneDocumentMaker.class, true);
+        assertEquals("[]", log);
+    }
+
     @Test public void withDynamicBoostMissingProperty() throws Exception {
         NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
         Tree props = createIndex("dam:Asset");
@@ -192,13 +207,13 @@ public class DynamicBoostTest extends AbstractQueryTest {
 
             // we try with an array:
             t.getParent().setProperty("updateCount", 5);
-            t.setProperty("confidence", new ArrayList<String>(), Type.STRINGS);
+            t.setProperty("confidence", new ArrayList<>(), Type.STRINGS);
             root.commit();
 
             // we try with an array:
             if (nameProperty) {
                 t.getParent().setProperty("updateCount", 6);
-                t.setProperty("name", new ArrayList<String>(), Type.STRINGS);
+                t.setProperty("name", new ArrayList<>(), Type.STRINGS);
                 root.commit();
             }
 
@@ -215,9 +230,14 @@ public class DynamicBoostTest extends AbstractQueryTest {
     }
 
     private Tree createIndex(String nodeType) throws Exception {
+        return createIndex(nodeType, false);
+    }
+
+    private Tree createIndex(String nodeType, boolean lite) throws Exception {
         Tree rootTree = root.getTree("/");
         Tree index = createTestIndexNode(rootTree, LuceneIndexConstants.TYPE_LUCENE);
         index.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        index.setProperty(IndexConstants.DYNAMIC_BOOST_LITE_PROPERTY_NAME, lite);
         return TestUtil.newRulePropTree(index, nodeType);
     }
 

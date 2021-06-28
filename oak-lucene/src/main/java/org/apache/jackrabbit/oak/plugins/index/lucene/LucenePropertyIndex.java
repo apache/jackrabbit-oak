@@ -194,7 +194,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
     private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
-    private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    private final static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
     public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
     private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
     public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
@@ -1512,8 +1512,14 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         //Augment query terms if available (as a 'SHOULD' clause)
-        if (augmentor != null && FieldNames.FULLTEXT.equals(fieldName)) {
-            Query subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
+        if (FieldNames.FULLTEXT.equals(fieldName)) {
+            Query subQuery = new BooleanQuery();
+            if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
+                subQuery = new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, text));
+            } else if (augmentor != null) {
+                subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
+            }
+
             if (subQuery != null) {
                 BooleanQuery query = new BooleanQuery();
 
