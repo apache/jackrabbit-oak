@@ -16,25 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.UUID;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
 import javax.jcr.nodetype.ConstraintViolationException;
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS;
 import static org.junit.Assert.assertEquals;
@@ -48,19 +45,18 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-public class GroupImplTest extends AbstractSecurityTest {
+public class GroupImplTest extends AbstractUserTest {
 
     private final String groupId = "gr" + UUID.randomUUID();
 
     private UserManagerImpl uMgr;
     private GroupImpl group;
-    private final UserMonitor monitor = mock(UserMonitor.class);
 
     @Override
     public void before() throws Exception {
         super.before();
 
-        uMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider(), monitor);
+        uMgr = createUserManagerImpl(root);
         Group g = uMgr.createGroup(groupId);
 
         group = new GroupImpl(groupId, root.getTree(g.getPath()), uMgr);

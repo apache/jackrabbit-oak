@@ -53,6 +53,9 @@ interfaces and classes:
 - `GroupAction` (via `AuthorizableActionProvider`): see [Group Actions](user/groupaction.html) for details.
 - `UserAuthenticationFactory`: see sections [pluggability](user/default.html#pluggability) 
 and [user authentication](authentication/default.html#user_authentication) for additional details.
+- `DynamicMembershipService` and `DynamicMembershipProvider` to reflect dynamic group membership. The new interfaces allow 
+   to extend the default behavior which is limited to _everyone_ as described in [Built-in Users and Special Groups](user/default.html).
+   See [User and Group Synchronization : Dynamic Membership](authentication/external/dynamic.html) for an example.
 
 <a name="utilities"></a>
 ### Utilities

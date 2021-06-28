@@ -74,6 +74,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
     public static final String ATTR_PLAN_RESULT = "oak.fulltext.planResult";
 
+    private static final double MIN_COST = 2.1;
+
     protected abstract IndexNode acquireIndexNode(String indexPath);
 
     protected abstract String getType();
@@ -97,6 +99,11 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
      */
     protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter, List<OrderEntry> sortOrder) {
         return new FulltextIndexPlanner(indexNode, path, filter, sortOrder);
+    }
+
+    @Override
+    public double getMinimumCost() {
+        return MIN_COST;
     }
 
     @Override

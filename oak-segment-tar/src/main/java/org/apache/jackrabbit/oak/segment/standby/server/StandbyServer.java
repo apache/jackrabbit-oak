@@ -109,11 +109,13 @@ class StandbyServer implements AutoCloseable {
 
         private String sslKeyFile;
 
+        private String sslKeyPassword;
+
         private String sslChainFile;
 
         private boolean sslClientValidation;
 
-        public String sslClientSubjectPattern;
+        private String sslSubjectPattern;
 
         private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
@@ -166,6 +168,11 @@ class StandbyServer implements AutoCloseable {
             return this;
         }
 
+        Builder withSSLKeyPassword(String sslKeyPassword) {
+            this.sslKeyPassword = sslKeyPassword;
+            return this;
+        }
+
         Builder withSSLChainFile(String sslChainFile) {
             this.sslChainFile = sslChainFile;
             return this;
@@ -176,8 +183,8 @@ class StandbyServer implements AutoCloseable {
             return this;
         }
 
-        Builder withSSLClientSubjectPattern(String sslClientSubjectPattern) {
-            this.sslClientSubjectPattern = sslClientSubjectPattern;
+        Builder withSSLSubjectPattern(String sslSubjectPattern) {
+            this.sslSubjectPattern = sslSubjectPattern;
             return this;
         }
 
@@ -204,7 +211,6 @@ class StandbyServer implements AutoCloseable {
 
             return new StandbyServer(this);
         }
-
     }
 
     private StandbyServer(final Builder builder) throws CertificateException, SSLException {
@@ -212,7 +218,7 @@ class StandbyServer implements AutoCloseable {
 
         if (builder.secure) {
             if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
-                sslContext = SslContextBuilder.forServer(new File(builder.sslChainFile), new File(builder.sslKeyFile)).build();
+                sslContext = SslContextBuilder.forServer(new File(builder.sslChainFile), new File(builder.sslKeyFile), builder.sslKeyPassword).build();
             } else {
                 SelfSignedCertificate ssc = new SelfSignedCertificate();
                 sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
@@ -244,8 +250,8 @@ class StandbyServer implements AutoCloseable {
                     handler.engine().setNeedClientAuth(builder.sslClientValidation);
                     p.addLast("ssl", handler);
 
-                    if (builder.sslClientSubjectPattern != null) {
-                        p.addLast(new SSLSubjectMatcher(builder.sslClientSubjectPattern));
+                    if (builder.sslSubjectPattern != null) {
+                        p.addLast(new SSLSubjectMatcher(builder.sslSubjectPattern));
                     }
                 }
 

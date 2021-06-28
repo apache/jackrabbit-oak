@@ -1041,8 +1041,14 @@ public class QueryImpl implements Query {
             QueryIndex index = queryIndexes.get(i);
             double minCost = index.getMinimumCost();
             if (minCost > bestCost) {
-                // Stop looking if the minimum cost is higher than the current best cost
-                break;
+                if (Math.abs(minCost - bestIndex.getMinimumCost()) < .00001) {
+                    // Continue with cost evaluation if minimum cost of both indexes are same i.e both indexes are on par.
+                    LOG.debug("minCost: {} of index :{} > best Cost: {} from index: {}, but both indexes have same minimum cost - cost evaluation will continue", minCost, index.getIndexName(), bestCost, bestIndex.getIndexName());
+                } else {
+                    // Stop looking if the minimum cost is higher than the current best cost
+                    LOG.debug("minCost: {} of index :{} < best Cost: {} from index: {}. Further index evaluation will be skipped", minCost, index.getIndexName(), bestCost, bestIndex.getIndexName());
+                    break;
+                }
             }
 
             double cost;

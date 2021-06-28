@@ -46,9 +46,6 @@ class ElasticIndex extends FulltextIndex {
     // no concept of rewound in ES (even if it might be doing it internally, we can't do much about it
     private static final IteratorRewoundStateProvider REWOUND_STATE_PROVIDER_NOOP = () -> 0;
 
-    // # OAK-9419 
-    private static final double MIN_COST = 2.2;
-
     private final ElasticIndexTracker elasticIndexTracker;
 
     ElasticIndex(ElasticIndexTracker elasticIndexTracker) {
@@ -73,11 +70,6 @@ class ElasticIndex extends FulltextIndex {
     @Override
     protected Predicate<NodeState> getIndexDefinitionPredicate() {
         return ELASTICSEARCH_INDEX_DEFINITION_PREDICATE;
-    }
-
-    @Override
-    public double getMinimumCost() {
-        return MIN_COST;
     }
 
     @Override

@@ -16,14 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Collections;
-import java.util.Iterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -31,13 +24,18 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import java.util.Collections;
+import java.util.Iterator;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -278,22 +276,21 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @NotNull
     private Iterator<Group> getMembership(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
-            return Collections.<Group>emptySet().iterator();
+            return Collections.emptyIterator();
         }
 
+        DynamicMembershipProvider dmp = userManager.getDynamicMembershipProvider();
+        Iterator<Group> dynamicGroups = dmp.getMembership(this, includeInherited);
+        
         MembershipProvider mMgr = getMembershipProvider();
         Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
-
-        Authorizable everyoneGroup = userManager.getAuthorizable(EveryonePrincipal.getInstance());
-        if (everyoneGroup instanceof GroupImpl) {
-            String everyonePath = ((GroupImpl) everyoneGroup).getTree().getPath();
-            oakPaths = Iterators.concat(oakPaths, ImmutableSet.of(everyonePath).iterator());
+        
+        if (!oakPaths.hasNext()) {
+            return dynamicGroups;
         }
-        if (oakPaths.hasNext()) {
-            AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
-            return new RangeIteratorAdapter(groups, groups.getSize());
-        } else {
-            return RangeIteratorAdapter.EMPTY;
-        }
+        
+        AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
+        AuthorizableIterator allGroups = AuthorizableIterator.create(true, dynamicGroups, groups);
+        return new RangeIteratorAdapter(allGroups);
     }
 }
