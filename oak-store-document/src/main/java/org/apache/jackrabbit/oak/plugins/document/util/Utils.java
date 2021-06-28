@@ -960,27 +960,33 @@ public class Utils {
      * @param rootDoc the root document.
      * @param clock the clock.
      * @param clusterId the local clusterId.
+     * @param warnThresholdMillis log a warning when the an external change in
+     *          the future is detected with more than this time difference.
      * @throws InterruptedException if the current thread is interrupted while
      *          waiting. The interrupted status on the current thread is cleared
      *          when this exception is thrown.
      */
     public static void alignWithExternalRevisions(@NotNull NodeDocument rootDoc,
                                                   @NotNull Clock clock,
-                                                  int clusterId)
+                                                  int clusterId,
+                                                  long warnThresholdMillis)
             throws InterruptedException {
         Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
         long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
         long localTime = clock.getTime();
-        if (localTime < externalTime) {
-            LOG.warn("Detected clock differences. Local time is '{}', " +
-                            "while most recent external time is '{}'. " +
-                            "Current _lastRev entries: {}",
-                    new Date(localTime), new Date(externalTime), lastRevMap.values());
+        long timeDiff = externalTime - localTime;
+        if (timeDiff > 0) {
             double delay = ((double) externalTime - localTime) / 1000d;
             String fmt = "Background read will be delayed by %.1f seconds. " +
                     "Please check system time on cluster nodes.";
-            String msg = String.format(fmt, delay);
-            LOG.warn(msg);
+            if (timeDiff > warnThresholdMillis) {
+                LOG.warn("Detected clock differences. Local time is '{}', " +
+                                "while most recent external time is '{}'. " +
+                                "Current _lastRev entries: {}",
+                        new Date(localTime), new Date(externalTime), lastRevMap.values());
+                String msg = String.format(fmt, delay);
+                LOG.warn(msg);
+            }
             while (localTime + 60000 < externalTime) {
                 clock.waitUntil(localTime + 60000);
                 localTime = clock.getTime();
