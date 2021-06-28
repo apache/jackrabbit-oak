@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,8 +28,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -50,6 +53,8 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
+import static org.apache.commons.io.FileUtils.ONE_GB;
+import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
@@ -67,8 +72,9 @@ public class FlatFileStoreTest {
     @Test
     public void basicTest() throws Exception {
         List<String> paths = createTestPaths();
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot());
-        FlatFileStore flatStore = builder.withBlobStore(new MemoryBlobStore())
+        FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
+        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new DefaultMemoryManager(100*ONE_MB, 2*ONE_GB));
+        FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(Collections.singletonList(0L))
                 .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {
@@ -102,8 +108,9 @@ public class FlatFileStoreTest {
         lastModifiedValues.sort(Long::compare);
         List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
                 lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot());
-        FlatFileStore flatStore = builder.withBlobStore(new MemoryBlobStore())
+        FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
+        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new DefaultMemoryManager(100*ONE_MB, 2*ONE_GB));
+        FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(lastModifiedBreakpoints)
                 .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, false))
@@ -186,8 +193,13 @@ public class FlatFileStoreTest {
         }
 
         @Override
-        public boolean registerClient(MemoryManagerClient client) {
-            return false;
+        public void deregisterClient(String registrationID) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<String> registerClient(MemoryManagerClient client) {
+            throw new UnsupportedOperationException();
         }
     }
 

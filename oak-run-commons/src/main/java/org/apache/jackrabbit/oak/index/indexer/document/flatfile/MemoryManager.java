@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.util.Optional;
+
 /**
  * Implementations of this interface can be used to get updates about remaining heap memory.
  */
@@ -45,9 +47,15 @@ public interface MemoryManager {
      * If memory level is already low, client is not registered.
      * NOTE - this method should only be used with {@link Type#JMX_BASED} instance types, otherwise the behaviour is undefined.
      * @param client client to register
-     * @return true if client got registered, false otherwise.
+     * @return an optional containing registration id if registration was successful, empty optional otherwise
      */
-    boolean registerClient(MemoryManagerClient client);
+    Optional<String> registerClient(MemoryManagerClient client);
+
+    /**
+     * De
+     * @param registrationID
+     */
+    void deregisterClient(String registrationID);
 
     /**
      * Checks if available memory is low.

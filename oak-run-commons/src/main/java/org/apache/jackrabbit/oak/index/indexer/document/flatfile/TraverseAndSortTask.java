@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -94,6 +95,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final BlobStore blobStore;
     private final NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private final MemoryManager memoryManager;
+    private String registrationID;
 
     TraverseAndSortTask(NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
@@ -119,8 +121,14 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         log.debug("Task {} registered to phaser", taskID);
     }
 
+    /*
+     * There is a race condition between this method and {@link #reset()} (because this method checks entry batch size
+     * and {@link #reset()} clears it). To ensure, {@link #dataDumpNotifyingPhaser} is always arrived upon by this task,
+     * we need to make these methods atomic wrt to one another.
+     * @param phaser phaser used to coordinate with {@link MemoryManager}
+     */
     @Override
-    public void memoryLow(Phaser phaser) {
+    public synchronized void memoryLow(Phaser phaser) {
         if (entryBatch.isEmpty()) {
             log.info("{} No data to save. Immediately signalling memory manager.", taskID);
             phaser.register();
@@ -133,10 +141,19 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         dumpData.set(true);
     }
 
+    private boolean registerWithMemoryManager() {
+        Optional<String> registrationIDOptional = memoryManager.registerClient(this);
+        registrationIDOptional.ifPresent(s -> {
+            registrationID = s;
+            log.debug("{} Registered with memory manager with registration ID {}", taskID, registrationID);
+        });
+        return registrationIDOptional.isPresent();
+    }
+
     public List<File> call() {
         try {
             Random random = new Random();
-            while (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType()) && !memoryManager.registerClient(this)) {
+            while (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType()) && !registerWithMemoryManager()) {
                 int sleepDuration = 1000 + random.nextInt(500);
                 log.info("{} Could not register to memory manager. Sleeping {} ms before retrying", taskID, sleepDuration);
                 try {
@@ -150,6 +167,9 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             log.info("Completed task {}", taskID);
             completedTasks.add(taskID);
             DirectoryHelper.markCompleted(sortWorkDir);
+            if (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType())) {
+                memoryManager.deregisterClient(registrationID);
+            }
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
@@ -175,6 +195,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
 
         //Save the last batch
         sortAndSaveBatch();
+        reset();
 
         //Free up the batch
         entryBatch.clear();
@@ -219,7 +240,10 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
 
     }
 
-    private void reset() {
+    /*
+     * For explanation regarding synchronization see {@link #memoryLow(Phaser)}
+     */
+    private synchronized void reset() {
         entryBatch.clear();
         if (MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType())) {
             memoryManager.changeMemoryUsedBy(-1 * memoryUsed);
