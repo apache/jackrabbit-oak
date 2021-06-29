@@ -195,7 +195,7 @@ The `ExternalPrincipalConfiguration` defines the following configuration options
 [DefaultSyncedIdentity]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/DefaultSyncedIdentity.html
 [DefaultSyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncHandler.html
 [ExternalIdentityRef]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityRef.html
-[DynamicSyncContext]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-auth-external/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DynamicSyncContext.java
+[DynamicSyncContext]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-auth-external/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DynamicSyncContext.java
 [OAK-4101]: https://issues.apache.org/jira/browse/OAK-4101
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687
 [OAK-4301]: https://issues.apache.org/jira/browse/OAK-4301

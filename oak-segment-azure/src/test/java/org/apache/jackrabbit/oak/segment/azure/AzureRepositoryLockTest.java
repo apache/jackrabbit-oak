@@ -18,13 +18,16 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +36,7 @@ import java.net.URISyntaxException;
 import java.rmi.server.ExportException;
 import java.security.InvalidKeyException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.fail;
 
@@ -81,4 +85,33 @@ public class AzureRepositoryLockTest {
         new AzureRepositoryLock(blob, () -> {}, 10).lock();
     }
 
+    @Test
+    public void testLeaseRefreshUnsuccessful() throws URISyntaxException, StorageException, IOException, InterruptedException {
+        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+
+        CloudBlockBlob blobMocked = Mockito.spy(blob);
+
+        // instrument the mock to throw the exception twice when renewing the lease
+        StorageException storageException =
+                new StorageException(StorageErrorCodeStrings.OPERATION_TIMED_OUT, "operation timeout", new TimeoutException());
+        Mockito.doThrow(storageException)
+                .doThrow(storageException)
+                .doCallRealMethod()
+                .when(blobMocked).renewLease(Mockito.any());
+
+        new AzureRepositoryLock(blobMocked, () -> {}, 0).lock();
+
+        // wait till lease expires
+        Thread.sleep(70000);
+
+        // reset the mock to default behaviour
+        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any());
+
+        try {
+            new AzureRepositoryLock(blobMocked, () -> {}, 0).lock();
+            fail("The second lock should fail.");
+        } catch (IOException e) {
+            // it's fine
+        }
+    }
 }

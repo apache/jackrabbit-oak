@@ -231,7 +231,7 @@ Configuring a single remote Solr instance consists of providing the URL to conne
 (https://wiki.apache.org/solr/SolrTerminology) that will host the Solr index for the Oak repository via the _solr.http.url_
  property which will have to contain such a URL (e.g. _http://10.10.1.101:8983/solr/oak_). 
 All the configuration and tuning of Solr, other than what's described on this page, will have to be performed on the 
-Solr side; [sample Solr configuration](http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-solr-core/src/main/resources/solr/) 
+Solr side; [sample Solr configuration](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-solr-core/src/main/resources/solr/) 
 files (schema.xml, solrconfig.xml, etc.) to start with can be found in _oak-solr-core_ artifact.
 
 ###### SolrCloud cluster

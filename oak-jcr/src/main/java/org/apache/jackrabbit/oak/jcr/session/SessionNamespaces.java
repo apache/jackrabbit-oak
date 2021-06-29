@@ -76,7 +76,7 @@ public class SessionNamespaces extends LocalNameMapper {
         local.remove(prefix);
 
         // remove the possible existing mapping(s) for the given URI
-        Set<String> prefixes = new HashSet<String>();
+        Set<String> prefixes = new HashSet<>();
         for (Map.Entry<String, String> entry : local.entrySet()) {
             if (entry.getValue().equals(uri)) {
                 prefixes.add(entry.getKey());

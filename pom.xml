@@ -85,9 +85,10 @@
   </modules>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk</developerConnection>
-    <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk</url>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
+    <url>https://github.com/apache/jackrabbit-oak/tree/${project.scm.tag}</url>
+    <tag>HEAD</tag>
   </scm>
 
   <build>
