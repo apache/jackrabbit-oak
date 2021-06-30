@@ -745,7 +745,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     }
 
     @Override
-    protected boolean checkIsIndexActive() {
+    protected boolean runIsActiveIndexCheck() {
         return filterReplacedIndexes();
     }
 
