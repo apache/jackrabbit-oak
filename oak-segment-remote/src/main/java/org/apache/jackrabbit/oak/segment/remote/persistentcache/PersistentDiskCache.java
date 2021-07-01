@@ -203,10 +203,12 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 StreamConsumer.forEach(segmentCacheEntryStream, (segmentCacheEntry, breaker) -> {
 
                     if (cacheSize.get() > maxCacheSizeBytes * 0.66) {
-                        File segment = segmentCacheEntry.getPath().toFile();
-                        cacheSize.addAndGet(-segment.length());
-                        segment.delete();
-                        evictionCount.incrementAndGet();
+                        if (segmentCacheEntry.getPath() != null) { // it can be null if error has occurred while processing the stream
+                            File segment = segmentCacheEntry.getPath().toFile();
+                            cacheSize.addAndGet(-segment.length());
+                            segment.delete();
+                            evictionCount.incrementAndGet();
+                        }
                     } else {
                         breaker.stop();
                     }
