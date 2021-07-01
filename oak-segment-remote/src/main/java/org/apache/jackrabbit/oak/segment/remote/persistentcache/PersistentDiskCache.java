@@ -195,8 +195,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                                 return new SegmentCacheEntry(path, Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime());
                             } catch (IOException e) {
                                 logger.error("Error while getting the last access time for {}", path.toFile().getName());
+                                return new SegmentCacheEntry(path, FileTime.fromMillis(Long.MAX_VALUE));
                             }
-                            return new SegmentCacheEntry(path, FileTime.fromMillis(Long.MAX_VALUE));
                         })
                         .sorted(sortedByAccessTime);
 
