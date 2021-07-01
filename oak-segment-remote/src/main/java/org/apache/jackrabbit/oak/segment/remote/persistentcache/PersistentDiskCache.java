@@ -63,15 +63,10 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     final AtomicLong evictionCount = new AtomicLong();
 
-    private static final Comparator<Path> sortedByAccessTime = (path1, path2) -> {
-        try {
-            FileTime lastAccessFile1 = Files.readAttributes(path1, BasicFileAttributes.class).lastAccessTime();
-            FileTime lastAccessFile2 = Files.readAttributes(path2, BasicFileAttributes.class).lastAccessTime();
-            return lastAccessFile1.compareTo(lastAccessFile2);
-        } catch (IOException e) {
-            logger.error("A problem occurred while cleaning up the cache: ", e);
-        }
-        return 0;
+    private static final Comparator<SegmentCacheEntry> sortedByAccessTime = (segmentCacheEntry1, segmentCacheEntry2) -> {
+        FileTime lastAccessFile1 = segmentCacheEntry1.getLastAccessTime();
+        FileTime lastAccessFile2 = segmentCacheEntry2.getLastAccessTime();
+        return lastAccessFile1.compareTo(lastAccessFile2);
     };
 
     public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor) {
@@ -193,15 +188,23 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     private void cleanUpInternal() {
         if (isCacheFull()) {
             try {
-                Stream<Path> segmentsPaths = Files.walk(directory.toPath())
+                Stream<SegmentCacheEntry> segmentCacheEntryStream = Files.walk(directory.toPath())
+                        .map(path -> {
+                            try {
+                                return new SegmentCacheEntry(path, Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime());
+                            } catch (IOException e) {
+                                logger.error("Error while getting the last access time for {}", path.toFile().getName());
+                            }
+                            return new SegmentCacheEntry(null, FileTime.fromMillis(Long.MAX_VALUE));
+                        })
                         .sorted(sortedByAccessTime)
-                        .filter(filePath -> !filePath.toFile().isDirectory());
+                        .filter(segmentCacheEntry -> !segmentCacheEntry.getPath().toFile().isDirectory());
 
-                StreamConsumer.forEach(segmentsPaths, (path, breaker) -> {
+                StreamConsumer.forEach(segmentCacheEntryStream, (segmentCacheEntry, breaker) -> {
 
                     if (cacheSize.get() > maxCacheSizeBytes * 0.66) {
-                        cacheSize.addAndGet(-path.toFile().length());
-                        path.toFile().delete();
+                        cacheSize.addAndGet(segmentCacheEntry.getPath().toFile().length());
+                        segmentCacheEntry.getPath().toFile().delete();
                         evictionCount.incrementAndGet();
                     } else {
                         breaker.stop();
@@ -213,6 +216,23 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         }
     }
 
+    private class SegmentCacheEntry {
+        private Path path;
+        private FileTime lastAccessTime;
+
+        public SegmentCacheEntry(Path path, FileTime lastAccessTime) {
+            this.path = path;
+            this.lastAccessTime = lastAccessTime;
+        }
+
+        public Path getPath() {
+            return path;
+        }
+
+        public FileTime getLastAccessTime() {
+            return lastAccessTime;
+        }
+    }
     static class StreamConsumer {
 
         public static class Breaker {
