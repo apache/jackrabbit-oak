@@ -63,7 +63,10 @@
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.10.3</jackson.version>
+    <jackson.version>2.10.5</jackson.version>
+    <!-- jackson-databind versions prior to 2.10.5.1 are affected by security vulnerability CVE-2020-25649.
+         When upgrading jackson, try to align them to the same version -->
+    <jackson.databind.version>2.10.5.1</jackson.databind.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -690,7 +693,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson.databind.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
