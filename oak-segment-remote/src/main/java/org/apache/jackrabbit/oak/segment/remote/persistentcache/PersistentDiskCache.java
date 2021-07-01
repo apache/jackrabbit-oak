@@ -189,26 +189,24 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         if (isCacheFull()) {
             try {
                 Stream<SegmentCacheEntry> segmentCacheEntryStream = Files.walk(directory.toPath())
+                        .filter(path -> !path.toFile().isDirectory())
                         .map(path -> {
                             try {
                                 return new SegmentCacheEntry(path, Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime());
                             } catch (IOException e) {
                                 logger.error("Error while getting the last access time for {}", path.toFile().getName());
                             }
-                            return new SegmentCacheEntry(null, FileTime.fromMillis(Long.MAX_VALUE));
+                            return new SegmentCacheEntry(path, FileTime.fromMillis(Long.MAX_VALUE));
                         })
-                        .sorted(sortedByAccessTime)
-                        .filter(segmentCacheEntry -> !segmentCacheEntry.getPath().toFile().isDirectory());
+                        .sorted(sortedByAccessTime);
 
                 StreamConsumer.forEach(segmentCacheEntryStream, (segmentCacheEntry, breaker) -> {
 
                     if (cacheSize.get() > maxCacheSizeBytes * 0.66) {
-                        if (segmentCacheEntry.getPath() != null) { // it can be null if error has occurred while processing the stream
-                            File segment = segmentCacheEntry.getPath().toFile();
-                            cacheSize.addAndGet(-segment.length());
-                            segment.delete();
-                            evictionCount.incrementAndGet();
-                        }
+                        File segment = segmentCacheEntry.getPath().toFile();
+                        cacheSize.addAndGet(-segment.length());
+                        segment.delete();
+                        evictionCount.incrementAndGet();
                     } else {
                         breaker.stop();
                     }
@@ -219,7 +217,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         }
     }
 
-    private class SegmentCacheEntry {
+    private static class SegmentCacheEntry {
         private Path path;
         private FileTime lastAccessTime;
 
