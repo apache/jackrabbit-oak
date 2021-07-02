@@ -32,12 +32,6 @@ import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
@@ -46,11 +40,20 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.remote.persistentcache.PersistentDiskCache;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.CachingPersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
+
+import com.google.common.base.Stopwatch;
+import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
 /**
  * Utility class for common stuff pertaining to tooling.
@@ -89,6 +92,26 @@ public class ToolUtils {
                 .withGCOptions(defaultGCOptions().setOffline().setGCLogInterval(gcLogInterval).setCompactorType(compactorType));
 
         return builder.build();
+    }
+
+    public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,
+            String pathOrUri, String persistentCachePath, Integer persistentCacheSize) {
+        SegmentNodeStorePersistence persistence = null;
+
+        switch (storeType) {
+        case AZURE:
+            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3));
+            SegmentNodeStorePersistence basePersistence = new AzurePersistence(cloudBlobDirectory);
+
+            PersistentCache persistentCache = new PersistentDiskCache(new File(persistentCachePath),
+                        persistentCacheSize * 1024, new IOMonitorAdapter());
+            persistence = new CachingPersistence(persistentCache, basePersistence);
+            break;
+        default:
+            persistence = new TarPersistence(new File(pathOrUri));
+        }
+
+        return persistence;
     }
 
     public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,

@@ -198,7 +198,7 @@ might otherwise result in severe security issues and heavily impact overall perf
 [PolicyOwner]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/accesscontrol/PolicyOwner.html
 [AggregatedPermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/AggregatedPermissionProvider.html
 [AggregationFilter]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/AggregationFilter.html
-[CompositeAuthorizationConfiguration]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAuthorizationConfiguration.java
-[CompositeAccessControlManager]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAccessControlManager.java
-[CompositePermissionProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositePermissionProvider.java
-[ThreeRolesAuthorizationConfiguration]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/exercise/security/authorization/models/simplifiedroles/ThreeRolesAuthorizationConfiguration.java
+[CompositeAuthorizationConfiguration]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAuthorizationConfiguration.java
+[CompositeAccessControlManager]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAccessControlManager.java
+[CompositePermissionProvider]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositePermissionProvider.java
+[ThreeRolesAuthorizationConfiguration]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/exercise/security/authorization/models/simplifiedroles/ThreeRolesAuthorizationConfiguration.java

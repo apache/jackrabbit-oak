@@ -37,7 +37,7 @@ public final class PrivilegeUtil implements PrivilegeConstants {
      * @return The privileges root.
      */
     @NotNull
-    public static Tree getPrivilegesTree(Root root) {
+    public static Tree getPrivilegesTree(@NotNull Root root) {
         return root.getTree(PRIVILEGES_PATH);
     }
 

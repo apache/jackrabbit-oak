@@ -239,14 +239,14 @@ records to represent itself:
   an integer field and a record identifier pointing to a bucket.
 
 
-    +--------+--------+--------+-----+
-    | sub-list ID 1            | ... |
-    +--------+--------+--------+-----+
-      |
-      v
-    +--------+--------+--------+-----+--------+--------+--------+
-    | record ID 1              | ... | record ID 255            |
-    +--------+--------+--------+-----+--------+--------+--------+
+      +--------+--------+--------+-----+
+      | sub-list ID 1            | ... |
+      +--------+--------+--------+-----+
+        |
+        v
+      +--------+--------+--------+-----+--------+--------+--------+
+      | record ID 1              | ... | record ID 255            |
+      +--------+--------+--------+-----+--------+--------+--------+
 
 The result is a hierarchically stored immutable list where each element
 can be accessed in O(log N) time and the size overhead of updating or

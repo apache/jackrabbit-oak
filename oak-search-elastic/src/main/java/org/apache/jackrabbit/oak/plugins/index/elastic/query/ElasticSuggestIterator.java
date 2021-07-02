@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.PriorityQueue;
 
 /**
@@ -93,12 +94,25 @@ class ElasticSuggestIterator implements Iterator<FulltextResultRow> {
                 }
             }
         }
-        this.internalIterator = suggestionPriorityQueue.iterator();
+        this.internalIterator = suggestionPriorityQueue.stream().distinct().iterator();
     }
 
-    private final static class ElasticSuggestion extends FulltextResultRow{
+    private final static class ElasticSuggestion extends FulltextResultRow {
         private ElasticSuggestion(String suggestion, double score) {
             super(suggestion, score);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FulltextResultRow fulltextResultRow = (FulltextResultRow) o;
+            return Objects.equals(this.suggestion, fulltextResultRow.suggestion);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(this.suggestion);
         }
     }
 }

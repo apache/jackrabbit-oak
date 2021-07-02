@@ -228,7 +228,7 @@ public class SegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private static <T> T runWithRetry(Producer<T> producer, int maxAttempts, int intervalSec) throws IOException {
+    static <T> T runWithRetry(Producer<T> producer, int maxAttempts, int intervalSec) throws IOException {
         IOException ioException = null;
         RepositoryNotReachableException repoNotReachableException = null;
         for (int i = 0; i < maxAttempts; i++) {
@@ -267,25 +267,25 @@ public class SegmentStoreMigrator implements Closeable  {
     }
 
     @FunctionalInterface
-    private interface Producer<T> {
+    interface Producer<T> {
         T produce() throws IOException;
     }
 
-    private static class Segment {
+    static class Segment {
 
-        private final SegmentArchiveEntry entry;
+        final SegmentArchiveEntry entry;
 
-        private volatile Buffer data;
+        volatile Buffer data;
 
-        private Segment(SegmentArchiveEntry entry) {
+        Segment(SegmentArchiveEntry entry) {
             this.entry = entry;
         }
 
-        private void read(SegmentArchiveReader reader) throws IOException {
+        void read(SegmentArchiveReader reader) throws IOException {
             data = reader.readSegment(entry.getMsb(), entry.getLsb());
         }
 
-        private void write(SegmentArchiveWriter writer) throws IOException {
+        void write(SegmentArchiveWriter writer) throws IOException {
             final byte[] array = data.array();
             final int offset = 0;
             writer.writeSegment(entry.getMsb(), entry.getLsb(), array, offset, entry.getLength(), entry.getGeneration(),

@@ -39,6 +39,7 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
@@ -117,6 +118,35 @@ public class StandbyStoreService {
         )
         boolean standby_autoclean() default true;
 
+        @AttributeDefinition(
+                name = "SSL Key File",
+                description = "The file name which contains the SSL key. If this is empty, a key will be generated on-the-fly."
+        )
+        String sslKeyFile();
+
+        @AttributeDefinition(
+            name = "SSL Key Password",
+            description = "Password for the SSL key. If this is empty, an unencrypted key is expected.",
+            type = AttributeType.PASSWORD)
+        String sslKeyPassword() default "";
+
+        @AttributeDefinition(
+                name = "SSL Certificate Chain File",
+                description = "The file name which contains the SSL certificate chain."
+        )
+        String sslChainFile();
+
+        @AttributeDefinition(
+                name = "SSL Validate Client",
+                description = "Validate the client's SSL certificate."
+        )
+        boolean sslValidateClient() default false;
+
+        @AttributeDefinition(
+            name = "SSL Certificate Subject Pattern",
+            description = "The peer certificate's subject must match this pattern in order to be accepted."
+        )
+        String sslSubjectPattern();
     }
 
     @Reference(policy = STATIC, policyOption = GREEDY)
@@ -137,12 +167,12 @@ public class StandbyStoreService {
         String mode = config.mode();
 
         if (mode.equals("primary")) {
-            bootstrapMaster(config, fileStore);
+            bootstrapPrimary(config, fileStore);
             return;
         }
 
         if (mode.equals("standby")) {
-            bootstrapSlave(context, config, fileStore);
+            bootstrapSecondary(context, config, fileStore);
             return;
         }
 
@@ -154,18 +184,31 @@ public class StandbyStoreService {
         closer.close();
     }
 
-    private void bootstrapMaster(Configuration config, FileStore fileStore) {
+    private void bootstrapPrimary(Configuration config, FileStore fileStore) {
         int port = config.port();
         String[] ranges = config.primary_allowed$_$client$_$ip$_$ranges();
         boolean secure = config.secure();
+        String sslKeyFile = config.sslKeyFile();
+        String sslChainFile = config.sslChainFile();
+        boolean sslValidateClient = config.sslValidateClient();
+        String sslSubjectPattern = config.sslSubjectPattern();
 
-        StandbyServerSync standbyServerSync = StandbyServerSync.builder()
+        StandbyServerSync.Builder builder = StandbyServerSync.builder()
             .withPort(port)
             .withFileStore(fileStore)
             .withBlobChunkSize(BLOB_CHUNK_SIZE)
             .withAllowedClientIPRanges(ranges)
-            .withSecureConnection(secure)
-            .build();
+            .withSecureConnection(true)
+            .withSSLKeyFile(sslKeyFile)
+            .withSSLChainFile(sslChainFile)
+            .withSSLClientValidation(sslValidateClient)
+            .withSSLSubjectPattern(sslSubjectPattern);
+
+        if (!"".equals(config.sslKeyPassword())) {
+            builder.withSSLKeyPassword(config.sslKeyPassword());
+        }
+
+        StandbyServerSync standbyServerSync = builder.build();
 
         closer.register(standbyServerSync);
         standbyServerSync.start();
@@ -173,24 +216,35 @@ public class StandbyStoreService {
         log.info("Started primary on port {} with allowed IP ranges {}", port, ranges);
     }
 
-    private void bootstrapSlave(ComponentContext context, Configuration config, FileStore fileStore) {
-        int port = config.port();
-        long interval = config.interval();
-        String host = config.primary_host();
-        boolean secure = config.secure();
-        int readTimeout = config.standby_readtimeout();
-        boolean clean = config.standby_autoclean();
+    private void bootstrapSecondary(ComponentContext context, Configuration config, FileStore fileStore) {
 
-        StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
+        StandbyClientSync.Builder builder = StandbyClientSync.builder()
+            .withHost(config.primary_host())
+            .withPort(config.port())
+            .withFileStore(fileStore)
+            .withSecureConnection(config.secure())
+            .withReadTimeoutMs(config.standby_readtimeout())
+            .withAutoClean(config.standby_autoclean())
+            .withSpoolFolder(new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()))
+            .withSecureConnection(config.secure())
+            .withSSLKeyFile(config.sslKeyFile())
+            .withSSLChainFile(config.sslChainFile())
+            .withSSLSubjectPattern(config.sslSubjectPattern());
+
+        if (!"".equals(config.sslKeyPassword())) {
+            builder.withSSLKeyPassword(config.sslKeyPassword());
+        }
+
+        StandbyClientSync standbyClientSync = builder.build();
         closer.register(standbyClientSync);
 
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
-        dictionary.put("scheduler.period", interval);
+        dictionary.put("scheduler.period", config.interval());
         dictionary.put("scheduler.concurrent", false);
         ServiceRegistration registration = context.getBundleContext().registerService(Runnable.class.getName(), standbyClientSync, dictionary);
         closer.register(registration::unregister);
 
-        log.info("Started standby on port {} with {}s sync frequency", port, interval);
+        log.info("Started standby on port {} with {}s sync frequency", config.port(), config.interval());
     }
 
 }

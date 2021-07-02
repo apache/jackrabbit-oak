@@ -74,6 +74,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
     public static final String ATTR_PLAN_RESULT = "oak.fulltext.planResult";
 
+    private static final double MIN_COST = 2.1;
+
     protected abstract IndexNode acquireIndexNode(String indexPath);
 
     protected abstract String getType();
@@ -92,6 +94,12 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
      */
     protected abstract boolean filterReplacedIndexes();
 
+    /*
+    * Whether the isActiveIndex check should run during filtering of replaced indexes.
+    *
+     */
+    protected abstract boolean runIsActiveIndexCheck();
+
     /**
      * Returns the {@link FulltextIndexPlanner} for the specified arguments
      */
@@ -100,11 +108,16 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     @Override
+    public double getMinimumCost() {
+        return MIN_COST;
+    }
+
+    @Override
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
         Collection<String> indexPaths = new IndexLookup(rootState, getIndexDefinitionPredicate())
                 .collectIndexNodePaths(filter);
         if (filterReplacedIndexes()) {
-            indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState);
+            indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState, runIsActiveIndexCheck());
         }
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
         for (String path : indexPaths) {

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -78,10 +79,12 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DYNAMIC_BOOST_LITE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.*;
 import static org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
@@ -179,6 +182,22 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
             OrderEntry.Order.DESCENDING);
 
+    /**
+     * Dynamic boost uses index time boosting. This requires to have a separate field for each unique term that needs to
+     * be boosted. With a high number of terms (thousands), this could result in a sparse index that requires extra disk
+     * space. Usually, dynamicBoost and similarityTags are configured on the same field. In this case, similarityTags
+     * work on the same set of terms without the need to store boost values. This does not affect the index size. With
+     * oak.search.dynamicBoostLite=lucene no index time boosting is used for lucene types indexes. The terms will affect
+     * the query match clause but the scores won't be the same. In summary, in lite mode the query will have the same
+     * recall but lower precision.
+     *
+     * WARNING: dynamicBoostLite needs similarityTags. In case there are no similarityTags, the query won't return the
+     * expected results.
+     */
+    private final static String DYNAMIC_BOOST_LITE_NAME = "oak.search.dynamicBoostLite";
+    protected final static List<String> DYNAMIC_BOOST_LITE =
+            Arrays.asList(System.getProperty(DYNAMIC_BOOST_LITE_NAME, "").split(","));
+
     protected final boolean fullTextEnabled;
 
     protected final NodeState definition;
@@ -215,8 +234,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     private final boolean evaluatePathRestrictions;
 
     private final Map<String, Aggregate> aggregates;
-
-    private final String scorerProviderName;
 
     private final boolean hasCustomTikaConfig;
 
@@ -266,6 +283,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     private final boolean deprecated;
 
     private final boolean testMode;
+
+    private final boolean dynamicBoostLite;
 
     /**
      * See {@link FulltextIndexConstants#PROP_VALUE_REGEX}
@@ -409,7 +428,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.maxExtractLength = determineMaxExtractLength();
             this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
                     DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
-            this.scorerProviderName = getOptionalValue(defn, FulltextIndexConstants.PROP_SCORER_PROVIDER, null);
             this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
             this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
             this.queryPaths = getOptionalValues(defn, IndexConstants.QUERY_PATHS, Type.STRINGS, String.class);
@@ -440,6 +458,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
             this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
             this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
+            this.dynamicBoostLite = getOptionalValue(defn, DYNAMIC_BOOST_LITE_PROPERTY_NAME,
+                    defn.getProperty(TYPE_PROPERTY_NAME) != null &&
+                            DYNAMIC_BOOST_LITE.contains(defn.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING))
+            );
         } catch (IllegalStateException e) {
             log.error("Config error for index definition at {} . Please correct the index definition "
                     + "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
@@ -469,6 +491,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return true;
+    }
+
+    public boolean isDynamicBoostLiteEnabled() {
+        return dynamicBoostLite;
     }
 
     public boolean isFullTextEnabled() {
@@ -581,10 +607,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public int getMaxExtractLength() {
         return maxExtractLength;
-    }
-
-    public String getScorerProviderName() {
-        return scorerProviderName;
     }
 
     public PathFilter getPathFilter() {
@@ -1659,7 +1681,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Iterable<String> getMixinTypeNames(NodeState state) {
         PropertyState property = state.getProperty(JcrConstants.JCR_MIXINTYPES);
-        return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
+        return property != null ? property.getValue(NAMES) : Collections.emptyList();
     }
 
     private static boolean hasOrderableChildren(NodeState state){

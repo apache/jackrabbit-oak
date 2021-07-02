@@ -31,6 +31,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     private final String name;
     private final boolean isAbstract;
     private final Set<String> declaredAggregateNames;
+    private final int hashcode;
 
     public ImmutablePrivilegeDefinition(@NotNull String name, boolean isAbstract, @Nullable Iterable<String> declaredAggregateNames) {
         this.name = name;
@@ -40,6 +41,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
             builder.addAll(declaredAggregateNames);
         }
         this.declaredAggregateNames = builder.build();
+        hashcode = Objects.hashCode(this.name, this.isAbstract, this.declaredAggregateNames);
     }
 
     //------------------------------------------------< PrivilegeDefinition >---
@@ -63,7 +65,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, isAbstract(),  declaredAggregateNames);
+        return hashcode;
     }
 
     @Override

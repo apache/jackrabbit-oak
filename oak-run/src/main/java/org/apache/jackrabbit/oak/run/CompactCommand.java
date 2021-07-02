@@ -61,6 +61,20 @@ class CompactCommand implements Command {
                         "by the \"diff\" compactor which compacts the checkpoints on top of each other. If not " +
                         "specified, \"diff\" compactor is used.")
                 .withRequiredArg().ofType(String.class);
+        OptionSpec<String> targetPath = parser.accepts("target-path", "Path/URI to TAR/remote segment store where " +
+                "resulting archives will be written")
+                .withRequiredArg()
+                .ofType(String.class);
+        OptionSpec<String> persistentCachePath = parser.accepts("persistent-cache-path", "Path/URI to persistent cache where " +
+                "resulting segments will be written")
+                .withRequiredArg()
+                .ofType(String.class);
+        OptionSpec<Integer> persistentCacheSizeGb = parser.accepts("persistent-cache-size-gb", "Size in GB (defaults to 50 GB) for "
+                + "the persistent disk cache")
+                .withRequiredArg()
+                .defaultsTo("50")
+                .ofType(Integer.class);
+
         OptionSet options = parser.parse(args);
 
         String path = directoryArg.value(options);
@@ -74,10 +88,24 @@ class CompactCommand implements Command {
         int code = 0;
 
         if (path.startsWith("az:")) {
+            if (targetPath.value(options) == null) {
+                System.err.println("A destination for the compacted Azure Segment Store needs to be specified");
+                parser.printHelpOn(System.err);
+                System.exit(-1);
+            }
+
+            if (persistentCachePath.value(options) == null) {
+                System.err.println("A path for the persistent disk cache needs to be specified");
+                parser.printHelpOn(System.err);
+                System.exit(-1);
+            }
+
             Builder azureBuilder = AzureCompact.builder()
                     .withPath(path)
+                    .withTargetPath(targetPath.value(options))
+                    .withPersistentCachePath(persistentCachePath.value(options))
+                    .withPersistentCacheSizeGb(persistentCacheSizeGb.value(options))
                     .withForce(isTrue(forceArg.value(options)))
-                    .withSegmentCacheSize(Integer.getInteger("cache", 256))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000));
 
             if (options.has(compactor)) {

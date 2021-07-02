@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.40.0</version>
+  <version>1.41-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -44,7 +44,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.2</jackrabbit.version>
+    <jackrabbit.version>2.20.3</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -63,7 +63,10 @@
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.10.3</jackson.version>
+    <jackson.version>2.10.5</jackson.version>
+    <!-- jackson-databind versions prior to 2.10.5.1 are affected by security vulnerability CVE-2020-25649.
+         When upgrading jackson, try to align them to the same version -->
+    <jackson.databind.version>2.10.5.1</jackson.databind.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -690,7 +693,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson.databind.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -1280,10 +1283,4 @@
       </build>
     </profile>
   </profiles>
-
-  <scm>
-    <connection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/tags/jackrabbit-oak-1.40.0/oak-parent</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/tags/jackrabbit-oak-1.40.0/oak-parent</developerConnection>
-    <url>https://svn.apache.org/viewvc/maven/pom/tags/jackrabbit-oak-1.40.0/oak-parent</url>
-  </scm>
 </project>

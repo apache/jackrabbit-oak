@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -81,7 +82,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         if (root.hasPendingChanges()) {
             throw new InvalidItemStateException("Attempt to register a new privilege while there are pending changes.");
         }
-        if (privilegeName == null || privilegeName.isEmpty()) {
+        if (Strings.isNullOrEmpty(privilegeName)) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
         }
         PrivilegeDefinition definition = new ImmutablePrivilegeDefinition(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));

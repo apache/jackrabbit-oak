@@ -201,11 +201,11 @@ public class IndexName implements Comparable<IndexName> {
      * @param rootState the root node state (used to find hidden nodes)
      * @return the filtered list
      */
-    public static Collection<String> filterReplacedIndexes(Collection<String> indexPaths, NodeState rootState) {
+    public static Collection<String> filterReplacedIndexes(Collection<String> indexPaths, NodeState rootState, boolean checkIsActive) {
         HashMap<String, IndexName> latestVersions = new HashMap<String, IndexName>();
         for (String p : indexPaths) {
             IndexName indexName = IndexName.parse(p);
-            if (indexName.isVersioned) {
+            if (indexName.isVersioned && checkIsActive) {
                 // which might not be a good idea - instead, it should check if the composite node store is used
                 // (but how?)
                 if (!isIndexActive(p, rootState)) {
