@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -526,6 +525,38 @@ public class QueryImpl implements Query {
         }
         return buff == null ? null : buff.toString();
     }
+
+    private void logAdditionalMessages() {
+        for (SelectorImpl s : selectors) {
+            if (s.getExecutionPlan() != null &&
+                    s.getExecutionPlan().getIndexPlan() != null) {
+                s.getExecutionPlan().getIndexPlan().getAdditionalMessages().forEach((level, list) -> {
+                    switch (level) {
+                        case TRACE: for (String msg : list) {
+                            LOG.trace(msg);
+                        }
+                        break;
+                        case DEBUG: for (String msg : list) {
+                            LOG.debug(msg);
+                        }
+                            break;
+                        case INFO: for (String msg : list) {
+                            LOG.info(msg);
+                        }
+                            break;
+                        case WARN: for (String msg : list) {
+                            LOG.warn(msg);
+                        }
+                        break;
+                        case ERROR: for (String msg : list) {
+                            LOG.error(msg);
+                        }
+                        break;
+                    }
+                });
+            }
+        }
+    }
     
     @Override
     public Iterator<ResultRowImpl> getRows() {
@@ -535,7 +566,7 @@ public class QueryImpl implements Query {
             LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
              "those restricted paths; query={}, plan={}", statement, warn);
         }
-        
+        logAdditionalMessages();
         if (explain) {
             String plan = getPlan();
             if (measure) {

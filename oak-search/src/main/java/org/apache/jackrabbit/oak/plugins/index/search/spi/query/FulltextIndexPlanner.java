@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
@@ -55,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
@@ -290,13 +292,31 @@ public class FulltextIndexPlanner {
 
             IndexPlan.Builder plan = defaultPlan();
 
+            if (plan == null) {
+                return null;
+            }
+
             if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.WARN.name()) && !isPlanWithValidPathFilter()) {
                 plan.setLogWarningForPathFilterMismatch(true);
             }
 
-            if (plan == null) {
-                return null;
+            Pattern queryFilterPattern = definition.getQueryFilterRegex() != null ? definition.getQueryFilterRegex() :
+                    definition.getPropertyRegex();
+
+            if (queryFilterPattern != null) {
+                if (ft != null && !queryFilterPattern.matcher(ft.toString()).find()) {
+                    plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with valueRegex "
+                            + queryFilterPattern + " to search for value " + ft.toString());
+                }
+                 for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                    if (!queryFilterPattern.matcher(pr.toString()).find()) {
+                        plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with valueRegex "
+                                + queryFilterPattern + " to search for value " + pr.toString());
+                    }
+                }
             }
+
+
             if (!sortOrder.isEmpty()) {
                 plan.setSortOrder(sortOrder);
             }

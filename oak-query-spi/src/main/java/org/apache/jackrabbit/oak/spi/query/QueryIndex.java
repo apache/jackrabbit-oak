@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import org.osgi.annotation.versioning.ProviderType;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 
@@ -353,6 +356,10 @@ public interface QueryIndex {
             return false;
         }
 
+        default Map<Level, List<String>> getAdditionalMessages() {
+            return Collections.emptyMap();
+        }
+
         /**
          * A builder for index plans.
          */
@@ -374,6 +381,7 @@ public interface QueryIndex {
             protected String planName;
             protected boolean deprecated;
             protected boolean logWarningForPathFilterMismatch;
+            protected final Map<Level, List<String>> additionalMessages = new HashMap<>();
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -399,7 +407,18 @@ public interface QueryIndex {
                 this.isDelayed = isDelayed;
                 return this;
             }
-            
+
+            public Builder addAdditionalMessage(Level level, String s) {
+                this.additionalMessages.compute(level, (k,v) -> {
+                    if (v == null) {
+                        v = new ArrayList<>();
+                    }
+                    v.add(s);
+                    return v;
+                });
+                return this;
+            }
+
             public Builder setLogWarningForPathFilterMismatch(boolean value) {
                 this.logWarningForPathFilterMismatch = value;
                 return this;
@@ -491,6 +510,17 @@ public interface QueryIndex {
                     private final boolean deprecated =
                             Builder.this.deprecated;
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
+                    private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
+
+                    private String getAdditionalMessageString() {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (Map.Entry<Level, List<String>> messages : additionalMessages.entrySet()) {
+                            stringBuilder.append(messages.getKey()).append(" : ").append(messages.getValue()).append(", ");
+                        }
+                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        return stringBuilder.toString();
+                    }
 
                     @Override
                     public String toString() {
@@ -507,7 +537,8 @@ public interface QueryIndex {
                             + " propertyRestriction : %s,"
                             + " pathPrefix : %s,"
                             + " deprecated : %s,"
-                            + " supportsPathRestriction : %s," 
+                            + " supportsPathRestriction : %s,"
+                            + " additionalMessage : %s,"
                             + " logWarningForPathFilterMismatch : %s }",
                             costPerExecution,
                             costPerEntry,
@@ -522,6 +553,7 @@ public interface QueryIndex {
                             pathPrefix,
                             deprecated,
                             supportsPathRestriction,
+                            getAdditionalMessageString(),
                             logWarningForPathFilterMismatch
                             );
                     }
@@ -623,6 +655,11 @@ public interface QueryIndex {
                     @Override
                     public boolean logWarningForPathFilterMismatch() {
                         return logWarningForPathFilterMismatch;
+                    }
+
+                    @Override
+                    public Map<Level, List<String>> getAdditionalMessages() {
+                        return additionalMessages;
                     }
 
                 };
