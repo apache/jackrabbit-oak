@@ -193,7 +193,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                                 return new SegmentCacheEntry(path, FileTime.fromMillis(Long.MAX_VALUE));
                             }
                         })
-                        .sorted(Comparator.naturalOrder());
+                        .sorted();
 
                 StreamConsumer.forEach(segmentCacheEntryStream, (segmentCacheEntry, breaker) -> {
 
