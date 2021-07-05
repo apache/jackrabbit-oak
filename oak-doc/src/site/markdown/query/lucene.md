@@ -521,7 +521,8 @@ Property name can be one of following
 4. The string `:nodeName` - this special case indexes node name as if it's a
    virtual property of the node being indexed. Setting this along with
    `nodeScopeIndex=true` is akin to setting `indexNodeName=true` on indexing
-   rule. (`@since Oak 1.3.15, 1.2.14`)
+   rule (`@since Oak 1.3.15, 1.2.14`).
+   Ordering is not supported. For ordering, use `function=name()` instead.
 
 ##### <a name="path-restrictions"></a> Evaluate Path Restrictions
 
@@ -1120,6 +1121,7 @@ This allows to search for, and order by, the lower case version of the property 
 * lower(localname())
 * length([test/data])
 * length(name())
+* name()
 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
