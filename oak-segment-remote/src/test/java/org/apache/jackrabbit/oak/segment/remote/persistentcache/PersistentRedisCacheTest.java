@@ -22,19 +22,25 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+
+import redis.embedded.RedisExecProvider;
 import redis.embedded.RedisServer;
 
-import java.io.IOException;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
 
@@ -43,10 +49,15 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
 
     @Before
     public void setUp() throws Exception {
-        redisServer = RedisServer.builder().build();
+        Path redisTempExecutable = RedisExecProvider.defaultProvider().get().toPath();
+        Path redisTargetExecutable = new File("target", redisTempExecutable.getFileName().toString()).toPath();
+        Files.copy(redisTempExecutable, redisTargetExecutable, StandardCopyOption.REPLACE_EXISTING);
+        RedisExecProvider execProvider = mock(RedisExecProvider.class);
+        when(execProvider.get()).thenReturn(redisTargetExecutable.toFile());
+        redisServer = RedisServer.builder().redisExecProvider(execProvider).build();
         redisServer.start();
         int port = redisServer.ports().get(0);
-        ioMonitorAdapter = Mockito.mock(IOMonitorAdapter.class);
+        ioMonitorAdapter = mock(IOMonitorAdapter.class);
 
         persistentCache = new PersistentRedisCache(
                 "localhost",
@@ -63,12 +74,12 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         redisServer.stop();
     }
 
     @Test
-    public void testIOMonitor() throws IOException, InterruptedException {
+    public void testIOMonitor() throws InterruptedException {
 
         UUID segmentUUID = UUID.randomUUID();
         long msb = segmentUUID.getMostSignificantBits();
