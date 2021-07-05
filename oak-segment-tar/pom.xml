@@ -126,7 +126,7 @@
                         <phase>pre-integration-test</phase>
                         <goals><goal>copy</goal></goals>
                         <configuration>
-                            <artifact>org.apache.jackrabbit:oak-run:1.6.1</artifact>
+                            <artifact>org.apache.jackrabbit:oak-run:1.6.2</artifact>
                             <outputDirectory>${project.build.directory}/upgrade-it</outputDirectory>
                             <stripVersion>true</stripVersion>
                         </configuration>
