@@ -207,7 +207,10 @@ public final class DocumentNodeStore
     private boolean disableSweep2 = SystemPropertySupplier.create(SYS_PROP_DISABLE_SWEEP2, Boolean.FALSE).loggingTo(LOG)
             .get();
 
+    // OAK-2682: time difference detection applied at startup with a default
+    // max time diff of 2000 millis (2sec)
     static final long DEFAULT_MAX_SERVER_TIME_DIFFERENCE = 2000L;
+    private final long maxTimeDiffMillis = SystemPropertySupplier.create("oak.documentMK.maxServerTimeDiffMillis", DEFAULT_MAX_SERVER_TIME_DIFFERENCE).loggingTo(LOG).get();
 
     /**
      * The document store without potentially lease checking wrapper.
@@ -1220,6 +1223,10 @@ public final class DocumentNodeStore
 
     public boolean isDisableBranches() {
         return disableBranches;
+    }
+
+    public long getMaxTimeDiffMillis() {
+        return maxTimeDiffMillis;
     }
 
     /**
@@ -2958,18 +2965,15 @@ public final class DocumentNodeStore
      * @param s the document store to get the time difference from.
      * @throws AssertionError when the time difference is too high.
      */
-    private static void checkServerTimeDifference(DocumentStore s)
+    private void checkServerTimeDifference(DocumentStore s)
             throws AssertionError {
-        // OAK-2682: time difference detection applied at startup with a default
-        // max time diff of 2000 millis (2sec)
-        final long maxDiff = SystemPropertySupplier.create("oak.documentMK.maxServerTimeDiffMillis", DEFAULT_MAX_SERVER_TIME_DIFFERENCE).loggingTo(LOG).get();
         try {
-            if (maxDiff >= 0) {
+            if (maxTimeDiffMillis >= 0) {
                 final long timeDiff = s.determineServerTimeDifferenceMillis();
-                LOG.info("Server time difference: {}ms (max allowed: {}ms)", timeDiff, maxDiff);
-                if (Math.abs(timeDiff) > maxDiff) {
+                LOG.info("Server time difference: {}ms (max allowed: {}ms)", timeDiff, maxTimeDiffMillis);
+                if (Math.abs(timeDiff) > maxTimeDiffMillis) {
                     throw new AssertionError("Server clock seems off (" + timeDiff + "ms) by more than configured amount ("
-                            + maxDiff + "ms)");
+                            + maxTimeDiffMillis + "ms)");
                 }
             }
         } catch (RuntimeException e) { // no checked exception
@@ -3094,7 +3098,7 @@ public final class DocumentNodeStore
         checkState(root == null);
 
         try {
-            alignWithExternalRevisions(rootDoc, clock, clusterId);
+            alignWithExternalRevisions(rootDoc, clock, clusterId, maxTimeDiffMillis);
         } catch (InterruptedException e) {
             throw new DocumentStoreException("Interrupted while aligning with " +
                     "external revision: " + rootDoc.getLastRev());
