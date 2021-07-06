@@ -26,6 +26,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Node;
@@ -38,6 +40,7 @@ import static org.junit.Assert.assertTrue;
  * {@code WarnLogStringPropertySizeTest} checks if Warn log is bein added on adding
  * large string properties
  */
+@RunWith(Parameterized.class)
 public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {
 
     @Rule
