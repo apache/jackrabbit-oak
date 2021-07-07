@@ -198,7 +198,6 @@ public class LuceneIndexNodeManager {
         } finally {
             lock.writeLock().unlock();
         }
-
         releaseHolder(searcherHolder);
         closeReaders(readers);
     }
@@ -276,7 +275,11 @@ public class LuceneIndexNodeManager {
     }
 
     private void releaseHolder(SearcherHolder holder) {
-        decrementSearcherUsageCount(holder.searcher);
+        // releasedHolder is atomicBoolean to make sure that
+        // decRef is executed only once for a holder
+        if (holder.releasedHolder.compareAndSet(false, true)) {
+            decrementSearcherUsageCount(holder.searcher);
+        }
     }
 
     private void decrementSearcherUsageCount(IndexSearcher searcher) {
@@ -294,6 +297,7 @@ public class LuceneIndexNodeManager {
         final List<LuceneIndexReader> nrtReaders;
         final int searcherId = SEARCHER_ID_COUNTER.incrementAndGet();
         final LuceneIndexStatistics indexStatistics;
+        private final AtomicBoolean releasedHolder = new AtomicBoolean();
 
         public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
