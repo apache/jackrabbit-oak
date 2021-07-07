@@ -434,6 +434,18 @@ ordered
   only supported for single value property. Enabling this on multi value property
   would cause indexing to fail.
 
+  Ordering is supported on properties, and on functions. To order on the name of the node,
+  use the following query and index definition:
+
+    SELECT * FROM [sling:Folder] WHERE ISCHILDNODE('/content') ORDER BY NAME()
+    
+    + sling:Folder
+      + properties (nt:unstructured)
+        + nodeName (nt:unstructured)
+          - function (string) = 'name()'
+          - propertyIndex (boolean) = true
+          - ordered (boolean) = true
+  
 type
 : JCR Property type. Can be one of `Date`, `Boolean`, `Double` , `String`, `Long`, or `Binary`. 
   Mostly inferred from the indexed value. However in some cases where same property
