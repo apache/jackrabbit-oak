@@ -177,11 +177,14 @@ class RecoveryLock {
             // cannot determine current lock owner
             return false;
         }
-        long now = clock.getTime();
-        long leaseEnd = recovering.getLeaseEndTime();
-        if (recovering.isActive() && leaseEnd > now) {
-            // still active, cannot break lock
-            return false;
+        // OAK-9401: leaseEndTime can be null when the cluster is not active
+        if (recovering.isActive()) {
+            long now = clock.getTime();
+            long leaseEnd = recovering.getLeaseEndTime();
+            if (leaseEnd > now) {
+                // still active, cannot break lock
+                return false;
+            }
         }
         // try to break the lock
         try {
