@@ -33,7 +33,7 @@
     <name>Oak Segment Tar</name>
 
     <properties>
-        <netty.version>4.1.52.Final</netty.version>
+        <netty.version>4.1.65.Final</netty.version>
         <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
     </properties>
 
