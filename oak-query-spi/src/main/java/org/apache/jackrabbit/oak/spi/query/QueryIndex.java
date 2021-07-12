@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -356,6 +357,12 @@ public interface QueryIndex {
             return false;
         }
 
+        /**
+         * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
+         * The messages are returned as a map whose key indicates log level and value is a list of messages against that
+         * log level.
+         * @return map containing log messages.
+         */
         default Map<Level, List<String>> getAdditionalMessages() {
             return Collections.emptyMap();
         }
@@ -513,13 +520,9 @@ public interface QueryIndex {
                     private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
 
                     private String getAdditionalMessageString() {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (Map.Entry<Level, List<String>> messages : additionalMessages.entrySet()) {
-                            stringBuilder.append(messages.getKey()).append(" : ").append(messages.getValue()).append(", ");
-                        }
-                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
-                        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
-                        return stringBuilder.toString();
+                        return additionalMessages.entrySet().stream()
+                                .map(e -> e.getKey() + " : " + e.getValue())
+                                .collect(Collectors.joining(", "));
                     }
 
                     @Override
