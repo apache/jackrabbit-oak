@@ -151,6 +151,7 @@ By default, the source repository replaces the destination repository (if there'
         /new/repository
 
 Please notice that in the last example it's necessary to narrow the migration scope using `--include-paths` parameter.
+A merge will fail if the new repository already has a copy of the old repository and a node at the source has been renamed. The renamed node would be copied over to the destination repository which contains the node with the original name. Both share the same UUID and the content merge will fail with an `OakConstraint0030` message.
 
 ### Version history copying
 
