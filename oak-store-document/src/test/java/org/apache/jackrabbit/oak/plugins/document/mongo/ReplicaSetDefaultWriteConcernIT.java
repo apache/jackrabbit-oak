@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 

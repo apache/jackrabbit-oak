@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
-import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
@@ -71,11 +70,11 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     }
 
     private static boolean testMongoAvailability() {
-        Mongo mongo = null;
+        MongoClient mongo = null;
         try {
             MongoClientURI uri = new MongoClientURI(MONGO_URI + "?connectTimeoutMS=3000");
             mongo = new MongoClient(uri);
-            mongo.getDatabaseNames();
+            mongo.listDatabaseNames();
             return true;
         } catch (Exception e) {
             return false;

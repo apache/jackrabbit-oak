@@ -24,12 +24,6 @@ import static org.junit.Assert.assertTrue;
 public class MongoDocumentNodeStoreBuilderTest {
 
     @Test
-    public void socketKeepAlive() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertTrue(builder.isSocketKeepAlive());
-    }
-
-    @Test
     public void clientSessionDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertFalse(builder.isClientSessionDisabled());

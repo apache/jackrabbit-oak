@@ -204,7 +204,8 @@ public class MongoStatusTest {
                     response.put("errmsg", new BsonString("command serverStatus requires authentication"));
                     response.put("code", new BsonInt32(13));
                     response.put("codeName", new BsonString("Unauthorized"));
-                    ServerAddress address = getAddress();
+                    ServerAddress address = MongoConnection.getAddress(this);
+
                     if (address == null) {
                         // OAK-8459: use dummy/default address instead
                         address = new ServerAddress();

@@ -66,7 +66,6 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -178,7 +177,7 @@ class Utils {
             System.exit(1);
         }
 
-        if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
+        if (src.startsWith(MongoConnection.MONGODB_PREFIX) || src.startsWith("jdbc")) {
             DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
                 if (readOnlyMode) {
@@ -220,7 +219,7 @@ class Utils {
             System.exit(1);
         }
         DocumentNodeStoreBuilder<?> builder;
-        if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
+        if (src.startsWith(MongoConnection.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(src);
             if (uri.getDatabase() == null) {
                 System.err.println("Database missing in MongoDB URI: "

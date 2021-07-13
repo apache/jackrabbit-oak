@@ -27,18 +27,26 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadConcernLevel;
+import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.mongodb.event.ClusterListener;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoClusterListener;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
  */
 public class MongoConnection {
 
+    public static final String MONGODB_PREFIX = "mongodb://";
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoConnection.class);
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
@@ -144,10 +152,10 @@ public class MongoConnection {
      */
     public static MongoClientOptions.Builder getDefaultBuilder() {
         return new MongoClientOptions.Builder()
-                .description("MongoConnection for Oak DocumentMK")
+                .applicationName("Oak DocumentMK")
                 .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
                 .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .threadsAllowedToBlockForConnectionMultiplier(100);
+                .addClusterListener(new MongoClusterListener());
     }
 
     public static String toString(MongoClientOptions opts) {
@@ -155,11 +163,8 @@ public class MongoConnection {
                 .add("connectionsPerHost", opts.getConnectionsPerHost())
                 .add("connectTimeout", opts.getConnectTimeout())
                 .add("socketTimeout", opts.getSocketTimeout())
-                .add("socketKeepAlive", opts.isSocketKeepAlive())
                 .add("maxWaitTime", opts.getMaxWaitTime())
                 .add("heartbeatFrequency", opts.getHeartbeatFrequency())
-                .add("threadsAllowedToBlockForConnectionMultiplier",
-                        opts.getThreadsAllowedToBlockForConnectionMultiplier())
                 .add("readPreference", opts.getReadPreference().getName())
                 .add("writeConcern", opts.getWriteConcern())
                 .toString();
@@ -203,7 +208,8 @@ public class MongoConnection {
      */
     public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
         WriteConcern w;
-        if (client.getReplicaSetStatus() != null) {
+
+        if (isReplicaSet(client)) {
             w = WriteConcern.MAJORITY;
         } else {
             w = WriteConcern.ACKNOWLEDGED;
@@ -224,7 +230,7 @@ public class MongoConnection {
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
                                                     @NotNull MongoDatabase db) {
         ReadConcern r;
-        if (checkNotNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
+        if (isReplicaSet(client) && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
         } else {
             r = ReadConcern.LOCAL;
@@ -267,7 +273,7 @@ public class MongoConnection {
             throw new IllegalArgumentException(
                     "Unknown write concern: " + wc);
         }
-        if (client.getReplicaSetStatus() != null) {
+        if (isReplicaSet(client)) {
             return w >= 2;
         } else {
             return w >= 1;
@@ -286,7 +292,8 @@ public class MongoConnection {
     public static boolean isSufficientReadConcern(@NotNull MongoClient client,
                                                   @NotNull ReadConcern rc) {
         ReadConcernLevel r = readConcernLevel(checkNotNull(rc));
-        if (client.getReplicaSetStatus() == null) {
+
+        if (!isReplicaSet(client)) {
             return true;
         } else {
             return REPLICA_RC.contains(r);
@@ -299,5 +306,62 @@ public class MongoConnection {
         } else {
             return ReadConcernLevel.fromString(readConcern.asDocument().getString("level").getValue());
         }
+    }
+
+    /**
+     * Returns {@code true} if the MongoDB server is part of a Replica Set,
+     * {@code false} otherwise. The Replica Set Status is achieved by the
+     * ReplicaSetStatusListener, which is triggered whenever the cluster
+     * description changes.
+     *
+     * @param client the mongo client.
+     * @return {@code true} if part of Replica Set, {@code false} otherwise.
+     */
+    public static boolean isReplicaSet(@NotNull MongoClient client) {
+        MongoClusterListener listener = getOakClusterListener(client);
+        if (listener != null) {
+            return listener.isReplicaSet();
+        }
+        LOG.warn("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
+        return false;
+    }
+
+    /**
+     * Returns the {@ServerAddress} of the MongoDB cluster.
+     *
+     * @param client the mongo client.
+     * @return {@ServerAddress} of the cluster. {@null} if not connected or no listener was available.
+     */
+    public static ServerAddress getAddress(@NotNull MongoClient client) {
+        MongoClusterListener listener = getOakClusterListener(client);
+        if (listener != null) {
+            return listener.getServerAddress();
+        }
+        LOG.warn("Method getAddress called for a MongoClient without any OakClusterListener!");
+        return null;
+    }
+
+    /**
+     * Returns the {@ServerAddress} of the MongoDB cluster primary node.
+     *
+     * @param client the mongo client.
+     * @return {@ServerAddress} of the primary. {@null} if not connected or no listener was available.
+     */
+    public static ServerAddress getPrimaryAddress(@NotNull MongoClient client) {
+        MongoClusterListener listener = getOakClusterListener(client);
+        if (listener != null) {
+            return listener.getPrimaryAddress();
+        }
+        return null;
+    }
+
+    private static MongoClusterListener getOakClusterListener(@NotNull MongoClient client) {
+        for (ClusterListener clusterListener : client.getMongoClientOptions().getClusterListeners()) {
+            if (clusterListener instanceof MongoClusterListener) {
+                MongoClusterListener replClusterListener = (MongoClusterListener) clusterListener;
+                return replClusterListener;
+            }
+        }
+        return null;
     }
 }

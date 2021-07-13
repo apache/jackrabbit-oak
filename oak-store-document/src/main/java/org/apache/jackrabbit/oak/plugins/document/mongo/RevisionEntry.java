@@ -27,7 +27,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import com.mongodb.util.JSON;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -84,11 +83,6 @@ public class RevisionEntry implements DBObject {
     @Override
     public Object removeField(String key) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean containsKey(String s) {
-        return containsField(s);
     }
 
     @Override
