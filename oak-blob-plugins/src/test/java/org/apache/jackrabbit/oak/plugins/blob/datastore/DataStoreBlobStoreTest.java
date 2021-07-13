@@ -327,7 +327,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
         @Override
         public long getLastModified() {
-            return Long.valueOf(id.toString().substring(id.toString().indexOf('-')+1));
+            return Long.parseLong(id.toString().substring(id.toString().indexOf('-')+1));
         }
     }
 }
