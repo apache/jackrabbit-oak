@@ -54,7 +54,7 @@ public final class PasswordUtil {
      */
     static final String PBKDF2_PREFIX = "PBKDF2";
     
-    public static final String DEFAULT_ALGORITHM = "SHA-256";
+    public static final String DEFAULT_ALGORITHM = "SHA-512";
     public static final int DEFAULT_SALT_SIZE = 8;
     public static final int DEFAULT_ITERATIONS = 1000;
 
