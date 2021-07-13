@@ -504,7 +504,7 @@ public class ExternalSortTest {
 
         public TestLine(String line) {
             this.line = line;
-            this.value = Integer.valueOf(line.substring(0, line.indexOf(':')));
+            this.value = Integer.parseInt(line.substring(0, line.indexOf(':')));
         }
 
         @Override
