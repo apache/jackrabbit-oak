@@ -25,7 +25,7 @@ but probably be very slow.
 
 * [The Query Engine](./query-engine.html)
 * [XPath Grammar](./grammar-xpath.html)
-* [SQL-2 Grammar](./query-sql2.html)
+* [SQL-2 Grammar](./grammar-sql2.html)
 * [Troubleshooting](./query-troubleshooting.html)
 * [Flags](./flags.html)
 
