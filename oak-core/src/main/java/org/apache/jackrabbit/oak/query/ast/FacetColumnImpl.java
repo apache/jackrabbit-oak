@@ -33,4 +33,8 @@ public class FacetColumnImpl extends ColumnImpl {
         return this.getSelector().currentOakProperty(getPropertyName());
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new FacetColumnImpl(selectorName, propertyName, columnName);
+    }
 }
