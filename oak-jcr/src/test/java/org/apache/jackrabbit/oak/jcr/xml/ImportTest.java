@@ -30,6 +30,7 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 import static org.junit.Assert.assertNotEquals;
@@ -249,6 +250,58 @@ public class ImportTest extends AbstractJCRTest {
             // success
             assertEquals("No matching property definition found for jcr:data", e.getMessage());
         }
+        superuser.save();// should not fail as wrong node should not have made it to transient space
+    }
+
+    public void testMissingMandatoryProperty() throws Exception {
+        // jcr:data property missing
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<sv:node sv:name=\"resourceName\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Resource</sv:value></sv:property>" +
+                "</sv:node>";
+        try {
+            superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            fail("ConstraintViolationException expected");
+        } catch (ConstraintViolationException e) {
+            // success
+            assertEquals("Property 'jcr:data' in 'oak:Resource' is mandatory", e.getMessage());
+        }
+        superuser.save();// should not fail as wrong node should not have made it to transient space
+    }
+
+    public void testNoMatchingNodeDefinition() throws RepositoryException, IOException {
+        // create nt:file in repository
+        Node fileNode = JcrUtils.putFile(testRootNode, "restrictedNode", "plain/text", new ByteArrayInputStream("hallo".getBytes()));
+        superuser.save();
+        // import nt:unstructured below nt:file
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<sv:node sv:name=\"resourceName\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>" +
+                    "<sv:property sv:name=\"jcr:data\" sv:type=\"Boolean\"><sv:value>true</sv:value></sv:property>" +
+                "</sv:node>";
+        try {
+            superuser.importXML(fileNode.getPath(), new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            fail("ConstraintViolationException expected");
+        } catch (ConstraintViolationException e) {
+            assertEquals("No matching node definition found for resourceName", e.getMessage());
+        }
+        superuser.save();// should not fail as wrong node should not have made it to transient space
+    }
+
+    public void testMissingMandatoryNodeDefinition() throws RepositoryException, IOException {
+        // import nt:file without mandatory jcr:content child node
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<sv:node sv:name=\"myFile\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:file</sv:value></sv:property>" +
+                "</sv:node>";
+        try {
+            superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            fail("ConstraintViolationException expected");
+        } catch (ConstraintViolationException e) {
+            // should not fail
+            assertEquals("Node 'jcr:content' in 'nt:file' is mandatory", e.getMessage());
+        }
+        superuser.save();// should not fail as wrong node should not have made it to transient space
     }
 
     public void testNewNamespaceWithPrefixConflict() throws Exception {
@@ -266,4 +319,5 @@ public class ImportTest extends AbstractJCRTest {
         assertEquals("b", p2.getString());
         assertNotEquals(p1.getName(), p2.getName());
     }
+
 }

@@ -266,14 +266,16 @@ public class ImporterImpl implements Importer {
     private void importProperties(@NotNull Tree tree,
                                   @NotNull List<PropInfo> propInfos,
                                   boolean ignoreRegular) throws RepositoryException {
+        EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
         // process properties
         for (PropInfo pi : propInfos) {
             // find applicable definition
             //TODO find better heuristics?
-            EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
             PropertyDefinition def = ent.getPropertyDefinition(pi.getName(), pi.getType(), pi.isUnknownMultiple());
             if (def == null) {
                 throw new ConstraintViolationException("No matching property definition found for " + pi.getName());
+            } else {
+                ent.checkSetProperty(pi.asPropertyState(def));
             }
             if (def.isProtected()) {
                 // skip protected property
@@ -294,6 +296,7 @@ public class ImporterImpl implements Importer {
         for (ProtectedPropertyImporter ppi : getPropertyImporters()) {
             ppi.propertiesCompleted(tree);
         }
+        // check for mandatory properties in endNode(...)
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
@@ -336,138 +339,150 @@ public class ImporterImpl implements Importer {
             throws RepositoryException {
         Tree parent = parents.peek();
         Tree tree = null;
-        String id = nodeInfo.getUUID();
-        String nodeName = nodeInfo.getName();
-        String ntName = nodeInfo.getPrimaryTypeName();
+        try {
+            String id = nodeInfo.getUUID();
+            String nodeName = nodeInfo.getName();
+            String ntName = nodeInfo.getPrimaryTypeName();
 
-        if (parent == null) {
-            log.debug("Skipping node: {}", nodeName);
-            // parent node was skipped, skip this child node too
-            parents.push(null); // push null onto stack for skipped node
-            // notify the p-i-importer
-            if (pnImporter != null) {
-                pnImporter.startChildInfo(nodeInfo, propInfos);
-            }
-            return;
-        }
-
-        NodeDefinition parentDef = getDefinition(parent);
-        if (parentDef.isProtected()) {
-            // skip protected node
-            parents.push(null);
-            log.debug("Skipping protected node: {}", nodeName);
-
-            if (pnImporter != null) {
-                // pnImporter was already started (current nodeInfo is a sibling)
-                // notify it about this child node.
-                pnImporter.startChildInfo(nodeInfo, propInfos);
-            } else {
-                // no importer defined yet:
-                // test if there is a ProtectedNodeImporter among the configured
-                // importers that can handle this.
-                // if there is one, notify the ProtectedNodeImporter about the
-                // start of a item tree that is protected by this parent. If it
-                // potentially is able to deal with it, notify it about the child node.
-                for (ProtectedNodeImporter pni : getNodeImporters()) {
-                    if (pni.start(parent)) {
-                        log.debug("Protected node -> delegated to ProtectedNodeImporter");
-                        pnImporter = pni;
-                        pnImporter.startChildInfo(nodeInfo, propInfos);
-                        break;
-                    } /* else: p-i-Importer isn't able to deal with the protected tree.
-                     try next. and if none can handle the passed parent the
-                     tree below will be skipped */
+            if (parent == null) {
+                log.debug("Skipping node: {}", nodeName);
+                // parent node was skipped, skip this child node too
+                parents.push(null); // push null onto stack for skipped node
+                // notify the p-i-importer
+                if (pnImporter != null) {
+                    pnImporter.startChildInfo(nodeInfo, propInfos);
                 }
+                return;
             }
-            return;
-        }
 
-        if (parent.hasChild(nodeName)) {
-            // a node with that name already exists...
-            Tree existing = parent.getChild(nodeName);
-            NodeDefinition def = getDefinition(existing);
-            if (!def.allowsSameNameSiblings()) {
-                // existing doesn't allow same-name siblings,
-                // check for potential conflicts
-                if (def.isProtected() && isNodeType(existing, ntName)) {
-                    /*
-                     use the existing node as parent for the possible subsequent
-                     import of a protected tree, that the protected node importer
-                     may or may not be able to deal with.
-                     -> upon the next 'startNode' the check for the parent being
-                        protected will notify the protected node importer.
-                     -> if the importer is able to deal with that node it needs
-                        to care of the complete subtree until it is notified
-                        during the 'endNode' call.
-                     -> if the import can't deal with that node or if that node
-                        is the a leaf in the tree to be imported 'end' will
-                        not have an effect on the importer, that was never started.
-                    */
-                    log.debug("Skipping protected node: {}", existing);
-                    parents.push(existing);
-                    /**
-                     * let ProtectedPropertyImporters handle the properties
-                     * associated with the imported node. this may include overwriting,
-                     * merging or just adding missing properties.
-                     */
-                    importProperties(existing, propInfos, true);
-                    return;
-                }
-                if (def.isAutoCreated() && isNodeType(existing, ntName)) {
-                    // this node has already been auto-created, no need to create it
-                    tree = existing;
+            NodeDefinition parentDef = getDefinition(parent);
+            if (parentDef.isProtected()) {
+                // skip protected node
+                parents.push(null);
+                log.debug("Skipping protected node: {}", nodeName);
+
+                if (pnImporter != null) {
+                    // pnImporter was already started (current nodeInfo is a sibling)
+                    // notify it about this child node.
+                    pnImporter.startChildInfo(nodeInfo, propInfos);
                 } else {
-                    // edge case: colliding node does have same uuid
-                    // (see http://issues.apache.org/jira/browse/JCR-1128)
-                    String existingIdentifier = IdentifierManager.getIdentifier(existing);
-                    if (!(existingIdentifier.equals(id)
-                            && (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING
-                            || uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING))) {
-                        throw new ItemExistsException(
-                                "Node with the same UUID exists:" + existing);
+                    // no importer defined yet:
+                    // test if there is a ProtectedNodeImporter among the configured
+                    // importers that can handle this.
+                    // if there is one, notify the ProtectedNodeImporter about the
+                    // start of a item tree that is protected by this parent. If it
+                    // potentially is able to deal with it, notify it about the child node.
+                    for (ProtectedNodeImporter pni : getNodeImporters()) {
+                        if (pni.start(parent)) {
+                            log.debug("Protected node -> delegated to ProtectedNodeImporter");
+                            pnImporter = pni;
+                            pnImporter.startChildInfo(nodeInfo, propInfos);
+                            break;
+                        } /* else: p-i-Importer isn't able to deal with the protected tree.
+                         try next. and if none can handle the passed parent the
+                         tree below will be skipped */
                     }
-                    // fall through
                 }
+                return;
             }
-        }
 
-        if (tree == null) {
-            // create node
-            if (id == null) {
-                // no potential uuid conflict, always add new node
-                tree = createTree(parent, nodeInfo, null);
-            } else if (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW) {
-                // always create a new UUID even if no
-                // conflicting node exists. see OAK-1244
-                tree = createTree(parent, nodeInfo, UUID.randomUUID().toString());
-                // remember uuid mapping
-                if (isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
-                    refTracker.put(nodeInfo.getUUID(), TreeUtil.getString(tree, JcrConstants.JCR_UUID));
-                }
-            } else {
-
-                Tree conflicting = idLookup.getConflictingTree(id);
-                if (conflicting != null && conflicting.exists()) {
-                    // resolve uuid conflict
-                    tree = resolveUUIDConflict(parent, conflicting, id, nodeInfo);
-                    if (tree == null) {
-                        // no new node has been created, so skip this node
-                        parents.push(null); // push null onto stack for skipped node
-                        log.debug("Skipping existing node {}", nodeInfo.getName());
+            if (parent.hasChild(nodeName)) {
+                // a node with that name already exists...
+                Tree existing = parent.getChild(nodeName);
+                NodeDefinition def = getDefinition(existing);
+                if (!def.allowsSameNameSiblings()) {
+                    // existing doesn't allow same-name siblings,
+                    // check for potential conflicts
+                    if (def.isProtected() && isNodeType(existing, ntName)) {
+                        /*
+                         use the existing node as parent for the possible subsequent
+                         import of a protected tree, that the protected node importer
+                         may or may not be able to deal with.
+                         -> upon the next 'startNode' the check for the parent being
+                            protected will notify the protected node importer.
+                         -> if the importer is able to deal with that node it needs
+                            to care of the complete subtree until it is notified
+                            during the 'endNode' call.
+                         -> if the import can't deal with that node or if that node
+                            is the a leaf in the tree to be imported 'end' will
+                            not have an effect on the importer, that was never started.
+                        */
+                        log.debug("Skipping protected node: {}", existing);
+                        parents.push(existing);
+                        /**
+                         * let ProtectedPropertyImporters handle the properties
+                         * associated with the imported node. this may include overwriting,
+                         * merging or just adding missing properties.
+                         */
+                        importProperties(existing, propInfos, true);
                         return;
                     }
-                } else {
-                    // create new with given uuid
-                    tree = createTree(parent, nodeInfo, id);
+                    if (def.isAutoCreated() && isNodeType(existing, ntName)) {
+                        // this node has already been auto-created, no need to create it
+                        tree = existing;
+                    } else {
+                        // edge case: colliding node does have same uuid
+                        // (see http://issues.apache.org/jira/browse/JCR-1128)
+                        String existingIdentifier = IdentifierManager.getIdentifier(existing);
+                        if (!(existingIdentifier.equals(id)
+                                && (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING
+                                || uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING))) {
+                            throw new ItemExistsException(
+                                    "Node with the same UUID exists:" + existing);
+                        }
+                        // fall through
+                    }
                 }
             }
-        }
 
-        // process properties
-        importProperties(tree, propInfos, false);
+            if (tree == null) {
+                // create node
+                if (id == null) {
+                    // no potential uuid conflict, always add new node
+                    tree = createTree(parent, nodeInfo, null);
+                } else if (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW) {
+                    // always create a new UUID even if no
+                    // conflicting node exists. see OAK-1244
+                    tree = createTree(parent, nodeInfo, UUID.randomUUID().toString());
+                    // remember uuid mapping
+                    if (isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+                        refTracker.put(nodeInfo.getUUID(), TreeUtil.getString(tree, JcrConstants.JCR_UUID));
+                    }
+                } else {
 
-        if (tree.exists()) {
-            parents.push(tree);
+                    Tree conflicting = idLookup.getConflictingTree(id);
+                    if (conflicting != null && conflicting.exists()) {
+                        // resolve uuid conflict
+                        tree = resolveUUIDConflict(parent, conflicting, id, nodeInfo);
+                        if (tree == null) {
+                            // no new node has been created, so skip this node
+                            parents.push(null); // push null onto stack for skipped node
+                            log.debug("Skipping existing node {}", nodeInfo.getName());
+                            return;
+                        }
+                    } else {
+                        // create new with given uuid
+                        tree = createTree(parent, nodeInfo, id);
+                    }
+                }
+            }
+
+            // process properties
+            importProperties(tree, propInfos, false);
+
+            if (tree.exists()) {
+                EffectiveNodeType parentEnt = effectiveNodeTypeProvider.getEffectiveNodeType(tree.getParent());
+                EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
+                // this throws ConstraintViolationException
+                parentEnt.getNodeDefinition(tree.getName(), ent);
+                parents.push(tree);
+            }
+        } catch (ConstraintViolationException e) {
+            // clean up transient session storage by removing the violating node
+            if (tree != null) {
+                tree.remove();
+            }
+            throw e;
         }
     }
 
@@ -479,15 +494,24 @@ public class ImporterImpl implements Importer {
             if (pnImporter != null) {
                 pnImporter.endChildInfo();
             }
-        } else if (getDefinition(parent).isProtected()) {
-            if (pnImporter != null) {
-                pnImporter.end(parent);
-                // and reset the pnImporter field waiting for the next protected
-                // parent -> selecting again from available importers
-                pnImporter = null;
+        } else {
+            if (getDefinition(parent).isProtected()) {
+                if (pnImporter != null) {
+                    pnImporter.end(parent);
+                    // and reset the pnImporter field waiting for the next protected
+                    // parent -> selecting again from available importers
+                    pnImporter = null;
+                }
+            }
+            try {
+                EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(parent);
+                ent.checkMandatoryItems(parent);
+            } catch (ConstraintViolationException e) {
+                // clean up transient session storage by removing the violating node
+                parent.remove();
+                throw e;
             }
         }
-
         idLookup.rememberImportedUUIDs(parent);
     }
 
