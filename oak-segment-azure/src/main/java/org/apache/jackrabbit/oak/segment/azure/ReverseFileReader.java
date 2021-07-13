@@ -71,7 +71,7 @@ public class ReverseFileReader {
                 HashMap<String, String> userHeaders = new HashMap<>();
                 userHeaders.put("If-Match", "*");
                 opContext.setUserHeaders(userHeaders);
-                blob.downloadRangeToByteArray(fileOffset, Long.valueOf(buffer.length), buffer, 0, null, null, opContext);
+                blob.downloadRangeToByteArray(fileOffset, (long) buffer.length, buffer, 0, null, null, opContext);
             } catch (StorageException e) {
                 throw new IOException(e);
             }
