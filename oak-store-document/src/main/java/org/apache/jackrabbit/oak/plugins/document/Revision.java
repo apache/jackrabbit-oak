@@ -116,9 +116,9 @@ public final class Revision implements CacheValue {
                     "Trying to compare revisions of different cluster ids: " +
                             this + " and " + other);
         }
-        int comp = timestamp < other.timestamp ? -1 : timestamp > other.timestamp ? 1 : 0;
+        int comp = Long.compare(timestamp, other.timestamp);
         if (comp == 0) {
-            comp = counter < other.counter ? -1 : counter > other.counter ? 1 : 0;
+            comp = Integer.compare(counter, other.counter);
         }
         return comp;
     }
@@ -132,9 +132,9 @@ public final class Revision implements CacheValue {
      * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
      */
     int compareRevisionTimeThenClusterId(Revision other) {
-        int comp = timestamp < other.timestamp ? -1 : timestamp > other.timestamp ? 1 : 0;
+        int comp = Long.compare(timestamp, other.timestamp);
         if (comp == 0) {
-            comp = counter < other.counter ? -1 : counter > other.counter ? 1 : 0;
+            comp = Integer.compare(counter, other.counter);
         }
         if (comp == 0) {
             comp = compareClusterId(other);
@@ -165,7 +165,7 @@ public final class Revision implements CacheValue {
      * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
      */
     int compareClusterId(Revision other) {
-        return clusterId < other.clusterId ? -1 : clusterId > other.clusterId ? 1 : 0;
+        return Integer.compare(clusterId, other.clusterId);
     }
 
     /**
