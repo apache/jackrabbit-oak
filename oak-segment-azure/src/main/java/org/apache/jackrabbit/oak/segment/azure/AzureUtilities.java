@@ -141,7 +141,6 @@ public final class AzureUtilities {
                 }
             }
         }
-
         if (result == null) {
             throw lastException;
         } else {
