@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.7
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.8
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.7 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.8 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,30 +15,24 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.7
+Changes in Oak 1.22.8
 ---------------------
 
 Bug
 
-    [OAK-8582] - Failing test in MongoDB 4.2.0: BasicDocumentStoreTest.testLongId
-    [OAK-9176] - sweep upgrade of pre 1.8 branch commits not always sets "_bc" for parents/root
-    [OAK-9306] - Faceting: IllegalArgumentException: dimension ... was not indexed
-    [OAK-9358] - DocumentNodeStore may accumulate split candidates
+    [OAK-9038] - oak-search-mt imports org.slf4j.impl
+    [OAK-9401] - Breaking recovery lock issue
 
 Improvement
 
-    [OAK-9134] - Remove mix:referenceable from nt:frozenNode definition
-    [OAK-9290] - Respect nt:frozenNode definition on upgrade and migration
-    [OAK-9291] - Refactor check for referenceable nt:frozenNode definition
-    [OAK-9352] - move SystemPropertySupplier from document to commons
-    [OAK-9357] - Update to MongoDB Java driver 3.12
-    [OAK-9359] - Use SystemPropertySupplier to ease backport
+    [OAK-9392] - Improve resilience when primary becomes unavailable
+    [OAK-9451] - Cold Standby SSL certificates should be configurable
+    [OAK-9473] - [Cold Standby] Add configuration option for SSL key decryption password
 
-This release contains a fix for OAK-9176, which performs a one time repository
-scan to fix missing _bc (branch commit) entries. This only affects repositories
-running on DocumentNodeStore (MongoDB and RDB). Use the system property
--Doak.documentMK.disableSweep2=true to disable this scan in case it should be
-skipped explicitly.
+Task
+
+    [OAK-9395] - Make MongoDockerRule.isDockerAvailable() static
+    [OAK-9396] - Promote SimpleRecoveryHandler test utility to top level class
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the previous Apache Jackrabbit Oak 1.22.x release.
