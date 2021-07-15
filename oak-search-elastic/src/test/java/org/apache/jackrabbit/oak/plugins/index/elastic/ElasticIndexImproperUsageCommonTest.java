@@ -18,14 +18,14 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
-import org.apache.jackrabbit.oak.plugins.index.StrictPathRestrictionWarnCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.IndexImproperUsageCommonTest;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.After;
 import org.junit.ClassRule;
 
 import java.io.IOException;
 
-public class ElasticStrictPathRestrictionWarnCommonTest extends StrictPathRestrictionWarnCommonTest {
+public class ElasticIndexImproperUsageCommonTest extends IndexImproperUsageCommonTest {
 
     // Set this connection string as
     // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>

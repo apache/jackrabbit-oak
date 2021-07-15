@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
-import org.apache.jackrabbit.oak.plugins.index.StrictPathRestrictionWarnCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.IndexImproperUsageCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.After;
@@ -33,7 +33,7 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LuceneStrictPathRestrictionWarnCommonTest extends StrictPathRestrictionWarnCommonTest {
+public class LuceneIndexImproperUsageCommonTest extends IndexImproperUsageCommonTest {
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
