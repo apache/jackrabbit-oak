@@ -851,7 +851,7 @@ The following options are available:
     --consistency    - List all the missing blobs by doing a consistency check
     Atleast one of the above should be specified
     
-    --store          - Path to the segment store of mongo uri (Required for --ref & --consistency option above)
+    --store          - Path to the segment store or mongo uri (Required for --ref & --consistency option above)
     --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
     --s3ds           - Path to the S3DataStore configuration file
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
