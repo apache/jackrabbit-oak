@@ -291,6 +291,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      */
     private final Pattern propertyRegex;
 
+    /**
+     * See {@link FulltextIndexConstants#PROP_QUERY_FILTER_REGEX}
+     */
+    private final Pattern queryFilterRegex;
+
     public boolean isTestMode() {
         return testMode;
     }
@@ -405,6 +410,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 this.propertyRegex = Pattern.compile(getOptionalValue(defn, PROP_VALUE_REGEX, ""));
             } else {
                 this.propertyRegex = null;
+            }
+            if (defn.hasProperty(PROP_QUERY_FILTER_REGEX)) {
+                this.queryFilterRegex = Pattern.compile(getOptionalValue(defn, PROP_QUERY_FILTER_REGEX, ""));
+            } else {
+                this.queryFilterRegex = null;
             }
             String functionName = getOptionalValue(defn, FulltextIndexConstants.FUNC_NAME, null);
             if (fullTextEnabled && functionName == null) {
@@ -871,6 +881,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public Pattern getPropertyRegex() {
         return propertyRegex;
+    }
+
+    public Pattern getQueryFilterRegex() {
+        return queryFilterRegex;
     }
 
     public boolean isSuggestEnabled() {
