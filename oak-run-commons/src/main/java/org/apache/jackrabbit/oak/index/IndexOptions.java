@@ -90,7 +90,7 @@ public class IndexOptions implements OptionsBean {
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
-        asyncIndex = parser.accepts("async-reindex", "Runs async index cycle");
+        asyncIndex = parser.accepts("async-index", "Runs async index cycle");
 
         importIndex = parser.accepts("index-import", "Imports index");
         docTraversal = parser.accepts("doc-traversal-mode", "Use Document traversal mode for reindex in " +

@@ -107,7 +107,8 @@ public class IndexCommand implements Command {
                     NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
                     closer.register(fixture);
                     ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
-                    AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(fixture, extendedIndexHelper);
+                    AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(fixture, extendedIndexHelper, closer);
+                    asyncIndexerService.run();
                 }
             } else {
                 try (Closer closer = Closer.create()) {
