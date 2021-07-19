@@ -70,6 +70,14 @@
                             com.ibm.security.krb5.internal.*;resolution:=optional,
                             sun.misc.*;resolution:=optional,
                             sun.security.krb5.*;resolution:=optional,
+                            io.netty.*;resolution:=optional,
+                            jline.console;resolution:=optional,
+                            jline.console.completer;resolution:=optional,
+                            org.apache.jute;resolution:=optional,
+                            org.apache.yetus.audience;resolution:=optional,
+                            org.apache.zookeeper.data;resolution:=optional,
+                            org.apache.zookeeper.proto;resolution:=optional,
+                            org.apache.zookeeper.txn;resolution:=optional,
                             *
                         </Import-Package>
                         <Embed-Dependency>*;scope=runtime;inline=true</Embed-Dependency>
@@ -160,7 +168,7 @@
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
-            <version>3.4.10</version>
+            <version>3.5.7</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
