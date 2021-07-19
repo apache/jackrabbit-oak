@@ -63,7 +63,7 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
 
     private static final String PATH_RESTRICTION_WARN_MESSAGE = "Index definition of index used have path restrictions and query won't return nodes from " +
             "those restricted paths";
-    private static final String QUERY_FILTER_WARN_MESSAGE = "improper use of index /oak:index/%s with valueRegex %s";
+    private static final String QUERY_FILTER_WARN_MESSAGE = "improper use of index /oak:index/%s with queryFilterRegex %s";
 
     @Before
     public void loggingAppenderStart() {
