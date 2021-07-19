@@ -39,8 +39,11 @@ import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
@@ -99,6 +102,13 @@ public class IndexCommand implements Command {
         try {
             if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
                 performReindexInReadWriteMode(indexOpts);
+            } else if (indexOpts.isAsyncIndex()) {
+                try (Closer closer = Closer.create()) {
+                    NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                    closer.register(fixture);
+                    ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
+                    AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(fixture, extendedIndexHelper);
+                }
             } else {
                 try (Closer closer = Closer.create()) {
                     configureCustomizer(opts, closer, true);

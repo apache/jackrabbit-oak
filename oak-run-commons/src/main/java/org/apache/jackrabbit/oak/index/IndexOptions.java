@@ -50,6 +50,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Void> reindex;
+    private final OptionSpec<Void> asyncIndex;
     private final OptionSpec<Void> importIndex;
     private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Integer> consistencyCheck;
@@ -89,6 +90,7 @@ public class IndexOptions implements OptionsBean {
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
+        asyncIndex = parser.accepts("async-reindex", "Runs async index cycle");
 
         importIndex = parser.accepts("index-import", "Imports index");
         docTraversal = parser.accepts("doc-traversal-mode", "Use Document traversal mode for reindex in " +
@@ -177,6 +179,8 @@ public class IndexOptions implements OptionsBean {
     public boolean isReindex() {
         return options.has(reindex);
     }
+
+    public boolean isAsyncIndex() {return options.has(asyncIndex);}
 
     public boolean isImportIndex() {
         return options.has(importIndex);
