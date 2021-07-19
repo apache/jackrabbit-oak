@@ -33,6 +33,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.ProtectionDomain;
+import java.util.Collection;
 
 /**
  * The LDAP server we use for testing relies on an old, incompatible version of the library
@@ -177,11 +178,11 @@ public class LdapServerClassLoader extends URLClassLoader {
             serverClass.getMethod("addMember", new Class[] {String.class, String.class}).invoke(server, groupDN, memberDN);
         }
 
-        public void addMembers(String name, Iterable<String> members) throws Exception {
+        public void addMembers(String name, Collection<String> members) throws Exception {
             final Exception[] ex = new Exception[] { null };
             Runnable r = () -> {
                 try {
-                    serverClass.getMethod("addMembers", new Class[] {String.class, Iterable.class}).invoke(server, name, members);
+                    serverClass.getMethod("addMembers", new Class[] {String.class, Collection.class}).invoke(server, name, members);
                 } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                     ex[0] = e;
                 }
