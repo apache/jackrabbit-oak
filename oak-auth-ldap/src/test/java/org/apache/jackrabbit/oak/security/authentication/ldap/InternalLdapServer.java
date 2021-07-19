@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import javax.naming.directory.Attribute;
-import javax.naming.directory.BasicAttribute;
-import javax.naming.directory.BasicAttributes;
-import javax.naming.directory.DirContext;
-import javax.naming.ldap.LdapContext;
+import java.util.Collection;
+import java.util.Collections;
+
+import org.apache.directory.api.ldap.model.entry.DefaultAttribute;
+import org.apache.directory.api.ldap.model.entry.DefaultModification;
+import org.apache.directory.api.ldap.model.entry.Modification;
+import org.apache.directory.api.ldap.model.entry.ModificationOperation;
+import org.apache.directory.api.ldap.model.name.Dn;
 
 public class InternalLdapServer extends AbstractServer {
 
@@ -76,28 +79,15 @@ public class InternalLdapServer extends AbstractServer {
     }
 
     public void addMember(String groupDN, String memberDN) throws Exception {
-        LdapContext ctxt = getWiredContext();
-        BasicAttributes attrs = new BasicAttributes();
-        attrs.put("member", memberDN);
-        ctxt.modifyAttributes(groupDN, DirContext.ADD_ATTRIBUTE, attrs);
+        DefaultAttribute attribute = new DefaultAttribute("member", memberDN);
+        Modification modification = new DefaultModification(ModificationOperation.ADD_ATTRIBUTE, attribute);
+        modify(new Dn(groupDN), Collections.singletonList(modification));
     }
 
-    public void addMembers(String groupDN, Iterable<String> memberDNs) throws Exception {
-        LdapContext ctxt = getWiredContext();
-        Attribute attr = new BasicAttribute("member");
-        for (String dn : memberDNs) {
-            attr.add(dn);
-        }
-        BasicAttributes attrs = new BasicAttributes();
-        attrs.put(attr);
-        ctxt.modifyAttributes(groupDN, DirContext.ADD_ATTRIBUTE, attrs);
-    }
-
-    public void removeMember(String groupDN, String memberDN) throws Exception {
-        LdapContext ctxt = getWiredContext();
-        BasicAttributes attrs = new BasicAttributes();
-        attrs.put("member", memberDN);
-        ctxt.modifyAttributes(groupDN, DirContext.REMOVE_ATTRIBUTE, attrs);
+    public void addMembers(String groupDN, Collection<String> memberDNs) throws Exception {
+        DefaultAttribute attribute = new DefaultAttribute("member", memberDNs.toArray(new String[0]));
+        Modification modification = new DefaultModification(ModificationOperation.ADD_ATTRIBUTE, attribute);
+        modify(new Dn(groupDN), Collections.singletonList(modification));
     }
 
     private static String buildDn(String name, boolean isGroup) {
