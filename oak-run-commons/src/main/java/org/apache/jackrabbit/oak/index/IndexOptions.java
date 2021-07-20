@@ -54,10 +54,12 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> importIndex;
     private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Integer> consistencyCheck;
+    private final OptionSpec<Long> asyncDelay;
     protected OptionSet options;
     protected final Set<OptionSpec> actionOpts;
     private final OptionSpec<String> indexPaths;
     private final OptionSpec<String> checkpoint;
+    private final OptionSpec<String> asyncIndexLanes;
     private final Set<String> operationNames;
 
 
@@ -88,9 +90,16 @@ public class IndexOptions implements OptionsBean {
                 "only Lucene indexes are supported. Possible values 1 - Basic check, 2 - Full check (slower)")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
+        asyncDelay = parser.accepts("async-delay", "Delay (in seconds) betwen the execution of async cycles for a given lane")
+                .withOptionalArg().ofType(Long.class).defaultsTo(5L);
+
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
         asyncIndex = parser.accepts("async-index", "Runs async index cycle");
+
+        asyncIndexLanes = parser.accepts("async-index-lanes", "Comma separated list of async index lanes for which the " +
+                "async index cycles would run")
+                .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
 
         importIndex = parser.accepts("index-import", "Imports index");
         docTraversal = parser.accepts("doc-traversal-mode", "Use Document traversal mode for reindex in " +
@@ -176,6 +185,10 @@ public class IndexOptions implements OptionsBean {
         return consistencyCheck.value(options);
     }
 
+    public long aysncDelay() {
+        return  asyncDelay.value(options);
+    }
+
     public boolean isReindex() {
         return options.has(reindex);
     }
@@ -196,6 +209,10 @@ public class IndexOptions implements OptionsBean {
 
     public List<String> getIndexPaths(){
         return options.has(indexPaths) ? trim(indexPaths.values(options)) : Collections.emptyList();
+    }
+
+    public List<String> getAsyncLanes(){
+        return options.has(asyncIndexLanes) ? trim(asyncIndexLanes.values(options)) : Collections.emptyList();
     }
 
     private boolean anyActionSelected(){
