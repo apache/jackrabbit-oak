@@ -292,6 +292,7 @@
           <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
+            <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
               <mongo.host>${mongo.host}</mongo.host>
@@ -311,6 +312,7 @@
           <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
+            <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
               <mongo.host>${mongo.host}</mongo.host>
