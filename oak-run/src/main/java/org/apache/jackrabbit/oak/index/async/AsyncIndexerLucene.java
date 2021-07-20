@@ -26,9 +26,9 @@ public class AsyncIndexerLucene implements Closeable {
     private final ExtendedIndexHelper extendedIndexHelper;
     private final Closer close;
     private final List<String> names;
-    private final long INIT_DELAY=2;
+    private final long INIT_DELAY=0;
     private final long delay;
-    private final ScheduledExecutorService pool = Executors.newScheduledThreadPool(3);
+    private final ScheduledExecutorService pool;
 
 
     public AsyncIndexerLucene(NodeStoreFixture fixture, ExtendedIndexHelper extendedIndexHelper, Closer close, List<String> names, long delay) {
@@ -37,14 +37,18 @@ public class AsyncIndexerLucene implements Closeable {
         this.close = close;
         this.names = names;
         this.delay = delay;
+        pool = Executors.newScheduledThreadPool(names.size());
     }
 
     public void run() {
+
         for(String name : names) {
             log.info("Setting up Async executor for lane - " + name);
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, extendedIndexHelper.getNodeStore(),
                     new LuceneIndexEditorProvider(), StatisticsProvider.NOOP, false);
-            close.register(task);
+            // TODO : Handle closure for AsyncIndexUpdate - during command exit, problem is when to do it ? We want this to run in infinite loop
+            // TODO : In oak, it gets closed with system bundle deactivation
+            //close.register(task);
             pool.scheduleWithFixedDelay(task,INIT_DELAY,delay,TimeUnit.SECONDS);
         }
     }
