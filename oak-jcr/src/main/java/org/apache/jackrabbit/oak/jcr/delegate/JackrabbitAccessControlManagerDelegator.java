@@ -29,6 +29,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -111,6 +112,28 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
             @Override
             public Privilege[] perform() throws RepositoryException {
                 return jackrabbitACManager.getPrivileges(absPath, principals);
+            }
+        });
+    }
+    
+    @Override
+    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath) throws RepositoryException {
+        return delegate.perform(new SessionOperation<PrivilegeCollection>("getPrivilegeCollection") {
+            @NotNull
+            @Override
+            public PrivilegeCollection perform() throws RepositoryException {
+                return jackrabbitACManager.getPrivilegeCollection(absPath);
+            }
+        });
+    }
+
+    @Override
+    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath, @NotNull Set<Principal> principals) throws RepositoryException {
+        return delegate.perform(new SessionOperation<PrivilegeCollection>("getPrivilegeCollection") {
+            @NotNull
+            @Override
+            public PrivilegeCollection perform() throws RepositoryException {
+                return jackrabbitACManager.getPrivilegeCollection(absPath, principals);
             }
         });
     }

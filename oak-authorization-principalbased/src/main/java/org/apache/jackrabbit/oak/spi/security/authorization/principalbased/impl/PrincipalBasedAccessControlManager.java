@@ -109,6 +109,11 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         this.filterProvider = filterProvider;
         filter = filterProvider.getFilter(mgrProvider.getSecurityProvider(), mgrProvider.getRoot(), mgrProvider.getNamePathMapper());
     }
+    
+    @Override
+    protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+        return mgrProvider.getPrivilegeBitsProvider();
+    }
 
     //-------------------------------------< JackrabbitAccessControlManager >---
 

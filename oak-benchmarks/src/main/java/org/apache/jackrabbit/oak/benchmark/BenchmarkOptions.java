@@ -94,6 +94,7 @@ public class BenchmarkOptions {
     private final OptionSpec<String> nonOption;
     private final OptionSpec<?> help;
     private final OptionSpec<Boolean> useAggregationFilter;
+    private final OptionSpec<String> evalType;
     private final OptionSpec<String> elasticHost;
     private final OptionSpec<String> elasticScheme;
     private final OptionSpec<Integer> elasticPort;
@@ -359,6 +360,8 @@ public class BenchmarkOptions {
     public OptionSpec<Boolean> getUseAggregationFilter() {
         return useAggregationFilter;
     }
+    
+    public OptionSpec<String> getEvalutionType() { return evalType; }
 
 
     public BenchmarkOptions(OptionParser parser) {
@@ -443,6 +446,8 @@ public class BenchmarkOptions {
         useAggregationFilter = parser.accepts("useAggregationFilter", "Run principal-based tests with 'AggregationFilter'")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+        evalType = parser.accepts("evalType", "Allows to switch between different evaluation types within a single benchmark")
+                .withOptionalArg().ofType(String.class);
         batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AddMembersTest.DEFAULT_BATCH_SIZE);
         importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")

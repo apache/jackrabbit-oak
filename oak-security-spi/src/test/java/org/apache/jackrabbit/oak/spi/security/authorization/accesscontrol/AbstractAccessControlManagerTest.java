@@ -16,23 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -46,13 +32,31 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPerm
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.OpenPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 
+import javax.jcr.AccessDeniedException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ADD_CHILD_NODES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_BITS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -62,10 +66,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class AbstractAccessControlManagerTest extends AbstractAccessControlTest {
 
@@ -90,43 +97,52 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     @Before
     public void before() throws Exception {
-        testPrivileges = new Privilege[] {mockPrivilege("priv1"), mockPrivilege("priv2")};
-        allPrivileges = new Privilege[] {mockPrivilege(PrivilegeConstants.JCR_ALL)};
+        testPrivileges = new Privilege[] {mockPrivilege(JCR_READ), mockPrivilege(JCR_ADD_CHILD_NODES)};
+        allPrivileges = new Privilege[] {mockPrivilege(JCR_ALL)};
 
-        cs = Mockito.mock(ContentSession.class);
+        cs = mock(ContentSession.class);
         when(cs.getWorkspaceName()).thenReturn(WSP_NAME);
         when(cs.getAuthInfo()).thenReturn(new AuthInfoImpl(null, ImmutableMap.of(), testPrincipals));
 
         when(root.getContentSession()).thenReturn(cs);
 
-        Tree nonExistingTree = Mockito.mock(Tree.class);
+        Tree nonExistingTree = mock(Tree.class);
         when(nonExistingTree.exists()).thenReturn(false);
         when(root.getTree(nonExistingPath)).thenReturn(nonExistingTree);
 
-        Tree existingTree = Mockito.mock(Tree.class);
+        Tree existingTree = mock(Tree.class);
         when(existingTree.exists()).thenReturn(true);
         when(root.getTree(testPath)).thenReturn(existingTree);
 
-        Tree rootTree = Mockito.mock(Tree.class);
+        Tree rootTree = mock(Tree.class);
         when(rootTree.exists()).thenReturn(true);
         when(root.getTree("/")).thenReturn(rootTree);
+        
+        Tree jcrAllTree = mock(Tree.class);
+        PrivilegeBits pb = PrivilegeBits.getInstance(PrivilegeBits.BUILT_IN.get(JCR_READ), PrivilegeBits.BUILT_IN.get(JCR_ADD_CHILD_NODES));
+        when(jcrAllTree.getProperty(REP_BITS)).thenReturn(pb.asPropertyState(REP_BITS));
+        Tree privilegesTree = mock(Tree.class);
+        when(privilegesTree.exists()).thenReturn(true);
+        when(privilegesTree.hasChild(JCR_ALL)).thenReturn(true);
+        when(privilegesTree.getChild(JCR_ALL)).thenReturn(jcrAllTree);
+        when(root.getTree(PrivilegeConstants.PRIVILEGES_PATH)).thenReturn(privilegesTree);
 
-        privilegeManager = Mockito.mock(PrivilegeManager.class);
+        privilegeManager = mock(PrivilegeManager.class);
         when(privilegeManager.getRegisteredPrivileges()).thenReturn(testPrivileges);
-        when(privilegeManager.getPrivilege("priv1")).thenReturn(testPrivileges[0]);
-        when(privilegeManager.getPrivilege("priv2")).thenReturn(testPrivileges[1]);
-        when(privilegeManager.getPrivilege(PrivilegeConstants.JCR_ALL)).thenReturn(allPrivileges[0]);
+        when(privilegeManager.getPrivilege(JCR_READ)).thenReturn(testPrivileges[0]);
+        when(privilegeManager.getPrivilege(JCR_ADD_CHILD_NODES)).thenReturn(testPrivileges[1]);
+        when(privilegeManager.getPrivilege(JCR_ALL)).thenReturn(allPrivileges[0]);
 
-        PrivilegeConfiguration privilegeConfiguration = Mockito.mock(PrivilegeConfiguration.class);
+        PrivilegeConfiguration privilegeConfiguration = mock(PrivilegeConfiguration.class);
         when(privilegeConfiguration.getPrivilegeManager(root, getNamePathMapper())).thenReturn(privilegeManager);
 
-        authorizationConfiguration = Mockito.mock(AuthorizationConfiguration.class);
+        authorizationConfiguration = mock(AuthorizationConfiguration.class);
         when(authorizationConfiguration.getPermissionProvider(root, WSP_NAME, getEveryonePrincipalSet())).thenReturn(EmptyPermissionProvider.getInstance());
         when(authorizationConfiguration.getPermissionProvider(root, WSP_NAME, testPrincipals)).thenReturn(OpenPermissionProvider.getInstance());
         when(authorizationConfiguration.getPermissionProvider(root, WSP_NAME, ImmutableSet.of())).thenReturn(EmptyPermissionProvider.getInstance());
         when(authorizationConfiguration.getContext()).thenReturn(Context.DEFAULT);
 
-        securityProvider = Mockito.mock(SecurityProvider.class);
+        securityProvider = mock(SecurityProvider.class);
         when(securityProvider.getConfiguration(PrivilegeConfiguration.class)).thenReturn(privilegeConfiguration);
         when(securityProvider.getConfiguration(AuthorizationConfiguration.class)).thenReturn(authorizationConfiguration);
 
@@ -134,7 +150,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     private AbstractAccessControlManager createAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
-        return new TestAcMgr(root, namePathMapper, securityProvider);
+        return mock(AbstractAccessControlManager.class, withSettings().useConstructor(root, namePathMapper, securityProvider).defaultAnswer(InvocationOnMock::callRealMethod));
     }
 
     private static List<String> getInvalidPaths() {
@@ -148,13 +164,13 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     private static Privilege mockPrivilege(@NotNull String name) {
-        Privilege p = Mockito.mock(Privilege.class);
+        Privilege p = mock(Privilege.class);
         when(p.getName()).thenReturn(name);
         return p;
     }
 
     private static Set<Principal> getEveryonePrincipalSet() {
-        return ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
+        return ImmutableSet.of(EveryonePrincipal.getInstance());
     }
 
     //--------------------------------------------------- protected methods >---
@@ -212,7 +228,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test(expected = PathNotFoundException.class)
-    public void testGetTreeNonExstingPath() throws Exception {
+    public void testGetTreeNonExistingPath() throws Exception {
         acMgr.getTree(nonExistingPath, Permissions.NO_PERMISSION, false);
     }
 
@@ -247,6 +263,13 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         mgr.getTree(testPath, Permissions.ALL, true);
     }
 
+    @Test
+    public void testGetPrivilegeBitsProvider() {
+        PrivilegeBitsProvider pbp = acMgr.getPrivilegeBitsProvider();
+        assertNotNull(pbp);
+        assertSame(pbp, acMgr.getPrivilegeBitsProvider());
+    }
+    
     //---------------------------------------------< getSupportedPrivileges >---
     @Test
     public void testGetSupportedPrivileges() throws Exception {
@@ -279,7 +302,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     //--------------------------------------------------< privilegeFromName >---
     @Test
     public void testPrivilegeFromName() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(privilegeManager.getRegisteredPrivileges());
+        Privilege[] allPrivileges = privilegeManager.getRegisteredPrivileges();
         for (Privilege privilege : allPrivileges) {
             Privilege p = acMgr.privilegeFromName(privilege.getName());
             assertEquals(privilege, p);
@@ -309,7 +332,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     @Test(expected = PathNotFoundException.class)
     public void testHasPrivilegesNonExistingNodePathEmptyPrincipalSet() throws Exception {
-        acMgr.hasPrivileges(nonExistingPath, ImmutableSet.<Principal>of(), testPrivileges);
+        acMgr.hasPrivileges(nonExistingPath, ImmutableSet.of(), testPrivileges);
     }
 
     @Test
@@ -338,7 +361,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     public void testHasPrivilegesInvalidPathsEveryoneSet() {
         for (String path : getInvalidPaths()) {
             try {
-                acMgr.hasPrivileges(path, ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()), testPrivileges);
+                acMgr.hasPrivileges(path, ImmutableSet.of(EveryonePrincipal.getInstance()), testPrivileges);
                 fail("AccessControlManager#hasPrivileges for node that doesn't exist should fail.");
             } catch (RepositoryException e) {
                 // success
@@ -358,7 +381,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     @Test
     public void testHasRepoPrivilegesEmptyPrincipalSet() throws Exception {
-        assertFalse(acMgr.hasPrivileges(null, ImmutableSet.<Principal>of(), testPrivileges));
+        assertFalse(acMgr.hasPrivileges(null, ImmutableSet.of(), testPrivileges));
     }
 
     //------------------------------------------------------< getPrivileges >---
@@ -369,7 +392,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     @Test(expected = PathNotFoundException.class)
     public void testGetPrivilegesNonExistingNodePathEmptyPrincipalSet() throws Exception {
-        acMgr.getPrivileges(nonExistingPath, ImmutableSet.<Principal>of());
+        acMgr.getPrivileges(nonExistingPath, ImmutableSet.of());
     }
 
     @Test
@@ -394,7 +417,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
         for (String path : getInvalidPaths()) {
             try {
-                acMgr.getPrivileges(path, ImmutableSet.<Principal>of());
+                acMgr.getPrivileges(path, ImmutableSet.of());
                 fail("AccessControlManager#getPrivileges  for node that doesn't exist should fail.");
             } catch (RepositoryException e) {
                 // success
@@ -408,13 +431,13 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test
-    public void testGetPrivilegesEveronePrincipalSet() throws Exception {
+    public void testGetPrivilegesEveryonePrincipalSet() throws Exception {
         assertArrayEquals(new Privilege[0], acMgr.getPrivileges(testPath, getEveryonePrincipalSet()));
     }
 
     @Test
     public void testGetPrivilegesEmptyPrincipalSet() throws Exception {
-        assertArrayEquals(new Privilege[0], acMgr.getPrivileges(testPath, ImmutableSet.<Principal>of()));
+        assertArrayEquals(new Privilege[0], acMgr.getPrivileges(testPath, ImmutableSet.of()));
     }
 
     @Test
@@ -440,56 +463,54 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     @Test
     public void testGetRepoPrivilegesEmptyPrincipalSet() throws Exception {
-        assertArrayEquals(new Privilege[0], acMgr.getPrivileges(null, ImmutableSet.<Principal>of()));
+        assertArrayEquals(new Privilege[0], acMgr.getPrivileges(null, ImmutableSet.of()));
     }
 
-    private static class TestAcMgr extends AbstractAccessControlManager {
-
-        protected TestAcMgr(@NotNull Root root, @NotNull NamePathMapper namePathMapper, @NotNull SecurityProvider securityProvider) {
-            super(root, namePathMapper, securityProvider);
+    //------------------------------------------------------< getPrivilegeCollection >---
+    @Test
+    public void testGetPrivilegeCollection() throws Exception {
+        PrivilegeCollection pe = acMgr.getPrivilegeCollection(testPath);
+        assertArrayEquals(allPrivileges, pe.getPrivileges());
+        
+        assertTrue(pe.includes(Arrays.stream(testPrivileges).map(Privilege::getName).distinct().toArray(String[]::new)));
+        assertTrue(pe.includes());
+        assertFalse(pe.includes(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT));
+        try {
+            pe.includes("invalid");
+            fail();
+        } catch (AccessControlException e) {
+            // success
         }
+    }
 
-        @NotNull
-        @Override
-        public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) {
-            throw new UnsupportedOperationException();
-        }
+    @Test
+    public void testGetPrivilegeCollectionSamePrincipalSet() throws Exception {
+        PrivilegeCollection pc = acMgr.getPrivilegeCollection(testPath, testPrincipals);
+        assertArrayEquals(allPrivileges, pc.getPrivileges());
+        
+        verify(acMgr).getPrivilegeCollection(testPath);
+        verify(acMgr).getPrivilegeCollection(testPath, testPrincipals);
+    }
 
-        @NotNull
-        @Override
-        public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) {
-            throw new UnsupportedOperationException();
-        }
+    @Test
+    public void testGetPrivilegeCollectionEmptyPrincipalSet() throws Exception {
+        PrivilegeCollection pc = acMgr.getPrivilegeCollection(testPath, Collections.emptySet());
+        assertArrayEquals(new Privilege[0], pc.getPrivileges());
+        assertFalse(pc.includes(JCR_READ));
+        assertTrue(pc.includes());
 
-        @NotNull
-        @Override
-        public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> set) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public AccessControlPolicy[] getPolicies(String absPath)  {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public AccessControlPolicy[] getEffectivePolicies(String absPath) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public AccessControlPolicyIterator getApplicablePolicies(String absPath) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void setPolicy(String absPath, AccessControlPolicy policy) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void removePolicy(String absPath, AccessControlPolicy policy) {
-            throw new UnsupportedOperationException();
-        }
+        verify(acMgr, never()).getPrivilegeCollection(testPath);
+        verify(acMgr).getPrivilegeCollection(testPath, Collections.emptySet());
+    }
+    
+    @Test
+    public void testGetPrivilegeCollectionPrincipalSet() throws Exception {
+        PrivilegeCollection pc = acMgr.getPrivilegeCollection(testPath, getEveryonePrincipalSet());
+        assertArrayEquals(new Privilege[0], pc.getPrivileges());
+        assertFalse(pc.includes(Arrays.stream(testPrivileges).map(Privilege::getName).distinct().toArray(String[]::new)));
+        assertTrue(pc.includes());
+        
+        verify(acMgr).getPrivilegeCollection(testPath, getEveryonePrincipalSet());
+        verify(acMgr, never()).getPrivilegeCollection(testPath);
     }
 }

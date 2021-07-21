@@ -20,8 +20,15 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.security.AccessControlException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Privilege management related utility methods.
@@ -59,5 +66,48 @@ public final class PrivilegeUtil implements PrivilegeConstants {
             declAggrNames = property.getValue(Type.NAMES);
         }
         return new ImmutablePrivilegeDefinition(name, isAbstract, declAggrNames);
+    }
+
+    /**
+     * Convert the given JCR privilege names to Oak names.
+     * 
+     * @param jcrNames The JCR names of privileges
+     * @param namePathMapper The {@link NamePathMapper} to use for the conversion.
+     * @return A set of Oak names
+     * @throws AccessControlException If the given JCR names cannot be converted.
+     */
+    @NotNull
+    public static Set<String> getOakNames(@Nullable String[] jcrNames, @NotNull NamePathMapper namePathMapper) throws AccessControlException {
+        Set<String> oakNames;
+        if (jcrNames == null || jcrNames.length == 0) {
+            oakNames = Collections.emptySet();
+        } else {
+            oakNames = new HashSet<>(jcrNames.length);
+            for (String jcrName : jcrNames) {
+                String oakName = getOakName(jcrName, namePathMapper);
+                oakNames.add(oakName);
+            }
+        }
+        return oakNames;
+    }
+
+    /**
+     * Convert the given JCR privilege name to an Oak name.
+     * 
+     * @param jcrName The JCR name of a privilege.
+     * @param namePathMapper The {@link NamePathMapper} to use for the conversion.
+     * @return the Oak name of the given privilege.
+     * @throws AccessControlException If the specified name is null or cannot be resolved to an Oak name.
+     */
+    @NotNull
+    public static String getOakName(@Nullable String jcrName, @NotNull NamePathMapper namePathMapper) throws AccessControlException {
+        if (jcrName == null) {
+            throw new AccessControlException("Invalid privilege name 'null'");
+        }
+        String oakName = namePathMapper.getOakNameOrNull(jcrName);
+        if (oakName == null) {
+            throw new AccessControlException("Cannot resolve privilege name " + jcrName);
+        }
+        return oakName;
     }
 }
