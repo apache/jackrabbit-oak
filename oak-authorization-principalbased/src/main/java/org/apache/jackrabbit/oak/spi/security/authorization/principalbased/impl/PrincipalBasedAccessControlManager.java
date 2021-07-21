@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.ISO9075;
-import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -204,8 +203,8 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             }
             Iterable<PrincipalAccessControlList> acls = Iterables.transform(m.entrySet(), entry -> new ImmutablePrincipalPolicy(entry.getKey(), filter.getOakPath(entry.getKey()), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
 
-            if (isReadablePath(oakPath)) {
-                Iterable iterable = Iterables.concat(acls, Collections.singleton(ReadPolicy.INSTANCE));
+            if (ReadPolicy.hasEffectiveReadPolicy(readPaths, oakPath)) {
+                Iterable<AccessControlPolicy> iterable = Iterables.concat(acls, Collections.singleton(ReadPolicy.INSTANCE));
                 return Iterables.toArray(iterable, AccessControlPolicy.class);
             } else {
                 return Iterables.toArray(acls, PrincipalAccessControlList.class);
@@ -374,7 +373,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         return tree.exists() && TreeUtil.isNodeType(tree, MIX_REP_PRINCIPAL_BASED_MIXIN, typeRoot);
     }
 
-    private Iterable<String> getEffectivePaths(@Nullable String oakPath) {
+    private static Iterable<String> getEffectivePaths(@Nullable String oakPath) {
         // read-access-control permission has already been check for 'oakPath'
         List<String> paths = Lists.newArrayList();
         paths.add(Strings.nullToEmpty(oakPath));
@@ -410,20 +409,5 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
                 return Utils.privilegesFromOakNames(names, mgrProvider.getPrivilegeManager(), getNamePathMapper());
             }
         };
-    }
-
-    private boolean isReadablePath(@Nullable String oakPath) {
-        if (oakPath == null) {
-            return false;
-        }
-        if (readPaths.contains(oakPath)) {
-            return true;
-        }
-        for (String rp : readPaths) {
-            if (Text.isDescendant(rp, oakPath)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

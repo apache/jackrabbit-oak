@@ -731,20 +731,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         @Override
         public boolean isReadableTree(@NotNull Tree tree, boolean exactMatch) {
-            String targetPath = tree.getPath();
-            for (String path : readPaths) {
-                if (targetPath.equals(path)) {
-                    return true;
-                }
-            }
-            if (!exactMatch) {
-                for (String path : altReadPaths) {
-                    if (targetPath.startsWith(path)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return isReadablePath(tree.getPath(), exactMatch);
         }
 
         @Override

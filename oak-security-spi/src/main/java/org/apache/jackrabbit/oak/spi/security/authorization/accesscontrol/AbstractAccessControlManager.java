@@ -43,7 +43,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -288,10 +290,8 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
             log.debug("No privileges passed -> allowed.");
             return true;
         } else {
-            Set<String> privilegeNames = new HashSet<>(privileges.length);
-            for (Privilege privilege : privileges) {
-                privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
-            }
+            String[] jcrNames = Arrays.stream(privileges).filter(Objects::nonNull).map(Privilege::getName).toArray(String[]::new);
+            Set<String> privilegeNames = PrivilegeUtil.getOakNames(jcrNames, namePathMapper);
             return provider.hasPrivileges(tree, privilegeNames.toArray(new String[0]));
         }
     }
