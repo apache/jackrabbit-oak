@@ -28,6 +28,21 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
 
+/**
+ * <p>Wrapper around a set of {@link Privilege}s that allows to test if a given list of privilege names in included. This 
+ * avoids repeated calls to {@link AccessControlManager#hasPrivileges(String, Privilege[])} or having to manually resolve 
+ * the privilege aggregation when using {@link AccessControlManager#getPrivileges(String)}.</p>
+ * 
+ * While a {@link PrivilegeCollection.Default default} is available for backwards compatibility, it uses regular 
+ * JCR API. Therefore it is recommended to provide custom implementations of 
+ * {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)} and 
+ * {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String, Set)} with 
+ * efficient implementations of the {@code PrivilegeCollection}.
+ * 
+ * @since Oak 1.42.0
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String) 
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String, Set) 
+ */
 public interface PrivilegeCollection {
 
     /**
