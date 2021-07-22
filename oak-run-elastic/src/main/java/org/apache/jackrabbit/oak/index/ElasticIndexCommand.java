@@ -27,6 +27,7 @@ import com.google.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.index.async.AsyncIndexerElastic;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
+import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.spi.commit.*;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -90,12 +92,29 @@ public class ElasticIndexCommand implements Command {
 
         boolean success = false;
         try {
-            try (Closer closer = Closer.create()) {
-                NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-                closer.register(fixture);
-                execute(fixture, indexOpts, closer);
-            }
 
+            if (indexOpts.isAsyncIndex()) {
+                // This closer is just a dummy for now to be able to create the IndexHelper - we never actually call close on this
+                // TODO : See when this can be called ? We basically want to run this index command in an infintie loop
+                // TOOD : so need to check when to exactly call closure ? (Command exit with SIGINT ???)
+                Closer closer = Closer.create();
+
+                NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                // TODO : Register fixture with a clousre
+                //closer.register(fixture);
+                IndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
+                AsyncIndexerElastic asyncIndexerService = new AsyncIndexerElastic(fixture, extendedIndexHelper, closer,
+                        indexOpts.getAsyncLanes(), indexOpts.aysncDelay(), indexOpts);
+                // TODO : Register asyncIndexerService with a clousre
+                //closer.register(asyncIndexerService);
+                asyncIndexerService.run();
+            } else {
+                try (Closer closer = Closer.create()) {
+                    NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                    closer.register(fixture);
+                    execute(fixture, indexOpts, closer);
+                }
+            }
             success = true;
         } catch (Throwable e) {
             log.error("Error occurred while performing index tasks", e);
@@ -153,7 +172,7 @@ public class ElasticIndexCommand implements Command {
         return new ArrayList<>(indexPaths);
     }
 
-    private void applyIndexDefOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException  {
+    private void applyIndexDefOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
         // return if index opts don't contain --applyIndexDef option or --read-write is not present
         if (!indexOpts.isApplyIndexDef() || !opts.getCommonOpts().isReadWrite()) {
             log.info("Index def not applied to repo. Run index command with --applyIndexDef and --read-write without the --reindex " +
