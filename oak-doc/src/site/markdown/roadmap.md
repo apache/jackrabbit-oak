@@ -21,7 +21,7 @@ Roadmap
 Release Model
 -------------
 Following the release of Oak 1.10 we have started to make (even-numbered) stable
-releases directly from [trunk](https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/):
+releases directly from [trunk](https://github.com/apache/jackrabbit-oak/tree/trunk/):
 
 * [download](https://jackrabbit.apache.org/jcr/downloads.html#latest)
 
