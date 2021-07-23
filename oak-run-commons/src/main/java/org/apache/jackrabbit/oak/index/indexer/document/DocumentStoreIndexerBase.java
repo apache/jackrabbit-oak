@@ -82,7 +82,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
     private static class MongoNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
 
+        /**
+         * This counter is part of this traverser's id and is helpful in identifying logs from different traversers that
+         * run concurrently.
+         */
         private static final AtomicInteger traverserInstanceCounter = new AtomicInteger(0);
+        /**
+         * An prefix for ID of traversers (value is acronym for NodeStateEntryTraverser).
+         */
+        private static final String TRAVERSER_ID_PREFIX = "NSET";
         private final RevisionVector rootRevision;
         private final DocumentNodeStore documentNodeStore;
         private final MongoDocumentStore documentStore;
@@ -105,7 +113,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         public NodeStateEntryTraverser create(LastModifiedRange lastModifiedRange) {
             IndexingProgressReporter progressReporterPerTask =
                     new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
-            String entryTraverserID = "NSET" + traverserInstanceCounter.incrementAndGet();
+            String entryTraverserID = TRAVERSER_ID_PREFIX + traverserInstanceCounter.incrementAndGet();
             //As first traversal is for dumping change the message prefix
             progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
             NodeStateEntryTraverser nsep =

@@ -125,7 +125,7 @@ public class DefaultMemoryManager implements MemoryManager {
     @Override
     public Optional<String> registerClient(MemoryManagerClient client) {
         if (type != Type.JMX_BASED) {
-            throw new UnsupportedOperationException("Not a self managed memory manager");
+            throw new UnsupportedOperationException("Not a JMX based memory manager");
         }
         if (!sufficientMemory.get()) {
             log.info("Can't register new client now. Not enough memory.");
@@ -146,12 +146,19 @@ public class DefaultMemoryManager implements MemoryManager {
     }
 
     @Override
-    public void deregisterClient(String registrationID) {
+    public boolean deregisterClient(String registrationID) {
+        if (type != Type.JMX_BASED) {
+            throw new UnsupportedOperationException("Not a JMX based memory manager");
+        }
+        boolean removed;
         if (clients.remove(registrationID) != null) {
             log.debug("Client with registration_id={} deregistered", registrationID);
+            removed = true;
         } else {
             log.warn("No client found with registration_id={}", registrationID);
+            removed = false;
         }
+        return removed;
     }
 
     private String generateRegistrationID() {

@@ -51,6 +51,11 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.Multithr
  * based on the downloaded data.
  */
 class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
+
+    /**
+     * An prefix for ID of this task (value is acronym for TraverseAndSortTask).
+     */
+    private static final String ID_PREFIX = "TAST-";
     private final Logger log = LoggerFactory.getLogger(getClass());
     /**
      * Iterable over the nodeStates this task is supposed to traverse. Note that the iteration could stop without traversing
@@ -102,7 +107,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                 MemoryManager memoryManager) throws IOException {
-        this.taskID = "TWS-" + nodeStates.getId();
+        this.taskID = ID_PREFIX + nodeStates.getId();
         this.nodeStates = nodeStates;
         this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedFrom();
         this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedTo();

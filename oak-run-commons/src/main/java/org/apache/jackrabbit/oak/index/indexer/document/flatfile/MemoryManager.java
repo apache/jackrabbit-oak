@@ -45,21 +45,23 @@ public interface MemoryManager {
     /**
      * Register a client with this memory manager. All registered clients are informed when available memory level is low.
      * If memory level is already low, client is not registered.
-     * NOTE - this method should only be used with {@link Type#JMX_BASED} instance types, otherwise the behaviour is undefined.
+     * NOTE - this method should only be used with {@link Type#JMX_BASED} instance types, otherwise it throws {@link UnsupportedOperationException}
      * @param client client to register
      * @return an optional containing registration id if registration was successful, empty optional otherwise
      */
     Optional<String> registerClient(MemoryManagerClient client);
 
     /**
-     * De
-     * @param registrationID
+     * Deregister a client with the given registrationID.
+     * NOTE - this method should only be used with {@link Type#JMX_BASED} instance types, otherwise it throws {@link UnsupportedOperationException}
+     * @param registrationID registration id of client to deregister
+     * @return true if deregistration was successful, false otherwise.
      */
-    void deregisterClient(String registrationID);
+    boolean deregisterClient(String registrationID);
 
     /**
      * Checks if available memory is low.
-     * NOTE - this method should only be used with {@link Type#SELF_MANAGED} instance types, otherwise the behaviour is undefined.
+     * NOTE - this method should only be used with {@link Type#SELF_MANAGED} instance types, otherwise it throws {@link UnsupportedOperationException}
      * @return true if available memory is low, false otherwise.
      */
     boolean isMemoryLow();
@@ -67,7 +69,7 @@ public interface MemoryManager {
     /**
      * Adds the provided memory value to existing memory usage. Callers of this method could also provide negative values
      * to indicate reduction in memory usage.
-     * NOTE - this method should only be used with {@link Type#SELF_MANAGED} instance types, otherwise the behaviour is undefined.
+     * NOTE - this method should only be used with {@link Type#SELF_MANAGED} instance types, otherwise it throws {@link UnsupportedOperationException}
      */
     void changeMemoryUsedBy(long memory);
 

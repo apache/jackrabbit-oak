@@ -60,6 +60,57 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  * multiple threads (number of threads is configurable via java system property <code>dataDumpThreadPoolSize</code>).
  * The traverse/download and sort tasks are submitted to an executor service. Each of those tasks create some sorted files which
  * are then merged (sorted) into one.
+ *
+ * <h3>Download task creation/splitting and result collection explanation -</h3>
+ *
+ * NEW_TASK_QUEUE=MultithreadedTraverseWithSortStrategy#taskQueue
+ * FINISHED_QUEUE=TraverseAndSortTask#completedTasks
+ * <ol>
+ *     <li>Have a BlockingQueue of tasks (NEW_TASK_QUEUE) that need to be executed. Each of this task has been assigned a _modified range.</li>
+ *     <li>Main thread (MultithreadedTraverseWithSortStrategy) adds an initial breakup of tasks (of type TraverseAndSortTask) to this queue.</li>
+ *     <li>Another monitoring thread (MultithreadedTraverseWithSortStrategy#TaskRunner) is consuming from this NEW_TASK_QUEUE and submitting those
+ *     tasks to executor service.</li>
+ *     <li>The executor service is a fixed thread pool executor so that number of threads remains unchanged overtime.</li>
+ *     <li>There is another queue for tasks that have finished execution - FINISHED_QUEUE. Each task adds itself or its ID to this queue when it
+ *     finishes execution. This is ConcurrentLinkedQueue because running tasks monitor this queue for finished tasks but don't need to block if no
+ *     finished task is there.
+ *     </li>
+ *     <li>Every running task monitors FINISHED_QUEUE as part of its execution cycle. If a running task has potential of splitting - identified by
+ *     what range of _modified values is left to be examined and downloaded - and if there is a task in the FINISHED_QUEUE, the running task tries
+ *     to dequeue the finished task.
+ *     </li>
+ *     <li>Only one of the running tasks would be able to dequeue a finished task. The running task which succeeds will reduce its upper limit of
+ *     _modified range and submit a new task with the _modified range after that (till its original upper limit).
+ *     </li>
+ *     <li>The monitoring thread is reading from NEW_TASK_QUEUE (blocking queue), so it needs an indication about when to stop looking for new tasks
+ *     from this queue. This is done by putting a poison pill entry in this queue. The main thread does it as explained below.
+ *     </li>
+ *     <li>
+ *         We use a phaser for coordination between main thread, the running tasks and the monitoring thread. This phaser has two phases -
+ *         <ol>
+ *             <li>Waiting for new tasks (from task splits)</li>
+ *             <li>Waiting for result collection</li>
+ *         </ol>
+ *     </li>
+ *     <li>
+ *         Each task registers itself (in phase 1 of phaser) inside its constructor itself. This ensures there is no created task which is not registered
+ *         to a phaser. Also when the task finishes (either normally or due to exception), it arrives and deregisters (since it is not needed in phase 2 of phaser).
+ *     </li>
+ *     <li>
+ *         Main thread after adding initial tasks to NEW_TASK_QUEUE, starts waiting for phase 1 to advance. Phase 1 would advance only if all the registered
+ *         (and hence created) tasks have arrived. When all tasks arrive, it means we won't have any more new tasks from task splitting.
+ *     </li>
+ *     <li>
+ *         So, once phase 1 advances, main thread adds the poison pill to NEW_TASK_QUEUE, reading which the monitoring thread advances to result collection.
+ *         Before starting result collection, it registers itself to phaser (now in phase 2).
+ *     </li>
+ *     <li>
+ *         Main thread after adding poison pill, starts waiting for phase 2 to advance. This advance happens when monitoring thread aggregates results from
+ *         all tasks and adds it to data structure which main thread could access.
+ *     </li>
+ *     <li>After the advance of phase 2, the main thread returns the result - the list of sorted files which are then merged by the next step of indexing process.</li>
+ * </ol>
+ *
  */
 public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
