@@ -50,7 +50,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     private final AuthorizableType authorizableType;
 
-    UserValidator(Tree parentBefore, Tree parentAfter, UserValidatorProvider provider) {
+    UserValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter, @NotNull UserValidatorProvider provider) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
         this.provider = provider;
@@ -152,9 +152,9 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     //------------------------------------------------------------< private >---
 
-    private static Validator newValidator(Tree parentBefore,
-                                          Tree parentAfter,
-                                          UserValidatorProvider provider) {
+    private static Validator newValidator(@Nullable Tree parentBefore,
+                                          @Nullable Tree parentAfter,
+                                          @NotNull UserValidatorProvider provider) {
         return new VisibleValidator(
                 new UserValidator(parentBefore, parentAfter, provider),
                 true,

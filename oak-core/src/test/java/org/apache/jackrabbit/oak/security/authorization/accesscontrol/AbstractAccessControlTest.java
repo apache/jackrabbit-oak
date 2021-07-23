@@ -16,36 +16,37 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
@@ -54,7 +55,6 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
     private PrivilegeManager privilegeManager;
     PrincipalManager principalManager;
 
-    ACL acl;
     Principal testPrincipal;
     Privilege[] testPrivileges;
 
@@ -71,8 +71,6 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
         privilegeManager = getPrivilegeManager(root);
         principalManager = getPrincipalManager(root);
-
-        acl = createEmptyACL();
     }
 
     @Override
@@ -100,22 +98,14 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    List<ACE> createTestEntries() throws RepositoryException {
-        List<ACE> entries = new ArrayList<>(3);
-        for (int i = 0; i < 3; i++) {
-            entries.add(createEntry(new PrincipalImpl("testPrincipal" + i), true, null, PrivilegeConstants.JCR_READ));
-        }
-        return entries;
-    }
-
-    @NotNull
     ACE createEntry(@NotNull Principal principal, boolean isAllow, @Nullable Set<Restriction> restrictions, @NotNull String... privilegeNames) throws RepositoryException {
-        return createEntry(principal, privilegesFromNames(privilegeNames), isAllow, restrictions);
+        return createEntry(principal, privilegesFromNames(privilegeNames), isAllow, (restrictions==null) ? Collections.emptySet() : restrictions);
     }
-
+    
     @NotNull
-    ACE createEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow) throws RepositoryException {
-        return createEntry(principal, privileges, isAllow, null);
+    ACE createEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @NotNull Set<Restriction> restrictions) throws RepositoryException {
+        ACL acl = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
+        return acl.createACE(principal, getBitsProvider().getBits(privileges, getNamePathMapper()), isAllow, restrictions);
     }
 
     @NotNull
@@ -129,25 +119,6 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
         }
 
         throw new UnsupportedOperationException();
-    }
-
-    @NotNull
-    private ACE createEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Set<Restriction> restrictions)
-            throws RepositoryException {
-        ACL acl = createEmptyACL();
-        return acl.createACE(principal, getBitsProvider().getBits(privileges, getNamePathMapper()), isAllow, restrictions);
-    }
-
-    @NotNull
-    ACL createEmptyACL() {
-        return createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
-    }
-
-    @NotNull
-    ACL createACL(@Nullable String jcrPath,
-                  @NotNull List<ACE> entries,
-                  @NotNull NamePathMapper namePathMapper) {
-        return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
     }
 
     @NotNull
@@ -180,8 +151,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
             @Override
             boolean checkValidPrincipal(@Nullable Principal principal) throws AccessControlException {
-                Util.checkValidPrincipal(principal, principalManager);
-                return true;
+                return Util.checkValidPrincipal(principal, principalManager, Util.getImportBehavior(getConfig(AuthorizationConfiguration.class)));
             }
 
             @Override
@@ -196,5 +166,10 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
                 return new PrivilegeBitsProvider(root).getBits(privileges, getNamePathMapper());
             }
         };
+    }
+    
+    static void assertPolicies(@Nullable AccessControlPolicy[] policies, long expectedSize) {
+        assertNotNull(policies);
+        assertEquals(expectedSize, policies.length);
     }
 }

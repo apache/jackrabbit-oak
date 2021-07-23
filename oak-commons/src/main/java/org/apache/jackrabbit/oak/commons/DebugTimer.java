@@ -61,6 +61,10 @@ public class DebugTimer {
         }
         return b.append(')').toString();
     }
+    
+    public String toString() {
+        return getString();
+    }
 
     private static final class TimeStamp {
 

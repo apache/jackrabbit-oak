@@ -43,7 +43,6 @@ import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PASS
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PWD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -121,7 +120,7 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
     public void testAuthenticatePasswordExpiredNewUser() throws Exception {
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // during user creation pw last modified is set, thus it shouldn't expire
-        a.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
+        assertTrue(a.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
     @Test

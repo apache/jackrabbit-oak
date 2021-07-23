@@ -222,14 +222,14 @@ public class UserContextTest implements UserConstants {
                 NT_REP_MEMBER_REFERENCES, ImmutableList.of(REP_MEMBERS)
         );
 
-        for (String ntName : m.keySet()) {
-            Tree t = mockTree("anyName", ntName);
+        m.forEach((key, value) -> {
+            Tree t = mockTree("anyName", key);
 
             TreeLocation location = Mockito.mock(TreeLocation.class);
             when(location.getTree()).thenReturn(t);
             when(location.exists()).thenReturn(true);
 
-            for (String propName : m.get(ntName)) {
+            for (String propName : value) {
                 PropertyState property = PropertyStates.createProperty(propName, "value");
                 when(location.getProperty()).thenReturn(property);
 
@@ -239,7 +239,7 @@ public class UserContextTest implements UserConstants {
             PropertyState property = PropertyStates.createProperty("anyName", "value");
             when(location.getProperty()).thenReturn(property);
             assertFalse(ctx.definesLocation(location));
-        }
+        });
     }
 
     @Test

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -60,11 +61,13 @@ public class SystemRelativePathTest extends AbstractSecurityTest {
 
     @Test
     public void testRelPath() throws RepositoryException {
-        getUserManager(root).createSystemUser("testRelPath", REL_PATH);
+        User u = getUserManager(root).createSystemUser("testRelPath", REL_PATH);
+        assertTrue(u.getPath().contains("/"+REL_PATH+"/"));
     }
 
     @Test
     public void testBelowRelPath() throws RepositoryException {
-        getUserManager(root).createSystemUser("testBelowRelPath", REL_PATH+"/subtree");
+        User u = getUserManager(root).createSystemUser("testBelowRelPath", REL_PATH+"/subtree");
+        assertTrue(u.getPath().contains("/"+REL_PATH+"/subtree/"));
     }
 }

@@ -112,7 +112,7 @@ contains the following changes compared to Jackrabbit 2.x:
 <!-- references -->
 
 [TokenLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/token/TokenLoginModule.html
-[TokenCredentials]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authentication/token/TokenCredentials.java
-[GuestLoginModule]:/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
+[TokenCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authentication/token/TokenCredentials.html
+[GuestLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
 [JSR_333-27]: https://java.net/jira/browse/JSR_333-27
 [ImpersonationCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/ImpersonationCredentials.html

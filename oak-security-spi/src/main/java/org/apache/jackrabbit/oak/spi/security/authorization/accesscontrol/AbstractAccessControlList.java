@@ -27,7 +27,6 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -105,12 +104,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @Override
     public String[] getRestrictionNames() {
         Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(getOakPath());
-        return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
-            @Override
-            public String apply(RestrictionDefinition definition) {
-                return namePathMapper.getJcrName(definition.getName());
-            }
-        }).toArray(new String[supported.size()]);
+        return Collections2.transform(supported, definition -> namePathMapper.getJcrName(definition.getName())).toArray(new String[supported.size()]);
 
     }
 
@@ -138,12 +132,12 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
         // not a supported restriction => return false.
         return false;
     }
-
-
+    
     @Override
     public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, Collections.<String, Value>emptyMap());
     }
+    
     @Override
     public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, restrictions, null);

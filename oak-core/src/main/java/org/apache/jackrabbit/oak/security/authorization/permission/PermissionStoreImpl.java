@@ -132,9 +132,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
         ret.setFullyLoaded(true);
         long t = System.nanoTime()-t0;
         monitor.permissionAllLoaded(t);
-        if (log.isDebugEnabled()) {
-            log.debug(String.format("loaded %d entries in %.2fus for %s.%n", ret.getSize(), t / 1000.0, principalName));
-        }
+        log.debug("loaded {} entries in {}us for {}.", ret.getSize(), t / 1000.0, principalName);
         return ret;
     }
 

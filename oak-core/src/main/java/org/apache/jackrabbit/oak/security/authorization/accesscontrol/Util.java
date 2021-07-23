@@ -51,16 +51,11 @@ final class Util implements AccessControlConstants {
         }
         return principal;
     }
-    
-    static void checkValidPrincipal(@Nullable Principal principal,
-                                    @NotNull PrincipalManager principalManager) throws AccessControlException {
-        checkValidPrincipal(checkValidPrincipal(principal), principalManager, ImportBehavior.ABORT);
-    }
 
     static boolean checkValidPrincipal(@NotNull Principal principal,
                                        @NotNull PrincipalManager principalManager,
                                        int importBehavior) throws AccessControlException {
-        String name = principal.getName();
+        String name = checkValidPrincipal(principal).getName();
         if (importBehavior == ImportBehavior.BESTEFFORT) {
             return true;
         } else {
@@ -78,14 +73,20 @@ final class Util implements AccessControlConstants {
         }
     }
 
-    static void checkValidPrincipals(@Nullable Set<Principal> principals,
-                                     @NotNull PrincipalManager principalManager) throws AccessControlException {
+    static boolean checkValidPrincipals(@Nullable Set<Principal> principals,
+                                        @NotNull PrincipalManager principalManager,
+                                        int importBehavior) throws AccessControlException {
         if (principals == null) {
             throw new AccessControlException("Valid principals expected. Found null.");
         }
+        boolean isValid = false;
         for (Principal principal : principals) {
-            checkValidPrincipal(principal, principalManager);
+            if (principal == null) {
+                throw new AccessControlException("Valid principal expected. Found null.");
+            }
+            isValid = checkValidPrincipal(principal, principalManager, importBehavior);
         }
+        return isValid;
     }
 
     static boolean isValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) {

@@ -114,7 +114,7 @@ public class PasswordExpiryAdminTest extends AbstractSecurityTest {
     public void testAuthenticatePasswordExpiredNewUser() throws Exception {
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // during user creation pw last modified is set, thus it shouldn't expire
-        a.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
+        assertTrue(a.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
     @Test

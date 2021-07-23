@@ -24,12 +24,14 @@ import java.util.Map;
 
 import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME;
 import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS;
+import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_ENABLED_PROTOCOLS;
 import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_SEARCH_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME;
 import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class LdapProviderConfigTest {
@@ -313,5 +315,20 @@ public class LdapProviderConfigTest {
     public void testInvalidSearchTimeout() {
         LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(LdapProviderConfig.PARAM_SEARCH_TIMEOUT, "invalid"));
         assertEquals(ConfigurationParameters.Milliseconds.of(PARAM_SEARCH_TIMEOUT_DEFAULT).value, config.getSearchTimeout());
+    }
+    
+    @Test
+    public void testEnabledProtocols() {
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of());
+        assertNull(config.enabledProtocols());
+        
+        config.setEnabledProtocols("TLSv1.3", "TLSv1.2");
+        assertArrayEquals(new String[] {"TLSv1.3", "TLSv1.2"}, config.enabledProtocols());
+
+        config = LdapProviderConfig.of(ConfigurationParameters.of(PARAM_ENABLED_PROTOCOLS, "TLSv1.3"));
+        assertArrayEquals(new String[] {"TLSv1.3"}, config.enabledProtocols());
+        
+        config = LdapProviderConfig.of(ConfigurationParameters.of(PARAM_ENABLED_PROTOCOLS, new String[] {"TLSv1.3", "TLSv1.2"}));
+        assertArrayEquals(new String[] {"TLSv1.3", "TLSv1.2"}, config.enabledProtocols());
     }
 }

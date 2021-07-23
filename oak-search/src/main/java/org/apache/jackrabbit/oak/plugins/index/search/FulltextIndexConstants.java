@@ -161,6 +161,14 @@ public interface FulltextIndexConstants {
     String PROP_VALUE_REGEX = "valueRegex";
 
     /**
+     * The property name to specify a regular expression for query text. If this property is present in an index definition,
+     * then those queries whose search text doesn't match this pattern but are still using the index will log a warning.
+     * If this property is not specified, but {@link #PROP_VALUE_REGEX} is specified, that property is also used for the use
+     * case specified here.
+     */
+    String PROP_QUERY_FILTER_REGEX = "queryFilterRegex";
+
+    /**
      * Experimental config to restrict which property type gets indexed at
      * property definition level. Mostly index rule level #INCLUDE_PROPERTY_TYPES
      * should be sufficient

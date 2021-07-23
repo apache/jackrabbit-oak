@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.38.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.40.0
 
 Introduction
 ------------
@@ -7,67 +7,116 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.38.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.40.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.38.0 compiles and tests successfully on Java 15, Javadocs
+While Oak 1.40.0 compiles and tests successfully on Java 15, Javadocs
 generation fails on Java 15 (but works as expected on Java 8).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.38.0
+Changes in Oak 1.40.0
 ---------------------
 
 Bug
 
-    [OAK-9037] - bundle:manifest fails on Java 15
-    [OAK-9265] - Oak-run tool recovery function scans for previous documents too
-    [OAK-9275] - restore test coverage of oak-auth-ldap
-    [OAK-9277] - UserProvider: misleading exception message if 'systemRelativePath' is not default
-    [OAK-9281] - NRT Index - duplicate results with similarity search
-    [OAK-9284] - LdapIdentityProvider.listGroups logs misleading warning
-    [OAK-9285] - LdapProviderConfig#getUseUidForExtId has invalid notnull annotation
-    [OAK-9298] - Date Range queries not working in elastic search index
-    [OAK-9304] - Filename with special characters in direct download URI Content-Disposition are causing HTTP 400 errors from Azure
-    [OAK-9306] - Faceting: IllegalArgumentException: dimension ... was not indexed
-    [OAK-9313] - Test failure: LoginModuleMonitorTest
-    [OAK-9314] - Broken javadoc link with ExternalGroupPrincipalProvider#findPrincipals
-    [OAK-9324] - oak-auth-ldap (UseUidForExtIdTest) tests fail (likely specific to Windows)
+    [OAK-8582] - Failing test in MongoDB 4.2.0: BasicDocumentStoreTest.testLongId
+    [OAK-9158] - Performance issue due to AbstractDocumentNodeState#equals
+    [OAK-9300] - DocumentNodeStore should refuse checkpoint calls after disposal
+    [OAK-9338] - RemotePersistentCacheService throws if both redis and disk cache are disabled
+    [OAK-9344] - JcrLastModifiedConflictHandler prone to NPE
+    [OAK-9346] - oak-search: rectify Elastic failing common tests
+    [OAK-9358] - DocumentNodeStore may accumulate split candidates
+    [OAK-9373] - LucenePropertyIndex#createLikeQuery() ingnores escaping
+    [OAK-9375] - Remote elastic index deletion job incorrectly deletes indices
+    [OAK-9377] - AbstractLoginModule.getUserManager should use computed SecurityProvider
+    [OAK-9384] - AzureBlobStoreBackend may return incorrect download URI
+    [OAK-9394] - VisibleChangesTest uses internal JDK class
+    [OAK-9397] - AbstractJcrTest does not shut down Repository
+    [OAK-9401] - Breaking recovery lock issue
+    [OAK-9408] - OakStreamingIndexFile negative file length
+    [OAK-9413] - Improve PrivilegeBitsProvider
+    [OAK-9417] - ClassCastException in ConsolidatedListenerMBeanImpl
+    [OAK-9424] - AccessControlManagerImpl ignores importBehavior when retrieving policies by principal(s)
+    [OAK-9428] - Travis build fails to pull azurite intermittently
+    [OAK-9429] - oak-search-elastic: use dynamic boost in must query
+    [OAK-9442] - LDAPIdentityProvider: avoid usage of week SSL/TLS protocol
 
+Epic
+
+    [OAK-9364] - metrics for oak security
+
+New Feature
+
+    [OAK-9339] - Image Similarity: LSH based search
+    [OAK-9415] - Allow access to all principals bound to the current session
+
+Story
+
+    [OAK-9365] - Add additional metrics to LoginModuleMonitor
+    [OAK-9366] - Monitoring for user management implementation
+    [OAK-9367] - Monitoring for default authorization module
+    [OAK-9368] - Monitoring for external authentication
 
 Improvement
 
-    [OAK-9149] - Use batch calls in backgroundSplit
-    [OAK-9187] - LockOperation always calls SessionDelegate.refresh before executing operations
-    [OAK-9246] - Avoid hardcoding stats classes in SecurityProviderRegistration
-    [OAK-9261] - Upgrade Apache Solr to 8.6.3 and remove Embedded Solr Server
-    [OAK-9279] - Add PermissionValidator#checkIsGranted
-    [OAK-9280] - Missing assertions/verification with tests
-    [OAK-9282] - SecurityProviderRegistration: missing test for concurrent activation
-    [OAK-9288] - Simplify LdapIdentityProvider
-    [OAK-9290] - Respect nt:frozenNode definition on upgrade and migration
-    [OAK-9291] - Refactor check for referenceable nt:frozenNode definition
-    [OAK-9293] - SegmentStoreMigrator appendMode should recopy the last archive
-    [OAK-9301] - Automatically pick a merged index
-    [OAK-9303] - AbstractPersistentCache#readSegment should propagate exception RepositoryNotReachableException
-    [OAK-9311] - oak-search-elastic: use low-level client for critical operations
-    [OAK-9316] - Reduce complexity in ExternalGroupPrincipalProvider
-    [OAK-9322] - Add reference node id to integrity exception message
-    [OAK-9326] - Provide option to remove target version history from VersionCopier.copyVersionStorage
-    [OAK-9333] - Javadoc for PrincipalProvider.getPrincipalProvider is outdated
+    [OAK-6911] - Provide a way to tune inline size while storing binaries
+    [OAK-9305] - Create checkpoint with given revision
+    [OAK-9325] - Tool to compare and manually merge index definitions
+    [OAK-9335] - AuthorizableAction doesn't allow to monitor and respond to system user creation
+    [OAK-9336] - Add nullable/notnull annotations to AuthorizableAction(s)
+    [OAK-9342] - JournalDiffLoader should ignore linked invalidation entries
+    [OAK-9343] - Missing NotNull annotations with implementations of ThreeWayConflictHandler
+    [OAK-9350] - Index update: release the correct checkpoint
+    [OAK-9352] - move SystemPropertySupplier from document to commons
+    [OAK-9356] - DocumentNodeStore: in dispose(), improve lease update diagnostics
+    [OAK-9357] - Update to MongoDB Java driver 3.12
+    [OAK-9359] - Use SystemPropertySupplier to ease backport
+    [OAK-9369] - UserImporter should obtain UserManager from configuration
+    [OAK-9370] - Deprecate LoginModuleStats
+    [OAK-9371] - SegmentStoreMigrator ability to not copy the journal
+    [OAK-9379] - Disable ElasticIndexProviderService via a system property
+    [OAK-9382] - Add binariesInlineThreshold to FileStoreBuilder.toString()
+    [OAK-9383] - Add nullability annotations with GroupAction and implementations
+    [OAK-9390] - Log the repositoryIds during DSGC and on datastore init
+    [OAK-9392] - Improve resilience when primary becomes unavailable
+    [OAK-9400] - oak-search-elastic: avoid to index non-trimmed values in full-text fields
+    [OAK-9403] - Missing nullability annotations with jackrabbit.oak.spi.xml
+    [OAK-9404] - Missing nullability annotations in org.apache.jackrabbit.oak.plugins.tree
+    [OAK-9405] - Reduce complexity of TreeUtil
+    [OAK-9406] - Minor improvements to oak-auth-external
+    [OAK-9407] - Reduce complexity in ExternalLoginModule
+    [OAK-9409] - Improve Readability of ConfigurationParameters
+    [OAK-9410] - Missing tests in security-spi
+    [OAK-9411] - Missing nullability annotations in RestrictionProvider (and implementations)
+    [OAK-9414] - Missing nullability annotations in package org.apache.jackrabbit.oak.security.authorization.accesscontrol
+    [OAK-9420] - slightly misleading debug message in JournalEntry
+    [OAK-9426] - Drop usage of log.isDebugEnabled
+    [OAK-9430] - ExternalIdentityMonitorImplTest incomplete tests for number of retries
+    [OAK-9431] - Improvements to o.a.j.o.security.user package
+    [OAK-9432] - oak-run checkpoints command should use invisible clusterId
+    [OAK-9433] - TokenAuthentication.authenticate: throw specific exception for expired credentials
+    [OAK-9435] - Speed up oak-run datastore --dump-ref
+    [OAK-9438] - Add tests for LdapIdentityProvider with useSSL configuration option set
+    [OAK-9439] - improvements to tests in oak-auth-ldap
+    [OAK-9441] - Duplicate code wrt everyone handling in PrincipalProvider implementations
+    [OAK-9444] - Duplications in LdapIdentityProvider
 
 Task
 
-    [OAK-9276] - oak-search-elastic: make shards/replicas configurable
-    [OAK-9287] - Upgrade to Elasticsearch 7.10.0
-    [OAK-9302] - oak-search-elastic: make fetch query parameters configurable
-    [OAK-9308] - Upgrade to Elasticsearch 7.10.1
-    [OAK-9312] - Modify oak-run to support creating indexes of type Elasticsearch
-    [OAK-9329] - upgrade to mockito-core 3.7.7
+    [OAK-9372] - Upgrade to Elasticsearch 7.10.2
+    [OAK-9378] - Refactor Oak-run-elastic to make it not depend on oak-run
+    [OAK-9395] - Make MongoDockerRule.isDockerAvailable() static
+    [OAK-9396] - Promote SimpleRecoveryHandler test utility to top level class
+    [OAK-9419] - Lower the minimum cost for elastic index
 
+Documentation
+
+    [OAK-9332] - Document best practices and anti-patterns in repository tree traversal
+    [OAK-9425] - Improve javadoc and doc of ClearMembershipAction
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.

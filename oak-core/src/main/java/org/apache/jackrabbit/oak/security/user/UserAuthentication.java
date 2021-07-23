@@ -181,7 +181,7 @@ class UserAuthentication implements Authentication, UserConstants {
         return user;
     }
 
-    private static void checkSuccess(boolean success, String msg) throws LoginException {
+    private static void checkSuccess(boolean success, @NotNull String msg) throws LoginException {
         if (!success) {
             throw new FailedLoginException(msg);
         }
@@ -192,7 +192,7 @@ class UserAuthentication implements Authentication, UserConstants {
         return (base instanceof SimpleCredentials) && userId.equals(((SimpleCredentials) base).getUserID());
     }
 
-    private boolean changePassword(User user, SimpleCredentials credentials) {
+    private boolean changePassword(@NotNull User user, @NotNull SimpleCredentials credentials) {
         try {
             Object newPasswordObject = credentials.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD);
             if (newPasswordObject != null) {
@@ -221,7 +221,7 @@ class UserAuthentication implements Authentication, UserConstants {
         }
     }
 
-    private boolean impersonate(AuthInfo info, User user) {
+    private static boolean impersonate(@NotNull AuthInfo info, @NotNull User user) {
         try {
             if (user.getID().equals(info.getUserID())) {
                 log.debug("User {} wants to impersonate himself -> success.", info.getUserID());
@@ -238,7 +238,7 @@ class UserAuthentication implements Authentication, UserConstants {
     }
 
     @Nullable
-    private Long getPasswordLastModified(User user) throws RepositoryException {
+    private Long getPasswordLastModified(@NotNull User user) throws RepositoryException {
         Tree userTree;
         if (user instanceof UserImpl) {
             userTree = ((UserImpl) user).getTree();

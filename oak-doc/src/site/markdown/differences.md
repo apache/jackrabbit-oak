@@ -15,6 +15,8 @@
    limitations under the License.
   -->
 
+<!-- MACRO{toc} -->
+
 Backward compatibility
 ======================
 
@@ -316,6 +318,34 @@ Node Name Length Limit
 
 With the document storage backend (MongoDB, RDBMS), there is currently 
 a limit of 150 UTF-8 bytes on the length of the node names.
-See also OAK-2644.
+See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644).
+
+MongoDB Document Limit
+----------------------
+
+MongoDB has a document size limit of 16 MB. When using the document storage
+backend on MongoDB, adding a node with large String properties may fail because
+their combined size hits this limit. Consider storing large String values as
+Binary instead. Oak will put those values in the BlobStore, and the document
+only contains a much smaller reference to the Binary value.
+
+This limitation can also be hit when a node has many orderable child nodes
+because Oak internally stores the sequence of child node names in a hidden
+property. See also [do's and don'ts](dos_and_donts.html).
+
+Session Attributes
+------------------
+
+Oak exposes the following attributes via [`Session.getAttribute(...)`][1] and [`Session.getAttributeNames()`][2] in addition to the ones set through [Credentials][3]' attributes passed to [Repository.login(...)][4].
+
+Attribute Name | Attribute Value Type | Description
+--- | --- | ---
+`oak.refresh-interval` | `Long` | The session refresh interval in seconds.
+`oak.relaxed-locking` | `Boolean` | Whether relaxed locking behaviour is enabled for the session. See [OAK-1329](https://issues.apache.org/jira/browse/OAK-1329).
+`oak.bound-principals` | `Set<Principal>` | The principals associated with the JCR session. See [OAK-9415](https://issues.apache.org/jira/browse/OAK-9415)
 
 [0]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
+[1]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttribute(java.lang.String)
+[2]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttributeNames()
+[3]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Credentials.html
+[4]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)

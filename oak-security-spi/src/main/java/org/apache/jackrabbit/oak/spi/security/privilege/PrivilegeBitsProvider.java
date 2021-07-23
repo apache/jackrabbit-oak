@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -84,7 +85,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Returns the bits for the given privilege names.
+     * Returns the bits for the given privilege names. Note, that any invalid privilege names will be ignored.
      * 
      * @param privilegeNames the names
      * @return the privilege bits representing the given privilege names.
@@ -95,8 +96,40 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             return PrivilegeBits.EMPTY;
         }
 
-        Tree privilegesTree = null;
         PrivilegeBits bits = PrivilegeBits.getInstance();
+        collectBits(privilegeNames, bits);
+        return bits.unmodifiable();
+    }
+
+    /**
+     * Returns the bits for the given privilege names with the option to verify that all privilege names point to a valid,
+     * registered privilege.
+     * 
+     * @param privilegeNames An iterable of privilege names.
+     * @param validateNames If set to {@code true} this method will throw an AccessControlException if an invalid privilege 
+     * name is found (i.e. one that doesn't represent a registered privilege). If set to {@code false} invalid privilege 
+     * names will be ignored i.e. making this method equivalent to {@link #getBits(String...)}.
+     * @return the privilege bits representing the given privilege names.
+     * @throws AccessControlException If {@code validateNames} is {@code true} and the any of the specified privilege names is invalid.
+     */
+    @NotNull
+    public PrivilegeBits getBits(@NotNull Iterable<String> privilegeNames, boolean validateNames) throws AccessControlException {
+        if (!validateNames) {
+            return getBits(privilegeNames);
+        }
+        if (Iterables.isEmpty(privilegeNames)) {
+            return PrivilegeBits.EMPTY;
+        }
+        PrivilegeBits bits = PrivilegeBits.getInstance();
+        if (!collectBits(privilegeNames, bits)) {
+            throw new AccessControlException("Invalid privilege name contained in " + privilegeNames);
+        }
+        return bits.unmodifiable();
+    }
+    
+    private boolean collectBits(@NotNull Iterable<String> privilegeNames, @NotNull PrivilegeBits bits) {
+        Tree privilegesTree = null;
+        boolean allNamesValid = true;
         for (String privilegeName : privilegeNames) {
             PrivilegeBits builtIn = PrivilegeBits.BUILT_IN.get(privilegeName);
             if (builtIn != null) {
@@ -113,11 +146,12 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                     nameToBits.put(privilegeName, bitsFromDefTree);
                     bits.add(bitsFromDefTree);
                 } else {
-                    log.debug("Ignoring privilege name {}", privilegeName);
+                    log.debug("Invalid privilege name {}", privilegeName);
+                    allNamesValid = false;
                 }
             }
         }
-        return bits.unmodifiable();
+        return allNamesValid;
     }
 
     /**

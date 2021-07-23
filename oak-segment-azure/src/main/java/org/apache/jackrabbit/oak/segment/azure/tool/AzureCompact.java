@@ -19,29 +19,35 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createArchiveManager;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createCloudBlobDirectory;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Files;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobListingDetails;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.microsoft.azure.storage.blob.ListBlobItem;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.JournalReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -65,13 +71,19 @@ public class AzureCompact {
 
         private String path;
 
+        private String targetPath;
+
         private boolean force;
 
         private long gcLogInterval = 150000;
 
-        private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+        private int segmentCacheSize = 2048;
 
         private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
+
+        private String persistentCachePath;
+
+        private Integer persistentCacheSizeGb;
 
         private Builder() {
             // Prevent external instantiation.
@@ -86,6 +98,18 @@ public class AzureCompact {
          */
         public Builder withPath(String path) {
             this.path = checkNotNull(path);
+            return this;
+        }
+
+        /**
+         * The path (URI) to the target segment store.
+         *
+         * @param targetPath
+         *             the path to the target segment store.
+         * @return this builder
+         */
+        public Builder withTargetPath(String targetPath) {
+            this.targetPath = checkNotNull(targetPath);
             return this;
         }
 
@@ -145,6 +169,30 @@ public class AzureCompact {
         }
 
         /**
+         * The path where segments in the persistent cache will be stored.
+         *
+         * @param persistentCachePath
+         *             the path to the persistent cache.
+         * @return this builder
+         */
+        public Builder withPersistentCachePath(String persistentCachePath) {
+            this.persistentCachePath = checkNotNull(persistentCachePath);
+            return this;
+        }
+
+        /**
+         * The maximum size in GB of the persistent disk cache.
+         *
+         * @param persistentCacheSizeGb
+         *             the maximum size of the persistent cache.
+         * @return this builder
+         */
+        public Builder withPersistentCacheSizeGb(Integer persistentCacheSizeGb) {
+            this.persistentCacheSizeGb = checkNotNull(persistentCacheSizeGb);
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Compact} command.
          *
          * @return an instance of {@link Runnable}.
@@ -157,6 +205,8 @@ public class AzureCompact {
 
     private final String path;
 
+    private final String targetPath;
+
     private final int segmentCacheSize;
 
     private final boolean strictVersionCheck;
@@ -165,24 +215,37 @@ public class AzureCompact {
 
     private final CompactorType compactorType;
 
+    private String persistentCachePath;
+
+    private Integer persistentCacheSizeGb;
+
     private AzureCompact(Builder builder) {
         this.path = builder.path;
+        this.targetPath = builder.targetPath;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
         this.compactorType = builder.compactorType;
+        this.persistentCachePath = builder.persistentCachePath;
+        this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
     }
 
-    public int run() {
+    public int run() throws IOException, StorageException, URISyntaxException {
         Stopwatch watch = Stopwatch.createStarted();
-        SegmentNodeStorePersistence persistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path);
-        SegmentArchiveManager archiveManager = createArchiveManager(persistence);
+        SegmentNodeStorePersistence roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+        SegmentNodeStorePersistence rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
+
+        SegmentNodeStorePersistence splitPersistence = new SplitPersistence(roPersistence, rwPersistence);
+
+        SegmentArchiveManager roArchiveManager = createArchiveManager(roPersistence);
+        SegmentArchiveManager rwArchiveManager = createArchiveManager(rwPersistence);
 
         System.out.printf("Compacting %s\n", path);
+        System.out.printf(" to %s\n", targetPath);
         System.out.printf("    before\n");
         List<String> beforeArchives = Collections.emptyList();
         try {
-            beforeArchives = archiveManager.listArchives();
+            beforeArchives = roArchiveManager.listArchives();
         } catch (IOException e) {
             System.err.println(e);
         }
@@ -190,25 +253,14 @@ public class AzureCompact {
         printArchives(System.out, beforeArchives);
         System.out.printf("    -> compacting\n");
 
-        try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
+        try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
                 gcLogInterval, compactorType)) {
             if (!store.compactFull()) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }
-            System.out.printf("    -> cleaning up\n");
-            store.cleanup();
-            JournalFile journal = persistence.getJournalFile();
-            String head;
-            try (JournalReader journalReader = new JournalReader(journal)) {
-                head = String.format("%s root %s\n", journalReader.next().getRevision(), System.currentTimeMillis());
-            }
 
-            try (JournalFileWriter journalWriter = journal.openJournalWriter()) {
-                System.out.printf("    -> writing new %s: %s\n", journal.getName(), head);
-                journalWriter.truncate();
-                journalWriter.writeLine(head);
-            }
+            System.out.printf("    -> [skipping] cleaning up\n");
         } catch (Exception e) {
             watch.stop();
             e.printStackTrace(System.err);
@@ -220,13 +272,30 @@ public class AzureCompact {
         System.out.printf("    after\n");
         List<String> afterArchives = Collections.emptyList();
         try {
-            afterArchives = archiveManager.listArchives();
+            afterArchives = rwArchiveManager.listArchives();
         } catch (IOException e) {
             System.err.println(e);
         }
         printArchives(System.out, afterArchives);
         System.out.printf("Compaction succeeded in %s.\n", printableStopwatch(watch));
+
+        CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3));
+        CloudBlobContainer targetContainer = targetDirectory.getContainer();
+        printTargetRepoSizeInfo(targetContainer);
+
         return 0;
+    }
+
+    private long printTargetRepoSizeInfo(CloudBlobContainer container) {
+        System.out.printf("Calculating the size of container %s\n", container.getName());
+        long size = 0;
+        for (ListBlobItem i : container.listBlobs(null, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
+            if (i instanceof CloudBlob) {
+                size += ((CloudBlob) i).getProperties().getLength();
+            }
+        }
+        System.out.printf("The size is: %d MB \n", size / 1024 / 1024);
+        return size;
     }
 
     private static void printArchives(PrintStream s, List<String> archives) {

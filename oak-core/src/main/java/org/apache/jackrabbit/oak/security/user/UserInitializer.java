@@ -117,7 +117,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
                         new String[]{REP_AUTHORIZABLE_ID},
                         NT_REP_AUTHORIZABLE);
                 authorizableId.setProperty("info",
-                        "Oak index used by the user management " + 
+                        "Oak index used by user management " + 
                         "to enforce uniqueness of rep:authorizableId property values.");
             }
             if (!index.hasChild("principalName")) {
@@ -125,16 +125,15 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
                         new String[]{REP_PRINCIPAL_NAME},
                         NT_REP_AUTHORIZABLE);
                 principalName.setProperty("info",
-                        "Oak index used by the user management " +
-                        "to enforce uniqueness of rep:principalName property values, " +
-                        "and to quickly search a principal by name if it was constructed manually.");
+                        "Oak index used by user and principal management " +
+                        "to enforce uniqueness of rep:principalName property values and to search a principal by name.");
             }
             if (!index.hasChild("repMembers")) {
                 Tree members = IndexUtils.createIndexDefinition(index, "repMembers", false,
                         new String[]{REP_MEMBERS},
                         NT_REP_MEMBER_REFERENCES);
                 members.setProperty("info",
-                        "Oak index used by the user management to lookup group membership.");
+                        "Oak index used by user management to lookup group membership.");
             }
 
             ConfigurationParameters params = userConfiguration.getParameters();

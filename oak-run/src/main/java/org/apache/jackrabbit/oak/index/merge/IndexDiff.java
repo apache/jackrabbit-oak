@@ -250,6 +250,7 @@ public class IndexDiff {
     private static void mergeIndexesInDirectory(Path indexPath, JsonObject newIndex, JsonObject target) {
         indexFiles(indexPath).forEach(path -> {
             JsonObject indexDefinitions = IndexDiff.parseIndexDefinitions(path.toString());
+            simplify(indexDefinitions);
             mergeIndexes(indexDefinitions, indexPath.toString(), path.toString(), newIndex, target);
         });
     }

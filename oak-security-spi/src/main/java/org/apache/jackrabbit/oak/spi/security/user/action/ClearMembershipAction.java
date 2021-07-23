@@ -30,6 +30,9 @@ import org.jetbrains.annotations.NotNull;
  * the specified authorizable. If {@link Group#removeMember(Authorizable)}
  * fails due to lack of permissions {@link AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)}
  * throws an exception and removing the specified authorizable will be aborted.
+ * 
+ * NOTE: If the editing session doesn't have sufficient permission to read all group membership, the clean up might be 
+ * incomplete.
  */
 public class ClearMembershipAction extends AbstractAuthorizableAction {
 

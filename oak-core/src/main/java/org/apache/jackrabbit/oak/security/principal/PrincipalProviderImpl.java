@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.security.principal;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
@@ -147,15 +145,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
             Iterator<Principal> principals = Iterators.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()), Objects::nonNull);
-
-            // everyone is injected only in complete set, not on pages
-            boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
-            if (noRange && matchesEveryone(nameHint, searchType)) {
-                principals = Iterators.concat(principals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
-                return Iterators.filter(principals, new EveryonePredicate());
-            } else {
-                return principals;
-            }
+            return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
             return Collections.emptyIterator();
@@ -169,7 +159,8 @@ class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     //------------------------------------------------------------< private >---
-    private Authorizable getAuthorizable(Principal principal) {
+    @Nullable
+    private Authorizable getAuthorizable(@NotNull Principal principal) {
         try {
             return userManager.getAuthorizable(principal);
         } catch (RepositoryException e) {
@@ -178,7 +169,8 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
     }
 
-    private Set<Principal> getGroupMembership(Authorizable authorizable) {
+    @NotNull
+    private static Set<Principal> getGroupMembership(@NotNull Authorizable authorizable) {
         Set<Principal> groupPrincipals = new HashSet<>();
         try {
             Iterator<org.apache.jackrabbit.api.security.user.Group> groups = authorizable.memberOf();
@@ -195,6 +187,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return groupPrincipals;
     }
 
+    @NotNull
     private Iterator<Authorizable> findAuthorizables(@Nullable final String nameHint,
                                                      final int searchType, final long offset,
                                                      final long limit) throws RepositoryException {
@@ -210,7 +203,8 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return userManager.findAuthorizables(userQuery);
     }
 
-    private static String buildSearchPattern(String nameHint) {
+    @NotNull
+    private static String buildSearchPattern(@Nullable String nameHint) {
         if (nameHint == null) {
             return "%";
         } else {
@@ -222,12 +216,6 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
 
     }
-
-    private static boolean matchesEveryone(String nameHint, int searchType) {
-        return searchType != PrincipalManager.SEARCH_TYPE_NOT_GROUP &&
-                (nameHint == null || EveryonePrincipal.NAME.contains(nameHint));
-    }
-
     //--------------------------------------------------------------------------
     /**
      * Function to covert an authorizable tree to a principal.
@@ -243,29 +231,6 @@ class PrincipalProviderImpl implements PrincipalProvider {
                 }
             }
             return null;
-        }
-    }
-
-    /**
-     * Predicate to make sure the everyone principal is only included once in
-     * the result set.
-     */
-    private static final class EveryonePredicate implements Predicate<Principal> {
-        private boolean servedEveryone = false;
-        @Override
-        public boolean apply(Principal principal) {
-            // principal must never be null as the result was already filtered for null.
-            if (EveryonePrincipal.NAME.equals(principal.getName())) {
-                if (servedEveryone) {
-                    return false;
-                } else {
-                    servedEveryone = true;
-                    return true;
-                }
-            } else {
-                // not everyone
-                return true;
-            }
         }
     }
 }

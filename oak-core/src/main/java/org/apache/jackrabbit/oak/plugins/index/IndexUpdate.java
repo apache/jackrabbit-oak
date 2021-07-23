@@ -243,7 +243,18 @@ public class IndexUpdate implements Editor, PathSource {
         // See also OAK-7991.
         boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)
                 && !hasAnyHiddenNodes(definition);
-        if (result) {
+        // See OAK-9449
+        // In case of elasticsearch, indexed data is stored remotely and not under hidden nodes, so
+        // in case of OutOfBand indexing during content import, there is no hidden node created for elastic (not even :status)
+        // So, we log a warn and return false to avoid unnecessary reindexing. The warning is only if the someone added the new index node and forgot to add
+        // the reindex flag, in case OutOfBand Indexing has been performed, warning can be ignored.
+        // Also, in case the new elastic node has been added with reindex = true , this method would have already returned true
+        if (result && TYPE_ELASTICSEARCH.equals((type.getValue(Type.STRING)))) {
+            log.warn("Found a new elastic index node [{}]. Please set the reindex flag = true to initiate reindexing." +
+                            "Please ignore if OutOfBand Reindexing has already been performed.",
+                    name);
+            return false;
+        } else if (result) {
             log.info("Found a new index node [{}]. Reindexing is requested",
                     name);
         }

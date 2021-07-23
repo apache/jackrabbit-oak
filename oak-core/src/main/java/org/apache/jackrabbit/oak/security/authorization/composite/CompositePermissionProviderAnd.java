@@ -63,6 +63,24 @@ final class CompositePermissionProviderAnd extends CompositePermissionProvider {
         return new CompositeRepositoryPermission();
     }
 
+    @Override
+    boolean hasPrivileges(@Nullable Tree immutableTree, @NotNull PrivilegeBitsProvider bitsProvider, 
+                          @NotNull PrivilegeBits privilegeBits, @NotNull PrivilegeBits coveredPrivileges) {
+        boolean hasPrivileges = false;
+        for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, privilegeBits);
+            if (Util.doEvaluate(supported)) {
+                Set<String> supportedNames = bitsProvider.getPrivilegeNames(supported);
+                hasPrivileges = aggregatedPermissionProvider.hasPrivileges(immutableTree, supportedNames.toArray(new String[0]));
+                if (!hasPrivileges) {
+                    return false;
+                }
+                coveredPrivileges.add(supported);
+            }
+        }
+        return hasPrivileges;
+    }
+
     //-------------------------------------------------< PermissionProvider >---
 
     @NotNull
@@ -82,7 +100,7 @@ final class CompositePermissionProviderAnd extends CompositePermissionProvider {
                 if (!granted.isEmpty()) {
                     result.add(granted);
                 }
-                // update the set of denied privs by comparing the granted privs
+                // update the set of denied privileges by comparing the granted privileges
                 // with the complete set of supported privileges
                 denied.add(supported.diff(granted));
             }
@@ -93,35 +111,7 @@ final class CompositePermissionProviderAnd extends CompositePermissionProvider {
         }
         return bitsProvider.getPrivilegeNames(result);
     }
-
-    @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        Tree immutableTree = PermissionUtil.getReadOnlyTreeOrNull(tree, getImmutableRoot());
-        PrivilegeBitsProvider bitsProvider = getBitsProvider();
-
-        PrivilegeBits privilegeBits = bitsProvider.getBits(privilegeNames);
-        if (privilegeBits.isEmpty()) {
-            return true;
-        }
-
-        boolean hasPrivileges = false;
-        PrivilegeBits coveredPrivs = PrivilegeBits.getInstance();
-
-        for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
-            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, privilegeBits);
-            if (Util.doEvaluate(supported)) {
-                Set<String> supportedNames = bitsProvider.getPrivilegeNames(supported);
-                hasPrivileges = aggregatedPermissionProvider.hasPrivileges(immutableTree,
-                        supportedNames.toArray(new String[0]));
-                if (!hasPrivileges) {
-                    return false;
-                }
-                coveredPrivs.add(supported);
-            }
-        }
-        return hasPrivileges && coveredPrivs.includes(privilegeBits);
-    }
-
+    
     @Override
     public boolean isGranted(@NotNull Tree parent, @Nullable PropertyState property, long permissions) {
         Tree immParent = PermissionUtil.getReadOnlyTree(parent, getImmutableRoot());

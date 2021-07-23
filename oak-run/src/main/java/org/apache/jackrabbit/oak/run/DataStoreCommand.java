@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -63,6 +64,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
@@ -74,10 +76,12 @@ import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
+import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -370,7 +374,8 @@ public class DataStoreCommand implements Command {
                 List<String> roothPathInclusionRegex = dataStoreOpts.getVerboseInclusionRegex();
                 retriever = new NodeTraverserReferenceRetriever(fixture.getStore(),
                     rootPathList.toArray(new String[rootPathList.size()]),
-                    roothPathInclusionRegex.toArray(new String[roothPathInclusionRegex.size()]));
+                    roothPathInclusionRegex.toArray(new String[roothPathInclusionRegex.size()]),
+                    dataStoreOpts.isUseDirListing());
             } else {
                 ReadOnlyFileStore fileStore = getService(fixture.getWhiteboard(), ReadOnlyFileStore.class);
                 retriever = new SegmentBlobReferenceRetriever(fileStore);
@@ -428,15 +433,20 @@ public class DataStoreCommand implements Command {
         private final NodeStore nodeStore;
         private final String[] paths;
         private final String[] inclusionRegex;
+        private boolean useDirListing;
 
         public NodeTraverserReferenceRetriever(NodeStore nodeStore) {
-            this(nodeStore, null, null);
+            this(nodeStore, null, null, false);
         }
 
-        public NodeTraverserReferenceRetriever(NodeStore nodeStore, String[] paths, String[] inclusionRegex) {
+        public NodeTraverserReferenceRetriever(NodeStore nodeStore,
+                                               String[] paths,
+                                               String[] inclusionRegex,
+                                               boolean useDirListing) {
             this.nodeStore = nodeStore;
             this.paths = paths;
             this.inclusionRegex = inclusionRegex;
+            this.useDirListing = useDirListing;
         }
 
         private void binaryProperties(NodeState state, String path, ReferenceCollector collector) {
@@ -462,9 +472,34 @@ public class DataStoreCommand implements Command {
 
         private void traverseChildren(NodeState state, String path, ReferenceCollector collector) {
             binaryProperties(state, path, collector);
-            for (ChildNodeEntry c : state.getChildNodeEntries()) {
+            for (ChildNodeEntry c : getChildNodeEntries(state)) {
                 traverseChildren(c.getNodeState(), PathUtils.concat(path, c.getName()), collector);
             }
+        }
+
+        private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState state) {
+            if (useDirListing) {
+                PropertyState dirListing = state.getProperty(OakDirectory.PROP_DIR_LISTING);
+                if (dirListing != null && dirListing.isArray()) {
+                    return StreamSupport.stream(dirListing.getValue(Type.STRINGS).spliterator(), false)
+                            .map(name -> new AbstractChildNodeEntry() {
+                                @Override
+                                public @NotNull String getName() {
+                                    return name;
+                                }
+
+                                @Override
+                                public @NotNull NodeState getNodeState() {
+                                    return state.getChildNode(name);
+                                }
+                            })
+                            .filter(cne -> cne.getNodeState().exists())
+                            .collect(Collectors.toList());
+                }
+            }
+
+            // fallback to full traversal
+            return state.getChildNodeEntries();
         }
 
         @Override public void collectReferences(ReferenceCollector collector) throws IOException {

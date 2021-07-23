@@ -660,6 +660,24 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void multiValuesLike() throws Exception{
+        Tree idx = createIndex("test1", of("references"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("references", of("/some/content/AAA", "/some/content/BBB"), Type.STRINGS);
+        test.addChild("b").setProperty("references", of("/some/content/AAA", "/some/content/CCC"), Type.STRINGS);
+        root.commit();
+
+        String q = "SELECT * FROM [nt:unstructured] as content WHERE references LIKE '/some/content/efjoiefjowfgj/%'";
+        String explain = explain(q);
+        String luceneQuery = explain.substring(0, explain.indexOf('\n'));
+        assertEquals("[nt:unstructured] as [content] /* lucene:test1(/oak:index/test1) " +
+                        "references:/some/content/efjoiefjowfgj/*",
+                luceneQuery);
+    }
+
+    @Test
     public void redundantNotNullCheck() throws Exception{
         Tree idx = createIndex("test1", of("tags"));
         root.commit();

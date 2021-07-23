@@ -29,6 +29,7 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenCredentialsExpiredException;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.After;
@@ -156,7 +157,8 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
             fail("LoginException expected");
         } catch (LoginException e) {
             // success
-            verify(monitor).loginFailed(any(LoginException.class), any(Credentials.class));
+            assertTrue(e instanceof TokenCredentialsExpiredException);
+            verify(monitor).loginFailed(any(TokenCredentialsExpiredException.class), any(Credentials.class));
         }
 
         // expired token must have been removed
@@ -260,7 +262,8 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
             fail("LoginException expected");
         } catch (LoginException e) {
             // success
-            verify(monitor).loginFailed(e, tc);
+            assertTrue(e instanceof TokenCredentialsExpiredException);
+            verify(monitor).loginFailed((TokenCredentialsExpiredException) e, tc);
         }
 
         verify(ti, Mockito.never()).matches(any());

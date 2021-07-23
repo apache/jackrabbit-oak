@@ -47,6 +47,7 @@ import java.util.UUID;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -127,7 +128,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testChangePrimaryType() throws RepositoryException {
+    public void testChangePrimaryTypeUser() throws Exception {
         for (Authorizable a : authorizables) {
             try {
                 Tree node = getAuthorizableTree(a);
@@ -177,11 +178,11 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
 
     @Test
     public void testCreateCacheBelowPersistedProfile() throws Exception {
-        try {
-            Tree node = getAuthorizableTree(getTestUser());
-            Tree child = TreeUtil.addChild(node, "profile", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-            root.commit();
+        Tree node = getAuthorizableTree(getTestUser());
+        Tree child = TreeUtil.addChild(node, "profile", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        root.commit();
 
+        try {
             TreeUtil.addChild(child, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE).setProperty(CacheConstants.REP_EXPIRATION, 23L, Type.LONG);
             root.commit(CacheValidatorProvider.asCommitAttributes());
             fail("Creating rep:cache node below a user or group must fail.");
@@ -235,6 +236,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         Tree cache = getCache(getTestUser());
         cache.remove();
         root.commit();
+        assertFalse(getAuthorizableTree(getTestUser()).hasChild(CacheConstants.REP_CACHE));
     }
 
     @Test

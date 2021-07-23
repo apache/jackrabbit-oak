@@ -65,6 +65,27 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
         return new CompositeRepositoryPermission();
     }
 
+    @Override
+    boolean hasPrivileges(@Nullable Tree immutableTree, @NotNull PrivilegeBitsProvider bitsProvider, @NotNull PrivilegeBits privilegeBits, @NotNull PrivilegeBits coveredPrivileges) {
+        boolean hasPrivileges = false;
+        for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, privilegeBits);
+            if (Util.doEvaluate(supported)) {
+                Set<String> supportedNames = bitsProvider.getPrivilegeNames(supported);
+                // evaluate one by one so we can aggregate fragments of
+                // supported privileges
+                for (String p : supportedNames) {
+                    if (aggregatedPermissionProvider.hasPrivileges(immutableTree, p)) {
+                        PrivilegeBits granted = bitsProvider.getBits(p);
+                        coveredPrivileges.add(granted);
+                        hasPrivileges = true;
+                    }
+                }
+            }
+        }
+        return hasPrivileges;
+    }
+
     //-------------------------------------------------< PermissionProvider >---
 
     @NotNull
@@ -85,37 +106,6 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
             }
         }
         return getBitsProvider().getPrivilegeNames(result);
-    }
-
-    @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        Tree immutableTree = PermissionUtil.getReadOnlyTreeOrNull(tree, getImmutableRoot());
-        PrivilegeBitsProvider bitsProvider = getBitsProvider();
-
-        PrivilegeBits privilegeBits = bitsProvider.getBits(privilegeNames);
-        if (privilegeBits.isEmpty()) {
-            return true;
-        }
-
-        boolean hasPrivileges = false;
-        PrivilegeBits coveredPrivs = PrivilegeBits.getInstance();
-
-        for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
-            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, privilegeBits);
-            if (Util.doEvaluate(supported)) {
-                Set<String> supportedNames = bitsProvider.getPrivilegeNames(supported);
-                // evaluate one by one so we can aggregate fragments of
-                // supported privileges
-                for (String p : supportedNames) {
-                    if (aggregatedPermissionProvider.hasPrivileges(immutableTree, p)) {
-                        PrivilegeBits granted = bitsProvider.getBits(p);
-                        coveredPrivs.add(granted);
-                        hasPrivileges = true;
-                    }
-                }
-            }
-        }
-        return hasPrivileges && coveredPrivs.includes(privilegeBits);
     }
 
     @Override

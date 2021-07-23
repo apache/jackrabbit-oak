@@ -38,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -59,7 +60,7 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     private Root immutableRoot;
     private PrivilegeBitsProvider privilegeBitsProvider;
-    private TreeTypeProvider typeProvider;
+    private final TreeTypeProvider typeProvider;
 
     CompositePermissionProvider(@NotNull Root root, @NotNull List<AggregatedPermissionProvider> pps,
                                 @NotNull Context acContext, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
@@ -90,6 +91,8 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     @NotNull
     abstract RepositoryPermission createRepositoryPermission();
+    
+    abstract boolean hasPrivileges(@Nullable Tree immutableTree, @NotNull PrivilegeBitsProvider bitsProvider, @NotNull PrivilegeBits privilegeBits, @NotNull PrivilegeBits coveredPrivileges);
 
     @NotNull
     Root getImmutableRoot() {
@@ -115,6 +118,20 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
         for (PermissionProvider pp : pps) {
             pp.refresh();
         }
+    }
+
+    @Override
+    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
+        Tree immutableTree = PermissionUtil.getReadOnlyTreeOrNull(tree, getImmutableRoot());
+
+        PrivilegeBits privilegeBits = privilegeBitsProvider.getBits(privilegeNames);
+        if (privilegeBits.isEmpty()) {
+            return true;
+        }
+
+        PrivilegeBits coveredPrivs = PrivilegeBits.getInstance();
+        boolean hasPrivileges = hasPrivileges(immutableTree, privilegeBitsProvider, privilegeBits, coveredPrivs);
+        return hasPrivileges && coveredPrivs.includes(privilegeBits);
     }
 
     @NotNull
@@ -160,20 +177,17 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     @Override
     public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
-        return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
-                .supportedPermissions(tree, property, permissions));
+        return supportedPermissions(aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(tree, property, permissions));
     }
 
     @Override
     public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
-        return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
-                .supportedPermissions(location, permissions));
+        return supportedPermissions(aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(location, permissions));
     }
 
     @Override
     public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
-        return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
-                .supportedPermissions(treePermission, property, permissions));
+        return supportedPermissions(aggregatedPermissionProvider -> aggregatedPermissionProvider.supportedPermissions(treePermission, property, permissions));
     }
 
     private long supportedPermissions(Function<AggregatedPermissionProvider, Long> supported) {
@@ -187,8 +201,7 @@ abstract class CompositePermissionProvider implements AggregatedPermissionProvid
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
-            @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
         Tree immutableTree = PermissionUtil.getReadOnlyTree(tree, immutableRoot);
         if (tree.isRoot()) {
             return CompositeTreePermission.create(immutableTree, treeProvider, typeProvider, pps, getCompositeType());

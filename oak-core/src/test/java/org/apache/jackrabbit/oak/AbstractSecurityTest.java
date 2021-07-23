@@ -121,10 +121,7 @@ public abstract class AbstractSecurityTest {
     @After
     public void after() throws Exception {
         try {
-            if (testUser != null) {
-                testUser.remove();
-                root.commit();
-            }
+            removeTestUser();
         } finally {
             if (adminSession != null) {
                 adminSession.close();
@@ -262,6 +259,14 @@ public abstract class AbstractSecurityTest {
             root.commit();
         }
         return testUser;
+    }
+    
+    protected void removeTestUser() throws Exception {
+        if (testUser != null) {
+            testUser.remove();
+            root.commit();
+            testUser = null;
+        }
     }
 
     protected ContentSession createTestSession() throws Exception {

@@ -84,6 +84,7 @@ which is populated either via OSGi or during manual [Repository Construction](..
 | LDAP Server Port                   | `host.port`                               | Port of the LDAP server                  |
 | Use SSL                            | `host.ssl`                                | Indicates if an SSL (LDAPs) connection should be used. |
 | Use TLS                            | `host.tls`                                | Indicates if TLS should be started on connections. |
+| Enabled Protocols                  | `host.enabledProtocols`                   | Allows to explicitly set the enabled protocols on the LdapConnectionConfig. |
 | Search Timeout                     | `searchTimeout`                           | Time in until a search times out (eg: '1s' or '1m 30s'). |
 | Admin pool max active              | `adminPool.maxActive`                     | The max active size of the admin connection pool. When non-positive, there is no limit to the number of objects that can be managed by the pool at one time. A value of 0 disables this pool. |
 | Admin pool lookup on validate      | `adminPool.lookupOnValidate`              | Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the admin pool. |

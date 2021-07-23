@@ -46,10 +46,8 @@ class PrivilegeValidatorProvider extends ValidatorProvider {
 
     @NotNull
     @Override
-    public Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info) {
-        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after), treeProvider),
-                JCR_SYSTEM, REP_PRIVILEGES);
+    public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after), treeProvider), JCR_SYSTEM, REP_PRIVILEGES);
     }
 
     private Root createRoot(NodeState nodeState) {

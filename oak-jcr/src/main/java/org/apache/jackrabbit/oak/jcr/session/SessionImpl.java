@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
@@ -248,11 +249,15 @@ public class SessionImpl implements JackrabbitSession {
     public String[] getAttributeNames() {
         Set<String> names = newTreeSet(sessionContext.getAttributes().keySet());
         Collections.addAll(names, sd.getAuthInfo().getAttributeNames());
+        names.add(RepositoryImpl.BOUND_PRINCIPALS);
         return names.toArray(new String[names.size()]);
     }
 
     @Override
     public Object getAttribute(String name) {
+        if (RepositoryImpl.BOUND_PRINCIPALS.equals(name)) {
+            return sd.getAuthInfo().getPrincipals();
+        }
         Object attribute = sd.getAuthInfo().getAttribute(name);
         if (attribute == null) {
             attribute = sessionContext.getAttributes().get(name);
