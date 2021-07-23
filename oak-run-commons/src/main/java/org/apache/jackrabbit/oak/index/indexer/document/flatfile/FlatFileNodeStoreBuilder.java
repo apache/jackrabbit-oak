@@ -52,7 +52,7 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
 
-    private final boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final SortStrategy sortStrategy = SortStrategy.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT,
             SortStrategy.MULTITHREADED_TRAVERSE_WITH_SORT.name()));
 
