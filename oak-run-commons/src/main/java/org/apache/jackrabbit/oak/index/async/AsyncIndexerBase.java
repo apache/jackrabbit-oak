@@ -70,7 +70,13 @@ public abstract class AsyncIndexerBase implements Closeable {
             // TODO : In oak, it gets closed with system bundle deactivation
             //close.register(task);
 
-            pool.scheduleWithFixedDelay(task,INIT_DELAY,delay, TimeUnit.SECONDS);
+            while (true) {
+                task.run();
+                Thread.sleep(5000);
+            }
+
+
+            //pool.scheduleWithFixedDelay(task,INIT_DELAY,delay, TimeUnit.SECONDS);
         }
 
     }
