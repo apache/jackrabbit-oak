@@ -53,6 +53,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.commons.io.FileUtils.ONE_MB;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
 import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
@@ -67,8 +68,7 @@ public class FlatFileStoreTest {
 
     private Set<String> preferred = singleton("jcr:content");
 
-    @Test
-    public void basicTest() throws Exception {
+    private void runBasicTest() throws Exception {
         List<String> paths = createTestPaths();
         FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
         Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new DefaultMemoryManager(100*ONE_MB, 2*ONE_GB));
@@ -96,6 +96,25 @@ public class FlatFileStoreTest {
         List<String> sortedPaths = TestUtils.sortPaths(paths, preferred);
 
         assertEquals(sortedPaths, entryPaths);
+    }
+
+    @Test
+    public void basicTestStoreAndSortStrategy() throws Exception {
+        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.STORE_AND_SORT.toString());
+        runBasicTest();
+        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+    }
+
+    @Test
+    public void basicTestTraverseAndSortStrategy() throws Exception {
+        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
+        runBasicTest();
+        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+    }
+
+    @Test
+    public void basicTestMultiThreadedTraverseAndSortStrategy() throws Exception {
+        runBasicTest();
     }
 
     @Test
