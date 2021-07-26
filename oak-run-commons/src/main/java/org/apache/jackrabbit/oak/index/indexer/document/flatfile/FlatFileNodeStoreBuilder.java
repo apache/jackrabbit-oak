@@ -36,8 +36,19 @@ import org.slf4j.LoggerFactory;
 import static java.util.Collections.unmodifiableSet;
 
 public class FlatFileNodeStoreBuilder {
+
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
-    private static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
+    /**
+     * System property name for sort strategy. If this is true, we use {@link MultithreadedTraverseWithSortStrategy}, else
+     * {@link StoreAndSortStrategy} strategy is used.
+     * NOTE - System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} takes precedence over this one.
+     */
+    static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
+    /**
+     * System property name for sort strategy. This takes precedence over {@link #OAK_INDEXER_TRAVERSE_WITH_SORT}.
+     * Allowed values are the values from enum {@link SortStrategyType}
+     */
+    static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
@@ -53,20 +64,24 @@ public class FlatFileNodeStoreBuilder {
     private long entryCount = 0;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private final SortStrategy sortStrategy = SortStrategy.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT,
-            SortStrategy.MULTITHREADED_TRAVERSE_WITH_SORT.name()));
+    private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
+    private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+    private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
+            (useTraverseWithSort ? SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT : SortStrategyType.STORE_AND_SORT);
 
-    private enum SortStrategy {
-
-        SORT_AND_STORE(StoreAndSortStrategy.class.getSimpleName()),
-        TRAVERSE_WITH_SORT(TraverseWithSortStrategy.class.getSimpleName()),
-        MULTITHREADED_TRAVERSE_WITH_SORT(MultithreadedTraverseWithSortStrategy.class.getSimpleName());
-
-        private final String value;
-
-        SortStrategy(String value) {
-            this.value = value;
-        }
+    public enum SortStrategyType {
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link StoreAndSortStrategy} being used.
+         */
+        STORE_AND_SORT,
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link TraverseWithSortStrategy} being used.
+         */
+        TRAVERSE_WITH_SORT,
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
+         */
+        MULTITHREADED_TRAVERSE_WITH_SORT
     }
 
     public FlatFileNodeStoreBuilder(File workDir) {
@@ -132,9 +147,9 @@ public class FlatFileNodeStoreBuilder {
         }
     }
 
-    private org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy createSortStrategy(File dir) throws IOException {
-        switch (sortStrategy) {
-            case SORT_AND_STORE: log.info("Using StoreAndSortStrategy");
+    SortStrategy createSortStrategy(File dir) throws IOException {
+        switch (sortStrategyType) {
+            case STORE_AND_SORT: log.info("Using StoreAndSortStrategy");
                 return new StoreAndSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
                         Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
             case TRAVERSE_WITH_SORT: log.info("Using TraverseWithSortStrategy");
@@ -153,10 +168,10 @@ public class FlatFileNodeStoreBuilder {
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
         log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
-        log.info("Sort strategy : {} ({})", sortStrategy.value, OAK_INDEXER_TRAVERSE_WITH_SORT);
+        log.info("Sort strategy : {} ({})", sortStrategyType, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 
-    private File createStoreDir() throws IOException {
+    File createStoreDir() throws IOException {
         File dir = new File(workDir, "flat-file-store");
         FileUtils.forceMkdir(dir);
         return dir;
