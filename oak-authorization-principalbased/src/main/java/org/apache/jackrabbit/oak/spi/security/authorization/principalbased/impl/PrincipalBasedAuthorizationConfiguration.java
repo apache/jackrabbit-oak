@@ -129,7 +129,7 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
         if (!f.canHandle(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            Iterable<String> principalPaths = Iterables.transform(principals, principal -> f.getOakPath(principal));
+            Iterable<String> principalPaths = Iterables.transform(principals, f::getOakPath);
             return new PrincipalBasedPermissionProvider(root, workspaceName, principalPaths, this);
         }
     }
@@ -170,7 +170,7 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new PrincipalPolicyImporter(filterProvider, new MgrProviderImpl(this)));
+        return Collections.singletonList(new PrincipalPolicyImporter(filterProvider, new MgrProviderImpl(this)));
     }
 
     @NotNull

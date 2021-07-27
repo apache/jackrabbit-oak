@@ -43,9 +43,9 @@ public class EntryPredicateTest {
     private static final String PROP_PATH = "/parent/path/prop";
     private final String PARENT_PATH = PathUtils.getParentPath(TREE_PATH);
 
-    private PermissionEntry pe = mock(PermissionEntry.class);
+    private final PermissionEntry pe = mock(PermissionEntry.class);
     private Tree tree;
-    private PropertyState propertyState = PropertyStates.createProperty("prop", "value");
+    private final PropertyState propertyState = PropertyStates.createProperty("prop", "value");
 
     @Before
     public void before() {

@@ -31,7 +31,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 import java.util.UUID;
@@ -45,7 +44,7 @@ import static org.junit.Assert.assertTrue;
 
 public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
 
-    private String uid = "testSystemUser" + UUID.randomUUID();
+    private final String uid = "testSystemUser" + UUID.randomUUID();
     private Principal principal;
     private PrincipalBasedAccessControlManager acMgr;
 
@@ -180,7 +179,7 @@ public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testGetPermssionProvider() throws Exception {
+    public void testGetPermissionProvider() throws Exception {
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
         // with remapped namespaces
         PermissionProvider pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(principal));

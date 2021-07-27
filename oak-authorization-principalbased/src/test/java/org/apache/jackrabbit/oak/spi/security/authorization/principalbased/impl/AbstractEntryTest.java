@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -38,13 +37,8 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
-import java.util.Collections;
-import java.util.Set;
 
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.NT_REP_POLICY;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.NT_REP_RESTRICTIONS;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
 import static org.junit.Assert.assertEquals;
@@ -95,9 +89,9 @@ public class AbstractEntryTest extends AbstractPrincipalBasedTest {
         AbstractEntry differentPath = new TestEntry(PathUtils.ROOT_PATH, entryA.getPrincipal(), entryA.getPrivilegeBits(), entryA.getRestrictions().toArray(new Restriction[0]));
         assertNotEquals(entryA.hashCode(), differentPath.hashCode());
 
-        // different path -> different hash
+        // different principal -> different hash
         AbstractEntry differentPrincipal = new TestEntry(entryB.getOakPath(), EveryonePrincipal.getInstance(), entryB.getPrivilegeBits(), entryB.getRestrictions().toArray(new Restriction[0]));
-        assertNotEquals(entryB.hashCode(), differentPath.hashCode());
+        assertNotEquals(entryB.hashCode(), differentPrincipal.hashCode());
 
         // different path -> different hash
         AbstractEntry differentPrivs = new TestEntry(entryB.getOakPath(), entryB.getPrincipal(), bitsProvider.getBits(PrivilegeConstants.JCR_READ), entryB.getRestrictions().toArray(new Restriction[0]));
@@ -123,9 +117,9 @@ public class AbstractEntryTest extends AbstractPrincipalBasedTest {
         AbstractEntry differentPath = new TestEntry(PathUtils.ROOT_PATH, entryA.getPrincipal(), entryA.getPrivilegeBits(), entryA.getRestrictions().toArray(new Restriction[0]));
         assertNotEquals(entryA, differentPath);
 
-        // different path -> different hash
+        // different principal -> different hash
         AbstractEntry differentPrincipal = new TestEntry(entryB.getOakPath(), EveryonePrincipal.getInstance(), entryB.getPrivilegeBits(), entryB.getRestrictions().toArray(new Restriction[0]));
-        assertNotEquals(entryB, differentPath);
+        assertNotEquals(entryB, differentPrincipal);
 
         // different path -> different hash
         AbstractEntry differentPrivs = new TestEntry(entryB.getOakPath(), entryB.getPrincipal(), bitsProvider.getBits(PrivilegeConstants.JCR_READ), entryB.getRestrictions().toArray(new Restriction[0]));

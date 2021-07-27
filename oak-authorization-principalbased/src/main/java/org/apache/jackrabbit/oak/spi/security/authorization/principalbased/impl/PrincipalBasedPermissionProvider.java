@@ -57,7 +57,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
 
     private final Root root;
     private final String workspaceName;
-    private final Iterable principalPaths;
+    private final Iterable<String> principalPaths;
     private final MgrProvider mgrProvider;
     private final TreeTypeProvider typeProvider;
 
@@ -393,7 +393,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     }
 
     @Nullable
-    private String getEffectivePath(@NotNull Tree tree) {
+    private static String getEffectivePath(@NotNull Tree tree) {
         Tree principalEntry = null;
         if (Utils.isPrincipalEntry(tree)) {
             principalEntry = tree;
@@ -408,7 +408,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         return ReadOnlyVersionManager.getInstance(immutableRoot, NamePathMapper.DEFAULT).getVersionable(versionTree, workspaceName);
     }
 
-    private boolean isVersionStoreTree(@NotNull Tree tree) {
+    private static boolean isVersionStoreTree(@NotNull Tree tree) {
         return ReadOnlyVersionManager.isVersionStoreTree(tree);
     }
 

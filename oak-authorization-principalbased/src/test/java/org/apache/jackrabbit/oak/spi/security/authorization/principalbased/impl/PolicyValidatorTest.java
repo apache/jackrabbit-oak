@@ -77,7 +77,7 @@ import static org.mockito.Mockito.when;
 
 public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
-    private NodeState mockNodeState = mock(NodeState.class);
+    private final NodeState mockNodeState = mock(NodeState.class);
 
     @Override
     protected NamePathMapper getNamePathMapper() {
@@ -136,7 +136,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         assertEquals(expectedErrorCode, e.getCode());
     }
 
-    private static void failCommitFailedExcpected(int expectedCode) {
+    private static void failCommitFailedExpected(int expectedCode) {
         fail("Expected CommitFailedException with ErrorCode " +expectedCode);
     }
 
@@ -155,7 +155,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         Validator v = createRootValidator(mockNodeState).childNodeAdded("wrongName", mockNodeState);
         try {
             v.propertyAdded(createPrimaryTypeProperty(NT_REP_PRINCIPAL_POLICY));
-            failCommitFailedExcpected(30);
+            failCommitFailedExpected(30);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 30);
         }
@@ -192,7 +192,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
             PropertyState before = createPrimaryTypeProperty(NT_REP_PRINCIPAL_POLICY);
             PropertyState after = createPrimaryTypeProperty(NT_OAK_UNSTRUCTURED);
             createRootValidator(mockNodeState).propertyChanged(before, after);
-            failCommitFailedExcpected(31);
+            failCommitFailedExpected(31);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 31);
         }
@@ -204,7 +204,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
             PropertyState before = createPrimaryTypeProperty(NT_OAK_UNSTRUCTURED);
             PropertyState after = createPrimaryTypeProperty(NT_REP_PRINCIPAL_POLICY);
             createRootValidator(mockNodeState).propertyChanged(before, after);
-            failCommitFailedExcpected(31);
+            failCommitFailedExpected(31);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 31);
         }
@@ -258,7 +258,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         NodeState child = mockNodeState(NodeTypeConstants.NT_REP_UNSTRUCTURED);
         try {
             createRootValidator(mockNodeState).childNodeAdded(REP_PRINCIPAL_POLICY, child);
-            failCommitFailedExcpected(32);
+            failCommitFailedExpected(32);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 32);
         }
@@ -272,7 +272,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         NodeState child = mockNodeState(NT_REP_PRINCIPAL_POLICY);
         try {
             createRootValidator(rootState).childNodeAdded(REP_PRINCIPAL_POLICY, child);
-            failCommitFailedExcpected(33);
+            failCommitFailedExpected(33);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 33);
         }
@@ -296,7 +296,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         when(child.getChildNode(REP_PRINCIPAL_POLICY)).thenReturn(ns);
         try {
             createRootValidator(mockNodeState).childNodeChanged(REP_PRINCIPAL_POLICY, child, child);
-            failCommitFailedExcpected(32);
+            failCommitFailedExpected(32);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 32);
         }
@@ -313,7 +313,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         when(child.getChildNode(REP_PRINCIPAL_POLICY)).thenReturn(mockNodeState);
         try {
             createRootValidator(rootState).childNodeChanged("any", child, child);
-            failCommitFailedExcpected(33);
+            failCommitFailedExpected(33);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 33);
         }
@@ -327,7 +327,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         NodeState child = mockNodeState(NT_REP_PRINCIPAL_POLICY);
         try {
             validator.childNodeAdded(REP_PRINCIPAL_POLICY, child);
-            failCommitFailedExcpected(33);
+            failCommitFailedExpected(33);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 33);
         }
@@ -339,35 +339,35 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         Validator validator = getValidatorAtNodeTypeTree(rootState, "notJcrSystem", false);
 
         when(mockNodeState.hasChildNode(REP_PRINCIPAL_POLICY)).thenReturn(true);
-        when(mockNodeState.getChildNode(REP_PRINCIPAL_POLICY)).thenReturn(mockNodeState);;
+        when(mockNodeState.getChildNode(REP_PRINCIPAL_POLICY)).thenReturn(mockNodeState);
         try {
             validator.childNodeChanged(REP_PRINCIPAL_POLICY, mockNodeState, mockNodeState);
-            failCommitFailedExcpected(32);
+            failCommitFailedExpected(32);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 32);
         }
     }
 
     @Test
-    public void testAddRestrictionWithWrongNtName() throws Exception {
+    public void testAddRestrictionWithWrongNtName() {
         NodeState rootState = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
         NodeState restrictions = mockNodeState(NT_OAK_UNSTRUCTURED);
         try {
             Validator v = createRootValidator(rootState).childNodeAdded(REP_RESTRICTIONS, restrictions);
-            failCommitFailedExcpected(34);
+            failCommitFailedExpected(34);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 34);
         }
     }
 
     @Test
-    public void testAddIsolatedRestriction() throws Exception {
+    public void testAddIsolatedRestriction() {
         NodeState rootState = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
 
         NodeState restrictions = mockNodeState(NT_REP_RESTRICTIONS);
         try {
             createRootValidator(rootState).childNodeAdded(REP_RESTRICTIONS, restrictions);
-            failCommitFailedExcpected(2);
+            failCommitFailedExpected(2);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 2);
         }
@@ -381,7 +381,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
         try {
             root.commit();
-            failCommitFailedExcpected(35);
+            failCommitFailedExpected(35);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 35);
         }
@@ -395,7 +395,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         restrictions.setProperty(REP_ITEM_NAMES, ImmutableSet.of("test"), Type.STRINGS);
         try {
             root.commit();
-            failCommitFailedExcpected(35);
+            failCommitFailedExpected(35);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 35);
         }
@@ -405,7 +405,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     public void testAddRestrictionWithDifferentACE() throws Exception {
         // validator must not complain about adding restrictions to a different authorization model
         Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("val"));
-        addDefaultEntry(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), restr, (Map) null, JCR_LIFECYCLE_MANAGEMENT);
+        addDefaultEntry(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), restr, null, JCR_LIFECYCLE_MANAGEMENT);
         root.commit();
     }
 
@@ -420,7 +420,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         restrictions.setProperty(REP_GLOB, ImmutableSet.of("test"), Type.STRINGS);
         try {
             root.commit();
-            failCommitFailedExcpected(35);
+            failCommitFailedExpected(35);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 35);
         }
@@ -453,7 +453,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
         try {
             createRootValidator(entryMock, mgrProvider).childNodeChanged(REP_RESTRICTIONS, restrictions, restrictions);
-            failCommitFailedExcpected(13);
+            failCommitFailedExpected(13);
         } catch (CommitFailedException e) {
             assertTrue(e.isOfType(CommitFailedException.OAK));
             assertEquals(13, e.getCode());        }
@@ -465,7 +465,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
         try {
             Validator v = createRootValidator(rootState).childNodeAdded("anyName", mockNodeState(NT_REP_PRINCIPAL_ENTRY));
-            failCommitFailedExcpected(36);
+            failCommitFailedExpected(36);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 36);
         }
@@ -476,7 +476,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         Tree entry = createPolicyEntryTree(ImmutableSet.of());
         try {
             root.commit();
-            failCommitFailedExcpected(37);
+            failCommitFailedExpected(37);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 37);
         }
@@ -489,7 +489,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         Tree entry = createPolicyEntryTree(ImmutableSet.of("abstractPriv"));
         try {
             root.commit();
-            failCommitFailedExcpected(38);
+            failCommitFailedExpected(38);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 38);
         }
@@ -500,7 +500,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         Tree entry = createPolicyEntryTree(ImmutableSet.of("invalidPrivilege"));
         try {
             root.commit();
-            failCommitFailedExcpected(39);
+            failCommitFailedExpected(39);
         } catch (CommitFailedException e) {
             assertCommitFailed(e, 39);
         }

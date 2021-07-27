@@ -56,7 +56,6 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
 
     private String contentPath;
     private String childPath;
-    private String grandchildPath;
 
     private String child2Path;
 
@@ -72,7 +71,6 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
 
         contentPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 3);
         childPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 2);
-        grandchildPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 1);
 
         child2Path = "/oak:content/child2";
 
@@ -91,7 +89,7 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
     }
 
     @Test
-    public void testGetTreePermission() throws Exception {
+    public void testGetTreePermission() {
         String oakPath = PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY);
         Tree tree = root.getTree(PathUtils.ROOT_PATH);
         TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
@@ -119,7 +117,7 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
     }
 
     @Test
-    public void testIsGrantedOnPolicyTree() throws Exception {
+    public void testIsGrantedOnPolicyTree() {
         Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ));
         assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL));
@@ -300,7 +298,7 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
         Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertTrue(permissionProvider.getPrivileges(policyTree).isEmpty());
         for (Tree child : policyTree.getChildren()) {
-            assertTrue(permissionProvider.getPrivileges(policyTree).isEmpty());
+            assertTrue(permissionProvider.getPrivileges(child).isEmpty());
         }
 
         setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ);
@@ -312,7 +310,7 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
         policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
         for (Tree child : policyTree.getChildren()) {
-            assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
+            assertEquals(expectedPrivNames, permissionProvider.getPrivileges(child));
         }
 
         setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ_ACCESS_CONTROL);

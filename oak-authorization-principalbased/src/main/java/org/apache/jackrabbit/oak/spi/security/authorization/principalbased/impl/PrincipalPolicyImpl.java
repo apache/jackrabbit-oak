@@ -217,7 +217,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     @Nullable
-    private String extractPathFromRestrictions(@Nullable Map<String, Value> restrictions, @NotNull String jcrName) throws RepositoryException {
+    private static String extractPathFromRestrictions(@Nullable Map<String, Value> restrictions, @NotNull String jcrName) throws RepositoryException {
         if (restrictions == null || !restrictions.containsKey(jcrName)) {
             throw new AccessControlException("Entries in principal based access control need to have a path specified. Add rep:nodePath restriction or use PrincipalAccessControlList.addEntry(String, Privilege[], Map, Map) instead.");
         }
