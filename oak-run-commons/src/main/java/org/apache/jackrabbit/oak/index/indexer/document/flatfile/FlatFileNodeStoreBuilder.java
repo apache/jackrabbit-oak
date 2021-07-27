@@ -48,8 +48,11 @@ public class FlatFileNodeStoreBuilder {
      * System property name for sort strategy. This takes precedence over {@link #OAK_INDEXER_TRAVERSE_WITH_SORT}.
      * Allowed values are the values from enum {@link SortStrategyType}
      */
-    static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
+    public static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
+    /**
+     * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
+     */
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     private final Logger log = LoggerFactory.getLogger(getClass());

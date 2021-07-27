@@ -51,8 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
-import static org.apache.commons.io.FileUtils.ONE_GB;
-import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
 import static org.junit.Assert.assertEquals;
 
@@ -71,7 +69,6 @@ public class FlatFileStoreTest {
     private void runBasicTest() throws Exception {
         List<String> paths = createTestPaths();
         FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
-        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new DefaultMemoryManager(100*ONE_MB, 2*ONE_GB));
         FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(Collections.singletonList(0L))
@@ -126,7 +123,6 @@ public class FlatFileStoreTest {
         List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
                 lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
         FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
-        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new DefaultMemoryManager(100*ONE_MB, 2*ONE_GB));
         FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(lastModifiedBreakpoints)

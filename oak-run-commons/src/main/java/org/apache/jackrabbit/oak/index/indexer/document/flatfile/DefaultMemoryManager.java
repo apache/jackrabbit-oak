@@ -52,7 +52,15 @@ public class DefaultMemoryManager implements MemoryManager {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
 
+    /**
+     * Max memory to be used if jmx based memory monitoring is not available. This value is not considered if jmx based
+     * monitoring is available.
+     */
     private final long maxMemoryBytes;
+    /**
+     * When jmx based memory monitoring is available, this value indicates minimum memory which should be free/available for this
+     * task to proceed.
+     */
     private final long minMemoryBytes;
     private final AtomicLong memoryUsed;
     private final MemoryPoolMXBean pool;
@@ -70,16 +78,25 @@ public class DefaultMemoryManager implements MemoryManager {
         memoryUsed = new AtomicLong(0);
         clients = new ConcurrentHashMap<>();
         random =  ThreadLocalRandom.current();
-        maxMemoryBytes = maxMemoryInBytes;
-        minMemoryBytes = minMemoryInBytes;
         if (pool == null) {
+            maxMemoryBytes = maxMemoryInBytes;
+            minMemoryBytes = 0;
             type = Type.SELF_MANAGED;
             log.warn("Unable to setup monitoring of available memory. " +
                     "Would use configured maxMemory limit of {} GB", maxMemoryInBytes/ONE_GB);
-            return;
+        } else {
+            maxMemoryBytes = 0;
+            MemoryUsage usage = pool.getCollectionUsage();
+            long maxAvailable = usage.getMax();
+            minMemoryBytes = minMemoryInBytes < maxAvailable ? minMemoryInBytes : (long)(0.5*maxAvailable);
+            if (minMemoryBytes != minMemoryInBytes) {
+                log.warn("Provided minimum memory {} GB more than available memory ({})." +
+                        "Overriding configuration and setting min memory to 50% of available memory ({}).",
+                        minMemoryInBytes/ONE_GB, humanReadableByteCount(maxAvailable), humanReadableByteCount(minMemoryBytes));
+            }
+            type = Type.JMX_BASED;
+            configureMemoryListener();
         }
-        type = Type.JMX_BASED;
-        configureMemoryListener();
         logFlags();
     }
 
@@ -89,15 +106,9 @@ public class DefaultMemoryManager implements MemoryManager {
         emitter.addNotificationListener(listener, null, null);
         MemoryUsage usage = pool.getCollectionUsage();
         long maxMemory = usage.getMax();
-        long warningThreshold = minMemoryBytes;
-        if (warningThreshold > maxMemory) {
-            log.warn("Configured minimum memory {} GB more than available memory ({})." +
-                    "Overriding configuration accordingly.", minMemoryBytes/ONE_GB, humanReadableByteCount(maxMemory));
-            warningThreshold = maxMemory;
-        }
         log.info("Setting up a listener to monitor pool '{}' and trigger batch save " +
                 "if memory drop below {} GB (max {})", pool.getName(), minMemoryBytes/ONE_GB, humanReadableByteCount(maxMemory));
-        pool.setCollectionUsageThreshold(warningThreshold);
+        pool.setCollectionUsageThreshold(minMemoryBytes);
         checkMemory(usage);
     }
 
@@ -226,8 +237,12 @@ public class DefaultMemoryManager implements MemoryManager {
     }
 
     private void logFlags() {
-        log.info("Min heap memory (GB) to be required : {} ({})", minMemoryBytes/ONE_GB, OAK_INDEXER_MIN_MEMORY);
-        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemoryBytes/ONE_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
+        if (type.equals(Type.JMX_BASED)) {
+            log.info("Min heap memory (GB) to be required : {} ({})", minMemoryBytes / ONE_GB, OAK_INDEXER_MIN_MEMORY);
+        }
+        if (type.equals(Type.SELF_MANAGED)) {
+            log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemoryBytes / ONE_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
+        }
     }
 
 

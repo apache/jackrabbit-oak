@@ -70,6 +70,16 @@ public class DocumentStoreSplitter {
     }
 
     public static List<Long> simpleSplit(long start, long end, int parts) {
+        if (end < start) {
+            throw new IllegalArgumentException("start(" + start + ") can't be greater than end (" + end + ")");
+        }
+        if (start == end) {
+            return Collections.singletonList(start);
+        }
+        if (parts > end - start) {
+            log.debug("Adjusting parts to according to given range");
+            parts = (int)(end - start);
+        }
         long stepSize = (end - start)/parts;
         List<Long> steps = new ArrayList<>();
         StringBuilder splitPoints = new StringBuilder();
