@@ -271,13 +271,19 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     if (property != null) {
                         path = PathUtils.concat(path, property.getName());
                     }
-                    return isGranted(path, permissions);
+                    return isGranted(path, property != null, permissions);
                 }
             case INTERNAL:
                 return false;
             default:
                 return internalIsGranted(tree, property, permissions);
         }
+    }
+
+    @Override
+    public boolean isGranted(@NotNull String path, boolean isProperty, long permissions) {
+        EntryPredicate predicate = EntryPredicate.create(path, isProperty, Permissions.respectParentPermissions(permissions));
+        return hasPermissions(getEntryIterator(predicate), predicate, permissions, path);
     }
 
     @Override

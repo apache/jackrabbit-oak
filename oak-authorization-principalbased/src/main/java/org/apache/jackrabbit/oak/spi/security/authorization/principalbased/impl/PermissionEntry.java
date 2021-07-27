@@ -29,6 +29,8 @@ interface PermissionEntry {
     boolean appliesTo(@NotNull String path);
 
     boolean matches(@NotNull String oakPath);
+    
+    boolean matches(@NotNull String oakPath, boolean isProperty);
 
     boolean matches(@NotNull Tree tree, @Nullable PropertyState property);
 

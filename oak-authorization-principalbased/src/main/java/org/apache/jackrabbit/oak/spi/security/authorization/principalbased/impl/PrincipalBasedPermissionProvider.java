@@ -341,7 +341,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         Predicate<PermissionEntry> predicate;
         if (readOnly == null) {
             oakPath = REPOSITORY_PERMISSION_PATH;
-            predicate = EntryPredicate.create(null);
+            predicate = EntryPredicate.create();
         } else {
             oakPath = readOnly.getPath();
             predicate = EntryPredicate.create(readOnly, null);
@@ -366,7 +366,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         if (effectivePath == null) {
             return PrivilegeBits.EMPTY;
         } else {
-            return modAcBits.modifiable().diff(getGrantedPrivilegeBits(effectivePath, EntryPredicate.create(effectivePath)));
+            return modAcBits.modifiable().diff(getGrantedPrivilegeBits(effectivePath, EntryPredicate.create(effectivePath, false)));
         }
     }
 
@@ -430,7 +430,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
 
         private long getGranted() {
             if (grantedPermissions == -1) {
-                PrivilegeBits pb = getGrantedPrivilegeBits(REPOSITORY_PERMISSION_PATH, EntryPredicate.create(null));
+                PrivilegeBits pb = getGrantedPrivilegeBits(REPOSITORY_PERMISSION_PATH, EntryPredicate.create());
                 grantedPermissions = PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true);
             }
             return grantedPermissions;

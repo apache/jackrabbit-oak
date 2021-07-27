@@ -71,6 +71,24 @@ interface EntryPredicate extends Predicate<PermissionEntry> {
         };
     }
 
+    static EntryPredicate create(@NotNull String path, boolean isProperty, boolean respectParent) {
+        String parentPath = (!respectParent || PathUtils.ROOT_PATH.equals(path)) ? null : PathUtils.getParentPath(path);
+        boolean rp = respectParent && parentPath != null;
+        return new EntryPredicate() {
+            @NotNull
+            @Override
+            public String getPath() {
+                return path;
+            }
+
+            @Override
+            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+                respectParent &= rp;
+                return entry.matches(path, isProperty) || (respectParent && entry.matches(parentPath, false));
+            }
+        };
+    }
+    
     static EntryPredicate create(@NotNull String path, boolean respectParent) {
         String parentPath = (!respectParent || PathUtils.ROOT_PATH.equals(path)) ? null : PathUtils.getParentPath(path);
         boolean rp = respectParent && parentPath != null;
@@ -84,7 +102,7 @@ interface EntryPredicate extends Predicate<PermissionEntry> {
             @Override
             public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
                 respectParent &= rp;
-                return entry.matches(path) || (respectParent && entry.matches(parentPath));
+                return entry.matches(path) || (respectParent && entry.matches(parentPath, false));
             }
         };
     }

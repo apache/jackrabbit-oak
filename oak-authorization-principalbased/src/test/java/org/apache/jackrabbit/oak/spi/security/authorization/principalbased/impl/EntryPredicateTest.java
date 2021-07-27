@@ -23,17 +23,18 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.MockUtility.mockTree;
 import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class EntryPredicateTest {
@@ -50,39 +51,56 @@ public class EntryPredicateTest {
     public void before() {
         tree = mockTree(TREE_PATH, false);
     }
+    
+    @After
+    public void after() {
+        reset(pe, tree);
+    }
 
     @Test
     public void testCreateNullPath() {
-        Predicate<PermissionEntry> predicate = EntryPredicate.create(null);
+        Predicate<PermissionEntry> predicate = EntryPredicate.create();
         predicate.apply(pe);
 
         verify(pe, times(1)).matches();
-        verify(pe, never()).matches(Mockito.anyString());
-        verify(pe, never()).matches(Mockito.any(Tree.class), Mockito.any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
     public void testCreatePath() {
-        Predicate<PermissionEntry> predicate = EntryPredicate.create(Mockito.anyString());
+        Predicate<PermissionEntry> predicate = EntryPredicate.create("/path");
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, times(1)).matches(Mockito.anyString());
-        verify(pe, never()).matches(Mockito.any(Tree.class), Mockito.any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verify(pe, times(1)).matches("/path");
+        verifyNoMoreInteractions(pe);
+    }
+
+    @Test
+    public void testCreatePathNotIsProperty() {
+        Predicate<PermissionEntry> predicate = EntryPredicate.create("/path", false);
+        predicate.apply(pe);
+
+        verify(pe, times(1)).matches("/path", false);
+        verifyNoMoreInteractions(pe);
+    }
+
+    @Test
+    public void testCreatePathIsProperty() {
+        Predicate<PermissionEntry> predicate = EntryPredicate.create("/path", true);
+        predicate.apply(pe);
+
+        verify(pe, times(1)).matches("/path", true);
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
     public void testCreateNonExistingTree() {
+        doReturn(false).when(tree).exists();
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, null);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, times(1)).matches(tree.getPath());
-        verify(pe, times(0)).matches(PathUtils.ROOT_PATH);
-        verify(pe, never()).matches(Mockito.any(Tree.class), Mockito.any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verify(pe, times(1)).matches(tree.getPath(), false);
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -90,11 +108,8 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, propertyState);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, times(1)).matches(PROP_PATH);
-        verify(pe, never()).matches(tree.getPath());
-        verify(pe, never()).matches(Mockito.any(Tree.class), Mockito.any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verify(pe, times(1)).matches(PROP_PATH, true);
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -104,10 +119,8 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, null);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
         verify(pe, times(1)).matches(tree, null);
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -117,11 +130,8 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.create(tree, propertyState);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(PROP_PATH);
         verify(pe, times(1)).matches(tree, propertyState);
-        verify(pe, never()).matches(tree, PropertyStates.createProperty("another", "value"));
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -147,13 +157,10 @@ public class EntryPredicateTest {
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, null, Permissions.ALL);
         predicate.apply(pe);
-
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
+        
         verify(pe, times(1)).appliesTo(PARENT_PATH);
-        verify(pe, times(1)).matches(PARENT_PATH);
-        verify(pe, never()).matches(any(Tree.class), any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verify(pe, times(1)).matches(PARENT_PATH, false);
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -164,12 +171,9 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, parentTree, Permissions.ALL);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(parentTree, null);
-        verify(pe, never()).matches(PARENT_PATH);
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -179,12 +183,9 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(TREE_PATH, mockTree(PARENT_PATH, false), Permissions.ALL);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
         verify(pe, times(1)).appliesTo(PARENT_PATH);
-        verify(pe, times(1)).matches(PARENT_PATH);
-        verify(pe, never()).matches(any(Tree.class), any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verify(pe, times(1)).matches(PARENT_PATH, false);
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -193,12 +194,8 @@ public class EntryPredicateTest {
         predicate.apply(pe);
 
         String parentPath = PathUtils.getParentPath(TREE_PATH);
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
         verify(pe, times(1)).appliesTo(parentPath);
-        verify(pe, never()).matches(parentPath);
-        verify(pe, never()).matches(any(Tree.class), any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -209,13 +206,8 @@ public class EntryPredicateTest {
         predicate.apply(pe);
 
         String parentPath = PathUtils.getParentPath(TREE_PATH);
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
         verify(pe, times(1)).appliesTo(parentPath);
-        verify(pe, never()).matches(parentPath);
-        verify(pe, never()).matches(any(Tree.class), any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
-    }
+        verifyNoMoreInteractions(pe); }
 
     @Test
     public void testCreateParentTreeReadPermission() {
@@ -230,13 +222,10 @@ public class EntryPredicateTest {
 
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.ADD_NODE|Permissions.READ_NODE);
         predicate.apply(pe);
-
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
+        
         verify(pe, times(1)).appliesTo(PARENT_PATH);
-        verify(pe, times(1)).matches(PARENT_PATH);
-        verify(pe, never()).matches(any(Tree.class), any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verify(pe, times(1)).matches(PARENT_PATH, false);
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -244,12 +233,8 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.ADD_NODE|Permissions.READ_NODE);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
         verify(pe, times(1)).appliesTo(PARENT_PATH);
-        verify(pe, never()).matches(PARENT_PATH);
-        verify(pe, never()).matches(any(Tree.class), any(PropertyState.class));
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -270,13 +255,9 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.REMOVE_NODE|Permissions.READ_PROPERTY|Permissions.LOCK_MANAGEMENT);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
-        verify(pe, never()).matches(PARENT_PATH);
         verify(pe, times(1)).appliesTo(PARENT_PATH);
         verify(pe, times(1)).matches(parentTree, null);
-        verify(pe, never()).matches(tree, null);
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 
     @Test
@@ -289,12 +270,7 @@ public class EntryPredicateTest {
         Predicate<PermissionEntry> predicate = EntryPredicate.createParent(tree, Permissions.REMOVE_NODE|Permissions.READ_PROPERTY|Permissions.LOCK_MANAGEMENT);
         predicate.apply(pe);
 
-        verify(pe, never()).matches();
-        verify(pe, never()).matches(TREE_PATH);
-        verify(pe, never()).matches(PARENT_PATH);
         verify(pe, times(1)).appliesTo(PARENT_PATH);
-        verify(pe, never()).matches(parentTree, null);
-        verify(pe, never()).matches(tree, null);
-        verify(pe, never()).getPrivilegeBits();
+        verifyNoMoreInteractions(pe);
     }
 }
