@@ -51,8 +51,10 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.FLAT_FILE_STORE_DIR_NAME;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class FlatFileStoreTest {
@@ -164,7 +166,9 @@ public class FlatFileStoreTest {
         memoryManager.isMemoryLow = false;
         nsetf.interrupt = false;
         File oldDataDir = new File(BUILD_TARGET_FOLDER + "/old-data"+System.currentTimeMillis());
-        FileUtils.copyDirectory(folder.getRoot().listFiles()[0], oldDataDir);
+        File [] fileList = folder.getRoot().listFiles((pathName) -> FLAT_FILE_STORE_DIR_NAME.equals(pathName.getName()));
+        assertTrue(fileList != null && fileList.length == 1);
+        FileUtils.copyDirectory(fileList[0], oldDataDir);
         flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(lastModifiedBreakpoints)
