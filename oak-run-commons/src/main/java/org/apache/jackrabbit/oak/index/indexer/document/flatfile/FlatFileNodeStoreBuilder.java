@@ -37,6 +37,8 @@ import static java.util.Collections.unmodifiableSet;
 
 public class FlatFileNodeStoreBuilder {
 
+    static final String FLAT_FILE_STORE_DIR_NAME = "flat-file-store";
+
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
     /**
      * System property name for sort strategy. If this is true, we use {@link MultithreadedTraverseWithSortStrategy}, else
@@ -175,7 +177,7 @@ public class FlatFileNodeStoreBuilder {
     }
 
     File createStoreDir() throws IOException {
-        File dir = new File(workDir, "flat-file-store");
+        File dir = new File(workDir, FLAT_FILE_STORE_DIR_NAME);
         FileUtils.forceMkdir(dir);
         return dir;
     }
