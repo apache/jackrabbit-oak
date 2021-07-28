@@ -57,7 +57,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 
 /**
  * This class implements a sort strategy where node store is concurrently traversed for downloading node states by
- * multiple threads (number of threads is configurable via java system property <code>dataDumpThreadPoolSize</code>).
+ * multiple threads (number of threads is configurable via java system property {@link TaskRunner#PROP_THREAD_POOL_SIZE}.
  * The traverse/download and sort tasks are submitted to an executor service. Each of those tasks create some sorted files which
  * are then merged (sorted) into one.
  *
