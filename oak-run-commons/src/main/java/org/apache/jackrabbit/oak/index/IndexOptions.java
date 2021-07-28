@@ -58,6 +58,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<String> indexPaths;
     private final OptionSpec<String> checkpoint;
     private final Set<String> operationNames;
+    private final OptionSpec<File> existingDataDumpDirOpt;
 
 
     public IndexOptions(OptionParser parser){
@@ -102,6 +103,9 @@ public class IndexOptions implements OptionsBean {
         //Set of options which define action
         actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
         operationNames = collectionOperationNames(actionOpts);
+        existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing document store dumps" +
+                " from previous incomplete run")
+                .withRequiredArg().ofType(File.class);
     }
 
     @Override
@@ -136,6 +140,11 @@ public class IndexOptions implements OptionsBean {
         File workDir = workDirOpt.value(options);
         FileUtils.forceMkdir(workDir);
         return workDir;
+    }
+
+    public File getExistingDataDumpDir() {
+        File dataDumpDir = existingDataDumpDirOpt.value(options);
+        return dataDumpDir != null && dataDumpDir.exists() ? dataDumpDir : null;
     }
 
     public File getOutDir() {

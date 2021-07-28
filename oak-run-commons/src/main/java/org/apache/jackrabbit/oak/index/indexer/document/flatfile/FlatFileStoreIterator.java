@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.FlatFileBufferLinkedList;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.NodeStateEntryList;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.PersistedLinkedList;
@@ -111,7 +112,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     private NodeStateEntry wrap(NodeStateEntry baseEntry) {
         NodeState state = new LazyChildrenNodeState(baseEntry.getNodeState(),
                 new ChildNodeStateProvider(getEntries(), baseEntry.getPath(), preferredPathElements));
-        return new NodeStateEntry(state, baseEntry.getPath(), baseEntry.estimatedMemUsage());
+        return new NodeStateEntryBuilder(state, baseEntry.getPath()).withMemUsage(baseEntry.estimatedMemUsage()).build();
     }
 
     private Iterable<NodeStateEntry> getEntries() {

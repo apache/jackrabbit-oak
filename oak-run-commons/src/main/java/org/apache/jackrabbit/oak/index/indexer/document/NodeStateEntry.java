@@ -27,15 +27,13 @@ public class NodeStateEntry {
     private final NodeState nodeState;
     private final String path;
     private final long memUsage;
+    private final long lastModified;
 
-    public NodeStateEntry(NodeState nodeState, String path) {
-        this(nodeState, path, 0);
-    }
-
-    public NodeStateEntry(NodeState nodeState, String path, long memUsage) {
+    private NodeStateEntry(NodeState nodeState, String path, long memUsage, long lastModified) {
         this.nodeState = nodeState;
         this.path = path;
         this.memUsage = memUsage;
+        this.lastModified = lastModified;
     }
 
     public NodeState getNodeState() {
@@ -48,6 +46,10 @@ public class NodeStateEntry {
 
     public long estimatedMemUsage() {
         return memUsage;
+    }
+
+    public long getLastModified() {
+        return lastModified;
     }
 
     @Override
@@ -68,5 +70,32 @@ public class NodeStateEntry {
     @Override
     public String toString() {
         return path;
+    }
+
+    public static class NodeStateEntryBuilder {
+
+        private final NodeState nodeState;
+        private final String path;
+        private long memUsage;
+        private long lastModified;
+
+        public NodeStateEntryBuilder(NodeState nodeState, String path) {
+            this.nodeState = nodeState;
+            this.path = path;
+        }
+
+        public NodeStateEntryBuilder withMemUsage(long memUsage) {
+            this.memUsage = memUsage;
+            return this;
+        }
+
+        public NodeStateEntryBuilder withLastModified(long lastModified) {
+            this.lastModified = lastModified;
+            return this;
+        }
+
+        public NodeStateEntry build() {
+            return new NodeStateEntry(nodeState, path, memUsage, lastModified);
+        }
     }
 }

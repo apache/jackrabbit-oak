@@ -61,9 +61,9 @@ public class ElasticIndexerTest {
 
         NodeState testNode = EMPTY_NODE.builder().setProperty("foo", "bar").getNodeState();
 
-        assertTrue(indexer.index(new NodeStateEntry(testNode, "/content/x")));
-        assertFalse(indexer.index(new NodeStateEntry(testNode, "/x")));
-        assertFalse(indexer.index(new NodeStateEntry(testNode, "/")));
+        assertTrue(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/content/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/").build()));
     }
 
 }
