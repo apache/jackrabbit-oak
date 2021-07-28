@@ -77,7 +77,7 @@ public class DocumentStoreSplitter {
             return Collections.singletonList(start);
         }
         if (parts > end - start) {
-            log.debug("Adjusting parts to according to given range");
+            log.debug("Adjusting parts according to given range {} - {}", start, end);
             parts = (int)(end - start);
         }
         long stepSize = (end - start)/parts;
