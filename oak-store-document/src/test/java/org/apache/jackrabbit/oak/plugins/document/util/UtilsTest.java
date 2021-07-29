@@ -366,7 +366,6 @@ public class UtilsTest {
         }
     }
 
-    @Ignore("OAK-9517")
     @Test
     public void noWarnWithSingleClusterId() throws Exception {
         Clock c = new Clock.Virtual();

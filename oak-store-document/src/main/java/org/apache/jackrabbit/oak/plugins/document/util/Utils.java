@@ -960,7 +960,7 @@ public class Utils {
      * @param rootDoc the root document.
      * @param clock the clock.
      * @param clusterId the local clusterId.
-     * @param warnThresholdMillis log a warning when the an external change in
+     * @param warnThresholdMillis log a warning when an external change in
      *          the future is detected with more than this time difference.
      * @throws InterruptedException if the current thread is interrupted while
      *          waiting. The interrupted status on the current thread is cleared
@@ -974,8 +974,8 @@ public class Utils {
         Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
         long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
         long localTime = clock.getTime();
-        long timeDiff = externalTime - localTime;
-        if (timeDiff > 0) {
+        if (externalTime > localTime) {
+            long timeDiff = externalTime - localTime;
             double delay = ((double) externalTime - localTime) / 1000d;
             String fmt = "Background read will be delayed by %.1f seconds. " +
                     "Please check system time on cluster nodes.";
