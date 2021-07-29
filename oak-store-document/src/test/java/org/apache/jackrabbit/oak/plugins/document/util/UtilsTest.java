@@ -367,6 +367,30 @@ public class UtilsTest {
     }
 
     @Test
+    public void noWarnWithSingleClusterId() throws Exception {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        // local
+        Revision lastRev1 = new Revision(c.getTime(), 0, 1);
+
+        // create a root document
+        NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        NodeDocument.setLastRev(op, lastRev1);
+        UpdateUtils.applyChanges(doc, op);
+
+        LogCustomizer customizer = LogCustomizer.forLogger(Utils.class).enable(Level.WARN).create();
+        customizer.starting();
+        try {
+            Utils.alignWithExternalRevisions(doc, c, 1, TIME_DIFF_WARN_THRESHOLD_MILLIS);
+
+            assertThat(customizer.getLogs(), empty());
+        } finally {
+            customizer.finished();
+        }
+    }
+
+    @Test
     public void isIdFromLongPath() {
         Path path = Path.fromString("/test");
         while (!Utils.isLongPath(path)) {
