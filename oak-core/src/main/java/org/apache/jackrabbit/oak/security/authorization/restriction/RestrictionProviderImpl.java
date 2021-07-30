@@ -64,7 +64,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(RestrictionProviderImpl.class);
 
-    private static final int NUMBER_OF_DEFINITIONS = 3;
+    private static final int NUMBER_OF_DEFINITIONS = 5;
 
     public RestrictionProviderImpl() {
         super(supportedRestrictions());
@@ -76,7 +76,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
         RestrictionDefinition nts = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
         RestrictionDefinition pfxs = new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false);
         RestrictionDefinition names = new RestrictionDefinitionImpl(REP_ITEM_NAMES, Type.NAMES, false);
-        return ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, pfxs.getName(), pfxs, names.getName(), names);
+        RestrictionDefinition current = new RestrictionDefinitionImpl(REP_CURRENT, Type.STRINGS, false);
+        return ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, pfxs.getName(), pfxs, names.getName(), names, current.getName(), current);
     }
 
     //------------------------------------------------< RestrictionProvider >---
@@ -104,6 +105,10 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             if (itemNames != null) {
                 patterns.add(new ItemNamePattern(itemNames.getValue(Type.NAMES)));
             }
+            PropertyState current = tree.getProperty(REP_CURRENT);
+            if (current != null) {
+                patterns.add(new CurrentPattern(oakPath, current.getValue(Type.STRINGS)));
+            }
 
             return CompositePattern.create(patterns);
         }
@@ -126,6 +131,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
                     patterns.add(new PrefixPattern(r.getProperty().getValue(Type.STRINGS)));
                 } else if (REP_ITEM_NAMES.equals(name)) {
                     patterns.add(new ItemNamePattern(r.getProperty().getValue(Type.NAMES)));
+                } else if (REP_CURRENT.equals(name)) {
+                    patterns.add(new CurrentPattern(oakPath, r.getProperty().getValue(Type.STRINGS)));
                 } else {
                     log.debug("Ignoring unsupported restriction {}", name);
                 }
