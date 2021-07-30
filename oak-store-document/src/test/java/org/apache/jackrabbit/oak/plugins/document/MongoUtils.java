@@ -17,19 +17,24 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.bson.Document;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 /**
@@ -220,5 +225,18 @@ public class MongoUtils {
             mongoConnection = null;
         }
         return mongoConnection;
+    }
+    
+    static boolean hasIndex(MongoCollection<?> collection, String... fields)
+            throws MongoException {
+        Set<String> uniqueFields = Sets.newHashSet(fields);
+        for (Document info : collection.listIndexes()) {
+            Document key = (Document) info.get("key");
+            Set<String> indexFields = Sets.newHashSet(key.keySet());
+            if (uniqueFields.equals(indexFields)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -26,8 +26,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -47,7 +51,11 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
+//import org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -191,6 +199,61 @@ public class VersionGCWithSplitTest {
         assertEquals(NUM_REVS_THRESHOLD + 1, valueMap.size());
         // also count them individually
         assertEquals(NUM_REVS_THRESHOLD + 1, size(valueMap.entrySet()));
+    }
+
+    @Test
+    public void splitDocGCHintNull() throws Exception {
+        MongoConnection c = MongoUtils.getConnection();
+        MongoDatabase db = c.getDatabase();
+        MongoCollection<?> mc = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
+
+        assertTrue(MongoUtils.hasIndex(mc, NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS));
+
+        BasicDBObject keys = new BasicDBObject();
+        keys.put(SD_TYPE,1);
+        keys.put(SD_MAX_REV_TIME_IN_SECS, 1);
+        mc.dropIndex(keys);
+        assertFalse(MongoUtils.hasIndex(mc,
+              NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS));
+
+        clock = new Clock.Virtual();
+
+
+//      ExecutorService execService = Executors.newCachedThreadPool();
+//      clock.waitUntil(System.currentTimeMillis());
+//      Revision.setClock(clock);
+//      DocumentNodeStore ns = builderProvider.newBuilder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
+//              .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+//      VersionGarbageCollector gc = ns.getVersionGarbageCollector();
+//
+//      StringBuffer longpath = new StringBuffer();
+//      while (longpath.length() < 380) {
+//          longpath.append("thisisaverylongpath");
+//      }
+//
+//      createCommitOnlyAndNoChildSplitDocument(ns, "parent1", "parent2", "child",longpath.toString());
+//
+//      // perform a change to make sure the sweep rev will be newer than
+//      clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+//      NodeBuilder builder = ns.getRoot().builder();
+//      builder.child("qux");
+//      ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+//
+//      ns.runBackgroundOperations();
+//
+//      // wait one hour
+//      clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
+//
+//      int nodesBeforeGc = countNodeDocuments();
+//      assertEquals(0, countStalePrev());
+//   //   final VersionGCStats stats = gc().get();
+//      int nodesAfterGc = countNodeDocuments();
+//      assertEquals(3, countStalePrev());
+//      assertEquals(3, nodesBeforeGc - nodesAfterGc);
+//  //    assertEquals(3, stats.splitDocGCCount);
+//      Revision.resetClockToDefault();
+//
+      
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)

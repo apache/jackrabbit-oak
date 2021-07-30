@@ -128,15 +128,15 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // With OAK-8351 this switched from 1 to 2 queries (see createQueries)
         // hence we iterate over the queries returned by createQueries
         List<Bson> queries = createQueries(gcTypes, sweepRevs, oldestRevTimeStamp);
-        BasicDBObject keys = null;
-        if(hasIndex(getNodeCollection(), SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
-           keys = new BasicDBObject();
-           keys.put(SD_TYPE,1);
-           keys.put(SD_MAX_REV_TIME_IN_SECS, 1);
-        }
 
         Iterable<NodeDocument> allResults = emptyList();
         for (Bson query : queries) {
+            BasicDBObject keys = null;
+            if(hasIndex(getNodeCollection(), SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
+               keys = new BasicDBObject();
+               keys.put(SD_TYPE,1);
+               keys.put(SD_MAX_REV_TIME_IN_SECS, 1);
+            }
             // this query uses a timeout of 15min. hitting the timeout will
             // result in an exception which should show up in the log file.
             // while this doesn't resolve the situation (the restructuring
