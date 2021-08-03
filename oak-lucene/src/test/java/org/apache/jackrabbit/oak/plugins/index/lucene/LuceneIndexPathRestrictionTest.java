@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -102,6 +103,53 @@ public class LuceneIndexPathRestrictionTest {
         f = createFilter(root, NT_BASE);
         f.restrictProperty("d/*/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         validateResult(f, of("/", "/test", "/test/c"));
+    }
+
+    @Test
+    public void entryCountWithNoPathRestriction() throws Exception {
+        IndexDefinitionBuilder idxBuilder =
+                new LuceneIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
+                        child("fooIndex"))
+                        .noAsync().evaluatePathRestrictions();
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.build();
+        commit();
+
+        NodeBuilder testRootBuilder = rootBuilder.child("test");
+        for(int i=0; i<100; i++) {
+            testRootBuilder.child("n" + i).setProperty("foo", "bar");
+        }
+        commit();
+
+        FilterImpl f;
+
+        // //*[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        // equality check: we assume 5 different values
+        assertEquals(20, getEstimatedCount(f));
+
+        // /jcr:root/test/*[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        f.restrictPath("/test", PathRestriction.DIRECT_CHILDREN);
+        // direct children + equality check: we assume 5 different values, and 50%
+        assertEquals(10, getEstimatedCount(f));
+
+        // /jcr:root/test//*[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        f.restrictPath("/test", PathRestriction.ALL_CHILDREN);
+        // descendants + equality check: we assume 5 different values, and 90%
+        assertEquals(18, getEstimatedCount(f));
+
+        // /jcr:root/test/x[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        f.restrictPath("/test/x", PathRestriction.EXACT);
+        // exact path + equality check: we assume 5 different values, and 90%
+        assertEquals(1, getEstimatedCount(f));
+
     }
 
     @Test
@@ -263,6 +311,13 @@ public class LuceneIndexPathRestrictionTest {
         }
 
         assertEquals(f.toString(), expected, paths);
+    }
+
+    private long getEstimatedCount(Filter f) {
+        List<QueryIndex.IndexPlan> plans = index.getPlans(f, null, root);
+        assertEquals("Only one plan must show up", 1, plans.size());
+        QueryIndex.IndexPlan plan = plans.get(0);
+        return plan.getEstimatedEntryCount();
     }
 
     private void commit() throws Exception {
