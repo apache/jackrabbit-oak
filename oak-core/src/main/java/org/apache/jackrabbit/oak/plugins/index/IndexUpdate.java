@@ -217,7 +217,7 @@ public class IndexUpdate implements Editor, PathSource {
 
         //Async indexes are not considered for reindexing for sync indexing
         // Skip this check for elastic index
-        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ? 
+        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ?
         if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)){
             return false;
         }
@@ -236,7 +236,7 @@ public class IndexUpdate implements Editor, PathSource {
         // might be set to 'false' (possible via content import).
         // However if its already indexed i.e. has some hidden nodes (containing hidden data)
         // then no need to reindex
-        
+
         // WARNING: If there is _any_ hidden node, then it is assumed that
         // no reindex is needed. Even if the hidden node is completely unrelated
         // and doesn't contain index data (for example the node ":status").
@@ -310,9 +310,11 @@ public class IndexUpdate implements Editor, PathSource {
                     // (and implicitly isIncluded method allows async def in non-async cycle only for nrt/sync defs)
                     // then we don't need to handle missing handler
                     if (definition.hasProperty(ASYNC_PROPERTY_NAME) && rootState.async == null) {
-                        log.warn("Missing provider for nrt/sync index: {} (rootState.async: {}). " +
-                                "Please note, it means that index data should be trusted only after this index " +
-                                "is processed in an async indexing cycle.", definition, rootState.async);
+                        if (!TYPE_DISABLED.equals(type)) {
+                            log.warn("Missing provider for nrt/sync index: {} (rootState.async: {}). " +
+                                    "Please note, it means that index data should be trusted only after this index " +
+                                    "is processed in an async indexing cycle.", definition, rootState.async);
+                        }
                     } else {
                         rootState.missingProvider.onMissingIndex(type, definition, indexPath);
                     }
