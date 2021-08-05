@@ -112,7 +112,9 @@ public class FlatFileNodeStoreBuilder {
     }
 
     public FlatFileNodeStoreBuilder addExistingDataDumpDir(File existingDataDumpDir) {
-        this.existingDataDumpDirs.add(existingDataDumpDir);
+        if (existingDataDumpDir != null) {
+            this.existingDataDumpDirs.add(existingDataDumpDir);
+        }
         return this;
     }
 

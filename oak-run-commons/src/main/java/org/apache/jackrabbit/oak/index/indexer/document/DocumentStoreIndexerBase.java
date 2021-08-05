@@ -71,7 +71,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
     private final Set<String> indexerPaths = new HashSet<>();
-    private static final int MAX_DOWNLOAD_RETRIES = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries"), 3);
+    private static final int MAX_DOWNLOAD_RETRIES = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "3"));
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
         this.indexHelper = indexHelper;
