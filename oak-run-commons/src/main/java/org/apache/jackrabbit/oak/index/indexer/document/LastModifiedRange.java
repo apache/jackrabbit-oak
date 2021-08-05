@@ -50,6 +50,13 @@ public class LastModifiedRange {
         return lastModifiedValue >= lastModifiedFrom && lastModifiedValue < lastModifiedTo;
     }
 
+    public LastModifiedRange mergeWith(LastModifiedRange range) {
+        if (!checkOverlap(range)) {
+            throw new IllegalArgumentException("Non overlapping ranges - " + this + " and " + range);
+        }
+        return new LastModifiedRange(Math.min(lastModifiedFrom, range.lastModifiedFrom), Math.max(lastModifiedTo, range.lastModifiedTo));
+    }
+
     public boolean coversAllDocuments() {
         return lastModifiedFrom == 0 && lastModifiedTo == Long.MAX_VALUE;
     }

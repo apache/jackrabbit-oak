@@ -16,17 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.index.indexer.document;
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
+import org.slf4j.Logger;
 
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+public class CompositeException extends Exception {
 
-import java.io.File;
-import java.io.IOException;
+    final Iterable<Throwable> collectedThrowables;
 
-public interface SortStrategy {
+    public CompositeException(Iterable<Throwable> collectedThrowables) {
+        this.collectedThrowables = collectedThrowables;
+    }
 
-    File createSortedStoreFile() throws IOException, CompositeException;
+    public Iterable<Throwable> getCollectedThrowables() {
+        return collectedThrowables;
+    }
 
-    long getEntryCount();
+    public void logAllExceptions(String message, Logger log) {
+        for (Throwable throwable : getCollectedThrowables()) {
+            log.error(message, throwable);
+        }
+    }
+
 }
