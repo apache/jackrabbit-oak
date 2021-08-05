@@ -1,0 +1,24 @@
+diff --git oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoVersionGCSupport.java oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoVersionGCSupport.java
+index 5ae183c459..28b44ea655 100644
+--- oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoVersionGCSupport.java
++++ oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoVersionGCSupport.java
+@@ -127,6 +127,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
+         // With OAK-8351 this switched from 1 to 2 queries (see createQueries)
+         // hence we iterate over the queries returned by createQueries
+         List<Bson> queries = createQueries(gcTypes, sweepRevs, oldestRevTimeStamp);
++        BasicDBObject dbObject = new BasicDBObject();
++        dbObject.put(SD_TYPE,1);
++        dbObject.put(SD_MAX_REV_TIME_IN_SECS, 1);
++
+         Iterable<NodeDocument> allResults = emptyList();
+         for (Bson query : queries) {
+             // this query uses a timeout of 15min. hitting the timeout will
+@@ -136,7 +140,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
+             // makes any future similar problem more visible than long running
+             // queries alone (15min is still long).
+             Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
+-                    .maxTime(15, TimeUnit.MINUTES),
++                    .maxTime(15, TimeUnit.MINUTES).hint(dbObject),
+                     new Function<BasicDBObject, NodeDocument>() {
+                 @Override
+                 public NodeDocument apply(BasicDBObject input) {
