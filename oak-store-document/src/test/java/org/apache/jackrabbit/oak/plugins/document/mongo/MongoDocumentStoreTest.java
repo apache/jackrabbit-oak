@@ -38,8 +38,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-
-
 /**
  * <code>MongoDocumentStoreTest</code>...
  */
