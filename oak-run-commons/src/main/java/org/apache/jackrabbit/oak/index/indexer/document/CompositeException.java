@@ -22,18 +22,8 @@ import org.slf4j.Logger;
 
 public class CompositeException extends Exception {
 
-    final Iterable<Throwable> collectedThrowables;
-
-    public CompositeException(Iterable<Throwable> collectedThrowables) {
-        this.collectedThrowables = collectedThrowables;
-    }
-
-    public Iterable<Throwable> getCollectedThrowables() {
-        return collectedThrowables;
-    }
-
     public void logAllExceptions(String message, Logger log) {
-        for (Throwable throwable : getCollectedThrowables()) {
+        for (Throwable throwable : getSuppressed()) {
             log.error(message, throwable);
         }
     }

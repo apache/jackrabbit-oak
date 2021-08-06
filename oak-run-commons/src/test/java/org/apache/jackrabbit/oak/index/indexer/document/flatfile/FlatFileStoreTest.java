@@ -155,7 +155,7 @@ public class FlatFileStoreTest {
             exceptionCaught = true;
             e.logAllExceptions("Exceptions caught", logger);
             if (expectException) {
-                assertEquals(EXCEPTION_MESSAGE, e.getCollectedThrowables().iterator().next().getCause().getMessage());
+                assertEquals(EXCEPTION_MESSAGE, e.getSuppressed()[0].getCause().getMessage());
             }
         }
         assertEquals(exceptionCaught, expectException);

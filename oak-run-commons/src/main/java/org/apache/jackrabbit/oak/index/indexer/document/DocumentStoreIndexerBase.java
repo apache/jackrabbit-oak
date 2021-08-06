@@ -152,7 +152,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_RETRIES) {
             try {
-                //TODO Use flatFileStore only if we have relative nodes to be indexed
                 builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
                         .withLastModifiedBreakPoints(lastModifiedBreakPoints)
                         .withBlobStore(indexHelper.getGCBlobStore())

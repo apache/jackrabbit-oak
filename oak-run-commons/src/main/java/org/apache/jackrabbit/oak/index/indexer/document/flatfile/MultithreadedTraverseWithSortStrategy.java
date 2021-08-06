@@ -254,17 +254,21 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                                          NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         previousState.sort(Comparator.comparing(LastModifiedRange::getLastModifiedFrom));
-        for (int i = 0; i < previousState.size(); i++) {
+        for (int i = 0; i < previousState.size();) {
             LastModifiedRange currentRange = previousState.get(i);
             LastModifiedRange nextRange = i < previousState.size() - 1 ? previousState.get(i+1) : null;
+            boolean skipNext = false;
             if (nextRange != null && currentRange.checkOverlap(nextRange)) {
                 LastModifiedRange merged = currentRange.mergeWith(nextRange);
                 log.info("Range overlap between " + currentRange + " and " + nextRange + ". Using merged range " + merged);
                 currentRange = merged;
+                nextRange = i < previousState.size() - 2 ? previousState.get(i+2) : null;
+                skipNext = true;
             }
             long start = currentRange.getLastModifiedTo() - 1;
             long end = nextRange != null ? nextRange.getLastModifiedFrom() : Long.MAX_VALUE;
             addTask(start, end, nodeStateEntryTraverserFactory, blobStore, completedTasks);
+            i = skipNext ? i+2 : i+1;
         }
     }
 
@@ -287,7 +291,11 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         taskQueue.add(POISON_PILL);
         phaser.awaitAdvance(Phases.WAITING_FOR_RESULTS.value);
         if (!throwables.isEmpty()) {
-            throw new CompositeException(throwables);
+            CompositeException exception = new CompositeException();
+            for (Throwable throwable : throwables) {
+                exception.addSuppressed(throwable);
+            }
+            throw exception;
         }
         log.debug("Result collection complete. Proceeding to merge.");
         return sortStoreFile();
