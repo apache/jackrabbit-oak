@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -116,7 +117,8 @@ public class LuceneIndexPathRestrictionTest {
         commit();
 
         NodeBuilder testRootBuilder = rootBuilder.child("test");
-        for(int i=0; i<100; i++) {
+        int count = 100;
+        for (int i = 0; i < count; i++) {
             testRootBuilder.child("n" + i).setProperty("foo", "bar");
         }
         commit();
@@ -126,28 +128,29 @@ public class LuceneIndexPathRestrictionTest {
         // //*[foo = 'bar']
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        // equality check: we assume 5 different values
-        assertEquals(20, getEstimatedCount(f));
+        // equality check: we assume FulltextIndexPlanner#DEFAULT_PROPERTY_WEIGHT different values
+        int cost = count / FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
+        assertEquals(cost, getEstimatedCount(f));
 
         // /jcr:root/test/*[foo = 'bar']
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test", PathRestriction.DIRECT_CHILDREN);
-        // direct children + equality check: we assume 5 different values, and 50%
-        assertEquals(10, getEstimatedCount(f));
+        // direct children + equality check: we assume 50% of just checking for equality
+        assertEquals((int) (cost * 0.5), getEstimatedCount(f));
 
         // /jcr:root/test//*[foo = 'bar']
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test", PathRestriction.ALL_CHILDREN);
-        // descendants + equality check: we assume 5 different values, and 90%
-        assertEquals(18, getEstimatedCount(f));
+        // descendants + equality check: we assume 90% of just checking for equality
+        assertEquals((int) (cost * 0.9), getEstimatedCount(f));
 
         // /jcr:root/test/x[foo = 'bar']
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test/x", PathRestriction.EXACT);
-        // exact path + equality check: we assume 5 different values, and 90%
+        // exact path + equality check: we assume just 1 (as we have only one possible node)
         assertEquals(1, getEstimatedCount(f));
 
     }
