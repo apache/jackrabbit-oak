@@ -183,14 +183,14 @@ public interface JackrabbitSession extends Session {
      * may prevent the addition of a property called {@code C}.
      *
      * @param absPath an absolute path.
-     * @param actions one or serveral actions.
+     * @param actions one or several actions.
      * @return {@code true} if this {@code Session} has permission to
      *         perform the specified actions at the specified
      *         {@code absPath}.
      * @throws RepositoryException if an error occurs.
      * @see Session#hasPermission(String, String)
      */
-    public boolean hasPermission(@NotNull String absPath, @NotNull String... actions) throws RepositoryException;
+    boolean hasPermission(@NotNull String absPath, @NotNull String... actions) throws RepositoryException;
 
     /**
      * Returns the <code>PrincipalManager</code> for the current <code>Session</code>.
