@@ -55,21 +55,21 @@ public class UserImportWithActionsTest extends AbstractImportTest {
     private final TestActionProvider actionProvider = new TestActionProvider();
 
     @Override
-    protected String getImportBehavior() {
+    protected @NotNull String getImportBehavior() {
         return ImportBehavior.NAME_BESTEFFORT;
     }
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         throw new UnsupportedOperationException();
     }
 
-    private void setAuthorizableActions(AuthorizableAction action) {
+    private void setAuthorizableActions(@NotNull AuthorizableAction action) {
         actionProvider.addAction(action);
     }
 
     @Override
-    protected ConfigurationParameters getConfigurationParameters() {
+    protected @NotNull ConfigurationParameters getConfigurationParameters() {
         Map<String, Object> userParams = new HashMap<String, Object>();
         userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
         return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));

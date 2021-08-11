@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -213,7 +214,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     public void testGetOakPathInvalid() throws Exception {
         NamePathMapper np = new NamePathMapper.Default() {
             @Override
-            public String getOakPath(String jcrPath) {
+            public @Nullable String getOakPath(String jcrPath) {
                 // mock failing conversion from jcr to oak path
                 return null;
             }

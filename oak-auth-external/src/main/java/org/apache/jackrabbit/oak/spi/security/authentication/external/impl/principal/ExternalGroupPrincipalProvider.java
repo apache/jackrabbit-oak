@@ -383,7 +383,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
 
         @Override
-        protected Principal getNext() {
+        protected @Nullable Principal getNext() {
             if (!propValues.hasNext()) {
                 if (rows.hasNext()) {
                     propValues = Iterators.filter(rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Predicates.notNull());
@@ -436,7 +436,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
 
         @Override
-        protected Principal getNext() {
+        protected @Nullable Principal getNext() {
             while (rows.hasNext()) {
                 String userPath = rows.next().getPath();
                 try {

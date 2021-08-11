@@ -766,7 +766,7 @@ public class SessionImpl implements JackrabbitSession {
     //--------------------------------------------------< JackrabbitSession >---
 
     @Override
-    public boolean hasPermission(String absPath, String... actions) throws RepositoryException {
+    public boolean hasPermission(@NotNull String absPath, @NotNull String... actions) throws RepositoryException {
         return hasPermission(absPath, Text.implode(actions, ","));
     }
 

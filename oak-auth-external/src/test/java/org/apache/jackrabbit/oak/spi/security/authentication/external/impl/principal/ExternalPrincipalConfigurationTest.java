@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.stats.Monitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
@@ -306,7 +307,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         }
 
         @Override
-        public SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) {
+        public @Nullable SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) {
             return null;
         }
 

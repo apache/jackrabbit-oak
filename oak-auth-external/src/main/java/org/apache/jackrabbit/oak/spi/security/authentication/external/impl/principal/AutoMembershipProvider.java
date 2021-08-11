@@ -204,6 +204,7 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             this.groupIterator = groupIterator;
         }
         
+        @Nullable
         @Override
         protected Group getNext() {
             if (groupIterator.hasNext()) {

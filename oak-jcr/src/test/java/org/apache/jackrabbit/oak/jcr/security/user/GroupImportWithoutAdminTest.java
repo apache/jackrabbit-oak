@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.api.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Testing group import with default {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}
@@ -63,7 +64,7 @@ public class GroupImportWithoutAdminTest extends GroupImportTest {
     }
 
     @Override
-    protected Session getImportSession() {
+    protected @NotNull Session getImportSession() {
         return testSession;
     }
 }

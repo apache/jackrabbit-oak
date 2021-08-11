@@ -240,7 +240,7 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
         try {
             ReadOnlyNodeTypeManager ntMgr = new ReadOnlyNodeTypeManager() {
                 @Override
-                protected Tree getTypes() {
+                protected @NotNull Tree getTypes() {
                     return root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
                 }
             };

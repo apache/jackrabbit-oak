@@ -21,6 +21,7 @@ import java.util.List;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -31,12 +32,12 @@ import static org.junit.Assert.fail;
 public class UserImportAbortTest extends AbstractImportTest {
 
     @Override
-    protected String getImportBehavior() {
+    protected @NotNull String getImportBehavior() {
         return ImportBehavior.NAME_ABORT;
     }
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return USERPATH;
     }
 

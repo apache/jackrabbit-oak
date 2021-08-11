@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.security.Principal;
 import java.util.Map;
@@ -143,7 +144,7 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
         }
 
         @Override
-        public Validator childNodeDeleted(String name, NodeState before) {
+        public @Nullable Validator childNodeDeleted(String name, NodeState before) {
             // removal of the parent node containing a reserved property must be possible
             return null;
         }
