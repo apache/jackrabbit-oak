@@ -503,7 +503,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
                 String err = String.format("Another copy of the index update is already running; skipping this update. " +
                         "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
-                indexStats.failed(new Exception(err, newConcurrentUpdateException()));
+                log.info(err);
                 return;
             }
         }
