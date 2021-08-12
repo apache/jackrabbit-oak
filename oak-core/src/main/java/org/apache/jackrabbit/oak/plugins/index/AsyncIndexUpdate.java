@@ -1051,7 +1051,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void failed(Exception e) {
-            boolean isConcurrentUpdateException = (e.getMessage() != null) && (e.getMessage().startsWith(CONCURRENT_EXCEPTIPN_MSG));
+            boolean isConcurrentUpdateException = (e.getMessage() != null)
+                    && (e.getMessage().startsWith(CONCURRENT_EXCEPTIPN_MSG));
             if (e == INTERRUPTED){
                 status = STATUS_INTERRUPTED;
                 log.info("[{}] The index update interrupted", name);
@@ -1077,10 +1078,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 // subsequent occurrences
                 boolean warn = System.currentTimeMillis() - latestErrorWarn > ERROR_WARN_INTERVAL;
                 if (warn) {
+                    latestErrorWarn = System.currentTimeMillis();
                     if (isConcurrentUpdateException) {
                         log.info("[{}]", name,  e.getMessage());
                     } else {
-                        latestErrorWarn = System.currentTimeMillis();
                         log.warn("[{}] The index update is still failing", name, e);
                     }
                 } else {
