@@ -33,7 +33,6 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -78,7 +77,7 @@ public class CustomRestrictionProvider implements RestrictionProvider {
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
         // EXERCISE
 
     }

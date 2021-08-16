@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 public class EntryIteratorTest {
 
-    private EntryCache cache = when(mock(EntryCache.class).getEntries(anyString())).thenReturn(Iterators.singletonIterator(mock(PermissionEntry.class))).getMock();
+    private final EntryCache cache = when(mock(EntryCache.class).getEntries(anyString())).thenReturn(Iterators.singletonIterator(mock(PermissionEntry.class))).getMock();
 
     @Test
     public void testIterationStopsAtRootPath() {

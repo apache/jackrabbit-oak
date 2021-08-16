@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.query;
 
 
 import com.google.common.io.Closer;
+
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.junit.After;
 import org.junit.Before;
 
@@ -58,6 +60,9 @@ public abstract class AbstractJcrTest {
         closer.close();
         adminSession.logout();
         anonymousSession.logout();
+        if (jcrRepository instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) jcrRepository).shutdown();
+        }
     }
 
     abstract protected Repository createJcrRepository() throws RepositoryException;

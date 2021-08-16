@@ -22,7 +22,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -156,7 +155,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
      */
     private void collectPrincipalNames(@NotNull Set<String> principalNames, @NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException {
         boolean shortcut = (depth <= 1 && idp instanceof PrincipalNameResolver);
-        for (ExternalIdentityRef ref : Iterables.filter(declaredGroupIdRefs, externalIdentityRef -> isSameIDP(externalIdentityRef))) {
+        for (ExternalIdentityRef ref : Iterables.filter(declaredGroupIdRefs, this::isSameIDP)) {
             if (shortcut) {
                 principalNames.add(((PrincipalNameResolver) idp).fromExternalIdentityRef(ref));
             } else {

@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -32,6 +34,8 @@ import java.util.stream.StreamSupport;
 import static org.elasticsearch.common.Strings.INVALID_FILENAME_CHARS;
 
 public class ElasticIndexNameHelper {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexNameHelper.class);
 
     private static final int MAX_NAME_LENGTH = 255;
 
@@ -57,6 +61,7 @@ public class ElasticIndexNameHelper {
         }
         PropertyState seedProp = indexNode.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
         if (seedProp == null) {
+            LOG.debug("Could not obtain remote index name. No seed found for index {}", indexPath);
             return null;
         }
         long seed = seedProp.getValue(Type.LONG);

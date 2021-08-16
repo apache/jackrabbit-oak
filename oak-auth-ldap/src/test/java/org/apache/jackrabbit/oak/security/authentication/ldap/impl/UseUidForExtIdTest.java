@@ -21,20 +21,20 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGr
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.junit.Assert;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import javax.jcr.SimpleCredentials;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class UseUidForExtIdTest extends AbstractLdapIdentityProviderTest {
 
     @Override
-    protected LdapProviderConfig createProviderConfig(String[] userProperties) {
+    @NotNull
+    protected LdapProviderConfig createProviderConfig(@NotNull String[] userProperties) {
         LdapProviderConfig config = super.createProviderConfig(userProperties);
         config.setUseUidForExtId(true);
         return config;
@@ -50,16 +50,13 @@ public class UseUidForExtIdTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testAuthenticate() throws Exception {
-        authenticateInternal(idp, TEST_USER1_UID);
+        assertAuthenticate(idp, TEST_USER1_UID, TEST_USER1_UID, TEST_USER1_DN);
     }
 
     @Test
     public void testAuthenticateCaseInsensitive() throws Exception {
         SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID.toUpperCase(), "pass".toCharArray());
-        ExternalUser user = idp.authenticate(creds);
-        assertNotNull("User 1 must authenticate", user);
-        Assert.assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
-        assertEquals("User Ref", TEST_USER1_UID.toUpperCase(), user.getExternalId().getId());
+        assertAuthenticate(idp, creds, TEST_USER1_UID.toUpperCase(), TEST_USER1_DN);
     }
 
     @Test

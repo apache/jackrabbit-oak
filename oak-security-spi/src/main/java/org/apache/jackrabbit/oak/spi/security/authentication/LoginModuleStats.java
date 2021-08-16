@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.management.openmbean.CompositeData;
-
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
+import javax.management.openmbean.CompositeData;
+
+/**
+ * @deprecated Since Oak 1.40.0. A full implementation of {@code LoginModuleMonitor} and {@link LoginModuleMBean} has been added to oak-core.
+ */
+@Deprecated
 public class LoginModuleStats implements LoginModuleMBean, LoginModuleMonitor {
 
     private final StatisticsProvider statisticsProvider;

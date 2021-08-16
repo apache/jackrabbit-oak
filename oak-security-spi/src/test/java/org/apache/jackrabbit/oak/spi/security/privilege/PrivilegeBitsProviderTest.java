@@ -26,11 +26,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
+import java.util.Collections;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -40,6 +43,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -59,10 +63,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Before
     public void before() {
-        pTree = Mockito.mock(Tree.class);
-        when(pTree.getName()).thenReturn(KNOWN_PRIV_NAME);
-        when(pTree.getProperty(REP_BITS)).thenReturn(ps);
-
+        pTree = mockPrivilegeDefinitionTree(KNOWN_PRIV_NAME, ps);
         privTree = Mockito.mock(Tree.class);
         when(privTree.exists()).thenReturn(true);
         when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(true);
@@ -73,6 +74,13 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(root.getTree(PRIVILEGES_PATH)).thenReturn(privTree);
 
         bitsProvider = new PrivilegeBitsProvider(root);
+    }
+    
+    private static Tree mockPrivilegeDefinitionTree(@NotNull String name, @NotNull PropertyState bitsProp) {
+        Tree tree = Mockito.mock(Tree.class);
+        when(tree.getName()).thenReturn(name);
+        when(tree.getProperty(REP_BITS)).thenReturn(bitsProp);
+        return tree;
     }
 
     @Test
@@ -224,6 +232,51 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
     }
 
     @Test
+    public void testBitsValidateEmpty() throws Exception {
+        PrivilegeBits bits = bitsProvider.getBits(Collections.emptySet(), true);
+        assertSame(PrivilegeBits.EMPTY, bits);
+
+        bits = bitsProvider.getBits(Collections.emptySet(), false);
+        assertSame(PrivilegeBits.EMPTY, bits);
+
+        verify(root, never()).getTree(PRIVILEGES_PATH);
+        verify(privTree, never()).getChild(anyString());
+    }
+    
+    @Test
+    public void testGetBitsValidateTwiceBuitInKnown() throws Exception {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, JCR_ADD_CHILD_NODES);
+        PrivilegeBits bits1 = bitsProvider.getBits(names, true);
+        PrivilegeBits bits2 = bitsProvider.getBits(names, false);
+
+        assertNotSame(bits1, bits2);
+        assertEquals(bits1, bits2);
+
+        verify(root, times(1)).getTree(PRIVILEGES_PATH);
+        verify(privTree, times(1)).getChild(KNOWN_PRIV_NAME);
+    }
+    
+    @Test(expected = AccessControlException.class)
+    public void testBitsValidateNonExistingTree() throws Exception {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, JCR_ADD_CHILD_NODES);
+
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(false);
+        // privilegesTree has no child for KNOWN_PRIV_NAME -> must fail
+        bitsProvider.getBits(names, true);
+    }
+
+    public void testBitsValidateFalseNonExistingTree() throws Exception {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, JCR_ADD_CHILD_NODES);
+
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(false);
+        
+        // validation is disabled => same as getBits(Iterable)
+        assertEquals(bitsProvider.getBits(names), bitsProvider.getBits(names, false));
+    }
+
+    @Test
     public void testGetBitsFromEmptyPrivileges() {
         assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(new Privilege[0], NamePathMapper.DEFAULT));
     }
@@ -234,6 +287,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(p.getName()).thenReturn("name");
 
         NamePathMapper mapper = new NamePathMapper.Default() {
+            @Nullable
             @Override
             public String getOakNameOrNull(@NotNull String jcrName) {
                 return null;
@@ -274,6 +328,24 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
     public void testGetPrivilegeNamesFromCache() {
         Set<String> names = bitsProvider.getPrivilegeNames(bits);
         assertSame(names, bitsProvider.getPrivilegeNames(bits));
+    }
+
+    @Test
+    public void testGetPrivilegeNamesWithNewRegistered() {
+        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
+        // fill cache
+        Set<String> names = provider.getPrivilegeNames(bits);
+
+        PropertyState priv2ps = PropertyStates.createProperty(REP_BITS, 10000L, Type.LONG); 
+        Tree priv2 = mockPrivilegeDefinitionTree("priv2", priv2ps);
+        when(privTree.hasChild("priv2")).thenReturn(true);
+        when(privTree.getChild("priv2")).thenReturn(priv2);
+        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree, priv2));
+
+        PrivilegeBits bits2 = PrivilegeBits.getInstance(priv2ps);
+        Set<String> newNames = provider.getPrivilegeNames(bits2);
+        assertNotEquals(names, newNames);
+        assertEquals(ImmutableSet.of("priv2"), newNames);
     }
 
     @Test

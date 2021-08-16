@@ -40,12 +40,9 @@ final class UserDelegator extends AuthorizableDelegator implements User {
         super(sessionDelegate, userDelegate);
     }
 
-    static User wrap(SessionDelegate sessionDelegate, User user) {
-        if (user == null) {
-            return null;
-        } else {
-            return new UserDelegator(sessionDelegate, user);
-        }
+    @NotNull
+    static User wrap(@NotNull SessionDelegate sessionDelegate, @NotNull User user) {
+        return new UserDelegator(sessionDelegate, user);
     }
 
     @NotNull
@@ -57,6 +54,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
         }
     }
 
+    @NotNull
     private User getDelegate() {
         return (User) delegate;
     }

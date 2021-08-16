@@ -72,7 +72,7 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
         Set<RestrictionDefinition> defs = provider.getSupportedRestrictions("/testPath");
         assertNotNull(defs);
-        assertEquals(4, defs.size());
+        assertEquals(5, defs.size());
 
         for (RestrictionDefinition def : defs) {
             if (REP_GLOB.equals(def.getName())) {
@@ -86,6 +86,9 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
                 assertFalse(def.isMandatory());
             } else if (REP_ITEM_NAMES.equals(def.getName())) {
                 assertEquals(Type.NAMES, def.getRequiredType());
+                assertFalse(def.isMandatory());
+            } else if (REP_CURRENT.equals(def.getName())) {
+                assertEquals(Type.STRINGS, def.getRequiredType());
                 assertFalse(def.isMandatory());
             } else {
                 fail("unexpected restriction " + def.getName());
@@ -131,6 +134,8 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         map.put(PropertyStates.createProperty(REP_PREFIXES, prefixes, Type.STRINGS), new PrefixPattern(prefixes));
         List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
         map.put(PropertyStates.createProperty(REP_ITEM_NAMES, prefixes, Type.NAMES), new ItemNamePattern(itemNames));
+        List<String> propNames = ImmutableList.of("jcr:mixinTypes", "jcr:primaryType");
+        map.put(PropertyStates.createProperty(REP_CURRENT, prefixes, Type.STRINGS), new CurrentPattern("/testPatg", propNames));
 
         Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
         Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
@@ -156,9 +161,12 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
         map.put(PropertyStates.createProperty(REP_ITEM_NAMES, itemNames, Type.NAMES), new ItemNamePattern(itemNames));
 
+        List<String> propNames = ImmutableList.of("*");
+        map.put(PropertyStates.createProperty(REP_CURRENT, propNames, Type.STRINGS), new CurrentPattern("/testPath", propNames));
+        
         Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
         Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-
+        
         // test restrictions individually
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
             restrictions.setProperty(entry.getKey());

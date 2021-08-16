@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.security.Principal;
 
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -37,11 +35,11 @@ import org.jetbrains.annotations.Nullable;
  * @see SessionDelegate#perform(SessionOperation)
  */
 public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQueryManager {
+    
     private final SessionDelegate delegate;
     private final PrincipalManager principalManager;
 
-    public PrincipalManagerDelegator(SessionDelegate delegate,
-            PrincipalManager principalManager) {
+    public PrincipalManagerDelegator(@NotNull SessionDelegate delegate, @NotNull PrincipalManager principalManager) {
         this.principalManager = principalManager;
         this.delegate = delegate;
     }
@@ -60,16 +58,12 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
     @Nullable
     @Override
     public Principal getPrincipal(@NotNull final String principalName) {
-        try {
-            return delegate.performNullable(new SessionOperation<Principal>("getPrincipal") {
-                @Override
-                public Principal performNullable() {
-                    return principalManager.getPrincipal(principalName);
-                }
-            });
-        } catch (RepositoryException e) {
-            throw new RuntimeException("Unexpected exception thrown by operation 'getPrincipal'", e);
-        }
+        return delegate.safePerformNullable(new SessionOperation<Principal>("getPrincipal") {
+            @Override
+            public Principal performNullable() {
+                return principalManager.getPrincipal(principalName);
+            }
+        });
     }
 
     @NotNull

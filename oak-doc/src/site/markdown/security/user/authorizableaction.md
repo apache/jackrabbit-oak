@@ -74,7 +74,7 @@ The following implementations of the `AuthorizableAction` interface are provided
 * `AccessControlAction`: set up permission for new authorizables
 * `PasswordValidationAction`: simplistic password verification upon user creation and password modification
 * `PasswordChangeAction`: verifies that the new password is different from the old one
-* `ClearMembershipAction`: clear group membership upon removal of an authorizable.
+* `ClearMembershipAction`: clear group membership upon removal of an authorizable. Note, that this will only remove those membership references that are visible to the editing session.
 
 As in Jackrabbit 2.x the actions are executed with the editing session and the
 target operation will fail if any of the configured actions fails (e.g. due to

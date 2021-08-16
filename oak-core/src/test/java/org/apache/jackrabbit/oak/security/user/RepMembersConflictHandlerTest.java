@@ -398,6 +398,13 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testAddExistingPropertyOther() throws Exception {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        PropertyState ours = PropertyStates.createProperty("any", "value");
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.addExistingProperty(mock(NodeBuilder.class), ours, mock(PropertyState.class)));
+    }
+
+    @Test
     public void testChangeDeletedPropertyRepMembers() {
         RepMembersConflictHandler handler = new RepMembersConflictHandler();
         PropertyState ours = PropertyStates.createProperty(UserConstants.REP_MEMBERS, "value");

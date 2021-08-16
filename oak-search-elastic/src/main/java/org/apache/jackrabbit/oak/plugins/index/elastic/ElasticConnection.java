@@ -24,6 +24,8 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -43,15 +45,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ElasticConnection implements Closeable {
 
-    protected static final String SCHEME_PROP = "elasticsearch.scheme";
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticConnection.class);
+
     protected static final String DEFAULT_SCHEME = "http";
-    protected static final String HOST_PROP = "elasticsearch.host";
     protected static final String DEFAULT_HOST = "127.0.0.1";
-    protected static final String PORT_PROP = "elasticsearch.port";
     protected static final int DEFAULT_PORT = 9200;
-    protected static final String API_KEY_ID_PROP = "elasticsearch.apiKeyId";
     protected static final String DEFAULT_API_KEY_ID = "";
-    protected static final String API_KEY_SECRET_PROP = "elasticsearch.apiKeySecret";
     protected static final String DEFAULT_API_KEY_SECRET = "";
 
     private final String indexPrefix;
@@ -123,10 +122,15 @@ public class ElasticConnection implements Closeable {
     /**
      * Checks if elastic server is available for connection.
      * @return true if available, false otherwise.
-     * @throws IOException if some connection exception occurs.
      */
-    public boolean isAvailable() throws IOException {
-        return this.getClient().ping(RequestOptions.DEFAULT);
+    public boolean isAvailable() {
+        try {
+            return this.getClient().ping(RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            LOG.warn("Error checking connection for {}, message: {}", this, e.getMessage());
+            LOG.debug("", e);
+            return false;
+        }
     }
 
     @Override

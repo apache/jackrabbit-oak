@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
-
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -42,16 +34,28 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.osgi.framework.ServiceRegistration;
+
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
  * Implementation of the {@code PrincipalConfiguration} interface that provides
@@ -79,11 +83,13 @@ import org.slf4j.LoggerFactory;
                 value = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration")
 })
 public class ExternalPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
-
-    private static final Logger log = LoggerFactory.getLogger(ExternalPrincipalConfiguration.class);
-
+    
     private SyncConfigTracker syncConfigTracker;
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
+    
+    private ServiceRegistration automembershipRegistration;
+
+    private ExternalIdentityMonitor monitor = ExternalIdentityMonitor.NOOP;
 
     @SuppressWarnings("UnusedDeclaration")
     public ExternalPrincipalConfiguration() {
@@ -137,6 +143,12 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         return Collections.singletonList(new ExternalIdentityImporter());
     }
 
+    @Override
+    public @NotNull Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+        monitor = new ExternalIdentityMonitorImpl(statisticsProvider);
+        return Collections.singleton(monitor);
+    }
+
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
@@ -154,6 +166,8 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
         syncConfigTracker = new SyncConfigTracker(bundleContext, syncHandlerMappingTracker);
         syncConfigTracker.open();
+        
+        automembershipRegistration = bundleContext.registerService(DynamicMembershipService.class.getName(), new AutomembershipService(syncConfigTracker), null);
     }
 
     @SuppressWarnings("UnusedDeclaration")
@@ -164,6 +178,10 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         }
         if (syncHandlerMappingTracker != null) {
             syncHandlerMappingTracker.close();
+        }
+        
+        if (automembershipRegistration != null) {
+            automembershipRegistration.unregister();
         }
     }
 

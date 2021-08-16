@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.39-SNAPSHOT</version>
+    <version>1.41-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -156,12 +156,15 @@
                                 <element>PACKAGE</element>
                                 <includes>
                                     <include>org.apache.jackrabbit.oak.security.authentication</include>
+                                    <include>org.apache.jackrabbit.oak.security.authentication.monitor</include>
                                     <include>org.apache.jackrabbit.oak.security.authentication.user</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization</include>
+                                    <include>org.apache.jackrabbit.oak.security.authorization.monitor</include>
                                     <include>org.apache.jackrabbit.oak.security.internal</include>
                                     <include>org.apache.jackrabbit.oak.security.principal</include>
                                     <include>org.apache.jackrabbit.oak.security.privilege</include>
                                     <include>org.apache.jackrabbit.oak.security.user.autosave</include>
+                                    <include>org.apache.jackrabbit.oak.security.user.monitor</include>
                                     <include>org.apache.jackrabbit.oak.security.user.query</include>
                                     <include>org.apache.jackrabbit.oak.security.user.whiteboard</include>
                                 </includes>
@@ -179,6 +182,7 @@
                             <rule>
                                 <element>PACKAGE</element>
                                 <includes>
+                                    <include>org.apache.jackrabbit.oak.security.authentication.token</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.accesscontrol</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.composite</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.permission</include>
@@ -193,22 +197,6 @@
                                         <counter>BRANCH</counter>
                                         <value>COVEREDRATIO</value>
                                         <minimum>0.99</minimum>
-                                    </limit>
-                                </limits>
-                            </rule>
-                            <rule>
-                                <element>PACKAGE</element>
-                                <includes>
-                                    <include>org.apache.jackrabbit.oak.security.authentication.token</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>*Test</exclude>
-                                </excludes>
-                                <limits>
-                                    <limit>
-                                        <counter>BRANCH</counter>
-                                        <value>COVEREDRATIO</value>
-                                        <minimum>0.97</minimum>
                                     </limit>
                                 </limits>
                             </rule>

@@ -71,12 +71,12 @@ public class UtilTest extends AbstractSecurityTest {
 
     @Test(expected = AccessControlException.class)
     public void testCheckValidPrincipalForNull() throws Exception {
-        Util.checkValidPrincipal(null, getPrincipalManager(root));
+        Util.checkValidPrincipal(() -> null, getPrincipalManager(root), ImportBehavior.BESTEFFORT);
     }
 
     @Test(expected = AccessControlException.class)
     public void testCheckValidPrincipalForEmpty() throws Exception {
-        Util.checkValidPrincipal(new PrincipalImpl(""), getPrincipalManager(root));
+        Util.checkValidPrincipal(new PrincipalImpl(""), getPrincipalManager(root), ImportBehavior.BESTEFFORT);
     }
 
     @Test

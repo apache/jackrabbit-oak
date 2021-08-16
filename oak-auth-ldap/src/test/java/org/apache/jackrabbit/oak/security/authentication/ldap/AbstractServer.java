@@ -38,12 +38,11 @@ import java.util.Map;
 
 import javax.naming.Context;
 import javax.naming.NamingException;
-import javax.naming.ldap.InitialLdapContext;
-import javax.naming.ldap.LdapContext;
 
 import org.apache.directory.api.ldap.model.constants.SupportedSaslMechanisms;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.entry.Modification;
 import org.apache.directory.api.ldap.model.exception.LdapConfigurationException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.ldif.LdifEntry;
@@ -85,7 +84,6 @@ public abstract class AbstractServer {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractServer.class);
     private static final List<LdifEntry> EMPTY_LIST = Collections.unmodifiableList(new ArrayList<LdifEntry>(0));
-    private static final String CTX_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
 
     /**
      * the context root for the rootDSE
@@ -104,8 +102,13 @@ public abstract class AbstractServer {
     protected DirectoryService directoryService;
 
     protected LdapServer ldapServer;
+    
+    protected boolean enableSSL = false;
 
-
+    public AbstractServer(boolean enableSSL) {
+        this.enableSSL = enableSSL;
+    }
+    
     /**
      * Loads an LDIF from an input stream and adds the entries it contains to
      * the server.  It appears as though the administrator added these entries
@@ -150,41 +153,9 @@ public abstract class AbstractServer {
         loadLdif(reader);
     }
 
-    /**
-     * Common code to get an initial context via a simple bind to the
-     * server over the wire using the SUN JNDI LDAP provider. Do not use
-     * this method until after the setUp() method is called to start the
-     * server otherwise it will fail.
-     *
-     * @return an LDAP context as the the administrator to the rootDSE
-     * @throws NamingException if the server cannot be contacted
-     */
-    protected LdapContext getWiredContext() throws Exception {
-        return getWiredContext(ServerDNConstants.ADMIN_SYSTEM_DN, "secret");
+    public void modify(Dn dn, List<Modification> modification) throws LdapException {
+        rootDSE.modify(dn, modification);
     }
-
-
-    /**
-     * Common code to get an initial context via a simple bind to the
-     * server over the wire using the SUN JNDI LDAP provider. Do not use
-     * this method until after the setUp() method is called to start the
-     * server otherwise it will fail.
-     *
-     * @param bindPrincipalDn the DN of the principal to bind as
-     * @param password        the password of the bind principal
-     * @return an LDAP context as the the administrator to the rootDSE
-     * @throws NamingException if the server cannot be contacted
-     */
-    protected LdapContext getWiredContext(String bindPrincipalDn, String password) throws Exception {
-        Hashtable<String, String> env = new Hashtable<String, String>();
-        env.put(Context.INITIAL_CONTEXT_FACTORY, CTX_FACTORY);
-        env.put(Context.PROVIDER_URL, "ldap://localhost:" + port);
-        env.put(Context.SECURITY_PRINCIPAL, bindPrincipalDn);
-        env.put(Context.SECURITY_CREDENTIALS, password);
-        env.put(Context.SECURITY_AUTHENTICATION, "simple");
-        return new InitialLdapContext(env, null);
-    }
-
 
     /**
      * Get's the initial context factory for the provider's ou=system context
@@ -257,7 +228,10 @@ public abstract class AbstractServer {
     }
 
     protected void setupLdapServer() throws Exception {
-        ldapServer.setTransports(new TcpTransport(port));
+        TcpTransport transport = new TcpTransport((port));
+        transport.enableSSL(enableSSL);
+        
+        ldapServer.setTransports(transport);
         ldapServer.setDirectoryService(directoryService);
         ldapServer.addExtendedOperationHandler(new StartTlsHandler());
         ldapServer.addExtendedOperationHandler(new StoredProcedureExtendedOperationHandler());

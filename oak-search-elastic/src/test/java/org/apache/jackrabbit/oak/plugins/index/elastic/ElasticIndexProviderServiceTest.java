@@ -35,13 +35,18 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_HOST;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_PORT;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_INDEX_PREFIX;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_LOCAL_TEXT_EXTRACTION_DIR;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class ElasticIndexProviderServiceTest {
 
@@ -72,9 +77,23 @@ public class ElasticIndexProviderServiceTest {
     }
 
     @Test
-    public void defaultSetup() throws Exception {
+    public void defaultSetup() {
+        MockOsgi.activate(service, context.bundleContext());
+
+        assertNotNull(context.getService(QueryIndexProvider.class));
+        assertNotNull(context.getService(IndexEditorProvider.class));
+
+        // With the default setup and no elastic cluster available at localhost:9200 the index cleaner will not be registered.
+        // This check can potentially fail if a local cluster is up and running.
+        assertEquals(0, WhiteboardUtils.getServices(wb, Runnable.class).size());
+
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    @Test
+    public void withElasticSetup() throws Exception {
         Map<String, Object> props = new HashMap<>();
-        props.put("localTextExtractionDir", folder.newFolder("localTextExtractionDir").getAbsolutePath());
+        props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         props.put(PROP_INDEX_PREFIX, "elastic");
         props.put(PROP_ELASTIC_HOST, "localhost");
         props.put(PROP_ELASTIC_PORT, elasticRule.elastic.getFirstMappedPort());
@@ -83,7 +102,19 @@ public class ElasticIndexProviderServiceTest {
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));
 
-        assertNotNull(WhiteboardUtils.getServices(wb, Runnable.class));
+        assertEquals(1, WhiteboardUtils.getServices(wb, Runnable.class).size());
+
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    @Test
+    public void disabled() {
+        MockOsgi.activate(service, context.bundleContext(), Collections.singletonMap(PROP_DISABLED, true));
+
+        assertNull(context.getService(QueryIndexProvider.class));
+        assertNull(context.getService(IndexEditorProvider.class));
+
+        assertEquals(0, WhiteboardUtils.getServices(wb, Runnable.class).size());
 
         MockOsgi.deactivate(service, context.bundleContext());
     }

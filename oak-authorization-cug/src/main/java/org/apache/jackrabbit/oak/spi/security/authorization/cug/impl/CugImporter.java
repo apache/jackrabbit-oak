@@ -136,7 +136,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     }
 
     //--------------------------------------------------------------------------
-    private boolean isValid(@NotNull PropInfo propInfo, @NotNull PropertyDefinition def) {
+    private static boolean isValid(@NotNull PropInfo propInfo, @NotNull PropertyDefinition def) {
         if (REP_PRINCIPAL_NAMES.equals(propInfo.getName())) {
             return def.isMultiple() && NT_REP_CUG_POLICY.equals(def.getDeclaringNodeType().getName());
         }

@@ -68,7 +68,7 @@ public class PermissionProviderHiddenTypeTest extends AbstractPrincipalBasedTest
         assertTrue(permissionProvider.isGranted(mockReadOnlyTree(TreeType.HIDDEN), mock(PropertyState.class), Permissions.ALL));
     }
     @Test
-    public void testGetTreePermission() throws Exception {
+    public void testGetTreePermission() {
         assertSame(TreePermission.ALL, permissionProvider.getTreePermission(mockReadOnlyTree(TreeType.HIDDEN), TreeType.HIDDEN, mock(AbstractTreePermission.class)));
     }
 
@@ -76,7 +76,7 @@ public class PermissionProviderHiddenTypeTest extends AbstractPrincipalBasedTest
     public void testGetChildTreePermission() {
         String indexPath = "/" + IndexConstants.INDEX_DEFINITIONS_NAME + "/acPrincipalName/" + IndexConstants.INDEX_CONTENT_NODE_NAME;
         Tree readOnly = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
-        TreePermission tp = (AbstractTreePermission) permissionProvider.getTreePermission(readOnly, TreePermission.EMPTY);
+        TreePermission tp = permissionProvider.getTreePermission(readOnly, TreePermission.EMPTY);
         NodeState ns = getTreeProvider().asNodeState(readOnly);
         for (String elem : PathUtils.elements(indexPath)) {
             ns = ns.getChildNode(elem);

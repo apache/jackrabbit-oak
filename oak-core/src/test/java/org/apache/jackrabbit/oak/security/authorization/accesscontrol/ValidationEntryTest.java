@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_WRITE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;

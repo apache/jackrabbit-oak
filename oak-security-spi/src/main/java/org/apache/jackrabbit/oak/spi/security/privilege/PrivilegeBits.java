@@ -265,7 +265,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
                                             @NotNull PrivilegeBits parentBits,
                                             boolean isAllow) {
         long privs = bits.d.longValue();
-        long parentPrivs = parentBits.d.longValue();
         long perm = Permissions.NO_PERMISSION;
         if ((privs & READ) == READ) {
             perm |= Permissions.READ;
@@ -289,7 +288,16 @@ public final class PrivilegeBits implements PrivilegeConstants {
                 perm |= Permissions.REMOVE_PROPERTY;
             }
         }
+        perm |= calculateWritePermissions(privs, parentBits.d.longValue(), isAllow);
 
+        // the remaining (special) permissions are simply defined on the node
+        perm |= calculateOtherPermissions(privs);
+        return perm;
+    }
+    
+    private static long calculateWritePermissions(long privs, long parentPrivs, boolean isAllow) {
+        long perm = Permissions.NO_PERMISSION;
+        
         // add_node permission is granted through privilege on the parent.
         if ((parentPrivs & ADD_CHILD_NODES) == ADD_CHILD_NODES) {
             perm |= Permissions.ADD_NODE;
@@ -319,8 +327,11 @@ public final class PrivilegeBits implements PrivilegeConstants {
                 (privs & REMOVE_CHILD_NODES) == REMOVE_CHILD_NODES) {
             perm |= Permissions.MODIFY_CHILD_NODE_COLLECTION;
         }
-
-        // the remaining (special) permissions are simply defined on the node
+        return perm;
+    }
+    
+    private static long calculateOtherPermissions(long privs) {
+        long perm = Permissions.NO_PERMISSION;
         if ((privs & READ_AC) == READ_AC) {
             perm |= Permissions.READ_ACCESS_CONTROL;
         }
@@ -637,17 +648,20 @@ public final class PrivilegeBits implements PrivilegeConstants {
         private final long bits;
         private final long[] bitsArr;
         private final boolean isSimple;
+        private final int hashcode;
 
         private UnmodifiableData(long bits) {
             this.bits = bits;
             bitsArr = null;
             isSimple = true;
+            hashcode = Long.valueOf(this.bits).hashCode();
         }
 
         private UnmodifiableData(long[] bitsArr) {
             bits = NO_PRIVILEGE;
             this.bitsArr = bitsArr;
             isSimple = false;
+            hashcode = Arrays.hashCode(this.bitsArr);
         }
 
         @Override
@@ -711,7 +725,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         //---------------------------------------------------------< Object >---
         @Override
         public int hashCode() {
-            return (isSimple) ? Long.valueOf(bits).hashCode() : Arrays.hashCode(bitsArr);
+            return hashcode;
         }
 
         @Override
@@ -863,7 +877,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
         private static long[] diff(long[] a, long[] b) {
             int index = -1;
-            long[] res = new long[((a.length > b.length) ? a.length : b.length)];
+            long[] res = new long[(Math.max(a.length, b.length))];
             for (int i = 0; i < res.length; i++) {
                 if (i < a.length && i < b.length) {
                     res[i] = a[i] & ~b[i];

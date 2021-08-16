@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.math.BigInteger;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -67,8 +66,6 @@ class Checkpoints {
 
     private final DocumentStore store;
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
     private final AtomicInteger createCounter = new AtomicInteger();
 
     private final Object cleanupLock = new Object();
@@ -89,15 +86,20 @@ class Checkpoints {
                 rv[0] = nodeStore.getHeadRevision();
             }
         });
-        createCounter.getAndIncrement();
-        performCleanupIfRequired();
-        UpdateOp op = new UpdateOp(ID, false);
-        long endTime = BigInteger.valueOf(nodeStore.getClock().getTime())
-                .add(BigInteger.valueOf(lifetimeInMillis))
-                .min(BigInteger.valueOf(Long.MAX_VALUE)).longValue();
-        op.setMapEntry(PROP_CHECKPOINT, r, new Info(endTime, rv[0], info).toString());
-        store.createOrUpdate(Collection.SETTINGS, op);
+        long endTime = Utils.sum(nodeStore.getClock().getTime(), lifetimeInMillis);
+        create(r, new Info(endTime, rv[0], info));
         return r;
+    }
+
+    public Revision create(long lifetimeInMillis,
+                           @NotNull Map<String, String> info,
+                           @NotNull Revision revision) {
+        if (revision.getTimestamp() > nodeStore.getClock().getTime()) {
+            throw new IllegalArgumentException("Cannot create checkpoint with a revision in the future: " + revision);
+        }
+        long endTime = Utils.sum(nodeStore.getClock().getTime(), lifetimeInMillis);
+        create(revision, new Info(endTime, null, info));
+        return revision;
     }
 
     public void release(String checkpoint) {
@@ -121,7 +123,7 @@ class Checkpoints {
         SortedMap<Revision, Info> checkpoints = getCheckpoints();
 
         if(checkpoints.isEmpty()){
-            log.debug("No checkpoint registered so far");
+            LOG.debug("No checkpoint registered so far");
             return null;
         }
 
@@ -145,7 +147,7 @@ class Checkpoints {
 
         if (op.hasChanges()) {
             store.findAndUpdate(Collection.SETTINGS, op);
-            log.debug("Purged {} expired checkpoints", op.getChanges().size());
+            LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
         }
 
         return lastAliveRevision;
@@ -237,6 +239,14 @@ class Checkpoints {
             UpdateOp updateOp = new UpdateOp(ID, true);
             store.createOrUpdate(Collection.SETTINGS, updateOp);
         }
+    }
+
+    private void create(@NotNull Revision revision, @NotNull Info info) {
+        createCounter.getAndIncrement();
+        performCleanupIfRequired();
+        UpdateOp op = new UpdateOp(ID, false);
+        op.setMapEntry(PROP_CHECKPOINT, revision, info.toString());
+        store.createOrUpdate(Collection.SETTINGS, op);
     }
 
     private RevisionVector expand(Revision checkpoint) {

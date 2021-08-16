@@ -23,13 +23,11 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * This implementation of {@code Group} delegates back to a
@@ -39,16 +37,13 @@ import org.jetbrains.annotations.Nullable;
  */
 final class GroupDelegator extends AuthorizableDelegator implements Group {
 
-    private GroupDelegator(SessionDelegate sessionDelegate, Group groupDelegate) {
+    private GroupDelegator(@NotNull SessionDelegate sessionDelegate, @NotNull Group groupDelegate) {
         super(sessionDelegate, groupDelegate);
     }
 
-    static Group wrap(@NotNull SessionDelegate sessionDelegate, Group group) {
-        if (group == null) {
-            return null;
-        } else {
-            return new GroupDelegator(sessionDelegate, group);
-        }
+    @NotNull
+    static Group wrap(@NotNull SessionDelegate sessionDelegate, @NotNull Group group) {
+        return new GroupDelegator(sessionDelegate, group);
     }
 
     @NotNull
@@ -60,6 +55,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
         }
     }
 
+    @NotNull
     private Group getDelegate() {
         return (Group) delegate;
     }
@@ -73,13 +69,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = getDelegate().getDeclaredMembers();
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(@Nullable Authorizable authorizable) {
-                        return wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return Iterators.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
             }
         });
     }
@@ -92,13 +82,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = getDelegate().getMembers();
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(@Nullable Authorizable authorizable) {
-                        return wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return Iterators.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
             }
         });
     }

@@ -43,7 +43,7 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractRestrictionProvider implements RestrictionProvider, AccessControlConstants {
 
-    private Map<String, RestrictionDefinition> supported;
+    private final Map<String, RestrictionDefinition> supported;
 
     public AbstractRestrictionProvider(@NotNull Map<String, ? extends RestrictionDefinition> definitions) {
         this.supported = ImmutableMap.copyOf(definitions);
@@ -52,7 +52,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     //------------------------------------------------< RestrictionProvider >---
     @NotNull
     @Override
-    public Set<RestrictionDefinition> getSupportedRestrictions(String oakPath) {
+    public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
         if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
@@ -62,7 +62,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     @NotNull
     @Override
-    public Restriction createRestriction(String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         int tag = requiredType.tag();
@@ -80,7 +80,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     @NotNull
     @Override
-    public Restriction createRestriction(String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         for (Value v : values) {
@@ -103,7 +103,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     @NotNull
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
+    public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
         if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
@@ -122,7 +122,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
         // validation of the restrictions is delegated to the commit hook
         // see #validateRestrictions below
         if (!restrictions.isEmpty()) {
@@ -134,7 +134,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Override
-    public void validateRestrictions(String oakPath, @NotNull Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws AccessControlException {
         Map<String, PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
         if (isUnsupportedPath(oakPath)) {
             if (!restrictionProperties.isEmpty()) {
@@ -206,12 +206,12 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @NotNull
-    private Restriction createRestriction(PropertyState propertyState, RestrictionDefinition definition) {
+    private static Restriction createRestriction(@NotNull PropertyState propertyState, @NotNull RestrictionDefinition definition) {
         return new RestrictionImpl(propertyState, definition);
     }
 
     @NotNull
-    private Map<String, PropertyState> getRestrictionProperties(Tree aceTree) {
+    private Map<String, PropertyState> getRestrictionProperties(@NotNull Tree aceTree) {
         Tree rTree = getRestrictionsTree(aceTree);
         Map<String, PropertyState> restrictionProperties = new HashMap<>();
         for (PropertyState property : rTree.getProperties()) {
@@ -223,7 +223,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         return restrictionProperties;
     }
 
-    private static boolean isRestrictionProperty(String propertyName) {
+    private static boolean isRestrictionProperty(@NotNull String propertyName) {
         return !AccessControlConstants.ACE_PROPERTY_NAMES.contains(propertyName) &&
                 !NamespaceRegistry.PREFIX_JCR.equals(Text.getNamespacePrefix(propertyName));
     }

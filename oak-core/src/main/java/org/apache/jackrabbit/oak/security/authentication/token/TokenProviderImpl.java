@@ -479,9 +479,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                 log.debug("Failed to cleanup expired token nodes", e);
                 root.refresh();
             } finally {
-                if (log.isDebugEnabled() && active + expired > 0) {
-                    log.debug("Token cleanup completed in {} ms: removed {}/{} tokens for {}.",
-                            System.currentTimeMillis() - start, expired, active + expired, userId);
+                if (active + expired > 0) {
+                    log.debug("Token cleanup completed in {} ms: removed {}/{} tokens for {}.", System.currentTimeMillis() - start, expired, active + expired, userId);
                 }
             }
         }

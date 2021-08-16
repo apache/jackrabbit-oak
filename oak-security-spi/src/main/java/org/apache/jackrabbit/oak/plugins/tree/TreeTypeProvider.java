@@ -30,6 +30,7 @@ public final class TreeTypeProvider {
         this.ctx = authorizationContext;
     }
 
+    @NotNull
     public TreeType getType(@NotNull Tree tree) {
         if (tree.isRoot()) {
             return TreeType.DEFAULT;
@@ -48,6 +49,7 @@ public final class TreeTypeProvider {
         }
     }
 
+    @NotNull
     public TreeType getType(@NotNull Tree tree, @NotNull TreeType parentType) {
         if (tree.isRoot()) {
             return TreeType.DEFAULT;
@@ -66,6 +68,7 @@ public final class TreeTypeProvider {
         return type;
     }
 
+    @NotNull
     private TreeType internalGetType(@NotNull Tree tree) {
         Tree t = tree;
         while (!t.isRoot()) {
@@ -79,6 +82,7 @@ public final class TreeTypeProvider {
         return TreeType.DEFAULT;
     }
 
+    @NotNull
     private TreeType internalGetType(@NotNull Tree tree, @NotNull TreeType parentType) {
         TreeType type;
         switch (parentType) {
@@ -100,6 +104,7 @@ public final class TreeTypeProvider {
         return type;
     }
 
+    @NotNull
     private TreeType internalGetType(@NotNull String name, @NotNull Tree tree) {
         TreeType type;
         if (NodeStateUtils.isHidden(name)) {

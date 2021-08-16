@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,7 +53,8 @@ public class ReferenceChangeTracker {
      * @return mapped new id or {@code null} if no such mapping exists
      * @see #put(String, String)
      */
-    public String get(String oldUUID) {
+    @Nullable
+    public String get(@NotNull String oldUUID) {
         return uuidMap.get(oldUUID);
     }
 
@@ -61,7 +65,7 @@ public class ReferenceChangeTracker {
      * @param oldUUID old node id
      * @param newUUID new node id
      */
-    public void put(String oldUUID, String newUUID) {
+    public void put(@NotNull String oldUUID, @NotNull String newUUID) {
         uuidMap.put(oldUUID, newUUID);
     }
 
@@ -79,7 +83,7 @@ public class ReferenceChangeTracker {
      *
      * @param refProp reference property
      */
-    public void processedReference(Object refProp) {
+    public void processedReference(@NotNull Object refProp) {
         references.add(refProp);
     }
 
@@ -89,6 +93,7 @@ public class ReferenceChangeTracker {
      * @return an iterator over all processed reference properties
      * @see #processedReference(Object)
      */
+    @NotNull
     public Iterator<Object> getProcessedReferences() {
         return references.iterator();
     }
@@ -97,7 +102,7 @@ public class ReferenceChangeTracker {
      * Remove the given references that have already been processed from the
      * references list.
      *
-     * @param processedReferences
+     * @param processedReferences List of processed references to be removed.
      * @return {@code true} if the internal list of references changed.
      */
     public boolean removeReferences(List<Object> processedReferences) {

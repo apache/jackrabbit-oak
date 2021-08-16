@@ -152,4 +152,9 @@ public interface IndexConstants {
      */
     String INDEX_DEPRECATED = "deprecated";
 
+    /**
+     * Property name for indicating that given index uses a lightweight version of dynamic boost
+     */
+    String DYNAMIC_BOOST_LITE_PROPERTY_NAME = "dynamicBoostLite";
+
 }

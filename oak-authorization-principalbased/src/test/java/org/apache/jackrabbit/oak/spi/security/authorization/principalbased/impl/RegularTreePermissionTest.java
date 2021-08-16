@@ -83,13 +83,13 @@ public class RegularTreePermissionTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testIsGrantedForRootTree() throws Exception {
+    public void testIsGrantedForRootTree() {
         TreePermission tp = permissionProvider.getTreePermission(root.getTree(PathUtils.ROOT_PATH), TreeType.DEFAULT, mock(TreePermission.class));
         assertFalse(tp.isGranted(Permissions.READ));
     }
 
     @Test
-    public void testCanReadForRootTree() throws Exception {
+    public void testCanReadForRootTree() {
         TreePermission tp = permissionProvider.getTreePermission(root.getTree(PathUtils.ROOT_PATH), TreeType.DEFAULT, mock(TreePermission.class));
         assertFalse(tp.canRead());
         assertFalse(tp.canRead(MockUtility.createPrimaryTypeProperty(NodeTypeConstants.NT_REP_ROOT)));
@@ -120,18 +120,16 @@ public class RegularTreePermissionTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testGetTreePermissionNonExistingTree() throws Exception {
+    public void testGetTreePermissionNonExistingTree() {
         Tree tree = getRootProvider().createReadOnlyRoot(root).getTree("/nonExisting");
         assertFalse(tree.exists());
 
         TreePermission tp = permissionProvider.getTreePermission(tree, permissionProvider.getTreePermission(root.getTree(PathUtils.ROOT_PATH), TreePermission.EMPTY));
-
         assertTrue(tp instanceof AbstractTreePermission);
-        AbstractTreePermission atp = (AbstractTreePermission) tp;
     }
 
     @Test
-    public void testIsGrantedForTestTree() throws Exception {
+    public void testIsGrantedForTestTree() {
         Tree tree = root.getTree(PathUtils.ROOT_PATH);
         TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
         for (String elem : PathUtils.elements(TEST_OAK_PATH)) {
@@ -147,7 +145,7 @@ public class RegularTreePermissionTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testCanReadForTestTree() throws Exception {
+    public void testCanReadForTestTree() {
         Tree tree = root.getTree(PathUtils.ROOT_PATH);
         TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
         for (String elem : PathUtils.elements(TEST_OAK_PATH)) {
@@ -161,8 +159,8 @@ public class RegularTreePermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testCanReadForTypeAccessControl() throws Exception {
-        String prinipalPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
-        String policyPath = PathUtils.concat(prinipalPath, REP_PRINCIPAL_POLICY);
+        String principalPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
+        String policyPath = PathUtils.concat(principalPath, REP_PRINCIPAL_POLICY);
 
         Tree tree = root.getTree(PathUtils.ROOT_PATH);
         TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
@@ -183,7 +181,7 @@ public class RegularTreePermissionTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetChildTreePermission() {
         Tree readOnly = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
-        TreePermission tp = (AbstractTreePermission) permissionProvider.getTreePermission(readOnly, TreePermission.EMPTY);
+        TreePermission tp = permissionProvider.getTreePermission(readOnly, TreePermission.EMPTY);
         NodeState ns = getTreeProvider().asNodeState(readOnly);
         for (String elem : PathUtils.elements(TEST_OAK_PATH)) {
             ns = ns.getChildNode(elem);

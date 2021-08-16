@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.security.authentication.monitor.LoginModuleMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -24,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.stats.Monitor;
@@ -97,9 +97,9 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
 
     /**
      * Constructor for non-OSGi
-     * @param securityProvider
+     * @param securityProvider The {@code SecurityProvider} this configuration belongs to.
      */
-    public AuthenticationConfigurationImpl(SecurityProvider securityProvider) {
+    public AuthenticationConfigurationImpl(@NotNull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
@@ -113,7 +113,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     @NotNull
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
-        lmMonitor = new LoginModuleStats(statisticsProvider);
+        lmMonitor = new LoginModuleMonitorImpl(statisticsProvider);
         return Collections.singleton(lmMonitor);
     }
 

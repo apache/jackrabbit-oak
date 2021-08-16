@@ -16,27 +16,28 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Collections;
-import java.util.Iterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
+import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import java.util.Collections;
+import java.util.Iterator;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
@@ -82,13 +83,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @NotNull
     @Override
     public Iterator<Group> declaredMemberOf() throws RepositoryException {
-        return getMembership(false);
+        return memberOfMonitored(false);
     }
 
     @NotNull
     @Override
     public Iterator<Group> memberOf() throws RepositoryException {
-        return getMembership(true);
+        return memberOfMonitored(true);
     }
 
     @Override
@@ -189,9 +190,20 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         }
     }
 
+    @Nullable 
+    String getPrincipalNameOrNull() {
+        if (principalName == null) {
+            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
+            if (pNameProp != null) {
+                principalName = pNameProp.getValue(STRING);
+            }
+        }
+        return principalName;
+    }
+    
     @NotNull
     String getPrincipalName() throws RepositoryException {
-        String pName = internalGetPrincipalName();
+        String pName = getPrincipalNameOrNull();
         if (pName == null) {
             String msg = "Authorizable without principal name " + id;
             log.warn(msg);
@@ -216,6 +228,11 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         return userManager.getMembershipProvider();
     }
 
+    @NotNull
+    UserMonitor getMonitor() {
+        return userManager.getMonitor();
+    }
+
     /**
      * Returns {@code true} if this authorizable represents the 'everyone' group.
      *
@@ -223,18 +240,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * is member of; {@code false} otherwise.
      */
     boolean isEveryone() {
-        return isGroup() && EveryonePrincipal.NAME.equals(internalGetPrincipalName());
-    }
-
-    @Nullable
-    private String internalGetPrincipalName() {
-        if (principalName == null) {
-            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
-            if (pNameProp != null) {
-                principalName = pNameProp.getValue(STRING);
-            }
-        }
-        return principalName;
+        return Utils.isEveryone(this);
     }
 
     /**
@@ -247,6 +253,14 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
             properties = new AuthorizablePropertiesImpl(this, userManager.getPartialValueFactory());
         }
         return properties;
+    }
+
+    @NotNull
+    private Iterator<Group> memberOfMonitored(boolean includeInherited) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        Iterator<Group> groups = getMembership(includeInherited);
+        getMonitor().doneMemberOf(watch.elapsed(NANOSECONDS), !includeInherited);
+        return groups;
     }
 
     /**
@@ -262,22 +276,21 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @NotNull
     private Iterator<Group> getMembership(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
-            return Collections.<Group>emptySet().iterator();
+            return Collections.emptyIterator();
         }
 
+        DynamicMembershipProvider dmp = userManager.getDynamicMembershipProvider();
+        Iterator<Group> dynamicGroups = dmp.getMembership(this, includeInherited);
+        
         MembershipProvider mMgr = getMembershipProvider();
         Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
-
-        Authorizable everyoneGroup = userManager.getAuthorizable(EveryonePrincipal.getInstance());
-        if (everyoneGroup instanceof GroupImpl) {
-            String everyonePath = ((GroupImpl) everyoneGroup).getTree().getPath();
-            oakPaths = Iterators.concat(oakPaths, ImmutableSet.of(everyonePath).iterator());
+        
+        if (!oakPaths.hasNext()) {
+            return dynamicGroups;
         }
-        if (oakPaths.hasNext()) {
-            AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
-            return new RangeIteratorAdapter(groups, groups.getSize());
-        } else {
-            return RangeIteratorAdapter.EMPTY;
-        }
+        
+        AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
+        AuthorizableIterator allGroups = AuthorizableIterator.create(true, dynamicGroups, groups);
+        return new RangeIteratorAdapter(allGroups);
     }
 }

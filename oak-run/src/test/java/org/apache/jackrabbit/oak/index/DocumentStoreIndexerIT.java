@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -181,14 +182,15 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         store = docBuilderRO.build();
         wb.register(MongoDocumentStore.class, ds, emptyMap());
 
-        IndexHelper helper = new IndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
+        ExtendedIndexHelper helper = new ExtendedIndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
                 temporaryFolder.newFolder(), asList(TEST_INDEX_PATH));
         IndexerSupport support = new IndexerSupport(helper, checkpoint);
 
         CollectingIndexer testIndexer = new CollectingIndexer(p -> p.startsWith("/test"));
         DocumentStoreIndexer index = new DocumentStoreIndexer(helper, support) {
             @Override
-            protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder) {
+            protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder,
+                                                       IndexingProgressReporter progressReporter) {
                 return new CompositeIndexer(asList(testIndexer));
             }
         };

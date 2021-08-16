@@ -122,7 +122,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     }
 
     @Override
-    public Whiteboard getWhiteboard() {
+    public @Nullable Whiteboard getWhiteboard() {
         return whiteboard;
     }
 

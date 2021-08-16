@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -42,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * @see OAK-2445
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2445">OAK-2445</a>
  */
 public class PasswordHistoryTest extends AbstractSecurityTest implements UserConstants {
 
@@ -59,9 +60,8 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
 
     @NotNull
     private List<String> getHistory(@NotNull User user) throws RepositoryException {
-        return ImmutableList.copyOf(TreeUtil.getStrings(
-                root.getTree(user.getPath()).getChild(REP_PWD),
-                REP_PWD_HISTORY)).reverse();
+        Iterable<String> history = TreeUtil.getStrings(root.getTree(user.getPath()).getChild(REP_PWD), REP_PWD_HISTORY);
+        return (history == null) ? Collections.emptyList() : ImmutableList.copyOf(history).reverse();
     }
 
     /**

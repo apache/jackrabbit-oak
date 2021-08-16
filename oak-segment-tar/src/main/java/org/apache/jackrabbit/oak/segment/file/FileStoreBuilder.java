@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Sets.newHashSet;
@@ -37,10 +38,12 @@ import java.io.IOException;
 import java.util.Set;
 
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
 import org.apache.jackrabbit.oak.segment.RecordCache;
+import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -66,7 +69,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FileStoreBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
-
+    
     private static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
@@ -95,6 +98,8 @@ public class FileStoreBuilder {
     private boolean memoryMapping = MEMORY_MAPPING_DEFAULT;
 
     private boolean offHeapAccess = getBoolean("access.off.heap");
+    
+    private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
 
     private SegmentNodeStorePersistence persistence;
 
@@ -396,6 +401,16 @@ public class FileStoreBuilder {
         this.eagerSegmentCaching = eagerSegmentCaching;
         return this;
     }
+    
+    /**
+     * Sets the threshold under which binaries are inlined in data segments.
+     * @param binariesInlineThreshold the threshold
+     * @return this instance
+     */
+    public FileStoreBuilder withBinariesInlineThreshold(int binariesInlineThreshold) {
+        this.binariesInlineThreshold = binariesInlineThreshold;
+        return this;
+    }
 
     public Backend buildProcBackend(AbstractFileStore fileStore) throws IOException {
         return new FileStoreProcBackend(fileStore, persistence);
@@ -574,6 +589,10 @@ public class FileStoreBuilder {
     boolean getEagerSegmentCaching() {
         return eagerSegmentCaching;
     }
+    
+    int getBinariesInlineThreshold() {
+        return binariesInlineThreshold;
+    }
 
     @Override
     public String toString() {
@@ -581,6 +600,7 @@ public class FileStoreBuilder {
                 "version=" + getClass().getPackage().getImplementationVersion() +
                 ", directory=" + directory +
                 ", blobStore=" + blobStore +
+                ", binariesInlineThreshold=" + binariesInlineThreshold +
                 ", maxFileSize=" + maxFileSize +
                 ", segmentCacheSize=" + segmentCacheSize +
                 ", stringCacheSize=" + stringCacheSize +

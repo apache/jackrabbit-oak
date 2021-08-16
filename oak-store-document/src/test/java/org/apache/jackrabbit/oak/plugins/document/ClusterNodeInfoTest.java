@@ -565,23 +565,9 @@ public class ClusterNodeInfoTest {
     private ClusterNodeInfo newClusterNodeInfo(int clusterId,
                                                String instanceId) {
         ClusterNodeInfo info = ClusterNodeInfo.getInstance(store,
-                new SimpleRecoveryHandler(), null, instanceId, clusterId, invisible);
+                new SimpleRecoveryHandler(store, clock), null, instanceId, clusterId, invisible);
         info.setLeaseFailureHandler(handler);
         return info;
-    }
-
-    private class SimpleRecoveryHandler implements RecoveryHandler {
-
-        @Override
-        public boolean recover(int clusterId) {
-            // simulate recovery by acquiring recovery lock
-            RecoveryLock lock = new RecoveryLock(store, clock, clusterId);
-            if (lock.acquireRecoveryLock(clusterId)) {
-                lock.releaseRecoveryLock(true);
-                return true;
-            }
-            return false;
-        }
     }
 
     private ClusterNodeInfo newClusterNodeInfo(int clusterId) {

@@ -515,7 +515,7 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
         adminSession.exportSystemView(PathUtils.concat(policy.getPath(), REP_PRINCIPAL_POLICY), output, true, false);
         adminSession.refresh(false);
 
-        adminSession.importXML(policy.getPath(), new ByteArrayInputStream(((ByteArrayOutputStream) output).toByteArray()), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        adminSession.importXML(policy.getPath(), new ByteArrayInputStream(output.toByteArray()), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         policy = getPrincipalPolicyImpl(testPrincipal, acmgr);
         assertArrayEquals(expected, policy.getAccessControlEntries());
     }

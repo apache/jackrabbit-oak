@@ -76,8 +76,8 @@ public class UserProviderTest {
     private String defaultGroupPath;
     
     private Map<String, Object> customOptions;
-    private String customUserPath = "/home/users";
-    private String customGroupPath = "/home/groups";
+    private final String customUserPath = "/home/users";
+    private final String customGroupPath = "/home/groups";
 
     @Before
     public void setUp() throws Exception {
@@ -143,9 +143,9 @@ public class UserProviderTest {
         m.put("b_Hb",   "/b/b_/b_Hb");
         m.put("basim", "/b/ba/basim");
 
-        for (String uid : m.keySet()) {
-            userTree = up.createUser(uid, null);
-            assertEquals(defaultUserPath + m.get(uid), userTree.getPath());
+        for (Map.Entry<String, String> entry : m.entrySet()) {
+            userTree = up.createUser(entry.getKey(), null);
+            assertEquals(defaultUserPath + entry.getValue(), userTree.getPath());
         }
     }
 
@@ -214,9 +214,9 @@ public class UserProviderTest {
         m.put("b_Lb",   "/b/b_/b_L/b_Lb");
         m.put("basiL",  "/b/ba/bas/basiL");
 
-        for (String uid : m.keySet()) {
-            userTree = userProvider.createUser(uid, null);
-            assertEquals(customUserPath + m.get(uid), userTree.getPath());
+        for (Map.Entry<String, String> entry : m.entrySet()) {
+            userTree = userProvider.createUser(entry.getKey(), null);
+            assertEquals(customUserPath + entry.getValue(), userTree.getPath());
         }
     }
 
@@ -232,9 +232,9 @@ public class UserProviderTest {
         colliding.put("amalia", null);
         colliding.put("Amalia", "a/b/c");
 
-        for (String uid : colliding.keySet()) {
+        for (Map.Entry<String, String> entry : colliding.entrySet()) {
             try {
-                userProvider.createUser(uid, colliding.get(uid));
+                userProvider.createUser(entry.getKey(), entry.getValue());
                 root.commit();
                 fail("userID collision must be detected");
             } catch (CommitFailedException e) {
@@ -242,9 +242,9 @@ public class UserProviderTest {
             }
         }
 
-        for (String uid : colliding.keySet()) {
+        for (Map.Entry<String, String> entry : colliding.entrySet()) {
             try {
-                userProvider.createGroup(uid, colliding.get(uid));
+                userProvider.createGroup(entry.getKey(), entry.getValue());
                 root.commit();
                 fail("userID collision must be detected");
             } catch (CommitFailedException e) {
@@ -319,11 +319,12 @@ public class UserProviderTest {
         m.put("z/x", "/z/" + Text.escapeIllegalJcrChars("z/") + '/' + Text.escapeIllegalJcrChars("z/x"));
         m.put("%\r|", '/' +Text.escapeIllegalJcrChars("%")+ '/' + Text.escapeIllegalJcrChars("%\r") + '/' + Text.escapeIllegalJcrChars("%\r|"));
 
-        for (String uid : m.keySet()) {
+        for (Map.Entry<String, String> entry : m.entrySet()) {
+            String uid = entry.getKey();
             Tree user = userProvider.createUser(uid, null);
             root.commit();
 
-            assertEquals(defaultUserPath + m.get(uid), user.getPath());
+            assertEquals(defaultUserPath + entry.getValue(), user.getPath());
             assertEquals(uid, UserUtil.getAuthorizableId(user));
 
             Tree ath = userProvider.getAuthorizable(uid);

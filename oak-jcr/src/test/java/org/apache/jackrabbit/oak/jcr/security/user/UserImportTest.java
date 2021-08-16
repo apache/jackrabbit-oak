@@ -37,6 +37,8 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -52,12 +54,12 @@ import static org.junit.Assert.fail;
 public class UserImportTest extends AbstractImportTest {
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return USERPATH;
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @Nullable String getImportBehavior() {
         return null;
     }
 

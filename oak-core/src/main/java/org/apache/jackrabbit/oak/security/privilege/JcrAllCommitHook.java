@@ -38,22 +38,26 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
 
     @NotNull
     @Override
-    public NodeState processCommit(
-            NodeState before, NodeState after, CommitInfo info) {
+    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) {
         NodeBuilder builder = after.builder();
-        after.compareAgainstBaseState(before, new PrivilegeDiff(null, null, builder));
+        after.compareAgainstBaseState(before, new PrivilegeDiff(builder));
         return builder.getNodeState();
     }
 
-    private final class PrivilegeDiff extends DefaultNodeStateDiff {
+    private static final class PrivilegeDiff extends DefaultNodeStateDiff {
 
         private static final String ROOT_PATH = "";
 
         private final String path;
         private final NodeBuilder nodeBuilder;
 
-        private PrivilegeDiff(PrivilegeDiff parentDiff, String nodeName, NodeBuilder nodeBuilder) {
-            this.path = (nodeName == null) ? ROOT_PATH : parentDiff.path + '/' + nodeName;
+        private PrivilegeDiff(@NotNull NodeBuilder nodeBuilder) {
+            this.path = ROOT_PATH;
+            this.nodeBuilder = nodeBuilder;
+        }
+        
+        private PrivilegeDiff(@NotNull PrivilegeDiff parentDiff, @NotNull String nodeName, @NotNull NodeBuilder nodeBuilder) {
+            this.path = parentDiff.path + '/' + nodeName;
             this.nodeBuilder = nodeBuilder;
         }
 
@@ -62,27 +66,7 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
             if (PRIVILEGES_PATH.equals(path)) {
                 if (!JCR_ALL.equals(name)) {
                     // a new privilege was registered -> update the jcr:all privilege
-                    NodeBuilder jcrAll = nodeBuilder.child(JCR_ALL);
-                    PropertyState aggregates = jcrAll.getProperty(REP_AGGREGATES);
-
-                    PropertyBuilder<String> propertyBuilder;
-                    if (aggregates == null) {
-                        propertyBuilder = PropertyBuilder.array(Type.NAME, REP_AGGREGATES);
-                    } else {
-                        propertyBuilder = PropertyBuilder.copy(Type.NAME, aggregates);
-                    }
-                    if (!propertyBuilder.hasValue(name)) {
-                        propertyBuilder.addValue(name);
-                        jcrAll.setProperty(propertyBuilder.getPropertyState());
-                    }
-
-                    // update the privilege bits of the jcr:all in case the new
-                    // privilege isn't an aggregate
-                    if (!after.hasProperty(REP_AGGREGATES)) {
-                        PrivilegeBits bits = PrivilegeBits.getInstance(after.getProperty(REP_BITS));
-                        PrivilegeBits all = PrivilegeBits.getInstance(jcrAll.getProperty(REP_BITS));
-                        jcrAll.setProperty(PrivilegeBits.getInstance(all).add(bits).asPropertyState(REP_BITS));
-                    }
+                    updateJcrAll(name, after);
                 } // else: jcr:all privilege has been added -> ignore
             } else {
                 String p = path  + '/' + name;
@@ -91,6 +75,30 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
                 }
             }
             return true;
+        }
+        
+        private void updateJcrAll(@NotNull String name, @NotNull NodeState after) {
+            NodeBuilder jcrAll = nodeBuilder.child(JCR_ALL);
+            PropertyState aggregates = jcrAll.getProperty(REP_AGGREGATES);
+
+            PropertyBuilder<String> propertyBuilder;
+            if (aggregates == null) {
+                propertyBuilder = PropertyBuilder.array(Type.NAME, REP_AGGREGATES);
+            } else {
+                propertyBuilder = PropertyBuilder.copy(Type.NAME, aggregates);
+            }
+            if (!propertyBuilder.hasValue(name)) {
+                propertyBuilder.addValue(name);
+                jcrAll.setProperty(propertyBuilder.getPropertyState());
+            }
+
+            // update the privilege bits of the jcr:all in case the new
+            // privilege isn't an aggregate
+            if (!after.hasProperty(REP_AGGREGATES)) {
+                PrivilegeBits bits = PrivilegeBits.getInstance(after.getProperty(REP_BITS));
+                PrivilegeBits all = PrivilegeBits.getInstance(jcrAll.getProperty(REP_BITS));
+                jcrAll.setProperty(PrivilegeBits.getInstance(all).add(bits).asPropertyState(REP_BITS));
+            }
         }
 
         @Override

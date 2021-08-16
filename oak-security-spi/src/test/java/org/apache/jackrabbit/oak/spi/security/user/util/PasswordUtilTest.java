@@ -226,6 +226,22 @@ public class PasswordUtilTest {
     }
 
     @Test
+    public void testIsSameInvalidIterations() throws Exception {
+        String hash = PasswordUtil.buildPasswordHash("pw", null, 5, 55);
+        hash = hash.replace("-55-","-invalid-");
+
+        assertFalse(PasswordUtil.isSame(hash, "pw"));
+    }
+
+    @Test
+    public void testIsSameMisplacedAlgorithm() {
+        List<String> broken = ImmutableList.of("}{pw", "{pw", "{pw}");
+        for (String hash : broken) {
+            assertFalse(PasswordUtil.isSame(hash, "pw"));
+        }
+    }
+
+    @Test
     public void testPBKDF2With() throws Exception {
         // https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
         String algo = "PBKDF2WithHmacSHA512";

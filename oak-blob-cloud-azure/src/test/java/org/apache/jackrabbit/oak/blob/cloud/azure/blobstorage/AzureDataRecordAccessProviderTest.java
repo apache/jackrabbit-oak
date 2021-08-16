@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,12 +36,16 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordAccessProviderTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -150,5 +155,42 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
         // expectedNumURIs still 50000, Azure limit
         upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
+    }
+
+    @Test
+    public void downloadURIsWithVaryingOptions() throws Exception {
+        ConfigurableDataRecordAccessProvider dataStore = this.getDataStore();
+
+        DataRecord record = null;
+        try {
+            // use a cache for download URIs
+            dataStore.setDirectDownloadURICacheSize(100);
+
+            InputStream testStream = DataStoreUtils.randomStream(0, 256L);
+            record = this.doSynchronousAddRecord((DataStore) dataStore, testStream);
+            DataIdentifier id = record.getIdentifier();
+            URI uri = dataStore.getDownloadURI(id, downloadOptionsWithMimeType(null));
+            Assert.assertNotNull(uri);
+            URI uriWithContentType = dataStore.getDownloadURI(id, downloadOptionsWithMimeType("application/octet-stream"));
+            Assert.assertNotNull(uriWithContentType);
+            // must generate different download URIs
+            assertNotEquals(uri.toString(), uriWithContentType.toString());
+        } finally {
+            dataStore.setDirectDownloadURICacheSize(0);
+            if (null != record) {
+                this.doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+        }
+    }
+
+    private static DataRecordDownloadOptions downloadOptionsWithMimeType(String mimeType) {
+        return DataRecordDownloadOptions.fromBlobDownloadOptions(
+                new BlobDownloadOptions(
+                        mimeType,
+                        BlobDownloadOptions.DEFAULT.getCharacterEncoding(),
+                        BlobDownloadOptions.DEFAULT.getFileName(),
+                        BlobDownloadOptions.DEFAULT.getDispositionType()
+                )
+        );
     }
 }

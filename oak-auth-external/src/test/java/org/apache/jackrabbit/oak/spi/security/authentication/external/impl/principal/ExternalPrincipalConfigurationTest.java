@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.jcr.ValueFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -45,11 +46,15 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Defau
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
@@ -189,6 +194,13 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     @Test
+    public void testGetMonitors() {
+        Iterable<Monitor<?>> monitors = externalPrincipalConfiguration.getMonitors(StatisticsProvider.NOOP);
+        assertEquals(1, Iterables.size(monitors));
+        assertTrue(monitors.iterator().next() instanceof ExternalIdentityMonitorImpl);
+    }
+
+    @Test
     public void testDeactivateWithNullTrackers() {
         ExternalPrincipalConfiguration epc = new ExternalPrincipalConfiguration(getSecurityProvider());
         MockOsgi.deactivate(epc, context.bundleContext(), Collections.emptyMap());
@@ -295,7 +307,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         }
 
         @Override
-        public SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) {
+        public @Nullable SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) {
             return null;
         }
 

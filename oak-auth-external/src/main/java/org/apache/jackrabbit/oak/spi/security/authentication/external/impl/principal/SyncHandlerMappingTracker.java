@@ -42,7 +42,7 @@ final class SyncHandlerMappingTracker extends ServiceTracker {
 
     private static final Logger log = LoggerFactory.getLogger(SyncHandlerMappingTracker.class);
 
-    private Map<ServiceReference, Mapping> referenceMap = new HashMap<>();
+    private final Map<ServiceReference, Mapping> referenceMap = new HashMap<>();
 
     SyncHandlerMappingTracker(@NotNull BundleContext context) {
         super(context, SyncHandlerMapping.class.getName(), null);

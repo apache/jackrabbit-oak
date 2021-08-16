@@ -20,7 +20,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -31,7 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 class CugValidatorProvider extends ValidatorProvider implements CugConstants {
 
@@ -47,20 +48,11 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         return new CommitFailedException(ACCESS_CONTROL, code, message);
     }
 
-    private void validateCugNode(@NotNull NodeState parent, @NotNull NodeState nodeState) throws CommitFailedException {
-        if (!NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
-            throw accessViolation(21, "Reserved name 'rep:cugPolicy' must only be used for nodes of type 'rep:CugPolicy'.");
-        }
-        if (!isMixCug.test(parent)) {
-            throw accessViolation(22, "Parent node not of mixin type 'rep:CugMixin'.");
-        }
-    }
-
     private static boolean isNodetypeTree(CugValidator parentValidator, String name) {
         if (parentValidator.isNodetypeTree) {
             return true;
         } else {
-            return NodeTypeConstants.JCR_NODE_TYPES.equals(name) && NodeTypeConstants.JCR_SYSTEM.equals(parentValidator.parentName);
+            return JCR_NODE_TYPES.equals(name) && JCR_SYSTEM.equals(parentValidator.parentName);
         }
     }
 
@@ -111,6 +103,15 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
                 validateCugNode(after, after.getChildNode(REP_CUG_POLICY));
             }
             return new VisibleValidator(new CugValidator(name, after, isNodetypeTree(this, name)), true, true);
+        }
+
+        private void validateCugNode(@NotNull NodeState parent, @NotNull NodeState nodeState) throws CommitFailedException {
+            if (!NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
+                throw accessViolation(21, "Reserved name 'rep:cugPolicy' must only be used for nodes of type 'rep:CugPolicy'.");
+            }
+            if (!isMixCug.test(parent)) {
+                throw accessViolation(22, "Parent node not of mixin type 'rep:CugMixin'.");
+            }
         }
     }
 }

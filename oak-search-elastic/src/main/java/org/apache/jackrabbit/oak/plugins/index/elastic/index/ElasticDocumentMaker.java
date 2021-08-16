@@ -99,22 +99,31 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexSuggestValue(ElasticDocument doc, String value) {
-        if (value != null && value.length() > 0) {
-            doc.addSuggest(value);
+        if (value != null) {
+            String v = value.trim();
+            if (v.length() > 0) {
+                doc.addSuggest(v);
+            }
         }
     }
 
     @Override
     protected void indexSpellcheckValue(ElasticDocument doc, String value) {
-        if (value != null && value.length() > 0) {
-            doc.addSpellcheck(value);
+        if (value != null) {
+            String v = value.trim();
+            if (v.length() > 0) {
+                doc.addSpellcheck(v);
+            }
         }
     }
 
     @Override
     protected void indexFulltextValue(ElasticDocument doc, String value) {
-        if (value != null && value.length() > 0) {
-            doc.addFulltext(value);
+        if (value != null) {
+            String v = value.trim();
+            if (v.length() > 0) {
+                doc.addFulltext(v);
+            }
         }
     }
 
@@ -197,7 +206,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected void indexSimilarityStrings(ElasticDocument doc, PropertyDefinition pd, String value) throws IOException {
+    protected void indexSimilarityStrings(ElasticDocument doc, PropertyDefinition pd, String value) {
         // TODO : not implemented
     }
 

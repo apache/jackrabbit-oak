@@ -16,18 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import java.security.Principal;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlPolicy;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -35,14 +25,27 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Collections;
+
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NODE_PATH;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_VERSION_MANAGEMENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 public class PrincipalACLTest extends AbstractAccessControlTest {
 
     private ACL principalAcl;
+    private Privilege[] privileges;
 
     @Override
     @Before
@@ -57,6 +60,7 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
         root.commit();
 
         principalAcl = getPrincipalAcl(acMgr, testPrincipal);
+        privileges = privilegesFromNames(JCR_VERSION_MANAGEMENT);
     }
 
     @NotNull
@@ -101,7 +105,7 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
     public void testEqualsDifferentEntries() throws Exception {
         ValueFactory vf = getValueFactory(root);
         ACL acl = getPrincipalAcl(getAccessControlManager(root), testPrincipal);
-        acl.addEntry(testPrincipal, privilegesFromNames(JCR_VERSION_MANAGEMENT), true,
+        acl.addEntry(testPrincipal, privileges, true,
                 ImmutableMap.of(REP_GLOB, vf.createValue("/subtree/*"), REP_NODE_PATH, vf.createValue(TEST_PATH)));
         assertNotEquals(principalAcl, acl);
     }
@@ -109,5 +113,20 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
     @Test
     public void testHashCode() {
         assertEquals(0, principalAcl.hashCode());
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testAddEntryMissingNodePath() throws Exception  {
+        principalAcl.addAccessControlEntry(testPrincipal, privileges);
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testAddEntryDifferentPrincipal() throws Exception  {
+        principalAcl.addEntry(EveryonePrincipal.getInstance(), privileges, true, Collections.singletonMap(REP_NODE_PATH, getValueFactory(root).createValue(TEST_PATH)));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testAddEntryNullPrincipal() throws Exception  {
+        principalAcl.addEntry(null, privileges, true, Collections.singletonMap(REP_NODE_PATH, getValueFactory(root).createValue(TEST_PATH)));
     }
 }

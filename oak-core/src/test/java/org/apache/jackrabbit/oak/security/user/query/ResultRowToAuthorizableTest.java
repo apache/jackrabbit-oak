@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -27,10 +26,12 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.user.AbstractUserTest;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +44,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ResultRowToAuthorizableTest extends AbstractSecurityTest {
+public class ResultRowToAuthorizableTest extends AbstractUserTest {
 
     private ResultRowToAuthorizable groupRrta;
     private ResultRowToAuthorizable userRrta;
@@ -53,8 +54,14 @@ public class ResultRowToAuthorizableTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        groupRrta = new ResultRowToAuthorizable(new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider()), root, AuthorizableType.GROUP);
-        userRrta = new ResultRowToAuthorizable(new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider()), root, AuthorizableType.USER);
+        groupRrta = createResultRowToAuthorizable(root, AuthorizableType.GROUP);
+        userRrta = createResultRowToAuthorizable(root, AuthorizableType.USER);
+    }
+
+    @NotNull
+    private ResultRowToAuthorizable createResultRowToAuthorizable(@NotNull Root r, @Nullable AuthorizableType targetType) {
+        UserManagerImpl umgr = createUserManagerImpl(r);
+        return new ResultRowToAuthorizable(umgr, r, targetType);
     }
 
     private static ResultRow createResultRow(@NotNull String path) {
@@ -120,7 +127,7 @@ public class ResultRowToAuthorizableTest extends AbstractSecurityTest {
 
         try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
             Root r = cs.getLatestRoot();
-            ResultRowToAuthorizable rrta = new ResultRowToAuthorizable(new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider()), r, null);
+            ResultRowToAuthorizable rrta = createResultRowToAuthorizable(r, null);
             assertNull(rrta.apply(createResultRow(userPath)));
         }
     }

@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.39-SNAPSHOT</version>
+  <version>1.41-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -44,7 +44,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.2</jackrabbit.version>
+    <jackrabbit.version>2.20.3</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -53,7 +53,7 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
-    <solr.version>8.6.3</solr.version>
+    <solr.version>8.8.2</solr.version>
     <mongo.driver.version>3.12.7</mongo.driver.version>
     <slf4j.api.version>1.7.30</slf4j.api.version>
     <slf4j.version>1.7.30</slf4j.version> <!-- sync with logback version -->
@@ -63,7 +63,10 @@
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.10.3</jackson.version>
+    <jackson.version>2.10.5</jackson.version>
+    <!-- jackson-databind versions prior to 2.10.5.1 are affected by security vulnerability CVE-2020-25649.
+         When upgrading jackson, try to align them to the same version -->
+    <jackson.databind.version>2.10.5.1</jackson.databind.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -289,6 +292,7 @@
           <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
+            <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
               <mongo.host>${mongo.host}</mongo.host>
@@ -308,6 +312,7 @@
           <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
+            <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
               <mongo.host>${mongo.host}</mongo.host>
@@ -690,7 +695,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson.databind.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -700,27 +705,27 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.5.12</version>
+        <version>4.5.13</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient-osgi</artifactId>
-        <version>4.5.12</version>
+        <version>4.5.13</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore</artifactId>
-        <version>4.4.13</version>
+        <version>4.4.14</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore-osgi</artifactId>
-        <version>4.4.13</version>
+        <version>4.4.14</version>
      </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>4.5.12</version>
+        <version>4.5.13</version>
       </dependency>
       <dependency>
         <groupId>com.arakelian</groupId>

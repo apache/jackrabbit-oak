@@ -125,14 +125,14 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
 
     private void writePrivilegeNode(@NotNull Tree privilegesTree, @NotNull PrivilegeDefinition definition) throws RepositoryException {
         String name = definition.getName();
-        Tree privNode = TreeUtil.addChild(privilegesTree, name, NT_REP_PRIVILEGE);
+        Tree privilegeNode = TreeUtil.addChild(privilegesTree, name, NT_REP_PRIVILEGE);
         if (definition.isAbstract()) {
-            privNode.setProperty(REP_IS_ABSTRACT, true);
+            privilegeNode.setProperty(REP_IS_ABSTRACT, true);
         }
         Set<String> declAggrNames = definition.getDeclaredAggregateNames();
         boolean isAggregate = !declAggrNames.isEmpty();
         if (isAggregate) {
-            privNode.setProperty(REP_AGGREGATES, declAggrNames, Type.NAMES);
+            privilegeNode.setProperty(REP_AGGREGATES, declAggrNames, Type.NAMES);
         }
 
         PrivilegeBits bits;
@@ -141,18 +141,18 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         } else if (isAggregate) {
             bits = bitsMgr.getBits(declAggrNames);
             if (bits.isEmpty()) {
-                throw new RepositoryException("Illegal aggregation of non-exising privileges on '" + name + "'.");
+                throw new RepositoryException("Illegal aggregation of non-existing privileges on '" + name + "'.");
             }
         } else {
             bits = next();
         }
-        bits.writeTo(privNode);
+        bits.writeTo(privilegeNode);
     }
 
     @NotNull
     private static Collection<PrivilegeDefinition> getBuiltInDefinitions() {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<>();
-        NON_AGGREGATE_PRIVILEGES.forEach((privilegeName) -> {
+        NON_AGGREGATE_PRIVILEGES.forEach(privilegeName -> {
             PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, null);
             definitions.put(privilegeName, def);
         });

@@ -57,11 +57,11 @@ public class MountPermissionProvider extends PermissionProviderImpl {
     @NotNull
     @Override
     protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider) {
-        List<PermissionStoreImpl> stores = newArrayList();
-        stores.add(new PermissionStoreImpl(root, workspaceName, restrictionProvider));
+        List<PermissionStore> stores = newArrayList();
+        stores.add(super.getPermissionStore(root, workspaceName, restrictionProvider));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
             String psRoot = getPermissionRootName(m, workspaceName);
-            PermissionStoreImpl ps = new PermissionStoreImpl(root, psRoot, restrictionProvider);
+            PermissionStore ps = super.getPermissionStore(root, psRoot, restrictionProvider);
             stores.add(ps);
         }
         return new MountPermissionStore(stores);
@@ -69,9 +69,9 @@ public class MountPermissionProvider extends PermissionProviderImpl {
 
     private static class MountPermissionStore implements PermissionStore {
 
-        private final List<PermissionStoreImpl> stores;
+        private final List<PermissionStore> stores;
 
-        MountPermissionStore(List<PermissionStoreImpl> stores) {
+        MountPermissionStore(List<PermissionStore> stores) {
             this.stores = stores;
         }
 
@@ -79,7 +79,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         @Override
         public Collection<PermissionEntry> load(@NotNull String principalName,
                                                 @NotNull String path) {
-            for (PermissionStoreImpl store : stores) {
+            for (PermissionStore store : stores) {
                 Collection<PermissionEntry> col = store.load(principalName, path);
                 if (col != null) {
                     return col;
@@ -92,7 +92,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         @Override
         public PrincipalPermissionEntries load(@NotNull String principalName) {
             PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
-            for (PermissionStoreImpl store : stores) {
+            for (PermissionStore store : stores) {
                 ppe.putAllEntries(store.load(principalName).getEntries());
             }
             ppe.setFullyLoaded(true);
@@ -104,7 +104,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         public NumEntries getNumEntries(@NotNull String principalName, long max) {
             long num = 0;
             boolean isExact = true;
-            for (PermissionStoreImpl store : stores) {
+            for (PermissionStore store : stores) {
                 NumEntries ne = store.getNumEntries(principalName, max);
                 num = LongUtils.safeAdd(num, ne.size);
                 if (!ne.isExact) {
@@ -123,7 +123,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
 
         @Override
         public void flush(@NotNull Root root) {
-            for (PermissionStoreImpl store : stores) {
+            for (PermissionStore store : stores) {
                 store.flush(root);
             }
         }

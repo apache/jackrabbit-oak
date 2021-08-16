@@ -194,14 +194,13 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
     private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
-    private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    private final static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
     public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
     private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
     public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
     private final boolean CACHE_FACET_RESULTS =
             Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
 
-    private static double MIN_COST = 2.1;
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
     private static final Logger LOG = LoggerFactory
@@ -239,11 +238,6 @@ public class LucenePropertyIndex extends FulltextIndex {
             LOG.info(CACHE_FACET_RESULTS_NAME + " = " + CACHE_FACET_RESULTS);
             FLAG_CACHE_FACET_RESULTS_CHANGE = false;
         }
-    }
-
-    @Override
-    public double getMinimumCost() {
-        return MIN_COST;
     }
 
     @Override
@@ -745,6 +739,11 @@ public class LucenePropertyIndex extends FulltextIndex {
     }
 
     @Override
+    protected boolean runIsActiveIndexCheck() {
+        return filterReplacedIndexes();
+    }
+
+    @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
         return () -> {
             LuceneIndexNode indexNode = acquireIndexNode(plan);
@@ -1151,9 +1150,23 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
     }
 
+    private static void replaceWildcard(StringBuilder sb, int position, char oldWildcard, char newWildcard) {
+        if (sb.charAt(position) == oldWildcard) {
+            int escapeCount = 0;
+            for (int m = position - 1; m >= 0 && sb.charAt(m) == WildcardQuery.WILDCARD_ESCAPE; m--,escapeCount++);
+            if (escapeCount % 2 == 0) {
+                sb.setCharAt(position, newWildcard);
+            }
+        }
+    }
+
     private static Query createLikeQuery(String name, String first) {
-        first = first.replace('%', WildcardQuery.WILDCARD_STRING);
-        first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
+        StringBuilder firstBuilder = new StringBuilder(first);
+        for (int k = 0; k < firstBuilder.length(); k++) {
+            replaceWildcard(firstBuilder, k, '%', WildcardQuery.WILDCARD_STRING);
+            replaceWildcard(firstBuilder, k, '_', WildcardQuery.WILDCARD_CHAR);
+        }
+        first = firstBuilder.toString();
 
         int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
         int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
@@ -1504,8 +1517,14 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         //Augment query terms if available (as a 'SHOULD' clause)
-        if (augmentor != null && FieldNames.FULLTEXT.equals(fieldName)) {
-            Query subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
+        if (FieldNames.FULLTEXT.equals(fieldName)) {
+            Query subQuery = new BooleanQuery();
+            if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
+                subQuery = new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, text));
+            } else if (augmentor != null) {
+                subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
+            }
+
             if (subQuery != null) {
                 BooleanQuery query = new BooleanQuery();
 

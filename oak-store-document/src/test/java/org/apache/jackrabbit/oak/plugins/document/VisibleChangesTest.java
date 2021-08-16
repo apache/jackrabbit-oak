@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.security.authorization.permission.VersionablePathHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -92,6 +93,11 @@ public class VisibleChangesTest {
             @NotNull
             @Override
             public MountInfoProvider getMountInfoProvider() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public @NotNull AuthorizationMonitor getMonitor() {
                 throw new UnsupportedOperationException();
             }
         });

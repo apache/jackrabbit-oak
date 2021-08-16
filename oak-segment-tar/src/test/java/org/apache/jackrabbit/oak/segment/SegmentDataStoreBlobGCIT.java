@@ -98,6 +98,8 @@ public class SegmentDataStoreBlobGCIT {
     private DataStoreBlobStore blobStore;
 
     private SegmentGCOptions gcOptions = defaultGCOptions();
+    
+    private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -152,13 +154,13 @@ public class SegmentDataStoreBlobGCIT {
 
         NodeBuilder a = nodeStore.getRoot().builder();
 
-        /* Create garbage by creating in-lined blobs (size < 16KB) */
+        /* Create garbage by creating in-lined blobs (size < binaries inline threshold) */
         int number = 500;
         NodeBuilder content = a.child("content");
         for (int i = 0; i < number; i++) {
             NodeBuilder c = content.child("x" + i);
             for (int j = 0; j < 5; j++) {
-                c.setProperty("p" + j, nodeStore.createBlob(randomStream(j, 16384)));
+                c.setProperty("p" + j, nodeStore.createBlob(randomStream(j, binariesInlineThreshold - 1)));
             }
         }
         nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);

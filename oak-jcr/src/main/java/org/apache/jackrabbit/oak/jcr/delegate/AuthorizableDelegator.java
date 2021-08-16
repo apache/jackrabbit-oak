@@ -19,15 +19,6 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.security.Principal;
-import java.util.Iterator;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
-import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -35,6 +26,14 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Base class for {@link GroupDelegator} and {@link UserDelegator}.
@@ -50,6 +49,7 @@ abstract class AuthorizableDelegator implements Authorizable {
         this.delegate = delegate;
     }
 
+    @Nullable
     static Authorizable wrap(@NotNull SessionDelegate sessionDelegate, @Nullable Authorizable authorizable) {
         if (authorizable == null) {
             return null;
@@ -61,6 +61,7 @@ abstract class AuthorizableDelegator implements Authorizable {
         }
     }
 
+    @NotNull
     static Authorizable unwrap(@NotNull Authorizable authorizable) {
         if (authorizable.isGroup()) {
             return GroupDelegator.unwrap((Group) authorizable);
@@ -115,13 +116,7 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.declaredMemberOf();
-                return Iterators.transform(groups, new Function<Group, Group>() {
-                    @Nullable
-                    @Override
-                    public Group apply(@Nullable Group group) {
-                        return GroupDelegator.wrap(sessionDelegate, group);
-                    }
-                });
+                return Iterators.transform(Iterators.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }
@@ -134,13 +129,7 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.memberOf();
-                return Iterators.transform(groups, new Function<Group, Group>() {
-                    @Nullable
-                    @Override
-                    public Group apply(@Nullable Group group) {
-                        return GroupDelegator.wrap(sessionDelegate, group);
-                    }
-                });
+                return Iterators.transform(Iterators.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }

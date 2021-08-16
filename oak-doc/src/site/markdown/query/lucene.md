@@ -408,6 +408,14 @@ nodeScopeIndex
   explicit property definition provided then it would only be included if
   `nodeScopeIndex` is set to true.
 
+  Note : If an index definition consists of any property with nodeScopeIndex set to
+  true, then it will index the node name for all the nodes (with node type
+  matching to or a child type of the one defined in the indexRule).
+  This could result in large index size in case of indexRules on broader node types such as nt:base.
+
+  So it's advisable to use nodeScopeIndex for broader node types only if it's absolutely
+  needed to support queries like _jcr:contains(., 'foo')_
+
 analyzed
 : Set this to true if the property is used as part of `contains`. Example
     * _//element(*, app:Asset)[jcr:contains(type, 'image')]_
@@ -426,6 +434,18 @@ ordered
   only supported for single value property. Enabling this on multi value property
   would cause indexing to fail.
 
+  Ordering is supported on properties, and on functions. To order on the name of the node,
+  use the following query and index definition:
+
+    SELECT * FROM [sling:Folder] WHERE ISCHILDNODE('/content') ORDER BY NAME()
+    
+    + sling:Folder
+      + properties (nt:unstructured)
+        + nodeName (nt:unstructured)
+          - function (string) = 'name()'
+          - propertyIndex (boolean) = true
+          - ordered (boolean) = true
+  
 type
 : JCR Property type. Can be one of `Date`, `Boolean`, `Double` , `String`, `Long`, or `Binary`. 
   Mostly inferred from the indexed value. However in some cases where same property
@@ -513,7 +533,8 @@ Property name can be one of following
 4. The string `:nodeName` - this special case indexes node name as if it's a
    virtual property of the node being indexed. Setting this along with
    `nodeScopeIndex=true` is akin to setting `indexNodeName=true` on indexing
-   rule. (`@since Oak 1.3.15, 1.2.14`)
+   rule (`@since Oak 1.3.15, 1.2.14`).
+   Ordering is not supported. For ordering, use `function=name()` instead.
 
 ##### <a name="path-restrictions"></a> Evaluate Path Restrictions
 
@@ -1112,6 +1133,7 @@ This allows to search for, and order by, the lower case version of the property 
 * lower(localname())
 * length([test/data])
 * length(name())
+* name()
 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").

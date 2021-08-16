@@ -103,7 +103,7 @@ abstract class ExternalChange {
             return stats;
         }
         try {
-            alignWithExternalRevisions(doc, clock, clusterId);
+            alignWithExternalRevisions(doc, clock, clusterId, store.getMaxTimeDiffMillis());
         } catch (InterruptedException e) {
             throw new RuntimeException("Background read interrupted", e);
         }

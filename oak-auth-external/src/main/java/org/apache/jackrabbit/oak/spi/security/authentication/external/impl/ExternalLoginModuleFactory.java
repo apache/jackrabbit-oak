@@ -176,6 +176,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
         this.syncManager = syncManager;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void unbindSyncManager(SyncManager syncManager) {
         this.syncManager = null;
     }
@@ -184,6 +185,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
         this.idpManager = idpManager;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void unbindIdpManager(ExternalIdentityProviderManager idpManager) {
         this.idpManager = null;
     }

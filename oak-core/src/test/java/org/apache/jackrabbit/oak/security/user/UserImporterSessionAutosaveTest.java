@@ -16,18 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.ImportUUIDBehavior;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
 
 public class UserImporterSessionAutosaveTest extends UserImporterTest {
 
@@ -52,6 +46,11 @@ public class UserImporterSessionAutosaveTest extends UserImporterTest {
     }
 
     @Override
+    boolean isAutosave() {
+        return true;
+    }
+
+    @Override
     public void after() throws Exception {
         try {
             UserManager uMgr = getUserManager(root);
@@ -69,25 +68,5 @@ public class UserImporterSessionAutosaveTest extends UserImporterTest {
         boolean b = super.init(createAction, extraInterfaces);
         getUserManager(root).autoSave(true);
         return b;
-    }
-
-    @Test
-    public void testInitImportUUIDBehaviorRemove() throws Exception {
-        assertFalse(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
-    }
-
-    @Test
-    public void testInitImportUUIDBehaviorReplace() throws Exception {
-        assertFalse(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
-    }
-
-    @Test
-    public void testInitImportUUIDBehaviorThrow() throws Exception {
-        assertFalse(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW, new ReferenceChangeTracker(), getSecurityProvider()));
-    }
-
-    @Test
-    public void testInitImportUUIDBehaviourCreateNew() throws Exception {
-        assertFalse(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 }

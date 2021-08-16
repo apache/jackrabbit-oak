@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -50,9 +51,12 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.slf4j.event.Level;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
@@ -60,7 +64,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -70,6 +73,8 @@ import static org.mockito.Mockito.when;
  * Tests for {@link Utils}.
  */
 public class UtilsTest {
+
+    private static final long TIME_DIFF_WARN_THRESHOLD_MILLIS = 2000L;
 
     @Test
     public void getPreviousIdFor() {
@@ -294,12 +299,95 @@ public class UtilsTest {
         UpdateUtils.applyChanges(doc, op);
 
         // must not wait even if revision is in the future
-        Utils.alignWithExternalRevisions(doc, c, 2);
+        Utils.alignWithExternalRevisions(doc, c, 2, TIME_DIFF_WARN_THRESHOLD_MILLIS);
         assertThat(c.getTime(), is(lessThan(lastRev2.getTimestamp())));
 
         // must wait until after lastRev2 timestamp
-        Utils.alignWithExternalRevisions(doc, c, 1);
+        Utils.alignWithExternalRevisions(doc, c, 1, TIME_DIFF_WARN_THRESHOLD_MILLIS);
         assertThat(c.getTime(), is(greaterThan(lastRev2.getTimestamp())));
+    }
+
+    @Test
+    public void warnOnClockDifferences() throws Exception {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        // local
+        Revision lastRev1 = new Revision(c.getTime(), 0, 1);
+        // other in the future
+        Revision lastRev2 = new Revision(c.getTime() + 5000, 0, 2);
+
+        // create a root document
+        NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        NodeDocument.setLastRev(op, lastRev1);
+        NodeDocument.setLastRev(op, lastRev2);
+        UpdateUtils.applyChanges(doc, op);
+
+        LogCustomizer customizer = LogCustomizer.forLogger(Utils.class).enable(Level.WARN).create();
+        customizer.starting();
+        try {
+            // must wait until after lastRev2 timestamp
+            Utils.alignWithExternalRevisions(doc, c, 1, TIME_DIFF_WARN_THRESHOLD_MILLIS);
+            assertThat(c.getTime(), is(greaterThan(lastRev2.getTimestamp())));
+
+            assertFalse(customizer.getLogs().isEmpty());
+            assertThat(customizer.getLogs().iterator().next(), containsString("Detected clock differences"));
+        } finally {
+            customizer.finished();
+        }
+    }
+
+    @Test
+    public void noWarnOnMinorClockDifferences() throws Exception {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        // local
+        Revision lastRev1 = new Revision(c.getTime(), 0, 1);
+        // other slightly in the future
+        Revision lastRev2 = new Revision(c.getTime() + 100, 0, 2);
+
+        // create a root document
+        NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        NodeDocument.setLastRev(op, lastRev1);
+        NodeDocument.setLastRev(op, lastRev2);
+        UpdateUtils.applyChanges(doc, op);
+
+        LogCustomizer customizer = LogCustomizer.forLogger(Utils.class).enable(Level.WARN).create();
+        customizer.starting();
+        try {
+            // must wait until after lastRev2 timestamp
+            Utils.alignWithExternalRevisions(doc, c, 1, TIME_DIFF_WARN_THRESHOLD_MILLIS);
+            assertThat(c.getTime(), is(greaterThan(lastRev2.getTimestamp())));
+
+            assertThat(customizer.getLogs(), empty());
+        } finally {
+            customizer.finished();
+        }
+    }
+
+    @Test
+    public void noWarnWithSingleClusterId() throws Exception {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        // local
+        Revision lastRev1 = new Revision(c.getTime(), 0, 1);
+
+        // create a root document
+        NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        NodeDocument.setLastRev(op, lastRev1);
+        UpdateUtils.applyChanges(doc, op);
+
+        LogCustomizer customizer = LogCustomizer.forLogger(Utils.class).enable(Level.WARN).create();
+        customizer.starting();
+        try {
+            Utils.alignWithExternalRevisions(doc, c, 1, TIME_DIFF_WARN_THRESHOLD_MILLIS);
+
+            assertThat(customizer.getLogs(), empty());
+        } finally {
+            customizer.finished();
+        }
     }
 
     @Test
@@ -441,6 +529,22 @@ public class UtilsTest {
         assertNotNull(r2);
         assertEquals(startTime1, r1.getTimestamp());
         assertEquals(startTime2, r2.getTimestamp());
+    }
+
+    @Test
+    public void sum() {
+        assertEquals(0, Utils.sum());
+        assertEquals(42, Utils.sum(7, 15, 20));
+        assertEquals(-12, Utils.sum(-7, 15, -20));
+        assertEquals(42, Utils.sum(Long.MAX_VALUE, 43, Long.MIN_VALUE));
+
+        assertEquals(Long.MAX_VALUE, Utils.sum(Long.MAX_VALUE));
+        assertEquals(Long.MAX_VALUE - 1, Utils.sum(Long.MAX_VALUE, -1));
+        assertEquals(Long.MAX_VALUE, Utils.sum(Long.MAX_VALUE, 1));
+
+        assertEquals(Long.MIN_VALUE, Utils.sum(Long.MIN_VALUE));
+        assertEquals(Long.MIN_VALUE + 1, Utils.sum(Long.MIN_VALUE, 1));
+        assertEquals(Long.MIN_VALUE, Utils.sum(Long.MIN_VALUE, -1));
     }
 
     private static ClusterNodeInfoDocument mockedClusterNodeInfo(int clusterId,

@@ -23,7 +23,9 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenCredentialsExpiredException;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.jetbrains.annotations.NotNull;
@@ -44,10 +46,12 @@ class TokenAuthentication implements Authentication {
     private static final Logger log = LoggerFactory.getLogger(TokenAuthentication.class);
 
     private final TokenProvider tokenProvider;
+    private final LoginModuleMonitor monitor;
     private TokenInfo tokenInfo;
 
-    TokenAuthentication(@NotNull TokenProvider tokenProvider) {
+    TokenAuthentication(@NotNull TokenProvider tokenProvider, @NotNull LoginModuleMonitor monitor) {
         this.tokenProvider = tokenProvider;
+        this.monitor = monitor;
     }
 
     //-----------------------------------------------------< Authentication >---
@@ -56,7 +60,9 @@ class TokenAuthentication implements Authentication {
         if (credentials instanceof TokenCredentials) {
             TokenCredentials tc = (TokenCredentials) credentials;
             if (!validateCredentials(tc)) {
-                throw new LoginException("Invalid token credentials.");
+                LoginException le = new LoginException("Invalid token credentials.");
+                monitor.loginFailed(le, tc);
+                throw le;
             } else {
                 return true;
             }
@@ -97,7 +103,7 @@ class TokenAuthentication implements Authentication {
     }
 
     //------------------------------------------------------------< private >---
-    private boolean validateCredentials(@NotNull TokenCredentials tokenCredentials) {
+    private boolean validateCredentials(@NotNull TokenCredentials tokenCredentials) throws TokenCredentialsExpiredException {
         // credentials without userID -> check if attributes provide
         // sufficient information for successful authentication.
         String token = tokenCredentials.getToken();
@@ -111,9 +117,13 @@ class TokenAuthentication implements Authentication {
         long loginTime = new Date().getTime();
         if (tokenInfo.isExpired(loginTime)) {
             // token is expired
-            log.debug("Token is expired");
+            String msg = "Token is expired";
+            log.debug(msg);
             tokenInfo.remove();
-            return false;
+            
+            TokenCredentialsExpiredException tce = new TokenCredentialsExpiredException(msg);
+            monitor.loginFailed(tce, tokenCredentials);
+            throw tce;
         }
 
         if (tokenInfo.matches(tokenCredentials)) {

@@ -16,36 +16,36 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import javax.jcr.RepositoryException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.clearInvocations;
 
-public abstract class MembershipBaseTest extends AbstractSecurityTest implements UserConstants {
+public abstract class MembershipBaseTest extends AbstractUserTest implements UserConstants {
 
     static final int SIZE_TH = 10;
 
@@ -55,13 +55,13 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
     UserManagerImpl userMgr;
     MembershipProvider mp;
 
-    private Set<String> testUsers = new HashSet<>();
-    private Set<String> testGroups = new HashSet<>();
+    private final Set<String> testUsers = new HashSet<>();
+    private final Set<String> testGroups = new HashSet<>();
 
     @Before
     public void before() throws Exception {
         super.before();
-        userMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
+        userMgr = createUserManagerImpl(root);
         mp = userMgr.getMembershipProvider();
         // set the threshold low for testing
         mp.setMembershipSizeThreshold(SIZE_TH);
@@ -70,6 +70,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
     @After
     public void after() throws Exception {
         try {
+            clearInvocations(monitor);
             root.refresh();
             for (String path : Iterables.concat(testUsers, testGroups)) {
                 Authorizable auth = userMgr.getAuthorizableByPath(path);

@@ -138,7 +138,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
         Credentials credentials = getCredentials();
         if (credentials instanceof TokenCredentials) {
             TokenCredentials tc = (TokenCredentials) credentials;
-            TokenAuthentication authentication = new TokenAuthentication(tokenProvider);
+            TokenAuthentication authentication = new TokenAuthentication(tokenProvider, getLoginModuleMonitor());
             if (authentication.authenticate(tc)) {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();

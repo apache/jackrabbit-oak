@@ -52,6 +52,8 @@ public class RemoteBlobProcessorTest {
     };
 
     private TemporaryFileStore fileStore = new TemporaryFileStore(folder, blobStore, false);
+    
+    private int binariesInlineThreshold = SegmentTestConstants.MEDIUM_LIMIT;
 
     @Rule
     public RuleChain rules = RuleChain.outerRule(folder)
@@ -104,7 +106,7 @@ public class RemoteBlobProcessorTest {
         SegmentNodeStore store = SegmentNodeStoreBuilders.builder(fileStore.fileStore()).build();
 
         NodeBuilder root = store.getRoot().builder();
-        root.setProperty("b", root.createBlob(new NullInputStream(SegmentTestConstants.MEDIUM_LIMIT - 1)));
+        root.setProperty("b", root.createBlob(new NullInputStream(binariesInlineThreshold - 1)));
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         RemoteBlobProcessor processor = new RemoteBlobProcessor(blobStore.blobStore(), blobId -> {

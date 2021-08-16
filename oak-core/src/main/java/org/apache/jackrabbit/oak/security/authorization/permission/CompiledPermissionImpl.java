@@ -271,13 +271,19 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     if (property != null) {
                         path = PathUtils.concat(path, property.getName());
                     }
-                    return isGranted(path, permissions);
+                    return isGranted(path, property != null, permissions);
                 }
             case INTERNAL:
                 return false;
             default:
                 return internalIsGranted(tree, property, permissions);
         }
+    }
+
+    @Override
+    public boolean isGranted(@NotNull String path, boolean isProperty, long permissions) {
+        EntryPredicate predicate = EntryPredicate.create(path, isProperty, Permissions.respectParentPermissions(permissions));
+        return hasPermissions(getEntryIterator(predicate), predicate, permissions, path);
     }
 
     @Override
@@ -731,20 +737,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         @Override
         public boolean isReadableTree(@NotNull Tree tree, boolean exactMatch) {
-            String targetPath = tree.getPath();
-            for (String path : readPaths) {
-                if (targetPath.equals(path)) {
-                    return true;
-                }
-            }
-            if (!exactMatch) {
-                for (String path : altReadPaths) {
-                    if (targetPath.startsWith(path)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return isReadablePath(tree.getPath(), exactMatch);
         }
 
         @Override

@@ -29,6 +29,12 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 /**
  * Tests large group and user graphs.
@@ -68,6 +74,9 @@ public class MembershipTest extends MembershipBaseTest {
             Assert.assertTrue(memberships.remove(group.getID()));
         }
         assertEquals(0, memberships.size());
+
+        verify(monitor, times(1)).doneMemberOf(anyLong(), eq(true));
+        verify(monitor, never()).doneMemberOf(anyLong(), eq(false));
     }
 
     @Test
@@ -128,6 +137,10 @@ public class MembershipTest extends MembershipBaseTest {
             Assert.assertTrue(memberships.remove(group.getID()));
         }
         assertEquals(0, memberships.size());
+
+        verify(monitor, times(210)).doneUpdateMembers(anyLong(), eq(1L), eq(0L), eq(false));
+        verify(monitor, times(1)).doneMemberOf(anyLong(), eq(false));
+        verify(monitor, never()).doneMemberOf(anyLong(), eq(true));
     }
 
     @Test
@@ -140,9 +153,12 @@ public class MembershipTest extends MembershipBaseTest {
             members.add(usr.getID());
         }
         root.commit();
+        verify(monitor, times(MANY_USERS)).doneUpdateMembers(anyLong(), eq(1L), eq(0L), eq(false));
 
         for (String id : members) {
             assertFalse(grp.addMember(userMgr.getAuthorizable(id)));
         }
+        verify(monitor, times(MANY_USERS)).doneUpdateMembers(anyLong(), eq(1L), eq(1L), eq(false));
+        verifyNoMoreInteractions(monitor);
     }
 }

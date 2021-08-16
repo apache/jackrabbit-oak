@@ -33,6 +33,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -69,11 +70,13 @@ public class RemappedPrivilegeNamesTest extends AbstractAccessControlTest {
     @Test(expected = AccessControlException.class)
     public void testAddEntryWithOakPrivilegeName() throws Exception {
         Privilege[] privs = new Privilege[] {when(mock(Privilege.class).getName()).thenReturn(PrivilegeConstants.JCR_READ).getMock()};
+        ACL acl = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
         acl.addAccessControlEntry(testPrincipal, privs);
     }
 
     @Test
     public void testAddEntryWithJcrPrivilegeName() throws Exception {
+        ACL acl = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
         assertTrue(acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ)));
         List<ACE> entries = acl.getEntries();
         assertEquals(1, entries.size());
@@ -82,11 +85,12 @@ public class RemappedPrivilegeNamesTest extends AbstractAccessControlTest {
 
     @Test
     public void testWriteEntryWithJcrPrivilegeName() throws Exception {
+        ACL acl = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
         assertTrue(acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ)));
 
         getAccessControlManager(root).setPolicy(acl.getPath(), acl);
         Tree aceTree = root.getTree(acl.getPath()).getChild(REP_POLICY).getChildren().iterator().next();
-        Iterable<String> privNames = TreeUtil.getNames(aceTree, REP_PRIVILEGES);
+        Iterable<String> privNames = TreeUtil.getNames(aceTree, PrivilegeConstants.REP_PRIVILEGES);
         assertTrue(Iterables.elementsEqual(ImmutableList.of(PrivilegeConstants.JCR_READ), privNames));
     }
 }

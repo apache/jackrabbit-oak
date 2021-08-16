@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 
+ * @deprecated 
+ */
 @Deprecated
 public class ExternalGroupRef extends ExternalIdentityRef {
 

@@ -83,7 +83,8 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     backup.getSegmentIdProvider(),
                     backup.getBlobStore(),
                     new WriterCacheManager.Default(),
-                    bufferWriter
+                    bufferWriter,
+                    backup.getBinariesInlineThreshold()
             );
             ClassicCompactor compactor = new ClassicCompactor(
                     backup.getReader(),

@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -40,6 +32,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
+import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -47,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
@@ -60,6 +55,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -79,22 +82,30 @@ public class UserManagerImpl implements UserManager {
     private final MembershipProvider membershipProvider;
     private final ConfigurationParameters config;
     private final AuthorizableActionProvider actionProvider;
+    private final UserMonitor monitor;
 
     private UserQueryManager queryManager;
     private ReadOnlyNodeTypeManager ntMgr;
-
+    
+    private final DynamicMembershipService dynamicMembership;
+    private DynamicMembershipProvider dynamicMembershipProvider;
+    
     public UserManagerImpl(@NotNull Root root,
                            @NotNull PartialValueFactory valueFactory,
-                           @NotNull SecurityProvider securityProvider) {
+                           @NotNull SecurityProvider securityProvider,
+                           @NotNull UserMonitor monitor, 
+                           @NotNull DynamicMembershipService dynamicMembershipService) {
         this.root = root;
         this.valueFactory = valueFactory;
         this.namePathMapper = valueFactory.getNamePathMapper();
         this.securityProvider = securityProvider;
+        this.monitor = monitor;
 
         UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
         this.config = uc.getParameters();
         this.userProvider = new UserProvider(root, config);
         this.membershipProvider = new MembershipProvider(root, config);
+        this.dynamicMembership = dynamicMembershipService;
         this.actionProvider = getActionProvider(config);
     }
 
@@ -442,10 +453,23 @@ public class UserManagerImpl implements UserManager {
     MembershipProvider getMembershipProvider() {
         return membershipProvider;
     }
+    
+    @NotNull 
+    DynamicMembershipProvider getDynamicMembershipProvider() {
+        if (dynamicMembershipProvider == null) {
+            dynamicMembershipProvider = dynamicMembership.getDynamicMembershipProvider(root, this, namePathMapper);
+        }
+        return dynamicMembershipProvider;
+    }
 
     @NotNull
     PrincipalManager getPrincipalManager() {
         return securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
+    }
+
+    @NotNull
+    UserMonitor getMonitor() {
+        return monitor;
     }
 
     @NotNull

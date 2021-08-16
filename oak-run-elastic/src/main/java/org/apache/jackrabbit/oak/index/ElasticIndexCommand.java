@@ -21,10 +21,15 @@ package org.apache.jackrabbit.oak.index;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import joptsimple.OptionParser;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
@@ -33,6 +38,10 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
+import org.apache.jackrabbit.oak.spi.commit.*;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +49,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import static java.util.Collections.singletonList;
 
 /*
 Command file for Elastic index operation.
@@ -54,6 +62,7 @@ public class ElasticIndexCommand implements Command {
     private Options opts;
     private ElasticIndexOptions indexOpts;
     public static final String NAME = "index";
+    private static final String LOG_SUFFIX = "indexing";
 
     private final String summary = "Provides elastic index management related operations";
     private static boolean disableExitOnError;
@@ -74,19 +83,17 @@ public class ElasticIndexCommand implements Command {
 
         //Clean up before setting up NodeStore as the temp
         //directory might be used by NodeStore for cache stuff like persistentCache
-        //setupDirectories(indexOpts);
-        //setupLogging(indexOpts);
+        setupDirectories(indexOpts);
+        setupLogging(indexOpts);
 
         logCliArgs(args);
 
         boolean success = false;
         try {
             try (Closer closer = Closer.create()) {
-                //configureCustomizer(opts, closer, true);
                 NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
                 closer.register(fixture);
                 execute(fixture, indexOpts, closer);
-                //tellReportPaths();
             }
 
             success = true;
@@ -105,7 +112,7 @@ public class ElasticIndexCommand implements Command {
         }
     }
 
-    private void execute(NodeStoreFixture fixture, IndexOptions indexOpts, Closer closer)
+    private void execute(NodeStoreFixture fixture, ElasticIndexOptions indexOpts, Closer closer)
             throws IOException, CommitFailedException {
         IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
 
@@ -113,10 +120,13 @@ public class ElasticIndexCommand implements Command {
         //dumpIndexStats(indexOpts, indexHelper);
         //dumpIndexDefinitions(indexOpts, indexHelper);
         reindexOperation(indexOpts, indexHelper);
+        // This will not work with --doc-traversal mode, since that only works with read only mode and apply index def needs read write mode
+        // read write requirement - logic handled in applyIndexDefOperation
+        applyIndexDefOperation(indexOpts, indexHelper);
     }
 
     private IndexHelper createIndexHelper(NodeStoreFixture fixture,
-                                          IndexOptions indexOpts, Closer closer) throws IOException {
+                                          ElasticIndexOptions indexOpts, Closer closer) throws IOException {
         IndexHelper indexHelper = new IndexHelper(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(),
                 indexOpts.getOutDir(), indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
 
@@ -127,7 +137,7 @@ public class ElasticIndexCommand implements Command {
         return indexHelper;
     }
 
-    private List<String> computeIndexPaths(IndexOptions indexOpts) throws IOException {
+    private List<String> computeIndexPaths(ElasticIndexOptions indexOpts) throws IOException {
         //Combine the indexPaths from json and cli args
         Set<String> indexPaths = new LinkedHashSet<>(indexOpts.getIndexPaths());
         File definitions = indexOpts.getIndexDefinitionsFile();
@@ -143,16 +153,39 @@ public class ElasticIndexCommand implements Command {
         return new ArrayList<>(indexPaths);
     }
 
-    private void reindexOperation(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
+    private void applyIndexDefOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException  {
+        // return if index opts don't contain --applyIndexDef option or --read-write is not present
+        if (!indexOpts.isApplyIndexDef() || !opts.getCommonOpts().isReadWrite()) {
+            log.info("Index def not applied to repo. Run index command with --applyIndexDef and --read-write without the --reindex " +
+                    "opts to apply the index def");
+            return;
+        }
+        applyIndexDef(indexOpts, indexHelper);
+    }
+
+    private void applyIndexDef(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
+        File definitions = indexOpts.getIndexDefinitionsFile();
+        if (definitions != null) {
+            Preconditions.checkArgument(definitions.exists(), "Index definitions file [%s] not found", getPath(definitions));
+            NodeStore store = indexHelper.getNodeStore();
+            NodeState root = store.getRoot();
+            NodeBuilder rootBuilder = root.builder();
+            new IndexDefinitionUpdater(definitions).apply(rootBuilder);
+            mergeWithConcurrentCheck(store, rootBuilder);
+        } else {
+            log.warn("No index definitions file provided");
+        }
+    }
+
+    private void reindexOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
         if (!indexOpts.isReindex()) {
             return;
         }
-
         String checkpoint = indexOpts.getCheckpoint();
         reindex(indexOpts, indexHelper, checkpoint);
     }
 
-    private void reindex(IndexOptions idxOpts, IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
+    private void reindex(ElasticIndexOptions indexOpts, IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
         Preconditions.checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch w = Stopwatch.createStarted();
@@ -160,7 +193,7 @@ public class ElasticIndexCommand implements Command {
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
 
-        if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
+        if (opts.getCommonOpts().isMongo() && indexOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
             try (ElasticDocumentStoreIndexer indexer = new ElasticDocumentStoreIndexer(indexHelper, indexerSupport, indexOpts.getIndexPrefix(),
                     indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
@@ -220,6 +253,44 @@ public class ElasticIndexCommand implements Command {
 
     public static void setDisableExitOnError(boolean disableExitOnError) {
         ElasticIndexCommand.disableExitOnError = disableExitOnError;
+    }
+
+    private static void setupLogging(IndexOptions indexOpts) throws IOException {
+        new LoggingInitializer(indexOpts.getWorkDir(), LOG_SUFFIX).init();
+    }
+
+    private static void setupDirectories(IndexOptions indexOpts) throws IOException {
+        if (indexOpts.getOutDir().exists()) {
+            if (indexOpts.isImportIndex() &&
+                    FileUtils.directoryContains(indexOpts.getOutDir(), indexOpts.getIndexImportDir())) {
+                //Do not clean directory in this case
+            } else {
+                FileUtils.cleanDirectory(indexOpts.getOutDir());
+            }
+        }
+        cleanWorkDir(indexOpts.getWorkDir());
+    }
+
+    private static void cleanWorkDir(File workDir) throws IOException {
+        //TODO Do not clean if restarting
+        String[] dirListing = workDir.list();
+        if (dirListing != null && dirListing.length != 0) {
+            FileUtils.cleanDirectory(workDir);
+        }
+    }
+
+    static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder) throws CommitFailedException {
+        CompositeHook hooks = new CompositeHook(
+                ResetCommitAttributeHook.INSTANCE,
+                new ConflictHook(new AnnotatingConflictHandler()),
+                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+        );
+        nodeStore.merge(builder, hooks, createCommitInfo());
+    }
+
+    private static CommitInfo createCommitInfo() {
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
 }

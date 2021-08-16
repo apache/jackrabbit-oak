@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -89,6 +90,7 @@ public class ElasticIndexCleaner implements Runnable {
                     filter(index -> Arrays.stream(remoteIndices).noneMatch(remoteIndex -> remoteIndex.equals(index))).collect(Collectors.toList());
             externallyDeletedIndices.forEach(danglingRemoteIndicesMap::remove);
             Set<String> existingIndices = new HashSet<>();
+            AtomicBoolean shouldReturnSilently = new AtomicBoolean(false);
             root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().forEach(childNodeEntry -> {
                 PropertyState typeProperty = childNodeEntry.getNodeState().getProperty(IndexConstants.TYPE_PROPERTY_NAME);
                 String typeValue = typeProperty != null ? typeProperty.getValue(Type.STRING) : "";
@@ -96,15 +98,31 @@ public class ElasticIndexCleaner implements Runnable {
                 If index type is "elasticsearch" or "disabled", we try to find remote index name. In case of disabled lucene or
                 property indices, the remote index name would be null. So only elasticsearch indices are affected here.
                  */
-                if (typeValue.equals(ElasticIndexDefinition.TYPE_ELASTICSEARCH) || typeValue.equals("disabled")) {
+                if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) || "disabled".equals(typeValue)) {
                     String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + childNodeEntry.getName();
                     String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
                     if (remoteIndexName != null) {
                         existingIndices.add(remoteIndexName);
+                    } else if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue)){
+                        /*
+                            Didn't check for disabled indexes in this "else if" condition because an index could be disabled at three stages
+                            and the following should hold -
+                            Stage 1 - index definition was created with type="disabled". This means indexing has not been done for index and
+                            hence remote index name and the remote index itself shouldn't exist
+                            Stage 2 - index was disabled after indexing was complete - in this case we would find remote index name and won't
+                            enter this condition
+                            Stage 3 - index was disabled after indexing started but before it was complete. Ideally this should only be done in
+                            case of some error in indexing and after interrupting and pausing indexing lane. So in this case it should be safe to
+                            delete the partially created remote index as it should be recreated by reindexing.
+                         */
+                        LOG.info("Could not obtain remote index name for {}. Won't delete any index.", childNodeEntry.getName());
+                        shouldReturnSilently.set(true);
                     }
                 }
             });
-
+            if (shouldReturnSilently.get()) {
+                return;
+            }
             List<String> indicesToDelete = new ArrayList<>();
             for (String remoteIndexName : remoteIndices) {
                 if (!existingIndices.contains(remoteIndexName)) {

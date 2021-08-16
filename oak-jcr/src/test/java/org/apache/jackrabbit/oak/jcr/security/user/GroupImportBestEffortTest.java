@@ -31,6 +31,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -44,12 +45,12 @@ import static org.junit.Assert.fail;
 public class GroupImportBestEffortTest extends AbstractImportTest {
 
     @Override
-    protected String getImportBehavior() {
+    protected @NotNull String getImportBehavior() {
         return ImportBehavior.NAME_BESTEFFORT;
     }
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return GROUPPATH;
     }
 

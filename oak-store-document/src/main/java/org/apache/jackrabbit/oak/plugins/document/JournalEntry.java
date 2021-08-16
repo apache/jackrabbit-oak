@@ -387,8 +387,8 @@ public final class JournalEntry extends Document {
     void addChangeSet(@Nullable ChangeSet changeSet){
         if (changeSet == null){
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Null changeSet found for caller. ChangeSetBuilder would be set to overflow mode",
-                        new Exception());
+                LOG.debug("Null changeSet found for caller. ChangeSetBuilder will be set to overflow mode",
+                        new Exception("call stack"));
             }
         }
         changeSetBuilder.add(changeSet);

@@ -36,6 +36,7 @@ import java.util.Iterator;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -351,5 +352,10 @@ public class AutoSaveEnabledManagerTest extends AbstractAutoSaveTest {
 
         assertTrue(g.removeMembers(u.getID()).isEmpty());
         assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testUnwrap() {
+        assertSame(mgrDlg, autosaveMgr.unwrap());
     }
 }

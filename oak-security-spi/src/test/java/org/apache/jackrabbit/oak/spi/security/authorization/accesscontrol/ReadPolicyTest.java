@@ -16,14 +16,42 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
+import java.util.Collections;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ReadPolicyTest {
 
     @Test
     public void testGetName() throws Exception {
         assertEquals("Grants read access on configured trees.", ReadPolicy.INSTANCE.getName());
+    }
+    
+    @Test
+    public void testHasEffectiveReadPolicyNullPath() {
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.emptySet(), null));
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), null));
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/path", "/another/path"), null));
+    }
+
+    @Test
+    public void testHasEffectiveReadPolicy() {
+        String path = "/some/random/path";
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.emptySet(), path));
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton("/another/path"), path));
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path+"-sibling"), path));
+        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path+"/child"), path));
+        
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path), path));
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), path));
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/random"), path));
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", "/some/random/path"), path));
+        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", PathUtils.ROOT_PATH), path));
     }
 }

@@ -62,7 +62,8 @@ public class PropInfo {
      * Hint indicating whether the property is multi- or single-value
      */
     public enum MultipleStatus { UNKNOWN, MULTIPLE }
-    private MultipleStatus multipleStatus;
+    
+    private final MultipleStatus multipleStatus;
 
     /**
      * Creates a property information instance.

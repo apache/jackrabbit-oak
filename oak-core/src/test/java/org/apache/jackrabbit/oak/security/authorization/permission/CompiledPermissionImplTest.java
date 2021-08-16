@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -78,7 +79,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -132,7 +132,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
     @NotNull
     private PermissionStore mockPermissionStore(@NotNull Root r, @NotNull String wspName) {
-        return spy(new PermissionStoreImpl(r, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider()));
+        return spy(new PermissionStoreImpl(r, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), mock(AuthorizationMonitor.class)));
     }
 
     private CompiledPermissionImpl create(@NotNull Root r, @NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull PermissionStore store, @NotNull ConfigurationParameters options) {
@@ -529,7 +529,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         String wspName = testSession.getWorkspaceName();
 
         // create cp for group principal only (no user principal)
-        PermissionStore store = spy(new PermissionStoreImpl(readOnlyRoot, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider()));
+        PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
         CompiledPermissionImpl cp = create(readOnlyRoot, wspName, ImmutableSet.of(EveryonePrincipal.getInstance()), store, ConfigurationParameters.EMPTY);
 
         verify(store, never()).getNumEntries(anyString(), anyLong());

@@ -349,7 +349,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         Stopwatch sw = Stopwatch.createStarted();
 
         try {
-            LOG.info("Starting Blob garbage collection with markOnly [{}]", markOnly);
+            LOG.info("Starting Blob garbage collection with markOnly [{}] for repositoryId [{}]", markOnly, repoId);
 
             long markStart = System.currentTimeMillis();
             long markFinish;
@@ -833,14 +833,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 List<DataRecord> refFiles =
                     ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                LOG.info("References available {}", refFiles);
 
                 // Get all the repositories registered
                 List<DataRecord> repoFiles =
                     ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
-
+                LOG.info("Repositories registered {}", repoFiles);
+                
                 // Retrieve repos for which reference files have not been created
                 Set<String> unAvailRepos =
                         SharedDataStoreUtils.refsNotAvailableFromRepos(repoFiles, refFiles);
+                LOG.info("Repositories with unavailable references {}", unAvailRepos);
 
                 Set<String> notOldRefs = Collections.EMPTY_SET;
                 long retentionTime = clock.getTime() - maxLastModifiedInterval;

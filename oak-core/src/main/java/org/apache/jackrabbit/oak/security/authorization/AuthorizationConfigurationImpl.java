@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,8 @@ import javax.jcr.security.AccessControlManager;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitorImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
@@ -57,6 +60,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -121,6 +126,8 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
+    private AuthorizationMonitor monitor = new AuthorizationMonitorImpl(StatisticsProvider.NOOP);
+
     public AuthorizationConfigurationImpl() {
         super();
     }
@@ -145,12 +152,6 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     @NotNull
     @Override
-    public Context getContext() {
-        return AuthorizationContext.getInstance();
-    }
-
-    @NotNull
-    @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
         return new AuthorizationInitializer(mountInfoProvider);
     }
@@ -160,7 +161,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName, this),
-                new PermissionHook(workspaceName, getRestrictionProvider(), mountInfoProvider, getRootProvider(), getTreeProvider()));
+                new PermissionHook(workspaceName, getRestrictionProvider(), this));
     }
 
     @NotNull
@@ -176,6 +177,19 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return ImmutableList.of(new AccessControlImporter());
+    }
+
+    @NotNull
+    @Override
+    public Context getContext() {
+        return AuthorizationContext.getInstance();
+    }
+
+    @NotNull
+    @Override
+    public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+        monitor = new AuthorizationMonitorImpl(statisticsProvider);
+        return Collections.singleton(monitor);
     }
 
     //-----------------------------------------< AccessControlConfiguration >---
@@ -220,6 +234,12 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Override
     public MountInfoProvider getMountInfoProvider() {
         return mountInfoProvider;
+    }
+
+    @NotNull
+    @Override
+    public AuthorizationMonitor getMonitor() {
+        return monitor;
     }
 
     //--------------------------------------------------------------------------

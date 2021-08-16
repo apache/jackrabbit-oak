@@ -30,6 +30,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.Privilege;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,12 +52,14 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
     private NamePathMapperImpl remapped;
 
     private Privilege[] privs;
+    private ACL acl;
 
     @Override
     public void before() throws Exception {
         super.before();
 
         privs = privilegesFromNames(PrivilegeConstants.JCR_READ);
+        acl = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
     }
 
     @Override

@@ -98,6 +98,7 @@ public class MillisecondsTest {
 
         assertNotEquals(null, NEVER);
         assertNotEquals(NULL, NULL.value);
+        assertNotEquals(NULL, null);
     }
 
     @Test

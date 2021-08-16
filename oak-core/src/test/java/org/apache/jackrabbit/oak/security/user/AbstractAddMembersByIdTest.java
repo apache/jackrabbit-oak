@@ -16,20 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Iterator;
-import java.util.Set;
-import java.util.UUID;
-import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.security.AccessControlManager;
-
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -41,25 +32,40 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.security.AccessControlManager;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.UUID;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
+public abstract class AbstractAddMembersByIdTest extends AbstractUserTest {
 
     static final String[] NON_EXISTING_IDS = new String[] {"nonExisting1", "nonExisting2"};
 
     Group testGroup;
     Group memberGroup;
-
+    
     @Override
     public void before() throws Exception {
         super.before();
 
-        UserManager uMgr = getUserManager(root);
+        UserManager uMgr = createUserManagerImpl(root);
         for (String id : NON_EXISTING_IDS) {
             assertNull(uMgr.getAuthorizable(id));
         }
@@ -72,6 +78,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
+            clearInvocations(monitor);
             root.refresh();
 
             if (testGroup != null) {
@@ -102,6 +109,12 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         return testGroup.addMembers(NON_EXISTING_IDS);
     }
 
+    private void verifyMonitor(long totalCnt, long failedCnt) {
+        verify(monitor).doneUpdateMembers(anyLong(), eq(totalCnt), eq(failedCnt), eq(false));
+        verifyNoMoreInteractions(monitor);
+    }
+
+    @NotNull
     Set<String> addExistingMemberWithoutAccess() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testGroup.getPath());
@@ -133,6 +146,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         root.commit();
 
         assertTrue(testGroup.isDeclaredMember(memberGroup));
+        verifyMonitor(1, 0);
     }
 
     @Test
@@ -143,6 +157,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         root.commit();
 
         assertTrue(testGroup.isDeclaredMember(getTestUser()));
+        verifyMonitor(1, 0);
     }
 
     @Test
@@ -154,12 +169,14 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
 
         assertTrue(testGroup.isDeclaredMember(getTestUser()));
         assertTrue(testGroup.isDeclaredMember(memberGroup));
+        verifyMonitor(2, 0);
     }
 
     @Test
     public void testNoMembers() throws Exception {
         Set<String> failed = testGroup.addMembers();
         assertTrue(failed.isEmpty());
+        verifyMonitor(0, 0);
     }
 
 
@@ -182,6 +199,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         }
         // no modifications expected as testing for empty id is done before changes are made
         assertFalse(root.hasPendingChanges());
+        verifyNoInteractions(monitor);
     }
 
     @Test(expected = NullPointerException.class)
@@ -203,6 +221,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         }
         // no modifications expected as testing for null id is done before changes are made
         assertFalse(root.hasPendingChanges());
+        verifyNoInteractions(monitor);
     }
 
     @Test
@@ -210,6 +229,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         Set<String> failed = testGroup.addMembers(testGroup.getID());
         assertEquals(1, failed.size());
         assertTrue(failed.contains(testGroup.getID()));
+        verifyMonitor(1, 1);
     }
 
     @Test
@@ -221,16 +241,19 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
 
         Iterable<String> memberIds = getMemberIds(testGroup);
         assertEquals(1, Iterables.size(memberIds));
+        verifyMonitor(2, 0);
     }
 
     @Test
     public void testCyclicMembership() throws Exception {
         memberGroup.addMember(testGroup);
         root.commit();
+        clearInvocations(monitor);
 
         Set<String> failed = testGroup.addMembers(memberGroup.getID());
         assertFalse(failed.isEmpty());
         assertTrue(failed.contains(memberGroup.getID()));
+        verifyMonitor(1, 1);
     }
 
     @Test
@@ -240,6 +263,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
 
         Set<String> failed = testGroup.addMembers(getTestUser().getID(), memberGroup.getID());
         assertEquals(2, failed.size());
+        verify(monitor, times(2)).doneUpdateMembers(anyLong(), eq(1L), eq(0L), eq(false));
+        verifyMonitor(2, 2);
     }
 
     @Test

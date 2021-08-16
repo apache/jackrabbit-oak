@@ -18,28 +18,44 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import org.apache.jackrabbit.oak.stats.Monitor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
+import javax.jcr.Credentials;
+import javax.security.auth.login.LoginException;
 import java.util.Collections;
 import java.util.Map;
 
 @ProviderType
 public interface LoginModuleMonitor extends Monitor<LoginModuleMonitor> {
 
-    LoginModuleMonitor NOOP = new LoginModuleMonitor() {
-
-        @Override
-        public void loginError() {
-        }
-    };
+    LoginModuleMonitor NOOP = () -> { };
 
     /**
      * Event to be called in the case there is an error in the login chain. This
      * is not covering failed logins, but actual operational errors that
-     * probably need to be investigated. Any triggered even should have a
+     * probably need to be investigated. Any triggered event should have a
      * corresponding error logged to make this investigation possible.
+     * 
+     * @see #loginFailed(LoginException, Credentials)
      */
     void loginError();
+
+    /**
+     * Marks a failed login attempt for the given {@link Credentials} that resulted in the given {@link javax.jcr.LoginException}.
+     * 
+     * @param loginException The {@link LoginException} raised by the failed login attempt.
+     * @param credentials The credentials used for login.
+     */
+    default void loginFailed(@NotNull LoginException loginException, @Nullable Credentials credentials) {}
+
+    /**
+     * Record the time taken to collect the given number of principals during the commit phase of a given {@code LoginModule}.
+     *
+     * @param timeTakenNanos The time in nanoseconds
+     * @param numberOfPrincipals The number of principals that were collected.
+     */
+    default void principalsCollected(long timeTakenNanos, int numberOfPrincipals) {}
 
     @Override
     default @NotNull Class<LoginModuleMonitor> getMonitorClass() {

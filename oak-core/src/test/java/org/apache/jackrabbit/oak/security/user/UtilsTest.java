@@ -18,17 +18,23 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Map;
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import javax.jcr.AccessDeniedException;
+import javax.jcr.RepositoryException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -88,9 +94,9 @@ public class UtilsTest extends AbstractSecurityTest {
                 "a/b/c/../..", "/a",
                 "a/././././b/c", "/a/b/c"
         );
-        for (String relPath : map.keySet()) {
-            Tree t = Utils.getOrAddTree(tree, relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-            assertEqualPath(root.getTree(map.get(relPath)), t);
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            Tree t = Utils.getOrAddTree(tree, entry.getKey(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            assertEqualPath(root.getTree(entry.getValue()), t);
         }
     }
 
@@ -112,5 +118,35 @@ public class UtilsTest extends AbstractSecurityTest {
         when(t.addChild("b")).thenReturn(nonExisting);
 
         Utils.getOrAddTree(t, "a/a/b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    }
+    
+    @Test
+    public void testIsEveryoneUser() throws Exception {
+        AuthorizableImpl user = when(mock(AuthorizableImpl.class).getPrincipal()).thenReturn(EveryonePrincipal.getInstance()).getMock();
+        when(user.isGroup()).thenReturn(false);
+        assertFalse(Utils.isEveryone(user));
+    }
+
+    @Test
+    public void testIsEveryoneGroup() throws Exception {
+        Group gr = getUserManager(root).createGroup(EveryonePrincipal.getInstance());
+        assertTrue(Utils.isEveryone(gr));
+    }
+    
+    @Test
+    public void testIsEveryoneOtherAuthorizable() throws Exception {
+        Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenReturn(EveryonePrincipal.getInstance()).getMock();
+        when(a.isGroup()).thenReturn(false);
+        assertFalse(Utils.isEveryone(a));
+
+        when(a.isGroup()).thenReturn(true);
+        assertTrue(Utils.isEveryone(a));
+    }
+
+    @Test
+    public void testIsEveryoneGetPrincipalFails() throws Exception {
+        Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
+        when(a.isGroup()).thenReturn(true);
+        assertFalse(Utils.isEveryone(a));
     }
 }

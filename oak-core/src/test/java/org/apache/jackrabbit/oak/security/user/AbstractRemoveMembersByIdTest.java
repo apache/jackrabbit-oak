@@ -16,40 +16,43 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Set;
-import java.util.UUID;
-
-import javax.jcr.SimpleCredentials;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
+import javax.jcr.SimpleCredentials;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.security.AccessControlManager;
+import java.util.Set;
+import java.util.UUID;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-public abstract class AbstractRemoveMembersByIdTest extends AbstractSecurityTest {
+public abstract class AbstractRemoveMembersByIdTest extends AbstractUserTest {
 
     static final String[] NON_EXISTING_IDS = new String[] {"nonExisting1", "nonExisting2"};
 
     Group testGroup;
     Group memberGroup;
-
+    
     @Override
     public void before() throws Exception {
         super.before();
 
-        UserManager uMgr = getUserManager(root);
+        UserManager uMgr = createUserManagerImpl(root);
         for (String id : NON_EXISTING_IDS) {
             assertNull(uMgr.getAuthorizable(id));
         }
@@ -59,11 +62,13 @@ public abstract class AbstractRemoveMembersByIdTest extends AbstractSecurityTest
         testGroup.addMember(memberGroup);
         testGroup.addMember(getTestUser());
         root.commit();
+        clearInvocations(monitor);
     }
 
     @Override
     public void after() throws Exception {
         try {
+            clearInvocations(monitor);
             root.refresh();
 
             if (testGroup != null) {
@@ -107,16 +112,23 @@ public abstract class AbstractRemoveMembersByIdTest extends AbstractSecurityTest
         }
     }
 
+    private void verifyMonitor(long totalCnt, long failedCnt) {
+        verify(monitor).doneUpdateMembers(anyLong(), eq(totalCnt), eq(failedCnt), eq(true));
+        verifyNoMoreInteractions(monitor);
+    }
+
     @Test
     public void testUserMember() throws Exception {
         Set<String> failed = testGroup.removeMembers(getTestUser().getID());
         assertTrue(failed.isEmpty());
+        verifyMonitor(1, 0);
     }
 
     @Test
     public void testGroupMember() throws Exception {
         Set<String> failed = testGroup.removeMembers(memberGroup.getID());
         assertTrue(failed.isEmpty());
+        verifyMonitor(1, 0);
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -145,6 +157,7 @@ public abstract class AbstractRemoveMembersByIdTest extends AbstractSecurityTest
         Set<String> failed = testGroup.removeMembers(testGroup.getID());
         assertEquals(1, failed.size());
         assertTrue(failed.contains(testGroup.getID()));
+        verifyMonitor(1, 1);
     }
 
     @Test
@@ -153,6 +166,7 @@ public abstract class AbstractRemoveMembersByIdTest extends AbstractSecurityTest
         assertTrue(failed.isEmpty());
 
         assertFalse(testGroup.isDeclaredMember(memberGroup));
+        verifyMonitor(2, 0);
     }
 
     @Test
@@ -163,6 +177,7 @@ public abstract class AbstractRemoveMembersByIdTest extends AbstractSecurityTest
 
             Set<String> failed = testGroup.removeMembers(gr.getID());
             assertFalse(failed.isEmpty());
+            verifyMonitor(1, 1);
         } finally {
             if (gr != null) {
                 gr.remove();

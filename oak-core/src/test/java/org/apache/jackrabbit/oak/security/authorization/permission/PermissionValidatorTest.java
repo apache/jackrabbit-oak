@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.security.Principal;
-import java.util.Set;
-import javax.jcr.security.AccessControlManager;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
@@ -35,6 +31,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -49,6 +46,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.security.AccessControlManager;
+import java.security.Principal;
+import java.util.Set;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -59,7 +60,11 @@ import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSION
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class PermissionValidatorTest extends AbstractSecurityTest {
@@ -68,6 +73,8 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
     private static final String TEST_CHILD_PATH = "/testRoot/child";
 
     private Principal testPrincipal;
+
+    private final AuthorizationMonitor monitor = mock(AuthorizationMonitor.class);
 
     @Before
     @Override
@@ -86,6 +93,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
+            clearInvocations(monitor);
             // revert uncommitted changes
             root.refresh();
 
@@ -105,17 +113,23 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
         root.commit();
     }
 
-    private PermissionValidator createValidator(@NotNull Set<Principal> principals, @NotNull String path) {
-        Tree t = root.getTree(PathUtils.ROOT_PATH);
-        NodeState ns = getTreeProvider().asNodeState(t);
+    @NotNull
+    private ProviderCtx mockProviderCtx() {
         ProviderCtx ctx = mock(ProviderCtx.class);
         when(ctx.getSecurityProvider()).thenReturn(getSecurityProvider());
         when(ctx.getTreeProvider()).thenReturn(getTreeProvider());
+        when(ctx.getMonitor()).thenReturn(monitor);
+        return ctx;
+    }
+
+    private PermissionValidator createValidator(@NotNull Set<Principal> principals, @NotNull String path) {
+        Tree t = root.getTree(PathUtils.ROOT_PATH);
+        NodeState ns = getTreeProvider().asNodeState(t);
 
         String wspName = root.getContentSession().getWorkspaceName();
         PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, wspName, principals);
 
-        PermissionValidatorProvider pvp = new PermissionValidatorProvider(wspName, principals, new MoveTracker(), ctx);
+        PermissionValidatorProvider pvp = new PermissionValidatorProvider(wspName, principals, new MoveTracker(), mockProviderCtx());
         PermissionValidator validator = new PermissionValidator(ns, ns, pp, pvp);
         TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
         for (String name : PathUtils.elements(path)) {
@@ -125,6 +139,11 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             validator = new PermissionValidator(t, t, tp, validator);
         }
         return validator;
+    }
+
+    private void verifyMonitor() {
+        verify(monitor).accessViolation();
+        verifyNoMoreInteractions(monitor);
     }
 
     @Test(expected = CommitFailedException.class)
@@ -153,6 +172,8 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
             throw e;
+        } finally {
+            verifyMonitor();
         }
     }
 
@@ -165,6 +186,8 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
             throw e;
+        } finally {
+            verifyMonitor();
         }
     }
 
@@ -177,6 +200,8 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
             throw e;
+        } finally {
+            verifyMonitor();
         }
     }
 
@@ -184,9 +209,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
     public void testRemoveVersionStorageTree() throws Exception {
         Tree t = root.getTree(PathUtils.ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(t);
-        ProviderCtx ctx = mock(ProviderCtx.class);
-        when(ctx.getSecurityProvider()).thenReturn(getSecurityProvider());
-        when(ctx.getTreeProvider()).thenReturn(getTreeProvider());
+        ProviderCtx ctx = mockProviderCtx();
 
         PermissionValidatorProvider pvp = new PermissionValidatorProvider("wspName", ImmutableSet.of(), new MoveTracker(), ctx);
         PermissionValidator validator = new PermissionValidator(ns, ns, mock(PermissionProvider.class), pvp);
@@ -202,6 +225,8 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isAccessViolation());
             assertEquals(22, e.getCode());
             throw e;
+        } finally {
+            verifyMonitor();
         }
     }
 
@@ -216,6 +241,8 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isAccessViolation());
             assertEquals(21, e.getCode());
             throw e;
+        } finally {
+            verifyMonitor();
         }
     }
 
@@ -231,6 +258,8 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             assertTrue(e.isOfType("Misc"));
             assertEquals(0, e.getCode());
             throw e;
+        } finally {
+            verifyNoInteractions(monitor);
         }
     }
 

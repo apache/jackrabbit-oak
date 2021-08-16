@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,12 +35,14 @@ public final class ImportBehavior {
      * warning and the value is ignored.
      */
     public static final int IGNORE = 1;
+
     /**
      * Same as {@link #IGNORE} but in addition tries to circumvent the
      * problem. This option should only be used with validated and trusted
      * XML passed to the {@code Session} and {@code Workspace} import API.
      */
     public static final int BESTEFFORT = 2;
+
     /**
      * Aborts the import as soon as invalid values are detected throwing
      * a {@code ConstraintViolationException}.
@@ -55,7 +58,7 @@ public final class ImportBehavior {
      */
     private ImportBehavior() {}
 
-    public static int valueFromString(String behaviorString) {
+    public static int valueFromString(@NotNull String behaviorString) {
         if (NAME_IGNORE.equalsIgnoreCase(behaviorString)) {
             return IGNORE;
         } else if (NAME_BESTEFFORT.equalsIgnoreCase(behaviorString)) {
@@ -68,6 +71,7 @@ public final class ImportBehavior {
         }
     }
 
+    @NotNull
     public static String nameFromValue(int importBehavior) {
         switch (importBehavior) {
             case ImportBehavior.IGNORE:

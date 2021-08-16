@@ -138,6 +138,7 @@ class PermissionValidator extends DefaultValidator {
         if (isVersionstorageTree(child)) {
             child = getVersionHistoryTree(child);
             if (child == null) {
+                provider.getAccessMonitor().accessViolation();
                 throw new CommitFailedException(
                         ACCESS, 21, "New version storage node without version history: cannot verify permissions.");
             }
@@ -157,6 +158,7 @@ class PermissionValidator extends DefaultValidator {
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         Tree child = parentBefore.getChild(name);
         if (isVersionstorageTree(child)) {
+            provider.getAccessMonitor().accessViolation();
             throw new CommitFailedException(
                     ACCESS, 22, "Attempt to remove versionstorage node: Fail to verify delete permission.");
         }
@@ -349,6 +351,7 @@ class PermissionValidator extends DefaultValidator {
 
     void checkIsGranted(boolean isGranted) throws CommitFailedException {
         if (!isGranted) {
+            provider.getAccessMonitor().accessViolation();
             throw new CommitFailedException(ACCESS, 0, "Access denied");
         }
     }

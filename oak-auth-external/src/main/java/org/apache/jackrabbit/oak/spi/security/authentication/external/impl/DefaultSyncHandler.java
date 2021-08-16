@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +143,7 @@ public class DefaultSyncHandler implements SyncHandler {
         return new AbstractLazyIterator<SyncedIdentity>() {
 
             @Override
-            protected SyncedIdentity getNext() {
+            protected @Nullable SyncedIdentity getNext() {
                 while (iter.hasNext()) {
                     try {
                         SyncedIdentity id = DefaultSyncContext.createSyncedIdentity(iter.next());

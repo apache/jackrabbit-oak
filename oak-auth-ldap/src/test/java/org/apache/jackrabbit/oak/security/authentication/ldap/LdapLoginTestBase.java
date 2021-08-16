@@ -71,9 +71,9 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
 
     protected static String GROUP_DN;
 
-    protected static int NUM_CONCURRENT_LOGINS = 10;
-    private static String[] CONCURRENT_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
-    private static String[] CONCURRENT_GROUP_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
+    protected static final int NUM_CONCURRENT_LOGINS = 10;
+    private static final String[] CONCURRENT_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
+    private static final String[] CONCURRENT_GROUP_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
 
     protected UserManager userManager;
 
@@ -351,26 +351,24 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
 
     @Test
     public void testConcurrentLogin() throws Exception {
-        concurrentLogin(CONCURRENT_TEST_USERS);
+        assertConcurrentLogin(CONCURRENT_TEST_USERS);
     }
 
     @Test
     public void testConcurrentLoginSameGroup() throws Exception {
-        concurrentLogin(CONCURRENT_GROUP_TEST_USERS);
+        assertConcurrentLogin(CONCURRENT_GROUP_TEST_USERS);
     }
 
-    private void concurrentLogin(String [] users) throws Exception {
+    private void assertConcurrentLogin(String [] users) throws Exception {
         final List<Exception> exceptions = new ArrayList<Exception>();
         List<Thread> workers = new ArrayList<Thread>();
         for (String userId: users) {
             final String uid = userId;
-            workers.add(new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        login(new SimpleCredentials(uid, USER_PWD.toCharArray())).close();
-                    } catch (Exception e) {
-                        exceptions.add(e);
-                    }
+            workers.add(new Thread(() -> {
+                try {
+                    login(new SimpleCredentials(uid, USER_PWD.toCharArray())).close();
+                } catch (Exception e) {
+                    exceptions.add(e);
                 }
             }));
         }

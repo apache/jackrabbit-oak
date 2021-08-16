@@ -38,18 +38,18 @@ final class TestProvider extends AbstractRestrictionProvider {
 
     private final boolean nonValidatingRead;
 
-    TestProvider(Map<String, ? extends RestrictionDefinition> supportedRestrictions) {
+    TestProvider(@NotNull Map<String, ? extends RestrictionDefinition> supportedRestrictions) {
         this(supportedRestrictions, false);
     }
 
-    TestProvider(Map<String, ? extends RestrictionDefinition> supportedRestrictions, boolean nonValidatingRead) {
+    TestProvider(@NotNull Map<String, ? extends RestrictionDefinition> supportedRestrictions, boolean nonValidatingRead) {
         super(supportedRestrictions);
         this.nonValidatingRead = nonValidatingRead;
     }
 
     @NotNull
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
+    public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
         if (nonValidatingRead) {
             Set<Restriction> restrictions = new HashSet<>();
             for (PropertyState propertyState : getRestrictionsTree(aceTree).getProperties()) {

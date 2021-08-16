@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -38,11 +37,12 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_USER_EXTRA_FILTER_DEFAULT;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -93,7 +93,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
             ExternalUser user = users.next();
             // the 'Faulty Entry' of the ERRONEOUS_LDIF should be filtered out
             // (by LdapIdentityProvider.listUsers.getNext())
-            assertTrue(!user.getPrincipalName().startsWith("cn=Faulty Entry"));
+            assertFalse(user.getPrincipalName().startsWith("cn=Faulty Entry"));
         }
     }
 
@@ -124,16 +124,13 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testAuthenticate() throws Exception {
-        authenticateInternal(idp, TEST_USER1_DN);
+        assertAuthenticate(idp, TEST_USER1_UID, TEST_USER1_DN, TEST_USER1_DN);
     }
 
     @Test
     public void testAuthenticateCaseInsensitive() throws Exception {
         SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID.toUpperCase(), "pass".toCharArray());
-        ExternalUser user = idp.authenticate(creds);
-        assertNotNull("User 1 must authenticate", user);
-        assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
-        assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+        assertAuthenticate(idp, creds, TEST_USER1_DN, TEST_USER1_DN);
     }
 
     @Test

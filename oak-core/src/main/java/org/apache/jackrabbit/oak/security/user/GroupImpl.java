@@ -16,16 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-
-import com.google.common.base.Predicates;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -34,11 +26,21 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * GroupImpl...
@@ -75,13 +77,13 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
-        return getMembers(false);
+        return getMembersMonitored(false);
     }
 
     @NotNull
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
-        return getMembers(true);
+        return getMembersMonitored(true);
     }
 
     @Override
@@ -96,14 +98,26 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     @Override
     public boolean addMember(@NotNull Authorizable authorizable) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        boolean success = internalAddMember(authorizable);
+        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), 1, (success) ? 0 : 1, false);
+        return success;
+    }
+
+    private boolean internalAddMember(@NotNull Authorizable authorizable) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
         }
 
+        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
+        if (dmp.coversAllMembers(this)) {
+            log.debug("Attempt to add member to dynamic group {}", getID());
+            return false;
+        }
         AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
-        if (isEveryone() || authorizableImpl.isEveryone()) {
-            log.debug("Attempt to add member to everyone group or create membership for it.");
+        if (authorizableImpl.isEveryone()) {
+            log.debug("Attempt to create membership for everyone group.");
             return false;
         }
 
@@ -132,29 +146,39 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     @Override
     public Set<String> addMembers(@NotNull String... memberIds) throws RepositoryException {
-        return updateMembers(false, memberIds);
+        return updateMembersMonitored(false, memberIds);
     }
 
     @Override
     public boolean removeMember(@NotNull Authorizable authorizable) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        boolean success = internalRemoveMember(authorizable);
+        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), 1, (success) ? 0 : 1, true);
+        return success;
+    }
+
+    private boolean internalRemoveMember(@NotNull Authorizable authorizable) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
         }
 
+        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
+        if (dmp.coversAllMembers(this)) {
+            log.debug("Attempt to remove member from dynamic group {}", getID());
+            return false;
+        }
+        
         AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
-        if (isEveryone() || authorizableImpl.isEveryone()) {
-            log.debug("Attempt to remove member from everyone group or remove membership for it.");
+        if (authorizableImpl.isEveryone()) {
+            log.debug("Attempt to remove membership for everyone group.");
             return false;
         } else {
             Tree memberTree = authorizableImpl.getTree();
-
             boolean success = getMembershipProvider().removeMember(getTree(), memberTree);
-
             if (success) {
                 getUserManager().onGroupUpdate(this, true, authorizable);
             }
-
             return success;
         }
     }
@@ -162,10 +186,18 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     @Override
     public Set<String> removeMembers(@NotNull String... memberIds) throws RepositoryException {
-        return updateMembers(true, memberIds);
+        return updateMembersMonitored(true, memberIds);
     }
 
     //--------------------------------------------------------------------------
+    @NotNull
+    private Iterator<Authorizable> getMembersMonitored(boolean includeInherited) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        Iterator<Authorizable> members = getMembers(includeInherited);
+        getMonitor().doneGetMembers(watch.elapsed(NANOSECONDS), !includeInherited);
+        return members;
+    }
+
     /**
      * Internal implementation of {@link #getDeclaredMembers()} and {@link #getMembers()}.
      *
@@ -177,26 +209,22 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @NotNull
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         UserManagerImpl userMgr = getUserManager();
-        if (isEveryone()) {
-            String propName = getUserManager().getNamePathMapper().getJcrName((REP_PRINCIPAL_NAME));
-            Iterator<Authorizable> result = Iterators.filter(userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE), Predicates.notNull());
-            return Iterators.filter(result,
-                    authorizable -> {
-                        if (authorizable instanceof AuthorizableImpl) {
-                            return !((AuthorizableImpl) authorizable).isEveryone();
-                        }
-                        return true;
-                    }
-            );
-        } else {
-            Iterator<String> oakPaths = getMembershipProvider().getMembers(getTree(), includeInherited);
-            if (oakPaths.hasNext()) {
-                AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, userMgr, AuthorizableType.AUTHORIZABLE);
-                return new RangeIteratorAdapter(iterator, iterator.getSize());
-            } else {
-                return RangeIteratorAdapter.EMPTY;
-            }
+
+        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
+        Iterator<Authorizable> dynamicMembers = dmp.getMembers(this, includeInherited);
+        if (dmp.coversAllMembers(this)) {
+            return dynamicMembers;
         }
+
+        // dynamic membership didn't cover all members -> extract from group-tree
+        Iterator<String> oakPaths = getMembershipProvider().getMembers(getTree(), includeInherited);
+        if (!oakPaths.hasNext()) {
+            return dynamicMembers;
+        }
+        
+        AuthorizableIterator members = AuthorizableIterator.create(oakPaths, userMgr, AuthorizableType.AUTHORIZABLE);
+        AuthorizableIterator allMembers = AuthorizableIterator.create(true, dynamicMembers, members);
+        return new RangeIteratorAdapter(allMembers, allMembers.getSize()); 
     }
 
     /**
@@ -213,22 +241,31 @@ class GroupImpl extends AuthorizableImpl implements Group {
         if (!isValidAuthorizableImpl(authorizable)) {
             return false;
         }
-
-        if (getID().equals(authorizable.getID())) {
+        if (getID().equals(authorizable.getID()) || ((AuthorizableImpl) authorizable).isEveryone()) {
             return false;
-        } else if (isEveryone()) {
-            return true;
-        } else if (((AuthorizableImpl) authorizable).isEveryone()) {
-            return false;
-        } else {
-            Tree authorizableTree = ((AuthorizableImpl) authorizable).getTree();
-            MembershipProvider mgr = getUserManager().getMembershipProvider();
-            if (includeInherited) {
-                return mgr.isMember(this.getTree(), authorizableTree);
-            } else {
-                return mgr.isDeclaredMember(this.getTree(), authorizableTree);
-            }
         }
+
+        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
+        if (dmp.isMember(this, authorizable, includeInherited)) {
+            return true;
+        }
+
+        // no dynamic membership -> regular membership provider needs to evaluate
+        Tree authorizableTree = ((AuthorizableImpl) authorizable).getTree();
+        MembershipProvider mgr = getUserManager().getMembershipProvider();
+        if (includeInherited) {
+            return mgr.isMember(this.getTree(), authorizableTree);
+        } else {
+            return mgr.isDeclaredMember(this.getTree(), authorizableTree);
+        }
+    }
+
+    @NotNull
+    private Set<String> updateMembersMonitored(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
+        Stopwatch watch = Stopwatch.createStarted();
+        Set<String> failed = updateMembers(isRemove, memberIds);
+        getMonitor().doneUpdateMembers(watch.elapsed(NANOSECONDS), memberIds.length, failed.size(), isRemove);
+        return failed;
     }
 
     /**
@@ -248,9 +285,10 @@ class GroupImpl extends AuthorizableImpl implements Group {
         Set<String> failedIds = Sets.newHashSet(memberIds);
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
-        if (isEveryone()) {
-            String msg = "Attempt to add or remove from everyone group.";
-            log.debug(msg);
+        DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
+        if (dmp.coversAllMembers(this)) {
+            String msg = "Attempt to add to or remove from dynamic group {}.";
+            log.debug(msg, getID());
             return failedIds;
         }
 

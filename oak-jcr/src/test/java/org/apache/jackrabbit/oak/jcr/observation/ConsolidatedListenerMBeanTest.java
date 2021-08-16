@@ -18,8 +18,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,6 +51,32 @@ public class ConsolidatedListenerMBeanTest {
         consolidatedListener.bindListenerMBean(mbean, config);
         TabularData data = consolidatedListener.getListenerStats();
         assertNotNull(data);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetConfigNameNoValue() {
+        final Map<String, Object> properties = Collections.emptyMap();
+        ConsolidatedListenerMBeanImpl.getObjectName(properties);
+    }
+
+    @Test
+    public void testGetConfigNameObjectNameValue() throws MalformedObjectNameException {
+        final ObjectName name = new ObjectName("*:*");
+        final Map<String, Object> properties = Collections.singletonMap("jmx.objectname", name);
+        assertSame(name, ConsolidatedListenerMBeanImpl.getObjectName(properties));
+    }
+
+    @Test
+    public void testGetConfigNameStringValue() throws MalformedObjectNameException {
+        final String name = "*:*";
+        final Map<String, Object> properties = Collections.singletonMap("jmx.objectname", name);
+        assertEquals(new ObjectName(name), ConsolidatedListenerMBeanImpl.getObjectName(properties));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetConfigNameInvalidValue() {
+        final Map<String, Object> properties = Collections.singletonMap("jmx.objectname", Boolean.TRUE);
+        ConsolidatedListenerMBeanImpl.getObjectName(properties);
     }
 
     private static class Listener implements EventListener {

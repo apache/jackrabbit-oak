@@ -102,17 +102,17 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @NotNull String getImportBehavior() {
         return ImportBehavior.NAME_IGNORE;
     }
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return GROUPPATH;
     }
 
     @Override
-    protected ConfigurationParameters getConfigurationParameters() {
+    protected @NotNull ConfigurationParameters getConfigurationParameters() {
         Map<String, Object> userParams = new HashMap<String, Object>();
         userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
         userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
@@ -142,7 +142,7 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         }
 
         @Override
-        public void onMembersAddedContentId(Group group, Iterable<String> memberContentIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             onMembersAddedContentIdCalled = true;
         }
     }

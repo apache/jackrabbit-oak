@@ -32,7 +32,16 @@ In order to test permissions that are not reflected in the action constants
 defined on `Session` or `JackrabbitSession`, the default implementation also allows
 to pass the names of the Oak internal permission. 
 
-Alternatively, `AccessControlManager.hasPrivileges(String, Privilege[])` can be used.
+To evaluate privileges granted for a given editing session `AccessControlManager.hasPrivileges(String, Privilege[])`,
+`AccessControlManager.getPrivileges(String)` can be used. The `JackrabbitAccessControlManager` defines variants of both 
+methods that in addition take a set of `Principal`. If the editing session as sufficient permissions these methods can 
+be used to  evaluate/obtain privileges for a different set of principals than associated with the editing session.
+
+Since Oak 1.42.0 `JackrabbitAccessControlManager` defines `JackrabbitAccessControlManager.getPrivilegeCollection(String)`
+and `JackrabbitAccessControlManager.getPrivilegeCollection(String, Set)` which allows for efficient evaluation if a given set 
+of privileges are granted at a given path. It allows to avoid repeated calls to `hasPrivileges` for the same path or 
+manual resolution of privilege aggregation (see  [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494) 
+for details).
 
 The subtle differences between the permission-testing `Session`  and the evaluation
 of privileges on `AccessControlManager` are listed below.
@@ -68,6 +77,7 @@ list and the mapping from actions to permissions.
 
 - `AccessControlManager.hasPrivileges(String absPath, Privilege[] privileges)`
 - `AccessControlManager.getPrivileges(String absPath)`
+- `JackrabbitAccessControlManager.getPrivilegeCollection(String absPath)` followed by `PrivilegeCollection.includes(String...)`
 
 Where
 
@@ -81,6 +91,7 @@ requires the ability to read access control content on the target path.
 
 - `JackrabbitAccessControlManager.hasPrivileges(String absPath, Set<Principal> principals, Privilege[] privileges)`
 - `JackrabbitAccessControlManager.getPrivileges(String absPath, Set<Principal> principals)`
+- `JackrabbitAccessControlManager.getPrivilegeCollection(String absPath, Set<Principal> principals)` (see also section [Privilege Management](../privilege.html))
 
 #### Characteristics
 

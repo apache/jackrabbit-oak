@@ -54,7 +54,7 @@ import java.util.Set;
  * concerned, the {@link Entry#getEffectivePath() effective path} defined with the individual entries will be consulted
  * in order to compute the policies that take effect at a given path.
  *
- * Irrespective on whether access by path is suppported or not the {@link JackrabbitAccessControlPolicy#getPath() path}
+ * Irrespective on whether access by path is supported or not the {@link JackrabbitAccessControlPolicy#getPath() path}
  * of the policy points to the access controlled node it is bound to and will be used to
  * {@link javax.jcr.security.AccessControlManager#setPolicy(String, AccessControlPolicy) set} and
  * {@link javax.jcr.security.AccessControlManager#removePolicy(String, AccessControlPolicy) remove} the policy.

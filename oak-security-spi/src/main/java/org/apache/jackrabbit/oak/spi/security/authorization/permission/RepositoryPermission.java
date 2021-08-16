@@ -46,20 +46,10 @@ public interface RepositoryPermission {
     /**
      * {@code RepositoryPermission} instance that always returns {@code false}.
      */
-    RepositoryPermission EMPTY = new RepositoryPermission() {
-        @Override
-        public boolean isGranted(long repositoryPermissions) {
-            return false;
-        }
-    };
+    RepositoryPermission EMPTY = repositoryPermissions -> false;
 
     /**
      * {@code RepositoryPermission} instance that always returns {@code true}.
      */
-    RepositoryPermission ALL = new RepositoryPermission() {
-        @Override
-        public boolean isGranted(long repositoryPermissions) {
-            return true;
-        }
-    };
+    RepositoryPermission ALL = repositoryPermissions -> true;
 }

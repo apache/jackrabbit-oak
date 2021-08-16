@@ -597,7 +597,8 @@ Maintenance commands for the DataStore:
             [--work-dir <temporary_path>] \
             [--max-age <seconds>] \
             [--verbose] \
-            [--verboseRootPath]
+            [--verboseRootPath] \
+            [--useDirListing] \
             [<store_path>|<mongo_uri>]
             [--metrics] [--export-metrics]
 
@@ -632,6 +633,7 @@ The following options are available:
                                  For example , to look for blob refrences under specific paths such as /b1/b2/foo, /c1/c2/foo under the rootPath /a
                                  use --verboseRootPath /a --verbosePathInclusionRegex /*/*/foo
                                  This option is only available when --verboseRootPath is used.
+    --useDirListing         - Use dirListing property for efficient reading of Lucene index files.
     <store_path|mongo_uri>     - Path to the tar segment store or the segment azure uri as specified in 
                                  http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
                                  or if Mongo NodeStore then the mongo uri.

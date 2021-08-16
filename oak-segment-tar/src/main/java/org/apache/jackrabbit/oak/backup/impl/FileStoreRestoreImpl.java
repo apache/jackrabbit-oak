@@ -79,7 +79,8 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
                     store.getSegmentIdProvider(),
                     store.getBlobStore(),
                     new WriterCacheManager.Default(),
-                    bufferWriter
+                    bufferWriter,
+                    store.getBinariesInlineThreshold()
             );
             SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
             ClassicCompactor compactor = new ClassicCompactor(
