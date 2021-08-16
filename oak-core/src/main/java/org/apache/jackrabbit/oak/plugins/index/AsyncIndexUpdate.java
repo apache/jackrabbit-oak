@@ -107,6 +107,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * Name of service property which determines the name of Async task
      */
     public static final String PROP_ASYNC_NAME = "oak.async";
+    private static final String CONCURRENT_EXCEPTIPN_MSG ="Another copy of the index update is already running; skipping this update. ";
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
 
@@ -501,7 +502,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             long currentTime = System.currentTimeMillis();
             if (leaseEndTime > currentTime) {
                 long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
-                String err = String.format("Another copy of the index update is already running; skipping this update. " +
+                String err = String.format(CONCURRENT_EXCEPTIPN_MSG +
                         "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
                 indexStats.failed(new Exception(err, newConcurrentUpdateException()));
                 return;
@@ -1050,6 +1051,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void failed(Exception e) {
+            boolean isConcurrentUpdateException = (e.getMessage() != null)
+                    && (e.getMessage().startsWith(CONCURRENT_EXCEPTIPN_MSG));
             if (e == INTERRUPTED){
                 status = STATUS_INTERRUPTED;
                 log.info("[{}] The index update interrupted", name);
@@ -1066,13 +1069,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 // reusing value so value display is consistent
                 failingSince = latestErrorTime;
                 latestErrorWarn = System.currentTimeMillis();
-                log.warn("[{}] The index update failed", name, e);
+                if (isConcurrentUpdateException) {
+                    log.info("[{}]", name,  e.getMessage());
+                } else {
+                    log.warn("[{}] The index update failed", name, e);
+                }
             } else {
                 // subsequent occurrences
                 boolean warn = System.currentTimeMillis() - latestErrorWarn > ERROR_WARN_INTERVAL;
                 if (warn) {
                     latestErrorWarn = System.currentTimeMillis();
-                    log.warn("[{}] The index update is still failing", name, e);
+                    if (isConcurrentUpdateException) {
+                        log.info("[{}]", name,  e.getMessage());
+                    } else {
+                        log.warn("[{}] The index update is still failing", name, e);
+                    }
                 } else {
                     log.debug("[{}] The index update is still failing", name, e);
                 }
