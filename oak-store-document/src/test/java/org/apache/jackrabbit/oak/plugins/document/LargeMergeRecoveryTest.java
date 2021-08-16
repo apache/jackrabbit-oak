@@ -25,12 +25,17 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPat
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
@@ -41,6 +46,24 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
     private static NodeDocument getDocument(DocumentNodeStore nodeStore,
                                             String path) {
         return nodeStore.getDocumentStore().find(NODES, getIdFromPath(path));
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static java.util.Collection<Object[]> fixtures() throws IOException {
+        List<Object[]> fixtures = Lists.newArrayList();
+        // disabling MemoryFixture, as that runs into an OutOfMemoryError
+//        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+
+        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
+        if (rdb.isAvailable()) {
+            fixtures.add(new Object[] { rdb });
+        }
+
+        DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[] { mongo });
+        }
+        return fixtures;
     }
 
     /**
@@ -60,8 +83,8 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         // 2. create a branch in C2
         NodeBuilder b2 = ds2.getRoot().builder();
         NodeBuilder test = b2.child("x").child("y");
-        System.out.println("Creating large branch merge, can take over a minute...");
-        for (int i = 0; i < DocumentMK.UPDATE_LIMIT * 3; i++) {
+        System.out.println("Creating large branch merge, can take over a minute... (limit = " + DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT + ")");
+        for (int i = 0; i < DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT * 3; i++) {
             test.child(childPrefix + i);
         }
         System.out.println("Done.");
