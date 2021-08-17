@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
@@ -60,7 +61,8 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
 
         MongoDocumentTraverser traverser = new MongoDocumentTraverser((MongoDocumentStore) ds);
         traverser.disableReadOnlyCheck();
-        CloseableIterable<NodeDocument> itr = traverser.getAllDocuments(Collection.NODES, id -> getPathFromId(id).startsWith("/a"));
+        CloseableIterable<NodeDocument> itr = traverser.getAllDocuments(Collection.NODES, new LastModifiedRange(0, Long.MAX_VALUE),
+                id -> getPathFromId(id).startsWith("/a"));
         Set<String> paths = StreamSupport.stream(itr.spliterator(), false)
                 .map(NodeDocument::getPath)
                 .map(Path::toString)

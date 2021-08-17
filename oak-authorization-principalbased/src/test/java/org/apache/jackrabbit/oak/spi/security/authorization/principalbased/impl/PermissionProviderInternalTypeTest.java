@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -68,14 +66,14 @@ public class PermissionProviderInternalTypeTest extends AbstractPrincipalBasedTe
         assertFalse(permissionProvider.isGranted(mockReadOnlyTree(TreeType.INTERNAL), mock(PropertyState.class), Permissions.ALL));
     }
     @Test
-    public void testGetTreePermission() throws Exception {
+    public void testGetTreePermission() {
         assertSame(TreePermission.EMPTY, permissionProvider.getTreePermission(mockReadOnlyTree(TreeType.INTERNAL), TreeType.INTERNAL, mock(AbstractTreePermission.class)));
     }
 
     @Test
     public void testGetChildTreePermission() {
         Tree readOnly = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
-        TreePermission tp = (AbstractTreePermission) permissionProvider.getTreePermission(readOnly, TreePermission.EMPTY);
+        TreePermission tp = permissionProvider.getTreePermission(readOnly, TreePermission.EMPTY);
         NodeState ns = getTreeProvider().asNodeState(readOnly);
         for (String elem : PathUtils.elements(PermissionConstants.PERMISSIONS_STORE_PATH)) {
             ns = ns.getChildNode(elem);

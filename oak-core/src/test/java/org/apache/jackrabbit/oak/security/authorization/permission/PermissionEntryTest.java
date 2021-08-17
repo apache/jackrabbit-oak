@@ -29,7 +29,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -38,12 +40,12 @@ import static org.mockito.Mockito.when;
 
 public class PermissionEntryTest {
 
-    private String path = "/path";
-    private int index = 15;
-    private PermissionEntry entry = new PermissionEntry(path, true, index, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES), RestrictionPattern.EMPTY);
+    private final String path = "/path";
+    private final int index = 15;
+    private final PermissionEntry entry = new PermissionEntry(path, true, index, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES), RestrictionPattern.EMPTY);
 
-    private RestrictionPattern pattern = mock(RestrictionPattern.class);
-    private PermissionEntry entryWithNonEmptyPattern = new PermissionEntry(path, false, index, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_ADD_PROPERTIES), pattern);
+    private final RestrictionPattern pattern = mock(RestrictionPattern.class);
+    private final PermissionEntry entryWithNonEmptyPattern = new PermissionEntry(path, false, index, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_ADD_PROPERTIES), pattern);
 
     @Test
     public void testMatchesEmptyPattern() {
@@ -125,6 +127,7 @@ public class PermissionEntryTest {
         // the entry matchesParent if the parent of the path to be evaluated is equal or a descendant of the entry-path
         // and the pattern evaluates to true (which is always the case here)
         when(pattern.matches(anyString())).thenReturn(true);
+        when(pattern.matches(anyString(), anyBoolean())).thenReturn(true);
         assertTrue(entryWithNonEmptyPattern.matchesParent(path));
         assertTrue(entryWithNonEmptyPattern.matchesParent(PathUtils.concat(path, "parent", "of", "target")));
         assertFalse(entryWithNonEmptyPattern.matchesParent(PathUtils.getParentPath(path)));
@@ -132,10 +135,27 @@ public class PermissionEntryTest {
 
         // pattern doesn't match => always false
         when(pattern.matches(anyString())).thenReturn(false);
+        when(pattern.matches(anyString(), anyBoolean())).thenReturn(false);
         assertFalse(entryWithNonEmptyPattern.matchesParent(path));
         assertFalse(entryWithNonEmptyPattern.matchesParent(PathUtils.concat(path, "parent", "of", "target")));
         assertFalse(entryWithNonEmptyPattern.matchesParent(PathUtils.getParentPath(path)));
         assertFalse(entryWithNonEmptyPattern.matchesParent("/another/path"));
+    }
+    
+    @Test
+    public void testMatchesIsProperty() {
+        // empty restriction pattern
+        assertTrue(entry.matches(path, true));
+        assertTrue(entry.matches(path, false));
+
+        // pattern always returns false
+        assertFalse(entryWithNonEmptyPattern.matches(path, true));
+        assertFalse(entryWithNonEmptyPattern.matches(path, false));
+        
+        // mock pattern
+        when(pattern.matches(path, true)).thenReturn(true);
+        assertTrue(entryWithNonEmptyPattern.matches(path, true));
+        assertFalse(entryWithNonEmptyPattern.matches(path, false));
     }
 
     @Test

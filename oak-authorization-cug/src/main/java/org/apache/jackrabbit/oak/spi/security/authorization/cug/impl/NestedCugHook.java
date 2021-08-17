@@ -57,8 +57,8 @@ class NestedCugHook implements PostValidationHook, CugConstants {
      */
     private static final Logger log = LoggerFactory.getLogger(NestedCugHook.class);
 
-    private Set<String> deletedCUGs = Sets.newHashSet();
-    private Set<String> moveSources = Sets.newHashSet();
+    private final Set<String> deletedCUGs = Sets.newHashSet();
+    private final Set<String> moveSources = Sets.newHashSet();
 
     //-------------------------------------------------< PostValidationHook >---
     @NotNull
@@ -86,10 +86,10 @@ class NestedCugHook implements PostValidationHook, CugConstants {
      *
      * If {@code setCugCnt} is {@code true}, {@code HIDDEN_TOP_CUG_CNT} will additionally be set accordingly.
      *
-     * @param parentBuilder
-     * @param builder
-     * @param pathWithNewCug
-     * @param setCugCnt
+     * @param parentBuilder The node builder of the parent node
+     * @param builder The current node build
+     * @param pathWithNewCug That path of the node that got a new CUG policy added.
+     * @param setCugCnt Returns {@code true} if an additional {@code HIDDEN_TOP_CUG_CNT} property must be subsequently set on the parent.
      */
     private void addNestedCugPath(@NotNull NodeBuilder parentBuilder, @NotNull NodeBuilder builder, @NotNull String pathWithNewCug, boolean setCugCnt) {
         PropertyState ps = parentBuilder.getProperty(HIDDEN_NESTED_CUGS);
@@ -131,7 +131,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
      * Determine if the given {@code path} points to a node that has been removed or is located in a tree structure that
      * was the source of a move operation (and thus no longer exists).
      *
-     * @param path
+     * @param path The path of a node
      * @return {@code true} if the path points to a deleted or moved node.
      */
     private boolean isDeletedOrMoved(@NotNull String path) {
@@ -151,15 +151,15 @@ class NestedCugHook implements PostValidationHook, CugConstants {
      * therein. If {@code setCugCnt} is {@code true}, {@code HIDDEN_TOP_CUG_CNT} will be adjusted accordingly.
      * If the {@code toRemove} is not contained this method returns {@code false} without modifying the property.
      *
-     * @param parentBuilder
-     * @param toRemove
-     * @param toReconnect
-     * @param setCugCnt
-     * @return {@code true} if the {@code HIDDEN_NESTED_CUGS} property contained the path to be removed and was sucessfully
-     * update, {@code false} otherwise.
+     * @param parentBuilder The node builder of the parent node
+     * @param toRemove The path to be removed
+     * @param toReconnect An iterable of paths to be reconnected.
+     * @param setCugCnt If {@code true} the {@code HIDDEN_TOP_CUG_CNT} property needs to be adjusted accordingly
+     * @return {@code true} if the {@code HIDDEN_NESTED_CUGS} property contained the path to be removed and was successfully
+     * updated, {@code false} otherwise.
      */
     private static boolean removeNestedCugPath(@NotNull NodeBuilder parentBuilder, @NotNull String toRemove,
-                                        @NotNull Iterable<String> toReconnect, boolean setCugCnt) {
+                                               @NotNull Iterable<String> toReconnect, boolean setCugCnt) {
         PropertyState ps = parentBuilder.getProperty(HIDDEN_NESTED_CUGS);
         PropertyBuilder<String> pb = getHiddenPropertyBuilder(ps);
         if (pb.hasValue(toRemove)) {
@@ -191,11 +191,11 @@ class NestedCugHook implements PostValidationHook, CugConstants {
         private final Diff parentDiff;
         private final boolean isRoot;
 
-        private String path;
-        private NodeState beforeState = null;
+        private final String path;
+        private final NodeState beforeState;
 
-        private NodeBuilder afterBuilder;
-        private boolean afterHoldsCug;
+        private final NodeBuilder afterBuilder;
+        private final boolean afterHoldsCug;
 
         private Diff(@NotNull NodeState rootBefore, @NotNull NodeBuilder rootAfter) {
             parentDiff = null;
@@ -221,105 +221,117 @@ class NestedCugHook implements PostValidationHook, CugConstants {
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            if (!NodeStateUtils.isHidden(name)) {
-                // remember moved nodes in order to drop entries in HIDDEN_NESTED_CUGS properties pointing to any tree at/below source-path
-                if (after.hasProperty(MoveDetector.SOURCE_PATH)) {
-                    moveSources.add(after.getString(MoveDetector.SOURCE_PATH));
+            if (NodeStateUtils.isHidden(name)) {
+                return true;
+            }
+            // remember moved nodes in order to drop entries in HIDDEN_NESTED_CUGS properties pointing to any tree at/below source-path
+            if (after.hasProperty(MoveDetector.SOURCE_PATH)) {
+                moveSources.add(after.getString(MoveDetector.SOURCE_PATH));
+            }
+            if (!CugUtil.definesCug(name, after)) {
+                after.compareAgainstBaseState(EMPTY_NODE, new Diff(this, name, null, afterBuilder.getChildNode(name)));
+                return true;
+            }
+
+            if (isRoot) {
+                PropertyState alt = afterBuilder.getProperty(HIDDEN_NESTED_CUGS);
+                if (alt != null) {
+                    NodeBuilder cugNode = afterBuilder.getChildNode(REP_CUG_POLICY);
+                    cugNode.setProperty(alt);
+                    afterBuilder.removeProperty(HIDDEN_NESTED_CUGS);
+                    afterBuilder.removeProperty(HIDDEN_TOP_CUG_CNT);
                 }
-                if (CugUtil.definesCug(name, after)) {
-                    if (isRoot) {
-                        PropertyState alt = afterBuilder.getProperty(HIDDEN_NESTED_CUGS);
-                        if (alt != null) {
-                            NodeBuilder cugNode = afterBuilder.getChildNode(REP_CUG_POLICY);
-                            cugNode.setProperty(alt);
-                            afterBuilder.removeProperty(HIDDEN_NESTED_CUGS);
-                            afterBuilder.removeProperty(HIDDEN_TOP_CUG_CNT);
-                        }
-                    } else {
-                        Diff diff = parentDiff;
-                        while (diff != null) {
-                            if (diff.afterHoldsCug) {
-                                NodeBuilder cugNode = diff.afterBuilder.getChildNode(REP_CUG_POLICY);
-                                addNestedCugPath(cugNode, afterBuilder.getChildNode(REP_CUG_POLICY), path, false);
-                                break;
-                            } else if (diff.isRoot) {
-                                addNestedCugPath(diff.afterBuilder, afterBuilder.getChildNode(name), path, true);
-                            }
-                            diff = diff.parentDiff;
-                        }
+            } else {
+                Diff diff = parentDiff;
+                while (diff != null) {
+                    if (diff.afterHoldsCug) {
+                        NodeBuilder cugNode = diff.afterBuilder.getChildNode(REP_CUG_POLICY);
+                        addNestedCugPath(cugNode, afterBuilder.getChildNode(REP_CUG_POLICY), path, false);
+                        break;
+                    } else if (diff.isRoot) {
+                        addNestedCugPath(diff.afterBuilder, afterBuilder.getChildNode(name), path, true);
                     }
-                    // no need to traverse down the CUG policy node.
-                } else {
-                    after.compareAgainstBaseState(EMPTY_NODE, new Diff(this, name, null, afterBuilder.getChildNode(name)));
+                    diff = diff.parentDiff;
                 }
             }
+            // no need to traverse down the CUG policy node.
             return true;
         }
 
         @Override
         public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-            if (!NodeStateUtils.isHidden(name)) {
-                // OAK-8855 - Restore :nestedCugs on parent if it is removed.
-                if (CugUtil.definesCug(name, after)) {
-                    Diff diff = parentDiff;
-                    while (diff != null) {
-                        if (diff.afterHoldsCug) {
-                            NodeBuilder cugNode = diff.afterBuilder.getChildNode(REP_CUG_POLICY);
-                            addNestedCugPath(cugNode, afterBuilder.getChildNode(REP_CUG_POLICY), path, false);
-                        }
-                        diff = diff.parentDiff;
-                    }
-                }
-                after.compareAgainstBaseState(before, new Diff(this, name, before, afterBuilder.getChildNode(name)));
+            if (NodeStateUtils.isHidden(name)) {
+                return true;
             }
+            // OAK-8855 - Restore :nestedCugs on parent if it is removed.
+            if (CugUtil.definesCug(name, after)) {
+                Diff diff = parentDiff;
+                while (diff != null) {
+                    if (diff.afterHoldsCug) {
+                        NodeBuilder cugNode = diff.afterBuilder.getChildNode(REP_CUG_POLICY);
+                        addNestedCugPath(cugNode, afterBuilder.getChildNode(REP_CUG_POLICY), path, false);
+                    }
+                    diff = diff.parentDiff;
+                }
+            }
+            after.compareAgainstBaseState(before, new Diff(this, name, before, afterBuilder.getChildNode(name)));
             return true;
         }
 
         @Override
         public boolean childNodeDeleted(String name, NodeState before) {
-            if (!NodeStateUtils.isHidden(name)) {
-                if (CugUtil.definesCug(name, before)) {
-                    deletedCUGs.add(path);
-                    // reconnect information about nested CUGs at a parent if
-                    // only the CUG got removed but the whole subtree including CUGs
-                    // are still present.
-                    Set<String> reconnect = getCugPathsToReconnect(before);
-                    if (isRoot) {
-                        if (!Iterables.isEmpty(reconnect)) {
-                            afterBuilder.setProperty(HIDDEN_NESTED_CUGS, reconnect, Type.STRINGS);
-                            afterBuilder.setProperty(HIDDEN_TOP_CUG_CNT, reconnect.size());
-                        }
-                    } else {
-                        Diff diff = parentDiff;
-                        while (diff != null) {
-                            if (diff.afterHoldsCug) {
-                                // found an existing parent CUG
-                                NodeBuilder cugNode = diff.afterBuilder.getChildNode(REP_CUG_POLICY);
-                                if (removeNestedCugPath(cugNode, path, reconnect, false)) {
-                                    break;
-                                }
-                            }
-                            if (CugUtil.hasCug(diff.beforeState)) {
-                                // parent CUG got removed -> no removal/reconnect required if current path is listed.
-                                NodeState cugNode = diff.beforeState.getChildNode(REP_CUG_POLICY);
-                                PropertyState ps = cugNode.getProperty(HIDDEN_NESTED_CUGS);
-                                if (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), path)) {
-                                    log.debug("Nested cug property containing {} has also been removed; no reconnect required.", path);
-                                    break;
-                                }
-                            }
-                            if (diff.isRoot && !removeNestedCugPath(diff.afterBuilder, path, reconnect, true)) {
-                                log.warn("Failed to updated nested CUG info for path '{}'.", path);
-                            }
-                            diff = diff.parentDiff;
-                        }
+            if (NodeStateUtils.isHidden(name)) {
+                return true;
+            }
+            if (!CugUtil.definesCug(name, before)) {
+                EMPTY_NODE.compareAgainstBaseState(before, new Diff(this, name, before, null));
+                return true;
+            }
+            
+            deletedCUGs.add(path);
+            // reconnect information about nested CUGs at a parent if
+            // only the CUG got removed but the whole subtree including CUGs
+            // are still present.
+            Set<String> reconnect = getCugPathsToReconnect(before);
+            if (isRoot) {
+                if (!Iterables.isEmpty(reconnect)) {
+                    afterBuilder.setProperty(HIDDEN_NESTED_CUGS, reconnect, Type.STRINGS);
+                    afterBuilder.setProperty(HIDDEN_TOP_CUG_CNT, reconnect.size());
+                }
+            } else {
+                Diff diff = parentDiff;
+                while (diff != null) {
+                    if (processDiff(diff, reconnect)) {
+                        break;
                     }
-                    // no need to traverse down the CUG policy node
-                } else {
-                    EMPTY_NODE.compareAgainstBaseState(before, new Diff(this, name, before, null));
+                    diff = diff.parentDiff;
                 }
             }
+            // no need to traverse down the CUG policy node
             return true;
+        }
+        
+        private boolean processDiff(@NotNull Diff diff, @NotNull Set<String> reconnect) {
+            if (diff.afterHoldsCug) {
+                // found an existing parent CUG
+                NodeBuilder cugNode = diff.afterBuilder.getChildNode(REP_CUG_POLICY);
+                if (removeNestedCugPath(cugNode, path, reconnect, false)) {
+                    return true;
+                }
+            }
+            if (CugUtil.hasCug(diff.beforeState)) {
+                // parent CUG got removed -> no removal/reconnect required if current path is listed.
+                NodeState cugNode = diff.beforeState.getChildNode(REP_CUG_POLICY);
+                PropertyState ps = cugNode.getProperty(HIDDEN_NESTED_CUGS);
+                if (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), path)) {
+                    log.debug("Nested cug property containing {} has also been removed; no reconnect required.", path);
+                    return true;
+                }
+            }
+            if (diff.isRoot && !removeNestedCugPath(diff.afterBuilder, path, reconnect, true)) {
+                log.warn("Failed to updated nested CUG info for path '{}'.", path);
+            }
+            return false;
         }
 
         /**

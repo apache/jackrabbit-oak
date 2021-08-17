@@ -18,6 +18,10 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
 import com.google.common.io.ByteStreams;
+
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.core.Appender;
+
 import org.apache.directory.server.ldap.LdapServer;
 
 import java.io.IOException;
@@ -29,6 +33,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.ProtectionDomain;
+import java.util.Collection;
 
 /**
  * The LDAP server we use for testing relies on an old, incompatible version of the library
@@ -56,9 +61,32 @@ public class LdapServerClassLoader extends URLClassLoader {
                 .getRawSchemeSpecificPart();
         apacheDsUrl = apacheDsUrl.substring(0, apacheDsUrl.lastIndexOf('!'));
 
+        // also add URL classloader for Logback Classic (SLF4J Impl) ...
+        String logbackClassicUrl = appClassLoader.getResource(
+                Logger.class.getCanonicalName().replace(".", "/").concat(".class"))
+                .toURI()
+                .getRawSchemeSpecificPart();
+        logbackClassicUrl = logbackClassicUrl.substring(0, logbackClassicUrl.lastIndexOf('!'));
+
+        // ... its transitive dependency Logback Classic ...
+        String logbackCoreUrl = appClassLoader.getResource(
+                Appender.class.getCanonicalName().replace(".", "/").concat(".class"))
+                .toURI()
+                .getRawSchemeSpecificPart();
+        logbackCoreUrl = logbackCoreUrl.substring(0, logbackCoreUrl.lastIndexOf('!'));
+
+        // ... and the configuration folder containing the logback-test.xml
+        String configFolderUrl = appClassLoader.getResource("logback-test.xml").toString();
+        configFolderUrl = configFolderUrl.substring(0, configFolderUrl.lastIndexOf('/') + 1);
+
         Class<?> sc = appClassLoader.loadClass(InternalLdapServer.class.getCanonicalName());
         Class<?> sbc = appClassLoader.loadClass(AbstractServer.class.getCanonicalName());
-        return new LdapServerClassLoader(new URL[] { new URI(apacheDsUrl).toURL() }, sc, sbc);
+        return new LdapServerClassLoader(new URL[] { 
+                new URI(apacheDsUrl).toURL(),  
+                new URI(logbackClassicUrl).toURL(), 
+                new URI(logbackCoreUrl).toURL(),
+                new URI(configFolderUrl).toURL() }, 
+                sc, sbc);
     }
 
     public Proxy createAndSetupServer() throws Exception {
@@ -150,11 +178,11 @@ public class LdapServerClassLoader extends URLClassLoader {
             serverClass.getMethod("addMember", new Class[] {String.class, String.class}).invoke(server, groupDN, memberDN);
         }
 
-        public void addMembers(String name, Iterable<String> members) throws Exception {
+        public void addMembers(String name, Collection<String> members) throws Exception {
             final Exception[] ex = new Exception[] { null };
             Runnable r = () -> {
                 try {
-                    serverClass.getMethod("addMembers", new Class[] {String.class, Iterable.class}).invoke(server, name, members);
+                    serverClass.getMethod("addMembers", new Class[] {String.class, Collection.class}).invoke(server, name, members);
                 } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                     ex[0] = e;
                 }

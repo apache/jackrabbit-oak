@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
@@ -46,17 +47,16 @@ import static org.junit.Assert.fail;
 public class UserImportInitialPwChangeTest extends AbstractImportTest {
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return USERPATH;
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @NotNull String getImportBehavior() {
         return ImportBehavior.NAME_BESTEFFORT;
     }
 
-    @Nullable
-    protected ConfigurationParameters getConfigurationParameters() {
+    protected @NotNull ConfigurationParameters getConfigurationParameters() {
         HashMap<String, Object> userParams = new HashMap<String, Object>() {{
             put(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
         }};

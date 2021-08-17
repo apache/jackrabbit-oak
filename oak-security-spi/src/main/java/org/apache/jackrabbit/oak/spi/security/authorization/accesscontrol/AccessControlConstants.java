@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.util.Collection;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 /**
  * Constants for the default access control management implementation and
@@ -56,6 +57,40 @@ public interface AccessControlConstants {
      * @since OAK 1.3.8
      */
     String REP_ITEM_NAMES = "rep:itemNames";
+
+    /**
+     * <p>Name of the optional multivalued access control restriction that limits access to a single level i.e. the target 
+     * node where the access control entry takes effect and optionally all or a subset of it's properties. 
+     * An empty value array will make this restriction matching the target node only (i.e. equivalent to rep:glob=""). 
+     * An array of property names will extend the effect of the restriction to properties of the target node that match 
+     * the specified names. The {@link org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants#RESIDUAL_NAME residual name '*'}  
+     * will match the target node and all it's properties.</p>
+     * <p>
+     * The corresponding restriction type is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}
+     * </p>
+     * <p>
+     * Note: due to the support of {@link NodeTypeConstants#RESIDUAL_NAME}, which isn't a valid JCR name,
+     * this restriction is defined to be of {@link org.apache.jackrabbit.oak.api.Type#STRINGS} instead of 
+     * {@link org.apache.jackrabbit.oak.api.Type#NAMES}. Like the rep:glob restriction it will therefore not work with 
+     * expanded JCR names or with remapped namespace prefixes.
+     * </p>
+     * <p>
+     * Note: In case of permission evaluation for a path pointing to a non-existing JCR item (see e.g. 
+     * {@link javax.jcr.Session#hasPermission(String, String)}) a best-effort attempt is made to determine if the path 
+     * may point to a property, default being that the path points to a non-existing node.
+     * </p>
+     * 
+     * Example:
+     * <pre>
+     * rep:current = []                => restriction applies to the target node only
+     * rep:current = [*]               => restriction applies to the target node and all it's properties
+     * rep:current = [jcr:primaryType] => restriction applies to the target node and it's property jcr:primaryType
+     * rep:current = [a, b, prefix:c]  => restriction applies to the target node and it's properties a, b and prefix:c
+     * </pre>
+     * 
+     * @since OAK 1.42.0
+     */
+    String REP_CURRENT = "rep:current";
 
     /**
      * @since OAK 1.0

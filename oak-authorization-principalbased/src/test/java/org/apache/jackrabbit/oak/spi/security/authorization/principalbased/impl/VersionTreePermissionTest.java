@@ -50,7 +50,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
-    private Principal testPrincipal;
+
     private PrincipalBasedPermissionProvider permissionProvider;
 
     private String contentPath;
@@ -61,7 +61,7 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
     public void before() throws Exception {
         super.before();
 
-        testPrincipal = getTestSystemUser().getPrincipal();
+        Principal testPrincipal = getTestSystemUser().getPrincipal();
         setupContentTrees(TEST_OAK_PATH);
 
         contentPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 3);

@@ -65,6 +65,16 @@ public final class CompositePattern implements RestrictionPattern {
     }
 
     @Override
+    public boolean matches(@NotNull String path, boolean isProperty) {
+        for (RestrictionPattern pattern : patterns) {
+            if (!pattern.matches(path, isProperty)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    @Override
     public boolean matches() {
         for (RestrictionPattern pattern : patterns) {
             if (!pattern.matches()) {

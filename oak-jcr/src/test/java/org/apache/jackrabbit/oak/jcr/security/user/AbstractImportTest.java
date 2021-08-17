@@ -45,12 +45,13 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 
 /**
  * Base class for user import related tests.
@@ -68,7 +69,7 @@ public abstract class AbstractImportTest {
     protected Session adminSession;
     protected UserManager userMgr;
 
-    private Set<String> preTestAuthorizables = new HashSet<String>();
+    private Set<String> preTestAuthorizables = new HashSet<>();
 
     @Before
     public void before() throws Exception {
@@ -143,30 +144,36 @@ public abstract class AbstractImportTest {
     protected ConfigurationParameters getConfigurationParameters() {
         String importBehavior = getImportBehavior();
         if (importBehavior != null) {
-            Map<String, String> userParams = new HashMap<String, String>();
-            userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
+            Map<String, String> userParams = new HashMap<>();
+            userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehavior);
             return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
         } else {
             return null;
         }
     }
 
+    @Nullable
     protected abstract String getImportBehavior();
 
+    @NotNull
     protected abstract String getTargetPath();
 
+    @NotNull
     protected Session getImportSession() {
         return adminSession;
     }
 
+    @NotNull
     protected UserManager getUserManager() throws RepositoryException {
         return ((JackrabbitSession) getImportSession()).getUserManager();
     }
 
+    @NotNull
     protected Node getTargetNode() throws RepositoryException {
         return getImportSession().getNode(getTargetPath());
     }
 
+    @NotNull
     protected String getExistingUUID() throws RepositoryException {
         Node n = adminSession.getRootNode();
         n.addMixin(JcrConstants.MIX_REFERENCEABLE);
@@ -174,15 +181,15 @@ public abstract class AbstractImportTest {
         return n.getUUID();
     }
 
-    protected void doImport(String parentPath, String xml) throws Exception {
+    protected void doImport(@NotNull String parentPath, @NotNull String xml) throws Exception {
         doImport(parentPath, xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
     }
 
-    protected void doImport(String parentPath, String xml, int importUUIDBehavior) throws Exception {
+    protected void doImport(@NotNull String parentPath, @NotNull String xml, int importUUIDBehavior) throws Exception {
         doImport(getImportSession(), parentPath, xml, importUUIDBehavior);
     }
 
-    protected void doImport(Session importSession, String parentPath, String xml, int importUUIDBehavior) throws Exception {
+    protected void doImport(@NotNull Session importSession, @NotNull String parentPath, @NotNull String xml, int importUUIDBehavior) throws Exception {
         InputStream in;
         if (xml.charAt(0) == '<') {
             in = new ByteArrayInputStream(xml.getBytes());
@@ -200,12 +207,12 @@ public abstract class AbstractImportTest {
         }
     }
 
-    protected static void assertNotDeclaredMember(Group gr, String potentialID, Session session) throws RepositoryException {
+    protected static void assertNotDeclaredMember(@NotNull Group gr, @NotNull String potentialID, @NotNull Session session) throws RepositoryException {
         // declared members must not list the invalid entry.
         Iterator<Authorizable> it = gr.getDeclaredMembers();
         while (it.hasNext()) {
             Authorizable member = it.next();
-            assertFalse(potentialID.equals(session.getNode(member.getPath()).getIdentifier()));
+            assertNotEquals(potentialID, session.getNode(member.getPath()).getIdentifier());
         }
     }
 }

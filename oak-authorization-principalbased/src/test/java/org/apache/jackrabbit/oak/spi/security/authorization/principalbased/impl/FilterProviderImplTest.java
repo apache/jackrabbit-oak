@@ -45,7 +45,7 @@ public class FilterProviderImplTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private FilterProviderImpl provider = AbstractPrincipalBasedTest.createFilterProviderImpl(PATH);
+    private final FilterProviderImpl provider = AbstractPrincipalBasedTest.createFilterProviderImpl(PATH);
 
     @Test
     public void testHandlesPath() {

@@ -45,7 +45,6 @@ public class MoveSystemUserTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testMoveUser() throws Exception {
-        String userId = getTestSystemUser().getID();
         String srcJcrPath = getTestSystemUser().getPath();
         String name = PathUtils.getName(srcJcrPath);
         String destJcrPath = PathUtils.concat(PathUtils.getParentPath(srcJcrPath), name + "-moved");

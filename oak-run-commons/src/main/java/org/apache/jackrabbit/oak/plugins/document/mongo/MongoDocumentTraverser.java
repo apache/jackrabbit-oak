@@ -25,11 +25,14 @@ import com.google.common.collect.FluentIterable;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.bson.BsonDocument;
+import org.bson.BsonInt64;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -41,7 +44,8 @@ public class MongoDocumentTraverser {
         this.mongoStore = mongoStore;
     }
 
-    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, Predicate<String> filter) {
+    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, LastModifiedRange lastModifiedRange,
+                                                                     Predicate<String> filter) {
         if (!disableReadOnlyCheck) {
             checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
         }
@@ -49,9 +53,19 @@ public class MongoDocumentTraverser {
         MongoCollection<BasicDBObject> dbCollection = mongoStore.getDBCollection(collection);
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
-        Iterable<BasicDBObject> cursor = dbCollection
-                .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
-                .find();
+        Iterable<BasicDBObject> cursor;
+        if (lastModifiedRange.coversAllDocuments()) {
+            cursor = dbCollection
+                    .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
+                    .find();
+        } else {
+            String rangeString = "{$gte:" + lastModifiedRange.getLastModifiedFrom() + ",";
+            rangeString += "$lt:" + lastModifiedRange.getLastModifiedTo() + "}";
+            BsonDocument query = BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + rangeString + "}");
+            cursor = dbCollection
+                    .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
+                    .find(query).sort(new BsonDocument().append(NodeDocument.MODIFIED_IN_SECS, new BsonInt64(1)));
+        }
 
         CloseableIterable<BasicDBObject> closeableCursor = CloseableIterable.wrap(cursor);
         cursor = closeableCursor;

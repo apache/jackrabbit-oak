@@ -31,10 +31,8 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
@@ -43,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -73,7 +71,7 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
         Provider.Service service = mock(Provider.Service.class);
         when(service.newInstance(null)).thenReturn(new ConfigurationSpi() {
             @Override
-            protected AppConfigurationEntry[] engineGetAppConfigurationEntry(String name) {
+            protected AppConfigurationEntry @Nullable [] engineGetAppConfigurationEntry(String name) {
                 if (enableAppName) {
                     return new AppConfigurationEntry[]{
                             new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap<>())

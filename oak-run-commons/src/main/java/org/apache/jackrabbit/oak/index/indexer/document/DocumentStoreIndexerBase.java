@@ -20,11 +20,13 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
@@ -34,8 +36,11 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -65,9 +70,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     protected final IndexHelper indexHelper;
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
-    private final IndexingProgressReporter progressReporter =
-            new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
     private final Set<String> indexerPaths = new HashSet<>();
+    private static final int MAX_DOWNLOAD_RETRIES = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "3"));
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
         this.indexHelper = indexHelper;
@@ -78,45 +82,127 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         this.indexerProviders = createProviders();
     }
 
+    private static class MongoNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
+
+        /**
+         * This counter is part of this traverser's id and is helpful in identifying logs from different traversers that
+         * run concurrently.
+         */
+        private static final AtomicInteger traverserInstanceCounter = new AtomicInteger(0);
+        /**
+         * An prefix for ID of traversers (value is acronym for NodeStateEntryTraverser).
+         */
+        private static final String TRAVERSER_ID_PREFIX = "NSET";
+        private final RevisionVector rootRevision;
+        private final DocumentNodeStore documentNodeStore;
+        private final MongoDocumentStore documentStore;
+        private final Logger traversalLogger;
+        private final CompositeIndexer indexer;
+        private final Closer closer;
+
+        private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
+                                                   MongoDocumentStore documentStore, Logger traversalLogger,
+                                                   CompositeIndexer indexer, Closer closer) {
+            this.rootRevision = rootRevision;
+            this.documentNodeStore = documentNodeStore;
+            this.documentStore = documentStore;
+            this.traversalLogger = traversalLogger;
+            this.indexer = indexer;
+            this.closer = closer;
+        }
+
+        @Override
+        public NodeStateEntryTraverser create(LastModifiedRange lastModifiedRange) {
+            IndexingProgressReporter progressReporterPerTask =
+                    new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+            String entryTraverserID = TRAVERSER_ID_PREFIX + traverserInstanceCounter.incrementAndGet();
+            //As first traversal is for dumping change the message prefix
+            progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
+            NodeStateEntryTraverser nsep =
+                    new NodeStateEntryTraverser(entryTraverserID, rootRevision,
+                            documentNodeStore, documentStore, lastModifiedRange)
+                            .withProgressCallback((id) -> {
+                                try {
+                                    progressReporterPerTask.traversedNode(() -> id);
+                                } catch (CommitFailedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                traversalLogger.trace(id);
+                            })
+                            .withPathPredicate(indexer::shouldInclude);
+            closer.register(nsep);
+            return nsep;
+        }
+    }
+
+    private FlatFileStore buildFlatFileStore(NodeState checkpointedState, CompositeIndexer indexer) throws IOException {
+
+        Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
+        int executionCount = 1;
+        CompositeException lastException = null;
+        List<File> previousDownloadDirs = new ArrayList<>();
+        FlatFileStore flatFileStore = null;
+        //TODO How to ensure we can safely read from secondary
+        DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
+        DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
+
+        DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
+        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
+        FlatFileNodeStoreBuilder builder = null;
+
+        while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_RETRIES) {
+            try {
+                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
+                        .withLastModifiedBreakPoints(lastModifiedBreakPoints)
+                        .withBlobStore(indexHelper.getGCBlobStore())
+                        .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
+                        .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
+                        .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
+                                nodeStore, getMongoDocumentStore(), traversalLog, indexer, closer));
+                for (File dir : previousDownloadDirs) {
+                    builder.addExistingDataDumpDir(dir);
+                }
+                flatFileStore = builder.build();
+                closer.register(flatFileStore);
+            } catch (CompositeException e) {
+                e.logAllExceptions("Underlying throwable caught during download", log);
+                log.info("Could not build flat file store. Execution count {}. Retries left {}. Time elapsed {}",
+                        executionCount, MAX_DOWNLOAD_RETRIES - executionCount, flatFileStoreWatch);
+                lastException = e;
+                previousDownloadDirs.add(builder.getFlatFileStoreDir());
+            }
+            executionCount++;
+        }
+        if (flatFileStore == null) {
+            throw new IOException("Could not build flat file store", lastException);
+        }
+        log.info("Completed the flat file store build in {}", flatFileStoreWatch);
+        return flatFileStore;
+    }
+
     public void reindex() throws CommitFailedException, IOException {
-        configureEstimators();
+        IndexingProgressReporter progressReporter =
+                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+        configureEstimators(progressReporter);
 
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
 
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder);
+        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
         if (indexer.isEmpty()) {
             return;
         }
 
         closer.register(indexer);
 
-        //TODO How to ensure we can safely read from secondary
-        DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
-        DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
-
-        NodeStateEntryTraverser nsep =
-                new NodeStateEntryTraverser(rootDocumentState.getRootRevision(),
-                        nodeStore, getMongoDocumentStore())
-                        .withProgressCallback(this::reportDocumentRead)
-                        .withPathPredicate(indexer::shouldInclude);
-        closer.register(nsep);
-
-        //As first traversal is for dumping change the message prefix
-        progressReporter.setMessagePrefix("Dumping");
-
-        //TODO Use flatFileStore only if we have relative nodes to be indexed
-        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(nsep, indexHelper.getWorkDir())
-                .withBlobStore(indexHelper.getGCBlobStore())
-                .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
-                .build();
-        closer.register(flatFileStore);
+        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer);
 
         progressReporter.reset();
         if (flatFileStore.getEntryCount() > 0){
-            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> flatFileStore.getEntryCount());
+            FlatFileStore finalFlatFileStore = flatFileStore;
+            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> finalFlatFileStore.getEntryCount());
         }
 
         progressReporter.reindexingTraversalStart("/");
@@ -125,7 +211,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         Stopwatch indexerWatch = Stopwatch.createStarted();
         for (NodeStateEntry entry : flatFileStore) {
-            reportDocumentRead(entry.getPath());
+            reportDocumentRead(entry.getPath(), progressReporter);
             indexer.index(entry);
         }
 
@@ -142,7 +228,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
-    private void configureEstimators() {
+    private void configureEstimators(IndexingProgressReporter progressReporter) {
         StatisticsProvider statsProvider = indexHelper.getStatisticsProvider();
         if (statsProvider instanceof MetricStatisticsProvider) {
             MetricRegistry registry = ((MetricStatisticsProvider) statsProvider).getRegistry();
@@ -169,7 +255,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         closer.close();
     }
 
-    private void reportDocumentRead(String id) {
+    private void reportDocumentRead(String id, IndexingProgressReporter progressReporter) {
         try {
             progressReporter.traversedNode(() -> id);
         } catch (CommitFailedException e) {
@@ -178,7 +264,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         traversalLog.trace(id);
     }
 
-    protected CompositeIndexer prepareIndexers(NodeStore copyOnWriteStore, NodeBuilder builder) {
+    protected CompositeIndexer prepareIndexers(NodeStore copyOnWriteStore, NodeBuilder builder,
+                                               IndexingProgressReporter progressReporter) {
         NodeState root = copyOnWriteStore.getRoot();
         List<NodeStateIndexer> indexers = new ArrayList<>();
         for (String indexPath : indexHelper.getIndexPaths()) {
