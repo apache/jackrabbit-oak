@@ -69,6 +69,7 @@ public class IndexDefMergerTest {
         JsonObject product = e.getChildren().get("product");
         try {
             JsonObject got = IndexDefMergerUtils.merge(
+                    "",
                     "/oak:index/test-1", ancestor,
                     "/oak:index/test-1-custom-1", custom,
                     product);
