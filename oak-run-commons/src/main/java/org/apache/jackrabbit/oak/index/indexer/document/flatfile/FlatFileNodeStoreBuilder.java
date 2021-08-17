@@ -21,12 +21,14 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Iterables;
-import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -37,7 +39,7 @@ import static java.util.Collections.unmodifiableSet;
 
 public class FlatFileNodeStoreBuilder {
 
-    static final String FLAT_FILE_STORE_DIR_NAME = "flat-file-store";
+    private static final String FLAT_FILE_STORE_DIR_NAME_PREFIX = "flat-fs-";
 
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
     /**
@@ -60,13 +62,14 @@ public class FlatFileNodeStoreBuilder {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private List<Long> lastModifiedBreakPoints;
     private final File workDir;
-    private File existingDataDumpDir;
+    private final List<File> existingDataDumpDirs = new ArrayList<>();
     private Set<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
     private PathElementComparator comparator;
     private NodeStateEntryWriter entryWriter;
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
+    private File flatFileStoreDir;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
@@ -108,8 +111,10 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileNodeStoreBuilder withExistingDataDumpDir(File existingDataDumpDir) {
-        this.existingDataDumpDir = existingDataDumpDir;
+    public FlatFileNodeStoreBuilder addExistingDataDumpDir(File existingDataDumpDir) {
+        if (existingDataDumpDir != null) {
+            this.existingDataDumpDirs.add(existingDataDumpDir);
+        }
         return this;
     }
 
@@ -118,7 +123,7 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileStore build() throws IOException {
+    public FlatFileStore build() throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
@@ -130,7 +135,7 @@ public class FlatFileNodeStoreBuilder {
         return store;
     }
 
-    private File createdSortedStoreFile() throws IOException {
+    private File createdSortedStoreFile() throws IOException, CompositeException {
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
         if (sortedFilePath != null) {
             File sortedFile = new File(sortedFilePath);
@@ -144,7 +149,7 @@ public class FlatFileNodeStoreBuilder {
                 throw new IllegalArgumentException(msg);
             }
         } else {
-            File flatFileStoreDir = createStoreDir();
+            createStoreDir();
             org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy strategy = createSortStrategy(flatFileStoreDir);
             File result = strategy.createSortedStoreFile();
             entryCount = strategy.getEntryCount();
@@ -154,15 +159,18 @@ public class FlatFileNodeStoreBuilder {
 
     SortStrategy createSortStrategy(File dir) throws IOException {
         switch (sortStrategyType) {
-            case STORE_AND_SORT: log.info("Using StoreAndSortStrategy");
+            case STORE_AND_SORT:
+                log.info("Using StoreAndSortStrategy");
                 return new StoreAndSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
                         Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
-            case TRAVERSE_WITH_SORT: log.info("Using TraverseWithSortStrategy");
+            case TRAVERSE_WITH_SORT:
+                log.info("Using TraverseWithSortStrategy");
                 return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
-                        Long.MAX_VALUE)) , comparator, entryWriter, dir, useZip);
-            default: log.info("Using MultithreadedTraverseWithSortStrategy");
+                        Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
+            default:
+                log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDir, useZip, getMemoryManager());
+                        blobStore, dir, existingDataDumpDirs, useZip, getMemoryManager());
         }
     }
 
@@ -177,8 +185,16 @@ public class FlatFileNodeStoreBuilder {
     }
 
     File createStoreDir() throws IOException {
-        File dir = new File(workDir, FLAT_FILE_STORE_DIR_NAME);
-        FileUtils.forceMkdir(dir);
-        return dir;
+        flatFileStoreDir = Files.createTempDirectory(workDir.toPath(), FLAT_FILE_STORE_DIR_NAME_PREFIX).toFile();
+        return flatFileStoreDir;
+    }
+
+    /**
+     * Returns the flat file store dir.
+     * NOTE - Only works after flat file store dir has been built (i.e. after a call to {@link #build()}
+     * @return flat file store dir or <code>null</code> if it has not been built
+     */
+    public File getFlatFileStoreDir() {
+        return flatFileStoreDir;
     }
 }

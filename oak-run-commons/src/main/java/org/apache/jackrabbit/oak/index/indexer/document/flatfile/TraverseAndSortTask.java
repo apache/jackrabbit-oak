@@ -282,7 +282,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w,
                 lastSavedNodeStateEntry.getLastModified());
-        DirectoryHelper.markCompletionTill(sortWorkDir,
+        DirectoryHelper.markLastProcessedStatus(sortWorkDir,
                 lastSavedNodeStateEntry.getLastModified());
         sortedFiles.add(newtmpfile);
     }
