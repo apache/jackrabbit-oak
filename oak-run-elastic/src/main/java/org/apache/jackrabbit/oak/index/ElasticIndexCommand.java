@@ -94,13 +94,12 @@ public class ElasticIndexCommand implements Command {
         try {
             if (indexOpts.isAsyncIndex()) {
                 Closer closer = Closer.create();
-
                 NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-                closer.register(fixture);
                 IndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
                 AsyncIndexerElastic asyncIndexerService = new AsyncIndexerElastic(extendedIndexHelper, closer,
                         indexOpts.getAsyncLanes(), indexOpts.aysncDelay(), indexOpts);
                 closer.register(asyncIndexerService);
+                closer.register(fixture);
                 asyncIndexerService.execute();
             } else {
                 try (Closer closer = Closer.create()) {
