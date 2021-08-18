@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
@@ -39,7 +40,7 @@ public abstract class AsyncIndexerBase implements Closeable {
     private final IndexHelper indexHelper;
     protected final Closer closer;
     private final List<String> names;
-    private final long INIT_DELAY=0;
+    private final long INIT_DELAY = 0;
     private final long delay;
     private ScheduledExecutorService pool;
     private CountDownLatch latch;
@@ -55,17 +56,14 @@ public abstract class AsyncIndexerBase implements Closeable {
 
     public void execute() throws InterruptedException, IOException {
         addShutDownHook();
-        for(String name : names) {
+        for (String name : names) {
             log.info("Setting up Async executor for lane - " + name);
-
             IndexEditorProvider editorProvider = getIndexEditorProvider();
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, indexHelper.getNodeStore(),
                     editorProvider, StatisticsProvider.NOOP, false);
-            // TODO : Handle closure for AsyncIndexUpdate - during command exit, problem is when to do it ? We want this to run in infinite loop
-            // TODO : In oak, it gets closed with system bundle deactivation
             closer.register(task);
 
-            pool.scheduleWithFixedDelay(task,INIT_DELAY,delay, TimeUnit.SECONDS);
+            pool.scheduleWithFixedDelay(task, INIT_DELAY, delay, TimeUnit.SECONDS);
         }
         // Make the main thread wait now, since we want this to run continuously
         // Although ScheduledExecutorService would still keep executing even if we let the main thread exit
@@ -79,7 +77,6 @@ public abstract class AsyncIndexerBase implements Closeable {
         log.info("Closing down Async Indexer Service...");
         latch.countDown();
         pool.shutdown();
-        closer.close();;
     }
 
     /*
@@ -90,9 +87,8 @@ public abstract class AsyncIndexerBase implements Closeable {
     private void addShutDownHook() {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
-            public void run()
-            {
-                try{
+            public void run() {
+                try {
                     closer.close();
                 } catch (IOException e) {
                     log.error("Exception during cleanup ", e);

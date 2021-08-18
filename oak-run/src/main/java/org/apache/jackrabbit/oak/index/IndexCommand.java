@@ -103,15 +103,14 @@ public class IndexCommand implements Command {
             if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
                 performReindexInReadWriteMode(indexOpts);
             } else if (indexOpts.isAsyncIndex()) {
-                    Closer closer = Closer.create();
-
-                    NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-                    closer.register(fixture);
-                    ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
-                    AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(extendedIndexHelper, closer,
-                            indexOpts.getAsyncLanes(), indexOpts.aysncDelay());
-                    closer.register(asyncIndexerService);
-                    asyncIndexerService.execute();
+                Closer closer = Closer.create();
+                NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
+                AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(extendedIndexHelper, closer,
+                        indexOpts.getAsyncLanes(), indexOpts.aysncDelay());
+                closer.register(asyncIndexerService);
+                closer.register(fixture);
+                asyncIndexerService.execute();
             } else {
                 try (Closer closer = Closer.create()) {
                     configureCustomizer(opts, closer, true);
