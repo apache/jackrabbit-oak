@@ -46,6 +46,7 @@ import java.util.Set;
 
 import com.google.common.collect.Iterables;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -72,6 +73,9 @@ public class IndexUpdate implements Editor, PathSource {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
     private static final String TYPE_ELASTICSEARCH = "elasticsearch";
+    //This is used so that wrong index definitions are sparsely logged. After every 1000 indexing cycles with diff, wrong index definitions
+    // will be logged.
+    private static final long indexJcrTypeInvalidLogLimiter = Long.valueOf(System.getProperty("oak.indexer.indexJcrTypeInvalidLogLimiter", "1000"));
 
     /**
      * <p>
@@ -124,6 +128,9 @@ public class IndexUpdate implements Editor, PathSource {
      */
     private final Map<String, Editor> reindex = new HashMap<String, Editor>();
 
+    // Default values is -1, so that we can distinguish between the count coming from async cycle or from sync indexing
+    private long totalExecutionCount = -1;
+
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
@@ -156,6 +163,15 @@ public class IndexUpdate implements Editor, PathSource {
         this.name = name;
         this.rootState = parent.rootState;
         this.builder = parent.builder.getChildNode(checkNotNull(name));
+    }
+
+    public IndexUpdate(IndexEditorProvider provider, String name, NodeState after, NodeBuilder builder,
+                       AsyncIndexUpdate.AsyncUpdateCallback callback, AsyncIndexUpdate.AsyncUpdateCallback callback1,
+                       CommitInfo info, TrackingCorruptIndexHandler corruptIndexHandler, long totalExecutionCount) {
+        this(provider, name, after, builder,
+                callback, callback1,
+                info, corruptIndexHandler);
+        this.totalExecutionCount = totalExecutionCount;
     }
 
     @Override
@@ -280,9 +296,18 @@ public class IndexUpdate implements Editor, PathSource {
             NodeBuilder definition = definitions.getChildNode(name);
             if (isIncluded(rootState.async, definition)) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
+                String primaryType = definition.getName(JcrConstants.JCR_PRIMARYTYPE);
                 if (type == null) {
                     // probably not an index def
                     continue;
+                }
+                /*
+                 Log a warning after every indexJcrTypeInvalidLogLimiter cycles of indexer where nodeState changed.
+                 */
+                if (!IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType)
+                        && totalExecutionCount % indexJcrTypeInvalidLogLimiter == 0) {
+                    // just logging a warning in case of invalid nodetype of index-definition.
+                    log.warn("jcr:primaryType of index {} should be {} instead of {}", name, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, primaryType);
                 }
 
                 boolean shouldReindex = shouldReindex(definition, before, name);

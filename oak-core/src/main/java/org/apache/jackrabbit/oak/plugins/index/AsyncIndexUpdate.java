@@ -215,6 +215,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
 
     private final StatisticsProvider statisticsProvider;
+    // This count keeps track of non-empty indexing cycles i.e cycles where nodestate changed.
+    private long executionCountWithDiff;
 
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
                             @NotNull IndexEditorProvider provider, boolean switchOnSync) {
@@ -585,6 +587,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             Thread.currentThread().setName(newThreadName);
             updatePostRunStatus = updateIndex(before, beforeCheckpoint, after,
                     afterCheckpoint, afterTime, callback, checkpointToReleaseRef);
+            executionCountWithDiff++;
 
             // the update succeeded, i.e. it no longer fails
             if (indexStats.didLastIndexingCycleFailed()) {
@@ -784,7 +787,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             CommitInfo info = new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
                     ImmutableMap.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
             indexUpdate =
-                    new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler)
+                    new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler, executionCountWithDiff)
                             .withMissingProviderStrategy(missingStrategy);
             configureRateEstimator(indexUpdate);
             CommitFailedException exception =
