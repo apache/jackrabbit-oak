@@ -491,7 +491,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             log.debug("[{}] Ignoring the run as indexing is paused", name);
             return;
         }
-        log.info("[{}] Running background index task", name);
+        log.debug("[{}] Running background index task", name);
 
         NodeState root = store.getRoot();
         NodeState async = root.getChildNode(ASYNC);
@@ -505,7 +505,6 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 String err = String.format(CONCURRENT_EXCEPTIPN_MSG +
                         "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
                 indexStats.failed(new Exception(err, newConcurrentUpdateException()));
-                log.error(err);
                 return;
             }
         }

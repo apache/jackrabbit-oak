@@ -92,22 +92,16 @@ public class ElasticIndexCommand implements Command {
 
         boolean success = false;
         try {
-
             if (indexOpts.isAsyncIndex()) {
-                // This closer is just a dummy for now to be able to create the IndexHelper - we never actually call close on this
-                // TODO : See when this can be called ? We basically want to run this index command in an infintie loop
-                // TOOD : so need to check when to exactly call closure ? (Command exit with SIGINT ???)
                 Closer closer = Closer.create();
 
                 NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-                // TODO : Register fixture with a clousre
-                //closer.register(fixture);
+                closer.register(fixture);
                 IndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
-                AsyncIndexerElastic asyncIndexerService = new AsyncIndexerElastic(fixture, extendedIndexHelper, closer,
+                AsyncIndexerElastic asyncIndexerService = new AsyncIndexerElastic(extendedIndexHelper, closer,
                         indexOpts.getAsyncLanes(), indexOpts.aysncDelay(), indexOpts);
-                // TODO : Register asyncIndexerService with a clousre
-                //closer.register(asyncIndexerService);
-                asyncIndexerService.run();
+                closer.register(asyncIndexerService);
+                asyncIndexerService.execute();
             } else {
                 try (Closer closer = Closer.create()) {
                     NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);

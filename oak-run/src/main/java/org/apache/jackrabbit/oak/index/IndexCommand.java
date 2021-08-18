@@ -103,20 +103,15 @@ public class IndexCommand implements Command {
             if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
                 performReindexInReadWriteMode(indexOpts);
             } else if (indexOpts.isAsyncIndex()) {
-                // This closer is just a dummy for now to be able to create the IndexHelper - we never actually call close on this
-                // TODO : See when this can be called ? We basically want to run this index command in an infintie loop
-                // TOOD : so need to check when to exactly call closure ? (Command exit with SIGINT ???)
-                Closer closer = Closer.create();
+                    Closer closer = Closer.create();
 
-                NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-                // TODO : Register fixture with a clousre
-                //closer.register(fixture);
-                ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
-                AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(fixture, extendedIndexHelper, closer,
-                        indexOpts.getAsyncLanes(), indexOpts.aysncDelay());
-                // TODO : Register asyncIndexerService with a clousre
-                //closer.register(asyncIndexerService);
-                asyncIndexerService.run();
+                    NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                    closer.register(fixture);
+                    ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
+                    AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(extendedIndexHelper, closer,
+                            indexOpts.getAsyncLanes(), indexOpts.aysncDelay());
+                    closer.register(asyncIndexerService);
+                    asyncIndexerService.execute();
             } else {
                 try (Closer closer = Closer.create()) {
                     configureCustomizer(opts, closer, true);

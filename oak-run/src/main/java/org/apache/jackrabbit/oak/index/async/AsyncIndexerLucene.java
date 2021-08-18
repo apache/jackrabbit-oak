@@ -32,10 +32,8 @@ import java.util.List;
 
 public class AsyncIndexerLucene extends AsyncIndexerBase {
 
-
-
-    public AsyncIndexerLucene(NodeStoreFixture fixture, ExtendedIndexHelper extendedIndexHelper, Closer close, List<String> names, long delay) {
-        super(fixture, extendedIndexHelper, close, names, delay);
+    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, Closer close, List<String> names, long delay) {
+        super(extendedIndexHelper, close, names, delay);
     }
 
     @Override

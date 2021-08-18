@@ -36,9 +36,9 @@ import java.util.List;
 public class AsyncIndexerElastic extends AsyncIndexerBase {
 
     private final ElasticIndexOptions indexOpts;
-    public AsyncIndexerElastic(NodeStoreFixture fixture, IndexHelper indexHelper, Closer close, List<String> names,
+    public AsyncIndexerElastic(IndexHelper indexHelper, Closer closer, List<String> names,
                                long delay, ElasticIndexOptions indexOpts) {
-        super(fixture, indexHelper, close, names, delay);
+        super(indexHelper, closer, names, delay);
         this.indexOpts = indexOpts;
     }
 
@@ -57,7 +57,7 @@ public class AsyncIndexerElastic extends AsyncIndexerBase {
         } else {
             coordinate = buildStep.build();
         }
-        close.register(coordinate);
+        closer.register(coordinate);
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         return editorProvider;
