@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -51,10 +51,9 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.FLAT_FILE_STORE_DIR_NAME;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class FlatFileStoreTest {
@@ -67,6 +66,8 @@ public class FlatFileStoreTest {
     public TemporaryFolder folder = new TemporaryFolder(new File(BUILD_TARGET_FOLDER));
 
     private Set<String> preferred = singleton("jcr:content");
+
+    private static final String EXCEPTION_MESSAGE = "Framed exception.";
 
     private void runBasicTest() throws Exception {
         List<String> paths = createTestPaths();
@@ -140,6 +141,27 @@ public class FlatFileStoreTest {
         assertEquals(sortedPaths, entryPaths);
     }
 
+    private FlatFileStore buildFlatFileStore(FlatFileNodeStoreBuilder spyBuilder, List<Long> lastModifiedBreakpoints,
+                                    TestNodeStateEntryTraverserFactory nsetf, boolean expectException) throws Exception {
+        boolean exceptionCaught = false;
+        FlatFileStore flatFileStore = null;
+        try {
+            flatFileStore = spyBuilder.withBlobStore(new MemoryBlobStore())
+                    .withPreferredPathElements(preferred)
+                    .withLastModifiedBreakPoints(lastModifiedBreakpoints)
+                    .withNodeStateEntryTraverserFactory(nsetf)
+                    .build();
+        } catch (CompositeException e) {
+            exceptionCaught = true;
+            e.logAllExceptions("Exceptions caught", logger);
+            if (expectException) {
+                assertEquals(EXCEPTION_MESSAGE, e.getSuppressed()[0].getCause().getMessage());
+            }
+        }
+        assertEquals(exceptionCaught, expectException);
+        return flatFileStore;
+    }
+
     @Test
     public void resumePreviousUnfinishedDownload() throws Exception {
         Map<Long, List<String>> map = createPathsWithTimestamps();
@@ -150,32 +172,18 @@ public class FlatFileStoreTest {
                 lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
         FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
         TestMemoryManager memoryManager = new TestMemoryManager(true);
-        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(new TestMemoryManager(true));
+        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(memoryManager);
         TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(map, true);
-        FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
-                .withPreferredPathElements(preferred)
-                .withLastModifiedBreakPoints(lastModifiedBreakpoints)
-                .withNodeStateEntryTraverserFactory(nsetf)
-                .build();
-
-        List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
-                .map(NodeStateEntry::getPath)
-                .collect(Collectors.toList());
-
-        assertEquals(Collections.emptyList(), entryPaths);
+        FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+        assertNull(flatStore);
+        spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
+        flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+        assertNull(flatStore);
         memoryManager.isMemoryLow = false;
         nsetf.interrupt = false;
-        File oldDataDir = new File(BUILD_TARGET_FOLDER + "/old-data"+System.currentTimeMillis());
-        File [] fileList = folder.getRoot().listFiles((pathName) -> FLAT_FILE_STORE_DIR_NAME.equals(pathName.getName()));
-        assertTrue(fileList != null && fileList.length == 1);
-        FileUtils.copyDirectory(fileList[0], oldDataDir);
-        flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
-                .withPreferredPathElements(preferred)
-                .withLastModifiedBreakPoints(lastModifiedBreakpoints)
-                .withExistingDataDumpDir(oldDataDir)
-                .withNodeStateEntryTraverserFactory(nsetf)
-                .build();
-
+        List<String> entryPaths;
+        spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
+        flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false);
         entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
                 .map(NodeStateEntry::getPath)
                 .collect(Collectors.toList());
@@ -183,7 +191,6 @@ public class FlatFileStoreTest {
         List<String> sortedPaths = TestUtils.sortPaths(paths);
         assertEquals(paths.size(), nsetf.getTotalProvidedDocCount());
         assertEquals(sortedPaths, entryPaths);
-        FileUtils.deleteDirectory(oldDataDir);
     }
 
     private static class TestMemoryManager implements MemoryManager {
@@ -261,15 +268,16 @@ public class FlatFileStoreTest {
                     null, range) {
                 @Override
                 public @NotNull Iterator<NodeStateEntry> iterator() {
-                    List<String> paths = new ArrayList<>();
-                    pathData.keySet().stream().filter(range::contains).forEach(time -> paths.addAll(pathData.get(time)));
-                    if (paths.isEmpty()) {
+                    Map<String, Long> times = new HashMap<>();
+                    pathData.entrySet().stream().filter(entry -> range.contains(entry.getKey())).forEach(entry -> {
+                        entry.getValue().forEach(path -> times.put(path, entry.getKey()));
+                    });
+                    if (times.isEmpty()) {
                         return Collections.emptyIterator();
                     }
-                    Iterator<NodeStateEntry> nodeStateEntryIterator = TestUtils.createEntriesWithLastModified(paths,
-                            range.getLastModifiedFrom()).iterator();
+                    Iterator<NodeStateEntry> nodeStateEntryIterator = TestUtils.createEntriesWithLastModified(times).iterator();
                     AtomicInteger returnCount = new AtomicInteger(0);
-                    int breakPoint = paths.size()/2;
+                    int breakPoint = times.keySet().size()/2;
                     String traverserId = getId();
                     return new Iterator<NodeStateEntry>() {
 
@@ -283,15 +291,19 @@ public class FlatFileStoreTest {
                         @Override
                         public NodeStateEntry next() {
                             if (interrupt && returnCount.get() == breakPoint) {
-                                duplicateDocs.addAndGet(returnCounts.getOrDefault(lastReturnedDocLastModified, 0));
-                                throw new IllegalStateException("Framed exception.");
+                                Integer returnedDocsWithLastModSameAsLastDoc = returnCounts.put(lastReturnedDocLastModified, 0);
+                                int returnedUnboxed = returnedDocsWithLastModSameAsLastDoc != null ? returnedDocsWithLastModSameAsLastDoc : 0;
+                                logger.debug("{} Breaking after getting {} docs with LM {} Incrementing dup by {}",traverserId,
+                                        breakPoint, lastReturnedDocLastModified, returnedUnboxed);
+                                duplicateDocs.addAndGet(returnedUnboxed);
+                                throw new IllegalStateException(EXCEPTION_MESSAGE);
                             }
                             returnCount.incrementAndGet();
                             providedDocuments.incrementAndGet();
                             NodeStateEntry next = nodeStateEntryIterator.next();
-                            logger.info("Returning {} to {}",next.getPath(), traverserId);
                             lastReturnedDocLastModified = next.getLastModified();
-                            returnCounts.compute(next.getLastModified(), (k,v) -> v == null ? 1 : v+1);
+                            logger.debug("Returning {} to {} with LM={}",next.getPath(), traverserId, lastReturnedDocLastModified);
+                            returnCounts.compute(next.getLastModified(), (k, v) -> v == null ? 1 : v + 1);
                             return next;
                         }
                     };
@@ -314,31 +326,16 @@ public class FlatFileStoreTest {
      */
     private Map<Long, List<String>> createPathsWithTimestamps() {
         Map<Long, List<String>> map = new HashMap<>();
-        map.put(10L, new ArrayList<String>() {{
-            add("/a");
-        }});
-        map.put(20L, new ArrayList<String>() {{
-            add("/b");
-            add("/b/b");
-        }});
-        map.put(30L, new ArrayList<String>() {{
-            add("/c");
-            add("/c/c");
-            add("/c/c/c");
-        }});
-        map.put(40L, new ArrayList<String>() {{
-            add("/d");
-            add("/d/d");
-            add("/d/d/d");
-            add("/d/d/d/d");
-        }});
-        map.put(50L, new ArrayList<String>() {{
-            add("/e");
-            add("/e/e");
-            add("/e/e/e");
-            add("/e/e/e/e");
-            add("/e/e/e/e/e");
-        }});
+        for( int i = 1; i <= 10; i++) {
+            long time = i*10L;
+            List<String> paths = new ArrayList<>();
+            String path = "";
+            for (int j = 1; j <= i; j++) {
+                path += "/t" + time;
+                paths.add(path);
+            }
+            map.put(time, paths);
+        }
         return map;
     }
 

@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -67,8 +68,8 @@ public class TestUtils {
         return Iterables.transform(paths, p -> new NodeStateEntryBuilder(createNodeState(p), p).build());
     }
 
-    static Iterable<NodeStateEntry> createEntriesWithLastModified(List<String> paths, long lastModified) {
-        return Iterables.transform(paths, p -> new NodeStateEntryBuilder(createNodeState(p), p).withLastModified(lastModified).build());
+    static Iterable<NodeStateEntry> createEntriesWithLastModified(Map<String, Long> paths) {
+        return Iterables.transform(paths.keySet(), p -> new NodeStateEntryBuilder(createNodeState(p), p).withLastModified(paths.get(p)).build());
     }
 
     private static NodeState createNodeState(String p) {

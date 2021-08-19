@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -70,6 +71,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
     private final Set<String> indexerPaths = new HashSet<>();
+    private static final int MAX_DOWNLOAD_RETRIES = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "3"));
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
         this.indexHelper = indexHelper;
@@ -133,6 +135,51 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         }
     }
 
+    private FlatFileStore buildFlatFileStore(NodeState checkpointedState, CompositeIndexer indexer) throws IOException {
+
+        Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
+        int executionCount = 1;
+        CompositeException lastException = null;
+        List<File> previousDownloadDirs = new ArrayList<>();
+        FlatFileStore flatFileStore = null;
+        //TODO How to ensure we can safely read from secondary
+        DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
+        DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
+
+        DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
+        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
+        FlatFileNodeStoreBuilder builder = null;
+
+        while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_RETRIES) {
+            try {
+                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
+                        .withLastModifiedBreakPoints(lastModifiedBreakPoints)
+                        .withBlobStore(indexHelper.getGCBlobStore())
+                        .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
+                        .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
+                        .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
+                                nodeStore, getMongoDocumentStore(), traversalLog, indexer, closer));
+                for (File dir : previousDownloadDirs) {
+                    builder.addExistingDataDumpDir(dir);
+                }
+                flatFileStore = builder.build();
+                closer.register(flatFileStore);
+            } catch (CompositeException e) {
+                e.logAllExceptions("Underlying throwable caught during download", log);
+                log.info("Could not build flat file store. Execution count {}. Retries left {}. Time elapsed {}",
+                        executionCount, MAX_DOWNLOAD_RETRIES - executionCount, flatFileStoreWatch);
+                lastException = e;
+                previousDownloadDirs.add(builder.getFlatFileStoreDir());
+            }
+            executionCount++;
+        }
+        if (flatFileStore == null) {
+            throw new IOException("Could not build flat file store", lastException);
+        }
+        log.info("Completed the flat file store build in {}", flatFileStoreWatch);
+        return flatFileStore;
+    }
+
     public void reindex() throws CommitFailedException, IOException {
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
@@ -150,29 +197,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         closer.register(indexer);
 
-        //TODO How to ensure we can safely read from secondary
-        DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
-        DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
-
-        DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
-        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
-
-        Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
-        //TODO Use flatFileStore only if we have relative nodes to be indexed
-        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
-                .withLastModifiedBreakPoints(lastModifiedBreakPoints)
-                .withBlobStore(indexHelper.getGCBlobStore())
-                .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
-                .withExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
-                .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
-                        nodeStore, getMongoDocumentStore(), traversalLog, indexer, closer))
-                .build();
-        closer.register(flatFileStore);
-        log.info("Completed the flat file store build in {}", flatFileStoreWatch);
+        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer);
 
         progressReporter.reset();
         if (flatFileStore.getEntryCount() > 0){
-            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> flatFileStore.getEntryCount());
+            FlatFileStore finalFlatFileStore = flatFileStore;
+            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> finalFlatFileStore.getEntryCount());
         }
 
         progressReporter.reindexingTraversalStart("/");
