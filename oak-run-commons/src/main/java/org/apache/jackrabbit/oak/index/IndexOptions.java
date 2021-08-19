@@ -205,7 +205,9 @@ public class IndexOptions implements OptionsBean {
         return options.has(reindex);
     }
 
-    public boolean isAsyncIndex() {return options.has(asyncIndex);}
+    public boolean isAsyncIndex() {
+        return options.has(asyncIndex);
+    }
 
     public boolean isImportIndex() {
         return options.has(importIndex);
@@ -215,7 +217,9 @@ public class IndexOptions implements OptionsBean {
         return  options.has(docTraversal);
     }
 
-    public boolean isCowCorEnabled() {return options.has(enableCowCor);}
+    public boolean isCowCorEnabled() {
+        return options.has(enableCowCor);
+    }
 
     public String getCheckpoint(){
         return checkpoint.value(options);

@@ -84,11 +84,11 @@ public abstract class AsyncIndexerBase implements Closeable {
         pool.shutdown();
     }
 
-    /*
+    /**
     Since this would be running continuously in a loop, we can't possibly call closures in a normal conventional manner
     otherwise resources would be closed from the main thread and spawned off threads will still be running and will fail.
     So we handle closures as part of shut down hooks in case of SIGINT, SIGTERM etc.
-     */
+     **/
     private void addShutDownHook() {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
