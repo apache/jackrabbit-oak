@@ -43,6 +43,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -743,9 +744,18 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     //~---------------------------------------------------< IndexRule >
 
-    public boolean hasMatchingNodeTypeReg(NodeState root){
-        return this.root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES)
-                .equals(root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES));
+    public boolean hasMatchingNodeTypeReg(NodeState root) {
+        try {
+            return this.root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES)
+                    .equals(root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES));
+        } catch (IllegalRepositoryStateException e) {
+            // the root might be so old that a SegmentNotFoundException
+            // is thrown - in which case we can't be sure
+            // that the node type registry wasn't changed
+            log.warn("Possibly old root: {}", e.toString());
+            log.debug("Possibly old root", e);
+            return false;
+        }
     }
 
 
