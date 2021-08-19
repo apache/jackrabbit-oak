@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.async;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
-import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -38,9 +37,11 @@ public class AsyncIndexerLucene extends AsyncIndexerBase {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncIndexerLucene.class);
     private ExtendedIndexHelper extendedIndexHelper;
-    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, Closer close, List<String> names, long delay) {
+    private boolean enableCowCor;
+    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, boolean enableCowCor, Closer close, List<String> names, long delay) {
         super(extendedIndexHelper, close, names, delay);
         this.extendedIndexHelper = extendedIndexHelper;
+        this.enableCowCor = enableCowCor;
     }
 
     @Override
@@ -55,9 +56,14 @@ public class AsyncIndexerLucene extends AsyncIndexerBase {
     }
 
     private IndexEditorProvider createLuceneEditorProvider() throws IOException {
-        LuceneIndexHelper luceneIndexHelper = extendedIndexHelper.getLuceneIndexHelper();
-        LuceneIndexEditorProvider provider = luceneIndexHelper.createEditorProvider();
-        provider.setWriterConfig(luceneIndexHelper.getWriterConfigForReindex());
+        LuceneIndexEditorProvider provider;
+        if (enableCowCor) {
+            LuceneIndexHelper luceneIndexHelper = extendedIndexHelper.getLuceneIndexHelper();
+            provider = luceneIndexHelper.createEditorProvider();
+            provider.setWriterConfig(luceneIndexHelper.getWriterConfigForReindex());
+        } else {
+            provider = new LuceneIndexEditorProvider();
+        }
         return provider;
     }
 
