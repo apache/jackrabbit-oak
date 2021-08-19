@@ -60,8 +60,6 @@ public class AsyncIndexerLucene extends AsyncIndexerBase {
 
     private IndexEditorProvider createLuceneEditorProvider() throws IOException {
         LuceneIndexHelper luceneIndexHelper = extendedIndexHelper.getLuceneIndexHelper();
-        DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
-        luceneIndexHelper.setDirectoryFactory(dirFactory);
         LuceneIndexEditorProvider provider = luceneIndexHelper.createEditorProvider();
         provider.setWriterConfig(luceneIndexHelper.getWriterConfigForReindex());
         return provider;

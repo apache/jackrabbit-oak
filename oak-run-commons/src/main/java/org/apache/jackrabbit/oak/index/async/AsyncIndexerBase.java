@@ -56,14 +56,15 @@ public abstract class AsyncIndexerBase implements Closeable {
 
     public void execute() throws InterruptedException, IOException {
         addShutDownHook();
+        IndexEditorProvider editorProvider = getIndexEditorProvider();
+        // This can be null in case of any exception while initializing index copier in lucene.
+        if (editorProvider == null) {
+            log.error("EditorProvider is null, can't proceed further. Exiting");
+            closer.close();
+        }
+        // Register async tasks for all lanes to the ScheduledThreadPoolExecutor
         for (String name : names) {
             log.info("Setting up Async executor for lane - " + name);
-            IndexEditorProvider editorProvider = getIndexEditorProvider();
-            // This can be null in case of any exception while initializing index copier in lucene.
-            if (editorProvider == null) {
-                log.error("EditorProvider is null, can't proceed further. Exiting");
-                closer.close();
-            }
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, indexHelper.getNodeStore(),
                     editorProvider, StatisticsProvider.NOOP, false);
             closer.register(task);
@@ -74,7 +75,6 @@ public abstract class AsyncIndexerBase implements Closeable {
         // Although ScheduledExecutorService would still keep executing even if we let the main thread exit
         // but it will cleanup logging resources and other closeables and create problems.
         latch.await();
-
     }
 
     @Override
