@@ -38,11 +38,9 @@ public class AsyncIndexerLucene extends AsyncIndexerBase {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncIndexerLucene.class);
     private ExtendedIndexHelper extendedIndexHelper;
-    private IndexerSupport indexerSupport;
-    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport, Closer close, List<String> names, long delay) {
+    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, Closer close, List<String> names, long delay) {
         super(extendedIndexHelper, close, names, delay);
         this.extendedIndexHelper = extendedIndexHelper;
-        this.indexerSupport = indexerSupport;
     }
 
     @Override
