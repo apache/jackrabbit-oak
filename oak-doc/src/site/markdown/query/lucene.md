@@ -613,6 +613,15 @@ Key points to consider while using `includedPaths`, `queryPaths`, and `excludedP
    If the wrong paths are excluded, then some nodes might not show up in query results
    that should.
 
+4. Sub-root index definitions (e.g. `/test/oak:index/index-def-node`) -
+   `excludedPaths` and `includedPaths` need to be relative to the path
+   that index is defined for. If the condition is supposed to be put for
+   `/test/a` where the index definition is at `/test/oak:index/index-def-node`
+   then `/a` needs to be put as value of `excludedPaths`
+   or `includedPaths`.
+   On the other hand, `queryPaths` remains to be an absolute path.
+   So, for the example above, `queryPaths` would get the value `/test/a`.
+
 See to [OAK-2599][OAK-2599] for more details.
 
 #### <a name="aggregation"></a>Aggregation
