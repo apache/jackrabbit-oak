@@ -20,25 +20,51 @@ package org.apache.jackrabbit.oak.index.async;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
+import org.apache.jackrabbit.oak.index.IndexerSupport;
+import org.apache.jackrabbit.oak.index.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 
 public class AsyncIndexerLucene extends AsyncIndexerBase {
 
-    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, Closer close, List<String> names, long delay) {
+    private static final Logger log = LoggerFactory.getLogger(AsyncIndexerLucene.class);
+    private ExtendedIndexHelper extendedIndexHelper;
+    private IndexerSupport indexerSupport;
+    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport, Closer close, List<String> names, long delay) {
         super(extendedIndexHelper, close, names, delay);
+        this.extendedIndexHelper = extendedIndexHelper;
+        this.indexerSupport = indexerSupport;
     }
 
     @Override
     public IndexEditorProvider getIndexEditorProvider() {
-        return CompositeIndexEditorProvider
-                .compose(Arrays.asList(new LuceneIndexEditorProvider(), new NodeCounterEditorProvider()));
+        try {
+            return CompositeIndexEditorProvider
+                    .compose(Arrays.asList(createLuceneEditorProvider(), new NodeCounterEditorProvider()));
+        } catch (IOException e) {
+            log.error("Exception while initializing IndexEditorProvider", e);
+            return null;
+        }
     }
+
+    private IndexEditorProvider createLuceneEditorProvider() throws IOException {
+        LuceneIndexHelper luceneIndexHelper = extendedIndexHelper.getLuceneIndexHelper();
+        DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
+        luceneIndexHelper.setDirectoryFactory(dirFactory);
+        LuceneIndexEditorProvider provider = luceneIndexHelper.createEditorProvider();
+        provider.setWriterConfig(luceneIndexHelper.getWriterConfigForReindex());
+        return provider;
+    }
+
 }

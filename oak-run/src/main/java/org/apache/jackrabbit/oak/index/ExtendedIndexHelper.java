@@ -35,11 +35,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class ExtendedIndexHelper extends IndexHelper implements Closeable {
+public class ExtendedIndexHelper extends IndexHelper {
 
     private LuceneIndexHelper luceneIndexHelper;
     private ExtractedTextCache extractedTextCache;
-    private final Closer closer = Closer.create();
 
     public ExtendedIndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
                                File outputDir, File workDir, List<String> indexPaths) {

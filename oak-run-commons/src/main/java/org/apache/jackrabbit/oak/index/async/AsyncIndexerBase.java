@@ -59,6 +59,11 @@ public abstract class AsyncIndexerBase implements Closeable {
         for (String name : names) {
             log.info("Setting up Async executor for lane - " + name);
             IndexEditorProvider editorProvider = getIndexEditorProvider();
+            // This can be null in case of any exception while initializing index copier in lucene.
+            if (editorProvider == null) {
+                log.error("EditorProvider is null, can't proceed further. Exiting");
+                closer.close();
+            }
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, indexHelper.getNodeStore(),
                     editorProvider, StatisticsProvider.NOOP, false);
             closer.register(task);
