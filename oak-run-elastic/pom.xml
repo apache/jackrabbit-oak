@@ -183,6 +183,12 @@
             <artifactId>oak-search-elastic</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob-cloud-azure</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
         <!-- Nullability annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
