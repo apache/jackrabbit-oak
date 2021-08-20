@@ -22,15 +22,10 @@ import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.ElasticIndexOptions;
 import org.apache.jackrabbit.oak.index.IndexHelper;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
-
-import java.util.Arrays;
 import java.util.List;
 
 public class AsyncIndexerElastic extends AsyncIndexerBase {
@@ -58,8 +53,8 @@ public class AsyncIndexerElastic extends AsyncIndexerBase {
             coordinate = buildStep.build();
         }
         closer.register(coordinate);
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
+
+        return new ElasticIndexEditorProvider(coordinate,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        return editorProvider;
     }
 }

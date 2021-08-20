@@ -40,10 +40,10 @@ public abstract class AsyncIndexerBase implements Closeable {
     private final IndexHelper indexHelper;
     protected final Closer closer;
     private final List<String> names;
-    private final long INIT_DELAY = 0;
+    private static final long INIT_DELAY = 0;
     private final long delay;
-    private ScheduledExecutorService pool;
-    private CountDownLatch latch;
+    private final ScheduledExecutorService pool;
+    private final CountDownLatch latch;
 
     public AsyncIndexerBase(IndexHelper indexHelper, Closer closer, List<String> names, long delay) {
         this.indexHelper = indexHelper;

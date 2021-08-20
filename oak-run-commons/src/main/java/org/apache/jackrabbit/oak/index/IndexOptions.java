@@ -93,7 +93,7 @@ public class IndexOptions implements OptionsBean {
                 "only Lucene indexes are supported. Possible values 1 - Basic check, 2 - Full check (slower)")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
-        asyncDelay = parser.accepts("async-delay", "Delay (in seconds) betwen the execution of async cycles for a given lane")
+        asyncDelay = parser.accepts("async-delay", "Delay (in seconds) between the execution of async cycles for a given lane")
                 .withOptionalArg().ofType(Long.class).defaultsTo(5L);
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
