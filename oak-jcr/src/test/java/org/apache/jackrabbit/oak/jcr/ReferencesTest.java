@@ -65,14 +65,14 @@ public class ReferencesTest extends AbstractJCRTest {
         Node ref = testRootNode.addNode(nodeName2, testNodeType);
         ref.addMixin(mixReferenceable);
         superuser.save();
-    
+
         superuser.move(ref.getPath(), "/moved");
         Node movedRef = superuser.getNode("/moved");
-    
+
         Node n = testRootNode.addNode(nodeName1, testNodeType);
         n.setProperty("myref", movedRef);
         superuser.save();
-    
+
         assertEquals("ref", movedRef.getPath(), n.getProperty("myref").getNode().getPath());
         checkReferences("refs", movedRef.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", movedRef.getWeakReferences());
@@ -541,6 +541,31 @@ public class ReferencesTest extends AbstractJCRTest {
         assertEquals(PropertyType.REFERENCE, n2.getProperty("ref").getType());
         ref.remove();
         n1.remove();
+        try {
+            superuser.save();
+            fail("must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-9546">OAK-9546</a>
+     */
+    public void testRemoveReferenced4() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        superuser.move(ref.getPath(), "/moved");
+        Node movedRef = superuser.getNode("/moved");
+
+        Node n = testRootNode.addNode(nodeName2, testNodeType);
+        n.setProperty("ref", movedRef);
+        assertEquals(PropertyType.REFERENCE, n.getProperty("ref").getType());
+        superuser.save();
+
+        movedRef.remove();
         try {
             superuser.save();
             fail("must fail with ReferentialIntegrityException");
