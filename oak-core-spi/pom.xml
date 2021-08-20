@@ -32,7 +32,7 @@
     <!-- enable execution of jacoco and set minimal line coverage -->
     <skip.coverage>false</skip.coverage>
     <minimum.line.coverage>0.63</minimum.line.coverage>
-    <minimum.branch.coverage>0.53</minimum.branch.coverage>
+    <minimum.branch.coverage>0.52</minimum.branch.coverage>
   </properties>
 
   <build>
