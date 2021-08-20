@@ -92,6 +92,12 @@
                             sun.security.ssl;resolution:=optional,
                             sun.security.util;resolution:=optional,
                             sun.security.x509;resolution:=optional,
+                            com.aayushatharva.brotli4j;version="[1.4,2)";resolution:=optional,
+                            com.aayushatharva.brotli4j.decoder;version="[1.4,2)";resolution:=optional,
+                            com.aayushatharva.brotli4j.encoder;version="[1.4,2)";resolution:=optional,
+                            com.github.luben.zstd;version="[1.5,2)";resolution:=optional,
+                            org.bouncycastle.jsse;version="[1.6,2)";resolution:=optional,
+                            org.bouncycastle.jsse.provider;version="[1.6,2)";resolution:=optional,
                             *
                         </Import-Package>
                     </instructions>
