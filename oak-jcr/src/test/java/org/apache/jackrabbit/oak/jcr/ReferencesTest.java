@@ -58,6 +58,26 @@ public class ReferencesTest extends AbstractJCRTest {
         checkReferences("refs", ref.getWeakReferences());
     }
 
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-9546">OAK-9546</a>
+     */
+    public void testSimpleReferencesOfMovedNode() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName2, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+    
+        superuser.move(ref.getPath(), "/moved");
+        Node movedRef = superuser.getNode("/moved");
+    
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.setProperty("myref", movedRef);
+        superuser.save();
+    
+        assertEquals("ref", movedRef.getPath(), n.getProperty("myref").getNode().getPath());
+        checkReferences("refs", movedRef.getReferences(), n.getPath() + "/myref");
+        checkReferences("refs", movedRef.getWeakReferences());
+    }
+
     public void testSimpleWeakReferences() throws RepositoryException {
         Node ref = testRootNode.addNode(nodeName2, testNodeType);
         ref.addMixin(mixReferenceable);
