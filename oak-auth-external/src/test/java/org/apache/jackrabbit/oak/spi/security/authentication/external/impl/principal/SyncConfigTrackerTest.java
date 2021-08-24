@@ -127,56 +127,6 @@ public class SyncConfigTrackerTest {
     }
 
     @Test
-    public void testModifiedServiceWithProperties() {
-        SyncConfigTracker sct = new SyncConfigTracker(mock(BundleContext.class), mappingTracker);
-        ServiceReference ref = mock(ServiceReference.class);
-
-        when(ref.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(false);
-        sct.addingService(ref);
-        assertFalse(sct.isEnabled());
-
-        when(ref.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
-        sct.modifiedService(ref, service);
-        assertTrue(sct.isEnabled());
-
-        when(ref.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(false);
-        sct.modifiedService(ref, service);
-        assertFalse(sct.isEnabled());
-    }
-
-    @Test
-    public void testModifiedMultipleServices() {
-        SyncConfigTracker sct = new SyncConfigTracker(mock(BundleContext.class), mappingTracker);
-        ServiceReference ref = mock(ServiceReference.class);
-        
-        // modify props not changed
-        when(ref.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
-        sct.addingService(ref);
-        sct.modifiedService(ref, service);
-        assertTrue(sct.isEnabled());
-
-        // props changed to 'enabled'
-        ServiceReference ref2 = mock(ServiceReference.class);
-        when(ref2.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(false);
-        sct.addingService(ref2);
-        when(ref2.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
-        sct.modifiedService(ref2, service);
-        assertTrue(sct.isEnabled());
-
-        // modify (prop = disabled) without having added it before
-        ServiceReference ref3 = mock(ServiceReference.class);
-        when(ref3.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(false);
-        sct.modifiedService(ref3, service);
-        assertTrue(sct.isEnabled());
-
-        // modify (prop = enabled) without having added it before
-        ServiceReference ref4 = mock(ServiceReference.class);
-        when(ref4.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
-        sct.modifiedService(ref4, service);
-        assertTrue(sct.isEnabled());
-    }
-
-    @Test
     public void testRemovedService() {
         ServiceRegistration registration = context.bundleContext().registerService(SyncHandler.class.getName(), service, MapUtil.toDictionary(Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, true)));
         assertTrue(tracker.isEnabled());
