@@ -42,7 +42,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     /**
      * @see #getName()
      */
-    public static final String PARAM_NAME_DEFAULT = "default";
+    public static final String PARAM_NAME_DEFAULT = DefaultSyncConfig.DEFAULT_NAME;
 
     /**
      * @see #getName()

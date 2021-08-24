@@ -486,7 +486,7 @@ public class DefaultSyncContext implements SyncContext {
                                       @NotNull Authorizable authorizable,
                                       @NotNull DefaultSyncConfig.Authorizable config) throws RepositoryException {
         syncProperties(external, authorizable, config.getPropertyMapping());
-        applyMembership(authorizable, config.getAutoMembership());
+        applyMembership(authorizable, config.getAutoMembership(authorizable));
     }
 
     /**
@@ -496,7 +496,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param external the external identity
      * @param auth the authorizable
      * @param depth recursion depth.
-     * @throws RepositoryException
+     * @throws RepositoryException If a user management specific error occurs upon synchronizing membership
      */
     protected void syncMembership(@NotNull ExternalIdentity external, @NotNull Authorizable auth, long depth)
             throws RepositoryException {

@@ -167,6 +167,17 @@ The default `SyncHandler` implementations are configured via [DefaultSyncConfig]
 | Group property mapping        | `group.propertyMapping`       | List mapping definition of local properties from external ones. |
 | | | |
 
+#### Automatic Membership with AutoMembershipConfig
+Since Oak 1.42.0 ([OAK-9463]) the auto-membership behavior can be extended to allow for conditional group membership 
+based on characteristics of a given synced external identity. In addition to configuration options `group.autoMembership` 
+and `user.autoMembership` that apply for all groups/users, the new interface [AutoMembershipConfig]
+can be implemented to defined fine-grained membership e.g. based on external group membership or on particular 
+properties defined with a given external user.
+
+The `DefaultSyncHandler` is tracking services implementing [AutoMembershipConfig] that match the handler by name. 
+If present the additional membership defined by the [AutoMembershipConfig], will be reflected upon default and dynamic 
+sync together with the original, 'global' auto-membership configuration.
+
 #### Configuration of the 'Apache Jackrabbit Oak External PrincipalConfiguration'
 
 Please note that the `ExternalPrincipalConfiguration` _("Apache Jackrabbit Oak External PrincipalConfiguration")_ 
@@ -196,6 +207,8 @@ The `ExternalPrincipalConfiguration` defines the following configuration options
 [DefaultSyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncHandler.html
 [ExternalIdentityRef]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityRef.html
 [DynamicSyncContext]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-auth-external/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DynamicSyncContext.java
+[AutoMembershipConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/AutoMembershipConfig.html
 [OAK-4101]: https://issues.apache.org/jira/browse/OAK-4101
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687
 [OAK-4301]: https://issues.apache.org/jira/browse/OAK-4301
+[OAK-9463]: https://issues.apache.org/jira/browse/OAK-9463

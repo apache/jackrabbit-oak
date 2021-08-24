@@ -14,7 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.4.0")
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
-import org.osgi.annotation.versioning.Version;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.jetbrains.annotations.NotNull;
+
+/**
+ * Interface to identify a given {@link SyncHandler} as being aware of the optional {@link AutoMembershipConfig}.
+ */
+public interface AutoMembershipAware {
+
+    /**
+     * Returns the {@link AutoMembershipConfig} defined with the {@link SyncHandler} implementing this interface.
+     * 
+     * @return an instance of {@code AutoMembershipConfig}
+     */
+    @NotNull AutoMembershipConfig getAutoMembershipConfig();
+}

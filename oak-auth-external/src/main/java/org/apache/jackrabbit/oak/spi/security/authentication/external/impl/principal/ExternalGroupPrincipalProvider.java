@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
@@ -64,6 +64,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -107,12 +108,13 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     ExternalGroupPrincipalProvider(@NotNull Root root, @NotNull UserConfiguration uc,
                                    @NotNull NamePathMapper namePathMapper,
-                                   @NotNull Map<String, String[]> autoMembershipMapping) {
+                                   @NotNull Map<String, String[]> autoMembershipMapping,
+                                   @NotNull Map<String, AutoMembershipConfig> autoMembershipConfigMap) {
         this.root = root;
         this.namePathMapper = namePathMapper;
 
         userManager = uc.getUserManager(root, namePathMapper);
-        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping);
+        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping, autoMembershipConfigMap);
     }
 
     //--------------------------------------------------< PrincipalProvider >---
@@ -132,8 +134,12 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         if (!GroupPrincipals.isGroup(principal)) {
             try {
                 if (principal instanceof ItemBasedPrincipal) {
-                    Tree t = root.getTree(((ItemBasedPrincipal) principal).getPath());
-                    return getGroupPrincipals(t);
+                    String path = ((ItemBasedPrincipal) principal).getPath();
+                    Tree t = root.getTree(path);
+                    Authorizable a = userManager.getAuthorizableByPath(path);
+                    if (a != null) {
+                        return getGroupPrincipals(a, t);
+                    }
                 } else {
                     return getGroupPrincipals(userManager.getAuthorizable(principal));
                 }
@@ -162,7 +168,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         if (PrincipalManager.SEARCH_TYPE_NOT_GROUP != searchType) {
             Result result = findPrincipals(Strings.nullToEmpty(nameHint), false);
             if (result != null) {
-                return Iterators.filter(new GroupPrincipalIterator(nameHint, result), Predicates.notNull());
+                return Iterators.filter(new GroupPrincipalIterator(nameHint, result), Objects::nonNull);
             }
         }
 
@@ -211,14 +217,14 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     private Set<Principal> getGroupPrincipals(@Nullable Authorizable authorizable) throws RepositoryException {
         if (authorizable != null && !authorizable.isGroup()) {
             Tree userTree = root.getTree(authorizable.getPath());
-            return getGroupPrincipals(userTree);
+            return getGroupPrincipals(authorizable, userTree);
         } else {
             return ImmutableSet.of();
         }
     }
 
     @NotNull
-    private Set<Principal> getGroupPrincipals(@NotNull Tree userTree) {
+    private Set<Principal> getGroupPrincipals(@NotNull Authorizable authorizable, @NotNull Tree userTree) {
         if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER)) {
             PropertyState ps = userTree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
@@ -229,7 +235,10 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 }
 
                 // add existing group principals as defined with the _autoMembership_ option.
-                groupPrincipals.addAll(autoMembershipPrincipals.getPrincipals(getIdpName(userTree)));
+                String idpName = getIdpName(userTree);
+                if (idpName != null) {
+                    groupPrincipals.addAll(autoMembershipPrincipals.getAutoMembership(idpName, authorizable));
+                }
                 return groupPrincipals;
             }
         }
@@ -279,11 +288,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             if (nameHint.isEmpty()) {
                 val = "%";
             } else {
-                StringBuilder sb = new StringBuilder();
-                sb.append('%');
-                sb.append(nameHint.replace("%", "\\%").replace("_", "\\_"));
-                sb.append('%');
-                val = sb.toString();
+                val = '%' + nameHint.replace("%", "\\%").replace("_", "\\_") + '%';
             }
         }
         return Collections.singletonMap(BINDING_PRINCIPAL_NAMES, PropertyValues.newString(val));
@@ -386,7 +391,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         protected @Nullable Principal getNext() {
             if (!propValues.hasNext()) {
                 if (rows.hasNext()) {
-                    propValues = Iterators.filter(rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Predicates.notNull());
+                    propValues = Iterators.filter(rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Objects::nonNull);
                 } else {
                     propValues = Collections.emptyIterator();
                 }

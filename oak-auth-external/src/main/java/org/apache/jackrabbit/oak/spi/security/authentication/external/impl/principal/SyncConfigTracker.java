@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import com.google.common.collect.ObjectArrays;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipAware;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.jetbrains.annotations.NotNull;
@@ -108,5 +110,26 @@ final class SyncConfigTracker extends ServiceTracker {
             }
         }
         return autoMembership;
+    }
+    
+    @NotNull 
+    Map<String, AutoMembershipConfig> getAutoMembershipConfig() {
+        Map<String, AutoMembershipConfig> amMap = new HashMap<>();
+        for (ServiceReference ref : enablingRefs) {
+            String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
+            Object shService = getService(ref);
+            if (shService instanceof AutoMembershipAware) {
+                AutoMembershipConfig config = ((AutoMembershipAware) shService).getAutoMembershipConfig();
+                for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
+                    AutoMembershipConfig previous = amMap.put(idpName, config);
+                    if (previous != null) {
+                        String msg = (previous.equals(config)) ? "Duplicate" : "Colliding";
+                        log.debug("{} auto-membership configuration for IDP '{}'; replacing previous values {} by {} defined by SyncHandler '{}'",
+                                msg, idpName, previous, config, syncHandlerName);
+                    }
+                }            
+            }
+        }
+        return amMap;
     }
 }

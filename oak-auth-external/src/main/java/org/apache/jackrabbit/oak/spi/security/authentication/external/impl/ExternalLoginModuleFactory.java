@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -97,7 +98,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     public static final String PARAM_IDP_NAME = SyncHandlerMapping.PARAM_IDP_NAME;
 
     @Property(
-            value = "default",
+            value = DefaultSyncConfig.DEFAULT_NAME,
             label = "Sync Handler Name",
             description = "Name of the sync handler."
     )

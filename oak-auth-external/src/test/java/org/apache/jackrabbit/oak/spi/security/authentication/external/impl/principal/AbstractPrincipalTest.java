@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
@@ -66,8 +67,12 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
 
     @NotNull
     private PrincipalProvider createPrincipalProvider() {
-        return new ExternalGroupPrincipalProvider(root, getSecurityProvider().getConfiguration(UserConfiguration.class),
-                NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), getAutoMembership()));
+        return createPrincipalProvider(getSecurityProvider().getConfiguration(UserConfiguration.class), getAutoMembership(), getAutoMembershipConfig());
+    }
+
+    @NotNull
+    ExternalGroupPrincipalProvider createPrincipalProvider(@NotNull UserConfiguration uc, @NotNull String[] autoMembership, @NotNull AutoMembershipConfig autoMembershipConfig) {
+        return new ExternalGroupPrincipalProvider(root, uc, NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), autoMembership), ImmutableMap.of(idp.getName(), autoMembershipConfig));
     }
 
     @Override
@@ -81,6 +86,10 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
 
     String[] getAutoMembership() {
         return Iterables.toArray(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class);
+    }
+    
+    AutoMembershipConfig getAutoMembershipConfig() {
+        return AutoMembershipConfig.EMPTY;
     }
 
     GroupPrincipal getGroupPrincipal() throws Exception {

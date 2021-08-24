@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -28,12 +29,14 @@ import org.jetbrains.annotations.NotNull;
  * the {@link org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler}.
  */
 public class DefaultSyncConfig {
+    
+    public static final String DEFAULT_NAME = "default";
 
     private final User user = new User();
 
     private final Group group = new Group();
 
-    private String name = "default";
+    private String name = DEFAULT_NAME;
 
     /**
      * Configures the name of this configuration
@@ -78,7 +81,7 @@ public class DefaultSyncConfig {
      * Base config class for users and groups
      */
     public abstract static class Authorizable {
-
+        
         private long expirationTime;
 
         private Set<String> autoMembership;
@@ -88,6 +91,8 @@ public class DefaultSyncConfig {
         private String pathPrefix;
 
         private boolean applyRFC7613UsernameCaseMapped;
+
+        private AutoMembershipConfig autoMembershipConfig = AutoMembershipConfig.EMPTY;
 
         /**
          * Returns the duration in milliseconds until a synced authorizable gets expired. An expired authorizable will
@@ -132,12 +137,17 @@ public class DefaultSyncConfig {
         }
 
         /**
-         * Defines the set of group names that are automatically added to synced authorizable.
-         * @return set of group names.
+         * Returns the values configured with {@link #setAutoMembership(String...)}. 
+         * 
+         * Note that this method only takes group names into account that have been configured using {@link #setAutoMembership(String...)}.
+         * In order to take advantage of the conditional auto-membership as defined with {@link #setAutoMembershipConfig(AutoMembershipConfig)},
+         * use {@link #getAutoMembership(org.apache.jackrabbit.api.security.user.Authorizable)} instead.
+         * 
+         * @return set of group names as defined with {@link #setAutoMembership(String...)}
          */
         @NotNull
         public Set<String> getAutoMembership() {
-            return autoMembership == null ? Collections.<String>emptySet() : autoMembership;
+            return autoMembership == null ? Collections.emptySet() : autoMembership;
         }
 
         /**
@@ -157,6 +167,45 @@ public class DefaultSyncConfig {
                 }
             }
             return this;
+        }
+
+        /**
+         * Gets the {@code AutoMembershipConfig} that applies to this configuration.
+         * 
+         * @return {@code this}
+         * @see #setAutoMembershipConfig(AutoMembershipConfig) 
+         * @see #getAutoMembership(org.apache.jackrabbit.api.security.user.Authorizable) 
+         */
+        @NotNull
+        public AutoMembershipConfig getAutoMembershipConfig() {
+            return autoMembershipConfig;
+        }
+
+        /**
+         * Sets the {@code AutoMembershipConfiguration} that applies to this configuration.
+         *
+         * @return {@code this}
+         * @see #getAutoMembershipConfig()
+         * @see #getAutoMembership(org.apache.jackrabbit.api.security.user.Authorizable)
+         */
+        @NotNull
+        public Authorizable setAutoMembershipConfig(@NotNull AutoMembershipConfig autoMembershipConfig) {
+            this.autoMembershipConfig = autoMembershipConfig;
+            return this;
+        }
+        
+        /**
+         * Defines the set of group ids a synchronized external user/group is automatically member of. In contrast to
+         * {@link #getAutoMembership()} this method respects both values configured with {@link #setAutoMembership(String...)} 
+         * and with {@link #setAutoMembershipConfig(AutoMembershipConfig)}.
+         * 
+         * @return set of group ids.
+         */
+        @NotNull
+        public Set<String> getAutoMembership(@NotNull org.apache.jackrabbit.api.security.user.Authorizable authorizable) {
+            return ImmutableSet.<String>builder().
+                    addAll(autoMembershipConfig.getAutoMembership(authorizable)).
+                    addAll(getAutoMembership()).build();
         }
 
         /**
@@ -180,7 +229,7 @@ public class DefaultSyncConfig {
          */
         @NotNull
         public Map<String, String> getPropertyMapping() {
-            return propertyMapping == null ? Collections.<String, String>emptyMap() : propertyMapping;
+            return propertyMapping == null ? Collections.emptyMap() : propertyMapping;
         }
 
         /**

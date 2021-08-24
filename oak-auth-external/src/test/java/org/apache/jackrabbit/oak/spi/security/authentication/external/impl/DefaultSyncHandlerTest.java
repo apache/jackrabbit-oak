@@ -67,7 +67,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         super.before();
 
         userManager = getUserManager(root);
-        SyncHandler sh = syncManager.getSyncHandler("default");
+        SyncHandler sh = syncManager.getSyncHandler(DefaultSyncConfig.DEFAULT_NAME);
 
         assertTrue(sh instanceof DefaultSyncHandler);
         syncHandler = (DefaultSyncHandler) sh;
