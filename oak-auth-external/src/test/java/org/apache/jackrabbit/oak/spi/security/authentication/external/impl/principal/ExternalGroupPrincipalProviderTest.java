@@ -44,6 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Arrays;
@@ -302,6 +303,17 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
     
     @Test
+    public void testGetGroupMembershipItemBasedLookupFails() throws Exception {
+        UserManager um = spy(getUserManager(root));
+        when(um.getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException());
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
+
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        Principal principal = new PrincipalImpl(um.getAuthorizable(USER_ID).getPrincipal().getName());
+        assertTrue(pp.getMembershipPrincipals(principal).isEmpty());
+    }
+    
+    @Test
     public void testGetPrincipalsLocalUser() throws Exception {
         Set<? extends Principal> principals = principalProvider.getPrincipals(getTestUser().getID());
         assertTrue(principals.isEmpty());
@@ -359,6 +371,15 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Authorizable a = spy(getUserManager(root).getAuthorizable(USER_ID));
         when(a.getPath()).thenReturn(group.getPath());
         UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
+
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        assertTrue(pp.getPrincipals(USER_ID).isEmpty());
+    }
+
+    @Test
+    public void testGetPrincipalsLookupFails() throws Exception {
+        UserManager um = when(mock(UserManager.class).getAuthorizable(anyString())).thenThrow(new RepositoryException()).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
         ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
