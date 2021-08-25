@@ -19,11 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 import org.jetbrains.annotations.NotNull;
 
 public class SyncRuntimeException extends RuntimeException {
-
-    public SyncRuntimeException(@NotNull String message) {
-        super(message);
-    }
-
+    
     public SyncRuntimeException(@NotNull String message, @NotNull Throwable throwable) {
         super(message, throwable);
     }
