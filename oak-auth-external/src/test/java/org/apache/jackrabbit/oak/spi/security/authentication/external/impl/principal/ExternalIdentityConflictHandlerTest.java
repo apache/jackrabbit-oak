@@ -35,7 +35,7 @@ import static org.mockito.Mockito.verify;
 
 public class ExternalIdentityConflictHandlerTest {
 
-    private ExternalIdentityConflictHandler handler = new ExternalIdentityConflictHandler();
+    private final ExternalIdentityConflictHandler handler = new ExternalIdentityConflictHandler();
 
     @Test
     public void testAddExistingProperty() {

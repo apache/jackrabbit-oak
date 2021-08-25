@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.credentials.Credent
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
@@ -57,6 +59,7 @@ import org.junit.Test;
 
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -72,6 +75,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_ATTRIBUTES;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_PRE_AUTH_LOGIN;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.DEFAULT_IDP_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_EXCEPTION;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_IDP_NAME;
@@ -81,9 +85,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
@@ -581,5 +587,50 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         verify(externalIdentityMonitor).doneSyncExternalIdentity(anyLong(), any(SyncResult.class), anyInt());
         verify(monitor).principalsCollected(anyLong(), anyInt());
         verifyNoMoreInteractions(externalIdentityMonitor, monitor);
+    }
+    
+    @Test
+    public void testGetSyncedIdentityFails() throws Exception {
+        SyncHandler sh = when(mock(SyncHandler.class).findIdentity(any(UserManager.class), anyString())).thenThrow(new RepositoryException()).getMock();
+        SyncManager syncManager = when(mock(SyncManager.class).getSyncHandler(anyString())).thenReturn(sh).getMock();
+        when(extIPMgr.getProvider(anyString())).thenReturn(new TestIdentityProvider());
+        
+        ExternalLoginModule lm = new ExternalLoginModule();
+        lm.setIdpManager(extIPMgr);
+        lm.setSyncManager(syncManager);
+
+        Credentials crds = new SimpleCredentials("testUser", new char[0]);
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), crds);
+        lm.initialize(new Subject(), cbh, new HashMap<>(), 
+                ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        
+        try {
+            lm.login();
+            fail();
+        } catch (LoginException e) {
+            assertEquals("Error while obtaining synced identity.", e.getMessage());
+            verify(monitor).loginError();
+        }
+    }
+
+    @Test
+    public void testGetExternalIdentityFails() throws Exception {
+        SyncManager syncManager = when(mock(SyncManager.class).getSyncHandler(anyString())).thenReturn(new DefaultSyncHandler()).getMock();
+        when(extIPMgr.getProvider(anyString())).thenReturn(new TestIdentityProvider());
+
+        ExternalLoginModule lm = new ExternalLoginModule();
+        lm.setIdpManager(extIPMgr);
+        lm.setSyncManager(syncManager);
+
+        Credentials crds = new SimpleCredentials(ID_EXCEPTION, new char[0]);
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), crds);
+        lm.initialize(new Subject(), cbh, new HashMap<>(),
+                ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+
+        try {
+            assertFalse(lm.login());
+        } finally {
+            verify(monitor).loginError();
+        }
     }
 }

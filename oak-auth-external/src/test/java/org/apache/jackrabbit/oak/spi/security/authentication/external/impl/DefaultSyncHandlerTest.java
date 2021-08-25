@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -44,6 +37,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -288,6 +290,18 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
         UserManager um = mock(UserManager.class);
         when(um.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null)).thenReturn(it);
+
+        Iterator<SyncedIdentity> identities = syncHandler.listIdentities(um);
+        assertFalse(identities.hasNext());
+    }
+    
+    @Test
+    public void testListIdentitiesWithRepositoryException() throws Exception {
+        Authorizable a = when(mock(Authorizable.class).getProperty(REP_EXTERNAL_ID)).thenThrow(new RepositoryException()).getMock();
+        Iterator<Authorizable> it = Iterators.singletonIterator(a);
+
+        UserManager um = mock(UserManager.class);
+        when(um.findAuthorizables(REP_EXTERNAL_ID, null)).thenReturn(it);
 
         Iterator<SyncedIdentity> identities = syncHandler.listIdentities(um);
         assertFalse(identities.hasNext());

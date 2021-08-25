@@ -351,7 +351,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
             Group gr = userManager.getAuthorizable(groupRef.getId(), Group.class);
             long groupLastSynced = gr.getProperty(DefaultSyncContext.REP_LAST_SYNCED)[0].getLong();
 
-            assertTrue(lastSynced == groupLastSynced);
+            assertEquals(lastSynced, groupLastSynced);
         }
 
         while (System.currentTimeMillis() <= lastSynced) {
@@ -369,7 +369,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
             Group gr = userManager.getAuthorizable(groupRef.getId(), Group.class);
             long groupLastSynced = gr.getProperty(DefaultSyncContext.REP_LAST_SYNCED)[0].getLong();
 
-            assertTrue(lastSynced2 == groupLastSynced);
+            assertEquals(lastSynced2, groupLastSynced);
         }
     }
 
@@ -492,7 +492,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
     @Test
     public void testSyncAllUsersPurgeFalse() throws Exception {
-        // first sync external user|group into the repo that does't exist on the IDP (anymore)
+        // first sync external user|group into the repo that doesn't exist on the IDP (anymore)
         sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
@@ -507,7 +507,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
     @Test
     public void testSyncAllUsersPurgeTrue() throws Exception {
-        // first sync external user|group into the repo that does't exist on the IDP (anymore)
+        // first sync external user|group into the repo that doesn't exist on the IDP (anymore)
         sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
@@ -747,12 +747,12 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         private static final String NAME = "throwing";
         private static final String NAME_ALLOWS_IDENTITY_LISTING = "throwingExceptListIdentities";
 
-        boolean allowsListIdentities = false;
+        boolean allowsListIdentities;
 
         private ThrowingSyncHandler(boolean allowsListIdentities) {
             super(syncConfig);
             this.allowsListIdentities = allowsListIdentities;
-        };
+        }
 
         @NotNull
         @Override

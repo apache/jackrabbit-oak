@@ -52,7 +52,7 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
 
-        Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(
+        Map<Type, Object> valMap = ImmutableMap.of(
                 Type.BOOLEAN, Boolean.TRUE,
                 Type.LONG, 1234L,
                 Type.NAME, "id"

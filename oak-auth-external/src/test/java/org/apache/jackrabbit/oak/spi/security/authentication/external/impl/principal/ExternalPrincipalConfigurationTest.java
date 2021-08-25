@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import java.util.Collections;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import javax.jcr.ValueFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -44,33 +36,38 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.Monitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.sling.testing.mock.osgi.MapUtil;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
+import javax.jcr.ValueFactory;
+import java.util.Collections;
+import java.util.Dictionary;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest {
 
-    private void enable() {
-        context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+    private void registerDynamicSyncHandler() {
+        context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
     }
 
     private void assertIsEnabled(ExternalPrincipalConfiguration externalPrincipalConfiguration, boolean expected) {
@@ -85,7 +82,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Test
     public void testGetPrincipalManagerEnabled() {
-        enable();
+        registerDynamicSyncHandler();
         assertNotNull(externalPrincipalConfiguration.getPrincipalManager(root, NamePathMapper.DEFAULT));
     }
 
@@ -99,7 +96,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Test
     public void testGetPrincipalProviderEnabled() {
-        enable();
+        registerDynamicSyncHandler();
         PrincipalProvider pp = externalPrincipalConfiguration.getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertNotNull(pp);
         assertTrue(pp instanceof ExternalGroupPrincipalProvider);
@@ -109,7 +106,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     public void testGetName() {
         assertEquals(PrincipalConfiguration.NAME, externalPrincipalConfiguration.getName());
 
-        enable();
+        registerDynamicSyncHandler();
         assertEquals(PrincipalConfiguration.NAME, externalPrincipalConfiguration.getName());
     }
 
@@ -117,7 +114,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     public void testGetContext() {
         assertSame(Context.DEFAULT, externalPrincipalConfiguration.getContext());
 
-        enable();
+        registerDynamicSyncHandler();
         assertSame(Context.DEFAULT, externalPrincipalConfiguration.getContext());
     }
 
@@ -125,7 +122,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     public void testGetWorkspaceInitializer() {
         assertSame(WorkspaceInitializer.DEFAULT, externalPrincipalConfiguration.getWorkspaceInitializer());
 
-        enable();
+        registerDynamicSyncHandler();
         assertSame(WorkspaceInitializer.DEFAULT, externalPrincipalConfiguration.getWorkspaceInitializer());
     }
 
@@ -133,7 +130,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     public void testGetRepositoryInitializer() {
         assertTrue(externalPrincipalConfiguration.getRepositoryInitializer() instanceof ExternalIdentityRepositoryInitializer);
 
-        enable();
+        registerDynamicSyncHandler();
         assertTrue(externalPrincipalConfiguration.getRepositoryInitializer() instanceof ExternalIdentityRepositoryInitializer);
     }
 
@@ -151,7 +148,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         assertEquals(1, validatorProviders.size());
         assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
 
-        enable();
+        registerDynamicSyncHandler();
 
         validatorProviders = externalPrincipalConfiguration.getValidators(cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals(), new MoveTracker());
         assertFalse(validatorProviders.isEmpty());
@@ -169,7 +166,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         assertEquals(1, validatorProviders.size());
         assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
 
-        enable();
+        registerDynamicSyncHandler();
 
         validatorProviders = externalPrincipalConfiguration.getValidators(cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals(), new MoveTracker());
         assertFalse(validatorProviders.isEmpty());
@@ -185,7 +182,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         assertEquals(1, importers.size());
         assertTrue(importers.get(0) instanceof ExternalIdentityImporter);
 
-        enable();
+        registerDynamicSyncHandler();
 
         importers = externalPrincipalConfiguration.getProtectedItemImporters();
         assertFalse(importers.isEmpty());
@@ -203,16 +200,22 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     @Test
     public void testDeactivateWithNullTrackers() {
         ExternalPrincipalConfiguration epc = new ExternalPrincipalConfiguration(getSecurityProvider());
-        MockOsgi.deactivate(epc, context.bundleContext(), Collections.emptyMap());
+        BundleContext bundleContext = context.bundleContext();
+        
+        assertNull(bundleContext.getServiceReference(SyncConfigTracker.class.getName()));
+        
+        MockOsgi.deactivate(epc, bundleContext, Collections.emptyMap());
+
+        assertNull(bundleContext.getServiceReference(SyncConfigTracker.class.getName()));
     }
 
     @Test
     public void testAddingSyncHandler() {
-        Map<String, Object> enableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
-        Map<String, Object> disableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false);
+        Map<String, Object> enableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
+        Map<String, Object> disableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false);
 
         SyncHandler sh = new DefaultSyncHandler();
-        context.registerService(SyncHandler.class, sh, ImmutableMap.<String, Object>of());
+        context.registerService(SyncHandler.class, sh, ImmutableMap.of());
         assertIsEnabled(externalPrincipalConfiguration, false);
 
         context.registerService(SyncHandler.class, sh, disableProps);
@@ -227,39 +230,20 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Test
     public void testAddingCustomSyncHandler() {
-        Map<String, Object> enableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
+        Map<String, Object> enableProps =  ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
 
         SyncHandler sh = new TestSyncHandler();
-        context.registerService(SyncHandler.class, sh, ImmutableMap.<String, Object>of());
+        context.registerService(SyncHandler.class, sh, ImmutableMap.of());
         assertIsEnabled(externalPrincipalConfiguration, false);
 
         context.registerService(SyncHandler.class, sh, enableProps);
         assertIsEnabled(externalPrincipalConfiguration, true);
     }
 
-    @Ignore("TODO: mock doesn't reflect property-changes on the registration.")
-    @Test
-    public void testModifySyncHandler() {
-        Dictionary<String, Object> enableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
-        Dictionary<String, Object> disableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
-
-        DefaultSyncHandler sh = new DefaultSyncHandler();
-        BundleContext bundleContext = context.bundleContext();
-
-        ServiceRegistration registration = bundleContext.registerService(DefaultSyncHandler.class.getName(), sh, disableProps);
-        assertIsEnabled(externalPrincipalConfiguration, false);
-
-        MockOsgi.modified(sh, bundleContext, enableProps);
-        assertIsEnabled(externalPrincipalConfiguration, true);
-
-        MockOsgi.modified(sh, bundleContext, disableProps);
-        assertIsEnabled(externalPrincipalConfiguration, false);
-    }
-
     @Test
     public void testRemoveSyncHandler() {
-        Dictionary<String, Object> enableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
-        Dictionary<String, Object> disableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
+        Dictionary<String, Object> enableProps = MapUtil.toDictionary(ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        Dictionary<String, Object> disableProps =  MapUtil.toDictionary(ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
 
         DefaultSyncHandler sh = new DefaultSyncHandler();
         BundleContext bundleContext = context.bundleContext();
@@ -278,18 +262,6 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
         registration3.unregister();
         assertIsEnabled(externalPrincipalConfiguration, false);
-    }
-
-    @Test
-    public void testAddingIncompleteSyncHandlerMapping() {
-        SyncHandlerMapping mapping = mock(SyncHandlerMapping.class);
-
-        context.registerService(SyncHandlerMapping.class, mapping);
-
-        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(ExternalLoginModuleFactory.PARAM_IDP_NAME, "idpName"));
-
-        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(ExternalLoginModuleFactory.PARAM_SYNC_HANDLER_NAME, "syncHandlerName"));
-
     }
 
     private static final class TestSyncHandler implements SyncHandler {

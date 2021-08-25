@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -178,7 +177,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
         ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
         Set<Principal> result = pp.getMembershipPrincipals(um.getAuthorizable(USER_ID).getPrincipal());
-        assertFalse(Iterables.contains(Iterables.transform(result, Principal::getName), USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME));
+        assertTrue(result.stream().map(Principal::getName).noneMatch(USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME::equals));
     }
 
     @Test

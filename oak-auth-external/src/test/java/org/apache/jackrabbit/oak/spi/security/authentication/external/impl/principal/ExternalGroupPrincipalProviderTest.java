@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -86,13 +84,13 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @NotNull
     Set<Principal> getExpectedGroupPrincipals(@NotNull String userId) throws Exception {
         if (syncConfig.user().getMembershipNestingDepth() == 1) {
-            return ImmutableSet.copyOf(Iterables.transform(idp.getUser(userId).getDeclaredGroups(), (Function<ExternalIdentityRef, Principal>) input -> {
+            return ImmutableSet.copyOf(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
                 try {
-                    return new PrincipalImpl(idp.getIdentity(input).getPrincipalName());
+                    return new PrincipalImpl(idp.getIdentity(externalIdentityRef).getPrincipalName());
                 } catch (ExternalIdentityException e) {
                     throw new RuntimeException(e);
                 }
-            }));
+            }).collect(Collectors.toSet());
         } else {
             Set<Principal> set = new HashSet<>();
             collectExpectedPrincipals(set, idp.getUser(userId).getDeclaredGroups(), syncConfig.user().getMembershipNestingDepth());
@@ -302,6 +300,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         };
         assertTrue(principalProvider.getMembershipPrincipals(p).isEmpty());
     }
+    
     @Test
     public void testGetPrincipalsLocalUser() throws Exception {
         Set<? extends Principal> principals = principalProvider.getPrincipals(getTestUser().getID());
@@ -532,8 +531,6 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testFindPrincipalsWithLimit() throws Exception {
-        Set<Principal> all = getExpectedAllSearchResult(USER_ID);
-
         Set<? extends Principal> result = ImmutableSet.copyOf(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 1));
         assertEquals(1, result.size());
     }
@@ -547,7 +544,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
 
     @Test
-    public void testFindPrincipalsWithZeroLimit() throws Exception {
+    public void testFindPrincipalsWithZeroLimit() {
         Set<? extends Principal> result = ImmutableSet.copyOf(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 0));
         assertTrue(result.isEmpty());
     }

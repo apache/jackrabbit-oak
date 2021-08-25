@@ -43,7 +43,7 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         return new PrincipalResolvingIDP();
     }
 
-    private final class PrincipalResolvingIDP extends TestIdentityProvider implements PrincipalNameResolver {
+    private static class PrincipalResolvingIDP extends TestIdentityProvider implements PrincipalNameResolver {
 
         @NotNull
         @Override
