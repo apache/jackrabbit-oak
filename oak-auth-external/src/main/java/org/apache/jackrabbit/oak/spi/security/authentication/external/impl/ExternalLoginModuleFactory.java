@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Hashtable;
+import java.util.Map;
 import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import javax.security.auth.spi.LoginModule;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,6 +32,7 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -215,15 +215,9 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
             String sncName = osgiConfig.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
 
             SyncMBeanImpl bean = new SyncMBeanImpl(contentRepository, securityProvider, syncManager, sncName, idpManager, idpName);
-            Hashtable<String, String> table = new Hashtable<>();
-            table.put("type", "UserManagement");
-            table.put("name", "External Identity Synchronization Management");
-            table.put("handler", ObjectName.quote(sncName));
-            table.put("idp", ObjectName.quote(idpName));
-            mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean, ImmutableMap.of(
-                            "jmx.objectname",
-                            new ObjectName("org.apache.jackrabbit.oak", table))
-            );
+            Map<String, String> properties = ImmutableMap.of("handler", sncName, "idp", idpName);
+            mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean, 
+                    JmxUtil.createObjectNameMap("UserManagement", "External Identity Synchronization Management", properties));
             log.debug("Registration of SynchronizationMBean completed");
         } catch (MalformedObjectNameException e) {
             log.error("Unable to register SynchronizationMBean", e);
