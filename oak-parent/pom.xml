@@ -129,6 +129,8 @@
           <version>3.1.1</version>
           <configuration>
             <source>${java.version}</source>
+            <doclint>none</doclint>
+            <detectJavaApiLink>false</detectJavaApiLink>
             <aggregate>true</aggregate>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
