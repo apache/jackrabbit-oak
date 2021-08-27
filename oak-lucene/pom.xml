@@ -105,6 +105,8 @@
           <instructions>
             <!-- TODO: Should only provide services, not export packages  -->
             <_exportcontents>
+              !org.apache.lucene.queryparser.xml,
+              !org.apache.lucene.queryparser.xml.builders,
               org.apache.lucene.*;version=${lucene.version}
             </_exportcontents>
             <Export-Package>
