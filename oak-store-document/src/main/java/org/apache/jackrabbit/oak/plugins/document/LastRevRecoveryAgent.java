@@ -29,7 +29,9 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -72,6 +74,14 @@ public class LastRevRecoveryAgent {
     private final MissingLastRevSeeker missingLastRevUtil;
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
+
+    // OAK-9535 : create (flush) a pseudo branch commit journal entry as soon as
+    // we see the (approximate) updateOp size of the recovery journal entry grow above 1 MB
+    // (1 MB being well within the 16 MB limit to account for 'approximate' nature of getting the size)
+    private static final int PSEUDO_BRANCH_COMMIT_UPDATE_OP_THRESHOLD_BYTES = 1 * 1024 * 1024;
+
+    // OAK-9535 : recalculate the journal entry size every 4096 elements
+    private static final int PSEUDO_BRANCH_COMMIT_FLUSH_CHECK_COUNT = 4096;
 
     public LastRevRecoveryAgent(DocumentNodeStore nodeStore,
                                 MissingLastRevSeeker seeker) {
@@ -253,7 +263,7 @@ public class LastRevRecoveryAgent {
 
         //Map of known last rev of checked paths
         Map<String, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
-        final JournalEntry changes = JOURNAL.newDocument(docStore);
+        JournalEntry changes = JOURNAL.newDocument(docStore);
 
         Clock clock = nodeStore.getClock();
 
@@ -262,6 +272,8 @@ public class LastRevRecoveryAgent {
         long startOfScan = clock.getTime();
         long lastLog = startOfScan;
 
+        final List<Revision> pseudoBcRevs = new ArrayList<>();
+        int nextFlushCheckCount = PSEUDO_BRANCH_COMMIT_FLUSH_CHECK_COUNT;
         for (NodeDocument doc : suspects) {
             totalCount++;
             lastCount++;
@@ -317,7 +329,41 @@ public class LastRevRecoveryAgent {
                     unsavedParents.put(path, lastRevForParents);
                 }
             }
+            // avoid recalculating the size of the updateOp upon every single path
+            // but also avoid doing it only after we hit the 16MB limit
+            if (changes.getNumChangedNodes() >= nextFlushCheckCount) {
+                final Revision pseudoBcRev = Revision.newRevision(clusterId).asBranchRevision();
+                final UpdateOp pseudoBcUpdateOp = changes.asUpdateOp(pseudoBcRev);
+                final int approxPseudoBcUpdateOpSize = pseudoBcUpdateOp.toString().length();
+                if (approxPseudoBcUpdateOpSize >= PSEUDO_BRANCH_COMMIT_UPDATE_OP_THRESHOLD_BYTES) {
+                    // flush the (pseudo) journal entry
+                    // regarding 'pseudo' : this journal entry, while being a branch commit,
+                    // does not correspond to an actual branch commit that happened before the crash.
+                    // we might be able to in theory reconstruct the very original branch commits,
+                    // but that's a tedious job, and we were not doing that prior to OAK-9535 neither.
+                    // hence the optimization built-in here is that we create a journal entry
+                    // of type 'branch commit', but with a revision that is different from
+                    // what originally happened. Thx to the fact that the JournalEntry just
+                    // contains a list of branch commit journal ids, that should work fine.
+                    if (docStore.create(JOURNAL, singletonList(pseudoBcUpdateOp))) {
+                        log.info("recover : created intermediate pseudo-bc journal entry with rev {} and approx size {} bytes.",
+                                pseudoBcRev, approxPseudoBcUpdateOpSize);
+                        pseudoBcRevs.add(pseudoBcRev);
+                        changes = JOURNAL.newDocument(docStore);
+                        nextFlushCheckCount = PSEUDO_BRANCH_COMMIT_FLUSH_CHECK_COUNT;
+                    } else {
+                        log.warn("recover : could not create intermediate pseudo-bc journal entry with rev {}",
+                                pseudoBcRev);
+                        // retry a little later then, hence reduce the next counter by half an interval
+                        nextFlushCheckCount += changes.getNumChangedNodes() + (PSEUDO_BRANCH_COMMIT_FLUSH_CHECK_COUNT / 2);
+                    }
+                } else {
+                    nextFlushCheckCount = changes.getNumChangedNodes() + PSEUDO_BRANCH_COMMIT_FLUSH_CHECK_COUNT;
+                }
+            }
         }
+        // propagate the pseudoBcRevs to the changes
+        changes.branchCommit(pseudoBcRevs);
 
         for (String parentPath : unsavedParents.getPaths()) {
             Revision calcLastRev = unsavedParents.get(parentPath);
@@ -370,6 +416,7 @@ public class LastRevRecoveryAgent {
             // thus it doesn't matter, where exactly the check is done
             // as to whether the recovered lastRev has already been
             // written to the journal.
+            final JournalEntry finalChanges = changes;
             unsaved.persist(docStore, new Supplier<Revision>() {
                 @Override
                 public Revision get() {
@@ -403,7 +450,7 @@ public class LastRevRecoveryAgent {
                     }
 
                     // otherwise store a new journal entry now
-                    if (docStore.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)))) {
+                    if (docStore.create(JOURNAL, singletonList(finalChanges.asUpdateOp(lastRootRev)))) {
                         log.info("Recovery created journal entry {}", id);
                     } else {
                         log.warn("Unable to create journal entry {} (already exists).", id);
