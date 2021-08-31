@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -140,7 +139,6 @@ public class BlobReferenceIteratorTest {
     }
 
     @Test
-    @Ignore("OAK-9562")
     public void recreateNodeAfterRevisionGC() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
 
