@@ -100,7 +100,7 @@ public class BlobReferenceIteratorTest {
         return new DocumentMK.Builder()
                 .setLeaseCheck(false)
                 .clock(clock)
-                .setDocumentStore(fixture.createDocumentStore(clusterId))
+                .setDocumentStore(wrap(fixture.createDocumentStore(clusterId)))
                 .setClusterId(clusterId)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -173,5 +173,21 @@ public class BlobReferenceIteratorTest {
         doc = store2.getDocumentStore().find(Collection.NODES, id, 0);
         assertNotNull(doc);
         assertTrue(doc.hasBinary());
+    }
+
+    private static DocumentStore wrap(DocumentStore ds) {
+        return new DocumentStoreTestWrapper(ds);
+    }
+
+    private static class DocumentStoreTestWrapper extends DocumentStoreWrapper {
+
+        private DocumentStoreTestWrapper(DocumentStore store) {
+            super(store);
+        }
+
+        @Override
+        public void dispose() {
+            // ignore
+        }
     }
 }
