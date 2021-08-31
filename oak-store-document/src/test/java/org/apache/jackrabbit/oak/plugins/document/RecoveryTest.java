@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MemoryFixture;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -28,17 +30,22 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.assertExists;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.assertMissing;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 public class RecoveryTest extends AbstractTwoNodeTest {
 
     private FailingDocumentStore fds1;
+
+    private CountingDocumentStore cds2;
 
     public RecoveryTest(DocumentStoreFixture fixture) {
         super(fixture);
@@ -46,12 +53,16 @@ public class RecoveryTest extends AbstractTwoNodeTest {
 
     @Override
     protected DocumentStore customize(DocumentStore store) {
-        // wrap the first store with a FailingDocumentStore
-        FailingDocumentStore fds = new FailingDocumentStore(store);
+        DocumentStore ds;
         if (fds1 == null) {
-            fds1 = fds;
+            // wrap the first store with a FailingDocumentStore
+            fds1 = new FailingDocumentStore(store);
+            ds = fds1;
+        } else {
+            cds2 = new CountingDocumentStore(store);
+            ds = cds2;
         }
-        return fds;
+        return ds;
     }
 
     @Test
@@ -155,6 +166,68 @@ public class RecoveryTest extends AbstractTwoNodeTest {
         assertThat(diff.modified, containsInAnyOrder("/parent", "/parent/other", "/parent/test", "/node"));
         assertThat(diff.added, containsInAnyOrder("/parent/test/c3", "/parent/other/c3"));
         assertThat(diff.deleted, containsInAnyOrder("/parent/test/c1"));
+    }
+
+    @Test
+    public void recoverLargeBranch() throws Exception {
+        // only run this on memory fixture, others take too long
+        assumeTrue(fixture instanceof MemoryFixture);
+
+        String nodePrefix = "long-node-name-with-many-characters-to-increase-the-size-of-the-journal";
+        NodeBuilder builder = ds1.getRoot().builder();
+        int numNodes = 0;
+        for (int i = 0; i < 100; i++) {
+            NodeBuilder child = builder.child(nodePrefix + i);
+            numNodes++;
+            for (int j = 0; j < 350; j++) {
+                child.child(nodePrefix + j);
+                if (numNodes++ % 100 == 0) {
+                    // create branch commit every 100 nodes
+                    persistToBranch(builder);
+                }
+            }
+        }
+        merge(ds1, builder);
+
+        // simulate crash of ds1
+        fds1.fail().after(1).eternally();
+        disposeQuietly(ds1);
+
+        // nodes must not be visible yet
+        assertFalse(ds2.getRoot().hasChildNode(nodePrefix + 0));
+
+        waitOneMinute();
+        ds2.runBackgroundOperations();
+        ds2.renewClusterIdLease();
+
+        waitOneMinute();
+        ds2.runBackgroundOperations();
+        ds2.renewClusterIdLease();
+
+        NodeState root1 = ds2.getRoot();
+
+        // clusterId 1 lease expired
+        assertTrue(ds2.getLastRevRecoveryAgent().isRecoveryNeeded());
+        cds2.resetCounters();
+        int numDocs = ds2.getLastRevRecoveryAgent().recover(1);
+        assertThat(numDocs, equalTo(101));
+        // recovery must create three journal entries
+        assertThat(cds2.getNumCreateOrUpdateCalls(Collection.JOURNAL), equalTo(3));
+
+        ds2.runBackgroundOperations();
+        // check some random nodes are present after recovery
+        Random rand = new Random();
+        for (int i = 0; i < 100; i++) {
+            NodeState node = ds2.getRoot()
+                    .getChildNode(nodePrefix + rand.nextInt(100))
+                    .getChildNode(nodePrefix + rand.nextInt(350));
+            assertTrue(node.exists());
+        }
+
+        NodeState root2 = ds2.getRoot();
+        TrackingDiff diff = new TrackingDiff();
+        root2.compareAgainstBaseState(root1, diff);
+        assertThat(diff.added.size(), equalTo(35100));
     }
 
     private void waitOneMinute() throws Exception {
