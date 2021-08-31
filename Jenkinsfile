@@ -54,7 +54,7 @@ def buildModule(moduleSpec) {
                     // build and install up to desired module
                     sh "${MAVEN_CMD} -Dbaseline.skip=true -Prat -T 1C install -DskipTests -pl :${moduleName} -am"
                     try {
-                        sh "${MAVEN_CMD} ${testOptions} -DtrimStackTrace=false -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS -Dmongo.db=MongoDBMK-$(openssl rand -hex 4) clean verify -pl :${moduleName}"
+                        sh "${MAVEN_CMD} ${testOptions} -DtrimStackTrace=false -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS clean verify -pl :${moduleName}"
                     } finally {
                         archiveArtifacts(artifacts: '*/target/unit-tests.log', allowEmptyArchive: true)
                         junit(testResults: '*/target/surefire-reports/*.xml,*/target/failsafe-reports/*.xml', allowEmptyResults: true)
