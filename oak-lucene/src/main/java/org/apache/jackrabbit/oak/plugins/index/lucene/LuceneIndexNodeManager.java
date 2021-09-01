@@ -240,11 +240,13 @@ public class LuceneIndexNodeManager {
 
         if (readers.size() == 1 && nrtReaders.isEmpty()){
             IndexReader reader = readers.get(0).getReader();
+System.out.println("incRef A");
             reader.incRef();
             return reader;
         }
         if (nrtReaders.size() == 1 && readers.isEmpty()){
             IndexReader reader = nrtReaders.get(0).getReader();
+System.out.println("incRef B");
             reader.incRef();
             return reader;
         }
@@ -298,7 +300,8 @@ public class LuceneIndexNodeManager {
         public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
             this.nrtReaders = nrtReaders;
-            this.indexStatistics = new LuceneIndexStatistics(searcher.getIndexReader());
+            IndexReader r = searcher.getIndexReader();
+            this.indexStatistics = new LuceneIndexStatistics(r);
         }
 
         public LuceneIndexStatistics getIndexStatistics() {

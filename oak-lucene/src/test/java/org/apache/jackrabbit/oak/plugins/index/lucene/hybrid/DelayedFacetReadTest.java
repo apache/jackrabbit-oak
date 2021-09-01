@@ -60,6 +60,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import javax.jcr.GuestCredentials;
+import javax.jcr.NodeIterator;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -111,13 +112,19 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
 
     @After
     public void tearDown() throws IOException {
+System.out.println("main close");
         luceneIndexProvider.close();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+System.out.println("main closed");
+        if (thread != null) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
+System.out.println("main closed2");
         new ExecutorCloser(executorService).close();
+System.out.println("main closed3");
         nrtIndexFactory.close();
         // restore original system properties i.e. before test started
         System.setProperties(backupProperties);
@@ -219,13 +226,24 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
                 try {
                     clock.waitUntil(clock.getTime() + REFRESH_DELTA + 1);
                     q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
+System.out.println("a...");
+// Thread.sleep(1000);
+System.out.println("ab..");
                     QueryResult qr = q.execute();
+                    NodeIterator it = qr.getNodes();
+                    while (it.hasNext()) {
+                        it.nextNode();
+                    }
+System.out.println("abc..");
                 } catch (RepositoryException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }
         });
+
+
         thread.start();
+System.out.println("main A");
         try {
             RowIterator it = qr.getRows();
             String firstColumnName = qr.getColumnNames()[0];
@@ -236,6 +254,7 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
             e.printStackTrace();
             throw e;
         }
+System.out.println("main B");
     }
 
     private void runAsyncIndex() {

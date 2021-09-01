@@ -92,8 +92,11 @@ public class NRTIndex implements Closeable {
     private boolean closed;
     private boolean previousModeEnabled;
     private List<LuceneIndexReader> readers;
-    private final List<IndexReader> openedReaders;
+
+    // verify that all readers are closes when closing the NRTIndex
     private final boolean assertAllReadersClosed;
+    // array of opened readers, so that we can verify all readers are closed
+    private final List<IndexReader> openedReaders;
 
 
     public NRTIndex(LuceneIndexDefinition definition, IndexCopier indexCopier,
@@ -122,8 +125,13 @@ public class NRTIndex implements Closeable {
     private LuceneIndexReader getPrimaryReader() {
         DirectoryReader latestReader = createReader(dirReaderUsedForPrevious);
         while (latestReader != null && !latestReader.tryIncRef()) {
+;
+System.out.println("[" + Thread.currentThread().getName() + "] " + latestReader + " " + System.identityHashCode(latestReader) + " tryIncA -> " + latestReader.getRefCount()  );
             latestReader = createReader(dirReaderUsedForPrevious);
         }
+;
+System.out.println("[" + Thread.currentThread().getName() + "] " + latestReader + " " + System.identityHashCode(latestReader) + " tryIncB -> " + latestReader.getRefCount()  );
+new Exception().printStackTrace(System.out);
         if (latestReader != dirReaderUsedForPrevious) {
             decrementReaderUseCount(dirReaderUsedForPrevious);
             dirReaderUsedForPrevious = latestReader;
@@ -164,6 +172,10 @@ public class NRTIndex implements Closeable {
         if (previousReader != null) {
             newReaders.add(previousReader);
         }
+if (newReaders.size() > 1) {
+    System.out.println("0:" + System.identityHashCode(newReaders.get(0)));
+    System.out.println("1:" + System.identityHashCode(newReaders.get(1)));
+}
 
         decrementReaderUseCount(readers);
 
@@ -182,6 +194,7 @@ public class NRTIndex implements Closeable {
      * which refers to this NRTIndex as previous
      */
     public void disconnectPrevious(){
+System.out.println("disconnectPrevious!!!");
         decrementReaderUseCount(readers);
         readers = Collections.emptyList();
 
@@ -265,6 +278,7 @@ public class NRTIndex implements Closeable {
 
     private void assertAllReadersAreClosed() {
         for (IndexReader r : openedReaders){
+System.out.println("[" + Thread.currentThread().getName() + "] " + r + " " + System.identityHashCode(r) + " check -> " + r.getRefCount() );
             if (r.getRefCount() != 0){
                 String msg = String.format("Unclosed reader found with refCount %d for index %s", r.getRefCount(), toString());
                 throw new IllegalStateException(msg);
@@ -284,6 +298,8 @@ public class NRTIndex implements Closeable {
         try {
             if (reader != null) {
                 reader.decRef();
+System.out.println("[" + Thread.currentThread().getName() + "] " + reader + " " + System.identityHashCode(reader) + " defRef -> " + reader.getRefCount() );
+new Exception().printStackTrace(System.out);
             }
         } catch (IOException e) {
             log.warn("[{}] Error occurred while releasing reader instance {}",
@@ -313,12 +329,15 @@ public class NRTIndex implements Closeable {
             } else {
                 DirectoryReader newReader = DirectoryReader.openIfChanged(dirReader, indexWriter, false);
                 if (newReader != null) {
+System.out.println("[" + Thread.currentThread().getName() + "] openIfChanged!");
                     result = newReader;
                 }
             }
             ctx.stop();
 
             if (assertAllReadersClosed && result != null && result != dirReader) {
+System.out.println("[" + Thread.currentThread().getName() + "] " + result + " " + System.identityHashCode(result) + " open reader -> " + result.getRefCount());
+new Exception().printStackTrace(System.out);
                 openedReaders.add(result);
             }
 
