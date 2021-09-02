@@ -46,6 +46,7 @@ import java.util.Set;
 
 import com.google.common.collect.Iterables;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -72,6 +73,16 @@ public class IndexUpdate implements Editor, PathSource {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
     private static final String TYPE_ELASTICSEARCH = "elasticsearch";
+    public static final String DEFAULT_indexJcrTypeInvalidLogLimiter = "1000";
+    //This is used so that wrong index definitions are sparsely logged. After every 1000 indexing cycles, index definitions
+    // with wrong nodetype will be logged.
+    private static final long indexJcrTypeInvalidLogLimiter = Long.valueOf(System.getProperty("oak.indexer.indexJcrTypeInvalidLogLimiter", DEFAULT_indexJcrTypeInvalidLogLimiter));
+
+    // lock used when updating cyclicExecutionCount
+    private static final Object countLock = new Object();
+    // Initial value is set at indexJcrTypeInvalidLogLimiter so that first logging start on first cycle/update itself.
+    // This counter is cyclically incremented till indexJcrTypeInvalidLogLimiter and then reset to 0
+    private static volatile long cyclicExecutionCount = indexJcrTypeInvalidLogLimiter;
 
     /**
      * <p>
@@ -123,7 +134,6 @@ public class IndexUpdate implements Editor, PathSource {
      * Editors for indexes that need to be re-indexed.
      */
     private final Map<String, Editor> reindex = new HashMap<String, Editor>();
-
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
@@ -274,14 +284,33 @@ public class IndexUpdate implements Editor, PathSource {
         return false;
     }
 
+    private void sparseLoggger(String primaryType, String name) {
+        synchronized (countLock) {
+            if ((cyclicExecutionCount >= indexJcrTypeInvalidLogLimiter)) {
+                log.warn("jcr:primaryType of index {} should be {} instead of {}", name, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, primaryType);
+                cyclicExecutionCount = 0;
+            }
+            cyclicExecutionCount++;
+        }
+    }
+
     private void collectIndexEditors(NodeBuilder definitions,
             NodeState before) throws CommitFailedException {
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
             if (isIncluded(rootState.async, definition)) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
+                String primaryType = definition.getName(JcrConstants.JCR_PRIMARYTYPE);
                 if (type == null) {
                     // probably not an index def
+                    continue;
+                }
+                /*
+                 Log a warning after every indexJcrTypeInvalidLogLimiter cycles of indexer where nodeState changed.
+                 and skip further execution for invalid nodetype of index definition.
+                 */
+                if (!IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType)) {
+                    sparseLoggger(primaryType, name);
                     continue;
                 }
 
