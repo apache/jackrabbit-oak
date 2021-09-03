@@ -173,6 +173,37 @@ public class UpdateOpTest {
     }
 
     @Test
+    public void lessThanTest() {
+        Revision r = Revision.newRevision(1);
+        UpdateOp op = new UpdateOp("id", true);
+        try {
+            op.notEquals("p", r, "v");
+            fail("expected " + IllegalStateException.class.getName());
+        } catch (IllegalStateException e) {
+            // expected
+        }
+        op = new UpdateOp("id", false);
+        op.lessThan("p", r, "v");
+        assertEquals(1, op.getConditions().size());
+        UpdateOp.Key key = op.getConditions().keySet().iterator().next();
+        assertEquals(r, key.getRevision());
+        assertEquals("p", key.getName());
+        UpdateOp.Condition c = op.getConditions().get(key);
+        assertEquals(UpdateOp.Condition.Type.LESSTHAN, c.type);
+        assertEquals("v", c.value);
+
+        op = new UpdateOp("id", false);
+        op.lessThan("p", r, null);
+        assertEquals(1, op.getConditions().size());
+        key = op.getConditions().keySet().iterator().next();
+        assertEquals(r, key.getRevision());
+        assertEquals("p", key.getName());
+        c = op.getConditions().get(key);
+        assertEquals(UpdateOp.Condition.Type.LESSTHAN, c.type);
+        assertEquals(null, c.value);
+    }
+
+    @Test
     public void getChanges() {
         UpdateOp op = new UpdateOp("id", false);
         assertEquals(0, op.getChanges().size());

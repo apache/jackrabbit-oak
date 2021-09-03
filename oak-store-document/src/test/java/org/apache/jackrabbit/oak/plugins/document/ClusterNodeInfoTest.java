@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -38,13 +39,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -269,6 +271,113 @@ public class ClusterNodeInfoTest {
         }
     }
 
+    // OAK-9564
+    @Test
+    public void renewLeaseSameRuntimeId() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        String runtimeId = info.getRuntimeId();
+        long leaseEnd = info.getLeaseEndTime();
+        waitLeaseUpdateInterval();
+        assertTrue(info.renewLease());
+        assertTrue(info.getLeaseEndTime() > leaseEnd);
+        // The Runtime UUID should remain the same
+        assertEquals(info.getRuntimeId(), runtimeId);
+        assertFalse(handler.isLeaseFailure());
+    }
+
+    // OAK-9564
+    @Test
+    public void renewLeaseDifferentRuntimeId() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        waitLeaseUpdateInterval();
+        long leaseEndTimeBeforeRenew = info.getLeaseEndTime();
+
+        // Modify the UUID to mock it belongs to a different node
+        UpdateOp update = new UpdateOp("1", false);
+        update.set(ClusterNodeInfo.RUNTIME_ID_KEY, "different-uuid");
+        store.findAndUpdate(Collection.CLUSTER_NODES, update);
+
+        try {
+            info.renewLease();
+            fail("Could not update lease anymore");
+        } catch(DocumentStoreException e) {
+            // expected
+        }
+
+        // Lease end time shouldn't be different
+        assertEquals(leaseEndTimeBeforeRenew, info.getLeaseEndTime());
+    }
+
+    // OAK-9564
+    @Test
+    public void renewLeaseTakingLongerThanTimeout() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        waitLeaseUpdateInterval();
+        final long leaseEndTimeBeforeRenew = info.getLeaseEndTime();
+        final String runtimeId = info.getRuntimeId();
+
+        Map<String, Long> unexpectedLeaseEnd = new HashMap<>();
+        unexpectedLeaseEnd.put(ClusterNodeInfo.LEASE_END_KEY, info.getLeaseEndTime() + 133333);
+
+        // The update will fail after 30 seconds. Simulating a Mongo timeout.
+        store.setFailAfterUpdate(1);
+        store.setDelayMillisOnce(30000);
+        store.setDelayMillis(10000);
+        store.setFindShouldAlterReturnDocument(true);
+        // However, the following find after the update will return an
+        // unexpected lease time (but still within a valid time).
+        // This unexpected update could come from a previous but very slow update
+        // executed in Mongo. So it's still a valid one, but not the new one
+        // that is expected.
+        store.setMapAlterReturnDocument(unexpectedLeaseEnd);
+
+        // However, the current behaviour is that as the lease end time doesn't
+        // match the expected one, the lease will fail and the nodeStore becomes
+        // unusable.
+        try {
+            info.renewLease();
+        } catch(DocumentStoreException e) {
+            // expected
+        }
+
+        // The new leaseEndTime coming from Mongo is not reflected in the
+        // ClusterNodeInfo. Meaning it will eventually be treated as 'expired'
+        // by the DocumentNodeStore, even when in Mongo it was set.
+        assertThat(leaseEndTimeBeforeRenew, lessThan(info.getLeaseEndTime()));
+        // Runtime ID is the same
+        assertEquals(runtimeId, info.getRuntimeId());
+    }
+
+    // OAK-9564: This is a someway artificial test. The idea behind is to try to reproduce
+    // a case where a renewLease fails because of a timeout. Then the following renewLease
+    // occurs faster, but during that time the previous update is executed in Mongo.
+    // That 'older' update shouldn't go through now, reducing the effective lease end time.
+    @Test
+    public void renewLeaseShouldNotGoBackInTime() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        long leaseEnd = info.getLeaseEndTime();
+        waitLeaseUpdateInterval();
+
+        long newerLeaseEndTime = clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS +
+                ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS;
+        // simulate a newer renew lease took place
+        UpdateOp update = new UpdateOp("1", false);
+        update.set(ClusterNodeInfo.LEASE_END_KEY, newerLeaseEndTime);
+        store.findAndUpdate(Collection.CLUSTER_NODES, update);
+
+        // now another renew happens, which will try to set a lesser lease end
+        try {
+            info.renewLease();
+            fail("Should fail with: Could not update lease anymore...");
+        } catch(DocumentStoreException e) {
+            // expected
+        }
+
+        Document info2 = store.find(Collection.CLUSTER_NODES, "1");
+        // the lease end time should remain the same
+        assertEquals(newerLeaseEndTime, info2.get(ClusterNodeInfo.LEASE_END_KEY));
+    }
+
     @Test
     public void readOnlyClusterNodeInfo() {
         ClusterNodeInfo info = ClusterNodeInfo.getReadOnlyInstance(store);
@@ -416,6 +525,29 @@ public class ClusterNodeInfoTest {
         assertEquals(2, info2.getId());
         assertEquals(instanceId2, info2.getInstanceId());
         info2.dispose();
+    }
+
+    // OAK-9564
+    @Test
+    public void cannotGetClusterWithRuntimeId() {
+        ClusterNodeInfo info = newClusterNodeInfo(0);
+        int id = info.getId();
+        assertEquals(1, id);
+        // shut it down
+        info.dispose();
+
+        // edit the runtime ID
+        UpdateOp op = new UpdateOp(String.valueOf(id), false);
+        op.set(ClusterNodeInfo.RUNTIME_ID_KEY, "some-different-uuid");
+        assertNotNull(store.findAndUpdate(Collection.CLUSTER_NODES, op));
+
+        // shouldn't be able to acquire it again
+        try {
+            info = newClusterNodeInfo(0);
+            fail("Must fail here, and not get cluster node info");
+        } catch(DocumentStoreException e) {
+            // expected
+        }
     }
 
     @Test
@@ -591,10 +723,14 @@ public class ClusterNodeInfoTest {
 
     final class TestStore extends DocumentStoreWrapper {
 
+        private final AtomicBoolean findShouldAlterReturnDocument = new AtomicBoolean();
+        private final AtomicBoolean findAndUpdateShouldAlterReturnDocument = new AtomicBoolean();
+        private Map mapAlterReturnDocument;
         private final AtomicInteger failBeforeUpdate = new AtomicInteger();
         private final AtomicInteger failAfterUpdate = new AtomicInteger();
         private final AtomicInteger failFind = new AtomicInteger();
         private long delayMillis;
+        private long delayMillisOnce;
 
         TestStore() {
             super(new MemoryDocumentStore());
@@ -637,6 +773,30 @@ public class ClusterNodeInfoTest {
             }
         }
 
+        public Map getMapAlterReturnDocument() {
+            return mapAlterReturnDocument;
+        }
+
+        public void setMapAlterReturnDocument(Map mapAlterReturnDocument) {
+            this.mapAlterReturnDocument = mapAlterReturnDocument;
+        }
+
+        public boolean getFindShouldAlterReturnDocument() {
+            return findShouldAlterReturnDocument.get();
+        }
+
+        public void setFindShouldAlterReturnDocument(boolean findShouldAlterReturnDocument) {
+            this.findShouldAlterReturnDocument.set(findShouldAlterReturnDocument);
+        }
+
+        public boolean getFindAndUpdateShouldAlterReturnDocument() {
+            return findAndUpdateShouldAlterReturnDocument.get();
+        }
+
+        public void setFindAndUpdateShouldAlterReturnDocument(boolean findAndUpdateShouldAlterReturnDocument) {
+            this.findAndUpdateShouldAlterReturnDocument.set(findAndUpdateShouldAlterReturnDocument);
+        }
+
         public int getFailBeforeUpdate() {
             return failBeforeUpdate.get();
         }
@@ -659,6 +819,14 @@ public class ClusterNodeInfoTest {
 
         public void setDelayMillis(long delayMillis) {
             this.delayMillis = delayMillis;
+        }
+
+        public long getDelayMillisOnce() {
+            return delayMillisOnce;
+        }
+
+        public void setDelayMillisOnce(long delayMillisOnce) {
+            this.delayMillisOnce = delayMillisOnce;
         }
 
         public int getFailFind() {

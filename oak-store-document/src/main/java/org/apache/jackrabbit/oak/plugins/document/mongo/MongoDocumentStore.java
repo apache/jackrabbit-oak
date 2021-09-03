@@ -1655,6 +1655,8 @@ public class MongoDocumentStore implements DocumentStore {
                 case NOTEQUALS:
                     conditionList.add(Filters.ne(k.toString(), c.value));
                     break;
+                case LESSTHAN:
+                    conditionList.add(Filters.lt(k.toString(), c.value));
             }
         }
         return Filters.and(conditionList);

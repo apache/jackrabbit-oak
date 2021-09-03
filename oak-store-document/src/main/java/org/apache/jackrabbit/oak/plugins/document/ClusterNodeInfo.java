@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -174,6 +175,11 @@ public class ClusterNodeInfo {
      * Key for invisible flag
      */
     public static final String INVISIBLE = "invisible";
+
+    /**
+     * Runtime UUID (generated unique ID for this instance)
+     */
+    public static final String RUNTIME_ID_KEY = "runtime_id";
 
     /**
      * The unique machine id (the MAC address if available).
@@ -348,6 +354,10 @@ public class ClusterNodeInfo {
      */
     private boolean invisible;
 
+    /**
+     * Unique ID generated at Runtime.
+     */
+    private final String runtimeId;
 
     private ClusterNodeInfo(int id, DocumentStore store, String machineId,
                             String instanceId, boolean newEntry, boolean invisible) {
@@ -360,6 +370,7 @@ public class ClusterNodeInfo {
         this.instanceId = instanceId;
         this.newEntry = newEntry;
         this.invisible = invisible;
+        this.runtimeId = UUIDUtils.generateUUID();
     }
 
     void setLeaseCheckMode(@NotNull LeaseCheckMode mode) {
@@ -380,6 +391,10 @@ public class ClusterNodeInfo {
 
     String getInstanceId() {
         return instanceId;
+    }
+
+    String getRuntimeId() {
+        return runtimeId;
     }
 
     boolean isInvisible() {
@@ -483,6 +498,7 @@ public class ClusterNodeInfo {
             update.set(STATE, ACTIVE.name());
             update.set(OAK_VERSION_KEY, OAK_VERSION);
             update.set(INVISIBLE, invisible);
+            update.set(RUNTIME_ID_KEY, clusterNode.runtimeId);
 
             ClusterNodeInfoDocument before = null;
             final boolean success;
@@ -503,6 +519,8 @@ public class ClusterNodeInfo {
                 update.notEquals(STATE, ACTIVE.name());
                 // 2) must not have a recovery lock
                 update.notEquals(REV_RECOVERY_LOCK, ACQUIRED.name());
+                // 3) must not be assigned to a different node
+                update.equals(RUNTIME_ID_KEY, null);
 
                 success = store.findAndUpdate(Collection.CLUSTER_NODES, update) != null;
             }
@@ -951,16 +969,16 @@ public class ClusterNodeInfo {
             // then we can now make an assertion that the lease is unchanged
             // and the incremental update must only succeed if no-one else
             // did a recover/inactivation in the meantime
-            // make three assertions: the leaseEnd must match ..
-            update.equals(LEASE_END_KEY, null, previousLeaseEndTime);
+            // make three assertions: the leaseEnd must be lesser to avoid having
+            // an 'older' update overwrite the Lease End Time of a newer execution.
+            update.lessThan(LEASE_END_KEY, null, updatedLeaseEndTime);
             // plus it must still be active ..
             update.equals(STATE, null, ACTIVE.name());
             // plus it must not have a recovery lock on it
             update.notEquals(REV_RECOVERY_LOCK, ACQUIRED.name());
-            // @TODO: to make it 100% failure proof we could introduce
-            // yet another field to clusterNodes: a runtimeId that we
-            // create (UUID) at startup each time - and against that
-            // we could also check here - but that goes a bit far IMO
+            // a runtimeId that we create (UUID) at startup each time, and we
+            // check here against that
+            update.equals(RUNTIME_ID_KEY, null, runtimeId);
         }
 
         if (LOG.isDebugEnabled()) {
@@ -1067,9 +1085,9 @@ public class ClusterNodeInfo {
                             "anymore. {}", id, doc);
                     // break here and let the next lease update attempt fail
                     break;
-                } else if (doc.getLeaseEndTime() == previousLeaseEndTime
-                        || doc.getLeaseEndTime() == updatedLeaseEndTime) {
-                    // set lease end times to current values
+                } else if (doc.getRuntimeId().equals(runtimeId)) {
+                    // set lease end times to current values, as they belong
+                    // to this same cluster node
                     previousLeaseEndTime = doc.getLeaseEndTime();
                     leaseEndTime = doc.getLeaseEndTime();
                     break;
@@ -1140,6 +1158,7 @@ public class ClusterNodeInfo {
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);
         update.set(INVISIBLE, false);
+        update.set(RUNTIME_ID_KEY, null);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
         state = NONE;
     }

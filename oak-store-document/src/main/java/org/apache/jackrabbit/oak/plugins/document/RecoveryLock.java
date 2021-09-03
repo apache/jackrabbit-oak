@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.LEASE_END_KEY;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.REV_RECOVERY_BY;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.REV_RECOVERY_LOCK;
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RUNTIME_ID_KEY;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState.ACQUIRED;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.STATE;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
@@ -102,6 +103,7 @@ class RecoveryLock {
             if (success) {
                 update.set(STATE, null);
                 update.set(LEASE_END_KEY, null);
+                update.set(RUNTIME_ID_KEY, null);
             } else {
                 // make sure lease is expired
                 update.set(LEASE_END_KEY, clock.getTime() - 1);
