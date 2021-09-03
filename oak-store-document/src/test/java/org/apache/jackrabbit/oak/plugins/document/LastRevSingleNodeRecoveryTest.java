@@ -91,6 +91,9 @@ public class LastRevSingleNodeRecoveryTest {
     @Before
     public void setUp() throws InterruptedException {
         try {
+            if (fixture instanceof DocumentStoreFixture.MongoFixture) {
+                MongoUtils.dropCollections(MongoUtils.DB);
+            }
             mk = createMK(0);
             Assume.assumeNotNull(mk);
 
@@ -230,8 +233,10 @@ public class LastRevSingleNodeRecoveryTest {
     public void tearDown() throws Exception {
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
-        mk.dispose();
-        if ( mk2 != null ) {
+        if (mk != null) {
+            mk.dispose();
+        }
+        if (mk2 != null) {
             mk2.dispose();
         }
         fixture.dispose();
