@@ -48,9 +48,11 @@ def buildModule(moduleSpec) {
             def MAVEN_CMD = "mvn --batch-mode -Dmaven.repo.local=${env.HOME}/maven-repositories/${env.EXECUTOR_NUMBER}"
             def MONGODB_SUFFIX = sh(script: 'openssl rand -hex 4', returnStdout: true).trim()
             sh '''
-               echo MAVEN_OPTS was ${MAVEN_OPTS}
-               export MAVEN_OPTS="-Xmx1024M"
-               echo MAVEN_OPTS now ${MAVEN_OPTS}
+            echo "Setting MAVEN_OPTS"
+            echo MAVEN_OPTS was ${MAVEN_OPTS}
+            export MAVEN_OPTS="-Xmx1024M"
+            echo MAVEN_OPTS now ${MAVEN_OPTS}
+            echo "Setting MAVEN_OPTS done"
             '''
             timeout(60) {
                 checkout scm
