@@ -49,7 +49,7 @@ def buildModule(moduleSpec) {
             def MONGODB_SUFFIX = sh(script: 'openssl rand -hex 4', returnStdout: true).trim()
             timeout(60) {
                 checkout scm
-                withEnv(["Path+JDK=$JAVA_JDK_8/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_8","MAVEN_OPTS=-Xmx1g"]) {
+                withEnv(["Path+JDK=$JAVA_JDK_8/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_8","MAVEN_OPTS='-Xmx1g -XX:MaxPermSize=512m'"]) {
                     // clean all modules
                     sh "${MAVEN_CMD} -T 1C clean"
                     // build and install up to desired module
