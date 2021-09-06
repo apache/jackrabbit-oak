@@ -110,7 +110,7 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
 
         final LoginModuleFactory lmf = context.registerInjectActivateService(new ExternalLoginModuleFactory());
-        options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, (ProxyLoginModule.BootLoginModuleFactory) () -> lmf.createLoginModule());
+        options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, (ProxyLoginModule.BootLoginModuleFactory) lmf::createLoginModule);
     }
 
     @Test

@@ -16,29 +16,40 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
-
+import com.google.common.collect.Iterators;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipAware;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * {@code DefaultSyncHandler} implements an sync handler that synchronizes users and groups from an external identity
@@ -51,7 +62,7 @@ import org.slf4j.LoggerFactory;
         policy = ConfigurationPolicy.REQUIRE
 )
 @Service
-public class DefaultSyncHandler implements SyncHandler {
+public class DefaultSyncHandler implements SyncHandler, AutoMembershipAware {
 
     /**
      * logger instance
@@ -62,6 +73,8 @@ public class DefaultSyncHandler implements SyncHandler {
      * internal configuration
      */
     private DefaultSyncConfig config;
+    
+    private AutoMembershipTracker autoMembershipTracker;
 
     /**
      * Default constructor for OSGi
@@ -81,9 +94,21 @@ public class DefaultSyncHandler implements SyncHandler {
 
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    private void activate(Map<String, Object> properties) {
+    public void activate(@NotNull BundleContext bundleContext, Map<String, Object> properties) {
         ConfigurationParameters cfg = ConfigurationParameters.of(properties);
         config = DefaultSyncConfigImpl.of(cfg);
+
+        autoMembershipTracker = new AutoMembershipTracker();
+        autoMembershipTracker.start(new OsgiWhiteboard(bundleContext));
+        config.user().setAutoMembershipConfig(autoMembershipTracker);
+        config.group().setAutoMembershipConfig(autoMembershipTracker);
+    }
+    
+    @Deactivate
+    public void deactivate() {
+        if (autoMembershipTracker != null) {
+            autoMembershipTracker.stop();
+        }
     }
 
     /**
@@ -158,5 +183,43 @@ public class DefaultSyncHandler implements SyncHandler {
                 return null;
             }
         };
+    }
+
+    //----------------------------------------------------------------------------------------< AutoMembershipAware >---
+    @Override
+    public @NotNull AutoMembershipConfig getAutoMembershipConfig() {
+        return (autoMembershipTracker == null || autoMembershipTracker.isEmpty()) ? AutoMembershipConfig.EMPTY : autoMembershipTracker;
+    }
+
+    /**
+     * Internal tracker for {@link AutoMembershipConfig} services that might apply to this sync handler instance.
+     * In addition it implements {@link AutoMembershipConfig} wrapping around the list of applicable.
+     */
+    private final class AutoMembershipTracker extends AbstractServiceTracker<AutoMembershipConfig> implements AutoMembershipConfig {
+        
+        public AutoMembershipTracker() {
+            super(AutoMembershipConfig.class, Collections.singletonMap(AutoMembershipConfig.PARAM_SYNC_HANDLER_NAME, DefaultSyncHandler.this.getName()));
+        }
+        
+        private boolean isEmpty() {
+            return getServices().isEmpty();
+        }
+
+        @Override
+        public String getName() {
+            return DefaultSyncHandler.this.getName();
+        }
+
+        @Override
+        public @NotNull Set<String> getAutoMembership(@NotNull Authorizable authorizable) {
+            Set<String> groupIds = new HashSet<>();
+            getServices().forEach(autoMembershipConfig -> groupIds.addAll(autoMembershipConfig.getAutoMembership(authorizable)));
+            return groupIds;
+        }
+        
+        @Override
+        public Iterator<Authorizable> getAutoMembers(@NotNull UserManager userManager, @NotNull Group group) {
+            return Iterators.concat(getServices().stream().map(autoMembershipConfig -> autoMembershipConfig.getAutoMembers(userManager, group)).iterator());
+        }
     }
 }

@@ -61,7 +61,7 @@ public interface PrivilegeCollection {
      * The inclusion can either be direct or through privilege aggregation.
      * 
      * @param privilegeNames The JCR names of privileges to be tested. They can be passed in expanded form 
-     * (like e.g. {@link Privilege#JCR_READ)} or in qualified form (i.e. 'jcr:read' if 'jcr' was the prefixed defined for 
+     * (like e.g. {@link Privilege#JCR_READ}) or in qualified form (i.e. 'jcr:read' if 'jcr' was the prefixed defined for 
      * the 'http://www.jcp.org/jcr/1.0' namespace.
      * @return {@code true} if the underlying {@code privileges} include all specified privilege names either directly 
      * or by means of aggregation; {@code false} if one or multiple privileges are not included. If {@code jcr:all} privilege 

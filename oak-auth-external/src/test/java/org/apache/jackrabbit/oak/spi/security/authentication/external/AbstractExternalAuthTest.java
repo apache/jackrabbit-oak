@@ -16,19 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import java.security.PrivilegedExceptionAction;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.NoSuchWorkspaceException;
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -48,10 +35,19 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
+
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import java.security.PrivilegedExceptionAction;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -136,7 +132,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
                 // failed to retrieve ID
             }
             return null;
-        }), Predicates.notNull());
+        }), Objects::nonNull);
     }
 
     @Override
@@ -181,12 +177,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @NotNull
     protected Root getSystemRoot() throws Exception {
         if (systemRoot == null) {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                @Override
-                public ContentSession run() throws LoginException, NoSuchWorkspaceException {
-                    return getContentRepository().login(null, null);
-                }
-            });
+            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null));
             systemRoot = systemSession.getLatestRoot();
         }
         return systemRoot;

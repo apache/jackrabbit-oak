@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
@@ -70,13 +71,14 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
     private final NamePathMapper namePathMapper;
     private final AutoMembershipPrincipals autoMembershipPrincipals;
     
-    AutoMembershipProvider(@NotNull Root root, 
-                           @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper, 
-                           @NotNull Map<String, String[]> autoMembershipMapping) {
+    AutoMembershipProvider(@NotNull Root root,
+                           @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper,
+                           @NotNull Map<String, String[]> autoMembershipMapping,
+                           @NotNull Map<String, AutoMembershipConfig> autoMembershipConfigMap) {
         this.root = root;
         this.userManager = userManager;
         this.namePathMapper = namePathMapper;
-        this.autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping);
+        this.autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping, autoMembershipConfigMap);
     }
     
     @Override
@@ -86,42 +88,12 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
 
     @Override
     public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) throws RepositoryException {
-        Principal p = getPrincipalOrNull(group);
-        if (p == null) {
-            return RangeIteratorAdapter.EMPTY;
-        }
-
-        // retrieve all idp-names for which the given group-principal is configured in the auto-membership option
-        // NOTE: while the configuration takes the group-id the cache in 'autoMembershipPrincipals' is built based on the principal
-        Set<String> idpNames = autoMembershipPrincipals.getConfiguredIdpNames(p);
-        if (idpNames.isEmpty()) {
-            return RangeIteratorAdapter.EMPTY;
-        }
-        
-        // since this provider is only enabled for dynamic-automembership only users are expected to be returned by the
-        // query and thus the 'includeInherited' flag can be ignored.
-        List<Iterator<Authorizable>> results = new ArrayList<>(idpNames.size());
-        // TODO: execute a single (more complex) query ?
-        for (String idpName : idpNames) {
-            Map<String, ? extends PropertyValue> bindings = buildBinding(idpName);
-            String statement = "SELECT '" + REP_AUTHORIZABLE_ID + "' FROM ["+NT_REP_USER+"] WHERE PROPERTY(["
-                    + REP_EXTERNAL_ID + "], '" + PropertyType.TYPENAME_STRING + "')"
-                    + " LIKE $" + BINDING_AUTHORIZABLE_IDS + QueryEngine.INTERNAL_SQL2_QUERY;
-            try {
-                Result qResult = root.getQueryEngine().executeQuery(statement, Query.JCR_SQL2, bindings, namePathMapper.getSessionLocalMappings());
-                Iterator<Authorizable> it = StreamSupport.stream(qResult.getRows().spliterator(), false).map((Function<ResultRow, Authorizable>) resultRow -> {
-                    try {
-                        return userManager.getAuthorizableByPath(namePathMapper.getJcrPath(resultRow.getPath()));
-                    } catch (RepositoryException e) {
-                        return null;
-                    }
-                }).filter(Objects::nonNull).iterator();
-                results.add(it);
-            } catch (ParseException e) {
-                throw new RepositoryException("Failed to retrieve members of auto-membership group "+ group);
-            }
-        }
-        return Iterators.concat(results.toArray(new Iterator[0]));
+        List<Iterator<Authorizable>> results = new ArrayList<>();
+        // add members resulting from global automembership mapping
+        searchGlobalMembers(group, results);
+        // add members from conditional automembership mapping
+        results.add(autoMembershipPrincipals.getMembersFromAutoMembershipConfig(group));
+        return Iterators.concat(results.iterator());
     }
 
     @Override
@@ -132,10 +104,9 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             return false;
         }
 
-        // since this provider is only enabled for dynamic-automembership (external groups not synced), the 
-        // 'includeInherited' flag can be ignored.        
-        Collection<Principal> groupPrincipals = autoMembershipPrincipals.getPrincipals(idpName);
-        return groupPrincipals.contains(group.getPrincipal());
+        // since this provider is only enabled for dynamic-auto-membership (external groups not synced), the 
+        // 'includeInherited' flag can be ignored.      
+        return autoMembershipPrincipals.isMember(idpName, group.getID(), authorizable);
     }
 
     @Override
@@ -145,7 +116,7 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             // not an external user (NOTE: with dynamic membership enabled external groups will not be synced into the repository)
             return RangeIteratorAdapter.EMPTY;
         }
-        Collection<Principal> groupPrincipals = autoMembershipPrincipals.getPrincipals(idpName);
+        Collection<Principal> groupPrincipals = autoMembershipPrincipals.getAutoMembership(idpName, authorizable);
         Set<Group> groups = groupPrincipals.stream().map(principal -> {
             try {
                 Authorizable a = userManager.getAuthorizable(principal);
@@ -167,7 +138,44 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             return Iterators.filter(new InheritedMembershipIterator(groupIt), processed::add);
         }
     }
-    
+
+    private void searchGlobalMembers(@NotNull Group group, @NotNull List<Iterator<Authorizable>> results) throws RepositoryException {
+        Principal p = getPrincipalOrNull(group);
+        if (p == null) {
+            return;
+        }
+
+        // retrieve all idp-names for which the given group-principal is configured in the auto-membership option
+        // NOTE: while the configuration takes the group-id the cache in 'autoMembershipPrincipals' is built based on the principal
+        Set<String> idpNames = autoMembershipPrincipals.getConfiguredIdpNames(p);
+        if (idpNames.isEmpty()) {
+            return;
+        }
+
+        // since this provider is only enabled for dynamic-automembership only users are expected to be returned by the
+        // query and thus the 'includeInherited' flag can be ignored.
+        // TODO: execute a single (more complex) query ?
+        for (String idpName : idpNames) {
+            Map<String, ? extends PropertyValue> bindings = buildBinding(idpName);
+            String statement = "SELECT '" + REP_AUTHORIZABLE_ID + "' FROM ["+NT_REP_USER+"] WHERE PROPERTY(["
+                    + REP_EXTERNAL_ID + "], '" + PropertyType.TYPENAME_STRING + "')"
+                    + " LIKE $" + BINDING_AUTHORIZABLE_IDS + QueryEngine.INTERNAL_SQL2_QUERY;
+            try {
+                Result qResult = root.getQueryEngine().executeQuery(statement, Query.JCR_SQL2, bindings, namePathMapper.getSessionLocalMappings());
+                Iterator<Authorizable> it = StreamSupport.stream(qResult.getRows().spliterator(), false).map((Function<ResultRow, Authorizable>) resultRow -> {
+                    try {
+                        return userManager.getAuthorizableByPath(namePathMapper.getJcrPath(resultRow.getPath()));
+                    } catch (RepositoryException e) {
+                        return null;
+                    }
+                }).filter(Objects::nonNull).iterator();
+                results.add(it);
+            } catch (ParseException e) {
+                throw new RepositoryException("Failed to retrieve members of auto-membership group "+ group);
+            }
+        }
+    }
+
     @Nullable
     private static Principal getPrincipalOrNull(@NotNull Group group) {
         try {
@@ -185,12 +193,8 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
 
     @NotNull
     private static Map<String, ? extends PropertyValue> buildBinding(@NotNull String idpName) {
-        String val;
         // idp-name is stored as trailing end after external id followed by ';' => add leading % to the binding
-        StringBuilder sb = new StringBuilder();
-        sb.append("%;");
-        sb.append(idpName.replace("%", "\\%").replace("_", "\\_"));
-        val = sb.toString();
+        String val = "%;" + idpName.replace("%", "\\%").replace("_", "\\_");
         return Collections.singletonMap(BINDING_AUTHORIZABLE_IDS, PropertyValues.newString(val));
     }
     

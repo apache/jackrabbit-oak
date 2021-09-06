@@ -377,7 +377,7 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
             return new AppConfigurationEntry(
                     ExternalLoginModule.class.getName(),
                     AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                    ImmutableMap.<String, String>of(
+                    ImmutableMap.of(
                             SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, sh.getName(),
                             SyncHandlerMapping.PARAM_IDP_NAME, idp.getName()
                     ));

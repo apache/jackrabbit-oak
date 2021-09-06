@@ -19,12 +19,14 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+
 import java.io.File;
 import java.io.IOException;
 
 public interface SortStrategy {
 
-    File createSortedStoreFile() throws IOException;
+    File createSortedStoreFile() throws IOException, CompositeException;
 
     long getEntryCount();
 }

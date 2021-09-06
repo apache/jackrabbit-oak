@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -52,6 +53,7 @@ public abstract class AbstractServiceTracker<T> {
      * The type of services tracked by this instance.
      */
     private final Class<T> type;
+    private final Map<String, String> filterProperties;
 
     /**
      * The underlying {@link Tracker}, or the {@link #stopped} sentinel
@@ -63,11 +65,17 @@ public abstract class AbstractServiceTracker<T> {
 
     protected AbstractServiceTracker(@NotNull Class<T> type) {
         this.type = checkNotNull(type);
+        this.filterProperties = null;
+    }
+
+    protected AbstractServiceTracker(@NotNull Class<T> type, @NotNull Map<String, String> filterProperties) {
+        this.type = checkNotNull(type);
+        this.filterProperties = filterProperties;
     }
 
     public synchronized void start(Whiteboard whiteboard) {
         checkState(tracker == stopped);
-        tracker = whiteboard.track(type);
+        tracker = (filterProperties == null) ? whiteboard.track(type) : whiteboard.track(type, filterProperties);
     }
 
     public synchronized void stop() {

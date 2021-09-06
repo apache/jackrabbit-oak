@@ -32,7 +32,7 @@ public class ExternalIDPManagerImplTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private ExternalIDPManagerImpl externalIDPManager = new ExternalIDPManagerImpl();
+    private final ExternalIDPManagerImpl externalIDPManager = new ExternalIDPManagerImpl();
 
     @Before
     public void before() {

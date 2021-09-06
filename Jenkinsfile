@@ -46,6 +46,7 @@ def buildModule(moduleSpec) {
             def JAVA_JDK_8=tool name: 'jdk_1.8_latest', type: 'hudson.model.JDK'
             def MAVEN_3_LATEST=tool name: 'maven_3_latest', type: 'hudson.tasks.Maven$MavenInstallation'
             def MAVEN_CMD = "mvn --batch-mode -Dmaven.repo.local=${env.HOME}/maven-repositories/${env.EXECUTOR_NUMBER}"
+            def MONGODB_SUFFIX = sh(script: 'openssl rand -hex 4', returnStdout: true).trim()
             timeout(60) {
                 checkout scm
                 withEnv(["Path+JDK=$JAVA_JDK_8/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_8"]) {
@@ -54,7 +55,7 @@ def buildModule(moduleSpec) {
                     // build and install up to desired module
                     sh "${MAVEN_CMD} -Dbaseline.skip=true -Prat -T 1C install -DskipTests -pl :${moduleName} -am"
                     try {
-                        sh "${MAVEN_CMD} ${testOptions} -DtrimStackTrace=false -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS clean verify -pl :${moduleName}"
+                        sh "${MAVEN_CMD} ${testOptions} -DtrimStackTrace=false -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS -Dmongo.db=MongoMKDB-${MONGODB_SUFFIX} clean verify -pl :${moduleName}"
                     } finally {
                         archiveArtifacts(artifacts: '*/target/unit-tests.log', allowEmptyArchive: true)
                         junit(testResults: '*/target/surefire-reports/*.xml,*/target/failsafe-reports/*.xml', allowEmptyResults: true)

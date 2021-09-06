@@ -208,7 +208,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
         @NotNull
         @Override
-        public Iterable<ExternalIdentityRef> getDeclaredGroups() {
+        public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
             return groups;
         }
 

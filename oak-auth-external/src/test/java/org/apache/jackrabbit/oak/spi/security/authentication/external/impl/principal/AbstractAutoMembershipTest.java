@@ -20,9 +20,11 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.Collections;
 import java.util.Map;
 
 public abstract class AbstractAutoMembershipTest  extends AbstractExternalAuthTest {
@@ -66,5 +68,9 @@ public abstract class AbstractAutoMembershipTest  extends AbstractExternalAuthTe
         } finally {
             super.after();
         }
+    }
+    
+    Map<String, AutoMembershipConfig> getAutoMembershipConfigMapping() {
+        return Collections.emptyMap();
     }
 }
