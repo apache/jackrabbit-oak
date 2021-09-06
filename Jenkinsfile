@@ -48,13 +48,13 @@ def buildModule(moduleSpec) {
             def MAVEN_CMD = "mvn --batch-mode -Dmaven.repo.local=${env.HOME}/maven-repositories/${env.EXECUTOR_NUMBER}"
             def MONGODB_SUFFIX = sh(script: 'openssl rand -hex 4', returnStdout: true).trim()
             sh '''
-               echo MAVEN_OPTS was ${MAVEN_OPTS}"
+               echo MAVEN_OPTS was ${MAVEN_OPTS}
                export MAVEN_OPTS="-Xmx1024M"
-               echo MAVEN_OPTS now ${MAVEN_OPTS}"
+               echo MAVEN_OPTS now ${MAVEN_OPTS}
             '''
             timeout(60) {
                 checkout scm
-                withEnv(["Path+JDK=$JAVA_JDK_8/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_8","MAVEN_OPTS='-Xmx1g -XX:MaxPermSize=512m'"]) {
+                withEnv(["Path+JDK=$JAVA_JDK_8/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_8"]) {
                     // clean all modules
                     sh "${MAVEN_CMD} -T 1C clean"
                     // build and install up to desired module
