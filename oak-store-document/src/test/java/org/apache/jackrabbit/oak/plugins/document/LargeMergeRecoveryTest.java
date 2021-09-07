@@ -164,8 +164,12 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
      * Reproduces OAK-9535
      */
     @Test
-    @Ignore(value = "ignoring for now as it causes OutOfMemoryError on travis")
     public void testOneLargeBranchMergeRecovery() throws Exception {
+        if (!new DocumentStoreFixture.MongoFixture().getName().equals(fixture.getName())) {
+            // only run this test for MongoDB, might help avoid OutOfMemoryError on travis
+            System.out.println("Skipping testOneLargeBranchMergeRecovery with fixture " + fixture.getName());
+            return;
+        }
         doTestOneLargeBranchMergeRecovery(DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT);
     }
 
