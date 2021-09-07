@@ -86,6 +86,7 @@ public class SessionImpl implements JackrabbitSession {
     private SessionContext sessionContext;
     private SessionDelegate sd;
     private final CounterStats sessionCounter;
+    private final Object logoutMonitor = new Object();
 
     public SessionImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
@@ -465,26 +466,28 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void logout() {
-        if (isLive()) {
-            sessionCounter.dec();
-            try {
-                sd.performVoid(new SessionOperation<Void>("logout") {
-                    @Override
-                    public void performVoid() {
-                        sessionContext.dispose();
-                        sd.logout();
-                    }
+        synchronized (logoutMonitor) {
+            if (isLive()) {
+                sessionCounter.dec();
+                try {
+                    sd.performVoid(new SessionOperation<Void>("logout") {
+                        @Override
+                        public void performVoid() {
+                            sessionContext.dispose();
+                            sd.logout();
+                        }
 
-                    @Override
-                    public boolean isLogout() {
-                        return true;
-                    }
-                });
-            } catch (RepositoryException e) {
-                throw new RuntimeException("Unexpected exception thrown by operation 'logout'", e);
-            } finally {
-                sd = null;
-                sessionContext = null;
+                        @Override
+                        public boolean isLogout() {
+                            return true;
+                        }
+                    });
+                } catch (RepositoryException e) {
+                    throw new RuntimeException("Unexpected exception thrown by operation 'logout'", e);
+                } finally {
+                    sd = null;
+                    sessionContext = null;
+                }
             }
         }
     }

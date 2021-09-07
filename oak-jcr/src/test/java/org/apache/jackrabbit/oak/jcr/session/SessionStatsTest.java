@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.jcr.session;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,6 +60,43 @@ public class SessionStatsTest extends AbstractJCRTest {
         Session afterSession = createSession();
         assertTrue("initStackTrace is not empty", getInitStackTrace(afterSession).isEmpty());
         afterSession.logout();
+    }
+
+    // OAK-9262
+    public void testSessionCounter() throws Exception {
+        CounterStats sessionCounter = getSessionCounter(superuser);
+        // try this a few times
+        for (int i = 0; i < 10; i++) {
+            internalTestSessionCounter(sessionCounter);
+        }
+    }
+
+    private void internalTestSessionCounter(CounterStats sessionCounter)
+            throws Exception {
+        Session s = createSession();
+        long numSessions = sessionCounter.getCount();
+        List<Thread> threads = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            threads.add(new Thread(s::logout));
+        }
+        for (Thread t : threads) {
+            t.start();
+        }
+        for (Thread t : threads) {
+            t.join();
+        }
+        assertEquals(numSessions - 1, sessionCounter.getCount());
+    }
+
+    private static CounterStats getSessionCounter(Session session)
+            throws Exception {
+        if (session instanceof SessionImpl) {
+            Field f = SessionImpl.class.getDeclaredField("sessionCounter");
+            f.setAccessible(true);
+            return (CounterStats) f.get(session);
+        }
+        fail("Session is not a " + SessionImpl.class.getName());
+        throw new IllegalStateException();
     }
 
     private Session createSession() throws RepositoryException {
