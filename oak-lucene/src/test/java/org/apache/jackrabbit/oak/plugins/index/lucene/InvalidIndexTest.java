@@ -48,7 +48,8 @@ import java.util.concurrent.TimeUnit;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Tests: Logging of invalid jcr:primaryType of index.
@@ -70,7 +71,7 @@ public class InvalidIndexTest {
 
 
     // Setting contentCount to DEFAULT_indexJcrTypeInvalidLogLimiter + 1, so that invalid indexes are logged atleast once
-    private final long contentCount = Long.parseLong(IndexUpdate.DEFAULT_indexJcrTypeInvalidLogLimiter) + 1;
+    private final long contentCount = IndexUpdate.INDEX_JCR_TYPE_INVALID_LOG_LIMITER + 1;
 
     @Before
     public void before() throws Exception {
@@ -160,7 +161,7 @@ public class InvalidIndexTest {
         runEmptyAsyncIndexerCyclesWithoutNewContent(contentCount);
 
         List<String> logs = customLogger.getLogs();
-        assertEquals(assertionLogPresent(logs, invalidJcrPrimaryTypeLog()), true);
+        assertTrue(assertionLogPresent(logs, invalidJcrPrimaryTypeLog()));
     }
 
     @Test
@@ -178,7 +179,7 @@ public class InvalidIndexTest {
         runEmptyAsyncIndexerCyclesWithoutNewContent(contentCount);
 
         List<String> logs = customLogger.getLogs();
-        assertEquals(assertionLogPresent(logs, invalidJcrPrimaryTypeLog()), false);
+        assertFalse(assertionLogPresent(logs, invalidJcrPrimaryTypeLog()));
     }
 
     @Test
@@ -192,6 +193,6 @@ public class InvalidIndexTest {
 
         runIndexerCyclesAfterEachNodeCommit(contentCount, false);
         List<String> logs = customLogger.getLogs();
-        assertEquals(assertionLogPresent(logs, invalidJcrPrimaryTypeLog()), true);
+        assertTrue(assertionLogPresent(logs, invalidJcrPrimaryTypeLog()));
     }
 }

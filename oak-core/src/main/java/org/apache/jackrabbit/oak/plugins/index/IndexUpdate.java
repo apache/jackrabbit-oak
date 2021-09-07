@@ -73,16 +73,14 @@ public class IndexUpdate implements Editor, PathSource {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
     private static final String TYPE_ELASTICSEARCH = "elasticsearch";
-    public static final String DEFAULT_indexJcrTypeInvalidLogLimiter = "1000";
+
     //This is used so that wrong index definitions are sparsely logged. After every 1000 indexing cycles, index definitions
     // with wrong nodetype will be logged.
-    private static final long indexJcrTypeInvalidLogLimiter = Long.valueOf(System.getProperty("oak.indexer.indexJcrTypeInvalidLogLimiter", DEFAULT_indexJcrTypeInvalidLogLimiter));
+    public static final long INDEX_JCR_TYPE_INVALID_LOG_LIMITER = Long.parseLong(System.getProperty("oak.indexer.indexJcrTypeInvalidLogLimiter", "1000"));
 
-    // lock used when updating cyclicExecutionCount
-    private static final Object countLock = new Object();
     // Initial value is set at indexJcrTypeInvalidLogLimiter so that first logging start on first cycle/update itself.
     // This counter is cyclically incremented till indexJcrTypeInvalidLogLimiter and then reset to 0
-    private static volatile long cyclicExecutionCount = indexJcrTypeInvalidLogLimiter;
+    private static volatile long cyclicExecutionCount = INDEX_JCR_TYPE_INVALID_LOG_LIMITER;
 
     /**
      * <p>
@@ -284,16 +282,6 @@ public class IndexUpdate implements Editor, PathSource {
         return false;
     }
 
-    private void sparseLoggger(String primaryType, String name) {
-        synchronized (countLock) {
-            if ((cyclicExecutionCount >= indexJcrTypeInvalidLogLimiter)) {
-                log.warn("jcr:primaryType of index {} should be {} instead of {}", name, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, primaryType);
-                cyclicExecutionCount = 0;
-            }
-            cyclicExecutionCount++;
-        }
-    }
-
     private void collectIndexEditors(NodeBuilder definitions,
             NodeState before) throws CommitFailedException {
         for (String name : definitions.getChildNodeNames()) {
@@ -310,7 +298,13 @@ public class IndexUpdate implements Editor, PathSource {
                  and skip further execution for invalid nodetype of index definition.
                  */
                 if (!IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType)) {
-                    sparseLoggger(primaryType, name);
+                    // It is a cyclic counter which reset back to 0 after INDEX_JCR_TYPE_INVALID_LOG_LIMITER
+                    // This is to sparsely log this warning.
+                    if ((cyclicExecutionCount >= INDEX_JCR_TYPE_INVALID_LOG_LIMITER)) {
+                        log.warn("jcr:primaryType of index {} should be {} instead of {}", name, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, primaryType);
+                        cyclicExecutionCount = 0;
+                    }
+                    cyclicExecutionCount++;
                     continue;
                 }
 
