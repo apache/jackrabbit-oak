@@ -39,6 +39,7 @@ import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -97,6 +98,7 @@ import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -402,9 +404,34 @@ public class DocumentNodeStoreService {
             nodeStore, props);
     }
 
+    private LeaseFailureHandler createDefaultLeaseFailureHandler() {
+        return new LeaseFailureHandler() {
+            @Override
+            public void handleLeaseFailure() {
+                Bundle bundle = context.getBundleContext().getBundle();
+                String bundleName = bundle.getSymbolicName();
+                try {
+                    // plan A: try stopping oak-store-document
+                    log.error("handleLeaseFailure: stopping {}...", bundleName);
+                    bundle.stop(Bundle.STOP_TRANSIENT);
+                    log.error("handleLeaseFailure: stopped {}.", bundleName);
+                    // plan A worked, perfect!
+                } catch (BundleException e) {
+                    log.error("handleLeaseFailure: exception while stopping " + bundleName + ": " + e, e);
+                    // plan B: stop only DocumentNodeStoreService (to stop the background threads)
+                    log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
+                    context.disableComponent(DocumentNodeStoreService.class.getName());
+                    log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
+                    // plan B succeeded.
+                }
+            }
+        };
+    }
+
     private void configureBuilder(DocumentNodeStoreBuilder<?> builder) {
         String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
         String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
+        final Tracker<LeaseFailureHandler> leaseFailureHandlerTracker = whiteboard.track(LeaseFailureHandler.class);
         builder.setStatisticsProvider(statisticsProvider).
                 setExecutor(executor).
                 memoryCacheSize(config.cache() * MB).
@@ -420,23 +447,31 @@ public class DocumentNodeStoreService {
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
+                    private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
+
                     @Override
                     public void handleLeaseFailure() {
-                        Bundle bundle = context.getBundleContext().getBundle();
-                        String bundleName = bundle.getSymbolicName();
+                        boolean handled = false;
                         try {
-                            // plan A: try stopping oak-store-document
-                            log.error("handleLeaseFailure: stopping {}...", bundleName);
-                            bundle.stop(Bundle.STOP_TRANSIENT);
-                            log.error("handleLeaseFailure: stopped {}.", bundleName);
-                            // plan A worked, perfect!
-                        } catch (BundleException e) {
-                            log.error("handleLeaseFailure: exception while stopping " + bundleName + ": " + e, e);
-                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
-                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
-                            context.disableComponent(DocumentNodeStoreService.class.getName());
-                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
-                            // plan B succeeded.
+                            if (leaseFailureHandlerTracker != null) {
+                                final List<LeaseFailureHandler> handlers = leaseFailureHandlerTracker.getServices();
+                                if (handlers != null && handlers.size() > 0) {
+                                    // go through the list, but only execute the first one
+                                    for (LeaseFailureHandler handler : handlers) {
+                                        if (handler != null) {
+                                            log.info("handleLeaseFailure: invoking handler " + handler);
+                                            handler.handleLeaseFailure();
+                                            handled = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } finally {
+                            if (!handled) {
+                                log.info("handleLeaseFailure: invoking default handler");
+                                defaultLeaseFailureHandler.handleLeaseFailure();
+                            }
                         }
                     }
                 }).
