@@ -243,11 +243,11 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     /** small helper to log a node - useful for later debugging **/
-    private static String asLoggableString(NodeBuilder vh) {
+    private static String asLoggableString(NodeBuilder nb) {
         try {
             final StringBuilder sb = new StringBuilder();
             boolean empty = true;
-            for (PropertyState p : vh.getProperties()) {
+            for (PropertyState p : nb.getProperties()) {
                 if (empty) {
                     empty = false;
                 } else {
