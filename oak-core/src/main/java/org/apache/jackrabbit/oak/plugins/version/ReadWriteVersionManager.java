@@ -205,7 +205,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             pb.setName(JCR_PREDECESSORS);
             PropertyState successorsPredecessors = successor.getProperty(JCR_PREDECESSORS);
             if (successorsPredecessors == null) {
-                LOG.info("removeVersion : successor has no jcr:predecessors, uuid: {}, historyRelPath: {}, versionNode: {}, successor: {}, versionHistory: {}",
+                LOG.info("removeVersion : successor has no jcr:predecessors property, uuid: {}, historyRelPath: {}, versionNode: {}, successor: {}, versionHistory: {}",
                         succId, historyRelPath, asLoggableString(versionNode), asLoggableString(successor), asLoggableString(vh));
             } else {
                 pb.setValues(successorsPredecessors.getValue(Type.REFERENCES));
@@ -228,7 +228,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             pb.setName(JCR_SUCCESSORS);
             PropertyState predecessorsSuccessors = predecessor.getProperty(JCR_SUCCESSORS);
             if (predecessorsSuccessors == null) {
-                LOG.info("removeVersion : predecessor has no jcr:successors, uuid: {}, historyRelPath: {}, versionNode: {}, predecessor: {}, versionHistory: {}",
+                LOG.info("removeVersion : predecessor has no jcr:successors property, uuid: {}, historyRelPath: {}, versionNode: {}, predecessor: {}, versionHistory: {}",
                         predId, historyRelPath, asLoggableString(versionNode), asLoggableString(predecessor), asLoggableString(vh));
             } else {
                 pb.setValues(predecessorsSuccessors.getValue(Type.REFERENCES));
