@@ -251,13 +251,13 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 if (empty) {
                     empty = false;
                 } else {
-                    sb.append(",");
+                    sb.append(", ");
                 }
                 sb.append(p);
             }
-            return "{ " + sb + "}";
+            return "{ " + sb + " }";
         } catch (Exception e) {
-            return "{n/a: " + e.getMessage() + "}";
+            return "{ n/a: " + e.getMessage() + " }";
         }
     }
 
