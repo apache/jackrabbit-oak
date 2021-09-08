@@ -257,7 +257,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             }
             return "{ " + sb + " }";
         } catch (Exception e) {
-            return "{ n/a: " + e + "/" + e.getMessage() + " }";
+            return "{ exception: " + e + ", message: " + e.getMessage() + " }";
         }
     }
 
