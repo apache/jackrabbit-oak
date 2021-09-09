@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -393,17 +394,20 @@ public class Aggregate {
             }
         }
 
+        /**
+         * Collect the aggregated results ignoring hidden properties
+         */
         @Override
         public void collectResults(String nodePath, NodeState nodeState, ResultCollector results) {
             if (pattern != null) {
                 for (PropertyState ps : nodeState.getProperties()) {
-                    if (pattern.matcher(ps.getName()).matches()) {
+                    if (!NodeStateUtils.isHidden(ps.getName()) && pattern.matcher(ps.getName()).matches()) {
                         results.onResult(new PropertyIncludeResult(ps, propertyDefinition, parentPath));
                     }
                 }
             } else {
                 PropertyState ps = nodeState.getProperty(propertyName);
-                if (ps != null) {
+                if (ps != null && !NodeStateUtils.isHidden(ps.getName())) {
                     results.onResult(new PropertyIncludeResult(ps, propertyDefinition, parentPath));
                 }
             }
