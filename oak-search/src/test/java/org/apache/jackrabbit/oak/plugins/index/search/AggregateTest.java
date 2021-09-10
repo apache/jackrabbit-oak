@@ -416,6 +416,28 @@ public class AggregateTest {
         assertThat(col.getPropPaths(), hasItems("a/foo1", "a/foo2"));
     }
 
+    @Test
+    public void regexWithHiddenProperties() {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        child(rules, "nt:folder/properties/p1")
+                .setProperty(FulltextIndexConstants.PROP_NAME, "a/.*")
+                .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
+
+        NodeBuilder nb = newNode("nt:folder");
+        nb.child("a").setProperty("foo1", "foo");
+        nb.child("a").setProperty("foo2", "foo");
+        nb.child("a").setProperty(":hidden", "foo");
+        nb.child("b").setProperty("p2", "foo");
+
+        ag.collectAggregates(nb.getNodeState(), col);
+        assertEquals(2, col.getPropPaths().size());
+        assertThat(col.getPropPaths(), hasItems("a/foo1", "a/foo2"));
+    }
+
     //~---------------------------------< IndexingConfig >
 
     @Test
