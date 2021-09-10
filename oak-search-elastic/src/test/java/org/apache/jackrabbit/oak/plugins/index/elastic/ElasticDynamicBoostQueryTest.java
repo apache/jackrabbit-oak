@@ -34,7 +34,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
 
-    public static final String ASSET_NODE_TYPE =
+    private static final String ASSET_NODE_TYPE =
             "[dam:Asset]\n" +
                     " - * (UNDEFINED) multiple\n" +
                     " - * (UNDEFINED)\n" +
