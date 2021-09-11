@@ -126,6 +126,7 @@ public class FlatFileStoreTest {
 
     @Test
     public void parallelDownload() throws Exception {
+        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
         Map<Long, List<String>> map = createPathsWithTimestamps();
         List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
         List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
@@ -146,6 +147,7 @@ public class FlatFileStoreTest {
         List<String> sortedPaths = TestUtils.sortPaths(paths);
 
         assertEquals(sortedPaths, entryPaths);
+        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     }
 
     private FlatFileStore buildFlatFileStore(FlatFileNodeStoreBuilder spyBuilder, List<Long> lastModifiedBreakpoints,
@@ -171,6 +173,7 @@ public class FlatFileStoreTest {
 
     @Test
     public void resumePreviousUnfinishedDownload() throws Exception {
+        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
         Map<Long, List<String>> map = createPathsWithTimestamps();
         List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
         List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
@@ -198,6 +201,7 @@ public class FlatFileStoreTest {
         List<String> sortedPaths = TestUtils.sortPaths(paths);
         assertEquals(paths.size(), nsetf.getTotalProvidedDocCount());
         assertEquals(sortedPaths, entryPaths);
+        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     }
 
     private static class TestMemoryManager implements MemoryManager {
