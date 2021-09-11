@@ -42,9 +42,10 @@ public class FlatFileNodeStoreBuilderTest {
     @Test
     public void defaultSortStrategy() throws Exception {
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withLastModifiedBreakPoints(Collections.emptyList());
+                .withLastModifiedBreakPoints(Collections.emptyList())
+                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
         SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof MultithreadedTraverseWithSortStrategy);
+        assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
     }
 
     @Test
