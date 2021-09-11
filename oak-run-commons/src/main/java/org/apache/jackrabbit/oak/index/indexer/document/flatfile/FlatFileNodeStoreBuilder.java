@@ -172,7 +172,7 @@ public class FlatFileNodeStoreBuilder {
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
                         blobStore, dir, existingDataDumpDirs, useZip, getMemoryManager());
         }
-        return null;
+        throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
 
     MemoryManager getMemoryManager() {
