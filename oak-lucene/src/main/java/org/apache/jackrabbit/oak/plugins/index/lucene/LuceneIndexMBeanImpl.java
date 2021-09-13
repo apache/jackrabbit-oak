@@ -791,7 +791,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                     nrtIndexSizeStr,
                     numDocsNRT,
                     lastUpdatedTimeStamp,
-                    hasHiddenOakLibsMount
+                    hasHiddenOakLibsMount,
+                    hasPropertyIndex
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
