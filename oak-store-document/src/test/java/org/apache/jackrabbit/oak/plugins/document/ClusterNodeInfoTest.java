@@ -543,7 +543,7 @@ public class ClusterNodeInfoTest {
 
         // shouldn't be able to acquire it again
         try {
-            info = newClusterNodeInfo(0);
+            info = newClusterNodeInfo(id);
             fail("Must fail here, and not get cluster node info");
         } catch(DocumentStoreException e) {
             // expected
@@ -744,10 +744,18 @@ public class ClusterNodeInfoTest {
         public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                     UpdateOp update) {
             maybeDelay();
+            maybeDelayOnce();
             maybeThrow(failBeforeUpdate, "update failed before");
             T doc = super.findAndUpdate(collection, update);
             maybeThrow(failAfterUpdate, "update failed after");
-            return doc;
+            if (getFindAndUpdateShouldAlterReturnDocument()) {
+                ClusterNodeInfoDocument cdoc = new ClusterNodeInfoDocument();
+                cdoc.data.putAll(getMapAlterReturnDocument());
+                cdoc.seal();
+                return (T)cdoc;
+            } else {
+                return doc;
+            }
         }
 
         @Override
@@ -755,12 +763,30 @@ public class ClusterNodeInfoTest {
                                            String key) {
             maybeDelay();
             maybeThrow(failFind, "find failed");
-            return super.find(collection, key);
+            T doc = super.find(collection, key);
+            if (getFindShouldAlterReturnDocument()) {
+                ClusterNodeInfoDocument cdoc = new ClusterNodeInfoDocument();
+                doc.deepCopy(cdoc);
+                cdoc.data.putAll(getMapAlterReturnDocument());
+                cdoc.seal();
+                return (T)cdoc;
+            } else {
+                return doc;
+            }
         }
 
         private void maybeDelay() {
             try {
                 clock.waitUntil(clock.getTime() + delayMillis);
+            } catch (InterruptedException e) {
+                throw new DocumentStoreException(e);
+            }
+        }
+
+        private void maybeDelayOnce() {
+            try {
+                clock.waitUntil(clock.getTime() + delayMillisOnce);
+                delayMillisOnce = 0;
             } catch (InterruptedException e) {
                 throw new DocumentStoreException(e);
             }
