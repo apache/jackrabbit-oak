@@ -413,7 +413,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void regexWithHiddenProperties() {
+    public void regexWithHiddenElements() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         child(rules, "nt:folder/properties/p1")
@@ -426,8 +426,9 @@ public class AggregateTest {
         NodeBuilder nb = newNode("nt:folder");
         nb.child("a").setProperty("foo1", "foo");
         nb.child("a").setProperty("foo2", "foo");
-        nb.child("a").setProperty(":hidden", "foo");
+        nb.child("a").setProperty(":hiddenProperty", "foo");
         nb.child("b").setProperty("p2", "foo");
+        nb.child("a").child(":hiddenNode").setProperty("foo3", "foo");
 
         ag.collectAggregates(nb.getNodeState(), col);
         assertEquals(2, col.getPropPaths().size());
