@@ -149,6 +149,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         }
 
         // Now check for hidden property index node :property-index - present in case of hybrid indexes
+        info.hasPropertyIndexNode = false;
         for(String c : idxState.getChildNodeNames()) {
             if (c.equals(IndexDefinition.PROPERTY_INDEX)) {
                 info.hasPropertyIndexNode = true;
