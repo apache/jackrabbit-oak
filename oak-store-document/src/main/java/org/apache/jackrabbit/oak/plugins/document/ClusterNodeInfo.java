@@ -298,20 +298,6 @@ public class ClusterNodeInfo {
     private volatile long leaseEndTime;
 
     /**
-     * The value of leaseEnd last updated towards DocumentStore -
-     * this one is used to compare against (for OAK-3398) when checking
-     * if any other instance updated the lease or if the lease is unchanged.
-     * (This is kind of a duplication of the leaseEndTime field, yes - but the semantics
-     * are that previousLeaseEndTime exactly only serves the purpose of
-     * keeping the value of what was stored in the previous lease update.
-     * leaseEndTime on the other hand serves the purpose of *defining the lease end*,
-     * these are two different concerns, thus justify two different fields.
-     * the leaseEndTime for example can be manipulated during tests therefore,
-     * without interfering with previousLeaseEndTime)
-     */
-    private long previousLeaseEndTime;
-
-    /**
      * The read/write mode.
      */
     private String readWriteMode;
@@ -364,7 +350,6 @@ public class ClusterNodeInfo {
         this.id = id;
         this.startTime = getCurrentTime();
         this.leaseEndTime = this.startTime +leaseTime;
-        this.previousLeaseEndTime = this.leaseEndTime;
         this.store = store;
         this.machineId = machineId;
         this.instanceId = instanceId;
@@ -1034,7 +1019,6 @@ public class ClusterNodeInfo {
                 return false;
             }
             leaseEndTime = updatedLeaseEndTime;
-            previousLeaseEndTime = leaseEndTime; // store previousLeaseEndTime for reference for next time
             String mode = (String) doc.get(READ_WRITE_MODE_KEY);
             if (mode != null && !mode.equals(readWriteMode)) {
                 readWriteMode = mode;
@@ -1056,8 +1040,8 @@ public class ClusterNodeInfo {
             }
         }
         // if we get here, the update failed with an exception, try to read the
-        // current cluster node info document and update leaseEndTime &
-        // previousLeaseEndTime accordingly until leaseEndTime is reached
+        // current cluster node info document and update leaseEndTime
+        // accordingly until leaseEndTime is reached
         while (getCurrentTime() < updatedLeaseEndTime) {
             synchronized (this) {
                 if (leaseCheckFailed) {
@@ -1086,9 +1070,8 @@ public class ClusterNodeInfo {
                     // break here and let the next lease update attempt fail
                     break;
                 } else if (doc.getRuntimeId().equals(runtimeId)) {
-                    // set lease end times to current values, as they belong
+                    // set lease end time to current value, as they belong
                     // to this same cluster node
-                    previousLeaseEndTime = doc.getLeaseEndTime();
                     leaseEndTime = doc.getLeaseEndTime();
                     break;
                 } else {
