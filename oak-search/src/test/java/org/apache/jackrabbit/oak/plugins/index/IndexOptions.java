@@ -25,6 +25,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 
 public abstract class IndexOptions {
 
@@ -35,7 +36,7 @@ public abstract class IndexOptions {
     }
 
     protected Node setIndex(Session session, String idxName, IndexDefinitionBuilder builder) throws RepositoryException {
-        return builder.build(session.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(idxName));
+        return builder.build(session.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(idxName, INDEX_DEFINITIONS_NODE_TYPE));
     }
 
     protected Node getIndexNode(Session session, String idxName) throws RepositoryException {
