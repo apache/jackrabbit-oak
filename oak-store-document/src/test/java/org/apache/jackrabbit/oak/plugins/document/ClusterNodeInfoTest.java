@@ -317,7 +317,8 @@ public class ClusterNodeInfoTest {
         final String runtimeId = info.getRuntimeId();
 
         Map<String, Long> unexpectedLeaseEnd = new HashMap<>();
-        unexpectedLeaseEnd.put(ClusterNodeInfo.LEASE_END_KEY, info.getLeaseEndTime() + 133333);
+        long unexpectedLeaseEndTime = info.getLeaseEndTime() + 133333;
+        unexpectedLeaseEnd.put(ClusterNodeInfo.LEASE_END_KEY, unexpectedLeaseEndTime);
 
         // The update will fail after 30 seconds. Simulating a Mongo timeout.
         store.setFailAfterUpdate(1);
@@ -344,6 +345,7 @@ public class ClusterNodeInfoTest {
         // ClusterNodeInfo. Meaning it will eventually be treated as 'expired'
         // by the DocumentNodeStore, even when in Mongo it was set.
         assertThat(leaseEndTimeBeforeRenew, lessThan(info.getLeaseEndTime()));
+        assertEquals(unexpectedLeaseEndTime, info.getLeaseEndTime());
         // Runtime ID is the same
         assertEquals(runtimeId, info.getRuntimeId());
     }
