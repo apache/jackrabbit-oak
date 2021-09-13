@@ -134,6 +134,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                     "Lucene Index Stats", IndexStats.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
             // Use indexPathService to get list of all the lucene indexes.
+            // Earlier we used IndexTracker here to get the list of indexes - but that
+            // only shows the open ones.
             for (String path : indexPathService.getIndexPaths()) {
                 LuceneIndexNode indexNode = null;
                 try {
@@ -691,7 +693,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 "nrtIndexSize",
                 "nrtIndexSizeStr",
                 "nrtNumDocs",
-                "lastUpdatedTimeStamp",
+                "lastUpdatedTimestamp",
                 "hasHiddenOakLibsMount",
                 "hasPropertyIndex"
         };
@@ -757,7 +759,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         private final long nrtIndexSize;
         private final String nrtIndexSizeStr;
         private final int numDocsNRT;
-        private String lastUpdatedTimeStamp = "INFO_UNAVAILABLE";
+        private String lastUpdatedTimestamp = "INFO_UNAVAILABLE";
         private boolean hasHiddenOakLibsMount = false;
         private boolean hasPropertyIndex = false;
 
@@ -778,7 +780,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             numDocsNRT = getNumDocs(indexNode.getNRTReaders());
             nrtIndexSizeStr = humanReadableByteCount(nrtIndexSize);
             if (indexInfoService != null) {
-                lastUpdatedTimeStamp = formatTime(indexInfoService.getInfo(this.path).getLastUpdatedTime());
+                lastUpdatedTimestamp = formatTime(indexInfoService.getInfo(this.path).getLastUpdatedTime());
                 hasHiddenOakLibsMount = indexInfoService.getInfo(this.path).hasHiddenOakLibsMount();
                 hasPropertyIndex = indexInfoService.getInfo(this.path).hasPropertyIndexNode();
             }
@@ -798,7 +800,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                     nrtIndexSize,
                     nrtIndexSizeStr,
                     numDocsNRT,
-                    lastUpdatedTimeStamp,
+                    lastUpdatedTimestamp,
                     hasHiddenOakLibsMount,
                     hasPropertyIndex
             };

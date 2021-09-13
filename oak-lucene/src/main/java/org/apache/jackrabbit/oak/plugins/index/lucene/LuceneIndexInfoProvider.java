@@ -141,17 +141,13 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
     private static void checkIfHiddenNodesExists(NodeState idxState, LuceneIndexInfo info) {
         // Check for hidden oak libs mount node that has indexed content for read only repo in composite store
+        // Also check for hidden property index node :property-index - present in case of hybrid indexes
         info.hasHiddenOakLibsMount = false;
+        info.hasPropertyIndexNode = false;
         for(String c : idxState.getChildNodeNames()) {
             if (c.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
                 info.hasHiddenOakLibsMount = true;
-            }
-        }
-
-        // Now check for hidden property index node :property-index - present in case of hybrid indexes
-        info.hasPropertyIndexNode = false;
-        for(String c : idxState.getChildNodeNames()) {
-            if (c.equals(IndexDefinition.PROPERTY_INDEX)) {
+            } else if (c.equals(IndexDefinition.PROPERTY_INDEX)) {
                 info.hasPropertyIndexNode = true;
             }
         }
