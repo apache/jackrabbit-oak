@@ -99,6 +99,7 @@ public interface IndexInfo {
 
     /**
      *Determines if :property-index node is present
+     * @return true if the index is hybrid and has :property-index node, false otherwise.
      */
     boolean hasPropertyIndexNode();
 }
