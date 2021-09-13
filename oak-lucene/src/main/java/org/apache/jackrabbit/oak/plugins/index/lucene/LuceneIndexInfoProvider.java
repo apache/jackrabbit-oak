@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
@@ -87,6 +85,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         computeIndexDefinitionChange(idxState, info);
         computeLastUpdatedTime(idxState, info);
         computeAsyncIndexInfo(idxState, indexPath, info);
+        checkIfHiddenNodesExists(idxState, info);
         return info;
     }
 
@@ -140,6 +139,23 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         }
     }
 
+    private static void checkIfHiddenNodesExists(NodeState idxState, LuceneIndexInfo info) {
+        // Check for hidden oak libs mount node that has indexed content for read only repo in composite store
+        info.hasHiddenOakLibsMount = false;
+        for(String c : idxState.getChildNodeNames()) {
+            if (c.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
+                info.hasHiddenOakLibsMount = true;
+            }
+        }
+
+        // Now check for hidden property index node :property-index - present in case of hybrid indexes
+        for(String c : idxState.getChildNodeNames()) {
+            if (c.equals(IndexDefinition.PROPERTY_INDEX)) {
+                info.hasPropertyIndexNode = true;
+            }
+        }
+    }
+
     private static void computeIndexDefinitionChange(NodeState idxState, LuceneIndexInfo info) {
         NodeState storedDefn = idxState.getChildNode(INDEX_DEFINITION_NODE);
         if (storedDefn.exists()) {
@@ -160,6 +176,8 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         long lastUpdatedTime;
         boolean indexDefinitionChanged;
         String indexDiff;
+        boolean hasHiddenOakLibsMount;
+        boolean hasPropertyIndexNode;
 
         public LuceneIndexInfo(String indexPath) {
             this.indexPath = indexPath;
@@ -208,6 +226,16 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         @Override
         public String getIndexDefinitionDiff() {
             return indexDiff;
+        }
+
+        @Override
+        public boolean hasHiddenOakLibsMount() {
+            return hasHiddenOakLibsMount;
+        }
+
+        @Override
+        public boolean hasPropertyIndexNode() {
+            return hasPropertyIndexNode;
         }
     }
 

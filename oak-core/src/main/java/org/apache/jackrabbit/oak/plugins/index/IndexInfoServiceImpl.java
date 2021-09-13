@@ -178,5 +178,15 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         public String getIndexDefinitionDiff() {
             return null;
         }
+
+        @Override
+        public boolean hasHiddenOakLibsMount() {
+            return false;
+        }
+
+        @Override
+        public boolean hasPropertyIndexNode() {
+            return false;
+        }
     }
 }

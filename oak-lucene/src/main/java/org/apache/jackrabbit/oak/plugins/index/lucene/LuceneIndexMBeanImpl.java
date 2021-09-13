@@ -28,11 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IND
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -49,8 +45,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
+import org.apache.jackrabbit.oak.plugins.index.*;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Result;
@@ -58,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyInd
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker.BadIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -67,6 +63,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
@@ -87,6 +84,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +103,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     private final IndexPathService indexPathService;
     private final File workDir;
     private final PropertyIndexCleaner propertyIndexCleaner;
+    private final IndexInfoService indexInfoService;
+    private final AsyncIndexInfoService asyncIndexInfoService;
 
     public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
         super(LuceneIndexMBean.class);
@@ -113,6 +113,9 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         this.indexPathService = indexPathService;
         this.workDir = checkNotNull(workDir);
         this.propertyIndexCleaner = cleaner;
+        this.indexInfoService = new IndexInfoServiceImpl(this.nodeStore, this.indexPathService);
+        this.asyncIndexInfoService = new AsyncIndexInfoServiceImpl(this.nodeStore);
+        bindIndexInfoProviders((IndexInfoServiceImpl) indexInfoService);
     }
 
     @Override
@@ -122,13 +125,13 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             TabularType tt = new TabularType(LuceneIndexMBeanImpl.class.getName(),
                     "Lucene Index Stats", IndexStats.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
-            Set<String> indexes = indexTracker.getIndexNodePaths();
-            for (String path : indexes) {
+            // Use indexPathService to get list of all the lucene indexes.
+            for (String path : indexPathService.getIndexPaths()) {
                 LuceneIndexNode indexNode = null;
                 try {
                     indexNode = indexTracker.acquireIndexNode(path);
                     if (indexNode != null) {
-                        IndexStats stats = new IndexStats(path, indexNode);
+                        IndexStats stats = new IndexStats(path, indexNode, indexInfoService);
                         tds.put(stats.toCompositeData());
                     }
                 } finally {
@@ -148,7 +151,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         try {
             indexNode = indexTracker.acquireIndexNode(path);
             if (indexNode != null) {
-                return new IndexStats(path, indexNode);
+                return new IndexStats(path, indexNode, indexInfoService);
             }
         } finally {
             if (indexNode != null) {
@@ -267,6 +270,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     @Override
     public String[] getFieldTermInfo(String indexPath, String field, String term) throws IOException {
         return getFieldTermPrefixInfo(indexPath, field, Integer.MAX_VALUE, term);
+    }
+
+    private void bindIndexInfoProviders(IndexInfoServiceImpl indexInfoService) {
+        indexInfoService.bindInfoProviders(new LuceneIndexInfoProvider(this.nodeStore, asyncIndexInfoService, workDir));
     }
 
     private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term) throws IOException {
@@ -675,7 +682,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 "numDeletedDocs",
                 "nrtIndexSize",
                 "nrtIndexSizeStr",
-                "nrtNumDocs"
+                "nrtNumDocs",
+                "lastUpdatedTimeStamp",
+                "hasHiddenOakLibsMount",
+                "hasPropertyIndex"
         };
 
         static final String[] FIELD_DESCRIPTIONS = new String[]{
@@ -689,7 +699,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 "Number of deleted documents",
                 "NRT Index Size in bytes",
                 "NRT Index Size in human readable format",
-                "Number of documents in NRT index"
+                "Number of documents in NRT index",
+                "Last updated time stamp for the index",
+                "If the index has a hidden oak libs mount",
+                "If the index has a property index"
         };
 
         @SuppressWarnings("rawtypes")
@@ -704,7 +717,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 SimpleType.INTEGER,
                 SimpleType.LONG,
                 SimpleType.STRING,
-                SimpleType.INTEGER
+                SimpleType.INTEGER,
+                SimpleType.STRING,
+                SimpleType.BOOLEAN,
+                SimpleType.BOOLEAN
         };
 
         static final CompositeType TYPE = createCompositeType();
@@ -733,8 +749,15 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         private final long nrtIndexSize;
         private final String nrtIndexSizeStr;
         private final int numDocsNRT;
+        private String lastUpdatedTimeStamp = "INFO_UNAVAILABLE";
+        private boolean hasHiddenOakLibsMount = false;
+        private boolean hasPropertyIndex = false;
 
         public IndexStats(String path, LuceneIndexNode indexNode) throws IOException {
+            this(path, indexNode, null);
+        }
+
+        public IndexStats(String path, LuceneIndexNode indexNode, IndexInfoService indexInfoService) throws IOException {
             this.path = path;
             numDocs = indexNode.getSearcher().getIndexReader().numDocs();
             maxDoc = indexNode.getSearcher().getIndexReader().maxDoc();
@@ -746,6 +769,12 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             nrtIndexSize = getIndexSize(indexNode.getNRTReaders());
             numDocsNRT = getNumDocs(indexNode.getNRTReaders());
             nrtIndexSizeStr = humanReadableByteCount(nrtIndexSize);
+            if (indexInfoService != null) {
+                lastUpdatedTimeStamp = formatTime(indexInfoService.getInfo(this.path).getLastUpdatedTime());
+                hasHiddenOakLibsMount = indexInfoService.getInfo(this.path).hasHiddenOakLibsMount();
+                hasPropertyIndex = indexInfoService.getInfo(this.path).hasPropertyIndexNode();
+            }
+
         }
 
         CompositeDataSupport toCompositeData() {
@@ -760,7 +789,9 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                     numDeletedDocs,
                     nrtIndexSize,
                     nrtIndexSizeStr,
-                    numDocsNRT
+                    numDocsNRT,
+                    lastUpdatedTimeStamp,
+                    hasHiddenOakLibsMount
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
@@ -855,6 +886,12 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             numDoc += r.getReader().numDocs();
         }
         return numDoc;
+    }
+
+    private static String formatTime(long time){
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(time);
+        return ISO8601.format(cal);
     }
 
 }

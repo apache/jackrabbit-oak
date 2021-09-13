@@ -145,5 +145,15 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
         public String getIndexDefinitionDiff() {
             return null;
         }
+
+        @Override
+        public boolean hasHiddenOakLibsMount() {
+            return false;
+        }
+
+        @Override
+        public boolean hasPropertyIndexNode() {
+            return false;
+        }
     }
 }

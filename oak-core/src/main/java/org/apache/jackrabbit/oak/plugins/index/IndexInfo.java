@@ -90,4 +90,15 @@ public interface IndexInfo {
      */
     @Nullable
     String getIndexDefinitionDiff();
+
+    /**
+     * Determines if a hidden oak libs mount node is present
+     * @return true in case of composite node store with indexed content from read-only part of repository, false otherwise
+     */
+    boolean hasHiddenOakLibsMount();
+
+    /**
+     *Determines if :property-index node is present
+     */
+    boolean hasPropertyIndexNode();
 }
