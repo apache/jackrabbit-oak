@@ -111,7 +111,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     private final IndexPathService indexPathService;
     private final File workDir;
     private final PropertyIndexCleaner propertyIndexCleaner;
-    private final IndexInfoService indexInfoService;
+    private final IndexInfoServiceImpl indexInfoService;
     private final AsyncIndexInfoService asyncIndexInfoService;
 
     public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
@@ -123,7 +123,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         this.propertyIndexCleaner = cleaner;
         this.indexInfoService = new IndexInfoServiceImpl(this.nodeStore, this.indexPathService);
         this.asyncIndexInfoService = new AsyncIndexInfoServiceImpl(this.nodeStore);
-        bindIndexInfoProviders((IndexInfoServiceImpl) indexInfoService);
+        indexInfoService.bindInfoProviders(new LuceneIndexInfoProvider(this.nodeStore, asyncIndexInfoService, workDir));
     }
 
     @Override
@@ -280,10 +280,6 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     @Override
     public String[] getFieldTermInfo(String indexPath, String field, String term) throws IOException {
         return getFieldTermPrefixInfo(indexPath, field, Integer.MAX_VALUE, term);
-    }
-
-    private void bindIndexInfoProviders(IndexInfoServiceImpl indexInfoService) {
-        indexInfoService.bindInfoProviders(new LuceneIndexInfoProvider(this.nodeStore, asyncIndexInfoService, workDir));
     }
 
     private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term) throws IOException {
