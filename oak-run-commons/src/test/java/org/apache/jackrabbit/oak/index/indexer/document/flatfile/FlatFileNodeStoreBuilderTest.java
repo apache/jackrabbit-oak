@@ -50,34 +50,43 @@ public class FlatFileNodeStoreBuilderTest {
 
     @Test
     public void sortStrategyBasedOnSystemProperty() throws Exception {
-        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
-        SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
-        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
+            FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
+                    .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
+            SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
+            assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
     }
 
     @Test
     public void disableTraverseAndSortStrategyUsingSystemProperty() throws Exception {
-        System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false");
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
-        SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof StoreAndSortStrategy);
-        System.clearProperty(OAK_INDEXER_TRAVERSE_WITH_SORT);
+        try {
+            System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false");
+            FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
+                    .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
+            SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
+            assertTrue(sortStrategy instanceof StoreAndSortStrategy);
+        } finally {
+            System.clearProperty(OAK_INDEXER_TRAVERSE_WITH_SORT);
+        }
     }
 
     @Test
     public void sortStrategySystemPropertyPrecedence() throws Exception {
-        System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false");
-        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
-        SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
-        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
-        System.clearProperty(OAK_INDEXER_TRAVERSE_WITH_SORT);
+        try {
+            System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false");
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
+            FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
+                    .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
+            SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
+            assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+            System.clearProperty(OAK_INDEXER_TRAVERSE_WITH_SORT);
+        }
     }
 
 
