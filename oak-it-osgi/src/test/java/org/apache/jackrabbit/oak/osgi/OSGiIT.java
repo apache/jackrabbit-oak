@@ -34,6 +34,7 @@ import javax.inject.Inject;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -151,4 +152,15 @@ public class OSGiIT {
         System.out.println(repository.getDescriptor(Repository.REP_NAME_DESC));
     }
 
+    @Test
+    public void testLeaseFailureHandlerIsExported() {
+        LeaseFailureHandler handler = new LeaseFailureHandler() {
+            @Override
+            public void handleLeaseFailure() {
+                // this empty block is okay
+            }
+        };
+        context.registerService("org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler",
+                handler, null);
+    }
 }
