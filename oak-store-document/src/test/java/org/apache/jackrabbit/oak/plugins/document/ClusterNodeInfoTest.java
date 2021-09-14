@@ -368,12 +368,7 @@ public class ClusterNodeInfoTest {
         store.findAndUpdate(Collection.CLUSTER_NODES, update);
 
         // now another renew happens, which will try to set a lesser lease end
-        try {
-            info.renewLease();
-            fail("Should fail with: Could not update lease anymore...");
-        } catch(DocumentStoreException e) {
-            // expected
-        }
+        info.renewLease();
 
         Document info2 = store.find(Collection.CLUSTER_NODES, "1");
         // the lease end time should remain the same

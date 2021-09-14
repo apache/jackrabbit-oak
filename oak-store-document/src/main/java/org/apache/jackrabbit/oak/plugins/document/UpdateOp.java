@@ -337,34 +337,6 @@ public final class UpdateOp {
     }
 
     /**
-     * Checks if the property or map entry is less than the given value.
-     *
-     * @param property the name of the property or map.
-     * @param value the value to compare to.
-     */
-    void lessThan(@NotNull String property, @Nullable Object value) {
-        lessThan(property, null, value);
-    }
-
-    /**
-     * Checks if the property or map entry does not exist or is not equal to the given value.
-     *
-     * @param property the name of the property or map.
-     * @param revision the revision within the map or {@code null} if this check
-     *                 is for a property.
-     * @param value the value to compare to.
-     */
-    void lessThan(@NotNull String property,
-                  @Nullable Revision revision,
-                  @Nullable Object value) {
-        if (isNew) {
-            throw new IllegalStateException("Cannot perform lessThan check on new document");
-        }
-        getOrCreateConditions().put(new Key(property, revision),
-                Condition.newLessThanCondition(value));
-    }
-
-    /**
      * Increment the value.
      *
      * @param property the key
@@ -547,12 +519,7 @@ public final class UpdateOp {
             /**
              * Checks if a map entry does not equal a given value.
              */
-            NOTEQUALS,
-
-            /**
-             * Checks if a map entry is less than a given value.
-             */
-            LESSTHAN
+            NOTEQUALS
         }
 
         /**
@@ -588,16 +555,6 @@ public final class UpdateOp {
          */
         public static Condition newNotEqualsCondition(@Nullable Object value) {
             return new Condition(Type.NOTEQUALS, value);
-        }
-
-        /**
-         * Creates a new lessThan condition with the given value.
-         *
-         * @param value the value to compare t
-         * @return the lessThan condition.
-         */
-        public static Condition newLessThanCondition(@Nullable Object value) {
-            return new Condition(Type.LESSTHAN, value);
         }
 
         @Override

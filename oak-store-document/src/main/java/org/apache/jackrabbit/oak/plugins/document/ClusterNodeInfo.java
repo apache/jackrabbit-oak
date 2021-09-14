@@ -943,7 +943,8 @@ public class ClusterNodeInfo {
         }
 
         UpdateOp update = new UpdateOp("" + id, false);
-        update.set(LEASE_END_KEY, updatedLeaseEndTime);
+        // Update the field only if the newer value is higher (or doesn't exist)
+        update.max(LEASE_END_KEY, updatedLeaseEndTime);
 
         if (leaseCheckMode != LeaseCheckMode.DISABLED) {
             // if leaseCheckDisabled, then we just update the lease without
@@ -954,15 +955,12 @@ public class ClusterNodeInfo {
             // then we can now make an assertion that the lease is unchanged
             // and the incremental update must only succeed if no-one else
             // did a recover/inactivation in the meantime
-            // make three assertions: the leaseEnd must be lesser to avoid having
-            // an 'older' update overwrite the Lease End Time of a newer execution.
-            update.lessThan(LEASE_END_KEY, null, updatedLeaseEndTime);
-            // plus it must still be active ..
+            // make three assertions: it must still be active
             update.equals(STATE, null, ACTIVE.name());
             // plus it must not have a recovery lock on it
             update.notEquals(REV_RECOVERY_LOCK, ACQUIRED.name());
-            // a runtimeId that we create (UUID) at startup each time, and we
-            // check here against that
+            // and the runtimeId that we create at startup each time
+            // should be the same
             update.equals(RUNTIME_ID_KEY, null, runtimeId);
         }
 

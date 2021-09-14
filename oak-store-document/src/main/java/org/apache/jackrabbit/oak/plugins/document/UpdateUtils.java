@@ -150,18 +150,6 @@ public class UpdateUtils {
                 } else if (c.type == Condition.Type.NOTEQUALS && equal) {
                     return false;
                 }
-            } else if (c.type == Condition.Type.LESSTHAN) {
-                if (r != null) {
-                    if (value instanceof Map) {
-                        value = ((Map) value).get(r);
-                    } else {
-                        value = null;
-                    }
-                }
-                if (value instanceof Comparable && c.value instanceof Comparable) {
-                    int lessThan = ((Comparable) value).compareTo(c.value);
-                    return lessThan == -1;
-                }
             } else {
                 throw new IllegalArgumentException("Unknown condition: " + c.type);
             }
