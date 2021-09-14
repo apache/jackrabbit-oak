@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBu
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreMetrics;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;

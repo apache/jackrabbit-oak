@@ -29,6 +29,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
+import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
