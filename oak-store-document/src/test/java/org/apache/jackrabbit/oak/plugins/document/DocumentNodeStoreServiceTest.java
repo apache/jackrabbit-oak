@@ -262,6 +262,8 @@ public class DocumentNodeStoreServiceTest {
 
     @Test
     public void defaultLeaseFailureHandlerCheck() {
+        Map<String, Object> config = newConfig(repoHome);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
         MockOsgi.activate(service, context.bundleContext());
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
         assertNotNull(dns);
@@ -287,6 +289,8 @@ public class DocumentNodeStoreServiceTest {
             }
         };
         context.registerService(LeaseFailureHandler.class, customLeaseFailureHandler);
+        Map<String, Object> config = newConfig(repoHome);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
         MockOsgi.activate(service, context.bundleContext());
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
         assertNotNull(dns);
