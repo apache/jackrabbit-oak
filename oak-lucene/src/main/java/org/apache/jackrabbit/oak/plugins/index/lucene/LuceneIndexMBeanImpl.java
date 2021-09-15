@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker.BadIndexIn
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -133,10 +134,20 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             TabularType tt = new TabularType(LuceneIndexMBeanImpl.class.getName(),
                     "Lucene Index Stats", IndexStats.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
+
             // Use indexPathService to get list of all the lucene indexes.
             // Earlier we used IndexTracker here to get the list of indexes - but that
             // only shows the open ones.
-            for (String path : indexPathService.getIndexPaths()) {
+            List<String> indexPaths = (List<String>) indexPathService.getIndexPaths();
+
+            // For composite node-store, where we can have different versioned indexes - we need to ignore older versions here
+            //
+            if (indexTracker.getMountInfoProvider().hasNonDefaultMounts()) {
+                indexPaths = (List<String>) IndexName.filterReplacedIndexes(indexPaths, this.nodeStore.getRoot(), true);
+            }
+
+            for (String path : indexPaths) {
+
                 LuceneIndexNode indexNode = null;
                 try {
                     indexNode = indexTracker.acquireIndexNode(path);
