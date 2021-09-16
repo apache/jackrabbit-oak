@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
@@ -1118,6 +1119,10 @@ public class ClusterNodeInfo {
 
     public long getLeaseEndTime() {
         return leaseEndTime;
+    }
+
+    LeaseFailureHandler getLeaseFailureHandler() {
+        return leaseFailureHandler;
     }
 
     public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.google.common.collect.Maps;
@@ -28,6 +29,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
+import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
@@ -257,6 +259,54 @@ public class DocumentNodeStoreServiceTest {
 
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
         assertEquals(LeaseCheckMode.LENIENT, dns.getClusterInfo().getLeaseCheckMode());
+    }
+
+    @Test
+    public void defaultLeaseFailureHandlerCheck() {
+        Map<String, Object> config = newConfig(repoHome);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertNotNull(dns);
+        ClusterNodeInfo clusterInfo = dns.getClusterInfo();
+        LeaseFailureHandler leaseFailureHandler = clusterInfo.getLeaseFailureHandler();
+        assertNotNull(leaseFailureHandler);
+        try {
+            leaseFailureHandler.handleLeaseFailure();
+            fail("default leaseFailureHandler should call bundle.stop(), which is not supported");
+        } catch (UnsupportedOperationException u) {
+            // the default LeaseFailureHandler should fail, as it calls bundle.stop()
+            // and that is not supported (throws UnsupportedOperationExceptino)
+        }
+    }
+
+    @Test
+    public void customLeaseFailureHandlerCheck() {
+        final AtomicInteger counter = new AtomicInteger(0);
+        LeaseFailureHandler customLeaseFailureHandler = new LeaseFailureHandler() {
+            @Override
+            public void handleLeaseFailure() {
+                counter.incrementAndGet();
+            }
+        };
+        context.registerService(LeaseFailureHandler.class, customLeaseFailureHandler);
+        Map<String, Object> config = newConfig(repoHome);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertNotNull(dns);
+        ClusterNodeInfo clusterInfo = dns.getClusterInfo();
+        LeaseFailureHandler leaseFailureHandler = clusterInfo.getLeaseFailureHandler();
+        assertNotNull(leaseFailureHandler);
+        assertEquals(0, counter.get());
+        for(int i = 0; i < 10; i++) {
+            // now the custom LeaseFailureHandler should be used,
+            // which just increments a counter.
+            // but more importantly: it should no longer fail,
+            // as does the default LeaseFailureHandler
+            leaseFailureHandler.handleLeaseFailure();
+            assertEquals(i + 1, counter.get());
+        }
     }
 
     @Test

@@ -50,6 +50,7 @@
             </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.document.spi,
+              org.apache.jackrabbit.oak.plugins.document.spi.lease
             </Export-Package>
             <Embed-Dependency>quartz;inline=org/quartz/CronExpression*|org/quartz/ValueSet*</Embed-Dependency>
           </instructions>

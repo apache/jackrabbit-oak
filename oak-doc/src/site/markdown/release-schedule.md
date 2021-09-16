@@ -26,8 +26,6 @@ according to needs
 - 1.22: every 13 weeks (~4 / year)
 - 1.8: every 13 weeks (~4 / year)
 - 1.6: every 26 weeks (~2 / year)
-- 1.4: every 26 weeks (~2 / year)
-- 1.2: every 52 weeks (1 / year)
 
 ## Strategies
 
