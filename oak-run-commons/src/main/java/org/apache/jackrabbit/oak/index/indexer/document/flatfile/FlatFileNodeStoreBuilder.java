@@ -75,7 +75,7 @@ public class FlatFileNodeStoreBuilder {
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
-            (useTraverseWithSort ? SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT : SortStrategyType.STORE_AND_SORT);
+            (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.STORE_AND_SORT);
 
     public enum SortStrategyType {
         /**
@@ -167,11 +167,12 @@ public class FlatFileNodeStoreBuilder {
                 log.info("Using TraverseWithSortStrategy");
                 return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
                         Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
-            default:
+            case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
                         blobStore, dir, existingDataDumpDirs, useZip, getMemoryManager());
         }
+        throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
 
     MemoryManager getMemoryManager() {
