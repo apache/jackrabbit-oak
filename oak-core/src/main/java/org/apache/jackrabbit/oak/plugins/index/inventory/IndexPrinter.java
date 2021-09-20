@@ -20,8 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
@@ -183,10 +186,12 @@ public class IndexPrinter implements InventoryPrinter {
 
         if (info.getSizeInBytes() >= 0){
             keyValue("    Size                     ", IOUtils.humanReadableByteCount(info.getSizeInBytes()), pw, json, format);
+            keyValue("    Size (in Bytes)          ", info.getSizeInBytes(), pw, json, format);
         }
 
         if (info.getSuggestSizeInBytes() >= 0){
             keyValue("    Suggest size             ", IOUtils.humanReadableByteCount(info.getSuggestSizeInBytes()), pw, json, format);
+            keyValue("    Suggest size (in Bytes)  ", info.getSuggestSizeInBytes(), pw, json, format);
         }
 
         if (info.getEstimatedEntryCount() >= 0){
@@ -212,7 +217,10 @@ public class IndexPrinter implements InventoryPrinter {
     private static String formatTime(long time){
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(time);
-        return ISO8601.format(cal);
+        Date date = cal.getTime();
+        SimpleDateFormat outputFmt = new SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss.s z");
+        outputFmt.setTimeZone(TimeZone.getTimeZone("UTC")); //set timezone here
+        return outputFmt.format(date);
     }
 
     private static void keyValue(String key, Object value, PrintWriter pw, JsopBuilder json, Format format) {
