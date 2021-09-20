@@ -45,9 +45,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Component(
         service = InventoryPrinter.class,
         property = {
-            "felix.inventory.printer.name=oak-index-stats",
-            "felix.inventory.printer.title=Oak Index Stats",
-            "felix.inventory.printer.format=TEXT",
+                "felix.inventory.printer.name=oak-index-stats",
+                "felix.inventory.printer.title=Oak Index Stats",
+                "felix.inventory.printer.format=TEXT",
                 "felix.inventory.printer.format=JSON"
         })
 public class IndexPrinter implements InventoryPrinter {
@@ -96,8 +96,8 @@ public class IndexPrinter implements InventoryPrinter {
             printWithNewLine(pw, lane, format);
             addJsonKey(json, lane);
             AsyncIndexInfo info = asyncIndexInfoService.getInfo(lane);
+            startJsonObject(json);
             if (info != null) {
-                startJsonObject(json);
                 keyValue("    Last indexed to      ", formatTime(info.getLastIndexedTo()), pw, json, format);
                 IndexStatsMBean stats = info.getStatsMBean();
                 if (stats != null) {
@@ -110,11 +110,8 @@ public class IndexPrinter implements InventoryPrinter {
                     }
                 }
                 printWithNewLine(pw, "", format);
-                endJsonObject(json);
-            } else {
-                startJsonObject(json);
-                endJsonObject(json);
             }
+            endJsonObject(json);
         }
         endJsonObject(json);
     }
@@ -206,7 +203,7 @@ public class IndexPrinter implements InventoryPrinter {
             keyValue("    Estimated entry count    ", info.getEstimatedEntryCount(), pw, json, format);
         }
 
-        if (info.getType() == "lucene") {
+        if (info.getType().equals("lucene")) {
             // Only valid for lucene type indexes, for others it will simply show false.
             keyValue("    Has hidden oak mount     ", info.hasHiddenOakLibsMount(), pw, json, format);
             keyValue("    Has property index       ", info.hasPropertyIndexNode(), pw, json, format);
@@ -239,7 +236,7 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     // Wrappers around JsonBuilder that will result in NOOP if builder is null -
-    // These are just to avoid the mulitple if/else check while handling for both TEXT and JSON formats
+    // These are just to avoid the multiple if/else check while handling for both TEXT and JSON formats
     private static void startJsonObject(JsopBuilder json) {
         if (json != null) {
             json.object();

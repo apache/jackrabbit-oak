@@ -35,8 +35,9 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,7 +72,7 @@ public class IndexPrinterTest {
         Map<String, JsonObject> jsonMap = json.getChildren();
         assertTrue(jsonMap.keySet().contains("Async Indexers State"));
         int size  = Integer.parseInt(jsonMap.get("Async Indexers State").getProperties().get("Number of async indexer lanes"));
-        assertTrue(size == 2);
+        assertEquals(2, size);
 
         assertTrue(jsonMap.get("Async Indexers State").getChildren().keySet().contains("foo-async"));
         assertTrue(jsonMap.get("Async Indexers State").getChildren().keySet().contains("bar-async"));
@@ -107,6 +108,10 @@ public class IndexPrinterTest {
         String output = getPrintOutput(Format.JSON);
         JsonObject json = JsonObject.fromJson(output, true);
         Map<String, JsonObject> jsonMap = json.getChildren();
+        assertTrue(jsonMap.keySet().contains("Async Indexers State"));
+
+        assertEquals(0, jsonMap.get("Async Indexers State").getChildren().size());
+
         assertTrue(jsonMap.keySet().contains("lucene"));
         assertTrue(jsonMap.keySet().contains("property"));
         assertTrue(jsonMap.get("lucene").getChildren().keySet().contains("/oak:index/barIndex"));
