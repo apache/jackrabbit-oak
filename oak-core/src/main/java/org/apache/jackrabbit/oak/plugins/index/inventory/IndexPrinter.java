@@ -146,16 +146,6 @@ public class IndexPrinter implements InventoryPrinter {
             startJsonObject(json);
             for (IndexInfo info : typedInfo){
                 printIndexInfo(pw, json, info, format);
-                if (format == Format.TEXT) {
-                    if (info.hasIndexDefinitionChangedWithoutReindexing()) {
-                        pw.println("    Index definition changed without reindexing");
-                        String diff = info.getIndexDefinitionDiff();
-                        if (diff != null) {
-                            pw.println("    "+diff);
-                        }
-                    }
-                    pw.println();
-                }
             }
             endJsonObject(json);
         }
@@ -208,6 +198,14 @@ public class IndexPrinter implements InventoryPrinter {
             keyValue("    Has hidden oak mount     ", info.hasHiddenOakLibsMount(), pw, json, format);
             keyValue("    Has property index       ", info.hasPropertyIndexNode(), pw, json, format);
         }
+
+        if (info.hasIndexDefinitionChangedWithoutReindexing()) {
+            String diff = info.getIndexDefinitionDiff();
+            if (diff != null) {
+                keyValue("    Index definition changed without reindexing ", diff, pw, json, format);
+                printWithNewLine(pw, "", format);
+            }
+        }
         endJsonObject(json);
     }
 
@@ -218,6 +216,11 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     private static void keyValue(String key, Object value, PrintWriter pw, JsopBuilder json, Format format) {
+        // In case the key is null or an emppty String or value is null,
+        // throw an IllegalArgumentException.
+        if (value == null || key == null || key.equals("")) {
+            throw new IllegalArgumentException("Unsupported key/value pair - can't be null/empty");
+        }
 
         if (format == Format.JSON) {
             json.key(key.trim());
@@ -229,6 +232,8 @@ public class IndexPrinter implements InventoryPrinter {
                 json.value((Boolean)value);
             } else if (value instanceof Integer) {
                 json.value((Integer) value);
+            } else {
+                throw new IllegalArgumentException("Unsupported type of value while creating the json output");
             }
         } else if (format == Format.TEXT) {
             pw.printf(key+":%s%n",value);
