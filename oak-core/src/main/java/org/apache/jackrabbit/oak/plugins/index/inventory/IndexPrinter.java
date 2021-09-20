@@ -78,7 +78,7 @@ public class IndexPrinter implements InventoryPrinter {
             pw.print(JsopBuilder.prettyPrint(json.toString()));
         } else {
             //TODO Highlight if failing
-            printAsyncIndexInfo(pw, null,format);
+            printAsyncIndexInfo(pw, null, format);
             printIndexInfo(pw, null, format);
         }
     }
