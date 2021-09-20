@@ -203,7 +203,7 @@ public class IndexPrinter implements InventoryPrinter {
             keyValue("    Estimated entry count    ", info.getEstimatedEntryCount(), pw, json, format);
         }
 
-        if (info.getType().equals("lucene")) {
+        if ("lucene".equals(info.getType())) {
             // Only valid for lucene type indexes, for others it will simply show false.
             keyValue("    Has hidden oak mount     ", info.hasHiddenOakLibsMount(), pw, json, format);
             keyValue("    Has property index       ", info.hasPropertyIndexNode(), pw, json, format);
