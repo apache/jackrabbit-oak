@@ -31,6 +31,7 @@ import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
@@ -46,7 +47,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
         property = {
             "felix.inventory.printer.name=oak-index-stats",
             "felix.inventory.printer.title=Oak Index Stats",
-            "felix.inventory.printer.format=TEXT"
+            "felix.inventory.printer.format=TEXT",
+                "felix.inventory.printer.format=JSON"
         })
 public class IndexPrinter implements InventoryPrinter {
 
@@ -66,97 +68,193 @@ public class IndexPrinter implements InventoryPrinter {
 
     @Override
     public void print(PrintWriter pw, Format format, boolean isZip) {
-        //TODO Highlight if failing
-        printAsyncIndexInfo(pw);
-        printIndexInfo(pw);
-    }
 
-    private void printAsyncIndexInfo(PrintWriter pw) {
-        List<String> asyncLanes = ImmutableList.copyOf(asyncIndexInfoService.getAsyncLanes());
-        String title = "Async Indexers State";
-        printTitle(pw, title);
-        pw.printf("Number of async indexer lanes : %d%n", asyncLanes.size());
-        pw.println();
-        for (String lane : asyncLanes) {
-            pw.println(lane);
-            AsyncIndexInfo info = asyncIndexInfoService.getInfo(lane);
-            if (info != null) {
-                        pw.printf("    Last indexed to      : %s%n", formatTime(info.getLastIndexedTo()));
-                IndexStatsMBean stats = info.getStatsMBean();
-                if (stats != null) {
-                        pw.printf("    Status              : %s%n", stats.getStatus());
-                        pw.printf("    Failing             : %s%n", stats.isFailing());
-                        pw.printf("    Paused              : %s%n", stats.isPaused());
-                    if (stats.isFailing()) {
-                        pw.printf("    Failing since       : %s%n", stats.getFailingSince());
-                        pw.printf("    Latest error        : %s%n", stats.getLatestError());
-                    }
-                }
-                pw.println();
-            }
+        if (format == Format.JSON) {
+            JsopBuilder json = new JsopBuilder();
+            startJsonObject(json);
+            printAsyncIndexInfo(pw, json, format);
+            printIndexInfo(pw, json, format);
+            endJsonObject(json);
+            pw.print(JsopBuilder.prettyPrint(json.toString()));
+        } else {
+            //TODO Highlight if failing
+            printAsyncIndexInfo(pw, null,format);
+            printIndexInfo(pw, null, format);
         }
     }
 
-    private static void printTitle(PrintWriter pw, String title) {
-        pw.println(title);
-        pw.println(Strings.repeat("=", title.length()));
+    private void printAsyncIndexInfo(PrintWriter pw, JsopBuilder json, Format format) {
+        List<String> asyncLanes = ImmutableList.copyOf(asyncIndexInfoService.getAsyncLanes());
+        String title = "Async Indexers State";
+        printTitle(pw, title, format);
+        addJsonKey(json, title);
+        startJsonObject(json);
+        keyValue("Number of async indexer lanes ", asyncLanes.size(), pw, json, format);
+        printWithNewLine(pw, "", format);
+
+        for (String lane : asyncLanes) {
+            printWithNewLine(pw, lane, format);
+            addJsonKey(json, lane);
+            AsyncIndexInfo info = asyncIndexInfoService.getInfo(lane);
+            if (info != null) {
+                startJsonObject(json);
+                keyValue("    Last indexed to      ", formatTime(info.getLastIndexedTo()), pw, json, format);
+                IndexStatsMBean stats = info.getStatsMBean();
+                if (stats != null) {
+                    keyValue("    Status              ", stats.getStatus(), pw, json, format);
+                    keyValue("    Failing             ", stats.isFailing(), pw, json, format);
+                    keyValue("    Paused              ", stats.isPaused(), pw, json, format);
+                    if (stats.isFailing()) {
+                        keyValue("    Failing since       ", stats.getFailingSince(), pw, json, format);
+                        keyValue("    Latest error        ", stats.getLatestError(), pw, json, format);
+                    }
+                }
+                printWithNewLine(pw, "", format);
+                endJsonObject(json);
+            } else {
+                startJsonObject(json);
+                endJsonObject(json);
+            }
+        }
+        endJsonObject(json);
     }
 
-    private void printIndexInfo(PrintWriter pw) {
+    private static void printTitle(PrintWriter pw, String title, Format format) {
+        if (format == Format.TEXT) {
+            pw.println(title);
+            pw.println(Strings.repeat("=", title.length()));
+            pw.println();
+        }
+    }
+
+    private static void printWithNewLine(PrintWriter pw, String printLine, Format format) {
+        if (format == Format.TEXT) {
+            pw.println(printLine);
+        }
+    }
+
+    private void printIndexInfo(PrintWriter pw, JsopBuilder json, Format format) {
         ListMultimap<String, IndexInfo> infos = ArrayListMultimap.create();
         for (IndexInfo info : indexInfoService.getAllIndexInfo()) {
             infos.put(info.getType(), info);
         }
 
-        pw.printf("Total number of indexes : %d%n", infos.size());
+        keyValue("Total number of indexes ", infos.size(), pw, json, format);
+
         for (String type : infos.keySet()){
             List<IndexInfo> typedInfo = infos.get(type);
             String title = String.format("%s(%d)", type, typedInfo.size());
-            printTitle(pw, title);
-            pw.println();
+            printTitle(pw, title, format);
+            addJsonKey(json, type);
+            startJsonObject(json);
             for (IndexInfo info : typedInfo){
-                printIndexInfo(pw, info);
+                printIndexInfo(pw, json, info, format);
+                if (format == Format.TEXT) {
+                    if (info.hasIndexDefinitionChangedWithoutReindexing()) {
+                        pw.println("    Index definition changed without reindexing");
+                        String diff = info.getIndexDefinitionDiff();
+                        if (diff != null) {
+                            pw.println("    "+diff);
+                        }
+                    }
+                    pw.println();
+                }
             }
+            endJsonObject(json);
         }
     }
 
-    private static void printIndexInfo(PrintWriter pw, IndexInfo info) {
-        pw.println(info.getIndexPath());
-        pw.printf("    Type                    : %s%n", info.getType());
+
+    private static void printIndexInfo(PrintWriter pw, JsopBuilder json, IndexInfo info, Format format) {
+        if (format == Format.TEXT) {
+            pw.println(info.getIndexPath());
+        }
+        addJsonKey(json, info.getIndexPath());
+        startJsonObject(json);
+
+        keyValue("    Type                    ", info.getType(), pw, json, format);
         if (info.getAsyncLaneName() != null) {
-            pw.printf("    Async                   : true%n");
-            pw.printf("    Async lane name         : %s%n", info.getAsyncLaneName());
+            keyValue("    Async                    ", true, pw, json, format);
+            keyValue("    Async lane name          ", info.getAsyncLaneName(), pw, json, format);
         }
 
         if (info.getIndexedUpToTime() > 0){
-            pw.printf("    Last indexed up to      : %s%n", formatTime(info.getIndexedUpToTime()));
+            keyValue("    Last indexed up to       ", formatTime(info.getIndexedUpToTime()), pw, json, format);
         }
 
         if (info.getLastUpdatedTime() > 0){
-            pw.printf("    Last updated time       : %s%n", formatTime(info.getLastUpdatedTime()));
+            keyValue("     Last updated time       ", formatTime(info.getLastUpdatedTime()), pw, json, format);
+        }
+
+        if (info.getCreationTimestamp() > 0){
+            keyValue("     Creation time           ", formatTime(info.getCreationTimestamp()), pw, json, format);
+        }
+
+        if (info.getReindexCompletionTimestamp() > 0){
+            keyValue("     Reindex completion time ", formatTime(info.getReindexCompletionTimestamp()), pw, json, format);
         }
 
         if (info.getSizeInBytes() >= 0){
-            pw.printf("    Size                    : %s%n", IOUtils.humanReadableByteCount(info.getSizeInBytes()));
+            keyValue("    Size                     ", IOUtils.humanReadableByteCount(info.getSizeInBytes()), pw, json, format);
+        }
+
+        if (info.getSuggestSizeInBytes() >= 0){
+            keyValue("    Suggest size             ", IOUtils.humanReadableByteCount(info.getSuggestSizeInBytes()), pw, json, format);
         }
 
         if (info.getEstimatedEntryCount() >= 0){
-            pw.printf("    Estimated entry count   : %d%n", info.getEstimatedEntryCount());
+            keyValue("    Estimated entry count    ", info.getEstimatedEntryCount(), pw, json, format);
         }
 
-        if (info.hasIndexDefinitionChangedWithoutReindexing()) {
-            pw.println("    Index definition changed without reindexing");
-            String diff = info.getIndexDefinitionDiff();
-            if (diff != null) {
-                pw.println("    "+diff);
-            }
+        if (info.getType() == "lucene") {
+            // Only valid for lucene type indexes, for others it will simply show false.
+            keyValue("    Has hidden oak mount     ", info.hasHiddenOakLibsMount(), pw, json, format);
+            keyValue("    Has property index       ", info.hasPropertyIndexNode(), pw, json, format);
         }
-        pw.println();
+        endJsonObject(json);
     }
 
     private static String formatTime(long time){
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(time);
         return ISO8601.format(cal);
+    }
+
+    private static void keyValue(String key, Object value, PrintWriter pw, JsopBuilder json, Format format) {
+
+        if (format == Format.JSON) {
+            json.key(key.trim());
+            if (value instanceof  String) {
+                json.value((String)value);
+            } else if (value instanceof  Long) {
+                json.value((Long)value);
+            } else if (value instanceof  Boolean) {
+                json.value((Boolean)value);
+            } else if (value instanceof Integer) {
+                json.value((Integer) value);
+            }
+        } else if (format == Format.TEXT) {
+            pw.printf(key+":%s%n",value);
+        }
+    }
+
+    // Wrappers around JsonBuilder that will result in NOOP if builder is null -
+    // These are just to avoid the mulitple if/else check while handling for both TEXT and JSON formats
+    private static void startJsonObject(JsopBuilder json) {
+        if (json != null) {
+            json.object();
+        }
+    }
+
+    private static void endJsonObject(JsopBuilder json) {
+        if (json != null) {
+            json.endObject();
+        }
+    }
+
+    private static void addJsonKey(JsopBuilder json, String key) {
+        if (json != null) {
+            json.key(key);
+        }
     }
 }
