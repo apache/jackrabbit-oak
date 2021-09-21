@@ -219,7 +219,7 @@ public class IndexPrinter implements InventoryPrinter {
         cal.setTimeInMillis(time);
         Date date = cal.getTime();
         SimpleDateFormat outputFmt = new SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss.s z");
-        outputFmt.setTimeZone(TimeZone.getTimeZone("UTC")); //set timezone here
+        outputFmt.setTimeZone(TimeZone.getTimeZone("UTC"));
         return outputFmt.format(date);
     }
 
