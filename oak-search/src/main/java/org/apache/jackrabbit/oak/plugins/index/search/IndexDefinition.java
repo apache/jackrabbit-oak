@@ -143,6 +143,17 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public static final String STATUS_NODE = ":status";
 
     /**
+     * Hidden node under index definition that contains indexed data for read only
+     * part of composite node store.
+     */
+    public static final String HIDDEN_OAK_MOUNT_PREFIX = ":oak:mount-";
+
+    /**
+     * Node name under which all property indexes are created
+     */
+    public static final String PROPERTY_INDEX = ":property-index";
+
+    /**
      * Property on status node which refers to the date when the index was lastUpdated
      * This may not be the same time as when index was closed but the time of checkpoint
      * upto which index is upto date (OAK-6194)
