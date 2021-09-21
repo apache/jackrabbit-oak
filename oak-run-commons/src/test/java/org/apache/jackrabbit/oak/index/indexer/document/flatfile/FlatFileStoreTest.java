@@ -100,45 +100,66 @@ public class FlatFileStoreTest {
 
     @Test
     public void basicTestStoreAndSortStrategy() throws Exception {
-        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.STORE_AND_SORT.toString());
-        runBasicTest();
-        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.STORE_AND_SORT.toString());
+            runBasicTest();
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
     }
 
     @Test
     public void basicTestTraverseAndSortStrategy() throws Exception {
-        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
-        runBasicTest();
-        System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
+            runBasicTest();
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
     }
 
     @Test
-    public void basicTestMultiThreadedTraverseAndSortStrategy() throws Exception {
+    public void basicTestMultithreadedTraverseAndSortStrategy() throws Exception {
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
+            runBasicTest();
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
+    }
+
+    @Test
+    public void basicTestDefaultStrategy() throws Exception {
         runBasicTest();
     }
 
     @Test
     public void parallelDownload() throws Exception {
-        Map<Long, List<String>> map = createPathsWithTimestamps();
-        List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
-        List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
-        lastModifiedValues.sort(Long::compare);
-        List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
-                lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
-        FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
-        FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
-                .withPreferredPathElements(preferred)
-                .withLastModifiedBreakPoints(lastModifiedBreakpoints)
-                .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, false))
-                .build();
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
+            Map<Long, List<String>> map = createPathsWithTimestamps();
+            List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+            List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
+            lastModifiedValues.sort(Long::compare);
+            List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
+                    lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
+            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
+            FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
+                    .withPreferredPathElements(preferred)
+                    .withLastModifiedBreakPoints(lastModifiedBreakpoints)
+                    .withNodeStateEntryTraverserFactory(new TestNodeStateEntryTraverserFactory(map, false))
+                    .build();
 
-        List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
-                .map(NodeStateEntry::getPath)
-                .collect(Collectors.toList());
+            List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                    .map(NodeStateEntry::getPath)
+                    .collect(Collectors.toList());
 
-        List<String> sortedPaths = TestUtils.sortPaths(paths);
+            List<String> sortedPaths = TestUtils.sortPaths(paths);
 
-        assertEquals(sortedPaths, entryPaths);
+            assertEquals(sortedPaths, entryPaths);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
     }
 
     private FlatFileStore buildFlatFileStore(FlatFileNodeStoreBuilder spyBuilder, List<Long> lastModifiedBreakpoints,
@@ -164,33 +185,38 @@ public class FlatFileStoreTest {
 
     @Test
     public void resumePreviousUnfinishedDownload() throws Exception {
-        Map<Long, List<String>> map = createPathsWithTimestamps();
-        List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
-        List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
-        lastModifiedValues.sort(Long::compare);
-        List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
-                lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
-        FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
-        TestMemoryManager memoryManager = new TestMemoryManager(true);
-        Mockito.when(spyBuilder.getMemoryManager()).thenReturn(memoryManager);
-        TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(map, true);
-        FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
-        assertNull(flatStore);
-        spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
-        flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
-        assertNull(flatStore);
-        memoryManager.isMemoryLow = false;
-        nsetf.interrupt = false;
-        List<String> entryPaths;
-        spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
-        flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false);
-        entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
-                .map(NodeStateEntry::getPath)
-                .collect(Collectors.toList());
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
+            Map<Long, List<String>> map = createPathsWithTimestamps();
+            List<String> paths = map.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+            List<Long> lastModifiedValues = new ArrayList<>(map.keySet());
+            lastModifiedValues.sort(Long::compare);
+            List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
+                    lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
+            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
+            TestMemoryManager memoryManager = new TestMemoryManager(true);
+            Mockito.when(spyBuilder.getMemoryManager()).thenReturn(memoryManager);
+            TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(map, true);
+            FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+            assertNull(flatStore);
+            spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+            assertNull(flatStore);
+            memoryManager.isMemoryLow = false;
+            nsetf.interrupt = false;
+            List<String> entryPaths;
+            spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false);
+            entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                    .map(NodeStateEntry::getPath)
+                    .collect(Collectors.toList());
 
-        List<String> sortedPaths = TestUtils.sortPaths(paths);
-        assertEquals(paths.size(), nsetf.getTotalProvidedDocCount());
-        assertEquals(sortedPaths, entryPaths);
+            List<String> sortedPaths = TestUtils.sortPaths(paths);
+            assertEquals(paths.size(), nsetf.getTotalProvidedDocCount());
+            assertEquals(sortedPaths, entryPaths);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
     }
 
     private static class TestMemoryManager implements MemoryManager {

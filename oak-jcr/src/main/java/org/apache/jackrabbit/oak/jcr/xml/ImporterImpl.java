@@ -417,14 +417,13 @@ public class ImporterImpl implements Importer {
                     // this node has already been auto-created, no need to create it
                     tree = existing;
                 } else {
-                    // edge case: colliding node does have same uuid
+                    // edge case: colliding node with same uuid should not trigger an exception for certain uuidBehaviors
                     // (see http://issues.apache.org/jira/browse/JCR-1128)
                     String existingIdentifier = IdentifierManager.getIdentifier(existing);
                     if (!(existingIdentifier.equals(id)
                             && (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING
                             || uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING))) {
-                        throw new ItemExistsException(
-                                "Node with the same UUID exists:" + existing);
+                        throw new ItemExistsException("Node with name " + nodeName + " already exists at this path.");
                     }
                     // fall through
                 }
