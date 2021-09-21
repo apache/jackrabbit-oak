@@ -218,16 +218,16 @@ public class IndexPrinter implements InventoryPrinter {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(time);
         Date date = cal.getTime();
-        SimpleDateFormat outputFmt = new SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss.s z");
+        SimpleDateFormat outputFmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         outputFmt.setTimeZone(TimeZone.getTimeZone("UTC"));
         return outputFmt.format(date);
     }
 
     private static void keyValue(String key, Object value, PrintWriter pw, JsopBuilder json, Format format) {
-        // In case the key is null or an emppty String or value is null,
+        // In case the key is null or an empty String,
         // throw an IllegalArgumentException.
-        if (value == null || key == null || key.equals("")) {
-            throw new IllegalArgumentException("Unsupported key/value pair - can't be null/empty");
+        if (key == null || key.equals("")) {
+            throw new IllegalArgumentException("Unsupported key - can't be null/empty");
         }
 
         if (format == Format.JSON) {
