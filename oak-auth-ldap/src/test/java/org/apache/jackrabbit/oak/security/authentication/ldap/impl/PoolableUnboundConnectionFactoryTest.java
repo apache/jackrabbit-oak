@@ -94,22 +94,11 @@ public class PoolableUnboundConnectionFactoryTest {
         when(config.getLdapPort()).thenReturn(PROXY.port);
 
         when(config.isUseTls()).thenReturn(false);
-        assertConnection(factory.create(), false);
+        assertConnection(factory.create());
     }
 
-    @Test
-    public void testCreateTlsGuardingConnection() throws Exception {
-        when(config.getLdapHost()).thenReturn(PROXY.host);
-        when(config.getLdapPort()).thenReturn(PROXY.port);
-
-        when(config.isUseTls()).thenReturn(true);
-        LdapConnection lc = factory.create();
-        assertConnection(lc, true);
-    }
-
-    private static void assertConnection(@NotNull LdapConnection lc, boolean expectTlsGuardingConnection) {
+    private static void assertConnection(@NotNull LdapConnection lc) {
         assertTrue(lc instanceof LdapNetworkConnection);
-        assertEquals(expectTlsGuardingConnection, lc.getClass().getSimpleName().equals("TlsGuardingConnection"));
     }
 
     @Test
