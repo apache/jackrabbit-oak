@@ -20,7 +20,6 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -30,10 +29,6 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 public class PropertyTest extends AbstractJCRTest {
@@ -278,24 +273,5 @@ public class PropertyTest extends AbstractJCRTest {
         pitr = n.getProperties(new String[] {"foo*", "cat*"});
         assertEquals(3, pitr.getSize());
         assertEquals(3, Iterators.size(pitr));
-    }
-
-    public void testHasPropertyWithExpandedNames() throws RepositoryException {
-        Node n = testRootNode.addNode("unstructured", JcrConstants.NT_UNSTRUCTURED);
-        n.setProperty("jcr:custom", "test");
-        superuser.save();
-
-        assertTrue(n.hasProperty("jcr:custom"));
-        assertTrue(n.hasProperty("{"+Name.NS_JCR_URI+"}custom"));
-
-        JackrabbitSession jrSession = (JackrabbitSession)superuser;
-        UserManager userManager = jrSession.getUserManager();
-        User user = userManager.createUser("test", "test");
-
-        superuser.save();
-        n = superuser.getNode(user.getPath());
-
-        assertTrue(n.hasProperty("rep:authorizableId"));
-        assertTrue(n.hasProperty("{internal}authorizableId"));
     }
 }

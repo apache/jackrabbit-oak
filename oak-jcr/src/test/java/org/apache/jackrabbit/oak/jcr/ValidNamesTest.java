@@ -32,6 +32,9 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
@@ -235,6 +238,21 @@ public class ValidNamesTest extends AbstractRepositoryTest {
         assertEquals(testPrefix + ":foo", n.getName());
     }
 
+    // OAK-74 and OAK-9584
+    @Test
+    public void testRepNamespaceUri() throws RepositoryException {
+        JackrabbitSession jrSession = (JackrabbitSession)session;
+        UserManager userManager = jrSession.getUserManager();
+        User user = userManager.createUser("test", "test");
+
+        session.save();
+        Node n = session.getNode(user.getPath());
+
+        String repNamespaceUri = session.getNamespaceURI("rep");
+        assertTrue(n.hasProperty("rep:authorizableId"));
+        assertTrue(n.hasProperty("{"+repNamespaceUri+"}authorizableId"));
+    }
+ 
     // TODO: questionable exception
     @Test
     public void testValidNamespaceUriInCurlysWrongPlace() {
