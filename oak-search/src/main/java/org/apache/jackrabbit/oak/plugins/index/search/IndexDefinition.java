@@ -251,6 +251,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     private final String[] indexTags;
 
+    private final String tagsMatchingPolicy;
+
     private final boolean syncPropertyIndexes;
 
     private final String useIfExists;
@@ -350,7 +352,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.definition = defn;
             this.indexPath = checkNotNull(indexPath);
             this.indexName = indexPath;
-            this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
+            this.indexTags = getOptionalValues(defn, IndexConstants.INDEX_TAGS, Type.STRINGS, String.class);
+            this.tagsMatchingPolicy = getOptionalValue(defn, IndexConstants.TAGS_MATCHING_POLICY,  "");
             this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
 
             this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
@@ -560,6 +563,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public String[] getIndexTags() {
         return indexTags;
+    }
+
+    public String getTagsMatchingPolicy() {
+        return tagsMatchingPolicy;
     }
 
     public int getMaxExtractLength() {

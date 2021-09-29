@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.TagsMatchingPolicy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -167,9 +168,9 @@ class PropertyIndex implements QueryIndex {
             wrong = true;
         }
         PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        String[] tags = getOptionalStrings(definition, IndexConstants.INDEX_TAGS);
         if (indexTag != null && indexTag.first != null) {
             // index tag specified
-            String[] tags = getOptionalStrings(definition, IndexConstants.INDEX_TAGS);
             if (tags == null) {
                 // no tag
                 return true;
@@ -182,6 +183,10 @@ class PropertyIndex implements QueryIndex {
                 }
             }
             // no tag matches
+            return true;
+        } else if (tags != null && TagsMatchingPolicy.STRICT.equals(
+                definition.getString(IndexConstants.TAGS_MATCHING_POLICY))) {
+            // index tags are not specified in query, but required by the "strict" index policy
             return true;
         }
         // no tag specified

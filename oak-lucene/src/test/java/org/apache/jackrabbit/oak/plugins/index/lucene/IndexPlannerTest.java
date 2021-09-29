@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.TagsMatchingPolicy;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
@@ -72,6 +73,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PropertyIndexResult;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -1858,6 +1860,23 @@ public class IndexPlannerTest {
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull("Index supporting some of the facets mustn't participate", plan);
+    }
+
+    @Test
+    public void tagsMatchingPolicy() throws Exception {
+        // enforce presence of tag in the query
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.tagsMatchingPolicy(TagsMatchingPolicy.STRICT);
+        defnb.tags("bar", "baz");
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+        LuceneIndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNull("Index specifying strict tag matching policy is not selected", plan);
     }
 
     private LuceneIndexNode createIndexNode(LuceneIndexDefinition  defn, long numOfDocs) throws IOException {

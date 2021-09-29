@@ -45,6 +45,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TAGS_MATCHING_POLICY;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -115,6 +117,31 @@ public class IndexDefinitionBuilder {
     public IndexDefinitionBuilder async(String ... asyncVals){
         tree.removeProperty("async");
         tree.setProperty("async", asList(asyncVals), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder tags(String... tagVals) {
+        tree.removeProperty(INDEX_TAGS);
+        tree.setProperty(INDEX_TAGS, asList(tagVals), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder tagsMatchingPolicy(String policy) {
+        tree.setProperty(TAGS_MATCHING_POLICY,  checkNotNull(policy));
+        return this;
+    }
+
+    public IndexDefinitionBuilder addTags(String... additionalTagVals) {
+        Set<String> currTags = Collections.emptySet();
+        if (tree.hasProperty(INDEX_TAGS)) {
+            currTags = Sets.newHashSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+        }
+        Set<String> tagVals = Sets.newHashSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        boolean noAdditionalTags = currTags.containsAll(tagVals);
+        if (!noAdditionalTags) {
+            tree.removeProperty(INDEX_TAGS);
+            tree.setProperty(INDEX_TAGS, asList(Iterables.toArray(tagVals, String.class)), STRINGS);
+        }
         return this;
     }
 
