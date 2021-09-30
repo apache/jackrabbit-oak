@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 /**
- * This class defines the tags matching policy
+ * This class defines the index tags matching policy
  */
-public final class TagsMatchingPolicy {
+public final class IndexTagsMatchingPolicy {
 
     /**
      * Enforces the check of index tag option presence in the query

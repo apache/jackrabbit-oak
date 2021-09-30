@@ -618,7 +618,7 @@ public final class IndexDefinitionBuilder {
                 IndexConstants.USE_IF_EXISTS,
                 IndexConstants.QUERY_PATHS,
                 IndexConstants.INDEX_TAGS,
-                IndexConstants.TAGS_MATCHING_POLICY,
+                IndexConstants.INDEX_TAGS_MATCHING_POLICY,
                 FulltextIndexConstants.BLOB_SIZE,
                 FulltextIndexConstants.COST_PER_ENTRY,
                 FulltextIndexConstants.COST_PER_EXECUTION);
