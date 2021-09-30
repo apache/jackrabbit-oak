@@ -50,7 +50,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TAGS_MATCHING_POLICY;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS_MATCHING_POLICY;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -138,7 +138,7 @@ public class IndexDefinitionBuilder {
     }
 
     public IndexDefinitionBuilder tagsMatchingPolicy(String policy) {
-        tree.setProperty(TAGS_MATCHING_POLICY,  checkNotNull(policy));
+        tree.setProperty(INDEX_TAGS_MATCHING_POLICY,  checkNotNull(policy));
         return this;
     }
 
@@ -637,7 +637,7 @@ public class IndexDefinitionBuilder {
                 IndexConstants.USE_IF_EXISTS,
                 IndexConstants.QUERY_PATHS,
                 IndexConstants.INDEX_TAGS,
-                IndexConstants.TAGS_MATCHING_POLICY,
+                IndexConstants.INDEX_TAGS_MATCHING_POLICY,
                 FulltextIndexConstants.BLOB_SIZE,
                 FulltextIndexConstants.COST_PER_ENTRY,
                 FulltextIndexConstants.COST_PER_EXECUTION);

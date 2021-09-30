@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.TagsMatchingPolicy;
+import org.apache.jackrabbit.oak.plugins.index.IndexTagsMatchingPolicy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -184,8 +184,8 @@ class PropertyIndex implements QueryIndex {
             }
             // no tag matches
             return true;
-        } else if (tags != null && TagsMatchingPolicy.STRICT.equals(
-                definition.getString(IndexConstants.TAGS_MATCHING_POLICY))) {
+        } else if (tags != null && IndexTagsMatchingPolicy.STRICT.equals(
+                definition.getString(IndexConstants.INDEX_TAGS_MATCHING_POLICY))) {
             // index tags are not specified in query, but required by the "strict" index policy
             return true;
         }
