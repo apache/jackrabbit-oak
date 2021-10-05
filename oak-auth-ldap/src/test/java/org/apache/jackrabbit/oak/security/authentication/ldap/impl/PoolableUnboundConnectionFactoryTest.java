@@ -22,11 +22,14 @@ import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapConnectionValidator;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.ldap.client.api.LookupLdapConnectionValidator;
+import org.apache.directory.ldap.client.api.NoVerificationTrustManager;
 import org.apache.jackrabbit.oak.security.authentication.ldap.LdapServerClassLoader;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.net.ssl.TrustManager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -94,22 +97,26 @@ public class PoolableUnboundConnectionFactoryTest {
         when(config.getLdapPort()).thenReturn(PROXY.port);
 
         when(config.isUseTls()).thenReturn(false);
-        assertConnection(factory.create(), false);
+        assertConnection(factory.create());
     }
 
+    //OAK-9519: make sure that calling startTls on a secured connection is a noop.
     @Test
-    public void testCreateTlsGuardingConnection() throws Exception {
+    public void testStartTls() throws Exception {
         when(config.getLdapHost()).thenReturn(PROXY.host);
         when(config.getLdapPort()).thenReturn(PROXY.port);
 
         when(config.isUseTls()).thenReturn(true);
-        LdapConnection lc = factory.create();
-        assertConnection(lc, true);
+        when(config.getTrustManagers()).thenReturn(new TrustManager[] {new NoVerificationTrustManager()});
+        LdapNetworkConnection lc = (LdapNetworkConnection) factory.create();
+        assertTrue(lc.isConnected());
+        lc.startTls();
+        assertTrue(lc.isSecured());
+        lc.startTls();
     }
 
-    private static void assertConnection(@NotNull LdapConnection lc, boolean expectTlsGuardingConnection) {
+    private static void assertConnection(@NotNull LdapConnection lc) {
         assertTrue(lc instanceof LdapNetworkConnection);
-        assertEquals(expectTlsGuardingConnection, lc.getClass().getSimpleName().equals("TlsGuardingConnection"));
     }
 
     @Test
