@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Objects;
+
 /**
  * <pre>
  * [nt:{propertyDefinition,childNodeDefinition}]
@@ -99,10 +101,7 @@ class ItemDefinitionImpl extends AbstractTypeDefinition
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
-        return result;
+        return Objects.hash(type);
     }
 
     @Override
@@ -114,11 +113,6 @@ class ItemDefinitionImpl extends AbstractTypeDefinition
         if (getClass() != obj.getClass())
             return false;
         ItemDefinitionImpl other = (ItemDefinitionImpl) obj;
-        if (type == null) {
-            if (other.type != null)
-                return false;
-        } else if (!type.equals(other.type))
-            return false;
-        return true;
+        return Objects.equals(type, other.type);
     }
 }
