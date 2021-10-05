@@ -26,6 +26,7 @@ import java.io.IOException;
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,7 @@ class StoreAndSortStrategy implements SortStrategy {
     private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Iterable<NodeStateEntry> nodeStates;
+    private final NodeStateEntryTraverser nodeStates;
     private final PathElementComparator comparator;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
@@ -51,7 +52,7 @@ class StoreAndSortStrategy implements SortStrategy {
     private long textSize;
 
 
-    public StoreAndSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator comparator,
+    public StoreAndSortStrategy(NodeStateEntryTraverser nodeStates, PathElementComparator comparator,
                                 NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
         this.nodeStates = nodeStates;
         this.comparator = comparator;
@@ -62,8 +63,12 @@ class StoreAndSortStrategy implements SortStrategy {
 
     @Override
     public File createSortedStoreFile() throws IOException {
-        File storeFile = writeToStore(storeDir, getStoreFileName());
-        return sortStoreFile(storeFile);
+        try {
+            File storeFile = writeToStore(storeDir, getStoreFileName());
+            return sortStoreFile(storeFile);
+        } finally {
+            nodeStates.close();
+        }
     }
 
     @Override

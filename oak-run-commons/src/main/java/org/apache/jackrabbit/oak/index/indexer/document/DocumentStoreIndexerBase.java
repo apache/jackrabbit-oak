@@ -71,7 +71,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
     private final Set<String> indexerPaths = new HashSet<>();
-    private static final int MAX_DOWNLOAD_RETRIES = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "3"));
+    private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
         this.indexHelper = indexHelper;
@@ -130,7 +130,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                                 traversalLogger.trace(id);
                             })
                             .withPathPredicate(indexer::shouldInclude);
-            closer.register(nsep);
+            //closer.register(nsep);
             return nsep;
         }
     }
@@ -149,8 +149,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
         List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
         FlatFileNodeStoreBuilder builder = null;
-
-        while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_RETRIES) {
+        int backOffTimeInMillis = 5000;
+        while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
             try {
                 builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
                         .withLastModifiedBreakPoints(lastModifiedBreakPoints)
@@ -167,9 +167,19 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             } catch (CompositeException e) {
                 e.logAllExceptions("Underlying throwable caught during download", log);
                 log.info("Could not build flat file store. Execution count {}. Retries left {}. Time elapsed {}",
-                        executionCount, MAX_DOWNLOAD_RETRIES - executionCount, flatFileStoreWatch);
+                        executionCount, MAX_DOWNLOAD_ATTEMPTS - executionCount, flatFileStoreWatch);
                 lastException = e;
                 previousDownloadDirs.add(builder.getFlatFileStoreDir());
+            }
+            if (executionCount < MAX_DOWNLOAD_ATTEMPTS) {
+                try {
+                    log.info("Waiting for {} millis before retrying", backOffTimeInMillis);
+                    Thread.sleep(backOffTimeInMillis);
+                    backOffTimeInMillis *= 2;
+                } catch (InterruptedException e) {
+                    log.error("Interrupted while waiting before retrying download ", e);
+                    e.printStackTrace();
+                }
             }
             executionCount++;
         }

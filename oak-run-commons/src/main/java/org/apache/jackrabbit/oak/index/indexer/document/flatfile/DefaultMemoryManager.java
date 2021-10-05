@@ -67,6 +67,7 @@ public class DefaultMemoryManager implements MemoryManager {
     private final ConcurrentHashMap<String, MemoryManagerClient> clients;
     private final MemoryManager.Type type;
     private final Random random;
+    private final Phaser lowMemoryPhaser = new Phaser();
 
     public DefaultMemoryManager() {
         this(Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2) * ONE_GB,
@@ -109,7 +110,8 @@ public class DefaultMemoryManager implements MemoryManager {
         log.info("Setting up a listener to monitor pool '{}' and trigger batch save " +
                 "if memory drop below {} GB (max {})", pool.getName(), minMemoryBytes/ONE_GB, humanReadableByteCount(maxMemory));
         pool.setCollectionUsageThreshold(minMemoryBytes);
-        checkMemory(usage);
+        // todo - should we check and block in the beginning? This creates problem in case of download resume.
+        //checkMemory(usage);
     }
 
     @Override
@@ -209,11 +211,15 @@ public class DefaultMemoryManager implements MemoryManager {
                     .getType()
                     .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
                 if (sufficientMemory.get()) {
-                    CompositeData cd = (CompositeData) notification
-                            .getUserData();
-                    MemoryNotificationInfo info = MemoryNotificationInfo
-                            .from(cd);
-                    checkMemory(info.getUsage());
+                    synchronized (sufficientMemory) {
+                        if (sufficientMemory.get()) {
+                            CompositeData cd = (CompositeData) notification
+                                    .getUserData();
+                            MemoryNotificationInfo info = MemoryNotificationInfo
+                                    .from(cd);
+                            checkMemory(info.getUsage());
+                        }
+                    }
                 }
             }
         }

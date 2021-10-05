@@ -52,6 +52,8 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_DATA_DUMP_THREADS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_THREAD_POOL_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
@@ -339,9 +341,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private class TaskRunner implements Runnable {
 
         private final ExecutorService executorService;
-        private static final String DEFAULT_NUMBER_OF_THREADS = "4";
-        private static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
-        private final int threadPoolSize = Integer.parseInt(System.getProperty(PROP_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_THREADS));
+        private final int threadPoolSize = Integer.parseInt(System.getProperty(PROP_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_DATA_DUMP_THREADS));
 
         public TaskRunner() {
             this.executorService = Executors.newFixedThreadPool(threadPoolSize);

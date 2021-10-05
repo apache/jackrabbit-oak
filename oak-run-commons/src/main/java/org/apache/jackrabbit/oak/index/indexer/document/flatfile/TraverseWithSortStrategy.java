@@ -41,6 +41,7 @@ import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
-    private final Iterable<NodeStateEntry> nodeStates;
+    private final NodeStateEntryTraverser nodeStates;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
     private final boolean compressionEnabled;
@@ -88,7 +89,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
 
 
-    TraverseWithSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator pathComparator,
+    TraverseWithSortStrategy(NodeStateEntryTraverser nodeStates, PathElementComparator pathComparator,
                              NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
         this.nodeStates = nodeStates;
         this.entryWriter = entryWriter;
@@ -99,11 +100,15 @@ class TraverseWithSortStrategy implements SortStrategy {
 
     @Override
     public File createSortedStoreFile() throws IOException {
-        logFlags();
-        configureMemoryListener();
-        sortWorkDir = createdSortWorkDir(storeDir);
-        writeToSortedFiles();
-        return sortStoreFile();
+        try {
+            logFlags();
+            configureMemoryListener();
+            sortWorkDir = createdSortWorkDir(storeDir);
+            writeToSortedFiles();
+            return sortStoreFile();
+        } finally {
+            nodeStates.close();
+        }
     }
 
     @Override

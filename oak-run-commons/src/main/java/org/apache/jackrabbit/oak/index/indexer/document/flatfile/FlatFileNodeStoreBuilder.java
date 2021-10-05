@@ -54,6 +54,17 @@ public class FlatFileNodeStoreBuilder {
      */
     static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
+
+
+    /**
+     * Default value for {@link #PROP_THREAD_POOL_SIZE}
+     */
+    static final String DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = "4";
+    /**
+     * System property for specifying number of threads for parallel download when using {@link MultithreadedTraverseWithSortStrategy}
+     */
+    static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
+
     /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */

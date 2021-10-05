@@ -62,7 +62,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
      * all the node states from this iterable, if this task decides to split up and offer some of its work to another
      * {@link TraverseAndSortTask}
      */
-    private final Iterable<NodeStateEntry> nodeStates;
+    private final NodeStateEntryTraverser nodeStates;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
     private final boolean compressionEnabled;
@@ -155,6 +155,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         return registrationIDOptional.isPresent();
     }
 
+    @Override
     public List<File> call() {
         try {
             Random random = new Random();
@@ -172,14 +173,24 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             log.info("Completed task {}", taskID);
             completedTasks.add(taskID);
             DirectoryHelper.markCompleted(sortWorkDir);
-            if (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType())) {
-                memoryManager.deregisterClient(registrationID);
-            }
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
         } finally {
             phaser.arriveAndDeregister();
+            log.info("{} entered finally block.", taskID);
+            if (dataDumpNotifyingPhaser != null) {
+                log.info("{} Data dump phaser not null after task completion. Notifying memory listener.", taskID);
+                dataDumpNotifyingPhaser.arriveAndDeregister();
+            }
+            if (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType())) {
+                memoryManager.deregisterClient(registrationID);
+            }
+            try {
+                nodeStates.close();
+            } catch (IOException e) {
+                log.error("{} could not close NodeStateEntryTraverser", taskID);
+            }
         }
         return Collections.emptyList();
     }
@@ -201,10 +212,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         //Save the last batch
         sortAndSaveBatch();
         reset();
-
-        //Free up the batch
-        entryBatch.clear();
-        entryBatch.trimToSize();
 
         log.info("{} Dumped {} nodestates in json format in {}",taskID, entryCount, w);
         log.info("{} Created {} sorted files of size {} to merge", taskID,
@@ -239,7 +246,9 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         //Here logic differs from NodeStateEntrySorter in sense that
         //Holder line consist only of json and not 'path|json'
         NodeStateHolder h = new StateInBytesHolder(e.getPath(), jsonText);
-        entryBatch.add(h);
+        synchronized (this) {
+            entryBatch.add(h);
+        }
         lastSavedNodeStateEntry = e;
         updateMemoryUsed(h);
 
@@ -249,7 +258,9 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
      * For explanation regarding synchronization see {@link #memoryLow(Phaser)}
      */
     private synchronized void reset() {
+        log.info("{} Reset called ", taskID);
         entryBatch.clear();
+        entryBatch.trimToSize();
         if (MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType())) {
             memoryManager.changeMemoryUsedBy(-1 * memoryUsed);
         }
@@ -263,14 +274,18 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     }
 
     private void sortAndSaveBatch() throws IOException {
-        if (entryBatch.isEmpty()) {
-            return;
+        synchronized (this) {
+            if (entryBatch.isEmpty()) {
+                return;
+            }
+            entryBatch.sort(comparator);
         }
-        entryBatch.sort(comparator);
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
         try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
+            // no concurrency issue with this traversal because addition to this list is only done in #addEntry which, for
+            // a given TraverseAndSortTask object will only be called from same thread
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
