@@ -550,6 +550,8 @@ public class MongoDocumentStore implements DocumentStore {
                 return findUncached(collection, key, docReadPref);
             } catch (MongoException e) {
                 ex = e;
+                LOG.error("Read Fails with an exception" + e);
+                e.printStackTrace();
             }
         }
         if (ex != null) {
