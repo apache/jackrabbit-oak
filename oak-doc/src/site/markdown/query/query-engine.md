@@ -33,6 +33,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
         * [Quoting](#Quoting)
         * [Equality for Path Constraints](#Equality_for_Path_Constraints)
     * [Slow Queries and Read Limits](#Slow_Queries_and_Read_Limits)
+    * [Keyset Pagination](#Keyset_Pagination)
     * [Full-Text Queries](#Full-Text_Queries)
     * [Excerpts and Highlighting](#Excerpts_and_Highlighting)
     * [Native Queries](#Native_Queries)
@@ -306,6 +307,41 @@ in case there are separate indexes for `a` and `b`.
 For XPath queries, such conversion to `union` is always made,
 and for SQL-2 queries such a conversion is only made if the `union` query has a lower expected cost.
 When using `or` in combination with the same property, as in `a=1 or a=2`, then no conversion to `union` is made.
+
+### Keyset Pagination
+
+It is best to limit the result size to at most a few hundred entries.
+To read a large result, keyset pagination should be used.
+Note that "offset" with large values (more than a few hundred) should be avoided, as it can lead to performance and memory issues.
+Keyset pagination refers to ordering the result set by a key column, and then paginate using this column.
+It requires an ordered index on the key column. Example:
+
+    /jcr:root/content//element(*, nt:file)
+    [@jcr:lastModified >= $lastEntry]
+    order by @jcr:lastModified, @jcr:path
+
+For the first query, set `$lastEntry` to 0, and for subsequent queries,
+use the last modified time of the last result.
+
+An order index is needed for these queries to work efficiently, e.g.:
+
+    /oak:index/fileIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - includedPaths = [ "/content" ]
+      - queryPaths = [ "/content" ]
+      + indexRules
+        + nt:file
+          + properties
+            + jcrLastModified
+              - name = jcr:lastModified
+              - propertyIndex = true
+              - ordered = true
+
+Notice that multiple entries with the same modified date might exist.
+If your application requires that the same node is only processed once,
+then additional logic is required to skip over the entries already seen (for the same modified date).
 
 ### Full-Text Queries
 
