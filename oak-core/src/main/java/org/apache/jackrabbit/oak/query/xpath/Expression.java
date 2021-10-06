@@ -180,6 +180,10 @@ abstract class Expression {
         static Literal newString(String s) {
             return new Literal(SQL2Parser.escapeStringLiteral(s), s);
         }
+
+        static Literal newBindVariable(String s) {
+            return new Literal("@" + s, s);
+        }
     
         @Override
         public String toString() {
