@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -251,7 +252,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     private final String[] indexTags;
 
-    private final String indexTagsMatchingPolicy;
+    private final String indexSelectionPolicy;
 
     private final boolean syncPropertyIndexes;
 
@@ -353,7 +354,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.indexPath = checkNotNull(indexPath);
             this.indexName = indexPath;
             this.indexTags = getOptionalValues(defn, IndexConstants.INDEX_TAGS, Type.STRINGS, String.class);
-            this.indexTagsMatchingPolicy = getOptionalValue(defn, IndexConstants.INDEX_TAGS_MATCHING_POLICY,  "");
+            this.indexSelectionPolicy
+                    = getOptionalValue(defn, IndexConstants.INDEX_SELECTION_POLICY, IndexSelectionPolicy.DEFAULT);
             this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
 
             this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
@@ -565,8 +567,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return indexTags;
     }
 
-    public String getIndexTagsMatchingPolicy() {
-        return indexTagsMatchingPolicy;
+    public String getIndexSelectionPolicy() {
+        return indexSelectionPolicy;
     }
 
     public int getMaxExtractLength() {

@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.IndexTagsMatchingPolicy;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -320,18 +320,18 @@ public class IndexDefinitionBuilderTest {
 
     @Test
     public void tagsMatchingPolicy() {
-        builder.tagsMatchingPolicy(IndexTagsMatchingPolicy.STRICT);
+        builder.tagsMatchingPolicy(IndexSelectionPolicy.TAG_ONLY);
         NodeState state = builder.build();
-        assertEquals(IndexTagsMatchingPolicy.STRICT, state.getString(IndexConstants.INDEX_TAGS_MATCHING_POLICY));
+        assertEquals(IndexSelectionPolicy.TAG_ONLY, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
         // random policy value must not set policy to TagsMatchingPolicy.STRICT
         builder.tagsMatchingPolicy("foo");
         state = builder.build();
-        assertNotEquals(IndexTagsMatchingPolicy.STRICT, state.getString(IndexConstants.INDEX_TAGS_MATCHING_POLICY));
+        assertNotEquals(IndexSelectionPolicy.TAG_ONLY, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
     }
 
     @Test
     public void noStrictTagsMatchingPolicyByDefault() {
         // ensure old flow - no TagsMatchingPolicy.STRICT policy must be set
-        assertNotEquals(IndexTagsMatchingPolicy.STRICT, builder.build().getString(IndexConstants.INDEX_TAGS_MATCHING_POLICY));
+        assertNotEquals(IndexSelectionPolicy.TAG_ONLY, builder.build().getString(IndexConstants.INDEX_SELECTION_POLICY));
     }
 }

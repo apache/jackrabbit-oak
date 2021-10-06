@@ -46,7 +46,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TAGS_MATCHING_POLICY;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_SELECTION_POLICY;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -127,7 +127,7 @@ public class IndexDefinitionBuilder {
     }
 
     public IndexDefinitionBuilder tagsMatchingPolicy(String policy) {
-        tree.setProperty(INDEX_TAGS_MATCHING_POLICY,  checkNotNull(policy));
+        tree.setProperty(INDEX_SELECTION_POLICY,  checkNotNull(policy));
         return this;
     }
 

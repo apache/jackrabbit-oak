@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.IndexTagsMatchingPolicy;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -106,7 +106,7 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         index.remove();
         index = root.getTree("/oak:index/uuid");
         index.setProperty("tags", "x");
-        index.setProperty(IndexConstants.INDEX_TAGS_MATCHING_POLICY, IndexTagsMatchingPolicy.STRICT);
+        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG_ONLY);
         root.commit();
         String statement, result;
         // query tag specified and matched index definition
@@ -123,7 +123,7 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         assertEquals(result, -1, result.indexOf("/* property uuid"));
 
         // just to be on a safe side, test the old flow still works when "tagsMatchingPolicy" has some random value
-        index.setProperty(IndexConstants.INDEX_TAGS_MATCHING_POLICY, "foo");
+        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, "foo");
         root.commit();
         // query tag is not specified and tagsMatchingPolicy is not suddenly "strict"
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1";
