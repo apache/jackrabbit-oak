@@ -62,7 +62,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.IndexTagsMatchingPolicy;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
@@ -1864,7 +1864,7 @@ public class IndexPlannerTest {
     public void tagsMatchingPolicy() throws Exception {
         // enforce presence of tag in the query
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
-        defnb.tagsMatchingPolicy(IndexTagsMatchingPolicy.STRICT);
+        defnb.tagsMatchingPolicy(IndexSelectionPolicy.TAG_ONLY);
         defnb.tags("bar", "baz");
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");

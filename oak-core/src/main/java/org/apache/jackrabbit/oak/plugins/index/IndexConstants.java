@@ -115,9 +115,9 @@ public interface IndexConstants {
     String INDEX_TAGS = "tags";
 
     /**
-     * The property to indicate tags matching policy. Currently, only 'TagsMatchingPolicy.STRICT' has effect
+     * The property to indicate the index selection policy.
      */
-    String INDEX_TAGS_MATCHING_POLICY = "tagsMatchingPolicy";
+    String INDEX_SELECTION_POLICY = "selectionPolicy";
 
     /**
      * The index name hint (when using "option(index abc)", this is "abc")

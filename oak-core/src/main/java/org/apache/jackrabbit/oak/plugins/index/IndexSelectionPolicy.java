@@ -19,13 +19,18 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 /**
- * This class defines the index tags matching policy
+ * This class defines the index selection policy constants
  */
-public final class IndexTagsMatchingPolicy {
+public final class IndexSelectionPolicy {
 
     /**
-     * Enforces the check of index tag option presence in the query
+     * Any query can use the index if the costing determines that it is cheapest
      */
-    public static final String STRICT = "strict";
+    public static final String DEFAULT = "default";
+
+    /**
+     * Only queries using tags matching the index can use the index
+     */
+    public static final String TAG_ONLY = "tagonly";
 
 }
