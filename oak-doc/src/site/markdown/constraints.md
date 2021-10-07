@@ -41,6 +41,8 @@ Finally, the chosen persistence implementation might restrict node names even fu
 
 - in the "Document NodeStore", the UTF-8 representation of local names can not exceed ~150 bytes.
 
+The namespace for prefix `rep` (`internal`) is not a valid URI therefore you can only use the qualified names but not the expanded names ([JCR v2.0 Specification, Section 3.2.5](https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.2.5%20Lexical%20Form%20of%20JCR%20Names)) when addressing items in that namespace([OAK-74](https://issues.apache.org/jira/browse/OAK-74)).
+
 ## Invalid Java Strings
 
 Due to the way Java represents characters in strings, not every String is a valid sequence of
