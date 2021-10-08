@@ -21,8 +21,7 @@ Backward compatibility
 ======================
 
 Oak implements the JCR API and we expect most applications to work out of the box. However, the Oak
-code base is very young and not yet on par with Jackrabbit 2. Some of the more obscure parts of JCR
-are not (yet) implemented. If you encounter a problem running your application on Oak, please cross
+code base is a rewrite from scratch and therefore differs from Jackrabbit 2 in some aspects. Some of the more obscure parts of JCR are not (yet) implemented. If you encounter a problem running your application on Oak, please cross
 check against Jackrabbit 2 before reporting an issue against Oak.
 
 Reporting issues
@@ -39,6 +38,11 @@ Notable changes
 This section gives a brief overview of the most notable changes in Oak with respect to Jackrabbit 2.
 These changes are generally caused by overall design decisions carefully considering the benefits
 versus the potential backward compatibility issues.
+
+Names and Unicode String values
+-------------------------------
+
+The limitations are described in [Constraints](./constraints.html)
 
 Session state and refresh behaviour
 -----------------------------------
@@ -259,6 +263,8 @@ collisions never occur.*
 very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a
 session, an existing node with a conflicting UUID may not be visible until commit.
 
+In contrast to JR2 [expanded names][5] are not supported in System View documents for neither nodes nor properties ([OAK-9586](https://issues.apache.org/jira/browse/OAK-9586)).
+
 Identifiers
 -----------
 
@@ -349,3 +355,4 @@ Attribute Name | Attribute Value Type | Description
 [2]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttributeNames()
 [3]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Credentials.html
 [4]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)
+[5]: https://www.adobe.io/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.2.5.1%20Expanded%20Form
