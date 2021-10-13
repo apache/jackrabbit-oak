@@ -1864,7 +1864,7 @@ public class IndexPlannerTest {
     public void tagsMatchingPolicy() throws Exception {
         // enforce presence of tag in the query
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
-        defnb.tagsMatchingPolicy(IndexSelectionPolicy.TAG_ONLY);
+        defnb.tagsMatchingPolicy(IndexSelectionPolicy.TAG);
         defnb.tags("bar", "baz");
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");

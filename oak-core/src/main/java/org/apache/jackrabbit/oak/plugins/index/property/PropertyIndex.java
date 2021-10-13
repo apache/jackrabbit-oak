@@ -184,9 +184,9 @@ class PropertyIndex implements QueryIndex {
             }
             // no tag matches
             return true;
-        } else if (tags != null && IndexSelectionPolicy.TAG_ONLY.equals(
+        } else if (tags != null && IndexSelectionPolicy.TAG.equals(
                 definition.getString(IndexConstants.INDEX_SELECTION_POLICY))) {
-            // index tags are not specified in query, but required by the "strict" index policy
+            // index tags are not specified in query, but required by the "tag" index selection policy
             return true;
         }
         // no tag specified

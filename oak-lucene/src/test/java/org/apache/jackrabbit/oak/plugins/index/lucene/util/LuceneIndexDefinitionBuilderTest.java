@@ -344,7 +344,7 @@ public class LuceneIndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
         builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
-        builder.tagsMatchingPolicy(IndexSelectionPolicy.TAG_ONLY);
+        builder.tagsMatchingPolicy(IndexSelectionPolicy.TAG);
         currentNodeState = builder.build();
 
         assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
