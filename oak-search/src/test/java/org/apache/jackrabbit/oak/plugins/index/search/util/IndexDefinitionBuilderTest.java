@@ -319,18 +319,18 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void tagsMatchingPolicy() {
-        builder.tagsMatchingPolicy(IndexSelectionPolicy.TAG);
+    public void selectionPolicy() {
+        builder.selectionPolicy(IndexSelectionPolicy.TAG);
         NodeState state = builder.build();
         assertEquals(IndexSelectionPolicy.TAG, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
         // random policy value must not set policy to IndexSelectionPolicy.TAG
-        builder.tagsMatchingPolicy("foo");
+        builder.selectionPolicy("foo");
         state = builder.build();
         assertNotEquals(IndexSelectionPolicy.TAG, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
     }
 
     @Test
-    public void noStrictTagsMatchingPolicyByDefault() {
+    public void noTagSelectionPolicyByDefault() {
         // ensure old flow - no IndexSelectionPolicy.TAG policy must be set
         assertNotEquals(IndexSelectionPolicy.TAG, builder.build().getString(IndexConstants.INDEX_SELECTION_POLICY));
     }

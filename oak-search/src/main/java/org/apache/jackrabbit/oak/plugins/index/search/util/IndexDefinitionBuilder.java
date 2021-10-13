@@ -137,7 +137,7 @@ public class IndexDefinitionBuilder {
         return this;
     }
 
-    public IndexDefinitionBuilder tagsMatchingPolicy(String policy) {
+    public IndexDefinitionBuilder selectionPolicy(String policy) {
         tree.setProperty(INDEX_SELECTION_POLICY,  checkNotNull(policy));
         return this;
     }

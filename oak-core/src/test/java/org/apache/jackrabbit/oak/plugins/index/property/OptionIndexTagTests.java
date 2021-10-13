@@ -122,10 +122,10 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
         assertEquals(result, -1, result.indexOf("/* property uuid"));
 
-        // just to be on a safe side, test the old flow still works when "tagsMatchingPolicy" has some random value
+        // just to be on a safe side, test the old flow still works when "selectionPolicy" has some random value
         index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, "foo");
         root.commit();
-        // query tag is not specified and tagsMatchingPolicy is not suddenly "strict"
+        // query tag is not specified and selectionPolicy is not suddenly "TAG"
         statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1";
         result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
         assertTrue(result, result.contains("/* property uuid"));
