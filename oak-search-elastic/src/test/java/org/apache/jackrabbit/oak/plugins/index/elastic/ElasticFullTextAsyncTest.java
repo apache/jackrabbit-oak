@@ -28,7 +28,10 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
@@ -85,6 +88,37 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
             PropertyState ps = node.getProperty(IndexConstants.REINDEX_COUNT);
             assertTrue(ps != null && ps.getValue(Type.LONG) == 1 && !node.hasChildNode(INDEX_DEFINITION_NODE));
         });
+    }
+
+    @Test
+    public void reindex() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").async("async");
+        builder.indexRule("nt:base").property("a").analyzed();
+
+        String indexId = UUID.randomUUID().toString();
+        Tree index = setIndex(indexId, builder);
+        root.commit();
+
+        for (int i = 0; i < 100; i++) {
+            Tree content = root.getTree("/").addChild("content_" + i);
+            content.setProperty("a", "foo");
+            content.setProperty("b", "bar");
+        }
+        root.commit();
+
+        String aQuery = "//*[jcr:contains(@a, 'foo')] ";
+        List<String> allPaths = IntStream.range(0, 100).boxed().map(i -> "/content_" + i)
+                .collect(Collectors.toList());
+
+        assertEventually(() -> assertQuery(aQuery, XPATH, allPaths));
+
+        builder.indexRule("nt:base").property("a").getBuilderTree().remove();
+        builder.indexRule("nt:base").property("b").propertyIndex().analyzed();
+        builder.getBuilderTree().setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        String bQuery = "//*[jcr:contains(@b, 'bar')] ";
+        assertEventually(() -> assertQuery(bQuery, XPATH, allPaths));
     }
 
     @Test
