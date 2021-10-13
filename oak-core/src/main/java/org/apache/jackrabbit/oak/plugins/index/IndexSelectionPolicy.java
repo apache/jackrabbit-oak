@@ -24,13 +24,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 public final class IndexSelectionPolicy {
 
     /**
-     * Any query can use the index if the costing determines that it is cheapest
-     */
-    public static final String DEFAULT = "default";
-
-    /**
      * Only queries using tags matching the index can use the index
      */
-    public static final String TAG_ONLY = "tagonly";
+    public static final String TAG = "tag";
 
 }

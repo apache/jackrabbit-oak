@@ -345,7 +345,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
         builder = new IndexDefinitionBuilder(nodeBuilder);
-        builder.getBuilderTree().setProperty(IndexConstants.TAGS_MATCHING_POLICY, TagsMatchingPolicy.STRICT);
+        builder.getBuilderTree().setProperty(IndexConstants.TAGS_MATCHING_POLICY, IndexSelectionPolicy.TAG);
         currentNodeState = builder.build();
 
         assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));

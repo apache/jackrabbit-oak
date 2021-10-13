@@ -409,8 +409,8 @@ public class FulltextIndexPlanner {
             }
             // no tag matches
             return true;
-        } else if (tags != null && IndexSelectionPolicy.TAG_ONLY.equals(definition.getIndexSelectionPolicy())) {
-            // index tags are not specified in query, but required by the "strict" index policy
+        } else if (tags != null && IndexSelectionPolicy.TAG.equals(definition.getIndexSelectionPolicy())) {
+            // index tags are not specified in query, but required by the "tag" index selection policy
             return true;
         }
         // no tag specified

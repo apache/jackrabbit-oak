@@ -106,7 +106,7 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         index.remove();
         index = root.getTree("/oak:index/uuid");
         index.setProperty("tags", "x");
-        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG_ONLY);
+        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG);
         root.commit();
         String statement, result;
         // query tag specified and matched index definition
