@@ -624,6 +624,8 @@ public class XPathToSQL2Converter {
                 read(")");
             }
             return Expression.Literal.newBoolean(false);
+        } else if (readIf("$")) {
+            return Expression.Literal.newBindVariable(readIdentifier());
         } else if (currentTokenType == VALUE_NUMBER) {
             Expression.Literal l = Expression.Literal.newNumber(currentToken);
             read();

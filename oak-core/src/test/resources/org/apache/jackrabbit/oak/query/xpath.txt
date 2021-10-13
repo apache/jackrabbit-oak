@@ -26,6 +26,14 @@
 
 #
 
+xpath2sql /jcr:root/content//element(*, nt:base)[@jcr:lastModified >= $lastModified] order by @jcr:lastModified, @jcr:path
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where [jcr:lastModified] >= @lastModified
+  and isdescendantnode(a, '/content')
+  order by [jcr:lastModified], [jcr:path]
+  /* xpath ... */
+
 xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/rep:excerpt()
 select [jcr:path], [jcr:score], [rep:excerpt]
   from [nt:base] as a
@@ -1755,13 +1763,13 @@ xpath2sql //element(*, my:type)[@my:value = +'x']
 invalid: Query: //element(*, my:type)[@my:value = +'x'(*)]
 
 xpath2sql //element(*, my:type)[@my:value = ['x']
-invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, -, +, *, ., @, (
+invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, $, -, +, *, ., @, (
 
 xpath2sql //element(*, my:type)[jcr:strike(@title,'%Java%')]
 invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | xs:dateTime | fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck | rep:suggest
 
 xpath2sql //element(*, my:type)[
-invalid: Query: //element(*, my:type)(*)[; expected: fn:not, not, (, @, true, false, -, +, *, ., @, (
+invalid: Query: //element(*, my:type)(*)[; expected: fn:not, not, (, @, true, false, $, -, +, *, ., @, (
 
 xpath2sql //element(*, my:type)[@my:value >= %]
-invalid: Query: //element(*, my:type)[@my:value >= %(*)]; expected: @, true, false, -, +, *, ., @, (
+invalid: Query: //element(*, my:type)[@my:value >= %(*)]; expected: @, true, false, $, -, +, *, ., @, (
