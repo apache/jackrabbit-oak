@@ -340,12 +340,12 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void noReindexWhenTagsMatchingPolicyAddedOrChanged() {
+    public void noReindexWhenSelectionPolicyAddedOrChanged() {
         NodeState currentNodeState = builder.build();
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
         builder = new IndexDefinitionBuilder(nodeBuilder);
-        builder.getBuilderTree().setProperty(IndexConstants.TAGS_MATCHING_POLICY, IndexSelectionPolicy.TAG);
+        builder.getBuilderTree().setProperty(IndexConstants.INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG);
         currentNodeState = builder.build();
 
         assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
@@ -354,7 +354,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
         builder = new IndexDefinitionBuilder(nodeBuilder);
-        builder.getBuilderTree().setProperty(IndexConstants.TAGS_MATCHING_POLICY, "foo");
+        builder.getBuilderTree().setProperty(IndexConstants.INDEX_SELECTION_POLICY, "foo");
         currentNodeState = builder.build();
 
         assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
