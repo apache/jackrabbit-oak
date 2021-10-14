@@ -393,9 +393,9 @@ public class FulltextIndexPlanner {
             wrong = true;
         }
         PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
-        String[] tags = definition.getIndexTags();
         if (indexTag != null && indexTag.first != null) {
             // index tag specified
+            String[] tags = definition.getIndexTags();
             if (tags == null) {
                 // no tag
                 return true;
