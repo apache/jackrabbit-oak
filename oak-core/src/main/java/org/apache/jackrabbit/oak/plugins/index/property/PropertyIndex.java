@@ -168,9 +168,9 @@ class PropertyIndex implements QueryIndex {
             wrong = true;
         }
         PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
-        String[] tags = getOptionalStrings(definition, IndexConstants.INDEX_TAGS);
         if (indexTag != null && indexTag.first != null) {
             // index tag specified
+            String[] tags = getOptionalStrings(definition, IndexConstants.INDEX_TAGS);
             if (tags == null) {
                 // no tag
                 return true;
@@ -184,8 +184,7 @@ class PropertyIndex implements QueryIndex {
             }
             // no tag matches
             return true;
-        } else if (tags != null && IndexSelectionPolicy.TAG.equals(
-                definition.getString(IndexConstants.INDEX_SELECTION_POLICY))) {
+        } else if (IndexSelectionPolicy.TAG.equals(definition.getString(IndexConstants.INDEX_SELECTION_POLICY))) {
             // index tags are not specified in query, but required by the "tag" index selection policy
             return true;
         }
