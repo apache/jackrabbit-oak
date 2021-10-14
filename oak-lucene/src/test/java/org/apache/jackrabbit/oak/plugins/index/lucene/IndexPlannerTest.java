@@ -1863,9 +1863,11 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void selectionPolicy() throws Exception {
-        // enforce presence of tag in the query
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    public void selectionPolicyWithTags() throws Exception {
+        // query without specifying index tag
+
+        // case 1: tags are defined in the index definition
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.selectionPolicy(IndexSelectionPolicy.TAG);
         defnb.tags("bar", "baz");
 
@@ -1876,7 +1878,25 @@ public class IndexPlannerTest {
 
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
-        assertNull("Index specifying strict tag matching policy is not selected", plan);
+        assertNull("Index specifying a tag selection policy is not selected", plan);
+    }
+
+    @Test
+    public void selectionPolicyWithoutTags() throws Exception {
+        // query without specifying index tag
+
+        // case 2: tags are not defined in index definition
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.selectionPolicy(IndexSelectionPolicy.TAG);
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+        LuceneIndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNull("Index specifying a tag selection policy is not selected", plan);
     }
 
     private LuceneIndexNode createIndexNode(LuceneIndexDefinition  defn, long numOfDocs) throws IOException {
