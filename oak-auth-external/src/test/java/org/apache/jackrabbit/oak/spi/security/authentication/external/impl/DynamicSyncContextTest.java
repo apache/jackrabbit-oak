@@ -77,11 +77,11 @@ import static org.mockito.Mockito.when;
 
 public class DynamicSyncContextTest extends AbstractExternalAuthTest {
 
-    private Root r;
-    private UserManager userManager;
-    private ValueFactory valueFactory;
+    Root r;
+    UserManager userManager;
+    ValueFactory valueFactory;
 
-    private DynamicSyncContext syncContext;
+    DynamicSyncContext syncContext;
 
     @Before
     public void before() throws Exception {
@@ -149,9 +149,9 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         }
     }
 
-    private static void assertSyncedMembership(@NotNull UserManager userManager,
-                                               @NotNull Authorizable a,
-                                               @NotNull ExternalIdentity externalIdentity) throws Exception {
+    static void assertSyncedMembership(@NotNull UserManager userManager,
+                                       @NotNull Authorizable a,
+                                       @NotNull ExternalIdentity externalIdentity) throws Exception {
         for (ExternalIdentityRef ref : externalIdentity.getDeclaredGroups()) {
             Group gr = userManager.getAuthorizable(ref.getId(), Group.class);
             assertNotNull(gr);
@@ -398,7 +398,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         syncContext.syncMembership(mod, a, nesting);
         assertDynamicMembership(a, mod, nesting);
 
-        // 2. set with different groups that defined on IDP
+        // 2. set with different groups than defined on IDP
         mod = new TestUserWithGroupRefs(externalUser, ImmutableSet.of(
                 idp.getGroup("a").getExternalId(),
                 idp.getGroup("aa").getExternalId(),
@@ -526,11 +526,11 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         assertFalse(gr.isMember(u));
     }
 
-    private static final class TestUserWithGroupRefs extends TestIdentityProvider.TestIdentity implements ExternalUser {
+    static final class TestUserWithGroupRefs extends TestIdentityProvider.TestIdentity implements ExternalUser {
 
         private final Iterable<ExternalIdentityRef> declaredGroupRefs;
 
-        private TestUserWithGroupRefs(@NotNull ExternalUser base, @NotNull Iterable<ExternalIdentityRef> declaredGroupRefs) {
+        TestUserWithGroupRefs(@NotNull ExternalUser base, @NotNull Iterable<ExternalIdentityRef> declaredGroupRefs) {
             super(base);
             this.declaredGroupRefs = declaredGroupRefs;
         }
