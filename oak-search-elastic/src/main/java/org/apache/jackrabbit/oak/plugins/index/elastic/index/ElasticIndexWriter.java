@@ -27,6 +27,7 @@ import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -99,17 +100,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     protected void provisionIndex(long seed) throws IOException {
+        final IndicesClient indicesClient = elasticConnection.getClient().indices();
         // check if index already exists
         final String indexName = ElasticIndexNameHelper.getRemoteIndexName(indexDefinition, seed);
-        boolean exists = elasticConnection.getClient().indices().exists(
-                new GetIndexRequest(indexName), RequestOptions.DEFAULT
-        );
+        boolean exists = indicesClient.exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
         if (exists) {
             LOG.info("Index {} already exists. Skip index provision", indexName);
             return;
         }
-
-        final IndicesClient indicesClient = elasticConnection.getClient().indices();
 
         // create the new index
         final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
@@ -119,8 +117,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 LOG.debug("Creating Index with request {}", requestMsg);
             }
             CreateIndexResponse response = indicesClient.create(request, RequestOptions.DEFAULT);
-            LOG.info("Updated settings for index {}. Response acknowledged: {}",
-                    indexName, response.isAcknowledged());
+            LOG.info("Created index {}. Response acknowledged: {}", indexName, response.isAcknowledged());
             checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
         } catch (ElasticsearchStatusException ese) {
             // We already check index existence as first thing in this method, if we get here it means we have got into
@@ -155,6 +152,26 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         deleteOldIndices(indicesClient, aliases.keySet());
     }
 
+    protected void enableIndex(long seed) throws IOException {
+        final IndicesClient indicesClient = elasticConnection.getClient().indices();
+        // check if index already exists
+        final String indexName = ElasticIndexNameHelper.getRemoteIndexName(indexDefinition, seed);
+        boolean exists = indicesClient.exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
+        if (!exists) {
+            throw new IllegalStateException("cannot enable an index that does not exist");
+        }
+
+        UpdateSettingsRequest request = ElasticIndexHelper.enableIndexRequest(indexName, indexDefinition);
+        if (LOG.isDebugEnabled()) {
+            final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
+            LOG.debug("Updating Index Settings with request {}", requestMsg);
+        }
+        AcknowledgedResponse response = indicesClient.putSettings(request, RequestOptions.DEFAULT);
+        LOG.info("Updated settings for index {}. Response acknowledged: {}",
+                indexName, response.isAcknowledged());
+        checkResponseAcknowledgement(response, "Update index settings call not acknowledged for index " + indexName);
+    }
+
     private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
         if (!response.isAcknowledged()) {
             throw new IllegalStateException(exceptionMessage);
@@ -170,6 +187,6 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         }
         AcknowledgedResponse deleteIndexResponse = indicesClient.delete(deleteIndexRequest, RequestOptions.DEFAULT);
         checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for indices " + indices);
-        LOG.info("Deleted indices {}. Response acknowledged: {}", indices.toString(), deleteIndexResponse.isAcknowledged());
+        LOG.info("Deleted indices {}. Response acknowledged: {}", indices, deleteIndexResponse.isAcknowledged());
     }
 }
