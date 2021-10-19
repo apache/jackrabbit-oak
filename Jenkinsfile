@@ -61,11 +61,11 @@ def buildModule(moduleSpec) {
                     echo "MAVEN_OPTS is ${MAVEN_OPTS}"
                     '''
                     // clean all modules
-                    sh "${MAVEN_CMD} -T 1C clean"
+                    sh "${MAVEN_CMD} -Dfoo1=bar1 -T 1C clean"
                     // build and install up to desired module
-                    sh "${MAVEN_CMD} -Dbaseline.skip=true -Prat -T 1C install -DskipTests -pl :${moduleName} -am"
+                    sh "${MAVEN_CMD} -Dfoo2=bar2 -Dbaseline.skip=true -Prat -T 1C install -DskipTests -pl :${moduleName} -am"
                     try {
-                        sh "${MAVEN_CMD} ${testOptions} -DtrimStackTrace=false -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS -Dmongo.db=MongoMKDB-${MONGODB_SUFFIX} clean verify -pl :${moduleName}"
+                        sh "${MAVEN_CMD} ${testOptions} -Dfoo3=bar3 -DtrimStackTrace=false -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS -Dmongo.db=MongoMKDB-${MONGODB_SUFFIX} clean verify -pl :${moduleName}"
                     } finally {
                         archiveArtifacts(artifacts: '*/target/unit-tests.log', allowEmptyArchive: true)
                         junit(testResults: '*/target/surefire-reports/*.xml,*/target/failsafe-reports/*.xml', allowEmptyResults: true)
