@@ -25,7 +25,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
