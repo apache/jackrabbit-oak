@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -38,7 +39,6 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
@@ -332,6 +332,28 @@ public class LuceneIndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
         builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().removeProperty(IndexConstants.INDEX_TAGS);
+        currentNodeState = builder.build();
+
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+        assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
+    }
+
+    @Test
+    public void noReindexWhenSelectionPolicyAddedOrChanged() {
+        NodeState currentNodeState = builder.build();
+        nodeBuilder = currentNodeState.builder();
+        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
+        builder.selectionPolicy(IndexSelectionPolicy.TAG);
+        currentNodeState = builder.build();
+
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+        assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
+
+        nodeBuilder = currentNodeState.builder();
+        nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
+        builder.selectionPolicy("foo");
         currentNodeState = builder.build();
 
         assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));

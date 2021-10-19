@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -42,6 +43,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -314,5 +316,22 @@ public class IndexDefinitionBuilderTest {
 
         NodeState state = builder.build();
         assertFalse(NodeStateUtils.getNode(state, "/indexRules/nt:file/properties").exists());
+    }
+
+    @Test
+    public void selectionPolicy() {
+        builder.selectionPolicy(IndexSelectionPolicy.TAG);
+        NodeState state = builder.build();
+        assertEquals(IndexSelectionPolicy.TAG, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
+        // random policy value must not set policy to IndexSelectionPolicy.TAG
+        builder.selectionPolicy("foo");
+        state = builder.build();
+        assertNotEquals(IndexSelectionPolicy.TAG, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
+    }
+
+    @Test
+    public void noTagSelectionPolicyByDefault() {
+        // ensure old flow - no IndexSelectionPolicy.TAG policy must be set
+        assertNotEquals(IndexSelectionPolicy.TAG, builder.build().getString(IndexConstants.INDEX_SELECTION_POLICY));
     }
 }

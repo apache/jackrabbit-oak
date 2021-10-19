@@ -27,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -92,6 +93,19 @@ public class DefaultSyncConfigTest {
         assertSame(userConfig, userConfig.setMembershipNestingDepth(5));
         assertEquals(5, userConfig.getMembershipNestingDepth());
         assertEquals(0, userConfig.setMembershipExpirationTime(0).getMembershipExpirationTime());
+    }
+    
+    @Test
+    public void testUserDynamicMembership() {
+        DefaultSyncConfig.User userConfig = config.user();
+
+        assertFalse(userConfig.getDynamicMembership());
+        assertSame(userConfig, userConfig.setDynamicMembership(true));
+        assertTrue(userConfig.getDynamicMembership());
+
+        assertFalse(userConfig.getEnforceDynamicMembership());
+        assertSame(userConfig, userConfig.setEnforceDynamicMembership(true));
+        assertTrue(userConfig.getEnforceDynamicMembership());
     }
 
     @Test
