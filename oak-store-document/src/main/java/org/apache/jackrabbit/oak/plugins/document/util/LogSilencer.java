@@ -30,7 +30,7 @@ import java.util.Map;
 public class LogSilencer {
 
     public static final String SILENCING_POSTFIX = " (similar log silenced for a while)";
-    private static final long DEFAULT_SILENCE_MILLIS = Duration.ofSeconds(15).toMillis();
+    private static final long DEFAULT_SILENCE_MILLIS = Duration.ofMinutes(15).toMillis();
     private static final int DEFAULT_CACHE_SIZE = 64;
     private final int cacheSize;
     private final long silenceMillis;
