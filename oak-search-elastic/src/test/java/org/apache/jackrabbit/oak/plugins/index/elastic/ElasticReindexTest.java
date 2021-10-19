@@ -124,6 +124,11 @@ public class ElasticReindexTest {
 
         assertQuery("select [jcr:path] from [nt:base] where contains(a, 'foo')", 100);
 
+        // adding an extra content node (handled by reindex and potentially incremental indexing)
+        Node c = content.addNode("c_100");
+        c.setProperty("a", "foo");
+        c.setProperty("b", "bar");
+
         Node indexNode = adminSession.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode(indexName);
         Node b = indexNode.getNode("indexRules").getNode("nt:base").getNode("properties").addNode("b");
         b.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
@@ -132,7 +137,7 @@ public class ElasticReindexTest {
         indexNode.setProperty(REINDEX_PROPERTY_NAME, true);
         adminSession.save();
 
-        assertQuery("select [jcr:path] from [nt:base] where contains(b, 'bar')", 100);
+        assertQuery("select [jcr:path] from [nt:base] where contains(b, 'bar')", 101);
     }
 
     private void assertQuery(String query, int resultSetSize) {
