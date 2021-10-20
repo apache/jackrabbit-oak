@@ -77,7 +77,7 @@ class ElasticIndexHelper {
     }
 
     /**
-     * Returns a {@code UpdateSettingsRequest} to make an index ready to be queries and updated in near real time.
+     * Returns a {@code UpdateSettingsRequest} to make an index ready to be queried and updated in near real time.
      * @param remoteIndexName the final index name (no alias)
      * @param indexDefinition the definition used to read settings/mappings
      * @return an {@code UpdateSettingsRequest}
