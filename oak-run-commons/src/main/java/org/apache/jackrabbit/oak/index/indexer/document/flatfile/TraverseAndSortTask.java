@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
@@ -71,10 +73,9 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private long memoryUsed;
     private final File sortWorkDir;
     private final List<File> sortedFiles = new ArrayList<>();
-    private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
+    private final LinkedList<NodeStateHolder> entryBatch = new LinkedList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
-    private final AtomicBoolean dumpData = new AtomicBoolean(false);
     private volatile Phaser dataDumpNotifyingPhaser;
     /**
      * Queue to which the {@link #taskID} of completed tasks is added.
@@ -142,8 +143,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         }
         dataDumpNotifyingPhaser = phaser;
         dataDumpNotifyingPhaser.register();
-        log.info("{} Setting dumpData to true", taskID);
-        dumpData.set(true);
     }
 
     private boolean registerWithMemoryManager() {
@@ -195,10 +194,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         return Collections.emptyList();
     }
 
-    public long getEntryCount() {
-        return entryCount;
-    }
-
     private void writeToSortedFiles() throws IOException {
         Stopwatch w = Stopwatch.createStarted();
         for (NodeStateEntry e : nodeStates) {
@@ -219,9 +214,13 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     }
 
     private void addEntry(NodeStateEntry e) throws IOException {
-        if ((MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType()) && memoryManager.isMemoryLow()) || dumpData.get()) {
-            sortAndSaveBatch();
-            reset();
+        if (memoryManager.isMemoryLow()) {
+            if (memoryUsed >= FileUtils.ONE_MB) {
+                sortAndSaveBatch();
+                reset();
+            } else {
+                log.trace("{} Memory manager reports low memory but there is not enough data ({}) to dump.", taskID, humanReadableByteCount(memoryUsed));
+            }
         }
 
         long remainingNumberOfTimestamps = lastModifiedUpperBound - e.getLastModified();
@@ -258,13 +257,10 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
      * For explanation regarding synchronization see {@link #memoryLow(Phaser)}
      */
     private synchronized void reset() {
-        log.info("{} Reset called ", taskID);
-        entryBatch.clear();
-        entryBatch.trimToSize();
+        log.trace("{} Reset called ", taskID);
         if (MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType())) {
             memoryManager.changeMemoryUsedBy(-1 * memoryUsed);
         }
-        dumpData.set(false);
         if (dataDumpNotifyingPhaser != null) {
             log.info("{} Finished saving data to disk. Notifying memory listener.", taskID);
             dataDumpNotifyingPhaser.arriveAndDeregister();
@@ -283,10 +279,12 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
+        long size = entryBatch.size();
         try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
             // no concurrency issue with this traversal because addition to this list is only done in #addEntry which, for
             // a given TraverseAndSortTask object will only be called from same thread
-            for (NodeStateHolder h : entryBatch) {
+            while (!entryBatch.isEmpty()) {
+                NodeStateHolder h = entryBatch.removeFirst();
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
                 writer.write(text);
@@ -295,7 +293,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             }
         }
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}", taskID,
-                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w,
+                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), size, w,
                 lastSavedNodeStateEntry.getLastModified());
         DirectoryHelper.markLastProcessedStatus(sortWorkDir,
                 lastSavedNodeStateEntry.getLastModified());

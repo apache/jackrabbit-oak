@@ -121,10 +121,10 @@ public class DefaultMemoryManager implements MemoryManager {
 
     @Override
     public boolean isMemoryLow() {
-        if (type != Type.SELF_MANAGED) {
-            throw new UnsupportedOperationException("Not a self managed memory manager");
+        if (type == Type.SELF_MANAGED) {
+            return memoryUsed.get() > maxMemoryBytes;
         }
-        return memoryUsed.get() > maxMemoryBytes;
+        return !sufficientMemory.get();
     }
 
     @Override
@@ -180,10 +180,12 @@ public class DefaultMemoryManager implements MemoryManager {
         return Base64.encodeBase64String(r) + "-" + System.currentTimeMillis();
     }
 
+    private long getAvailableMemory(MemoryUsage usage) {
+        return usage.getMax() - usage.getUsed();
+    }
+
     private void checkMemory(MemoryUsage usage) {
-        long maxMemory = usage.getMax();
-        long usedMemory = usage.getUsed();
-        long avail = maxMemory - usedMemory;
+        long avail = getAvailableMemory(usage);
         if (avail > minMemoryBytes) {
             sufficientMemory.set(true);
             log.info("Available memory level {} is good.", humanReadableByteCount(avail));
