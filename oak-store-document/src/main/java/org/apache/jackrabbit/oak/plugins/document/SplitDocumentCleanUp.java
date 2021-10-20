@@ -157,8 +157,11 @@ public class SplitDocumentCleanUp implements Closeable {
             // and perhaps that is why we get these
             // "Document with previous revisions not found"
             if (!LOG_SILENCER.silence(splitDocId)) {
-                LOG.warn("Split document reference could not be removed from intermediate {}.{}",
+                LOG.warn("Split document reference could not be removed from intermediate {} -{}",
                         splitDocId, LogSilencer.SILENCING_POSTFIX);
+            } else {
+                LOG.debug("Split document reference could not be removed from intermediate {}",
+                        splitDocId);
             }
         }
     }

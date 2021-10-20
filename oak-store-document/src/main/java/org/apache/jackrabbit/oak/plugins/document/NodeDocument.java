@@ -1884,6 +1884,8 @@ public final class NodeDocument extends Document {
         if (!logSilence) {
             LOG.warn("Document with previous revisions not found: " + prevId
                     + LogSilencer.SILENCING_POSTFIX);
+        } else {
+            LOG.debug("Document with previous revisions not found: {}", prevId);
         }
         // main document may be stale, evict it from the cache if it is
         // older than one minute. We don't want to invalidate a document
@@ -1896,6 +1898,8 @@ public final class NodeDocument extends Document {
                 && doc.getCreated() + TimeUnit.MINUTES.toMillis(1) < now) {
             if (!logSilence) {
                 LOG.info("Invalidated cached document {}{}", id, LogSilencer.SILENCING_POSTFIX);
+            } else {
+                LOG.debug("Invalidated cached document {}", id);
             }
             store.invalidateCache(NODES, id);
             // also invalidate intermediate docs if there are any matching
