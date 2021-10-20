@@ -36,16 +36,21 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.util.KnownIssuesIgnoreRule;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
 public class ValidNamesTest extends AbstractRepositoryTest {
 
+    @Rule
+    public KnownIssuesIgnoreRule customIgnoreRule = new KnownIssuesIgnoreRule();
+    
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final Map<NodeStoreFixture, NodeStore> STORES = Maps.newConcurrentMap();
