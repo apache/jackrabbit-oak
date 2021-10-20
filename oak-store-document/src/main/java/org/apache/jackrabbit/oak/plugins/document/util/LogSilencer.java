@@ -76,7 +76,7 @@ public class LogSilencer {
      * The silence times out after a certain, configurable amount of time.
      */
     public final boolean silence(String key) {
-        // this is approximately now, since we only get the timestamp
+        // this is only "approximately now", since we only get the timestamp
         // at the beginning of this method and don't repeat that further down.
         // hence the time used within this method we approximate away - hence 'approxNow'.
         final Long approxNow = System.currentTimeMillis();
