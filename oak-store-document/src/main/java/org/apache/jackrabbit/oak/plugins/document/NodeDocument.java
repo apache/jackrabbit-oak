@@ -1897,7 +1897,7 @@ public final class NodeDocument extends Document {
         while (doc != null
                 && doc.getCreated() + TimeUnit.MINUTES.toMillis(1) < now) {
             if (!logSilence) {
-                LOG.info("Invalidated cached document {}{}", id, LogSilencer.SILENCING_POSTFIX);
+                LOG.info("Invalidated cached document {} -{}", id, LogSilencer.SILENCING_POSTFIX);
             } else {
                 LOG.debug("Invalidated cached document {}", id);
             }
