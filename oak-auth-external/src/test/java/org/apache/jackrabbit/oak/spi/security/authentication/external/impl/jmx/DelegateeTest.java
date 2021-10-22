@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -37,9 +39,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -47,6 +51,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,12 +66,15 @@ import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.DEFAULT_IDP_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -100,7 +108,7 @@ public class DelegateeTest extends AbstractJmxTest {
     public void before() throws Exception {
         super.before();
 
-        delegatee = createDelegatee(new TestIdentityProvider(), new DefaultSyncHandler(syncConfig));
+        delegatee = createDelegatee(idp, new DefaultSyncHandler(syncConfig));
     }
 
     @Override
@@ -373,6 +381,51 @@ public class DelegateeTest extends AbstractJmxTest {
                 "third", "ERR",
                 "forth", "ERR"));
         assertFalse(r.hasPendingChanges());
+    }
+    
+    @Test
+    public void testConvertToDynamicMembershipFailsWithRepositoryException() throws Exception {
+        syncConfig.user().setDynamicMembership(true);
+        sync(idp.getUser(ID_TEST_USER), idp);
+        
+        UserManager um = spy(getUserManager(root));
+        when(um.getAuthorizable(any(String.class))).thenThrow(new RepositoryException());
+        
+        UserConfiguration uc = mock(UserConfiguration.class);
+        when(uc.getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um);
+        SecurityProvider sp = spy(securityProvider);
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+        
+        Delegatee delegatee = Delegatee.createInstance(getContentRepository(), sp, new DefaultSyncHandler(syncConfig), idp);
+        try {
+            delegatee.convertToDynamicMembership();
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testConvertToDynamicMembershipUserNotFound() throws Exception {
+        syncConfig.user().setDynamicMembership(true);
+        sync(idp.getUser(ID_TEST_USER), idp);
+
+        UserManager um = spy(getUserManager(root));
+        when(um.getAuthorizable(any(String.class))).thenReturn(null);
+
+        UserConfiguration uc = mock(UserConfiguration.class);
+        when(uc.getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um);
+        SecurityProvider sp = spy(securityProvider);
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+
+        Delegatee delegatee = Delegatee.createInstance(getContentRepository(), sp, new DefaultSyncHandler(syncConfig), idp);
+        String[] result = delegatee.convertToDynamicMembership();
+        
+        ResultMessages expected = new ResultMessages();
+        DefaultSyncedIdentity dsi = DefaultSyncContext.createSyncedIdentity(getUserManager().getAuthorizable(ID_TEST_USER));
+        expected.append(Collections.singletonList(new DefaultSyncResultImpl(dsi, SyncResult.Status.NO_SUCH_AUTHORIZABLE)));
+
+        assertArrayEquals(expected.getMessages(), result);
     }
 
     private static final class ThrowingRoot implements Root {

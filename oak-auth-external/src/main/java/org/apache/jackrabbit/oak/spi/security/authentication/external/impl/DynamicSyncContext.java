@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -73,6 +74,16 @@ public class DynamicSyncContext extends DefaultSyncContext {
                               @NotNull UserManager userManager,
                               @NotNull ValueFactory valueFactory) {
         super(config, idp, userManager, valueFactory);
+    }
+    
+    public boolean convertToDynamicMembership(@NotNull Authorizable authorizable) throws RepositoryException {
+        if (authorizable.isGroup() || !groupsSyncedBefore(authorizable)) {
+            return false;
+        }
+        
+        Collection<String> principalNames = clearGroupMembership(authorizable);
+        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, createValues(principalNames));
+        return true;
     }
 
     //--------------------------------------------------------< SyncContext >---
@@ -179,10 +190,12 @@ public class DynamicSyncContext extends DefaultSyncContext {
         }
     }
     
-    private void clearGroupMembership(@NotNull Authorizable authorizable) throws RepositoryException {
+    private Collection<String> clearGroupMembership(@NotNull Authorizable authorizable) throws RepositoryException {
+        Set<String> principalNames = new HashSet<>();
         Iterator<Group> grpIter = authorizable.declaredMemberOf();
         while (grpIter.hasNext()) {
             Group grp = grpIter.next();
+            principalNames.add(grp.getPrincipal().getName());
             if (isSameIDP(grp)) {
                 grp.removeMember(authorizable);
                 if (!grp.getDeclaredMembers().hasNext()) {
@@ -190,6 +203,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 }
             }
         }
+        return principalNames;
     }
     
     private static boolean groupsSyncedBefore(@NotNull Authorizable authorizable) throws RepositoryException {

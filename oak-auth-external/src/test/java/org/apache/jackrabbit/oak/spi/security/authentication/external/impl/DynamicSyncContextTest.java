@@ -525,6 +525,45 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         assertFalse(gr.isDeclaredMember(u));
         assertFalse(gr.isMember(u));
     }
+    
+    @Test
+    public void testConvertToDynamicMembershipAlreadyDynamic() throws Exception {
+        syncConfig.user().setMembershipNestingDepth(1);
+
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        sync(externalUser, SyncResult.Status.ADD);
+
+        User user = userManager.getAuthorizable(externalUser.getId(), User.class);
+        assertNotNull(user);
+        assertFalse(syncContext.convertToDynamicMembership(user));
+    }
+
+    @Test
+    public void testConvertToDynamicMembership() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+        ctx.sync(externalUser);
+        ctx.close();
+        r.commit();
+
+        User user = userManager.getAuthorizable(externalUser.getId(), User.class);
+        assertNotNull(user);
+        assertFalse(user.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        
+        assertTrue(syncContext.convertToDynamicMembership(user));
+        assertTrue(user.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        
+        for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
+            Group gr = userManager.getAuthorizable(ref.getId(), Group.class);
+            assertNull(gr);
+        }
+    }
+
+    @Test
+    public void testConvertToDynamicMembershipForGroup() throws Exception {
+        Authorizable gr = when(mock(Authorizable.class).isGroup()).thenReturn(true).getMock();
+        assertFalse(syncContext.convertToDynamicMembership(gr));
+    }
 
     static final class TestUserWithGroupRefs extends TestIdentityProvider.TestIdentity implements ExternalUser {
 

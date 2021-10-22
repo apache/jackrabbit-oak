@@ -149,4 +149,14 @@ public class SyncMBeanImpl implements SynchronizationMBean {
             delegatee.close();
         }
     }
+
+    @Override
+    public @NotNull String[] convertToDynamicMembership() {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.convertToDynamicMembership();
+        } finally {
+            delegatee.close();
+        }
+    }
 }
