@@ -337,13 +337,36 @@ An order index is needed for these queries to work efficiently, e.g.:
         + nt:file
           + properties
             + jcrLastModified
-              - name = jcr:lastModified
+              - name = "jcr:lastModified"
               - propertyIndex = true
               - ordered = true
 
 Notice that multiple entries with the same modified date might exist.
 If your application requires that the same node is only processed once,
 then additional logic is required to skip over the entries already seen (for the same modified date).
+
+If there is no good property to use keyset pagination on, then the lowercase of the node name can be used.
+It is best to start with `$lastEntry` as an empty string, and then in each subsequent run use the lowercase version of the node name of the last entry.
+Notice that some nodes may appear in two query results, if there are multiple nodes with the same name.
+
+    /jcr:root/content//element(*, nt:file)
+    [fn:lower-case(fn:name()) >= $lastEntry] 
+    order by fn:lower-case(fn:name()), @jcr:path
+    
+    /oak:index/fileIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - includedPaths = [ "/content" ]
+      - queryPaths = [ "/content" ]
+      + indexRules
+        + nt:file
+          + properties
+            + lowercaseName
+              - function = "lower(name())"
+              - propertyIndex = true
+              - ordered = true
+
 
 ### Full-Text Queries
 
