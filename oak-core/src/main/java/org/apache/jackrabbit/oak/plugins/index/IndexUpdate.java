@@ -223,15 +223,15 @@ public class IndexUpdate implements Editor, PathSource {
             String name) {
         PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
 
-        //Do not attempt reindex of disabled indexes
-        if (type != null && TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
+        //Do not attempt reindex of indexes with no type or disabled
+        if (type == null || TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
             return false;
         }
 
         //Async indexes are not considered for reindexing for sync indexing
         // Skip this check for elastic index
         // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ?
-        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)){
+        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)) {
             return false;
         }
 
