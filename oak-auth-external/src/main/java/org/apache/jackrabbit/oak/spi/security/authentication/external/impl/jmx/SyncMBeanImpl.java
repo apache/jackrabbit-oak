@@ -65,7 +65,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
         ExternalIdentityProvider idp = idpManager.getProvider(idpName);
         if (idp == null) {
-            log.error("No idp available for name", idpName);
+            log.error("No idp available for name {}", idpName);
             throw new IllegalArgumentException("No idp manager available for name " + idpName);
         }
         return Delegatee.createInstance(repository, securityProvider, handler, idp);
