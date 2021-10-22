@@ -26,12 +26,14 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import static org.elasticsearch.common.Strings.INVALID_FILENAME_CHARS;
 
 public class ElasticIndexNameHelper {
 
@@ -39,10 +41,24 @@ public class ElasticIndexNameHelper {
 
     private static final int MAX_NAME_LENGTH = 255;
 
-    private static final Pattern INVALID_CHARS_REGEX = Pattern.compile(INVALID_FILENAME_CHARS
+    // revised version of org.elasticsearch.common.Strings.INVALID_FILENAME_CHARS with additional chars:
+    // ':' not supported in >= 7.0
+    private static final Set<Character> INVALID_NAME_CHARS =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList('\\', '/', '*', '?', '"', '<', '>', '|', ' ', ',', ':')));
+
+    private static final Pattern INVALID_CHARS_REGEX = Pattern.compile(INVALID_NAME_CHARS
             .stream()
             .map(c -> "(?:(?:\\" + c + "))")
             .collect(Collectors.joining("|")));
+
+    // these chars can be part of the name but are not allowed at the beginning
+    private static final Set<Character> INVALID_NAME_START_CHARS =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList('.', '-', '_', '+')));
+
+    private static final Pattern INVALID_START_CHARS_REGEX = Pattern.compile(INVALID_NAME_START_CHARS
+            .stream()
+            .map(c -> "\\" + c)
+            .collect(Collectors.joining("", "^[", "]+")));
 
     public static String getIndexAlias(String indexPrefix, String indexPath) {
         return getElasticSafeName(indexPrefix + ".") + getElasticSafeIndexName(indexPath);
@@ -116,7 +132,8 @@ public class ElasticIndexNameHelper {
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
     static String getElasticSafeName(String suggestedIndexName) {
-        return INVALID_CHARS_REGEX.matcher(suggestedIndexName).replaceAll("").toLowerCase();
+        String safeName = INVALID_START_CHARS_REGEX.matcher(suggestedIndexName).replaceAll("");
+        return INVALID_CHARS_REGEX.matcher(safeName).replaceAll("").toLowerCase();
     }
 
     private static String getRemoteIndexName(String indexAlias, long seed) {
