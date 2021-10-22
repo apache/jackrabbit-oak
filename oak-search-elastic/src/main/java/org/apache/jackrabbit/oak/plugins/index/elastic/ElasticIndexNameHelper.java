@@ -39,13 +39,14 @@ public class ElasticIndexNameHelper {
 
     private static final int MAX_NAME_LENGTH = 255;
 
-    private static final Pattern INVALID_CHARS_REGEX = Pattern.compile(INVALID_FILENAME_CHARS
+    private static final String INVALID_CHARS_REGEX = Pattern.quote(INVALID_FILENAME_CHARS
             .stream()
-            .map(c -> "(?:(?:\\" + c + "))")
-            .collect(Collectors.joining("|")));
+            .map(Object::toString)
+            .collect(Collectors.joining("")));
 
     public static String getIndexAlias(String indexPrefix, String indexPath) {
-        return getElasticSafeName(indexPrefix + ".") + getElasticSafeIndexName(indexPath);
+        // TODO: implement advanced remote index name strategy that takes into account multiple tenants and re-index process
+        return getElasticSafeIndexName(indexPrefix + "." + indexPath);
     }
 
     public static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
@@ -116,7 +117,7 @@ public class ElasticIndexNameHelper {
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
     static String getElasticSafeName(String suggestedIndexName) {
-        return INVALID_CHARS_REGEX.matcher(suggestedIndexName).replaceAll("").toLowerCase();
+        return suggestedIndexName.replaceAll(INVALID_CHARS_REGEX, "").toLowerCase();
     }
 
     private static String getRemoteIndexName(String indexAlias, long seed) {
