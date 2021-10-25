@@ -147,8 +147,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     /**
-     * Returns the index alias on the Elasticsearch cluster. This alias should be used for any index related operations
-     * instead of accessing the index directly.
+     * Returns the index alias on the Elasticsearch cluster. This alias should be used for any query related operations.
+     * The actual index name is used only when a reindex is in progress.
      * @return the Elasticsearch index alias
      */
     public String getRemoteIndexAlias() {

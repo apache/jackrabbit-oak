@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -69,6 +70,15 @@ class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocume
         } catch (IOException e) {
             throw new IllegalStateException("Unable to provision index", e);
         }
+    }
+
+    @Override
+    public void closeWriter() throws IOException {
+        if (isReindex()) {
+            long seed = definitionBuilder.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED).getValue(Type.LONG);
+            getWriter().enableIndex(seed);
+        }
+        super.closeWriter();
     }
 
     @Override
