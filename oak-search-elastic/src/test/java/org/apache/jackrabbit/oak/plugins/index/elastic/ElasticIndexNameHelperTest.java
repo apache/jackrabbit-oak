@@ -38,46 +38,31 @@ public class ElasticIndexNameHelperTest {
 
     @Test
     public void lowercaseOnly() {
-        String alias = ElasticIndexNameHelper.getIndexAlias("prefix", "/oak:index/foo/My_Index");
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName("prefix", "/oak:index/foo/My_Index");
         assertThat(alias, is("prefix.foo_my_index"));
     }
 
     @Test
     public void indexWithSpecialChars() {
-        String alias = ElasticIndexNameHelper.getIndexAlias("my>prefix", "/oak:index/my|very special*index");
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName("myprefix", "/oak:index/my|very special*index");
         assertThat(alias, is("myprefix.myveryspecialindex"));
     }
 
     @Test
     public void indexWithDeprecatedColumn() {
-        String alias = ElasticIndexNameHelper.getIndexAlias("my>prefix", "/oak:index/my:index");
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName("myprefix", "/oak:index/my:index");
         assertThat(alias, is("myprefix.myindex"));
     }
 
     @Test
-    public void indexStartingWithInvalidChars() {
-        String alias = ElasticIndexNameHelper.getIndexAlias(".prefix", "/oak:index/my:index");
-        assertThat(alias, is("prefix.myindex"));
-
-        alias = ElasticIndexNameHelper.getIndexAlias("..prefix", "/oak:index/my:index");
-        assertThat(alias, is("prefix.myindex"));
-
-        alias = ElasticIndexNameHelper.getIndexAlias("_prefix", "/oak:index/my:index");
-        assertThat(alias, is("prefix.myindex"));
-
-        alias = ElasticIndexNameHelper.getIndexAlias("._prefix", "/oak:index/my:index");
-        assertThat(alias, is("prefix.myindex"));
-    }
-
-    @Test
     public void firstLevelAlias() {
-        String alias = ElasticIndexNameHelper.getIndexAlias("prefix", "/oak:index/my_index");
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName("prefix", "/oak:index/my_index");
         assertThat(alias, is("prefix.my_index"));
     }
 
     @Test
     public void multiLevelAlias() {
-        String alias = ElasticIndexNameHelper.getIndexAlias("prefix", "/oak:index/foo/my_index");
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName("prefix", "/oak:index/foo/my_index");
         assertThat(alias, is("prefix.foo_my_index"));
     }
 }

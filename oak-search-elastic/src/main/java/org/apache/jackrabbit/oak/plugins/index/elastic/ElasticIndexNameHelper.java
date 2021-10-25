@@ -16,16 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,8 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class ElasticIndexNameHelper {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexNameHelper.class);
 
     private static final int MAX_NAME_LENGTH = 255;
 
@@ -60,31 +53,17 @@ public class ElasticIndexNameHelper {
             .map(c -> "\\" + c)
             .collect(Collectors.joining("", "^[", "]+")));
 
-//    public static String getIndexAlias(String indexPrefix, String indexPath) {
-//        return getElasticSafeName(indexPrefix + ".") + getElasticSafeIndexName(indexPath);
-//    }
-
-    public static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
-        PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(nodeTypeProp.getValue(Type.STRING))) {
-            throw new IllegalArgumentException("Not an index definition node state");
-        }
-        PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-        String typeValue = type != null ? type.getValue(Type.STRING) : "";
-        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
-            throw new IllegalArgumentException("Not an elastic index node");
-        }
-        PropertyState seedProp = indexNode.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
-        if (seedProp == null) {
-            LOG.debug("Could not obtain remote index name. No seed found for index {}", indexPath);
-            return null;
-        }
-        long seed = seedProp.getValue(Type.LONG);
-        return getRemoteIndexName(indexPrefix, indexPath, seed);
-    }
-
     public static String getRemoteIndexName(String indexPrefix, String indexName, long seed) {
         return getElasticSafeIndexName(indexPrefix, indexName + "-" + Long.toHexString(seed));
+    }
+
+    public static String getRemoteIndexName(String indexPrefix, String indexName, NodeBuilder definitionBuilder) {
+        PropertyState seedProp = definitionBuilder.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
+        if (seedProp == null) {
+            throw new IllegalStateException("Index full name cannot be computed without name seed");
+        }
+        long seed = seedProp.getValue(Type.LONG);
+        return getRemoteIndexName(indexPrefix, indexName, seed);
     }
 
     /**
@@ -96,7 +75,7 @@ public class ElasticIndexNameHelper {
      * <p>
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
-    static String getElasticSafeIndexName(String indexPrefix, String indexPath) {
+    public static String getElasticSafeIndexName(String indexPrefix, String indexPath) {
         String name = indexPrefix + "." + StreamSupport
                 .stream(PathUtils.elements(indexPath).spliterator(), false)
                 .limit(3) //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
@@ -114,7 +93,7 @@ public class ElasticIndexNameHelper {
      * Convert {@code e} to Elasticsearch safe index name.
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
-    static String getElasticSafeName(String suggestedIndexName) {
+    private static String getElasticSafeName(String suggestedIndexName) {
         return INVALID_CHARS_REGEX.matcher(suggestedIndexName).replaceAll("").toLowerCase();
     }
 

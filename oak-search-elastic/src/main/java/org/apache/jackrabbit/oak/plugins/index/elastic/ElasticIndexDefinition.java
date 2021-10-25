@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -99,8 +98,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
         isAnalyzable = type -> Arrays.binarySearch(NOT_ANALYZED_TYPES, type) < 0;
     }
 
-
-    private String indexFullName;
     private final String indexPrefix;
     private final String indexAlias;
     public final int bulkActions;
@@ -157,28 +154,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     /**
-     * The index full name should be used only for operations not affecting the active index (eg: reindexing operations).
-     * Since the index name cannot be computed in all cases at initialization time, the value gets loaded on demand and
-     * cached locally to improve performance.
-     *
-     * @return the index full name
-     * @throws IllegalStateException if the index definition does not have the name seed hidden property
-     */
-    public String getIndexFullName() {
-        if (indexFullName == null) {
-            PropertyState seedProp = definition.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
-            if (seedProp == null) {
-                throw new IllegalStateException("Index full name cannot be computed without name seed");
-            }
-            long seed = seedProp.getValue(Type.LONG);
-            indexFullName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, indexAlias, seed);
-        }
-        return indexFullName;
-    }
-
-    /**
-     * Returns the index alias on the Elasticsearch cluster. This alias should be used for any index related operations
-     * instead of accessing the index directly.
+     * Returns the index alias on the Elasticsearch cluster. This alias should be used for any query related operations.
+     * The actual index name is used only when a reindex is in progress.
      * @return the Elasticsearch index alias
      */
     public String getIndexAlias() {

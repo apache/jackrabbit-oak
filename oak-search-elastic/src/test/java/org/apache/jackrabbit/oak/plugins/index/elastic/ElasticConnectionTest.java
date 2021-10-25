@@ -28,7 +28,7 @@ public class ElasticConnectionTest {
     @Test
     public void uniqueClient() throws IOException {
         ElasticConnection connection = ElasticConnection.newBuilder()
-                .withIndexPrefix("test")
+                .withIndexPrefix("my+test")
                 .withDefaultConnectionParameters()
                 .build();
 
@@ -43,7 +43,7 @@ public class ElasticConnectionTest {
     @Test(expected = IllegalStateException.class)
     public void alreadyClosedConnection() throws IOException {
         ElasticConnection connection = ElasticConnection.newBuilder()
-                .withIndexPrefix("test")
+                .withIndexPrefix("my.test")
                 .withDefaultConnectionParameters()
                 .build();
 
