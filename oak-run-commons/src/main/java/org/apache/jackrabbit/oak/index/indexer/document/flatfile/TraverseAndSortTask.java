@@ -103,13 +103,13 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final MemoryManager memoryManager;
     private String registrationID;
 
-    TraverseAndSortTask(NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
+    TraverseAndSortTask(LastModifiedRange range, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                 MemoryManager memoryManager) throws IOException {
+        this.nodeStates = nodeStateEntryTraverserFactory.create(range);
         this.taskID = ID_PREFIX + nodeStates.getId();
-        this.nodeStates = nodeStates;
         this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedFrom();
         this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedTo();
         this.blobStore = blobStore;
@@ -234,8 +234,8 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
              */
             if (completedTasks.poll() != null) {
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
-                newTasksQueue.add(new TraverseAndSortTask(nodeStateEntryTraverserFactory.create(new LastModifiedRange(splitPoint,
-                        this.lastModifiedUpperBound)), comparator, blobStore, storeDir, compressionEnabled, completedTasks,
+                newTasksQueue.add(new TraverseAndSortTask(new LastModifiedRange(splitPoint, this.lastModifiedUpperBound),
+                        comparator, blobStore, storeDir, compressionEnabled, completedTasks,
                         newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
                 this.lastModifiedUpperBound = splitPoint;
             }

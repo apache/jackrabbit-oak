@@ -98,17 +98,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         private final MongoDocumentStore documentStore;
         private final Logger traversalLogger;
         private final CompositeIndexer indexer;
-        private final Closer closer;
 
         private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
                                                    MongoDocumentStore documentStore, Logger traversalLogger,
-                                                   CompositeIndexer indexer, Closer closer) {
+                                                   CompositeIndexer indexer) {
             this.rootRevision = rootRevision;
             this.documentNodeStore = documentNodeStore;
             this.documentStore = documentStore;
             this.traversalLogger = traversalLogger;
             this.indexer = indexer;
-            this.closer = closer;
         }
 
         @Override
@@ -118,8 +116,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             String entryTraverserID = TRAVERSER_ID_PREFIX + traverserInstanceCounter.incrementAndGet();
             //As first traversal is for dumping change the message prefix
             progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
-            NodeStateEntryTraverser nsep =
-                    new NodeStateEntryTraverser(entryTraverserID, rootRevision,
+            return new NodeStateEntryTraverser(entryTraverserID, rootRevision,
                             documentNodeStore, documentStore, lastModifiedRange)
                             .withProgressCallback((id) -> {
                                 try {
@@ -130,8 +127,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                                 traversalLogger.trace(id);
                             })
                             .withPathPredicate(indexer::shouldInclude);
-            //closer.register(nsep);
-            return nsep;
         }
     }
 
@@ -158,7 +153,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                         .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
-                                nodeStore, getMongoDocumentStore(), traversalLog, indexer, closer));
+                                nodeStore, getMongoDocumentStore(), traversalLog, indexer));
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
                 }

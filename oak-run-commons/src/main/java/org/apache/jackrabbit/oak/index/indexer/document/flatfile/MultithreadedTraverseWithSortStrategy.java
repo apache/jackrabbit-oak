@@ -278,8 +278,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private void addTask(long start, long end, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         LastModifiedRange range = new LastModifiedRange(start, end);
-        NodeStateEntryTraverser nodeStateEntryTraverser = nodeStateEntryTraverserFactory.create(range);
-        taskQueue.add(new TraverseAndSortTask(nodeStateEntryTraverser, comparator, blobStore, storeDir,
+        taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
                 compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
     }
 
@@ -305,6 +304,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     @Override
     public long getEntryCount() {
+        //todo - get actual entry count for correct progress estimation
         return 0;
     }
 
