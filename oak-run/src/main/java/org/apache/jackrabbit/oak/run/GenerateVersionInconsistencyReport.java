@@ -41,26 +41,54 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+/**
+ * Generate a report with the list of affected versionHistory nodes containing
+ * empty version nodes or an incorrect primaryType.
+ * This is something that shouldn't happen when Oak is strictly used, but some
+ * external tools may introduce this kind of inconsistencies.
+ */
 public class GenerateVersionInconsistencyReport {
 
-    private static volatile int count = 0;
-    private static volatile int emptyNodesCount = 0;
-    private static volatile int wrongNodesCount = 0;
-    private static volatile boolean runningJob = false;
+    private static String VERSION_STORAGE_PATH = "/jcr:system/jcr:versionStorage";
+    private static int PROGRESS_WAITING_TIME_MILLIS = 20 * 1000;
 
+    private volatile int count = 0;
+    private volatile int emptyNodesCount = 0;
+    private volatile int wrongNodesCount = 0;
+    private volatile boolean runningJob = false;
+
+    /**
+     * The tool is not integrated in the Oak-run Command framework as it's not
+     * intended for frequent or generic use.
+     * @param args At least 2 arguments are expected:
+     *             - MongoDB URI
+     *             - Repository admin username (optional)
+     *             - Repository admin password
+     * @throws IOException
+     */
     public static void main(String args[]) throws IOException {
-        if (args.length != 2) {
-            System.out.println("Required arguments: <mongo uri> <repository admin password>");
-            System.out.println(" - Example: mongodb://127.0.0.1:27017/database oak123456");
+        String adminUser = "admin";
+        String adminPwd = "";
+        if (args.length == 2) {
+            adminPwd = args[1];
+        } else if (args.length == 3) {
+            adminUser = args[1];
+            adminPwd = args[2];
+        } else {
+            System.out.println("Required arguments: <mongo uri> [repository admin username] <repository admin password>");
+            System.out.println("If no username is specified, it will default to 'admin'.");
+            System.out.println("Examples:");
+            System.out.println("    \"mongodb://127.0.0.1:27017/database\" \"oak123456\"");
+            System.out.println("    \"mongodb://127.0.0.1:27017/database\" \"admin\" \"oak123456\"");
             System.out.println();
             System.exit(1);
         }
 
-        String adminPwd = args[1];
-        generateReport(adminPwd, Arrays.copyOf(args, 1));
+        GenerateVersionInconsistencyReport reportGenerator = new GenerateVersionInconsistencyReport();
+        reportGenerator.generateReport(adminUser, adminPwd, Arrays.copyOf(args, 1));
     }
 
-    public static void generateReport(String adminPwd, String...args) throws IOException {
+    private void generateReport(String adminUser, String adminPwd, String...args) throws IOException {
         Closer closer = Utils.createCloserWithShutdownHook();
         String h = "mongodb://host:port/database|jdbc:...";
 
@@ -79,15 +107,15 @@ public class GenerateVersionInconsistencyReport {
             }
 
             ContentRepository cr = oak.createContentRepository();
-            ContentSession contentSession = cr.login(new SimpleCredentials("admin", adminPwd.toCharArray()), null);
+            ContentSession contentSession = cr.login(new SimpleCredentials(adminUser, adminPwd.toCharArray()), null);
             Root root = contentSession.getLatestRoot();
-            Tree tree = root.getTree("/jcr:system/jcr:versionStorage");
+            Tree tree = root.getTree(VERSION_STORAGE_PATH);
 
             ReadOnlyNodeTypeManager readOnlyNodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
             ReadOnlyVersionManager readOnlyVersionManager = new ReadOnlyVersionManager() {
                 @Override
                 protected @NotNull Tree getVersionStorage() {  //jcr:system/jcr:versionStorage
-                    return root.getTree("/jcr:system/jcr:versionStorage");
+                    return root.getTree(VERSION_STORAGE_PATH);
                 }
 
                 @Override
@@ -137,7 +165,7 @@ public class GenerateVersionInconsistencyReport {
         }
     }
 
-    private static void iterateAndFindEmptyAndWrongVersionNodes(Tree root, int level, ReadOnlyVersionManager readOnlyVersionManager, HashSet<Tree> emptyNodes, HashMap<String, String> wrongNodes) {
+    private void iterateAndFindEmptyAndWrongVersionNodes(Tree root, int level, ReadOnlyVersionManager readOnlyVersionManager, HashSet<Tree> emptyNodes, HashMap<String, String> wrongNodes) {
         for (Tree treeNode : root.getChildren()) {
             count++;
             if (treeNode.getPropertyCount() == 0) {
@@ -161,14 +189,16 @@ public class GenerateVersionInconsistencyReport {
         }
     }
 
-    private static class ProgressThread implements Runnable {
+    private class ProgressThread implements Runnable {
         public void run() {
             try {
                 while (runningJob) {
                     System.out.println("Job is running... Traversed " + count + " nodes. Found " + emptyNodesCount + " empty and " + wrongNodesCount + " wrong nodes.");
-                    Thread.sleep(20000);
+                    Thread.sleep(PROGRESS_WAITING_TIME_MILLIS);
                 }
             } catch (InterruptedException e) {
+                System.out.println("ProgressThread was interrupted");
+                e.printStackTrace();
             }
         }
     }
