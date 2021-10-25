@@ -38,7 +38,7 @@ public class ElasticIndexNameHelperTest {
 
     @Test
     public void lowercaseOnly() {
-        String alias = ElasticIndexNameHelper.getIndexAlias("Prefix", "/oak:index/foo/My_Index");
+        String alias = ElasticIndexNameHelper.getIndexAlias("prefix", "/oak:index/foo/My_Index");
         assertThat(alias, is("prefix.foo_my_index"));
     }
 

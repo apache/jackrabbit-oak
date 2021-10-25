@@ -64,7 +64,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
                     writerFactory,
                     extractedTextCache,
                     indexingContext,
-                    true, elasticConnection.getIndexPrefix());
+                    true);
 
             return new ElasticIndexEditor(context);
         }

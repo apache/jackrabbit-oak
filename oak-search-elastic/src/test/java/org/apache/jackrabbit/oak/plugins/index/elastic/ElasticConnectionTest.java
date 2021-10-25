@@ -51,4 +51,28 @@ public class ElasticConnectionTest {
 
         connection.getClient();
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void emptyIndexPrefix() {
+        ElasticConnection.newBuilder()
+                .withIndexPrefix("")
+                .withDefaultConnectionParameters()
+                .build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void indexPrefixStartingWithNotAllowedChars() {
+        ElasticConnection.newBuilder()
+                .withIndexPrefix(".cannot_start_with_dot")
+                .withDefaultConnectionParameters()
+                .build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void indexPrefixWithNotAllowedChars() {
+        ElasticConnection.newBuilder()
+                .withIndexPrefix("cannot_have_*_chars")
+                .withDefaultConnectionParameters()
+                .build();
+    }
 }

@@ -32,22 +32,19 @@ import java.util.UUID;
 
 class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocument> {
 
-    private final String indexPrefix;
-
     ElasticIndexEditorContext(NodeState root,
-                              NodeBuilder definition, @Nullable IndexDefinition indexDefinition,
+                              NodeBuilder definition, @Nullable ElasticIndexDefinition indexDefinition,
                               IndexUpdateCallback updateCallback,
                               ElasticIndexWriterFactory indexWriterFactory,
                               ExtractedTextCache extractedTextCache,
                               IndexingContext indexingContext,
-                              boolean asyncIndexing, String indexPrefix) {
+                              boolean asyncIndexing) {
         super(root, definition, indexDefinition, updateCallback, indexWriterFactory, extractedTextCache, indexingContext, asyncIndexing);
-        this.indexPrefix = indexPrefix;
     }
 
     @Override
     public IndexDefinition.Builder newDefinitionBuilder() {
-        return new ElasticIndexDefinition.Builder(indexPrefix);
+        return new ElasticIndexDefinition.Builder(((ElasticIndexDefinition) definition).getIndexPrefix());
     }
 
     @Override

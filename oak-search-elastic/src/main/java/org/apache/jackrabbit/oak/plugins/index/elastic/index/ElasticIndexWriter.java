@@ -80,7 +80,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public void updateDocument(String path, ElasticDocument doc) {
-        IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexAlias())
+        IndexRequest request = new IndexRequest(indexDefinition.getIndexAlias())
                 .id(ElasticIndexUtils.idFromPath(path))
                 .source(doc.build(), XContentType.JSON);
         bulkProcessorHandler.add(request);
@@ -88,7 +88,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public void deleteDocuments(String path) {
-        DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexAlias())
+        DeleteRequest request = new DeleteRequest(indexDefinition.getIndexAlias())
                 .id(ElasticIndexUtils.idFromPath(path));
         bulkProcessorHandler.add(request);
     }
@@ -100,7 +100,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     protected void provisionIndex(long seed) throws IOException {
         // check if index already exists
-        final String indexName = ElasticIndexNameHelper.getRemoteIndexName(indexDefinition, seed);
+        final String indexName = indexDefinition.getIndexFullName();
         boolean exists = elasticConnection.getClient().indices().exists(
                 new GetIndexRequest(indexName), RequestOptions.DEFAULT
         );
@@ -133,22 +133,22 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         }
 
         // update the mapping
-        GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getRemoteIndexAlias());
+        GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getIndexAlias());
         GetAliasesResponse aliasesResponse = indicesClient.getAlias(getAliasesRequest, RequestOptions.DEFAULT);
         Map<String, Set<AliasMetadata>> aliases = aliasesResponse.getAliases();
         IndicesAliasesRequest indicesAliasesRequest = new IndicesAliasesRequest();
         for (String oldIndexName : aliases.keySet()) {
             IndicesAliasesRequest.AliasActions removeAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE);
-            removeAction.index(oldIndexName).alias(indexDefinition.getRemoteIndexAlias());
+            removeAction.index(oldIndexName).alias(indexDefinition.getIndexAlias());
             indicesAliasesRequest.addAliasAction(removeAction);
         }
         IndicesAliasesRequest.AliasActions addAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD);
-        addAction.index(indexName).alias(indexDefinition.getRemoteIndexAlias());
+        addAction.index(indexName).alias(indexDefinition.getIndexAlias());
         indicesAliasesRequest.addAliasAction(addAction);
         AcknowledgedResponse updateAliasResponse = indicesClient.updateAliases(indicesAliasesRequest, RequestOptions.DEFAULT);
         checkResponseAcknowledgement(updateAliasResponse, "Update alias call not acknowledged for alias "
-                + indexDefinition.getRemoteIndexAlias());
-        LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getRemoteIndexAlias(),
+                + indexDefinition.getIndexAlias());
+        LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getIndexAlias(),
                 indexName, updateAliasResponse.isAcknowledged());
 
         // once the alias has been updated, we can safely remove the old index

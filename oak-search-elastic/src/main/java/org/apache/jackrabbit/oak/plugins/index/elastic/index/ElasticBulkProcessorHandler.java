@@ -315,9 +315,9 @@ class ElasticBulkProcessorHandler {
                 try {
                     this.elasticConnection.getClient()
                             .indices()
-                            .refresh(new RefreshRequest(indexDefinition.getRemoteIndexAlias()), RequestOptions.DEFAULT);
+                            .refresh(new RefreshRequest(indexDefinition.getIndexAlias()), RequestOptions.DEFAULT);
                 } catch (IOException e) {
-                    LOG.warn("Error refreshing index " + indexDefinition.getRemoteIndexAlias(), e);
+                    LOG.warn("Error refreshing index " + indexDefinition.getIndexAlias(), e);
                 }
             }
             return closed;

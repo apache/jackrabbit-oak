@@ -252,8 +252,11 @@ public class ElasticConnection implements Closeable {
 
             @Override
             public ElasticConnection build() {
+                if (!ElasticIndexNameHelper.isValidPrefix(indexPrefix)) {
+                    throw new IllegalArgumentException("The indexPrefix does not follow the elasticsearch naming convention");
+                }
                 return new ElasticConnection(
-                        Objects.requireNonNull(ElasticIndexNameHelper.getElasticSafeName(indexPrefix), "indexPrefix must be not null"),
+                        Objects.requireNonNull(indexPrefix, "indexPrefix must be not null"),
                         Objects.requireNonNull(scheme, "scheme must be not null"),
                         Objects.requireNonNull(host, "host must be not null"),
                         Objects.requireNonNull(port, "port must be not null"),

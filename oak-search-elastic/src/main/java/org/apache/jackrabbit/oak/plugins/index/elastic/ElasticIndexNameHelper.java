@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -60,9 +60,9 @@ public class ElasticIndexNameHelper {
             .map(c -> "\\" + c)
             .collect(Collectors.joining("", "^[", "]+")));
 
-    public static String getIndexAlias(String indexPrefix, String indexPath) {
-        return getElasticSafeName(indexPrefix + ".") + getElasticSafeIndexName(indexPath);
-    }
+//    public static String getIndexAlias(String indexPrefix, String indexPath) {
+//        return getElasticSafeName(indexPrefix + ".") + getElasticSafeIndexName(indexPath);
+//    }
 
     public static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
         PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
@@ -80,28 +80,11 @@ public class ElasticIndexNameHelper {
             return null;
         }
         long seed = seedProp.getValue(Type.LONG);
-        String indexAlias = getIndexAlias(indexPrefix, indexPath);
-        return getRemoteIndexName(indexAlias, seed);
+        return getRemoteIndexName(indexPrefix, indexPath, seed);
     }
 
-    /**
-     * Create a name for remote elastic index from given index definition and seed.
-     * @param indexDefinition elastic index definition to use
-     * @param seed seed to use
-     * @return remote elastic index name
-     */
-    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition, long seed) {
-        return getElasticSafeIndexName(
-                indexDefinition.getRemoteIndexAlias() + "-" + Long.toHexString(seed));
-    }
-
-    /**
-     * Create a name for remote elastic index from given index definition and a randomly generated seed.
-     * @param indexDefinition elastic index definition to use
-     * @return remote elastic index name
-     */
-    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition) {
-        return getRemoteIndexName(indexDefinition, UUID.randomUUID().getMostSignificantBits());
+    public static String getRemoteIndexName(String indexPrefix, String indexName, long seed) {
+        return getElasticSafeIndexName(indexPrefix, indexName + "-" + Long.toHexString(seed));
     }
 
     /**
@@ -113,8 +96,8 @@ public class ElasticIndexNameHelper {
      * <p>
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
-    private static String getElasticSafeIndexName(String indexPath) {
-        String name = StreamSupport
+    static String getElasticSafeIndexName(String indexPrefix, String indexPath) {
+        String name = indexPrefix + "." + StreamSupport
                 .stream(PathUtils.elements(indexPath).spliterator(), false)
                 .limit(3) //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
                 .filter(p -> !"oak:index".equals(p))
@@ -132,11 +115,15 @@ public class ElasticIndexNameHelper {
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
     static String getElasticSafeName(String suggestedIndexName) {
-        String safeName = INVALID_START_CHARS_REGEX.matcher(suggestedIndexName).replaceAll("");
-        return INVALID_CHARS_REGEX.matcher(safeName).replaceAll("").toLowerCase();
+        return INVALID_CHARS_REGEX.matcher(suggestedIndexName).replaceAll("").toLowerCase();
     }
 
-    private static String getRemoteIndexName(String indexAlias, long seed) {
-        return getElasticSafeIndexName(indexAlias + "-" + Long.toHexString(seed));
+    static boolean isValidPrefix(@NotNull String prefix) {
+        if (!prefix.equals("")) {
+            return prefix.equals(prefix.toLowerCase()) && // it has to be lowercase
+                    !INVALID_START_CHARS_REGEX.matcher(prefix).find() && // not start with specific chars
+                    !INVALID_CHARS_REGEX.matcher(prefix).find(); // not contain specific chars
+        }
+        return false;
     }
 }
