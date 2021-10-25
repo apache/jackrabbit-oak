@@ -67,7 +67,6 @@ public class DefaultMemoryManager implements MemoryManager {
     private final ConcurrentHashMap<String, MemoryManagerClient> clients;
     private final MemoryManager.Type type;
     private final Random random;
-    private final Phaser lowMemoryPhaser = new Phaser();
 
     public DefaultMemoryManager() {
         this(Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2) * ONE_GB,
