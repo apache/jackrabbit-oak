@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -42,15 +41,6 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
 
         ElasticIndexDefinition esDefinition = (ElasticIndexDefinition) definition;
 
-        // We don't use stored index definitions with elastic. Every time a new writer gets created we
-        // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
-        // old index until the new one gets enabled) during incremental reindexing
-        String indexName;
-        if (reindex) {
-            indexName = ElasticIndexNameHelper.
-                    getRemoteIndexName(elasticConnection.getIndexPrefix(), esDefinition.getIndexPath(), definitionBuilder);
-        } else indexName = esDefinition.getIndexAlias();
-
-        return new ElasticIndexWriter(elasticConnection, esDefinition, definitionBuilder, commitInfo, indexName);
+        return new ElasticIndexWriter(elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo);
     }
 }

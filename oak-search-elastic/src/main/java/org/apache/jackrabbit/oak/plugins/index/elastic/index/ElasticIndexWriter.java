@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -58,17 +60,37 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final ElasticIndexDefinition indexDefinition;
 
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
+
+    private final boolean reindex;
     private final String indexName;
 
     ElasticIndexWriter(@NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull NodeBuilder definitionBuilder,
-                       CommitInfo commitInfo, String indexName) {
+                       boolean reindex, CommitInfo commitInfo) {
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
+        this.reindex = reindex;
+
+        // We don't use stored index definitions with elastic. Every time a new writer gets created we
+        // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
+        // old index until the new one gets enabled) during incremental reindexing
+        if (this.reindex) {
+            try {
+                long seed = UUID.randomUUID().getMostSignificantBits();
+                // merge gets called on node store later in the indexing flow
+                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
+
+                indexName = ElasticIndexNameHelper.
+                        getRemoteIndexName(elasticConnection.getIndexPrefix(), indexDefinition.getIndexPath(), seed);
+
+                provisionIndex();
+            } catch (IOException e) {
+                throw new IllegalStateException("Unable to provision index", e);
+            }
+        } else indexName = indexDefinition.getIndexAlias();
         this.bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder, commitInfo);
-        this.indexName = indexName;
+                .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, commitInfo);
     }
 
     @TestOnly
@@ -79,6 +101,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         this.indexDefinition = indexDefinition;
         this.bulkProcessorHandler = bulkProcessorHandler;
         this.indexName = indexDefinition.getIndexAlias();
+        this.reindex = false;
     }
 
     @Override
@@ -98,10 +121,15 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public boolean close(long timestamp) throws IOException {
-        return bulkProcessorHandler.close();
+        boolean updateStatus = bulkProcessorHandler.close();
+        if (reindex) {
+            // if we are closing a writer in reindex mode, it means we need to open the new index for queries
+            this.enableIndex();
+        }
+        return updateStatus;
     }
 
-    protected void provisionIndex() throws IOException {
+    private void provisionIndex() throws IOException {
         final IndicesClient indicesClient = elasticConnection.getClient().indices();
         // check if index already exists
         boolean exists = elasticConnection.getClient().indices().exists(
@@ -133,7 +161,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         }
     }
 
-    protected void enableIndex() throws IOException {
+    private void enableIndex() throws IOException {
         final IndicesClient indicesClient = elasticConnection.getClient().indices();
         // check if index already exists
         boolean exists = indicesClient.exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
