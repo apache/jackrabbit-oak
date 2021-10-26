@@ -198,6 +198,10 @@ public abstract class DocumentStoreFixture {
                 }
             }
         }
+
+        public void setRDBOptions(RDBOptions options) {
+            this.options = options;
+        }
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
