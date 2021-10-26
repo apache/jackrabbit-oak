@@ -73,7 +73,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     private final Set<String> indexerPaths = new HashSet<>();
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
-    public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
+    public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
         this.indexerSupport = indexerSupport;
     }
@@ -173,7 +173,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                     backOffTimeInMillis *= 2;
                 } catch (InterruptedException e) {
                     log.error("Interrupted while waiting before retrying download ", e);
-                    e.printStackTrace();
                 }
             }
             executionCount++;
