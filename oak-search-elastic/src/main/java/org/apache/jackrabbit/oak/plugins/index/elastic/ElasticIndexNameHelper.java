@@ -67,13 +67,21 @@ public class ElasticIndexNameHelper {
     }
 
     /**
+     * Returns a name that can be safely used as index name in Elastic.
+     *
+     * Examples:
      * <ul>
-     *     <li>abc -> abc</li>
-     *     <li>xy:abc -> xyabc</li>
-     *     <li>/oak:index/abc -> abc</li>
+     *     <li>prefix, abc -> prefix.abc</li>
+     *     <li>prefix, xy:abc -> prefix.xyabc</li>
+     *     <li>prefix, /oak:index/abc -> prefix.abc</li>
      * </ul>
      * <p>
-     * The resulting file name would be truncated to MAX_NAME_LENGTH
+     * The resulting file name would be truncated to {@link #MAX_NAME_LENGTH}
+     *
+     * @param indexPrefix the prefix of the index. This value does not get validated at this stage since it comes from
+     *                    outside and the validation already happened in {@link ElasticConnection.Builder} when the
+     *                    entire module gets initialized.
+     * @param indexPath the path of the index that will be checked, eventually transformed and appended to the prefix
      */
     public static String getElasticSafeIndexName(String indexPrefix, String indexPath) {
         String name = indexPrefix + "." + StreamSupport
