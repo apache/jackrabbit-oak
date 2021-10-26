@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.8
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.9
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.8 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.9 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,24 +15,23 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.8
+Changes in Oak 1.22.9
 ---------------------
 
 Bug
 
-    [OAK-9038] - oak-search-mt imports org.slf4j.impl
-    [OAK-9401] - Breaking recovery lock issue
+    [OAK-9519] - TlsGuardingConnection doesn't do a TLS handshake on reused connections
+    [OAK-9521] - Backport OAK-9496 and OAK-9520 to 1.22
 
 Improvement
 
-    [OAK-9392] - Improve resilience when primary becomes unavailable
-    [OAK-9451] - Cold Standby SSL certificates should be configurable
-    [OAK-9473] - [Cold Standby] Add configuration option for SSL key decryption password
+    [OAK-9522] - Index cost estimation: prefer union query with path restriction
+    [OAK-9540] - SegmentNotFoundException in IndexDefinition.hasMatchingNodeTypeReg
 
 Task
 
-    [OAK-9395] - Make MongoDockerRule.isDockerAvailable() static
-    [OAK-9396] - Promote SimpleRecoveryHandler test utility to top level class
+    [OAK-9495] - Adjust release vote template after migration to Git
+    [OAK-9539] - Bump netty dependency from 4.1.52.Final to 4.1.66.Final
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the previous Apache Jackrabbit Oak 1.22.x release.
