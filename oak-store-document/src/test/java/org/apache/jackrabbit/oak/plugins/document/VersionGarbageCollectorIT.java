@@ -37,10 +37,6 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -68,6 +64,8 @@ import com.google.common.util.concurrent.Atomics;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -102,21 +100,7 @@ public class VersionGarbageCollectorIT {
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
-        DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if (getFixtures().contains(DOCUMENT_NS) && mongo.isAvailable()) {
-            fixtures.add(new Object[] { mongo });
-        }
-
-        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
-        if (getFixtures().contains(DOCUMENT_RDB) && rdb.isAvailable()) {
-            fixtures.add(new Object[] { rdb });
-        }
-        if (fixtures.isEmpty() || getFixtures().contains(DOCUMENT_MEM)) {
-            fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
-        }
-
-        return fixtures;
+        return AbstractDocumentStoreTest.fixtures();
     }
 
     @Before
@@ -125,6 +109,10 @@ public class VersionGarbageCollectorIT {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
+        if (fixture instanceof RDBFixture) {
+            ((RDBFixture) fixture).setRDBOptions(
+                    new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true));
+        }
         documentMKBuilder = new DocumentMK.Builder().clock(clock).setLeaseCheck(false)
                 .setDocumentStore(fixture.createDocumentStore()).setAsyncDelay(0);
         store = documentMKBuilder.getNodeStore();
@@ -133,7 +121,9 @@ public class VersionGarbageCollectorIT {
 
     @After
     public void tearDown() throws Exception {
-        store.dispose();
+        if (store != null) {
+            store.dispose();
+        }
         Revision.resetClockToDefault();
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
