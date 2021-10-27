@@ -305,7 +305,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         }
     }
 
-    private void verifyLSHResults(Map<String, List<String>> expectedResults) {
+    private void verifyLSHResults(Map<String, List<String>> expectedResults, double expected, double delta) {
         for (String similarPath : expectedResults.keySet()) {
             String query = "select [jcr:path] from [nt:base] where similar(., '" + "/test/" + similarPath + "')";
             assertEventually(() -> {
@@ -321,7 +321,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
                     resultNum++;
                 }
                 double per = (expectedList.stream().filter(found::contains).count() * 100.0)/expectedList.size();
-                assertEquals("expected: " + expectedList + " got: " + found, 80.0, per, 20.0);
+                assertEquals("expected: " + expectedList + " got: " + found, expected, per, delta);
             });
         }
     }
@@ -383,7 +383,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
             }
             expectedResults.put(imageName, expected);
         }
-        verifyLSHResults(expectedResults);
+        verifyLSHResults(expectedResults, 65, 35);
     }
 
     static long euclideanDistance(float[] x, float[] y) {
