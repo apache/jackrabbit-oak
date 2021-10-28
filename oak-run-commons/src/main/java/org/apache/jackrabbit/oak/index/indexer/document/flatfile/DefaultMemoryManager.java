@@ -189,17 +189,19 @@ public class DefaultMemoryManager implements MemoryManager {
             sufficientMemory.set(true);
             log.info("Available memory level {} is good.", humanReadableByteCount(avail));
         } else {
-            Phaser phaser = new Phaser();
-            clients.forEach((r,c) -> c.memoryLow(phaser));
-            sufficientMemory.set(false);
-            log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
-                    humanReadableByteCount(avail), minMemoryBytes/ONE_GB);
-            new Thread(() -> {
-                log.info("Waiting for all tasks to finish dumping their data");
-                phaser.awaitAdvance(phaser.getPhase());
-                log.info("All tasks have finished dumping their data");
-                sufficientMemory.set(true);
-            }, "Wait-For-Dump").start();
+            boolean couldSet = sufficientMemory.compareAndSet(true, false);
+            if (couldSet) {
+                Phaser phaser = new Phaser();
+                clients.forEach((r, c) -> c.memoryLow(phaser));
+                log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
+                        humanReadableByteCount(avail), minMemoryBytes / ONE_GB);
+                new Thread(() -> {
+                    log.info("Waiting for all tasks to finish dumping their data");
+                    phaser.awaitAdvance(phaser.getPhase());
+                    log.info("All tasks have finished dumping their data");
+                    sufficientMemory.set(true);
+                }, "Wait-For-Dump").start();
+            }
         }
     }
 
@@ -212,15 +214,11 @@ public class DefaultMemoryManager implements MemoryManager {
                     .getType()
                     .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
                 if (sufficientMemory.get()) {
-                    synchronized (sufficientMemory) {
-                        if (sufficientMemory.get()) {
-                            CompositeData cd = (CompositeData) notification
-                                    .getUserData();
-                            MemoryNotificationInfo info = MemoryNotificationInfo
-                                    .from(cd);
-                            checkMemory(info.getUsage());
-                        }
-                    }
+                    CompositeData cd = (CompositeData) notification
+                            .getUserData();
+                    MemoryNotificationInfo info = MemoryNotificationInfo
+                            .from(cd);
+                    checkMemory(info.getUsage());
                 }
             }
         }

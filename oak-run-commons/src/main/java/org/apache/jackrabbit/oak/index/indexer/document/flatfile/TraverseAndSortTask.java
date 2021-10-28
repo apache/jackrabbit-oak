@@ -42,6 +42,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
@@ -75,7 +76,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final LinkedList<NodeStateHolder> entryBatch = new LinkedList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
-    private volatile Phaser dataDumpNotifyingPhaser;
+    private final AtomicReference<Phaser> dataDumpNotifyingPhaserRef = new AtomicReference<>();
     /**
      * Queue to which the {@link #taskID} of completed tasks is added.
      */
@@ -126,22 +127,13 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         log.debug("Task {} registered to phaser", taskID);
     }
 
-    /*
-     * There is a race condition between this method and {@link #reset()} (because this method checks entry batch size
-     * and {@link #reset()} clears it). To ensure, {@link #dataDumpNotifyingPhaser} is always arrived upon by this task,
-     * we need to make these methods atomic wrt to one another.
-     * @param phaser phaser used to coordinate with {@link MemoryManager}
-     */
     @Override
-    public synchronized void memoryLow(Phaser phaser) {
-        if (entryBatch.isEmpty()) {
-            log.info("{} No data to save. Immediately signalling memory manager.", taskID);
+    public void memoryLow(Phaser phaser) {
+        if (dataDumpNotifyingPhaserRef.compareAndSet(null, phaser)) {
             phaser.register();
-            phaser.arriveAndDeregister();
-            return;
+        } else {
+            log.warn("{} already has a low memory notification phaser.", taskID);
         }
-        dataDumpNotifyingPhaser = phaser;
-        dataDumpNotifyingPhaser.register();
     }
 
     private boolean registerWithMemoryManager() {
@@ -177,9 +169,10 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         } finally {
             phaser.arriveAndDeregister();
             log.info("{} entered finally block.", taskID);
-            if (dataDumpNotifyingPhaser != null) {
+            Phaser dataDumpPhaser = dataDumpNotifyingPhaserRef.get();
+            if (dataDumpPhaser != null) {
                 log.info("{} Data dump phaser not null after task completion. Notifying memory listener.", taskID);
-                dataDumpNotifyingPhaser.arriveAndDeregister();
+                dataDumpPhaser.arriveAndDeregister();
             }
             if (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType())) {
                 memoryManager.deregisterClient(registrationID);
@@ -244,9 +237,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         //Here logic differs from NodeStateEntrySorter in sense that
         //Holder line consist only of json and not 'path|json'
         NodeStateHolder h = new StateInBytesHolder(e.getPath(), jsonText);
-        synchronized (this) {
-            entryBatch.add(h);
-        }
+        entryBatch.add(h);
         lastSavedNodeStateEntry = e;
         updateMemoryUsed(h);
 
@@ -260,21 +251,20 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         if (MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType())) {
             memoryManager.changeMemoryUsedBy(-1 * memoryUsed);
         }
-        if (dataDumpNotifyingPhaser != null) {
+        Phaser phaser = dataDumpNotifyingPhaserRef.get();
+        if (phaser != null) {
             log.info("{} Finished saving data to disk. Notifying memory listener.", taskID);
-            dataDumpNotifyingPhaser.arriveAndDeregister();
-            dataDumpNotifyingPhaser = null;
+            phaser.arriveAndDeregister();
+            dataDumpNotifyingPhaserRef.compareAndSet(phaser, null);
         }
         memoryUsed = 0;
     }
 
     private void sortAndSaveBatch() throws IOException {
-        synchronized (this) {
-            if (entryBatch.isEmpty()) {
-                return;
-            }
-            entryBatch.sort(comparator);
+        if (entryBatch.isEmpty()) {
+            return;
         }
+        entryBatch.sort(comparator);
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
