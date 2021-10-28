@@ -49,9 +49,7 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         addContent(indexProperty, contentNodeName);
         String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + indexId1;
         assertEventually(() -> {
-            NodeState indexState = nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexId1);
-            String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState,
-                    indexPath);
+            String remoteIndexName = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), indexPath);
             try {
                 assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName), RequestOptions.DEFAULT));
             } catch (IOException e) {
@@ -77,9 +75,6 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         String indexPath2 = "/" + INDEX_DEFINITIONS_NAME + "/" + indexId2;
         String indexPath3 = "/" + INDEX_DEFINITIONS_NAME + "/" + indexId3;
         NodeState oakIndex = nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME);
-        NodeState indexState1 = oakIndex.getChildNode(indexId1);
-        NodeState indexState2 = oakIndex.getChildNode(indexId2);
-        NodeState indexState3 = oakIndex.getChildNode(indexId3);
 
         root.refresh();
         root.getTree(indexPath1).remove();
@@ -93,12 +88,9 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore, 5);
         cleaner.run();
 
-        String remoteIndexName1 = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState1,
-                indexPath1);
-        String remoteIndexName2 = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState2,
-                indexPath2);
-        String remoteIndexName3 = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState3,
-                indexPath3);
+        String remoteIndexName1 = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), indexPath1);
+        String remoteIndexName2 = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), indexPath2);
+        String remoteIndexName3 = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), indexPath3);
 
         assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName1), RequestOptions.DEFAULT));
         assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName2), RequestOptions.DEFAULT));
@@ -128,8 +120,7 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore, indexDeletionThresholdTime);
         cleaner.run();
 
-        String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState,
-                indexPath);
+        String remoteIndexName = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), indexPath);
         assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName), RequestOptions.DEFAULT));
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(indexDeletionThresholdTime));
@@ -155,8 +146,7 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore, indexDeletionThresholdTime);
         cleaner.run();
 
-        String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState,
-                indexPath);
+        String remoteIndexName = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), indexPath);
         assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName), RequestOptions.DEFAULT));
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(indexDeletionThresholdTime));

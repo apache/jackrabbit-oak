@@ -65,6 +65,7 @@ class ElasticBulkProcessorHandler {
     private static boolean waitForESAcknowledgement = true;
 
     protected final ElasticConnection elasticConnection;
+    protected final String indexName;
     protected final ElasticIndexDefinition indexDefinition;
     private final NodeBuilder definitionBuilder;
     protected final BulkProcessor bulkProcessor;
@@ -91,9 +92,11 @@ class ElasticBulkProcessorHandler {
     protected long totalOperations;
 
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
+                                        @NotNull String indexName,
                                         @NotNull ElasticIndexDefinition indexDefinition,
                                         @NotNull NodeBuilder definitionBuilder) {
         this.elasticConnection = elasticConnection;
+        this.indexName = indexName;
         this.indexDefinition = indexDefinition;
         this.definitionBuilder = definitionBuilder;
         this.bulkProcessor = initBulkProcessor();
@@ -106,6 +109,7 @@ class ElasticBulkProcessorHandler {
      * This option is available for sync index definitions only.
      */
     public static ElasticBulkProcessorHandler getBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
+                                                                      @NotNull String indexName,
                                                                       @NotNull ElasticIndexDefinition indexDefinition,
                                                                       @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo) {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
@@ -117,7 +121,7 @@ class ElasticBulkProcessorHandler {
             if (!commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME)) {
                 waitForESAcknowledgement = false;
             }
-            return new ElasticBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder);
+            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
         }
 
         // commit-info has priority over configuration in index definition
@@ -134,10 +138,10 @@ class ElasticBulkProcessorHandler {
         }
 
         if (SYNC_RT_MODE.equals(syncMode)) {
-            return new RealTimeBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder);
+            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
         }
 
-        return new ElasticBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder);
+        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
     }
 
     private BulkProcessor initBulkProcessor() {
@@ -285,9 +289,10 @@ class ElasticBulkProcessorHandler {
         private final AtomicBoolean isDataSearchable = new AtomicBoolean(false);
 
         private RealTimeBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
+                                             @NotNull String indexName,
                                              @NotNull ElasticIndexDefinition indexDefinition,
                                              @NotNull NodeBuilder definitionBuilder) {
-            super(elasticConnection, indexDefinition, definitionBuilder);
+            super(elasticConnection, indexName, indexDefinition, definitionBuilder);
         }
 
         @Override
@@ -315,9 +320,9 @@ class ElasticBulkProcessorHandler {
                 try {
                     this.elasticConnection.getClient()
                             .indices()
-                            .refresh(new RefreshRequest(indexDefinition.getRemoteIndexAlias()), RequestOptions.DEFAULT);
+                            .refresh(new RefreshRequest(indexName), RequestOptions.DEFAULT);
                 } catch (IOException e) {
-                    LOG.warn("Error refreshing index " + indexDefinition.getRemoteIndexAlias(), e);
+                    LOG.warn("Error refreshing index " + indexName, e);
                 }
             }
             return closed;

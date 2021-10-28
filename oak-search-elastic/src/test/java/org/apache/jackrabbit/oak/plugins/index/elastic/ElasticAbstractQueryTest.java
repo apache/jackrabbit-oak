@@ -223,7 +223,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
         try {
             return esConnection.getClient().indices()
-                    .exists(new GetIndexRequest(esIdxDef.getRemoteIndexAlias()), RequestOptions.DEFAULT);
+                    .exists(new GetIndexRequest(esIdxDef.getIndexAlias()), RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -232,7 +232,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected long countDocuments(Tree index) {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
 
-        CountRequest request = new CountRequest(esIdxDef.getRemoteIndexAlias());
+        CountRequest request = new CountRequest(esIdxDef.getIndexAlias());
         try {
             return esConnection.getClient().count(request, RequestOptions.DEFAULT).getCount();
         } catch (IOException e) {

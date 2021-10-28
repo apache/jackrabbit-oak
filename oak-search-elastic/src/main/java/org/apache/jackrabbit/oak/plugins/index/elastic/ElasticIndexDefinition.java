@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -97,12 +98,13 @@ public class ElasticIndexDefinition extends IndexDefinition {
         isAnalyzable = type -> Arrays.binarySearch(NOT_ANALYZED_TYPES, type) < 0;
     }
 
+    private final String indexPrefix;
+    private final String indexAlias;
     public final int bulkActions;
     public final long bulkSizeBytes;
     public final long bulkFlushIntervalMs;
     public final int bulkRetries;
     public final long bulkRetriesBackoff;
-    private final String remoteAlias;
     private final boolean similarityTagsEnabled;
     private final float similarityTagsBoost;
     public final int numberOfShards;
@@ -115,7 +117,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
-        this.remoteAlias = ElasticIndexNameHelper.getIndexAlias(indexPrefix != null ? indexPrefix : "", getIndexPath());
+        this.indexPrefix = indexPrefix;
+        this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath());
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
@@ -146,13 +149,17 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .collect(Collectors.toList());
     }
 
+    public String getIndexPrefix() {
+        return indexPrefix;
+    }
+
     /**
      * Returns the index alias on the Elasticsearch cluster. This alias should be used for any query related operations.
      * The actual index name is used only when a reindex is in progress.
      * @return the Elasticsearch index alias
      */
-    public String getRemoteIndexAlias() {
-        return remoteAlias;
+    public String getIndexAlias() {
+        return indexAlias;
     }
 
     public Map<String, List<PropertyDefinition>> getPropertiesByName() {
@@ -231,7 +238,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         private final String indexPrefix;
 
-        public Builder(String indexPrefix) {
+        public Builder(@NotNull String indexPrefix) {
             this.indexPrefix = indexPrefix;
         }
 

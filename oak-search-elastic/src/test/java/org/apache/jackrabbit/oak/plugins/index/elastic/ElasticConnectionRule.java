@@ -54,7 +54,7 @@ public class ElasticConnectionRule extends ExternalResource {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticConnectionRule.class);
     private ElasticConnection elasticConnection;
     private final String elasticConnectionString;
-    private static final String INDEX_PREFIX = "ElasticTest_";
+    private static final String INDEX_PREFIX = "elastic_test";
     private static final String PLUGIN_DIGEST = "060117b4150c87274d9cff0925ec16e714f28a40906a53a2cd2a23322bbb3189";
     private static boolean useDocker = false;
 
