@@ -80,7 +80,7 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
     private File flatFileStoreDir;
-    private MemoryManager memoryManager;
+    private final MemoryManager memoryManager;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
@@ -137,10 +137,6 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withNodeStateEntryTraverserFactory(NodeStateEntryTraverserFactory factory) {
         this.nodeStateEntryTraverserFactory = factory;
-        return this;
-    }
-
-    public FlatFileNodeStoreBuilder withMemoryManager() {
         return this;
     }
 
