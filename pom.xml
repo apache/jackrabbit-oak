@@ -74,9 +74,10 @@
   </modules>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.8</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.8</developerConnection>
-    <url>http://svn.apache.org/viewvc/jackrabbit/oak/branches/1.8</url>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
+    <url>https://github.com/apache/jackrabbit-oak/tree/${project.scm.tag}</url>
+    <tag>HEAD</tag>
   </scm>
 
   <build>
@@ -205,7 +206,7 @@ A candidate for the Jackrabbit Oak ${project.version} release is available at:
 
 The release candidate is a zip archive of the sources in:
 
-    https://svn.apache.org/repos/asf/jackrabbit/oak/tags/${project.artifactId}-${project.version}/
+    https://github.com/apache/jackrabbit-oak/tree/${project.artifactId}-${project.version}/
 
 The SHA1 checksum of the archive is ${checksum}.
 
