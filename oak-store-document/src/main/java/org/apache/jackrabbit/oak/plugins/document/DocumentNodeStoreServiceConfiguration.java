@@ -202,6 +202,8 @@ final class DocumentNodeStoreServiceConfiguration {
                 }
             } else if (type == String.class) {
                 obj = value;
+            } else if (type == String[].class) {
+                obj = String.valueOf(value).split("::");
             } else {
                 obj = defaultValue;
             }

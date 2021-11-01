@@ -28,8 +28,12 @@ import java.util.Hashtable;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.component.ComponentContext;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -136,6 +140,19 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(configuration, "db", DocumentNodeStoreService.DEFAULT_DB);
         Configuration config = createConfiguration();
         assertEquals(DocumentNodeStoreService.DEFAULT_DB, config.db());
+    }
+
+    @Test
+    public void overridePersistentCacheIncludes() throws Exception {
+        BundleContext bundleContext = Mockito.mock(BundleContext.class);
+        Mockito.when(bundleContext.getProperty("oak.documentstore.persistentCacheIncludes")).thenReturn("/foo::/bar");
+        ComponentContext componentContext = Mockito.mock(ComponentContext.class);
+        Mockito.when(componentContext.getBundleContext()).thenReturn(bundleContext);
+        Configuration config = DocumentNodeStoreServiceConfiguration.create(
+                componentContext, configAdmin,
+                preset.asConfiguration(),
+                configuration.asConfiguration());
+        assertArrayEquals(new String[]{"/foo", "/bar"}, config.persistentCacheIncludes());
     }
 
     private Configuration createConfiguration() throws IOException {
