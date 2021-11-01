@@ -34,8 +34,10 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -145,9 +147,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
         FlatFileNodeStoreBuilder builder = null;
         int backOffTimeInMillis = 5000;
+        MemoryManager memoryManager = new DefaultMemoryManager();
         while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
             try {
-                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
+                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir(), memoryManager)
                         .withLastModifiedBreakPoints(lastModifiedBreakPoints)
                         .withBlobStore(indexHelper.getGCBlobStore())
                         .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())

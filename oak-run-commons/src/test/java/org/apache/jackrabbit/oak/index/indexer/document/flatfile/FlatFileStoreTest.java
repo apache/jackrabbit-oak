@@ -193,9 +193,8 @@ public class FlatFileStoreTest {
             lastModifiedValues.sort(Long::compare);
             List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lastModifiedValues.get(0),
                     lastModifiedValues.get(lastModifiedValues.size() - 1), 10);
-            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
             TestMemoryManager memoryManager = new TestMemoryManager(true);
-            Mockito.when(spyBuilder.getMemoryManager()).thenReturn(memoryManager);
+            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot(), memoryManager));
             TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(map, true);
             FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
             assertNull(flatStore);

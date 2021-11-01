@@ -109,8 +109,6 @@ public class DefaultMemoryManager implements MemoryManager {
         log.info("Setting up a listener to monitor pool '{}' and trigger batch save " +
                 "if memory drop below {} GB (max {})", pool.getName(), minMemoryBytes/ONE_GB, humanReadableByteCount(maxMemory));
         pool.setCollectionUsageThreshold(minMemoryBytes);
-        // todo - should we check and block in the beginning? This creates problem in case of download resume.
-        //checkMemory(usage);
     }
 
     @Override

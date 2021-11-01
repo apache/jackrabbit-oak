@@ -130,6 +130,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     @Override
     public void memoryLow(Phaser phaser) {
         if (dataDumpNotifyingPhaserRef.compareAndSet(null, phaser)) {
+            log.info("{} registering to low memory notification phaser", taskID);
             phaser.register();
         } else {
             log.warn("{} already has a low memory notification phaser.", taskID);
@@ -180,7 +181,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             try {
                 nodeStates.close();
             } catch (IOException e) {
-                log.error("{} could not close NodeStateEntryTraverser", taskID);
+                log.error(taskID + " could not close NodeStateEntryTraverser", e);
             }
         }
         return Collections.emptyList();
@@ -218,13 +219,13 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         long remainingNumberOfTimestamps = lastModifiedUpperBound - e.getLastModified();
         // check if this task can be split
         if (remainingNumberOfTimestamps > 1) {
-            long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
             /*
               If there is a completed task, there is a chance of some worker thread being idle, so we create a new task from
               the current task. To split, we reduce the traversal upper bound for this task and pass on the node states from
               the new upper bound to the original upper bound to a new task.
              */
             if (completedTasks.poll() != null) {
+                long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
                 newTasksQueue.add(new TraverseAndSortTask(new LastModifiedRange(splitPoint, this.lastModifiedUpperBound),
                         comparator, blobStore, storeDir, compressionEnabled, completedTasks,

@@ -80,6 +80,7 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
     private File flatFileStoreDir;
+    private MemoryManager memoryManager;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
@@ -102,8 +103,14 @@ public class FlatFileNodeStoreBuilder {
         MULTITHREADED_TRAVERSE_WITH_SORT
     }
 
+    public FlatFileNodeStoreBuilder(File workDir, MemoryManager memoryManager) {
+        this.workDir = workDir;
+        this.memoryManager = memoryManager;
+    }
+
     public FlatFileNodeStoreBuilder(File workDir) {
         this.workDir = workDir;
+        this.memoryManager = new DefaultMemoryManager();
     }
 
     public FlatFileNodeStoreBuilder withLastModifiedBreakPoints(List<Long> lastModifiedBreakPoints) {
@@ -130,6 +137,10 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withNodeStateEntryTraverserFactory(NodeStateEntryTraverserFactory factory) {
         this.nodeStateEntryTraverserFactory = factory;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMemoryManager() {
         return this;
     }
 
@@ -178,13 +189,9 @@ public class FlatFileNodeStoreBuilder {
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, useZip, getMemoryManager());
+                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
-    }
-
-    MemoryManager getMemoryManager() {
-        return new DefaultMemoryManager();
     }
 
     private void logFlags() {
