@@ -16,27 +16,79 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.List;
+import java.util.Properties;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecksService;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNotNull;
 
 public class CompositeNodeStoreServiceTest {
 
 	@Rule
 	public final OsgiContext ctx = new OsgiContext();
+
+	@Test
+	public void bootstrapMultiMount() throws CommitFailedException {
+
+		// Create node stores
+		MemoryNodeStore nodeStoreLibs = new MemoryNodeStore();
+		MemoryNodeStore nodeStoreApps = new MemoryNodeStore();
+		MemoryNodeStore global = new MemoryNodeStore();
+
+		// Initialise node stores
+		NodeBuilder appsRoot = nodeStoreApps.getRoot().builder();
+		NodeBuilder apps = appsRoot.child("apps");
+		apps.child("app1");
+		apps.child("app2");
+		nodeStoreApps.merge(appsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+		NodeBuilder libsRoot = nodeStoreLibs.getRoot().builder();
+		NodeBuilder libs = libsRoot.child("libs");
+		libs.child("lib1");
+		libs.child("lib2");
+		nodeStoreLibs.merge(libsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+		// Define read-only mounts
+		registerActivateMountInfoConfig("libs", ImmutableList.of("/libs"));
+		registerActivateMountInfoConfig("apps", ImmutableList.of("/apps"));
+
+		ctx.registerInjectActivateService(new MountInfoProviderService(), ImmutableMap.of(
+			"expectedMounts", new String[]{"libs", "apps"}
+		));
+
+		// Register node stores
+		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreLibs), ImmutableMap.of("role", "composite-mount-libs"));
+		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreApps), ImmutableMap.of("role", "composite-mount-apps"));
+		ctx.registerInjectActivateService(new NodeStoreChecksService());
+
+		ctx.registerInjectActivateService(new CompositeNodeStoreService());
+
+
+		NodeStore nodeStore = ctx.getService(NodeStore.class);
+		assertNotNull(nodeStore.getRoot().getChildNode("apps").getChildNode("app1"));
+		assertNotNull(nodeStore.getRoot().getChildNode("libs").getChildNode("lib1"));
+	}
 
 	/**
 	 *  Verifies that a minimally-configured <tt>CompositeNodeStore</tt> can be registered successfully
@@ -116,5 +168,15 @@ public class CompositeNodeStoreServiceTest {
 			return nodeStore;
 		}
 
+	}
+
+	private void registerActivateMountInfoConfig(String mountName, List<String> mountedPaths) {
+		MountInfoConfig mountInfoConfig = new MountInfoConfig();
+		ctx.bundleContext().registerService(MountInfoConfig.class.getName(), mountInfoConfig, new Properties());
+		MockOsgi.activate(mountInfoConfig, ctx.bundleContext(),
+			ImmutableMap.of(
+				"mountedPaths", mountedPaths.toArray(),
+				"mountName", mountName
+			));
 	}
 }
