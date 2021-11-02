@@ -248,7 +248,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 
     @AttributeDefinition(
             name = "Persistent Cache Includes",
-            description = "Paths which should be cached in persistent cache")
+            description = "Paths which should be cached in persistent cache. " +
+                    "This value can be overridden with a system property " +
+                    "'oak.documentstore.persistentCacheIncludes' where paths " +
+                    "are separated with '::'. Example: -Doak.documentstore.persistentCacheIncludes=/content::/var")
     String[] persistentCacheIncludes() default {"/"};
 
     @AttributeDefinition(
