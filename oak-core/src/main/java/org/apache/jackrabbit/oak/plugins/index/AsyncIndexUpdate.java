@@ -488,6 +488,14 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private void runWhenPermitted() {
         if (indexStats.isPaused()) {
+            if (indexStats.forcedLeaseRelease){
+                try {
+                    clearLease();
+                } catch (CommitFailedException e) {
+                    log.warn("Unable to release lease, please try again");
+                }
+                indexStats.forcedLeaseRelease = false;
+            }
             log.debug("[{}] Ignoring the run as indexing is paused", name);
             return;
         }
@@ -624,6 +632,22 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 postAsyncRunStatsStatus(indexStats);
             }
         }
+    }
+
+    private void clearLease() throws CommitFailedException {
+        NodeState root = store.getRoot();
+        NodeState async = root.getChildNode(ASYNC);
+        String beforeCheckpoint = async.getString(name);
+        if (async.hasProperty(leasify(name))) {
+            NodeBuilder builder = root.builder();
+            builder.child(ASYNC).removeProperty(leasify(name));
+            mergeWithConcurrencyCheck(store, validatorProviders,
+                    builder, beforeCheckpoint, null, name);
+            log.debug("Lease property removed for lane: {}", name);
+        } else {
+            log.debug("No Lease property present for lane: {}", name);
+        }
+
     }
 
     private boolean shouldProceed() {
@@ -1011,6 +1035,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         private Set<String> tempCps = new HashSet<String>();
 
         private volatile boolean isPaused;
+        private volatile boolean forcedLeaseRelease;
         private volatile long updates;
         private volatile long nodesRead;
         private final Stopwatch watch = Stopwatch.createUnstarted();
@@ -1161,12 +1186,22 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
+        public String releaseLeaseForPausedLane() {
+            if (this.isPaused()){
+                this.forcedLeaseRelease = true;
+                return "LeaseRelease flag set";
+            }
+            return "Please pause the lane to release lease";
+        }
+
+        @Override
         public void resume() {
             log.debug("[{}] Resuming the async indexer", name);
             this.isPaused = false;
 
             //Clear the forcedStop flag as fail safe
             forcedStopFlag.set(false);
+            this.forcedLeaseRelease = false;
         }
 
         @Override
