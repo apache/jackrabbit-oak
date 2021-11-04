@@ -231,6 +231,35 @@ public class SessionImpl implements JackrabbitSession {
         });
     }
 
+    @Override
+    @Nullable
+    public Node getParentOrNull(@NotNull Item item) throws RepositoryException {
+        checkAlive();
+        ItemImpl itemImpl = checkItemImpl(item);
+        checkContext(itemImpl, sessionContext);
+        return sd.performNullable(new ReadOperation<Node>("getParentOrNull") {
+            @Override
+            public Node performNullable() throws RepositoryException {
+                return NodeImpl.createNodeOrNull(itemImpl.dlg.getParent(), sessionContext);
+            }
+        });
+    }
+    
+    private static void checkContext(@NotNull ItemImpl item, @NotNull SessionContext context) throws RepositoryException {
+        if (item.sessionContext != context) {
+            throw new RepositoryException("Item '"+item+"' has been obtained through a different Session.");
+        }
+    }
+    
+    @NotNull
+    private static ItemImpl checkItemImpl(@NotNull Item item) throws RepositoryException {
+        if (item instanceof ItemImpl) {
+            return (ItemImpl) item;
+        } else {
+            throw new RepositoryException("Invalid item implementation '"+item.getClass().getName()+"'. Excpected org.apache.jackrabbit.oak.jcr.session.ItemImpl");
+        }
+    }
+
     //------------------------------------------------------------< Session >---
 
     @Override

@@ -20,6 +20,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 
 import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Session;
@@ -28,6 +29,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Jackrabbit specific extension of the JCR {@link javax.jcr.Session} interface.
@@ -252,4 +254,22 @@ public interface JackrabbitSession extends Session {
      */
     Node getNodeOrNull(final String absPath) throws RepositoryException;
 
+    /**
+     * Returns the parent of the given {@code Item} or {@code null} if no parent exists (either because the given {@code Item} 
+     * represents the root node or the current session does not have sufficient access to retrieve the parent).
+     * 
+     * @param item An {@code Item} that has been obtained by the current session.
+     * @return The parent node of the given {@code Item} or {@code null}.
+     * @throws RepositoryException If another error occurs.
+     * @see Item#getParent() 
+     * @since 1.42
+     */
+    @Nullable 
+    default Node getParentOrNull(@NotNull Item item) throws RepositoryException {
+        try {
+            return item.getParent();
+        } catch (ItemNotFoundException | AccessDeniedException e) {
+            return null;
+        }
+    }
 }
