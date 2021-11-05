@@ -247,7 +247,7 @@ public class SessionImpl implements JackrabbitSession {
     
     private static void checkContext(@NotNull ItemImpl item, @NotNull SessionContext context) throws RepositoryException {
         if (item.sessionContext != context) {
-            throw new RepositoryException("Item '"+item+"' has been obtained through a different Session.");
+            throw new RepositoryException("Item '" + item + "' has been obtained through a different Session.");
         }
     }
     
@@ -256,7 +256,7 @@ public class SessionImpl implements JackrabbitSession {
         if (item instanceof ItemImpl) {
             return (ItemImpl) item;
         } else {
-            throw new RepositoryException("Invalid item implementation '"+item.getClass().getName()+"'. Excpected org.apache.jackrabbit.oak.jcr.session.ItemImpl");
+            throw new RepositoryException("Invalid item implementation '" + item.getClass().getName() + "'. Expected " + ItemImpl.class.getName());
         }
     }
 
