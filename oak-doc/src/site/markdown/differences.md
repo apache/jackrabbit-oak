@@ -249,7 +249,7 @@ name siblings but that might not cover all cases.
 ### XML Import
 
 The import behavior for
-[`IMPORT_UUID_CREATE_NEW`](https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW)
+[`IMPORT_UUID_CREATE_NEW`](https://s.apache.org/jcr-2.0-javadoc/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW)
 in Oak is implemented slightly different compared to Jackrabbit. Jackrabbit 2.x only creates a new
 UUID when it detects an existing conflicting node with the same UUID. Oak always creates a new UUID,
 even if there is no conflicting node. The are mainly two reasons why this is done in Oak:
@@ -334,9 +334,9 @@ Attribute Name | Attribute Value Type | Description
 `oak.relaxed-locking` | `Boolean` | Whether relaxed locking behaviour is enabled for the session. See [OAK-1329](https://issues.apache.org/jira/browse/OAK-1329).
 `oak.bound-principals` | `Set<Principal>` | The principals associated with the JCR session. See [OAK-9415](https://issues.apache.org/jira/browse/OAK-9415)
 
-[0]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
-[1]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttribute(java.lang.String)
-[2]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttributeNames()
-[3]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Credentials.html
-[4]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)
-[5]: https://www.adobe.io/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.2.5.1%20Expanded%20Form
+[0]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
+[1]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#getAttribute(java.lang.String)
+[2]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#getAttributeNames()
+[3]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Credentials.html
+[4]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)
+[5]: https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form
