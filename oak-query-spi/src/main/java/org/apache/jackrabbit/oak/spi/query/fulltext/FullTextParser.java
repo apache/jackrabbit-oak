@@ -24,7 +24,7 @@ import java.util.ArrayList;
 
 /**
  * A parser for fulltext condition literals. The grammar is defined in the
- * <a href="http://www.day.com/specs/jcr/2.0/6_Query.html#6.7.19">
+ * <a href="https://s.apache.org/jcr-2.0-spec/6_Query.html#6.7.19">
  * JCR 2.0 specification, 6.7.19 FullTextSearch</a>,
  * as follows (a bit simplified):
  * <pre>

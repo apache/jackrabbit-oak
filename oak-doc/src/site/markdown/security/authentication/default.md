@@ -259,8 +259,8 @@ to be present. The detailed behavior of the `ExternalLoginModule` is described i
 section [External Authentication](externalloginmodule.html).
 
 <!-- hidden references -->
-[GuestCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
-[SimpleCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+[GuestCredentials]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/GuestCredentials.html
+[SimpleCredentials]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/SimpleCredentials.html
 [ImpersonationCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/ImpersonationCredentials.html
 [AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html
 [GuestLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
