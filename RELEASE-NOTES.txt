@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.21
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.22
 
 Introduction
 ------------
@@ -7,36 +7,28 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.21 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.22 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
+
+Note that an "end of life" date has already been planned for this branch. See
+<https://jackrabbit.apache.org/oak/docs/roadmap.html> for details.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.21
+
+Changes in Oak 1.6.22
 ---------------------
-
-Technical task
-
-    [OAK-7329] - RDB*Store for SQLServer: name the PK index for better readability
-    [OAK-8147] - RDBBlobStore: add perf logging for JDBC read operations
-    [OAK-8411] - RDBConnectionHandler: add minimal open connection stats in TRACE log level
-    [OAK-8915] - RDBDocumentStore: use setNString() for columns known to be of type N*CHAR
 
 Bug
 
-    [OAK-6048] - Java 8 compilation failure in ConfigurationParametersTest.java
-    [OAK-9448] - javadoc errors in oak 1.6
+    [OAK-9519] - TlsGuardingConnection doesn't do a TLS handshake on reused connections
 
-Improvement
+Task
 
-    [OAK-9261] - Upgrade Apache Solr to 8.6.3 and remove Embedded Solr Server
-    [OAK-9294] - Document that Java 8 is needed for Oak 1.4 and 1.6 in the future
-
-Test
-
-    [OAK-8535] - oak-it-osgi fails with encrypted credentials in settings.xml
+    [OAK-8769] - oak-auth-ldap pom needs maintenance
+    [OAK-9569] - Update Oak 1.6 to Jackrabbit 2.14.10
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
