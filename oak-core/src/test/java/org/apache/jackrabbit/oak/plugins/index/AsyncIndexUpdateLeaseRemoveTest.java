@@ -41,6 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.leasify;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -85,18 +86,18 @@ public class AsyncIndexUpdateLeaseRemoveTest {
         async.setLeaseTimeOut(250);
         async.run();
         Long leaseValue = getLeaseValue(store);
-        assertTrue(leaseValue != null);
+        assertNotNull(leaseValue);
         async.getIndexStats().abortAndPause();
         async.getIndexStats().releaseLeaseForPausedLane();
         async.run();
         leaseValue = getLeaseValue(store);
         assertEquals(IndexStatsMBean.STATUS_DONE, async.getIndexStats().getStatus());
-        assertTrue(leaseValue == null);
+        assertNotNull(leaseValue);
 
         async.getIndexStats().resume();
         async.run();
         leaseValue = getLeaseValue(store);
-        assertTrue(leaseValue != null);
+        assertNotNull(leaseValue);
         // Not pausing indexing lane now.
         // async.getIndexStats().abortAndPause();
 

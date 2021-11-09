@@ -492,7 +492,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 try {
                     clearLease();
                 } catch (CommitFailedException e) {
-                    log.warn("Unable to release lease, please try again");
+                    log.warn("Unable to release lease, please try again", e);
                 }
                 indexStats.forcedLeaseRelease = false;
             }
@@ -638,14 +638,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         NodeState root = store.getRoot();
         NodeState async = root.getChildNode(ASYNC);
         String beforeCheckpoint = async.getString(name);
-        if (async.hasProperty(leasify(name))) {
+        String leaseName= leasify(name);
+        if (async.hasProperty(leaseName)) {
             NodeBuilder builder = root.builder();
-            builder.child(ASYNC).removeProperty(leasify(name));
+            builder.child(ASYNC).removeProperty(leaseName);
             mergeWithConcurrencyCheck(store, validatorProviders,
                     builder, beforeCheckpoint, null, name);
-            log.debug("Lease property removed for lane: {}", name);
+            log.info("Lease property removed for lane: {}", name);
         } else {
-            log.debug("No Lease property present for lane: {}", name);
+            log.info("No Lease property present for lane: {}", name);
         }
 
     }
