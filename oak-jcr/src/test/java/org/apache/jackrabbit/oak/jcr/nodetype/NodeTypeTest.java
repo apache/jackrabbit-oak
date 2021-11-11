@@ -382,7 +382,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void mandatoryUnnamedChildNode() throws RepositoryException, ParseException, IOException {
+    public void mandatoryResidualChildNode() throws RepositoryException, ParseException, IOException {
         Session session = getAdminSession();
         Node root = session.getRootNode();
 
@@ -392,31 +392,19 @@ public class NodeTypeTest extends AbstractRepositoryTest {
 
         CndImporter.registerNodeTypes(new StringReader(cnd), session);
 
-        // add with missing mandatory child node
+        // add with missing mandatory residual child node
         Node n = root.addNode("test", "test:MyType");
-        
-        try {
-            session.save();
-            fail("Must fail with ConstraintViolationException due to missing mandatory child node");
-        } catch (ConstraintViolationException e) {
-            // expected
-            session.refresh(false);
-        }
+        session.save();
+        // must not fail as residual mandatory child names are not enforced according to https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.7.2.4%20Mandatory
 
-        // set up correct structure
-        n = root.addNode("test", "test:MyType");
+        // add mandatory residual child node
         Node mandatoryChildNode = n.addNode("child", "nt:folder");
         session.save();
+        assertTrue("Mandatory child node not detected as such", mandatoryChildNode.getDefinition().isMandatory());
 
-        // remove mandatory child node
-        try {
-            mandatoryChildNode.remove();
-            session.save();
-            fail("Must fail with ConstraintViolationException because this is a mandatory child node of the parent node's node type");
-        } catch (ConstraintViolationException e) {
-            // expected
-            session.refresh(false);
-        }
+        // remove mandatory residual child node
+        mandatoryChildNode.remove();
+        session.save();
     }
 
     @Test
