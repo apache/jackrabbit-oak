@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -41,6 +43,7 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -376,6 +379,43 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         // now we should be able to remove the property
         n.getProperty("test:mandatory").remove();
         session.save();
+    }
+
+    @Test
+    public void mandatoryChildNode() throws RepositoryException, ParseException, IOException {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
+                "[test:MyType] > nt:unstructured\n" +
+                " + * (nt:folder) mandatory";
+
+        CndImporter.registerNodeTypes(new StringReader(cnd), session);
+
+        // add with missing mandatory child node
+        Node n = root.addNode("test", "test:MyType");
+        
+        try {
+            session.save();
+            fail("Must fail with ConstraintViolationException due to missing mandatory child node");
+        } catch (ConstraintViolationException e) {
+            // expected
+            session.refresh(false);
+        }
+
+        // set up correct structure
+        n = root.addNode("test", "test:MyType");
+        Node mandatoryChildNode = n.addNode("child", "nt:folder");
+        session.save();
+
+        // remove mandatory child node
+        try {
+            mandatoryChildNode.remove();
+            fail("Must fail with ConstraintViolationException because this is a mandatory child node of the parent node's node type");
+        } catch (ConstraintViolationException e) {
+            // expected
+            session.refresh(false);
+        }
     }
 
     @Test
