@@ -382,13 +382,51 @@ public class NodeTypeTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void mandatoryChildNode() throws RepositoryException, ParseException, IOException {
+    public void mandatoryUnnamedChildNode() throws RepositoryException, ParseException, IOException {
         Session session = getAdminSession();
         Node root = session.getRootNode();
 
         String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
                 "[test:MyType] > nt:unstructured\n" +
                 " + * (nt:folder) mandatory";
+
+        CndImporter.registerNodeTypes(new StringReader(cnd), session);
+
+        // add with missing mandatory child node
+        Node n = root.addNode("test", "test:MyType");
+        
+        try {
+            session.save();
+            fail("Must fail with ConstraintViolationException due to missing mandatory child node");
+        } catch (ConstraintViolationException e) {
+            // expected
+            session.refresh(false);
+        }
+
+        // set up correct structure
+        n = root.addNode("test", "test:MyType");
+        Node mandatoryChildNode = n.addNode("child", "nt:folder");
+        session.save();
+
+        // remove mandatory child node
+        try {
+            mandatoryChildNode.remove();
+            session.save();
+            fail("Must fail with ConstraintViolationException because this is a mandatory child node of the parent node's node type");
+        } catch (ConstraintViolationException e) {
+            // expected
+            session.refresh(false);
+        }
+    }
+
+    @Test
+    public void mandatoryNamedChildNode() throws RepositoryException, ParseException, IOException {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
+                "[test:MyType] > nt:unstructured\n" +
+                " + child (nt:folder) mandatory";
 
         CndImporter.registerNodeTypes(new StringReader(cnd), session);
 
