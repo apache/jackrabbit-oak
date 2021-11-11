@@ -43,7 +43,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 public class AsyncIndexUpdateLeaseRemoveTest {
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
@@ -92,7 +92,7 @@ public class AsyncIndexUpdateLeaseRemoveTest {
         async.run();
         leaseValue = getLeaseValue(store);
         assertEquals(IndexStatsMBean.STATUS_DONE, async.getIndexStats().getStatus());
-        assertNotNull(leaseValue);
+        assertNull(leaseValue);
 
         async.getIndexStats().resume();
         async.run();
@@ -107,7 +107,7 @@ public class AsyncIndexUpdateLeaseRemoveTest {
         leaseValue = getLeaseValue(store);
         System.out.println("new lease value:" + leaseValue);
         assertEquals(IndexStatsMBean.STATUS_DONE, async.getIndexStats().getStatus());
-        assertTrue(leaseValue != null);
+        assertNotNull(leaseValue);
     }
 
     private Long getLeaseValue(NodeStore store) {
