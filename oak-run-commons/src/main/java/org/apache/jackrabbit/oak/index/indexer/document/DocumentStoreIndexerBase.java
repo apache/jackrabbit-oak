@@ -168,14 +168,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                         executionCount, MAX_DOWNLOAD_ATTEMPTS - executionCount, flatFileStoreWatch);
                 lastException = e;
                 previousDownloadDirs.add(builder.getFlatFileStoreDir());
-            }
-            if (executionCount < MAX_DOWNLOAD_ATTEMPTS) {
-                try {
-                    log.info("Waiting for {} millis before retrying", backOffTimeInMillis);
-                    Thread.sleep(backOffTimeInMillis);
-                    backOffTimeInMillis *= 2;
-                } catch (InterruptedException e) {
-                    log.error("Interrupted while waiting before retrying download ", e);
+                if (executionCount < MAX_DOWNLOAD_ATTEMPTS) {
+                    try {
+                        log.info("Waiting for {} millis before retrying", backOffTimeInMillis);
+                        Thread.sleep(backOffTimeInMillis);
+                        backOffTimeInMillis *= 2;
+                    } catch (InterruptedException e) {
+                        log.error("Interrupted while waiting before retrying download ", e);
+                    }
                 }
             }
             executionCount++;
