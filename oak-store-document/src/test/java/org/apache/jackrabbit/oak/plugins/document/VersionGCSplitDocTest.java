@@ -205,6 +205,8 @@ public class VersionGCSplitDocTest {
     public void tearDown() throws Exception {
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
+        ns.dispose();
+        fixture.dispose();
     }
 
     @AfterClass
