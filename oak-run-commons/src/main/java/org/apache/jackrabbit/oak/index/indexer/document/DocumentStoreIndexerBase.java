@@ -173,8 +173,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                         log.info("Waiting for {} millis before retrying", backOffTimeInMillis);
                         Thread.sleep(backOffTimeInMillis);
                         backOffTimeInMillis *= 2;
-                    } catch (InterruptedException e) {
-                        log.error("Interrupted while waiting before retrying download ", e);
+                    } catch (InterruptedException ie) {
+                        log.error("Interrupted while waiting before retrying download ", ie);
                     }
                 }
             }
