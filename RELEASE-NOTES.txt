@@ -23,11 +23,14 @@ Changes in Oak 1.6.22
 
 Bug
 
+    [OAK-5887] - Stricter validation on primary type change
     [OAK-9519] - TlsGuardingConnection doesn't do a TLS handshake on reused connections
+    [OAK-9562] - Missing _bin when node is recreated after revision GC
 
 Task
 
     [OAK-8769] - oak-auth-ldap pom needs maintenance
+    [OAK-8974] - VersionGarbageCollectorIT should use fixtures from AbstractDocumentStoreTest
     [OAK-9569] - Update Oak 1.6 to Jackrabbit 2.14.10
 
 In addition to the above-mentioned changes, this release contains
