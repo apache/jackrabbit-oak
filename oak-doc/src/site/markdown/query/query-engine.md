@@ -348,11 +348,13 @@ then additional logic is required to skip over the entries already seen (for the
 If there is no good property to use keyset pagination on, then the lowercase of the node name can be used.
 It is best to start with `$lastEntry` as an empty string, and then in each subsequent run use the lowercase version of the node name of the last entry.
 Notice that some nodes may appear in two query results, if there are multiple nodes with the same name.
+In this case, SQL-2 needs to be used, because with XPath, escaping is applied to names.
 
-    /jcr:root/content//element(*, nt:file)
-    [fn:lower-case(fn:name()) >= $lastEntry] 
-    order by fn:lower-case(fn:name()), @jcr:path
-    
+    select [jcr:path], * from [nt:file] as a
+    where lower(name(a)) >= $lastEntry
+    and isdescendantnode(a, '/content')
+    order by lower(name(a)), [jcr:path]
+
     /oak:index/fileIndex
       - type = lucene
       - compatVersion = 2

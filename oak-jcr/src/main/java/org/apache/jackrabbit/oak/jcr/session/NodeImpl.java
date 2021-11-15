@@ -951,6 +951,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void setPrimaryType(final String nodeTypeName) throws RepositoryException {
+        final String oakTypeName = getOakName(checkNotNull(nodeTypeName));
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("setPrimaryType") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -962,7 +963,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
             @Override
             public void performVoid() throws RepositoryException {
-                internalSetPrimaryType(nodeTypeName);
+                internalSetPrimaryType(oakTypeName);
             }
         });
     }

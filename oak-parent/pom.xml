@@ -44,7 +44,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.3</jackrabbit.version>
+    <jackrabbit.version>2.20.4</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -136,7 +136,7 @@
             <detectJavaApiLink>false</detectJavaApiLink>
             <aggregate>true</aggregate>
             <links>
-              <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
+              <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
               <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
               <link>http://www.slf4j.org/apidocs/</link>

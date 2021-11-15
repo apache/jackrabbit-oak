@@ -102,8 +102,8 @@ filter helps Oak in _prefiltering_ changes before they are added to queue. For e
 interested in changes under '/content' then Oak can check if changes under that path have happened for given change, 
 if not then such a change is not queued.
 
-[1]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/observation/EventListener.html
-[2]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/observation/ObservationManager.html
+[1]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/observation/EventListener.html
+[2]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/observation/ObservationManager.html
 [3]: https://jackrabbit.apache.org/api/2.14/org/apache/jackrabbit/api/observation/JackrabbitEventFilter.html
 [4]: https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/jcr/observation/filter/OakEventFilter.html
 [5]: https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/commit/Observer.html
