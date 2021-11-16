@@ -77,6 +77,14 @@ public class QueryEngineSettingsService {
                         "the queryPaths of the index is taken into account."
         )
         String getStrictPathRestrictionsForIndexes() default DISABLED_STRICT_PATH_RESTRICTION;
+        
+        @AttributeDefinition(
+                name="Java package names to ignore when finding caller",
+                description="If non-empty the query engine logs the query statement plus the java package "
+                        + "which executed this query. This java package is the first package in the call trace"
+                        + "which does not not start with the any of the provided package names"
+                )
+        String[] ignoredPackageNamesinCallTrace();
 
     }
 
@@ -121,6 +129,8 @@ public class QueryEngineSettingsService {
         } else {
             logMsg(QUERY_FAIL_TRAVERSAL, QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL);
         }
+
+        queryEngineSettings.setIgnoredPackageNamesinCallTrace(config.ignoredPackageNamesinCallTrace());
 
         boolean fastQuerySizeSysProp = QueryEngineSettings.DEFAULT_FAST_QUERY_SIZE;
         boolean fastQuerySizeFromConfig = config.fastQuerySize();

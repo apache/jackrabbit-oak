@@ -139,5 +139,14 @@ public interface QueryEngineSettingsMBean {
 
     @Description("Get the query validator data as a JSON string.")
     String getQueryValidatorJson();
-
+    
+    
+//    @Description("Set or remove Java Package Name to ignore in Call Trace analysis")
+    void setIgnoredPackageNamesinCallTrace(
+            @Description("package names")
+            @Name("package names")
+            String[] packageNames);
+    
+//    @Description("Get the Java package Names to ignore in Call trace analysis")
+    String[] getIgnoredPackageNamesinCallTrace();
 }

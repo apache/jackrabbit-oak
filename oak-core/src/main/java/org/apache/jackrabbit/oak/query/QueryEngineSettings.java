@@ -80,6 +80,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private StrictPathRestriction strictPathRestriction = StrictPathRestriction.DISABLE;
 
     private final QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
+    
+    private String[] javaPackagesIgnoredInCallTrace = new String[0];
 
     /**
      * StatisticsProvider used to record query side metrics.
@@ -181,6 +183,14 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public QueryValidator getQueryValidator() {
         return queryValidator;
+    }
+    
+    public void setIgnoredPackageNamesinCallTrace(String[] packageNames) {
+        javaPackagesIgnoredInCallTrace = packageNames;
+    }
+    
+    public String[] getIgnoredPackageNamesinCallTrace() {
+        return javaPackagesIgnoredInCallTrace;
     }
 
     @Override
