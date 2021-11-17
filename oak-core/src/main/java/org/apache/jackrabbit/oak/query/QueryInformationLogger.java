@@ -24,15 +24,26 @@ public class QueryInformationLogger {
     
     protected static final String OAK_INTERNAL_MARKER = "/* oak-internal */";
     
-    
-    public static void logCaller (String statement, String[] ignoredJavaPackages) {
+    /**
+     * Logs the caller of the query based on the callstack. To refine the result, all stack frames
+     * are ignored, for which the entry (consisting of package name, classname and method name) starts
+     * with one of the entries provided by ignoredClassNames.
+     * 
+     * @param statement the query statement
+     * @param ignoredClassNames entries to be ignored. If empty, the method is a no-op.
+     */
+    public static void logCaller (String statement, String[] ignoredClassNames) {
+        
+        if (ignoredClassNames.length == 0) {
+            return;
+        }
         
         if (isOakInternalQuery(statement)) {
             INTERNAL_QUERIES_LOG.debug("Oak-internal query, query=[{}]", statement);
             return;
         }
         
-        String callingClass = getInvokingClass (ignoredJavaPackages);
+        String callingClass = getInvokingClass (ignoredClassNames);
         if (callingClass.isEmpty()) {
             INTERNAL_QUERIES_LOG.debug("Oak-internal query, query=[{}]", statement);
             if (INTERNAL_QUERIES_LOG.isTraceEnabled()) {

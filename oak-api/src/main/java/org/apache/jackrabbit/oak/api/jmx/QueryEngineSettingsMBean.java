@@ -142,11 +142,11 @@ public interface QueryEngineSettingsMBean {
     
     
 //    @Description("Set or remove Java Package Name to ignore in Call Trace analysis")
-    void setIgnoredPackageNamesinCallTrace(
+    void setIgnoredClassNamesinCallTrace(
             @Description("package names")
             @Name("package names")
             String[] packageNames);
     
 //    @Description("Get the Java package Names to ignore in Call trace analysis")
-    String[] getIgnoredPackageNamesinCallTrace();
+    String[] getIgnoredClassNamesinCallTrace();
 }

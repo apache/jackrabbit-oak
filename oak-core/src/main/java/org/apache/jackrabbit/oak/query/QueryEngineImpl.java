@@ -259,7 +259,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         ExecutionContext context = getExecutionContext();
         
-        QueryInformationLogger.logCaller(statement, context.getSettings().getIgnoredPackageNamesinCallTrace());
+        QueryInformationLogger.logCaller(statement, context.getSettings().getIgnoredClassNamesinCallTrace());
         
         List<Query> queries = parseQuery(statement, language, context, mappings);
         

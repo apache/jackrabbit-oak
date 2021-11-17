@@ -977,12 +977,12 @@ public class Oak {
             this.settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
         }
         
-        public void setIgnoredPackageNamesinCallTrace(String[] packageNames) {
-            settings.setIgnoredPackageNamesinCallTrace(packageNames);
+        public void setIgnoredClassNamesinCallTrace(String[] packageNames) {
+            settings.setIgnoredClassNamesinCallTrace(packageNames);
         }
         
-        public String[] getIgnoredPackageNamesinCallTrace() {
-            return settings.getIgnoredPackageNamesinCallTrace();
+        public String[] getIgnoredClassNamesinCallTrace() {
+            return settings.getIgnoredClassNamesinCallTrace();
         }
         
     }

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.util.Arrays;
+
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
@@ -81,7 +83,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private final QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
     
-    private String[] javaPackagesIgnoredInCallTrace = new String[0];
+    private String[] classNamesIgnoredInCallTrace = new String[0];
 
     /**
      * StatisticsProvider used to record query side metrics.
@@ -185,12 +187,12 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         return queryValidator;
     }
     
-    public void setIgnoredPackageNamesinCallTrace(String[] packageNames) {
-        javaPackagesIgnoredInCallTrace = packageNames;
+    public void setIgnoredClassNamesinCallTrace(String[] packageNames) {
+        classNamesIgnoredInCallTrace = packageNames;
     }
     
-    public String[] getIgnoredPackageNamesinCallTrace() {
-        return javaPackagesIgnoredInCallTrace;
+    public String[] getIgnoredClassNamesinCallTrace() {
+        return classNamesIgnoredInCallTrace;
     }
 
     @Override
@@ -202,6 +204,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
                 ", fullTextComparisonWithoutIndex=" + fullTextComparisonWithoutIndex +
                 ", sql2Optimisation=" + sql2Optimisation +
                 ", fastQuerySize=" + fastQuerySize +
+                ", classNamesIgnoredInCallTrace=" + Arrays.toString(classNamesIgnoredInCallTrace) +
                 '}';
     }
     
