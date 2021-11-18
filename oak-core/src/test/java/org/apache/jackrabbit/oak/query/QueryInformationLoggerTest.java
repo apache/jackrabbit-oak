@@ -37,7 +37,7 @@ public class QueryInformationLoggerTest {
             assertEquals("Exactly 1 entry must be written", 1, external.getLogs().size());
             String logEntry = external.getLogs().get(0);
             assertTrue(logEntry.contains("org.junit.runners.model")); // org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
-            assertEquals(0,internal.getLogs().size());
+            assertEquals(0, internal.getLogs().size());
         } finally {
             external.finished();
             internal.finished();
@@ -73,7 +73,7 @@ public class QueryInformationLoggerTest {
             QueryInformationLogger.logCaller(query, ignoredClasses);
             
             // On INFO no logs are written
-            assertEquals(0, external.getLogs().size()); //     
+            assertEquals(0, external.getLogs().size());    
             assertEquals(0, internal.getLogs().size());
         } finally {
             external.finished();
@@ -90,14 +90,9 @@ public class QueryInformationLoggerTest {
             internal.starting();
             String query = "SELECT * FROM [cq:Page]";
             QueryInformationLogger.logCaller(query, allClassesIgnored);
-            try {
-                throw new AssertionError();
-            } catch (AssertionError e) {
-                e.printStackTrace();
-            }
             
-            assertEquals(0,external.getLogs().size());    
-            assertEquals(0,internal.getLogs().size()); // would require DEBUG
+            assertEquals(0, external.getLogs().size());    
+            assertEquals(0, internal.getLogs().size()); // would require DEBUG
         } finally {
             external.finished();
             internal.finished();
