@@ -37,7 +37,6 @@ public class QueryInformationLogger {
      * @param ignoredClassNames entries to be ignored. If empty, the method is a no-op.
      */
     public static void logCaller(@NotNull String statement, @NotNull String[] ignoredClassNames) {
-        
         if (ignoredClassNames.length == 0) {
             return;
         }
@@ -80,8 +79,8 @@ public class QueryInformationLogger {
      * @return the calling class; if all classes of the call trace are in packages which are ignored,
      *   an empty string is returned.
      */
-    private static String getInvokingClass(String[] ignoredJavaPackages) {
-        
+    @NotNull
+    private static  String getInvokingClass(@NotNull String[] ignoredJavaPackages) {
         // With java9 we would use https://docs.oracle.com/javase/9/docs/api/java/lang/StackWalker.html
         final StackTraceElement[] callStack = Thread.currentThread().getStackTrace();
         
@@ -101,7 +100,6 @@ public class QueryInformationLogger {
         return ""; 
     }
     
-    
     /**
      * Check if statement is explicitly marked to be internal
      * @param statement the JCR query statement to check
@@ -110,11 +108,4 @@ public class QueryInformationLogger {
     private static boolean isOakInternalQuery(@NotNull String statement) {
         return statement.endsWith(QueryEngine.INTERNAL_SQL2_QUERY);
     }
-    
-    
-    
-    
-    
-    
-
 }

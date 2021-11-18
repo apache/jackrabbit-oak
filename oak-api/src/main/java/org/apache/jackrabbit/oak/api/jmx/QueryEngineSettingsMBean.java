@@ -141,16 +141,14 @@ public interface QueryEngineSettingsMBean {
     @Description("Get the query validator data as a JSON string.")
     String getQueryValidatorJson();
     
-    
     /**
      * Set or remove java package/class names which are ignored from finding the 
      * invoking class for queries.
      * 
-     * it can be either Java package names or fully-qualified class names (package + class name).
+     * It can be either Java package names or fully-qualified class names (package + class name).
      * 
      * @param classNames the class names to be ignored.
      */
-    
     @Description("Set or remove Java Package Name to ignore in Call Trace analysis")
     void setIgnoredClassNamesinCallTrace(
             @Description("package or fully qualified class names")
