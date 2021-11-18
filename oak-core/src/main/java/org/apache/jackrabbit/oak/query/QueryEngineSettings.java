@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.query.stats.QueryStatsMBeanImpl;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsReporter;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Settings of the query engine.
@@ -187,11 +188,11 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         return queryValidator;
     }
     
-    public void setIgnoredClassNamesinCallTrace(String[] packageNames) {
+    public void setIgnoredClassNamesinCallTrace(@NotNull String[] packageNames) {
         classNamesIgnoredInCallTrace = packageNames;
     }
     
-    public String[] getIgnoredClassNamesinCallTrace() {
+    public @NotNull String[] getIgnoredClassNamesinCallTrace() {
         return classNamesIgnoredInCallTrace;
     }
 

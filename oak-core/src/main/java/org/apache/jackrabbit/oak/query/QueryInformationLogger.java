@@ -14,6 +14,8 @@
 package org.apache.jackrabbit.oak.query;
 
 
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +24,9 @@ public class QueryInformationLogger {
     private static final Logger INTERNAL_QUERIES_LOG = LoggerFactory.getLogger(QueryInformationLogger.class.getName() + ".internalQuery");
     private static final Logger EXTERNAL_QUERIES_LOG = LoggerFactory.getLogger(QueryInformationLogger.class.getName() + ".externalQuery");
     
-    protected static final String OAK_INTERNAL_MARKER = "/* oak-internal */";
+    private QueryInformationLogger() {
+        // prevent instantiation
+    }
     
     /**
      * Logs the caller of the query based on the callstack. To refine the result, all stack frames
@@ -32,7 +36,7 @@ public class QueryInformationLogger {
      * @param statement the query statement
      * @param ignoredClassNames entries to be ignored. If empty, the method is a no-op.
      */
-    public static void logCaller (String statement, String[] ignoredClassNames) {
+    public static void logCaller(@NotNull String statement, @NotNull String[] ignoredClassNames) {
         
         if (ignoredClassNames.length == 0) {
             return;
@@ -43,8 +47,10 @@ public class QueryInformationLogger {
             return;
         }
         
-        String callingClass = getInvokingClass (ignoredClassNames);
+        String callingClass = getInvokingClass(ignoredClassNames);
         if (callingClass.isEmpty()) {
+            // If all stackframes are covered by the ignoredClassNames, it's something which is
+            // explicitly wanted not to be logged along other queries for which this is not true.
             INTERNAL_QUERIES_LOG.debug("Oak-internal query, query=[{}]", statement);
             if (INTERNAL_QUERIES_LOG.isTraceEnabled()) {
                 try {
@@ -74,7 +80,7 @@ public class QueryInformationLogger {
      * @return the calling class; if all classes of the call trace are in packages which are ignored,
      *   an empty string is returned.
      */
-    private static String getInvokingClass (String[] ignoredJavaPackages) {
+    private static String getInvokingClass(String[] ignoredJavaPackages) {
         
         // With java9 we would use https://docs.oracle.com/javase/9/docs/api/java/lang/StackWalker.html
         final StackTraceElement[] callStack = Thread.currentThread().getStackTrace();
@@ -96,9 +102,13 @@ public class QueryInformationLogger {
     }
     
     
-    
-    private static boolean isOakInternalQuery (String statement) {
-        return statement.endsWith(OAK_INTERNAL_MARKER);
+    /**
+     * Check if statement is explicitly marked to be internal
+     * @param statement the JCR query statement to check
+     * @return true the query is marked to be an internal query
+     */
+    private static boolean isOakInternalQuery(@NotNull String statement) {
+        return statement.endsWith(QueryEngine.INTERNAL_SQL2_QUERY);
     }
     
     

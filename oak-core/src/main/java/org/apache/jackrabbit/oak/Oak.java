@@ -60,8 +60,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.jmx.Description;
-import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -977,11 +975,11 @@ public class Oak {
             this.settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
         }
         
-        public void setIgnoredClassNamesinCallTrace(String[] packageNames) {
+        public void setIgnoredClassNamesinCallTrace(@NotNull String[] packageNames) {
             settings.setIgnoredClassNamesinCallTrace(packageNames);
         }
         
-        public String[] getIgnoredClassNamesinCallTrace() {
+        public @NotNull String[] getIgnoredClassNamesinCallTrace() {
             return settings.getIgnoredClassNamesinCallTrace();
         }
         

@@ -84,7 +84,7 @@ public class QueryEngineSettingsService {
                         + "which executed this query. This java package is the first package in the call trace"
                         + "which does not not start with the any of the provided fully qualfied class names (packagename + classname)"
                 )
-        String[] ignoredClassNamesinCallTrace();
+        String[] ignoredClassNamesinCallTrace() default {};
 
     }
 

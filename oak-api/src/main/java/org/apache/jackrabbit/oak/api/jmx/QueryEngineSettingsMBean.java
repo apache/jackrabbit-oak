@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api.jmx;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
@@ -141,12 +142,21 @@ public interface QueryEngineSettingsMBean {
     String getQueryValidatorJson();
     
     
-//    @Description("Set or remove Java Package Name to ignore in Call Trace analysis")
-    void setIgnoredClassNamesinCallTrace(
-            @Description("package names")
-            @Name("package names")
-            String[] packageNames);
+    /**
+     * Set or remove java package/class names which are ignored from finding the 
+     * invoking class for queries.
+     * 
+     * it can be either Java package names or fully-qualified class names (package + class name).
+     * 
+     * @param classNames the class names to be ignored.
+     */
     
-//    @Description("Get the Java package Names to ignore in Call trace analysis")
-    String[] getIgnoredClassNamesinCallTrace();
+    @Description("Set or remove Java Package Name to ignore in Call Trace analysis")
+    void setIgnoredClassNamesinCallTrace(
+            @Description("package or fully qualified class names")
+            @Name("class names")
+            @NotNull String[] classNames);
+    
+    @Description("Get the Java package / fully qualified class names to ignore when finding the caller of query")
+    @NotNull String[] getIgnoredClassNamesinCallTrace();
 }

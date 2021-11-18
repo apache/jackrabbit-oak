@@ -4,6 +4,7 @@ package org.apache.jackrabbit.oak.query;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -11,13 +12,15 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 public class QueryInformationLoggerTest {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(QueryInformationLoggerTest.class);
 
     private static final String EXTERNAL_LOG = QueryInformationLogger.class.getName() + ".externalQuery";
     private static final String INTERNAL_LOG = QueryInformationLogger.class.getName() + ".internalQuery";
     
+    // these package names should ignore all Oak-internal code
     String[] ignoredClasses = new String[] {"org.apache.jackrabbit.oak","java.lang","sun.reflect", "jdk"};
+    
+    // these package names should cover all class names which appear in the stack trace.
+    // it might be required to adjust if the CI/CD solution uses different package names (e.g. "com")
     String[] allClassesIgnored = new String[] {"java","org","net","sun","jdk"};
     
     
@@ -66,7 +69,7 @@ public class QueryInformationLoggerTest {
         try {
             external.starting();
             internal.starting();
-            String query = "SELECT * FROM [cq:Page] " + QueryInformationLogger.OAK_INTERNAL_MARKER;
+            String query = "SELECT * FROM [cq:Page] " + QueryEngine.INTERNAL_SQL2_QUERY;
             QueryInformationLogger.logCaller(query, ignoredClasses);
             
             // On INFO no logs are written
