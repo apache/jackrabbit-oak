@@ -34,7 +34,7 @@ public class QueryInformationLoggerTest {
             internal.starting();
             String query = "SELECT * FROM [cq:Page]";
             QueryInformationLogger.logCaller(query, ignoredClasses);
-            assertEquals("Exactly 1 entry must be written",1,external.getLogs().size());
+            assertEquals("Exactly 1 entry must be written", 1, external.getLogs().size());
             String logEntry = external.getLogs().get(0);
             assertTrue(logEntry.contains("org.junit.runners.model")); // org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
             assertEquals(0,internal.getLogs().size());
@@ -54,8 +54,8 @@ public class QueryInformationLoggerTest {
             internal.starting();
             String query = "SELECT * FROM [cq:Page]";
             QueryInformationLogger.logCaller(query, ignoredClasses);
-            assertEquals("Exactly 2 entries must be written",2,external.getLogs().size()); //     
-            assertEquals(0,internal.getLogs().size());
+            assertEquals("Exactly 2 entries must be written", 2, external.getLogs().size()); //     
+            assertEquals(0, internal.getLogs().size());
         } finally {
             external.finished();
             internal.finished();
@@ -73,8 +73,8 @@ public class QueryInformationLoggerTest {
             QueryInformationLogger.logCaller(query, ignoredClasses);
             
             // On INFO no logs are written
-            assertEquals(0,external.getLogs().size()); //     
-            assertEquals(0,internal.getLogs().size());
+            assertEquals(0, external.getLogs().size()); //     
+            assertEquals(0, internal.getLogs().size());
         } finally {
             external.finished();
             internal.finished();
@@ -115,8 +115,8 @@ public class QueryInformationLoggerTest {
             String query = "SELECT * FROM [cq:Page]";
             QueryInformationLogger.logCaller(query, allClassesIgnored);
             
-            assertEquals(0,external.getLogs().size());    
-            assertEquals(1,internal.getLogs().size()); // query statement
+            assertEquals(0, external.getLogs().size());    
+            assertEquals(1, internal.getLogs().size()); // query statement
         } finally {
             external.finished();
             internal.finished();
@@ -134,8 +134,8 @@ public class QueryInformationLoggerTest {
             QueryInformationLogger.logCaller(query, allClassesIgnored);
             
             // On INFO no logs are written
-            assertEquals(0,external.getLogs().size());    
-            assertEquals(2,internal.getLogs().size()); // query statement + Stacktrace
+            assertEquals(0, external.getLogs().size());    
+            assertEquals(2, internal.getLogs().size()); // query statement + Stacktrace
         } finally {
             external.finished();
             internal.finished();
