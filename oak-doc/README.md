@@ -37,7 +37,7 @@ to build the site **without** Javadoc, and optionally
 
 to add Javadoc. 
 
-   mvn site -Pdoc,javadoc
+    mvn site -Pdoc,javadoc
 
 to generate **both** site and javadocs. Review the site at
 `oak-doc/target/site`.
