@@ -196,6 +196,7 @@ Blob Garbage Collection(GC) is applicable for the following blob stores:
     * FileDataStore
     * S3DataStore
     * SharedS3DataStore (since Oak 1.2.0)
+    * AzureDataStore
     
 * SegmentNodeStore 
     * FileDataStore
