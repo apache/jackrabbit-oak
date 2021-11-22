@@ -26,6 +26,22 @@
 
 #
 
+xpath2sql /jcr:root/content//element(*, nt:base)[fn:path() >= $lastValue] order by fn:path()
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where path() >= @lastValue
+  and isdescendantnode(a, '/content')
+  order by path()
+  /* xpath ... */
+
+xpath2sql /jcr:root/content//element(*, nt:base)[jcr:first(@vanityPath) >= $lastValue] order by jcr:first(@vanityPath), @jcr:path
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where first([vanityPath]) >= @lastValue
+  and isdescendantnode(a, '/content')
+  order by first([vanityPath]), [jcr:path]
+  /* xpath ... */
+
 xpath2sql /jcr:root/content//element(*, nt:base)[@jcr:lastModified >= $lastModified] order by @jcr:lastModified, @jcr:path
 select [jcr:path], [jcr:score], *
   from [nt:base] as a

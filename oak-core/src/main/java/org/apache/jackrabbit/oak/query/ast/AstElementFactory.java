@@ -109,12 +109,20 @@ public class AstElementFactory {
         return new LowerCaseImpl(operand);
     }
 
+    public FirstImpl first(DynamicOperandImpl operand) {
+        return new FirstImpl(operand);
+    }
+
     public NodeLocalNameImpl nodeLocalName(String selectorName) {
         return new NodeLocalNameImpl(selectorName);
     }
 
     public NodeNameImpl nodeName(String selectorName) {
         return new NodeNameImpl(selectorName);
+    }
+
+    public PathImpl path(String selectorName) {
+        return new PathImpl(selectorName);
     }
 
     public NotImpl not(ConstraintImpl constraint) {
@@ -128,7 +136,7 @@ public class AstElementFactory {
     public PropertyExistenceImpl propertyExistence(String selectorName, String propertyName) {
         return new PropertyExistenceImpl(selectorName, propertyName);
     }
-    
+
     public PropertyInexistenceImpl propertyInexistence(String selectorName, String propertyName) {
         return new PropertyInexistenceImpl(selectorName, propertyName);
     }
@@ -178,27 +186,27 @@ public class AstElementFactory {
     public ConstraintImpl suggest(String selectorName, StaticOperandImpl expression) {
         return new SuggestImpl(selectorName, expression);
     }
-    
+
     /**
      * <p>
      * as the {@link AstElement#copyOf()} can return {@code this} is the cloning is not implemented
      * by the subclass, this method add some spice around it by checking for this case and tracking
      * a DEBUG message in the logs.
      * </p>
-     * 
+     *
      * @param e the element to be cloned. Cannot be null.
      * @return same as {@link AstElement#copyOf()}
      */
     @NotNull
     public static AstElement copyElementAndCheckReference(@NotNull final AstElement e) {
         AstElement clone = checkNotNull(e).copyOf();
-        
+
         if (clone == e && LOG.isDebugEnabled()) {
             LOG.debug(
                 "Failed to clone the AstElement. Returning same reference; the client may fail. {} - {}",
                 e.getClass().getName(), e);
         }
-        
+
         return clone;
     }
 

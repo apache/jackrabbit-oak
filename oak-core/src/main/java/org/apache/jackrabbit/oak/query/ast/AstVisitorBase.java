@@ -43,7 +43,7 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getOperand2().accept(this);
         return true;
     }
-    
+
     /**
      * Calls accept on the all operands in the "in" node.
      */
@@ -64,7 +64,7 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getFullTextSearchExpression().accept(this);
         return true;
     }
-    
+
     /**
      * Calls accept on the static operand in the native search constraint.
      */
@@ -73,7 +73,7 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getNativeSearchExpression().accept(this);
         return true;
     }
-    
+
     /**
      * Calls accept on the static operand in the similar search constraint.
      */
@@ -82,7 +82,7 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getPathExpression().accept(this);
         return true;
     }
-    
+
     /**
      * Calls accept on the static operand in the spellcheck search constraint.
      */
@@ -136,6 +136,14 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getOperand1().accept(this);
         node.getOperand2().accept(this);
         return true;
+    }
+
+    /**
+     * Calls accept on the dynamic operand in the first node.
+     */
+    @Override
+    public boolean visit(FirstImpl node) {
+        return node.getOperand().accept(this);
     }
 
     /**

@@ -34,6 +34,12 @@ public abstract class QueryConstants {
     public static final String RESTRICTION_NAME = ":name";
 
     /**
+     * Name of the property restriction used to express query performed
+     * via PATH function
+     */
+    public static final String RESTRICTION_PATH = ":path";
+
+    /**
      * The prefix for restrictions for function-based indexes, for example
      * upper(propertyName). Syntax: "function*expression". In order to support
      * all kinds of expressions in the future (including nested expressions and
