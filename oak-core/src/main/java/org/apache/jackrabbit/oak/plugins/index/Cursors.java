@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -339,7 +340,9 @@ public class Cursors {
                     readCount++;
                     if (readCount % 1000 == 0) {
                         FilterIterators.checkReadLimit(readCount, settings);
-                        LOG.warn("Traversed " + readCount + " nodes with filter " + filter + "; consider creating an index or changing the query");
+                        String caller = IndexUtils.getCaller(this.settings.getIgnoredClassNamesInCallTrace());
+                        LOG.warn("Traversed {} nodes with filter {} called by {}; consider creating an index or changing the query" , 
+                                new Object[] {readCount, filter, caller});
                     }
 
                     NodeState node = entry.getNodeState();
