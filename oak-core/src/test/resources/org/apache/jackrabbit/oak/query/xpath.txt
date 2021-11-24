@@ -29,9 +29,9 @@
 xpath2sql /jcr:root/content//element(*, nt:base)[fn:path() >= $lastValue] order by fn:path()
 select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where path() >= @lastValue
+  where path(a) >= @lastValue
   and isdescendantnode(a, '/content')
-  order by path()
+  order by path(a)
   /* xpath ... */
 
 xpath2sql /jcr:root/content//element(*, nt:base)[jcr:first(@vanityPath) >= $lastValue] order by jcr:first(@vanityPath), @jcr:path
