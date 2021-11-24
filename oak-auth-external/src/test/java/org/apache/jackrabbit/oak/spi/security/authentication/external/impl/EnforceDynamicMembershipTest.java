@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +34,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class EnforceDynamicMembershipTest extends DynamicSyncContextTest {
@@ -91,10 +93,12 @@ public class EnforceDynamicMembershipTest extends DynamicSyncContextTest {
         gr.addMember(userManager.createGroup("someOtherMember"));
         r.commit();
         
-        syncContext.setForceUserSync(true);
         syncConfig.user().setMembershipExpirationTime(-1);
-        syncContext.sync(externalUser);
-
+        // create a new context to make sure the membership data has expired
+        DynamicSyncContext dsc = new DynamicSyncContext(syncConfig, idp, userManager, valueFactory);
+        dsc.setForceUserSync(true);
+        assertSame(SyncResult.Status.UPDATE, dsc.sync(externalUser).getStatus());
+        
         // membership must have been migrated from group to rep:externalPrincipalNames
         // groups that have no other members left must be deleted.
         Tree t = r.getTree(a.getPath());
@@ -120,10 +124,12 @@ public class EnforceDynamicMembershipTest extends DynamicSyncContextTest {
         gr.addMember(a);
         r.commit();
 
-        syncContext.setForceUserSync(true);
         syncConfig.user().setMembershipExpirationTime(-1);
-        syncContext.sync(externalUser);
-
+        // create a new context to make sure the membership data has expired
+        DynamicSyncContext dsc = new DynamicSyncContext(syncConfig, idp, userManager, valueFactory);
+        dsc.setForceUserSync(true);
+        assertSame(SyncResult.Status.UPDATE, dsc.sync(externalUser).getStatus());        r.commit();
+        
         // membership must have been migrated from group to rep:externalPrincipalNames
         // groups that have no other members left must be deleted.
         Tree t = r.getTree(a.getPath());
