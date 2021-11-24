@@ -32,7 +32,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.compression.SnappyFrameDecoder;
+import io.netty.handler.codec.compression.SnappyFramedDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -115,7 +115,7 @@ class StandbyClient implements AutoCloseable {
 
                         // Decoders
 
-                        p.addLast(new SnappyFrameDecoder(true));
+                        p.addLast(new SnappyFramedDecoder(true));
 
                         // Such a big max frame length is needed because blob
                         // values are sent in one big message. In future
