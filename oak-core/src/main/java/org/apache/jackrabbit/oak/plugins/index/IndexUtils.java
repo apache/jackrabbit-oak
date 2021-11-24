@@ -30,7 +30,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +41,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -253,7 +251,7 @@ public final class IndexUtils {
      * actual caller doesn't matter (or cannot be determined clearly). In this case a short message
      * indicating this is returned.
      *
-     * If the ingoredJavaPackages parameter is null or empty, the caller is not looked up, but
+     * If the ignoredJavaPackages parameter is null or empty, the caller is not looked up, but
      * instead it is assumed, that the feature is not configured; in that case a short messages
      * is returned indicating that the feature is not configured.
      *
@@ -270,7 +268,7 @@ public final class IndexUtils {
         final StackTraceElement[] callStack = Thread.currentThread().getStackTrace();
         for (StackTraceElement stackFrame : callStack) {
             final String classAndMethod = stackFrame.getClassName() + "." + stackFrame.getMethodName();
-            if (Stream.of(ignoredJavaPackages).noneMatch(pkg -> classAndMethod.startsWith(pkg))) {
+            if (Stream.of(ignoredJavaPackages).noneMatch(classAndMethod::startsWith)) {
                 return classAndMethod;
             }
         }

@@ -82,7 +82,7 @@ public class QueryEngineSettingsService {
                 name="Fully qualified class names to ignore when finding caller",
                 description="If non-empty the query engine logs the query statement plus the java package "
                         + "which executed this query. This java package is the first package in the call trace"
-                        + "which does not not start with the any of the provided fully qualfied class names (packagename + classname)"
+                        + "which does not  start with any of the provided fully qualified class names (packagename + classname)"
                 )
         String[] ignoredClassNamesinCallTrace() default {};
 
