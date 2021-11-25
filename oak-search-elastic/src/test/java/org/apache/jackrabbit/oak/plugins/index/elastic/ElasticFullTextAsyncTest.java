@@ -88,7 +88,6 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         test.addChild("b").setProperty("propa", "steamship_to_canada");
         test.addChild("c").setProperty("propa", "ship_to_can");
         root.commit();
-        //Thread.sleep(5000);
 
         String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
 
@@ -115,7 +114,6 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         test.addChild("b").setProperty("propa", "steamship_to_canada");
         test.addChild("c").setProperty("propa", "ship_to_can");
         root.commit();
-        //Thread.sleep(5000);
 
         String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
 
