@@ -115,7 +115,7 @@ class StandbyClient implements AutoCloseable {
 
                         // Decoders
 
-                        p.addLast(new SnappyFrameDecoder());
+                        p.addLast(new SnappyFrameDecoder(true));
 
                         // Such a big max frame length is needed because blob
                         // values are sent in one big message. In future
