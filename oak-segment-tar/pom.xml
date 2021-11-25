@@ -84,6 +84,12 @@
                             com.github.luben.zstd;version="[1.5,2)";resolution:=optional,
                             org.bouncycastle.jsse;version="[1.6,2)";resolution:=optional,
                             org.bouncycastle.jsse.provider;version="[1.6,2)";resolution:=optional,
+                            com.oracle.svm.core.annotate;resolution:=optional,
+                            reactor.blockhound;resolution:=optional,
+                            reactor.blockhound.integration;resolution:=optional,
+                            org.apache.logging.log4j.message;resolution:=optional,
+                            org.apache.logging.log4j.spi;resolution:=optional,
+                            sun.security.ssl;resolution:=optional,
                             *
                         </Import-Package>
                     </instructions>
