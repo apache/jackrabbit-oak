@@ -109,6 +109,8 @@ public class PropertyDefinition {
 
     public final boolean dynamicBoost;
 
+    public final boolean allowLeadingWildcard;
+
     /**
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
@@ -146,6 +148,7 @@ public class PropertyDefinition {
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
         this.weight = getOptionalValue(defn, PROP_WEIGHT, DEFAULT_PROPERTY_WEIGHT);
         this.dynamicBoost = getOptionalValue(defn, FulltextIndexConstants.PROP_DYNAMIC_BOOST, false);
+        this.allowLeadingWildcard = getOptionalValue(defn, FulltextIndexConstants.PROP_ALLOW_LEADING_WILDCARDS, false);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX, true);
