@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
@@ -456,7 +457,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         readCount++;
                         if (readCount % TRAVERSING_WARN == 0) {
                             FilterIterators.checkReadLimit(readCount, settings);
-                            LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}", readCount, intermediateNodeReadCount, indexName, filter);
+                            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
+                            LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}, caller {}", 
+                                    readCount, intermediateNodeReadCount, indexName, filter, caller);
                         }
                         return;
                     } else {
