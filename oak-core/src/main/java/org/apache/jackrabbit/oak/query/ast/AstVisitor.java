@@ -88,9 +88,8 @@ public interface AstVisitor {
     boolean visit(NativeFunctionImpl node);
 
     boolean visit(SimilarImpl node);
-
+    
     boolean visit(SpellcheckImpl node);
 
     boolean visit(SuggestImpl suggest);
-
 }
