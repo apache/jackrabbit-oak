@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
- * The function "name(..)".
+ * The function "path(..)".
  */
 public class PathImpl extends DynamicOperandImpl {
 
