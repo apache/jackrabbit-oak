@@ -65,12 +65,12 @@ public class NodeNameImpl extends DynamicOperandImpl {
     public boolean supportsRangeConditions() {
         return false;
     }
-    
+
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return null;
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -104,7 +104,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
                     operator, PropertyValues.newString(localName));
         }
     }
-    
+
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // optimizations of type "NAME(..) IN(A, B)" are not supported
@@ -178,7 +178,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
     public DynamicOperandImpl createCopy() {
         return new NodeNameImpl(selectorName);
     }
-    
+
     @Override
     public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
         if (!s.equals(selector)) {
@@ -187,8 +187,8 @@ public class NodeNameImpl extends DynamicOperandImpl {
         }
         return new OrderEntry(
                 QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
-            Type.STRING, 
-            o.isDescending() ? 
+            Type.STRING,
+            o.isDescending() ?
             OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
