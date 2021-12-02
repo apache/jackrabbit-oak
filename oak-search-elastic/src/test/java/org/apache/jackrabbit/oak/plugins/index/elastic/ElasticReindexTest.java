@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -49,7 +48,6 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
-import java.io.IOException;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
@@ -66,27 +64,12 @@ public class ElasticReindexTest {
 
     protected int DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS = 5;
 
-    // Set this connection string as
-    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
-    // key_id and key_secret are optional in case the ES server
-    // needs authentication
-    // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
-
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+    public static final ElasticConnectionRule elasticRule =
+            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     private Session adminSession;
     private QueryManager qe;
-
-    /*
-    Close the ES connection after every test method execution
-     */
-    @After
-    public void cleanup() throws IOException {
-        adminSession.logout();
-        elasticRule.closeElasticConnection();
-    }
 
     @Before
     public void setup() throws Exception {

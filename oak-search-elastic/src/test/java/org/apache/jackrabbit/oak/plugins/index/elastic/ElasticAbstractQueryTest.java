@@ -81,14 +81,6 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @ClassRule
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
 
-    /*
-    Close the ES connection after every test method execution
-     */
-    @After
-    public void cleanup() throws IOException {
-        elasticRule.closeElasticConnection();
-    }
-
     // Override this in extending test class to provide different ExtractedTextCache if needed
     protected ElasticIndexEditorProvider getElasticIndexEditorProvider(ElasticConnection esConnection) {
         return new ElasticIndexEditorProvider(esConnection,
@@ -137,11 +129,14 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         return oak.withAsyncIndexing("async", DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS);
     }
 
+    protected ElasticConnection getElasticConnection() {
+        return elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
+                elasticRule.getElasticConnectionFromString();
+    }
+
     @Override
     protected ContentRepository createRepository() {
-
-        esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
-                elasticRule.getElasticConnectionFromString();
+        esConnection = getElasticConnection();
         ElasticIndexEditorProvider editorProvider = getElasticIndexEditorProvider(esConnection);
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(esConnection, getMetricHandler());
 
