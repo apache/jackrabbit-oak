@@ -61,6 +61,49 @@ public class FunctionIndexProcessorTest {
                 FunctionIndexProcessor.tryCalculateValue("x",
                 EMPTY_NODE.builder().setProperty("data", "Hello World").getNodeState(),
                 new String[]{"function", "lower", "@data"}).toString());
+        // coalesce
+        assertEquals("value = Hello",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().
+                    setProperty("data1", "Hello").
+                    setProperty("data2", "World").getNodeState(),
+                new String[]{"function", "coalesce", "@data1", "@data2"}).toString());
+        assertEquals("value = World",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data2", "World").getNodeState(),
+                new String[]{"function", "coalesce", "@data1", "@data2"}).toString());
+        assertEquals("value = Hello",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data1", "Hello").getNodeState(),
+                new String[]{"function", "coalesce", "@data1", "@data2"}).toString());
+        assertEquals("null",
+                "" + FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data3", "Hello").getNodeState(),
+                new String[]{"function", "coalesce", "@data1", "@data2"}));
+        // first
+        assertEquals("value = Hello",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("array", Arrays.asList("Hello", "World"), Type.STRINGS).getNodeState(),
+                new String[]{"function", "first", "@array"}).toString());
+        assertEquals("value = Hello",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("array", Arrays.asList("Hello"), Type.STRINGS).getNodeState(),
+                new String[]{"function", "first", "@array"}).toString());
+        // name
+        assertEquals("value = abc:content",
+                FunctionIndexProcessor.tryCalculateValue("abc:content",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "@:name"}).toString());
+        // localname
+        assertEquals("value = content",
+                FunctionIndexProcessor.tryCalculateValue("abc:content",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "@:localname"}).toString());
+        // path
+        assertEquals("value = /content",
+                FunctionIndexProcessor.tryCalculateValue("/content",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "@:path"}).toString());
     }
 
     @Test
@@ -84,6 +127,15 @@ public class FunctionIndexProcessorTest {
                 "fn:string-length(fn:name())",
                 "function*length*@:name");
         checkConvert(
+                "fn:path()",
+                "function*@:path");
+        checkConvert(
+                "fn:string-length(fn:path())",
+                "function*length*@:path");
+        checkConvert(
+                "fn:string-length(@jcr:path)",
+                "function*length*@:path");
+        checkConvert(
                 "fn:lower-case(fn:upper-case(test/@data))",
                 "function*lower*upper*@test/data");
         checkConvert("fn:coalesce(jcr:content/@foo2, jcr:content/@foo)",
@@ -94,6 +146,8 @@ public class FunctionIndexProcessorTest {
                 "function*coalesce*@jcr:content/foo2*coalesce*@jcr:content/foo*lower*@:name");
         checkConvert("fn:coalesce(fn:coalesce(jcr:content/@foo2,jcr:content/@foo), fn:coalesce(@a:b, @c:d))",
                 "function*coalesce*coalesce*@jcr:content/foo2*@jcr:content/foo*coalesce*@a:b*@c:d");
+        checkConvert("jcr:first(jcr:content/@foo2)",
+                "function*first*@jcr:content/foo2");
     }
 
     @Test
@@ -117,6 +171,15 @@ public class FunctionIndexProcessorTest {
                 "length(name())",
                 "function*length*@:name");
         checkConvert(
+                "path()",
+                "function*@:path");
+        checkConvert(
+                "length(path())",
+                "function*length*@:path");
+        checkConvert(
+                "length([jcr:path])",
+                "function*length*@:path");
+        checkConvert(
                 "lower(upper([test/data]))",
                 "function*lower*upper*@test/data");
         // the ']' character is escaped as ']]'
@@ -131,6 +194,8 @@ public class FunctionIndexProcessorTest {
                 "function*coalesce*@jcr:content/foo2*coalesce*@jcr:content/foo*lower*@:name");
         checkConvert("coalesce(coalesce([jcr:content/foo2],[jcr:content/foo]), coalesce([a:b], [c:d]))",
                 "function*coalesce*coalesce*@jcr:content/foo2*@jcr:content/foo*coalesce*@a:b*@c:d");
+        checkConvert("first([jcr:content/foo2])",
+                "function*first*@jcr:content/foo2");
     }
 
     private static void checkConvert(String function, String expectedPolishNotation) {

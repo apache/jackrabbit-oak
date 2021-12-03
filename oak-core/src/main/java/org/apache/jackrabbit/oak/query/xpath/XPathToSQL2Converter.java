@@ -731,6 +731,11 @@ public class XPathToSQL2Converter {
             f.params.add(parseExpression());
             read(")");
             return f;
+        } else if ("jcr:first".equals(functionName)) {
+            Expression.Function f = new Expression.Function("first");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:lower-case".equals(functionName)) {
             Expression.Function f = new Expression.Function("lower");
             f.params.add(parseExpression());
@@ -750,6 +755,15 @@ public class XPathToSQL2Converter {
             Expression.Function f = new Expression.Function("name");
             if (!readIf(")")) {
                 // only name(.) and name() are currently supported
+                read(".");
+                read(")");
+            }
+            f.params.add(new Expression.SelectorExpr(currentSelector));
+            return f;
+        } else if ("fn:path".equals(functionName)) {
+            Expression.Function f = new Expression.Function("path");
+            if (!readIf(")")) {
+                // only path(.) and path() are currently supported
                 read(".");
                 read(")");
             }
@@ -792,7 +806,7 @@ public class XPathToSQL2Converter {
             return new Expression.Suggest(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " +
-                    "fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck | rep:suggest");
+                    "fn:lower-case | fn:upper-case | jcr:first | fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
         }
     }
 

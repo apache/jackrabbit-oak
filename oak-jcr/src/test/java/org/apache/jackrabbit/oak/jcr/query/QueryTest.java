@@ -200,6 +200,44 @@ public class QueryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void first() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured").setProperty("test", new String[] {"a", "b"}, PropertyType.STRING);
+        test.addNode("b", "oak:Unstructured").setProperty("test", new String[] {"b", "a"}, PropertyType.STRING);
+        test.addNode("c", "oak:Unstructured").setProperty("test", "a");
+        test.addNode("d", "oak:Unstructured").setProperty("test", "b");
+        session.save();
+
+        assertEquals("/test/a, /test/c",
+                getNodeList(session,
+                "select [jcr:path] " +
+                "from [nt:base] " +
+                "where first([test]) = 'a'", Query.JCR_SQL2));
+    }
+
+    @Test
+    public void path() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured");
+        test.addNode("b", "oak:Unstructured");
+        test.addNode("c", "oak:Unstructured");
+        session.save();
+
+        assertEquals("/test/c, /test/b",
+                getNodeList(session,
+                "select [jcr:path] " +
+                "from [nt:base] " +
+                "where path() >= '/test/b' " +
+                "order by path() desc", Query.JCR_SQL2));
+    }
+
+    @Test
     public void twoSelectors() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();

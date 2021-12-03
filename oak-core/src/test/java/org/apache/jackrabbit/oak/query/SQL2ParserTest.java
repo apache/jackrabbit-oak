@@ -105,9 +105,21 @@ public class SQL2ParserTest {
                 .convert("//*[fn:coalesce(fn:coalesce(j:c/@a, b), fn:coalesce(c, c:d)) = 'a']"));
     }
 
+    @Test
+    public void testFirst() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE FIRST([d:t])='a'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE FIRST([jcr:mixinTypes])='a'");
+    }
+
     @Test(expected = ParseException.class)
     public void coalesceFailsWithNoParam() throws ParseException {
         p.parse("SELECT * FROM [nt:base] WHERE COALESCE()='a'");
+    }
+
+    @Test(expected = ParseException.class)
+    public void firstFailsWithNoParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE FIRST()='a'");
     }
 
     @Test(expected = ParseException.class)
