@@ -704,7 +704,7 @@ public class SQL2Parser {
             read(",");
             op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
         } else {
-            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
         }
         read(")");
         return op;

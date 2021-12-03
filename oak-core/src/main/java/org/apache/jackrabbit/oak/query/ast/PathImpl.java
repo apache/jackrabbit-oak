@@ -81,7 +81,7 @@ public class PathImpl extends DynamicOperandImpl {
         if (v == null) {
             return;
         }
-        if (operator == Operator.NOT_EQUAL && v != null) {
+        if (operator == Operator.NOT_EQUAL) {
             // not supported
             return;
         }
