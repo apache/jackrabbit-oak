@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -470,12 +471,12 @@ class ClusterViewDocument {
 
     /** Returns the set of active ids of this cluster view **/
     Set<Integer> getActiveIds() {
-        return new HashSet<Integer>(Arrays.asList(activeIds));
+        return new LinkedHashSet<Integer>(Arrays.asList(activeIds));
     }
 
     /** Returns the set of recovering ids of this cluster view **/
     Set<Integer> getRecoveringIds() {
-        return new HashSet<Integer>(Arrays.asList(recoveringIds));
+        return new LinkedHashSet<Integer>(Arrays.asList(recoveringIds));
     }
 
     /** Returns the set of inactive ids of this cluster view **/
