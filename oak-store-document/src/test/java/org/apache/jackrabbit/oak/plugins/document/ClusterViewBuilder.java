@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,9 +26,9 @@ import java.util.Set;
  **/
 class ClusterViewBuilder {
 
-    private final Set<Integer> activeIds = new HashSet<Integer>();
-    private final Set<Integer> recoveringIds = new HashSet<Integer>();
-    private final Set<Integer> backlogIds = new HashSet<Integer>();
+    private final Set<Integer> activeIds = new LinkedHashSet<Integer>();
+    private final Set<Integer> recoveringIds = new LinkedHashSet<Integer>();
+    private final Set<Integer> backlogIds = new LinkedHashSet<Integer>();
     private final Set<Integer> inactiveIds = new HashSet<Integer>();
     private final long viewSeqNum;
     private final int myId;
