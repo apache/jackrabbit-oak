@@ -134,7 +134,7 @@ class ClusterView {
         Set<Integer> deactivatingIds = new LinkedHashSet<Integer>();
         deactivatingIds.addAll(clusterViewDoc.getRecoveringIds());
         deactivatingIds.addAll(backlogIds);
-        Set<Integer> inactiveIds = new HashSet<Integer>();
+        Set<Integer> inactiveIds = new LinkedHashSet<Integer>();
         inactiveIds.addAll(clusterViewDoc.getInactiveIds());
         if (!inactiveIds.removeAll(backlogIds) && backlogIds.size() > 0) {
             // then not all backlogIds were listed is inactive - which is
