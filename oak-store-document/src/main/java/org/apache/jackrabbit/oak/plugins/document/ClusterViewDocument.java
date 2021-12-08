@@ -481,7 +481,7 @@ class ClusterViewDocument {
 
     /** Returns the set of inactive ids of this cluster view **/
     Set<Integer> getInactiveIds() {
-        return new HashSet<Integer>(Arrays.asList(inactiveIds));
+        return new LinkedHashSet<Integer>(Arrays.asList(inactiveIds));
     }
 
     /** Returns the history map **/
