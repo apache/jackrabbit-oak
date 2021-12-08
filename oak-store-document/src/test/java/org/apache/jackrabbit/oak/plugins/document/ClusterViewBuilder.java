@@ -29,7 +29,7 @@ class ClusterViewBuilder {
     private final Set<Integer> activeIds = new LinkedHashSet<Integer>();
     private final Set<Integer> recoveringIds = new LinkedHashSet<Integer>();
     private final Set<Integer> backlogIds = new LinkedHashSet<Integer>();
-    private final Set<Integer> inactiveIds = new HashSet<Integer>();
+    private final Set<Integer> inactiveIds = new LinkedHashSet<Integer>();
     private final long viewSeqNum;
     private final int myId;
 
