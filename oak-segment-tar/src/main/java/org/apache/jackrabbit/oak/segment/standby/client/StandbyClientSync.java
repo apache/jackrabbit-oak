@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment.standby.client;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.UUID;
@@ -42,6 +43,80 @@ import org.slf4j.LoggerFactory;
 
 public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnable, Closeable {
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+
+        private String host;
+        private int port;
+        private FileStore fileStore;
+        private boolean secure;
+        private int readTimeoutMs;
+        private boolean autoClean;
+        private File spoolFolder;
+        private String sslKeyFile;
+        private String sslChainFile;
+        private String sslServerSubjectPattern;
+
+        private Builder() {}
+
+        public Builder withHost(String host) {
+            this.host = host;
+            return this;
+        }
+
+        public Builder withPort(int port) {
+            this.port = port;
+            return this;
+        }
+
+        public Builder withFileStore(FileStore fileStore) {
+            this.fileStore = fileStore;
+            return this;
+        }
+
+        public Builder withSecureConnection(boolean secure) {
+            this.secure = secure;
+            return this;
+        }
+
+        public Builder withReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
+            return this;
+        }
+
+        public Builder withAutoClean(boolean autoClean) {
+            this.autoClean = autoClean;
+            return this;
+        }
+
+        public Builder withSpoolFolder(File spoolFolder) {
+            this.spoolFolder = spoolFolder;
+            return this;
+        }
+
+        public Builder withSSLKeyFile(String sslKeyFile) {
+            this.sslKeyFile = sslKeyFile;
+            return this;
+        }
+
+        public Builder withSSLChainFile(String sslChainFile) {
+            this.sslChainFile = sslChainFile;
+            return this;
+        }
+
+        public Builder withSSLServerSubjectPattern(String sslServerSubjectPattern) {
+            this.sslServerSubjectPattern = sslServerSubjectPattern;
+            return this;
+        }
+
+        public StandbyClientSync build() {
+            return new StandbyClientSync(this);
+        }
+    }
+
     public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
 
     private static final Logger log = LoggerFactory.getLogger(StandbyClientSync.class);
@@ -59,6 +134,14 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
     private final boolean secure;
 
     private boolean active = false;
+
+    private File spoolFolder;
+
+    private final String sslKeyFile;
+
+    private final String sslChainFile;
+
+    private final String sslServerSubjectPattern;
 
     private int failedRequests;
 
@@ -78,27 +161,29 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final NioEventLoopGroup group;
 
-    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) {
+    private StandbyClientSync(Builder builder) {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.syncStartTimestamp = -1;
         this.syncEndTimestamp = -1;
         this.failedRequests = 0;
-        this.host = host;
-        this.port = port;
-        this.secure = secure;
-        this.readTimeoutMs = readTimeoutMs;
-        this.autoClean = autoClean;
-        this.fileStore = store;
+        this.host = builder.host;
+        this.port = builder.port;
+        this.secure = builder.secure;
+        this.readTimeoutMs = builder.readTimeoutMs;
+        this.autoClean = builder.autoClean;
+        this.fileStore = builder.fileStore;
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
         this.observer = new CommunicationObserver((s == null || s.isEmpty()) ? UUID.randomUUID().toString() : s);
-        group = new NioEventLoopGroup();
-
-        final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+        this.group = new NioEventLoopGroup();
+        this.spoolFolder = builder.spoolFolder;
+        this.sslKeyFile = builder.sslKeyFile;
+        this.sslChainFile = builder.sslChainFile;
+        this.sslServerSubjectPattern = builder.sslServerSubjectPattern;
         try {
-            jmxServer.registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
+            ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
-            log.error("can register standby status mbean", e);
+            log.error("cannot register standby status mbean", e);
         }
     }
 
@@ -140,17 +225,29 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
         try {
             long startTimestamp = System.currentTimeMillis();
-            try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs)) {
-                client.connect(host, port);
+            int genBefore = headGeneration(fileStore);
 
-                int genBefore = headGeneration(fileStore);
+            try (StandbyClient client = StandbyClient.builder()
+                    .withHost(host)
+                    .withPort(port)
+                    .withGroup(group)
+                    .withClientId(observer.getID())
+                    .withSecure(secure)
+                    .withReadTimeoutMs(readTimeoutMs)
+                    .withSpoolFolder(spoolFolder)
+                    .withSSLKeyFile(sslKeyFile)
+                    .withSSLChainFile(sslChainFile)
+                    .withSSLServerSubjectPattern(sslServerSubjectPattern)
+                    .build()) {
                 new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
-                int genAfter = headGeneration(fileStore);
+            }
+            fileStore.flush();
 
-                if (autoClean && (genAfter > genBefore)) {
-                    log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
-                    cleanupAndRemove();
-                }
+            int genAfter = headGeneration(fileStore);
+
+            if (autoClean && (genAfter > genBefore)) {
+                log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
+                cleanupAndRemove();
             }
             this.failedRequests = 0;
             this.syncStartTimestamp = startTimestamp;

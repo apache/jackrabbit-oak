@@ -63,9 +63,29 @@ public class FailoverMultipleClientsTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS);
-                StandbyClientSync cl1 = newStandbyClientSync(storeC, serverPort.getPort());
-                StandbyClientSync cl2 = newStandbyClientSync(storeC2, serverPort.getPort())
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(storeS)
+                .withBlobChunkSize(MB)
+                .build();
+            StandbyClientSync cl1 = StandbyClientSync.builder()
+                .withHost(getServerHost())
+                .withPort(serverPort.getPort())
+                .withFileStore(storeC)
+                .withSecureConnection(false)
+                .withReadTimeoutMs(getClientTimeout())
+                .withAutoClean(false)
+                .withSpoolFolder(folder.newFolder())
+                .build();
+            StandbyClientSync cl2 = StandbyClientSync.builder()
+                .withHost(getServerHost())
+                .withPort(serverPort.getPort())
+                .withFileStore(storeC2)
+                .withSecureConnection(false)
+                .withReadTimeoutMs(getClientTimeout())
+                .withAutoClean(false)
+                .withSpoolFolder(folder.newFolder())
+                .build()
         ) {
             serverSync.start();
             SegmentTestUtils.addTestContent(store, "server");

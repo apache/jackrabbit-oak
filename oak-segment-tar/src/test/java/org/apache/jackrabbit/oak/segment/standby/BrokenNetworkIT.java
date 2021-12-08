@@ -25,12 +25,12 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 
+import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
-import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
@@ -55,8 +55,7 @@ public class BrokenNetworkIT extends TestBase {
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
             .around(serverFileStore)
-            .around(clientFileStore1)
-            .around(clientFileStore2);
+            .around(clientFileStore1);
 
     @Rule
     public TemporaryPort serverPort = new TemporaryPort();
@@ -76,32 +75,88 @@ public class BrokenNetworkIT extends TestBase {
 
     @Test
     public void testProxy() throws Exception {
-        useProxy(false);
+        FileStore serverStore = serverFileStore.fileStore();
+        FileStore clientStore = clientFileStore1.fileStore();
+
+        NodeStore store = SegmentNodeStoreBuilders.builder(serverStore).build();
+        addTestContent(store, "server");
+        serverStore.flush();
+
+        try (
+                StandbyServerSync serverSync = StandbyServerSync.builder()
+                        .withPort(serverPort.getPort())
+                        .withFileStore(serverStore)
+                        .withBlobChunkSize(MB)
+                        .withSecureConnection(false)
+                        .build();
+                StandbyClientSync clientSync = StandbyClientSync.builder()
+                        .withHost(getServerHost())
+                        .withPort(serverPort.getPort())
+                        .withFileStore(clientStore)
+                        .withSecureConnection(false)
+                        .withReadTimeoutMs(getClientTimeout())
+                        .withAutoClean(false)
+                        .withSpoolFolder(folder.newFolder())
+                        .build()
+        ) {
+            serverSync.start();
+            clientSync.run();
+        }
+
+        assertEquals(serverStore.getHead(), clientStore.getHead());
     }
 
     @Test
     public void testProxySSL() throws Exception {
-        useProxy(true);
+        FileStore storeS = serverFileStore.fileStore();
+        FileStore storeC = clientFileStore1.fileStore();
+
+        NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
+        addTestContent(store, "server");
+        storeS.flush();
+
+        try (
+                StandbyServerSync serverSync = StandbyServerSync.builder()
+                        .withPort(serverPort.getPort())
+                        .withFileStore(storeS)
+                        .withBlobChunkSize(MB)
+                        .withSecureConnection(true)
+                        .build();
+                StandbyClientSync clientSync = StandbyClientSync.builder()
+                        .withHost(getServerHost())
+                        .withPort(serverPort.getPort())
+                        .withFileStore(storeC)
+                        .withSecureConnection(true)
+                        .withReadTimeoutMs(getClientTimeout())
+                        .withAutoClean(false)
+                        .withSpoolFolder(folder.newFolder())
+                        .build()
+        ) {
+            serverSync.start();
+            clientSync.run();
+        }
+
+        assertEquals(storeS.getHead(), storeC.getHead());
     }
 
     @Test
     public void testProxySkippedBytes() throws Exception {
-        useProxy(false, 100, 1, false);
+        useProxy(false, 100, 1, -1, false);
     }
 
     @Test
     public void testProxySSLSkippedBytes() throws Exception {
-        useProxy(true, 400, 10, false);
+        useProxy(true, 400, 10, -1, false);
     }
 
     @Test
     public void testProxySkippedBytesIntermediateChange() throws Exception {
-        useProxy(false, 100, 1, true);
+        useProxy(false, 100, 1, -1, true);
     }
 
     @Test
     public void testProxySSLSkippedBytesIntermediateChange() throws Exception {
-        useProxy(true, 400, 10, true);
+        useProxy(true, 400, 10, -1, true);
     }
 
     @Test
@@ -134,16 +189,6 @@ public class BrokenNetworkIT extends TestBase {
         useProxy(true, 0, 0, 575, false);
     }
 
-    // private helper
-
-    private void useProxy(boolean ssl) throws Exception {
-        useProxy(ssl, 0, 0, false);
-    }
-
-    private void useProxy(boolean ssl, int skipPosition, int skipBytes, boolean intermediateChange) throws Exception {
-        useProxy(ssl, skipPosition, skipBytes, -1, intermediateChange);
-    }
-
     private void useProxy(boolean ssl, int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore1.fileStore();
@@ -154,8 +199,16 @@ public class BrokenNetworkIT extends TestBase {
         storeS.flush();  // this speeds up the test a little bit...
 
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, ssl);
-                StandbyClientSync clientSync = newStandbyClientSync(storeC, proxyPort.getPort(), ssl);
+                StandbyServerSync serverSync =  StandbyServerSync.builder()
+                        .withPort(serverPort.getPort())
+                        .withFileStore(storeS)
+                        .withSecureConnection(ssl)
+                        .build();
+                StandbyClientSync clientSync = StandbyClientSync.builder()
+                        .withPort(proxyPort.getPort())
+                        .withFileStore(storeC)
+                        .withSecureConnection(ssl)
+                        .build();
         ) {
             proxy.skipBytes(skipPosition, skipBytes);
             proxy.flipByte(flipPosition);
