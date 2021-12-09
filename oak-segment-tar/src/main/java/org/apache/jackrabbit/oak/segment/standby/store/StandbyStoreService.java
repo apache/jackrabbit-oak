@@ -178,7 +178,7 @@ public class StandbyStoreService {
             .withFileStore(fileStore)
             .withBlobChunkSize(BLOB_CHUNK_SIZE)
             .withAllowedClientIPRanges(ranges)
-            .withSecureConnection(true)
+            .withSecureConnection(secure)
             .withSSLKeyFile(sslKeyFile)
             .withSSLChainFile(sslChainFile)
             .withSSLClientValidation(sslValidateClient)
