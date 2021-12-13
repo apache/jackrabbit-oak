@@ -54,7 +54,9 @@ public class LocalManifestFile implements ManifestFile {
 
     @Override
     public void save(Properties properties) throws IOException {
-        properties.store(new FileWriter(file), null);
+        try (FileWriter w = new FileWriter(file)) {
+            properties.store(w, null);
+        }
     }
 
 }
