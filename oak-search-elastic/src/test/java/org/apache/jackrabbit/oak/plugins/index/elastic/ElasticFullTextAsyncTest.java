@@ -75,7 +75,7 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
     public void fullTextQueryTestAllowLeadingWildcards() throws Exception {
         IndexDefinitionBuilder builder = createIndex("propa");
         builder.async("async");
-        builder.indexRule("nt:base").property("propa").analyzed().allowLeadingWildcard();
+        builder.indexRule("nt:base").property("propa").analyzed();
 
         String indexId = UUID.randomUUID().toString();
         setIndex(indexId, builder);
@@ -87,6 +87,7 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         test.addChild("a").setProperty("propa", "ship_to_canada");
         test.addChild("b").setProperty("propa", "steamship_to_canada");
         test.addChild("c").setProperty("propa", "ship_to_can");
+        test.addChild("d").setProperty("propa", "starship");
         root.commit();
 
         String query = "//*[jcr:contains(@propa, '*ship to can*')] ";

@@ -791,7 +791,7 @@ public class ElasticRequestHandler {
             // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
             // simpleQueryStringQuery does not support leading wildcards whereas it's supported by default in queryStringQuery
             // Not using queryStringQuery by default , since this can have performance impact, also some functional cases break.
-            // So only support this in case the text String actually starts with * 
+            // So only support this in case the text String actually starts with *
             if (text.startsWith("*")) {
                 return queryStringQuery(text).field(fieldName).defaultOperator(Operator.AND);
             } else {
