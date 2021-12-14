@@ -415,18 +415,6 @@ public class IndexDefinitionBuilder {
             return this;
         }
 
-        /*
-        NOOP for lucene index, only used with elastic indexes.
-        This is enabled by default in lucene -
-        https://github.com/apache/jackrabbit-oak/blob/trunk/oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LucenePropertyIndex.java#L1546
-        TODO : See if this needs to be made configurable for lucene as well.
-        TODO : Challenge is lucene has it set to true by default, whereas we don't want that in elastic as it might be a performance hit.
-         */
-        public PropertyRule allowLeadingWildcard() {
-            propTree.setProperty(FulltextIndexConstants.PROP_ALLOW_LEADING_WILDCARDS, true);
-            return this;
-        }
-
         public PropertyRule nodeScopeIndex() {
             propTree.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
             return this;

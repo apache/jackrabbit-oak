@@ -401,11 +401,4 @@ public interface FulltextIndexConstants {
      * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
      */
     String USE_IF_EXISTS = "useIfExists";
-
-    /**
-     * When set to true for any particular property in an index, queries would support leading wild cards in searches.
-     * This is supported in lucene implementation by default, this configuration is primarily meant for elastic index
-     * and would be NOOP in lucene index definitions.
-     */
-    String PROP_ALLOW_LEADING_WILDCARDS = "allowLeadingWildcards";
 }

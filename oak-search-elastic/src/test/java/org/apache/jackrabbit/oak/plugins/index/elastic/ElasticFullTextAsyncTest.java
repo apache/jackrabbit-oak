@@ -98,34 +98,6 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void fullTextQueryTestAllowLeadingWildcardsDefault() throws Exception {
-        IndexDefinitionBuilder builder = createIndex("propa");
-        builder.async("async");
-        builder.indexRule("nt:base").property("propa").analyzed();
-
-        String indexId = UUID.randomUUID().toString();
-        setIndex(indexId, builder);
-        root.commit();
-
-        //add content
-        Tree test = root.getTree("/").addChild("test");
-
-        test.addChild("a").setProperty("propa", "ship_to_canada");
-        test.addChild("b").setProperty("propa", "steamship_to_canada");
-        test.addChild("c").setProperty("propa", "ship_to_can");
-        root.commit();
-
-        String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
-
-        // By default allowLeadingWildcard should not be supported so /test/b should not be a part of results.
-        assertEventually(() -> {
-            assertThat(explain(query, XPATH), containsString("elasticsearch:" + indexId));
-            assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/c"));
-        });
-    }
-
-
-    @Test
     public void noStoredIndexDefinition() throws Exception {
         IndexDefinitionBuilder builder = createIndex("propa");
         builder.async("async");

@@ -787,18 +787,12 @@ public class ElasticRequestHandler {
             // and could contain other parts like renditions, node name, etc
             return multiMatchQuery.field(fieldName);
         } else {
-            boolean allowLeadingWildcards = false;
-            for (PropertyDefinition pd : pr.indexingRule.getProperties()) {
-                if (pd.name.equals(fieldName)) {
-                    allowLeadingWildcards = pd.allowLeadingWildcards;
-                    break;
-                }
-            }
+
             // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
             // simpleQueryStringQuery does not support leading wildcards whereas it's supported by default in queryStringQuery
-            // Setting this to true can have performance impact, hence it's false by default in oak implementation for elastic,
-            // However clients can set it to true from property definition based on case by case usage.
-            if (allowLeadingWildcards) {
+            // Not using queryStringQuery by default , since this can have performance impact, also some functional cases break.
+            // So only support this in case the text String actually starts with * 
+            if (text.startsWith("*")) {
                 return queryStringQuery(text).field(fieldName).defaultOperator(Operator.AND);
             } else {
                 return simpleQueryStringQuery(text).analyzeWildcard(true).field(fieldName).defaultOperator(Operator.AND);
