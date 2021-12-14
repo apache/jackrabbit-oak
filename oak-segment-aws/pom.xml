@@ -282,6 +282,12 @@
             <artifactId>DynamoDBLocal</artifactId>
             <version>1.12.0</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
