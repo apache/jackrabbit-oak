@@ -87,7 +87,8 @@ public class PathImpl extends DynamicOperandImpl {
         }
         if (f.getSelector().equals(selector)) {
             String path = v.getValue(Type.STRING);
-            f.restrictProperty(QueryConstants.RESTRICTION_PATH,
+            String fn = getFunction(f.getSelector());
+            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
                     operator, PropertyValues.newString(path));
         }
     }
