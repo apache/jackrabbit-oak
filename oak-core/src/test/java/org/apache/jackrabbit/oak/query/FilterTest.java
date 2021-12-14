@@ -109,12 +109,14 @@ public class FilterTest {
     public void localName() throws Exception {
         Filter f = createFilterSQL("select * from [nt:base] where localname() = 'resource'");
         assertEquals("[resource]", f.getPropertyRestrictions(":localname").toString());
+        assertEquals("[resource]", f.getPropertyRestrictions("function*@:localname").toString());
     }
 
     @Test
     public void name() throws Exception {
         Filter f = createFilter("//*[fn:name() = 'nt:resource']");
         assertEquals("[resource]", f.getPropertyRestrictions(":localname").toString());
+        assertEquals("[nt:resource]", f.getPropertyRestrictions("function*@:name").toString());
     }
 
     @Test

@@ -52,12 +52,14 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_DATA_DUMP_THREADS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_THREAD_POOL_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 /**
  * This class implements a sort strategy where node store is concurrently traversed for downloading node states by
- * multiple threads (number of threads is configurable via java system property {@link TaskRunner#PROP_THREAD_POOL_SIZE}.
+ * multiple threads (number of threads is configurable via java system property {@link FlatFileNodeStoreBuilder#PROP_THREAD_POOL_SIZE}.
  * The traverse/download and sort tasks are submitted to an executor service. Each of those tasks create some sorted files which
  * are then merged (sorted) into one.
  *
@@ -276,8 +278,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private void addTask(long start, long end, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         LastModifiedRange range = new LastModifiedRange(start, end);
-        NodeStateEntryTraverser nodeStateEntryTraverser = nodeStateEntryTraverserFactory.create(range);
-        taskQueue.add(new TraverseAndSortTask(nodeStateEntryTraverser, comparator, blobStore, storeDir,
+        taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
                 compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
     }
 
@@ -303,6 +304,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     @Override
     public long getEntryCount() {
+        //todo - get actual entry count for correct progress estimation
         return 0;
     }
 
@@ -339,9 +341,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private class TaskRunner implements Runnable {
 
         private final ExecutorService executorService;
-        private static final String DEFAULT_NUMBER_OF_THREADS = "4";
-        private static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
-        private final int threadPoolSize = Integer.parseInt(System.getProperty(PROP_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_THREADS));
+        private final int threadPoolSize = Integer.parseInt(System.getProperty(PROP_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_DATA_DUMP_THREADS));
 
         public TaskRunner() {
             this.executorService = Executors.newFixedThreadPool(threadPoolSize);

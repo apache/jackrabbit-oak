@@ -41,6 +41,7 @@ public class BnfRailroad implements BnfVisitor {
         XPATH_KEYWORD_TO_ESCAPE.put("jcr:contains", "@CONTAINS@");
         XPATH_KEYWORD_TO_ESCAPE.put("jcr:like", "@LIKE@");
         XPATH_KEYWORD_TO_ESCAPE.put("jcr:score", "@SCORE@");
+        XPATH_KEYWORD_TO_ESCAPE.put("jcr:first", "@FIRST@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:not", "@FN_NOT@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:string-length", "@FN_STRING_LENGTH@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:name", "@FN_NAME@");
@@ -48,6 +49,7 @@ public class BnfRailroad implements BnfVisitor {
         XPATH_KEYWORD_TO_ESCAPE.put("fn:lower-case", "@FN_LOWER_CASE@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:upper-case", "@FN_UPPER_CASE@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:coalesce", "@FN_COALESCE@");
+        XPATH_KEYWORD_TO_ESCAPE.put("fn:path", "@FN_PATH@");
         XPATH_KEYWORD_TO_ESCAPE.put("rep:excerpt", "@EXCERPT@");
         XPATH_KEYWORD_TO_ESCAPE.put("rep:native", "@NATIVE@");
         XPATH_KEYWORD_TO_ESCAPE.put("rep:similar", "@SIMILAR@");

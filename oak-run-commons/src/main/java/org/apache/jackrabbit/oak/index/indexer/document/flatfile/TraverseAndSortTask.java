@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -34,13 +35,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Phaser;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
@@ -62,7 +64,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
      * all the node states from this iterable, if this task decides to split up and offer some of its work to another
      * {@link TraverseAndSortTask}
      */
-    private final Iterable<NodeStateEntry> nodeStates;
+    private final NodeStateEntryTraverser nodeStates;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
     private final boolean compressionEnabled;
@@ -71,11 +73,10 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private long memoryUsed;
     private final File sortWorkDir;
     private final List<File> sortedFiles = new ArrayList<>();
-    private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
+    private final LinkedList<NodeStateHolder> entryBatch = new LinkedList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
-    private final AtomicBoolean dumpData = new AtomicBoolean(false);
-    private volatile Phaser dataDumpNotifyingPhaser;
+    private final AtomicReference<Phaser> dataDumpNotifyingPhaserRef = new AtomicReference<>();
     /**
      * Queue to which the {@link #taskID} of completed tasks is added.
      */
@@ -102,13 +103,13 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final MemoryManager memoryManager;
     private String registrationID;
 
-    TraverseAndSortTask(NodeStateEntryTraverser nodeStates, Comparator<NodeStateHolder> comparator,
+    TraverseAndSortTask(LastModifiedRange range, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                 MemoryManager memoryManager) throws IOException {
+        this.nodeStates = nodeStateEntryTraverserFactory.create(range);
         this.taskID = ID_PREFIX + nodeStates.getId();
-        this.nodeStates = nodeStates;
         this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedFrom();
         this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedTo();
         this.blobStore = blobStore;
@@ -126,24 +127,14 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         log.debug("Task {} registered to phaser", taskID);
     }
 
-    /*
-     * There is a race condition between this method and {@link #reset()} (because this method checks entry batch size
-     * and {@link #reset()} clears it). To ensure, {@link #dataDumpNotifyingPhaser} is always arrived upon by this task,
-     * we need to make these methods atomic wrt to one another.
-     * @param phaser phaser used to coordinate with {@link MemoryManager}
-     */
     @Override
-    public synchronized void memoryLow(Phaser phaser) {
-        if (entryBatch.isEmpty()) {
-            log.info("{} No data to save. Immediately signalling memory manager.", taskID);
+    public void memoryLow(Phaser phaser) {
+        if (dataDumpNotifyingPhaserRef.compareAndSet(null, phaser)) {
+            log.info("{} registering to low memory notification phaser", taskID);
             phaser.register();
-            phaser.arriveAndDeregister();
-            return;
+        } else {
+            log.warn("{} already has a low memory notification phaser.", taskID);
         }
-        dataDumpNotifyingPhaser = phaser;
-        dataDumpNotifyingPhaser.register();
-        log.info("{} Setting dumpData to true", taskID);
-        dumpData.set(true);
     }
 
     private boolean registerWithMemoryManager() {
@@ -155,6 +146,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         return registrationIDOptional.isPresent();
     }
 
+    @Override
     public List<File> call() {
         try {
             Random random = new Random();
@@ -172,20 +164,27 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             log.info("Completed task {}", taskID);
             completedTasks.add(taskID);
             DirectoryHelper.markCompleted(sortWorkDir);
-            if (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType())) {
-                memoryManager.deregisterClient(registrationID);
-            }
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
         } finally {
             phaser.arriveAndDeregister();
+            log.info("{} entered finally block.", taskID);
+            Phaser dataDumpPhaser = dataDumpNotifyingPhaserRef.get();
+            if (dataDumpPhaser != null) {
+                log.info("{} Data dump phaser not null after task completion. Notifying memory listener.", taskID);
+                dataDumpPhaser.arriveAndDeregister();
+            }
+            if (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType())) {
+                memoryManager.deregisterClient(registrationID);
+            }
+            try {
+                nodeStates.close();
+            } catch (IOException e) {
+                log.error(taskID + " could not close NodeStateEntryTraverser", e);
+            }
         }
         return Collections.emptyList();
-    }
-
-    public long getEntryCount() {
-        return entryCount;
     }
 
     private void writeToSortedFiles() throws IOException {
@@ -202,34 +201,34 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         sortAndSaveBatch();
         reset();
 
-        //Free up the batch
-        entryBatch.clear();
-        entryBatch.trimToSize();
-
         log.info("{} Dumped {} nodestates in json format in {}",taskID, entryCount, w);
         log.info("{} Created {} sorted files of size {} to merge", taskID,
                 sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
     }
 
     private void addEntry(NodeStateEntry e) throws IOException {
-        if ((MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType()) && memoryManager.isMemoryLow()) || dumpData.get()) {
-            sortAndSaveBatch();
-            reset();
+        if (memoryManager.isMemoryLow()) {
+            if (memoryUsed >= FileUtils.ONE_MB) {
+                sortAndSaveBatch();
+                reset();
+            } else {
+                log.trace("{} Memory manager reports low memory but there is not enough data ({}) to dump.", taskID, humanReadableByteCount(memoryUsed));
+            }
         }
 
         long remainingNumberOfTimestamps = lastModifiedUpperBound - e.getLastModified();
         // check if this task can be split
         if (remainingNumberOfTimestamps > 1) {
-            long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
             /*
               If there is a completed task, there is a chance of some worker thread being idle, so we create a new task from
               the current task. To split, we reduce the traversal upper bound for this task and pass on the node states from
               the new upper bound to the original upper bound to a new task.
              */
             if (completedTasks.poll() != null) {
+                long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
-                newTasksQueue.add(new TraverseAndSortTask(nodeStateEntryTraverserFactory.create(new LastModifiedRange(splitPoint,
-                        this.lastModifiedUpperBound)), comparator, blobStore, storeDir, compressionEnabled, completedTasks,
+                newTasksQueue.add(new TraverseAndSortTask(new LastModifiedRange(splitPoint, this.lastModifiedUpperBound),
+                        comparator, blobStore, storeDir, compressionEnabled, completedTasks,
                         newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
                 this.lastModifiedUpperBound = splitPoint;
             }
@@ -249,15 +248,15 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
      * For explanation regarding synchronization see {@link #memoryLow(Phaser)}
      */
     private synchronized void reset() {
-        entryBatch.clear();
+        log.trace("{} Reset called ", taskID);
         if (MemoryManager.Type.SELF_MANAGED.equals(memoryManager.getType())) {
             memoryManager.changeMemoryUsedBy(-1 * memoryUsed);
         }
-        dumpData.set(false);
-        if (dataDumpNotifyingPhaser != null) {
+        Phaser phaser = dataDumpNotifyingPhaserRef.get();
+        if (phaser != null) {
             log.info("{} Finished saving data to disk. Notifying memory listener.", taskID);
-            dataDumpNotifyingPhaser.arriveAndDeregister();
-            dataDumpNotifyingPhaser = null;
+            phaser.arriveAndDeregister();
+            dataDumpNotifyingPhaserRef.compareAndSet(phaser, null);
         }
         memoryUsed = 0;
     }
@@ -270,8 +269,12 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
+        long size = entryBatch.size();
         try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
-            for (NodeStateHolder h : entryBatch) {
+            // no concurrency issue with this traversal because addition to this list is only done in #addEntry which, for
+            // a given TraverseAndSortTask object will only be called from same thread
+            while (!entryBatch.isEmpty()) {
+                NodeStateHolder h = entryBatch.removeFirst();
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
                 writer.write(text);
@@ -280,7 +283,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             }
         }
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}", taskID,
-                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w,
+                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), size, w,
                 lastSavedNodeStateEntry.getLastModified());
         DirectoryHelper.markLastProcessedStatus(sortWorkDir,
                 lastSavedNodeStateEntry.getLastModified());

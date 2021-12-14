@@ -1127,6 +1127,7 @@ This allows to search for, and order by, the lower case version of the property 
 * fn:lower-case(fn:name())
 * fn:lower-case(fn:local-name())
 * fn:string-length(test/@data)
+* first([alias])
 * upper([data])
 * lower([test/data])
 * lower(name())
@@ -1134,6 +1135,7 @@ This allows to search for, and order by, the lower case version of the property 
 * length([test/data])
 * length(name())
 * name()
+* path()
 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
