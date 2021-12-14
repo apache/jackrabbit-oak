@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -40,14 +36,21 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.security.AccessControlException;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class UtilTest extends AbstractSecurityTest {
 
@@ -116,8 +119,8 @@ public class UtilTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testGenerateName() throws AccessControlException {
-        ACE ace = new TestAce(true);
+    public void testGenerateName() {
+        ACE ace = mockACE(true);
         String name = Util.generateAceName(ace, 0);
 
         assertTrue(name.startsWith(ALLOW));
@@ -128,11 +131,14 @@ public class UtilTest extends AbstractSecurityTest {
         assertTrue(name.startsWith(ALLOW));
         assertEquals(ALLOW + 1, name);
         assertEquals(name, Util.generateAceName(ace, 1));
+
+        verify(ace, times(4)).isAllow();
+        verifyNoMoreInteractions(ace);
     }
 
     @Test
-    public void testGenerateName2() throws AccessControlException {
-        ACE ace = new TestAce(false);
+    public void testGenerateName2() {
+        ACE ace = mockACE(false);
         String name = Util.generateAceName(ace, 0);
 
         assertTrue(name.startsWith(DENY));
@@ -143,34 +149,28 @@ public class UtilTest extends AbstractSecurityTest {
         assertTrue(name.startsWith(DENY));
         assertEquals(DENY + 2, name);
         assertEquals(name, Util.generateAceName(ace, 2));
+
+        verify(ace, times(4)).isAllow();
+        verifyNoMoreInteractions(ace);
     }
 
     @Test
-    public void testGenerateNameDifferentAllow() throws Exception {
-        ACE allow = new TestAce(false);
-        ACE deny = new TestAce(true);
+    public void testGenerateNameDifferentAllow() {
+        ACE allow = mockACE(false);
+        ACE deny = mockACE(true);
 
         assertNotEquals(Util.generateAceName(allow, 0), Util.generateAceName(deny, 0));
         assertNotEquals(Util.generateAceName(allow, 1), Util.generateAceName(deny, 1));
         assertNotEquals(Util.generateAceName(allow, 20), Util.generateAceName(deny, 20));
         assertNotEquals(Util.generateAceName(allow, 0), Util.generateAceName(deny, 1));
         assertNotEquals(Util.generateAceName(allow, 1), Util.generateAceName(deny, 20));
-
+        
+        verify(allow, times(5)).isAllow();
+        verify(deny, times(5)).isAllow();
+        verifyNoMoreInteractions(allow, deny);
     }
 
-    private final class TestAce extends ACE {
-
-        TestAce(boolean isAllow) throws AccessControlException {
-            super(EveryonePrincipal.getInstance(), bitsProvider.getBits(PrivilegeConstants.JCR_READ), isAllow, null, NamePathMapper.DEFAULT);
-        }
-
-        @Override
-        public Privilege[] getPrivileges() {
-            try {
-                return privilegesFromNames(bitsProvider.getPrivilegeNames(getPrivilegeBits()));
-            } catch (RepositoryException e) {
-                throw new RuntimeException(e.getMessage());
-            }
-        }
+    private ACE mockACE(boolean isAllow) {
+        return mock(ACE.class, withSettings().useConstructor(EveryonePrincipal.getInstance(), bitsProvider.getBits(PrivilegeConstants.JCR_READ), isAllow, null, NamePathMapper.DEFAULT).defaultAnswer(CALLS_REAL_METHODS));
     }
 }

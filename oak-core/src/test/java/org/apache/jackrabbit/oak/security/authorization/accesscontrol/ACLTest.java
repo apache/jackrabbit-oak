@@ -75,6 +75,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -306,34 +308,10 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
     @Test(expected = AccessControlException.class)
     public void testRemoveInvalidEntry() throws Exception {
-        acl.removeAccessControlEntry(new JackrabbitAccessControlEntry() {
-            public boolean isAllow() {
-                return false;
-            }
-
-            @NotNull
-            public String[] getRestrictionNames() {
-                return new String[0];
-            }
-
-            @Nullable
-            public Value getRestriction(@NotNull String restrictionName) {
-                return null;
-            }
-
-            @Nullable
-            public Value[] getRestrictions(@NotNull String restrictionName) {
-                return null;
-            }
-
-            public Principal getPrincipal() {
-                return testPrincipal;
-            }
-
-            public Privilege[] getPrivileges() {
-                return testPrivileges;
-            }
-        });
+        JackrabbitAccessControlEntry ace = mockAccessControlEntry(testPrincipal, testPrivileges);
+        acl.removeAccessControlEntry(ace);
+        verify(ace, never()).getPrincipal();
+        verify(ace, never()).getPrivileges();
     }
 
     @Test(expected = AccessControlException.class)

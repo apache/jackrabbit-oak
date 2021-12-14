@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.api.security;
 
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlEntry;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <code>JackrabbitAccessControlEntry</code> is a Jackrabbit specific extension
@@ -83,4 +84,15 @@ public interface JackrabbitAccessControlEntry extends AccessControlEntry {
      */
     @Nullable
     Value[] getRestrictions(@NotNull String restrictionName) throws RepositoryException;
+
+    /**
+     * Returns a {@link PrivilegeCollection} representing the privileges associated with this entry.
+     *
+     * @return A {@link PrivilegeCollection} wrapping around the privileges defined for this instance of {@code JackrabbitAccessControlEntry}.
+     * @throws RepositoryException If an error occurs.
+     * @since Oak 1.42.0
+     * @see #getPrivileges() 
+     */
+    @NotNull
+    PrivilegeCollection getPrivilegeCollection() throws RepositoryException;
 }

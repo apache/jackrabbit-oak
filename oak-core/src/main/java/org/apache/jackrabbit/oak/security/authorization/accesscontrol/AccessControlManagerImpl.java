@@ -80,6 +80,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
@@ -683,7 +684,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
         @Override
         boolean checkValidPrincipal(@Nullable Principal principal) throws AccessControlException {
-            // principal asspciated with the policy has been validated before -> make sure only entries for the same
+            // principal associated with the policy has been validated before -> make sure only entries for the same
             // principal are created
             if (principal == null || !this.principal.getName().equals(principal.getName())) {
                 throw new AccessControlException("Principal mismatch.");
@@ -753,6 +754,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
         private Entry(@NotNull Principal principal, @NotNull PrivilegeBits privilegeBits, boolean isAllow, @NotNull Set<Restriction> restrictions, NamePathMapper namePathMapper) throws AccessControlException {
             super(principal, privilegeBits, isAllow, restrictions, namePathMapper);
+        }
+
+        @Override
+        protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            return AccessControlManagerImpl.this.getPrivilegeBitsProvider();
         }
 
         @Override

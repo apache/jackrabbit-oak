@@ -20,17 +20,21 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +45,7 @@ import java.util.Set;
  * It asserts that the basic contract is fulfilled but does perform any additional
  * validation on the principal, the privileges or the specified restrictions.
  */
+@ProviderType
 public abstract class ACE implements JackrabbitAccessControlEntry {
 
     private final Principal principal;
@@ -60,7 +65,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
      * @param isAllow {@code true} if the entry is granting privileges.
      * @param restrictions A optional set of restrictions.
      * @param namePathMapper The name-path mapper
-     * @throws AccessControlException If the given {@code principal} or {@code privilgeBits} are {@code null} or if {@code privilgeBits} are {@link PrivilegeBits#isEmpty() empty}.
+     * @throws AccessControlException If the given {@code principal} or {@code privilegeBits} are {@code null} or if {@code privilegeBits} are {@link PrivilegeBits#isEmpty() empty}.
      */
     public ACE(@Nullable Principal principal, @Nullable PrivilegeBits privilegeBits,
                boolean isAllow, @Nullable Set<Restriction> restrictions, 
@@ -87,6 +92,9 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     public Set<Restriction> getRestrictions() {
         return restrictions;
     }
+    
+    @NotNull
+    protected abstract PrivilegeBitsProvider getPrivilegeBitsProvider();
 
     //-------------------------------------------------< AccessControlEntry >---
     @NotNull
@@ -139,6 +147,26 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
             }
         }
         return null;
+    }
+
+    @Override
+    public @NotNull PrivilegeCollection getPrivilegeCollection() {
+        return new AbstractPrivilegeCollection(privilegeBits) {
+            @Override
+            public Privilege[] getPrivileges() {
+                return ACE.this.getPrivileges();
+            }
+
+            @Override
+            @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+                return ACE.this.getPrivilegeBitsProvider();
+            }
+
+            @Override
+            @NotNull NamePathMapper getNamePathMapper() {
+                return namePathMapper;
+            }
+        };
     }
 
     //-------------------------------------------------------------< Object >---
