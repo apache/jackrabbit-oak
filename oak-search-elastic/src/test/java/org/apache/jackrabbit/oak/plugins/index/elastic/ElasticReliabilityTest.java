@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -47,7 +48,9 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     }
 
     @After
-    public void tearDown() {
+    @Override
+    public void tearDown() throws IOException {
+        super.tearDown();
         if (internalToxiProxy.isRunning()) {
             internalToxiProxy.stop();
         }

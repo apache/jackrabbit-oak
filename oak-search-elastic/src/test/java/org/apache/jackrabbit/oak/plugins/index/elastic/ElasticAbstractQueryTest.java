@@ -83,7 +83,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
 
     @After
-    public void cleanup() throws IOException {
+    public void tearDown() throws IOException {
         if (esConnection != null) {
             esConnection.getClient().indices().delete(new DeleteIndexRequest(esConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
             esConnection.close();
