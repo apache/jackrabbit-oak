@@ -23,8 +23,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.client.RequestOptions;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -168,13 +166,6 @@ public class ElasticConnectionRule extends ExternalResource {
                         containerIpAddress, port)
                 .withApiKeys(null, null)
                 .build();
-    }
-
-    public void closeElasticConnection(ElasticConnection elasticConnection) throws IOException {
-        if (elasticConnection != null) {
-            elasticConnection.getClient().indices().delete(new DeleteIndexRequest(elasticConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
-            elasticConnection.close();
-        }
     }
 
     private void checkIfDockerClientAvailable() {
