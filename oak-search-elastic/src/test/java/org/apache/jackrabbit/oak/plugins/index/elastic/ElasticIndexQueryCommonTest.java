@@ -20,21 +20,13 @@ import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.IndexQueryCommonTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.junit.After;
 import org.junit.ClassRule;
-
-import java.io.IOException;
 
 public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
-    // Set this connection string as
-    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
-    // key_id and key_secret are optional in case the ES server
-    // needs authentication
-    // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static String elasticConnectionString = System.getProperty("elasticConnectionString");
     @ClassRule
-    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+    public static final ElasticConnectionRule elasticRule =
+            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticIndexQueryCommonTest() {
         indexOptions = new ElasticIndexOptions();
@@ -46,13 +38,5 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         elasticTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
-    }
-
-    /**
-     * Close the ES connection after every test method execution
-     */
-    @After
-    public void cleanup() throws IOException {
-        elasticRule.closeElasticConnection();
     }
 }
