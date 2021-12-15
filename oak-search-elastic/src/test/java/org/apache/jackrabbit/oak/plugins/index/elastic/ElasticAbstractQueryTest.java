@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
@@ -80,6 +81,14 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     @ClassRule
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+
+    @After
+    public void cleanup() throws IOException {
+        if (esConnection != null) {
+            esConnection.getClient().indices().delete(new DeleteIndexRequest(esConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
+            esConnection.close();
+        }
+    }
 
     // Override this in extending test class to provide different ExtractedTextCache if needed
     protected ElasticIndexEditorProvider getElasticIndexEditorProvider(ElasticConnection esConnection) {

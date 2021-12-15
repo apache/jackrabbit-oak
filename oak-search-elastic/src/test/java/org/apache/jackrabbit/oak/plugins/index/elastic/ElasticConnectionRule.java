@@ -93,7 +93,7 @@ public class ElasticConnectionRule extends ExternalResource {
 
     @Override
     protected void after() {
-        if (elastic.isRunning()) {
+        if (elastic != null && elastic.isRunning()) {
             elastic.stop();
         }
     }
