@@ -718,7 +718,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(PROP_NAME, "propa");
         prop.setProperty(PROP_PROPERTY_INDEX, true);
-        prop.setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
+        prop.setProperty(PROP_NOT_NULL_CHECK_ENABLED, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -741,7 +741,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(PROP_NAME, "propa");
         prop.setProperty(PROP_PROPERTY_INDEX, true);
-        prop.setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+        prop.setProperty(PROP_NULL_CHECK_ENABLED, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
