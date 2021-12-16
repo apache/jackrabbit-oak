@@ -592,21 +592,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void propertyExistenceQuery() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        test.addChild("b").setProperty("propa", "c");
-        test.addChild("c").setProperty("propb", "e");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b"));
-    }
-
-    @Test
     public void explainScoreTest() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
         idx.addChild(PROP_NODE).addChild("propa");
