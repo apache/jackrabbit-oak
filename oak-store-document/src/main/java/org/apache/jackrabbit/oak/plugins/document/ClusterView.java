@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
@@ -187,13 +186,13 @@ class ClusterView {
         builder.key("id").value(clusterId);
         builder.key("me").value(localId);
         builder.key("active").array();
-        new TreeSet<>(activeIds).forEach(builder::value);
+        activeIds.stream().sorted().forEachOrdered(builder::value);
         builder.endArray();
         builder.key("deactivating").array();
-        new TreeSet<>(deactivatingIds).forEach(builder::value);
+        deactivatingIds.stream().sorted().forEachOrdered(builder::value);
         builder.endArray();
         builder.key("inactive").array();
-        new TreeSet<>(inactiveIds).forEach(builder::value);
+        inactiveIds.stream().sorted().forEachOrdered(builder::value);
         builder.endArray();
         builder.endObject();
         return builder.toString();
