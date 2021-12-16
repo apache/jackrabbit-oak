@@ -92,10 +92,6 @@ public class TermQueryBuilderFactory {
         return termQuery(JCR_MIXINTYPES, type);
     }
 
-    public static TermQueryBuilder newNotNullPropQuery(String propName) {
-        return termQuery(FieldNames.NOT_NULL_PROPS, propName);
-    }
-
     public static TermQueryBuilder newNullPropQuery(String propName) {
         return termQuery(FieldNames.NULL_PROPS, propName);
     }
@@ -128,10 +124,10 @@ public class TermQueryBuilderFactory {
         } else if (pr.first != null && pr.last != null) {
             return newRangeQuery(propertyName, first, last,
                     pr.firstIncluding, pr.lastIncluding);
-        } else if (pr.first != null && pr.last == null) {
+        } else if (pr.first != null) {
             // '>' & '>=' use cases
             return newRangeQuery(propertyName, first, null, pr.firstIncluding, true);
-        } else if (pr.last != null && !pr.last.equals(pr.first)) {
+        } else if (pr.last != null) {
             // '<' & '<='
             return newRangeQuery(propertyName, null, last, true, pr.lastIncluding);
         } else if (pr.list != null) {
