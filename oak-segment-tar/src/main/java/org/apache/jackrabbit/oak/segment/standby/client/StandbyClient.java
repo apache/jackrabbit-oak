@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
+import java.io.File;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -52,10 +53,86 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequestEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.apache.jackrabbit.oak.segment.standby.codec.ResponseDecoder;
+
+import org.apache.jackrabbit.oak.segment.standby.netty.SSLSubjectMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class StandbyClient implements AutoCloseable {
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    static class Builder {
+
+        private String host;
+        private int port;
+        private NioEventLoopGroup group;
+        private String clientId;
+        private boolean secure;
+        private int readTimeoutMs;
+        private File spoolFolder;
+        private String sslKeyFile;
+        private String sslChainFile;
+        public String sslServerSubjectPattern;
+
+        private Builder() {}
+
+        public Builder withHost(String host) {
+            this.host = host;
+            return this;
+        }
+
+        public Builder withPort(int port) {
+            this.port = port;
+            return this;
+        }
+
+        public Builder withGroup(NioEventLoopGroup group) {
+            this.group = group;
+            return this;
+        }
+
+        public Builder withClientId(String clientId) {
+            this.clientId = clientId;
+            return this;
+        }
+
+        public Builder withSecure(boolean secure) {
+            this.secure = secure;
+            return this;
+        }
+
+        public Builder withReadTimeoutMs(int readTimeoutMs) {
+            this.readTimeoutMs = readTimeoutMs;
+            return this;
+        }
+
+        public Builder withSpoolFolder(File spoolFolder) {
+            this.spoolFolder = spoolFolder;
+            return this;
+        }
+
+        public Builder withSSLKeyFile(String sslKeyFile) {
+            this.sslKeyFile = sslKeyFile;
+            return this;
+        }
+
+        public Builder withSSLChainFile(String sslChainFile) {
+            this.sslChainFile = sslChainFile;
+            return this;
+        }
+
+        public Builder withSSLServerSubjectPattern(String sslServerSubjectPattern) {
+            this.sslServerSubjectPattern = sslServerSubjectPattern;
+            return this;
+        }
+
+        public StandbyClient build() throws InterruptedException {
+            return new StandbyClient(this);
+        }
+    }
 
     private static final Logger log = LoggerFactory.getLogger(StandbyClient.class);
 
@@ -67,87 +144,77 @@ class StandbyClient implements AutoCloseable {
 
     private final BlockingQueue<GetReferencesResponse> referencesQueue = new LinkedBlockingDeque<>();
 
-    private final boolean secure;
-
     private final int readTimeoutMs;
 
     private final String clientId;
 
-    private final NioEventLoopGroup group;
-
     private Channel channel;
 
-    StandbyClient(NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs) {
-        this.group = group;
-        this.clientId = clientId;
-        this.secure = secure;
-        this.readTimeoutMs = readTimeoutMs;
-    }
-
-    void connect(String host, int port) throws Exception {
-
-        final SslContext sslContext;
-
-        if (secure) {
-            sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        } else {
-            sslContext = null;
-        }
+    StandbyClient(Builder builder) throws InterruptedException {
+        this.clientId = builder.clientId;
+        this.readTimeoutMs = builder.readTimeoutMs;
 
         Bootstrap b = new Bootstrap()
-                .group(group)
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, readTimeoutMs)
-                .option(ChannelOption.TCP_NODELAY, true)
-                .option(ChannelOption.SO_REUSEADDR, true)
-                .option(ChannelOption.SO_KEEPALIVE, true)
-                .handler(new ChannelInitializer<SocketChannel>() {
+            .group(builder.group)
+            .channel(NioSocketChannel.class)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, readTimeoutMs)
+            .option(ChannelOption.TCP_NODELAY, true)
+            .option(ChannelOption.SO_REUSEADDR, true)
+            .option(ChannelOption.SO_KEEPALIVE, true)
+            .handler(new ChannelInitializer<SocketChannel>() {
 
-                    @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
-                        ChannelPipeline p = ch.pipeline();
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    ChannelPipeline p = ch.pipeline();
 
-                        if (sslContext != null) {
-                            p.addLast(sslContext.newHandler(ch.alloc()));
+                    if (builder.secure) {
+                        SslContext sslContext;
+                        if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
+                            sslContext = SslContextBuilder.forClient().keyManager(new File(builder.sslChainFile), new File(builder.sslKeyFile)).build();
+                        } else {
+                            sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
                         }
+                        p.addLast("ssl", sslContext.newHandler(ch.alloc()));
 
-                        p.addLast(new ReadTimeoutHandler(readTimeoutMs, TimeUnit.MILLISECONDS));
-
-                        // Decoders
-
-                        p.addLast(new SnappyFramedDecoder(true));
-
-                        // Such a big max frame length is needed because blob
-                        // values are sent in one big message. In future
-                        // versions of the protocol, sending binaries in chunks
-                        // should be considered instead.
-
-                        p.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4));
-                        p.addLast(new ResponseDecoder());
-
-                        // Encoders
-
-                        p.addLast(new StringEncoder(CharsetUtil.UTF_8));
-                        p.addLast(new GetHeadRequestEncoder());
-                        p.addLast(new GetSegmentRequestEncoder());
-                        p.addLast(new GetBlobRequestEncoder());
-                        p.addLast(new GetReferencesRequestEncoder());
-
-                        // Handlers
-
-                        p.addLast(new GetHeadResponseHandler(headQueue));
-                        p.addLast(new GetSegmentResponseHandler(segmentQueue));
-                        p.addLast(new GetBlobResponseHandler(blobQueue));
-                        p.addLast(new GetReferencesResponseHandler(referencesQueue));
-
-                        // Exception handler
-
-                        p.addLast(new ExceptionHandler(clientId));
+                        if (builder.sslServerSubjectPattern != null) {
+                            p.addLast(new SSLSubjectMatcher(builder.sslServerSubjectPattern));
+                        }
                     }
 
-                });
+                    p.addLast(new ReadTimeoutHandler(readTimeoutMs, TimeUnit.MILLISECONDS));
 
-        channel = b.connect(host, port).sync().channel();
+                    // Decoders
+
+                    p.addLast(new SnappyFramedDecoder(true));
+
+                    // The frame length limits the chunk size to max. 2.2GB
+
+                    p.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4));
+                    p.addLast(new ResponseDecoder());
+
+                    // Encoders
+
+                    p.addLast(new StringEncoder(CharsetUtil.UTF_8));
+                    p.addLast(new GetHeadRequestEncoder());
+                    p.addLast(new GetSegmentRequestEncoder());
+                    p.addLast(new GetBlobRequestEncoder());
+                    p.addLast(new GetReferencesRequestEncoder());
+
+                    // Handlers
+
+                    p.addLast(new GetHeadResponseHandler(headQueue));
+                    p.addLast(new GetSegmentResponseHandler(segmentQueue));
+                    p.addLast(new GetBlobResponseHandler(blobQueue));
+                    p.addLast(new GetReferencesResponseHandler(referencesQueue));
+
+                    // Exception handler
+
+                    p.addLast(new ExceptionHandler(clientId));
+                }
+
+            });
+
+        channel = b.connect(builder.host, builder.port).sync().channel();
     }
 
     @Override

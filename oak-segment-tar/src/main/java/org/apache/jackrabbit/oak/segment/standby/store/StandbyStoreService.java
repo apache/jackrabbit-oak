@@ -22,10 +22,12 @@ import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
 import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -98,8 +100,35 @@ public class StandbyStoreService {
     @Property(boolValue = AUTO_CLEAN_DEFAULT)
     public static final String AUTO_CLEAN = "standby.autoclean";
 
+    public static final String SSL_KEY_FILE_DEFAULT = "";
+
+    @Property(value = SSL_KEY_FILE_DEFAULT)
+    public static final String SSL_KEY_FILE = "ssl-key-file";
+
+    public static final String SSL_CHAIN_FILE_DEFAULT = "";
+
+    @Property(value = SSL_CHAIN_FILE_DEFAULT)
+    public static final String SSL_CHAIN_FILE = "ssl-chain-file";
+
+    public static final boolean SSL_VALIDATE_CLIENT_DEFAULT = false;
+
+    @Property(boolValue = SSL_VALIDATE_CLIENT_DEFAULT)
+    public static final String SSL_VALIDATE_CLIENT = "ssl-validate-client";
+
+    public static final String SSL_SERVER_SUBJECT_PATTERN_DEFAULT = "";
+
+    @Property(value = SSL_SERVER_SUBJECT_PATTERN_DEFAULT)
+    public static final String SSL_SERVER_SUBJECT_PATTERN = "ssl-server-subject-pattern";
+
+    public static final String SSL_CLIENT_SUBJECT_PATTERN_DEFAULT = "";
+
+    @Property(value = SSL_CLIENT_SUBJECT_PATTERN_DEFAULT)
+    public static final String SSL_CLIENT_SUBJECT_PATTERN = "ssl-client-subject-pattern";
+
     @Reference(policy = STATIC, policyOption = GREEDY)
     private SegmentStoreProvider storeProvider = null;
+
+    private static final int BLOB_CHUNK_SIZE = Integer.getInteger("oak.standby.blob.chunkSize", 1024 * 1024);
 
     private Closer closer = Closer.create();
 
@@ -115,13 +144,14 @@ public class StandbyStoreService {
 
         String mode = valueOf(context.getProperties().get(MODE));
 
+
         if (MODE_PRIMARY.equals(mode)) {
-            bootstrapMaster(context, fileStore);
+            bootstrapPrimary(context, fileStore);
             return;
         }
 
-        if (MODE_STANDBY.equals(mode)) {
-            bootstrapSlave(context, fileStore);
+        if (MODE_PRIMARY.equals(mode)) {
+            bootstrapSecondary(context, fileStore);
             return;
         }
 
@@ -133,20 +163,36 @@ public class StandbyStoreService {
         closer.close();
     }
 
-    private void bootstrapMaster(ComponentContext context, FileStore fileStore) {
+    private void bootstrapPrimary(ComponentContext context, FileStore fileStore) {
         Dictionary<?, ?> props = context.getProperties();
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         String[] ranges = PropertiesUtil.toStringArray(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
         boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
+        String sslKeyFile = PropertiesUtil.toString(props.get(SSL_KEY_FILE), SSL_KEY_FILE_DEFAULT);
+        String sslChainFile = PropertiesUtil.toString(props.get(SSL_CHAIN_FILE), SSL_CHAIN_FILE_DEFAULT);
+        boolean sslValidateClient = PropertiesUtil.toBoolean(props.get(SSL_VALIDATE_CLIENT), SSL_VALIDATE_CLIENT_DEFAULT);
+        String sslClientSubjectPattern = PropertiesUtil.toString(props.get(SSL_CLIENT_SUBJECT_PATTERN), SSL_CLIENT_SUBJECT_PATTERN_DEFAULT);
 
-        StandbyServerSync standbyServerSync = new StandbyServerSync(port, fileStore, ranges, secure);
+        StandbyServerSync.Builder builder = StandbyServerSync.builder()
+            .withPort(port)
+            .withFileStore(fileStore)
+            .withBlobChunkSize(BLOB_CHUNK_SIZE)
+            .withAllowedClientIPRanges(ranges)
+            .withSecureConnection(secure)
+            .withSSLKeyFile(sslKeyFile)
+            .withSSLChainFile(sslChainFile)
+            .withSSLClientValidation(sslValidateClient)
+            .withSSLClientSubjectPattern(sslClientSubjectPattern);
+
+        StandbyServerSync standbyServerSync = builder.build();
         closer.register(standbyServerSync);
         standbyServerSync.start();
 
         log.info("Started primary on port {} with allowed IP ranges {}", port, ranges);
     }
 
-    private void bootstrapSlave(ComponentContext context, FileStore fileStore) {
+
+    private void bootstrapSecondary(ComponentContext context, FileStore fileStore) {
         Dictionary<?, ?> props = context.getProperties();
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         long interval = PropertiesUtil.toInteger(props.get(INTERVAL), INTERVAL_DEFAULT);
@@ -154,8 +200,23 @@ public class StandbyStoreService {
         boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
         int readTimeout = PropertiesUtil.toInteger(props.get(READ_TIMEOUT), READ_TIMEOUT_DEFAULT);
         boolean clean = PropertiesUtil.toBoolean(props.get(AUTO_CLEAN), AUTO_CLEAN_DEFAULT);
+        String sslKeyFile = PropertiesUtil.toString(props.get(SSL_KEY_FILE), SSL_KEY_FILE_DEFAULT);
+        String sslChainFile = PropertiesUtil.toString(props.get(SSL_CHAIN_FILE), SSL_CHAIN_FILE_DEFAULT);
+        String sslServerSubjectPattern = PropertiesUtil.toString(props.get(SSL_SERVER_SUBJECT_PATTERN), SSL_SERVER_SUBJECT_PATTERN_DEFAULT);
 
-        StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean);
+        StandbyClientSync.Builder builder = StandbyClientSync.builder()
+            .withHost(host)
+            .withPort(port)
+            .withFileStore(fileStore)
+            .withReadTimeoutMs(readTimeout)
+            .withAutoClean(clean)
+            .withSpoolFolder(new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()))
+            .withSecureConnection(secure)
+            .withSSLKeyFile(sslKeyFile)
+            .withSSLChainFile(sslChainFile)
+            .withSSLServerSubjectPattern(sslServerSubjectPattern);
+
+        StandbyClientSync standbyClientSync = builder.build();
         closer.register(standbyClientSync);
 
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();

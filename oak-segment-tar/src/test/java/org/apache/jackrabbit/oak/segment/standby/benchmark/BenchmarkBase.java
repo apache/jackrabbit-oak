@@ -106,7 +106,13 @@ public class BenchmarkBase {
     }
 
     public StandbyClientSync newStandbyClientSync(FileStore store, int port, boolean secure) throws Exception {
-        return new StandbyClientSync(LOCALHOST, port, store, secure, timeout, false);
+        return StandbyClientSync.builder()
+                .withHost(LOCALHOST)
+                .withPort(port)
+                .withFileStore(store)
+                .withSecureConnection(secure)
+                .withReadTimeoutMs(timeout)
+                .build();
     }
 
     private static File createTmpTargetDir(String name) throws IOException {

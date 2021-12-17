@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import java.io.File;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
@@ -38,6 +41,7 @@ import io.netty.handler.codec.compression.SnappyFramedEncoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -46,6 +50,7 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.RequestDecoder;
+import org.apache.jackrabbit.oak.segment.standby.netty.SSLSubjectMatcher;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +59,8 @@ class StandbyServer implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(StandbyServer.class);
 
-    static Builder builder(int port, StoreProvider provider) {
-        return new Builder(port, provider);
+    static Builder builder(int port, StoreProvider provider, int blobChunkSize) {
+        return new Builder(port, provider, blobChunkSize);
     }
 
     private final int port;
@@ -76,6 +81,8 @@ class StandbyServer implements AutoCloseable {
 
         private final StoreProvider storeProvider;
 
+        private final int blobChunkSize;
+
         private boolean secure;
 
         private String[] allowedClientIPRanges;
@@ -84,9 +91,26 @@ class StandbyServer implements AutoCloseable {
 
         private CommunicationObserver observer;
 
-        private Builder(final int port, final StoreProvider storeProvider) {
+        private StandbyHeadReader standbyHeadReader;
+
+        private StandbySegmentReader standbySegmentReader;
+
+        private StandbyReferencesReader standbyReferencesReader;
+
+        private StandbyBlobReader standbyBlobReader;
+
+        private String sslKeyFile;
+
+        private String sslChainFile;
+
+        private boolean sslClientValidation;
+
+        public String sslClientSubjectPattern;
+
+        private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
             this.storeProvider = storeProvider;
+            this.blobChunkSize = blobChunkSize;
         }
 
         Builder secure(boolean secure) {
@@ -112,6 +136,46 @@ class StandbyServer implements AutoCloseable {
             return this;
         }
 
+        Builder withStandbyHeadReader(StandbyHeadReader standbyHeadReader) {
+            this.standbyHeadReader = standbyHeadReader;
+            return this;
+        }
+
+        Builder withStandbySegmentReader(StandbySegmentReader standbySegmentReader) {
+            this.standbySegmentReader = standbySegmentReader;
+            return this;
+        }
+
+        Builder withStandbyReferencesReader(StandbyReferencesReader standbyReferencesReader) {
+            this.standbyReferencesReader = standbyReferencesReader;
+            return this;
+        }
+
+        Builder withStandbyBlobReader(StandbyBlobReader standbyBlobReader) {
+            this.standbyBlobReader = standbyBlobReader;
+            return this;
+        }
+
+        Builder withSSLKeyFile(String sslKeyFile) {
+            this.sslKeyFile = sslKeyFile;
+            return this;
+        }
+
+        Builder withSSLChainFile(String sslChainFile) {
+            this.sslChainFile = sslChainFile;
+            return this;
+        }
+
+        Builder withSSLClientValidation(boolean sslValidateClient) {
+            this.sslClientValidation = sslValidateClient;
+            return this;
+        }
+
+        Builder withSSLClientSubjectPattern(String sslClientSubjectPattern) {
+            this.sslClientSubjectPattern = sslClientSubjectPattern;
+            return this;
+        }
+
         StandbyServer build() throws CertificateException, SSLException {
             return new StandbyServer(this);
         }
@@ -122,8 +186,12 @@ class StandbyServer implements AutoCloseable {
         this.port = builder.port;
 
         if (builder.secure) {
-            SelfSignedCertificate ssc = new SelfSignedCertificate();
-            sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
+                sslContext = SslContextBuilder.forServer(new File(builder.sslChainFile), new File(builder.sslKeyFile)).build();
+            } else {
+                SelfSignedCertificate ssc = new SelfSignedCertificate();
+                sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            }
         }
 
         bossGroup = new NioEventLoopGroup(1);
@@ -147,7 +215,13 @@ class StandbyServer implements AutoCloseable {
                 p.addLast(new ClientFilterHandler(new ClientIpFilter(builder.allowedClientIPRanges)));
 
                 if (sslContext != null) {
-                    p.addLast("ssl", sslContext.newHandler(ch.alloc()));
+                    SslHandler handler = sslContext.newHandler(ch.alloc());
+                    handler.engine().setNeedClientAuth(builder.sslClientValidation);
+                    p.addLast("ssl", handler);
+
+                    if (builder.sslClientSubjectPattern != null) {
+                        p.addLast(new SSLSubjectMatcher(builder.sslClientSubjectPattern));
+                    }
                 }
 
                 // Decoders
