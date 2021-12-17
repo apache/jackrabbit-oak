@@ -474,7 +474,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("e").setProperty("propa", "Hello starship");
         root.commit();
 
-        //String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
         String query = "//*[jcr:contains(@propa, 'Hello *ship')] ";
 
         assertEventually(() -> {
@@ -496,8 +495,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("e").setProperty("propa", "Hello starship");
         root.commit();
 
-        //String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
-        String query = "//*[jcr:contains(@propa, '*ship can*')] ";
+        String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
 
         assertEventually(() -> {
             assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c"));
