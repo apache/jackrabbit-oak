@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.ExistsQueryBuilder;
 import org.elasticsearch.index.query.PrefixQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -49,10 +48,6 @@ public class TermQueryBuilderFactory {
      * Private constructor.
      */
     private TermQueryBuilderFactory() {
-    }
-
-    private static ExistsQueryBuilder newExistsQuery(String field) {
-        return QueryBuilders.existsQuery(field);
     }
 
     public static PrefixQueryBuilder newPrefixQuery(String field, @NotNull String value) {
@@ -90,10 +85,6 @@ public class TermQueryBuilderFactory {
 
     public static TermQueryBuilder newMixinTypeQuery(String type) {
         return termQuery(JCR_MIXINTYPES, type);
-    }
-
-    public static TermQueryBuilder newNullPropQuery(String propName) {
-        return termQuery(FieldNames.NULL_PROPS, propName);
     }
 
     private static <R> RangeQueryBuilder newRangeQuery(String field,
@@ -134,10 +125,7 @@ public class TermQueryBuilderFactory {
             return newInQuery(propertyName, pr.list.stream()
                     .map(propToObj)
                     .collect(Collectors.toList()));
-        } else if (pr.isNotNullRestriction()) {
-            // not null. For date lower bound of zero can be used
-            return newExistsQuery(propertyName);
-        } else {
+        }  else {
             return null;
         }
     }

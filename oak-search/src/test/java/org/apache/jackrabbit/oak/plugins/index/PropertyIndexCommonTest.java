@@ -34,6 +34,7 @@ import static javax.jcr.PropertyType.TYPENAME_DATE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NULL_CHECK_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -184,7 +185,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
 
         Tree idx = indexOptions.setIndex(root, "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa", "propb"));
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST, false, "propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(PROP_NAME, "propa");
@@ -202,6 +203,31 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         String explanation = explain(query);
         assertThat(explanation, containsString(indexOptions.getIndexType() + ":test1(/oak:index/test1) "));
         assertEventually(() -> assertQuery(query, asList("/test/a", "/test/b")));
+    }
+
+    @Test
+    public void propertyNonExistenceQuery() throws Exception {
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+
+        Tree idx = indexOptions.setIndex(root, "test2",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST, false, "propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(PROP_NAME, "propa");
+        prop.setProperty(PROP_PROPERTY_INDEX, true);
+        prop.setProperty(PROP_NULL_CHECK_ENABLED, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithType(test, "a", "oak:TestNode").setProperty("propa", "a");
+        createNodeWithType(test, "b", "oak:TestNode").setProperty("propa", "c");
+        createNodeWithType(test, "c", "oak:TestNode").setProperty("propb", "e");
+        root.commit();
+
+        String query = "select [jcr:path] from [oak:TestNode] where [propa] is null";
+        String explanation = explain(query);
+        assertThat(explanation, containsString(indexOptions.getIndexType() + ":test2(/oak:index/test2) "));
+        assertEventually(() -> assertQuery(query, singletonList("/test/c")));
     }
 
     @Test
