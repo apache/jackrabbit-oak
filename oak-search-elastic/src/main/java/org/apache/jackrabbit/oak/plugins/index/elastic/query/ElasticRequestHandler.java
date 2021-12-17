@@ -787,12 +787,21 @@ public class ElasticRequestHandler {
             // and could contain other parts like renditions, node name, etc
             return multiMatchQuery.field(fieldName);
         } else {
-
             // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
             // simpleQueryStringQuery does not support leading wildcards whereas it's supported by default in queryStringQuery
             // Not using queryStringQuery by default , since this can have performance impact, also some functional cases break.
-            // So only support this in case the text String actually starts with *
-            if (text.startsWith("*")) {
+            // So only support this in case any term in the text String actually starts with *
+            // For example *hello or Hello *world
+            String[] textTerms = text.split(" ");
+            boolean allowLeadingWildCard = false;
+            for(String textTerm : textTerms) {
+                if (textTerm.startsWith("*")) {
+                    allowLeadingWildCard = true;
+                    break;
+                }
+            }
+
+            if (allowLeadingWildCard) {
                 return queryStringQuery(text).field(fieldName).defaultOperator(Operator.AND);
             } else {
                 return simpleQueryStringQuery(text).analyzeWildcard(true).field(fieldName).defaultOperator(Operator.AND);
