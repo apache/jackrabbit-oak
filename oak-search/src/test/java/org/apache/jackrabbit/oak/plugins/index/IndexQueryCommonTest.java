@@ -68,6 +68,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         TestUtil.enableFunctionIndex(props, "length([name])");
         TestUtil.enableFunctionIndex(props, "lower([name])");
         TestUtil.enableFunctionIndex(props, "upper([name])");
+        TestUtil.enableForFullText(props, "propa", false);
 
         root.commit();
     }
@@ -475,7 +476,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "//*[jcr:contains(@propa, 'Hello *ship')] ";
-
         assertEventually(() -> {
             assertQuery(query, XPATH, Arrays.asList("/test/e"));
         });
@@ -496,7 +496,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
-
         assertEventually(() -> {
             assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c"));
         });
