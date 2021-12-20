@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +94,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     /**
      * The node states which have a last modified time less than this would not be considered by this task.
      */
-    private final long lastModifiedLowerBound;
+    final long lastModifiedLowerBound;
     /**
      * The node states which have a last modified time greater than or equal to this would not be considered by this task.
      */
@@ -103,15 +104,15 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final MemoryManager memoryManager;
     private String registrationID;
 
-    TraverseAndSortTask(LastModifiedRange range, Comparator<NodeStateHolder> comparator,
+    TraverseAndSortTask(MongoDocumentTraverser.TraversingRange range, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
-                                MemoryManager memoryManager) throws IOException {
+                        MemoryManager memoryManager) throws IOException {
         this.nodeStates = nodeStateEntryTraverserFactory.create(range);
         this.taskID = ID_PREFIX + nodeStates.getId();
-        this.lastModifiedLowerBound = nodeStates.getDocumentModificationRange().getLastModifiedFrom();
-        this.lastModifiedUpperBound = nodeStates.getDocumentModificationRange().getLastModifiedTo();
+        this.lastModifiedLowerBound = nodeStates.getDocumentTraversalRange().getLastModifiedRange().getLastModifiedFrom();
+        this.lastModifiedUpperBound = nodeStates.getDocumentTraversalRange().getLastModifiedRange().getLastModifiedTo();
         this.blobStore = blobStore;
         this.entryWriter = new NodeStateEntryWriter(blobStore);
         this.storeDir = storeDir;
@@ -122,7 +123,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         this.phaser = phaser;
         this.nodeStateEntryTraverserFactory = nodeStateEntryTraverserFactory;
         this.memoryManager = memoryManager;
-        sortWorkDir = DirectoryHelper.createdSortWorkDir(storeDir, taskID, lastModifiedLowerBound);
+        sortWorkDir = DirectoryHelper.createdSortWorkDir(storeDir, taskID, lastModifiedLowerBound, lastModifiedUpperBound);
         phaser.register();
         log.debug("Task {} registered to phaser", taskID);
     }
@@ -206,7 +207,19 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
     }
 
-    private void addEntry(NodeStateEntry e) throws IOException {
+    File getSortWorkDir() {
+        return sortWorkDir;
+    }
+
+    long getLastModifiedLowerBound() {
+        return lastModifiedLowerBound;
+    }
+
+    long getLastModifiedUpperBound() {
+        return lastModifiedUpperBound;
+    }
+
+    void addEntry(NodeStateEntry e) throws IOException {
         if (memoryManager.isMemoryLow()) {
             if (memoryUsed >= FileUtils.ONE_MB) {
                 sortAndSaveBatch();
@@ -227,10 +240,12 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             if (completedTasks.poll() != null) {
                 long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
-                newTasksQueue.add(new TraverseAndSortTask(new LastModifiedRange(splitPoint, this.lastModifiedUpperBound),
+                newTasksQueue.add(new TraverseAndSortTask(new MongoDocumentTraverser.TraversingRange(
+                        new LastModifiedRange(splitPoint, this.lastModifiedUpperBound), null),
                         comparator, blobStore, storeDir, compressionEnabled, completedTasks,
                         newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
                 this.lastModifiedUpperBound = splitPoint;
+                DirectoryHelper.setLastModifiedUpperLimit(sortWorkDir, lastModifiedUpperBound);
             }
         }
 
@@ -282,11 +297,11 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 textSize += text.length() + 1;
             }
         }
-        log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry lastModified = {}", taskID,
+        log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry id = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), size, w,
-                lastSavedNodeStateEntry.getLastModified());
+                lastSavedNodeStateEntry.getId());
         DirectoryHelper.markLastProcessedStatus(sortWorkDir,
-                lastSavedNodeStateEntry.getLastModified());
+                lastSavedNodeStateEntry.getId());
         sortedFiles.add(newtmpfile);
     }
 

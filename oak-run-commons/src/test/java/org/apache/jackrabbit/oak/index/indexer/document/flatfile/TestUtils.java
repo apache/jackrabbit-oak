@@ -69,7 +69,16 @@ public class TestUtils {
     }
 
     static Iterable<NodeStateEntry> createEntriesWithLastModified(Map<String, Long> paths) {
-        return Iterables.transform(paths.keySet(), p -> new NodeStateEntryBuilder(createNodeState(p), p).withLastModified(paths.get(p)).build());
+        return Iterables.transform(paths.keySet(), p -> new NodeStateEntryBuilder(createNodeState(p), p).withLastModified(paths.get(p))
+                .withID(getID(p)).build());
+    }
+
+    private static String getID(String path) {
+        int slashCount = 0, fromIndex = 0;
+        while ( (fromIndex = path.indexOf("/", fromIndex) + 1) != 0) {
+            slashCount++;
+        }
+        return slashCount + ":" + path;
     }
 
     private static NodeState createNodeState(String p) {

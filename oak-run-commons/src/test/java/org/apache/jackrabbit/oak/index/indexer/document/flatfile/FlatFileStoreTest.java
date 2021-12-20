@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
@@ -77,7 +78,7 @@ public class FlatFileStoreTest {
                 .withLastModifiedBreakPoints(Collections.singletonList(0L))
                 .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {
                     @Override
-                    public NodeStateEntryTraverser create(LastModifiedRange range) {
+                    public NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange range) {
                         return new NodeStateEntryTraverser("NS-1", null, null,
                                 null, range) {
                             @Override
@@ -289,13 +290,13 @@ public class FlatFileStoreTest {
         }
 
         @Override
-        public NodeStateEntryTraverser create(LastModifiedRange range) {
-            return new NodeStateEntryTraverser("NS-" + range.getLastModifiedFrom(), null, null,
-                    null, range) {
+        public NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange range) {
+            return new NodeStateEntryTraverser("NS-" + range.getLastModifiedRange().getLastModifiedFrom(),
+                    null, null, null, range) {
                 @Override
                 public @NotNull Iterator<NodeStateEntry> iterator() {
                     Map<String, Long> times = new LinkedHashMap<>(); // should be sorted in increasing order of value i.e. lastModificationTime
-                    pathData.entrySet().stream().filter(entry -> range.contains(entry.getKey())).forEach(entry -> {
+                    pathData.entrySet().stream().filter(entry -> range.getLastModifiedRange().contains(entry.getKey())).forEach(entry -> {
                         entry.getValue().forEach(path -> times.put(path, entry.getKey()));
                     });
                     if (times.isEmpty()) {
