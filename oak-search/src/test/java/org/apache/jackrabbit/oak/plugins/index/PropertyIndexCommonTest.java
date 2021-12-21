@@ -201,15 +201,19 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
         String query = "select [jcr:path] from [oak:TestNode] where [propa] is not null";
         String explanation = explain(query);
-        assertThat(explanation, containsString(indexOptions.getIndexType() + ":test1(/oak:index/test1) "));
+        assertThat(explanation, containsString(propertyExistenceQueryWithNullCheckExpectedExplain()));
         assertEventually(() -> assertQuery(query, asList("/test/a", "/test/b")));
+    }
+
+    protected String propertyExistenceQueryWithNullCheckExpectedExplain() {
+        return indexOptions.getIndexType() + ":test1(/oak:index/test1) ";
     }
 
     @Test
     public void propertyNonExistenceQuery() throws Exception {
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
 
-        Tree idx = indexOptions.setIndex(root, "test2",
+        Tree idx = indexOptions.setIndex(root, "test1",
                 indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST, false, "propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
         Tree prop = props.addChild(TestUtil.unique("prop"));
@@ -226,8 +230,12 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
         String query = "select [jcr:path] from [oak:TestNode] where [propa] is null";
         String explanation = explain(query);
-        assertThat(explanation, containsString(indexOptions.getIndexType() + ":test2(/oak:index/test2) "));
+        assertThat(explanation, containsString(propertyNonExistenceQueryExpectedExplain()));
         assertEventually(() -> assertQuery(query, singletonList("/test/c")));
+    }
+
+    protected String propertyNonExistenceQueryExpectedExplain() {
+        return indexOptions.getIndexType() + ":test1(/oak:index/test1) ";
     }
 
     @Test
@@ -261,12 +269,12 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
                 Arrays.asList("/test/a", "/test/b", "/test/d")));
     }
 
-    private String explain(String query) {
+    protected String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
-    private static Tree createNodeWithType(Tree t, String nodeName, String typeName){
+    protected static Tree createNodeWithType(Tree t, String nodeName, String typeName){
         t = t.addChild(nodeName);
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return t;
