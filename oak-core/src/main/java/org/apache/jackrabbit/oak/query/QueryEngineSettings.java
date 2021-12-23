@@ -93,6 +93,22 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private String[] classNamesIgnoredInCallTrace = new String[] {};
 
+
+    private static final String OAK_QUERY_LENGTH_WARN_LIMIT = "oak.query.length.warn.limit";
+    private static final String OAK_QUERY_LENGTH_ERROR_LIMIT = "oak.query.length.error.limit";
+
+    private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT, 102400); // 100 KB
+    private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 1048576); //1MB (1024KB)
+
+
+    public long getQueryLengthWarnLimit() {
+        return queryLengthWarnLimit;
+    }
+
+    public long getQueryLengthErrorLimit() {
+        return queryLengthErrorLimit;
+    }
+
     public QueryEngineSettings() {
         statisticsProvider = StatisticsProvider.NOOP;
     }
