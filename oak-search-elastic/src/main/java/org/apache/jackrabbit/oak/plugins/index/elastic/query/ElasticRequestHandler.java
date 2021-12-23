@@ -103,8 +103,6 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newMixinTypeQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newNodeTypeQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newNotNullPropQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newNullPropQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixQuery;
@@ -796,13 +794,10 @@ public class ElasticRequestHandler {
         int propType = FulltextIndex.determinePropertyType(defn, pr);
 
         if (pr.isNullRestriction()) {
-            return newNullPropQuery(defn.name);
+            return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(propertyName));
         }
-
-        //If notNullCheckEnabled explicitly enabled use the simple TermQuery
-        //otherwise later fallback to range query
-        if (pr.isNotNullRestriction() && defn.notNullCheckEnabled) {
-            return newNotNullPropQuery(defn.name);
+        if (pr.isNotNullRestriction()) {
+            return QueryBuilders.existsQuery(propertyName);
         }
 
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);

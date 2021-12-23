@@ -166,12 +166,12 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexNotNullProperty(ElasticDocument doc, PropertyDefinition pd) {
-        doc.notNullProp(pd.name);
+        // Elastic support exist queries for specific fields
     }
 
     @Override
     protected void indexNullProperty(ElasticDocument doc, PropertyDefinition pd) {
-        doc.nullProp(pd.name);
+        // Elastic support not exist queries for specific fields
     }
 
     @Override
