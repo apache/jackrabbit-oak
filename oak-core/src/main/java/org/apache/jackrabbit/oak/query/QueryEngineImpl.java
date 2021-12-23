@@ -154,7 +154,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         QueryEngineSettings settings = context.getSettings();
         if (statement.length() > (settings.getQueryLengthErrorLimit())){
             LOG.error("Too large query: " + statement);
-            throw new RuntimeException("Query length "+ statement.length() + " is larger than max supported query length: " + settings.getQueryLengthErrorLimit());
+            throw new ParseException("Query length "+ statement.length() + " is larger than max supported query length: " + settings.getQueryLengthErrorLimit(), 0);
         }
         if (statement.length() > (settings.getQueryLengthWarnLimit())){
             LOG.warn("Query length {} breached queryWarnLimit {}. Query: {}", statement.length(), settings.getQueryLengthWarnLimit(), statement);

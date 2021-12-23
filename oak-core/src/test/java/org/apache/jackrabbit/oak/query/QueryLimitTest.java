@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
+import java.text.ParseException;
 import java.util.Properties;
 
 import static org.junit.Assert.assertThrows;
@@ -75,7 +76,7 @@ public class QueryLimitTest extends AbstractQueryTest {
         String generatedString = RandomStringUtils.random(queryLengthErrorLimit, true, false);
 
         String query = "SELECT [jcr:path] FROM [nt:base] AS a WHERE a.[x]='" + generatedString + "'";
-        assertThrows(RuntimeException.class,
+        assertThrows(ParseException.class,
                 () -> {
                     try {
                         qe.executeQuery(query, QueryEngineImpl.SQL2, 10, 0,
