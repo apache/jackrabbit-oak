@@ -86,6 +86,12 @@ public class QueryStatsTest {
 
         String data = bean.getPopularQueries().values().iterator().next().toString();
         assertFalse(data.contains(generatedString));
-        assertTrue(data.contains(generatedString.substring(0, maxQuerySize)));
+        String statLog = new StringBuilder()
+                .append("Truncated query: ")
+                .append(generatedString.substring(0, maxQuerySize >> 1))
+                .append(" ...... ")
+                .append(generatedString.substring(generatedString.length() - (maxQuerySize >> 1)))
+                .toString();
+        assertTrue(data.contains(statLog));
     }
 }

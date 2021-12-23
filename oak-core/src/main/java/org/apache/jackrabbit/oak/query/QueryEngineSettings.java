@@ -97,8 +97,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private static final String OAK_QUERY_LENGTH_WARN_LIMIT = "oak.query.length.warn.limit";
     private static final String OAK_QUERY_LENGTH_ERROR_LIMIT = "oak.query.length.error.limit";
 
-    private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT, 102400); // 100 KB
-    private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 1048576); //1MB (1024KB)
+    private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT, 1024 * 1024); // 1 MB
+    private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
 
 
     public long getQueryLengthWarnLimit() {
