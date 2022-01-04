@@ -24,9 +24,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
@@ -67,6 +65,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         TestUtil.enableFunctionIndex(props, "length([name])");
         TestUtil.enableFunctionIndex(props, "lower([name])");
         TestUtil.enableFunctionIndex(props, "upper([name])");
+        TestUtil.enableForFullText(props, "propa", false);
 
         root.commit();
     }
@@ -457,6 +456,46 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
                     singletonList("/test/c"));
         });
         setTraversalEnabled(true);
+    }
+
+
+    @Test
+    public void fullTextQueryTestAllowLeadingWildcards() throws Exception {
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "ship_to_canada");
+        test.addChild("b").setProperty("propa", "steamship_to_canada");
+        test.addChild("c").setProperty("propa", "ship_to_can");
+        test.addChild("d").setProperty("propa", "starship");
+        test.addChild("e").setProperty("propa", "Hello starship");
+        root.commit();
+
+        String query = "//*[jcr:contains(@propa, 'Hello *ship')] ";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/e"));
+        });
+    }
+
+
+    @Test
+    public void fullTextQueryTestAllowLeadingWildcards2() throws Exception {
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "ship_to_canada");
+        test.addChild("b").setProperty("propa", "steamship_to_canada");
+        test.addChild("c").setProperty("propa", "ship_to_can");
+        test.addChild("d").setProperty("propa", "starship");
+        test.addChild("e").setProperty("propa", "Hello starship");
+        root.commit();
+
+        String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c"));
+        });
     }
 
     private static Tree child(Tree t, String n, String type) {
