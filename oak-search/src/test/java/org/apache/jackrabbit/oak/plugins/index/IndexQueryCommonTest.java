@@ -55,6 +55,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
         TestUtil.useV2(indexDefn);
         indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        indexDefn.setProperty("tags", "x");
 
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
         props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
@@ -134,6 +135,24 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             Iterator<String> result = executeQuery(
                     "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
+                    "JCR-SQL2").iterator();
+            assertTrue(result.hasNext());
+            assertEquals("/test/a", result.next());
+            assertEquals("/test/b", result.next());
+            assertFalse(result.hasNext());
+        });
+    }
+
+    @Test
+    public void descendantTestWIthIndexTag() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a");
+        test.addChild("b");
+        root.commit();
+
+        assertEventually(() -> {
+            Iterator<String> result = executeQuery(
+                    "select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)",
                     "JCR-SQL2").iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
