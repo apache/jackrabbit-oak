@@ -44,7 +44,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.3</jackrabbit.version>
+    <jackrabbit.version>2.20.4</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -55,9 +55,9 @@
     <lucene.version>4.7.1</lucene.version>
     <solr.version>8.8.2</solr.version>
     <mongo.driver.version>3.12.7</mongo.driver.version>
-    <slf4j.api.version>1.7.30</slf4j.api.version>
-    <slf4j.version>1.7.30</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.2.3</logback.version>
+    <slf4j.api.version>1.7.32</slf4j.api.version>
+    <slf4j.version>1.7.32</slf4j.version> <!-- sync with logback version -->
+    <logback.version>1.2.10</logback.version>
     <h2.version>1.4.194</h2.version>
     <tika.version>1.24.1</tika.version>
     <guava.version>15.0</guava.version>
@@ -67,6 +67,7 @@
     <!-- jackson-databind versions prior to 2.10.5.1 are affected by security vulnerability CVE-2020-25649.
          When upgrading jackson, try to align them to the same version -->
     <jackson.databind.version>2.10.5.1</jackson.databind.version>
+    <testcontainers.version>1.16.2</testcontainers.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -135,7 +136,7 @@
             <detectJavaApiLink>false</detectJavaApiLink>
             <aggregate>true</aggregate>
             <links>
-              <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
+              <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
               <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
               <link>http://www.slf4j.org/apidocs/</link>
@@ -296,6 +297,9 @@
             <argLine>${test.opts}</argLine>
             <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
+              <!-- evaluated in oak-jcr/src/test/java/org/apache/jackrabbit/oak/jcr/util/KnownIssuesIgnoreRule.java (JUnit4) and
+                   https://github.com/apache/jackrabbit/blob/ed3124e5fe223dada33ce6ddf53bc666063c3f2f/jackrabbit-jcr-tests/src/main/java/org/apache/jackrabbit/test/AbstractJCRTest.java#L476 (JUnit3)
+               -->
               <known.issues>${known.issues}</known.issues>
               <mongo.host>${mongo.host}</mongo.host>
               <mongo.port>${mongo.port}</mongo.port>
@@ -316,6 +320,9 @@
             <argLine>${test.opts}</argLine>
             <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
+              <!-- evaluated in oak-jcr/src/test/java/org/apache/jackrabbit/oak/jcr/util/KnownIssuesIgnoreRule.java (JUnit4) and
+                   https://github.com/apache/jackrabbit/blob/ed3124e5fe223dada33ce6ddf53bc666063c3f2f/jackrabbit-jcr-tests/src/main/java/org/apache/jackrabbit/test/AbstractJCRTest.java#L476 (JUnit3)
+               -->
               <known.issues>${known.issues}</known.issues>
               <mongo.host>${mongo.host}</mongo.host>
               <mongo.port>${mongo.port}</mongo.port>

@@ -38,6 +38,9 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
             throw new IllegalArgumentException("IndexDefinition must be of type ElasticsearchIndexDefinition " +
                     "instead of " + definition.getClass().getName());
         }
-        return new ElasticIndexWriter(elasticConnection, (ElasticIndexDefinition) definition, definitionBuilder, commitInfo);
+
+        ElasticIndexDefinition esDefinition = (ElasticIndexDefinition) definition;
+
+        return new ElasticIndexWriter(elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo);
     }
 }

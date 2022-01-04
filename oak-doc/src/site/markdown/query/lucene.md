@@ -366,24 +366,26 @@ Following are the details about the above mentioned config options which can be
 defined at the property definition level
 
 name
-: Property name. If not defined then property name is set to the node name.
-  If `isRegexp` is true then it defines the regular expression. Can also be set
-  to a relative property.
+: Property name. If not defined, then the property name is set to the node name.
+
+  Can also be set to a relative property, e.g., `jcr:content/metadata/color`.
+  For relative properties, one wildcard (`*`) is supported instead of a node name:
+  `*/color` aggregates the values of the property `color` of all direct child nodes.
+
+  If `isRegexp` is true, then the property name is a regular expression.
 
 isRegexp
-: If set to true then property name would be interpreted as a regular
-  expression and the given definition would be applicable for matching property
-  names. Note that expression should be structured such that it does not
-  match '/'.
-    * `.*` - This property definition is applicable for all properties of given
-      node
+: If set to true, then the property name is interpreted as a regular
+  expression, and the given definition is applicable for matching property names.
+  The expression must not match '/'.
+    * `^[^\/]*$` - Matches all properties of this node.
     * `jcr:content/metadata/.*` - This property definition is
-      applicable for all properties of child node _jcr:content/metadata_
+      applicable for all properties of the child node `jcr:content/metadata`
 
-  Note that the regular expression doesn't match intermediate nodes, so,
-  `jcr:content/.*/.*` would *not* index all properties for all children of
+  The regular expression only matches property names, and not intermediate nodes.
+  `jcr:content/.*/.*` does *not* index all properties for all children of
   `jcr:content`. [OAK-5187][OAK-5187] is an open improvement to track supporting
-  arbitrary intermediate child nodes.
+  regular expression matching for intermediate child nodes.
 
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
@@ -1127,6 +1129,7 @@ This allows to search for, and order by, the lower case version of the property 
 * fn:lower-case(fn:name())
 * fn:lower-case(fn:local-name())
 * fn:string-length(test/@data)
+* first([alias])
 * upper([data])
 * lower([test/data])
 * lower(name())
@@ -1134,6 +1137,7 @@ This allows to search for, and order by, the lower case version of the property 
 * length([test/data])
 * length(name())
 * name()
+* path()
 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
@@ -2148,7 +2152,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
           - propertyIndex = true
 ```
 
-[1]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
+[1]: https://s.apache.org/jcr-2.0-javadoc/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737
 [OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
@@ -2189,7 +2193,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [lucene-codec]: https://lucene.apache.org/core/4_7_1/core/org/apache/lucene/codecs/Codec.html
 [tika-download]: https://tika.apache.org/download.html
 [oak-run-tika]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#tika
-[jcr-contains]: https://docs.adobe.com/docs/en/spec/jcr/1.0/6.6.5.2_jcr_contains_Function.html
+[jcr-contains]: https://s.apache.org/jcr-1.0-spec/6.6.5.2_jcr_contains_Function.html
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
 [oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/

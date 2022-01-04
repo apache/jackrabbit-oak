@@ -26,6 +26,8 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
@@ -219,5 +221,29 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
     @NotNull
     default PrivilegeCollection getPrivilegeCollection(@Nullable String absPath, @NotNull Set<Principal> principals) throws RepositoryException {
         return new PrivilegeCollection.Default(getPrivileges(absPath, principals), this);
+    }
+
+    /**
+     * <p>Returns the {@link PrivilegeCollection} for the specified <code>privilegeNames</code>.
+     * Since the privilege names are JCR names, they may be passed in either
+     * qualified or expanded form (see specification for details on JCR names).</p>
+     * 
+     * Note: For backwards compatibility this method comes with a default implementation that computes the {@link PrivilegeCollection}
+     * using regular JCR/Jackrabbit API, which might not be efficient. Implementations of {@link JackrabbitAccessControlManager}
+     * are therefore expected to overwrite the default.
+     *
+     * @param privilegeNames the names of existing privilege.
+     * @return the <code>PrivilegeCollection</code> representing the specified <code>privilegeNames</code>.
+     * @throws AccessControlException if no privilege with any of the specified names exists.
+     * @throws RepositoryException If another error occurs.
+     * @since Oak 1.42.0
+     */
+    @NotNull
+    default PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
+        List<Privilege> privileges = new ArrayList<>();
+        for (String privilegeName : privilegeNames) {
+            privileges.add(privilegeFromName(privilegeName));
+        }
+        return new PrivilegeCollection.Default(privileges.toArray(new Privilege[0]), this);
     }
 }

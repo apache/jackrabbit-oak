@@ -275,5 +275,10 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         @NotNull NamePathMapper getNamePathMapper() {
             return PrincipalPolicyImpl.this.getNamePathMapper();
         }
+
+        @Override
+        protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            return privilegeBitsProvider;
+        }
     }
 }

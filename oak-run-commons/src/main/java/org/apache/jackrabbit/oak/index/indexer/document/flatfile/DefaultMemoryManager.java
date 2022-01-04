@@ -109,7 +109,6 @@ public class DefaultMemoryManager implements MemoryManager {
         log.info("Setting up a listener to monitor pool '{}' and trigger batch save " +
                 "if memory drop below {} GB (max {})", pool.getName(), minMemoryBytes/ONE_GB, humanReadableByteCount(maxMemory));
         pool.setCollectionUsageThreshold(minMemoryBytes);
-        checkMemory(usage);
     }
 
     @Override
@@ -119,10 +118,10 @@ public class DefaultMemoryManager implements MemoryManager {
 
     @Override
     public boolean isMemoryLow() {
-        if (type != Type.SELF_MANAGED) {
-            throw new UnsupportedOperationException("Not a self managed memory manager");
+        if (type == Type.SELF_MANAGED) {
+            return memoryUsed.get() > maxMemoryBytes;
         }
-        return memoryUsed.get() > maxMemoryBytes;
+        return !sufficientMemory.get();
     }
 
     @Override
@@ -178,25 +177,29 @@ public class DefaultMemoryManager implements MemoryManager {
         return Base64.encodeBase64String(r) + "-" + System.currentTimeMillis();
     }
 
+    private long getAvailableMemory(MemoryUsage usage) {
+        return usage.getMax() - usage.getUsed();
+    }
+
     private void checkMemory(MemoryUsage usage) {
-        long maxMemory = usage.getMax();
-        long usedMemory = usage.getUsed();
-        long avail = maxMemory - usedMemory;
+        long avail = getAvailableMemory(usage);
         if (avail > minMemoryBytes) {
             sufficientMemory.set(true);
             log.info("Available memory level {} is good.", humanReadableByteCount(avail));
         } else {
-            Phaser phaser = new Phaser();
-            clients.forEach((r,c) -> c.memoryLow(phaser));
-            sufficientMemory.set(false);
-            log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
-                    humanReadableByteCount(avail), minMemoryBytes/ONE_GB);
-            new Thread(() -> {
-                log.info("Waiting for all tasks to finish dumping their data");
-                phaser.awaitAdvance(phaser.getPhase());
-                log.info("All tasks have finished dumping their data");
-                sufficientMemory.set(true);
-            }, "Wait-For-Dump").start();
+            boolean couldSet = sufficientMemory.compareAndSet(true, false);
+            if (couldSet) {
+                Phaser phaser = new Phaser();
+                clients.forEach((r, c) -> c.memoryLow(phaser));
+                log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
+                        humanReadableByteCount(avail), minMemoryBytes / ONE_GB);
+                new Thread(() -> {
+                    log.info("Waiting for all tasks to finish dumping their data");
+                    phaser.awaitAdvance(phaser.getPhase());
+                    log.info("All tasks have finished dumping their data");
+                    sufficientMemory.set(true);
+                }, "Wait-For-Dump").start();
+            }
         }
     }
 

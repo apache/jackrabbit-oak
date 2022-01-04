@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -86,6 +87,8 @@ public final class NodeDocument extends Document {
     }
 
     static final Logger LOG = LoggerFactory.getLogger(NodeDocument.class);
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer();
 
     /**
      * All NodeDocument ID value would be greater than this value
@@ -1877,7 +1880,13 @@ public final class NodeDocument extends Document {
     //----------------------------< internal >----------------------------------
 
     private void previousDocumentNotFound(String prevId, Revision rev) {
-        LOG.warn("Document with previous revisions not found: " + prevId);
+        final boolean logSilence = LOG_SILENCER.silence(prevId);
+        if (!logSilence) {
+            LOG.warn("Document with previous revisions not found: " + prevId
+                    + LogSilencer.SILENCING_POSTFIX);
+        } else {
+            LOG.debug("Document with previous revisions not found: {}", prevId);
+        }
         // main document may be stale, evict it from the cache if it is
         // older than one minute. We don't want to invalidate a document
         // too frequently if the document structure is really broken.
@@ -1887,7 +1896,11 @@ public final class NodeDocument extends Document {
         long now = Revision.getCurrentTimestamp();
         while (doc != null
                 && doc.getCreated() + TimeUnit.MINUTES.toMillis(1) < now) {
-            LOG.info("Invalidated cached document {}", id);
+            if (!logSilence) {
+                LOG.info("Invalidated cached document {} -{}", id, LogSilencer.SILENCING_POSTFIX);
+            } else {
+                LOG.debug("Invalidated cached document {}", id);
+            }
             store.invalidateCache(NODES, id);
             // also invalidate intermediate docs if there are any matching
             Iterable<Range> ranges = doc.getPreviousRanges().values();

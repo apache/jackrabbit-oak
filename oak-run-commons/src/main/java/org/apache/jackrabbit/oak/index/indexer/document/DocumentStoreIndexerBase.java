@@ -34,8 +34,10 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -71,9 +73,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
     private final Set<String> indexerPaths = new HashSet<>();
-    private static final int MAX_DOWNLOAD_RETRIES = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "3"));
+    private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
-    public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
+    public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
         this.indexerSupport = indexerSupport;
     }
@@ -98,17 +100,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         private final MongoDocumentStore documentStore;
         private final Logger traversalLogger;
         private final CompositeIndexer indexer;
-        private final Closer closer;
 
         private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
                                                    MongoDocumentStore documentStore, Logger traversalLogger,
-                                                   CompositeIndexer indexer, Closer closer) {
+                                                   CompositeIndexer indexer) {
             this.rootRevision = rootRevision;
             this.documentNodeStore = documentNodeStore;
             this.documentStore = documentStore;
             this.traversalLogger = traversalLogger;
             this.indexer = indexer;
-            this.closer = closer;
         }
 
         @Override
@@ -118,8 +118,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             String entryTraverserID = TRAVERSER_ID_PREFIX + traverserInstanceCounter.incrementAndGet();
             //As first traversal is for dumping change the message prefix
             progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
-            NodeStateEntryTraverser nsep =
-                    new NodeStateEntryTraverser(entryTraverserID, rootRevision,
+            return new NodeStateEntryTraverser(entryTraverserID, rootRevision,
                             documentNodeStore, documentStore, lastModifiedRange)
                             .withProgressCallback((id) -> {
                                 try {
@@ -130,8 +129,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                                 traversalLogger.trace(id);
                             })
                             .withPathPredicate(indexer::shouldInclude);
-            closer.register(nsep);
-            return nsep;
         }
     }
 
@@ -149,16 +146,17 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
         List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
         FlatFileNodeStoreBuilder builder = null;
-
-        while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_RETRIES) {
+        int backOffTimeInMillis = 5000;
+        MemoryManager memoryManager = new DefaultMemoryManager();
+        while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
             try {
-                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
+                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir(), memoryManager)
                         .withLastModifiedBreakPoints(lastModifiedBreakPoints)
                         .withBlobStore(indexHelper.getGCBlobStore())
                         .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
-                                nodeStore, getMongoDocumentStore(), traversalLog, indexer, closer));
+                                nodeStore, getMongoDocumentStore(), traversalLog, indexer));
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
                 }
@@ -167,9 +165,18 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             } catch (CompositeException e) {
                 e.logAllExceptions("Underlying throwable caught during download", log);
                 log.info("Could not build flat file store. Execution count {}. Retries left {}. Time elapsed {}",
-                        executionCount, MAX_DOWNLOAD_RETRIES - executionCount, flatFileStoreWatch);
+                        executionCount, MAX_DOWNLOAD_ATTEMPTS - executionCount, flatFileStoreWatch);
                 lastException = e;
                 previousDownloadDirs.add(builder.getFlatFileStoreDir());
+                if (executionCount < MAX_DOWNLOAD_ATTEMPTS) {
+                    try {
+                        log.info("Waiting for {} millis before retrying", backOffTimeInMillis);
+                        Thread.sleep(backOffTimeInMillis);
+                        backOffTimeInMillis *= 2;
+                    } catch (InterruptedException ie) {
+                        log.error("Interrupted while waiting before retrying download ", ie);
+                    }
+                }
             }
             executionCount++;
         }

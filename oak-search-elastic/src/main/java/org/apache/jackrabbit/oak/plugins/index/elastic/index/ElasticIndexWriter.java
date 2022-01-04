@@ -27,6 +27,7 @@ import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -59,14 +61,36 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
 
+    private final boolean reindex;
+    private final String indexName;
+
     ElasticIndexWriter(@NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull NodeBuilder definitionBuilder,
-                       CommitInfo commitInfo) {
+                       boolean reindex, CommitInfo commitInfo) {
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
+        this.reindex = reindex;
+
+        // We don't use stored index definitions with elastic. Every time a new writer gets created we
+        // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
+        // old index until the new one gets enabled) during incremental reindexing
+        if (this.reindex) {
+            try {
+                long seed = UUID.randomUUID().getMostSignificantBits();
+                // merge gets called on node store later in the indexing flow
+                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
+
+                indexName = ElasticIndexNameHelper.
+                        getRemoteIndexName(elasticConnection.getIndexPrefix(), indexDefinition.getIndexPath(), seed);
+
+                provisionIndex();
+            } catch (IOException e) {
+                throw new IllegalStateException("Unable to provision index", e);
+            }
+        } else indexName = indexDefinition.getIndexAlias();
         this.bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder, commitInfo);
+                .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, commitInfo);
     }
 
     @TestOnly
@@ -76,11 +100,13 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.bulkProcessorHandler = bulkProcessorHandler;
+        this.indexName = indexDefinition.getIndexAlias();
+        this.reindex = false;
     }
 
     @Override
     public void updateDocument(String path, ElasticDocument doc) {
-        IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexAlias())
+        IndexRequest request = new IndexRequest(indexName)
                 .id(ElasticIndexUtils.idFromPath(path))
                 .source(doc.build(), XContentType.JSON);
         bulkProcessorHandler.add(request);
@@ -88,19 +114,24 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public void deleteDocuments(String path) {
-        DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexAlias())
+        DeleteRequest request = new DeleteRequest(indexName)
                 .id(ElasticIndexUtils.idFromPath(path));
         bulkProcessorHandler.add(request);
     }
 
     @Override
     public boolean close(long timestamp) throws IOException {
-        return bulkProcessorHandler.close();
+        boolean updateStatus = bulkProcessorHandler.close();
+        if (reindex) {
+            // if we are closing a writer in reindex mode, it means we need to open the new index for queries
+            this.enableIndex();
+        }
+        return updateStatus;
     }
 
-    protected void provisionIndex(long seed) throws IOException {
+    private void provisionIndex() throws IOException {
+        final IndicesClient indicesClient = elasticConnection.getClient().indices();
         // check if index already exists
-        final String indexName = ElasticIndexNameHelper.getRemoteIndexName(indexDefinition, seed);
         boolean exists = elasticConnection.getClient().indices().exists(
                 new GetIndexRequest(indexName), RequestOptions.DEFAULT
         );
@@ -108,8 +139,6 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             LOG.info("Index {} already exists. Skip index provision", indexName);
             return;
         }
-
-        final IndicesClient indicesClient = elasticConnection.getClient().indices();
 
         // create the new index
         final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
@@ -119,8 +148,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 LOG.debug("Creating Index with request {}", requestMsg);
             }
             CreateIndexResponse response = indicesClient.create(request, RequestOptions.DEFAULT);
-            LOG.info("Updated settings for index {}. Response acknowledged: {}",
-                    indexName, response.isAcknowledged());
+            LOG.info("Created index {}. Response acknowledged: {}", indexName, response.isAcknowledged());
             checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
         } catch (ElasticsearchStatusException ese) {
             // We already check index existence as first thing in this method, if we get here it means we have got into
@@ -131,24 +159,43 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 LOG.warn("Index {} already exists. Ignoring error", indexName);
             } else throw ese;
         }
+    }
+
+    private void enableIndex() throws IOException {
+        final IndicesClient indicesClient = elasticConnection.getClient().indices();
+        // check if index already exists
+        boolean exists = indicesClient.exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
+        if (!exists) {
+            throw new IllegalStateException("cannot enable an index that does not exist");
+        }
+
+        UpdateSettingsRequest request = ElasticIndexHelper.enableIndexRequest(indexName, indexDefinition);
+        if (LOG.isDebugEnabled()) {
+            final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
+            LOG.debug("Updating Index Settings with request {}", requestMsg);
+        }
+        AcknowledgedResponse response = indicesClient.putSettings(request, RequestOptions.DEFAULT);
+        LOG.info("Updated settings for index {}. Response acknowledged: {}",
+                indexName, response.isAcknowledged());
+        checkResponseAcknowledgement(response, "Update index settings call not acknowledged for index " + indexName);
 
         // update the mapping
-        GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getRemoteIndexAlias());
+        GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getIndexAlias());
         GetAliasesResponse aliasesResponse = indicesClient.getAlias(getAliasesRequest, RequestOptions.DEFAULT);
         Map<String, Set<AliasMetadata>> aliases = aliasesResponse.getAliases();
         IndicesAliasesRequest indicesAliasesRequest = new IndicesAliasesRequest();
         for (String oldIndexName : aliases.keySet()) {
             IndicesAliasesRequest.AliasActions removeAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE);
-            removeAction.index(oldIndexName).alias(indexDefinition.getRemoteIndexAlias());
+            removeAction.index(oldIndexName).alias(indexDefinition.getIndexAlias());
             indicesAliasesRequest.addAliasAction(removeAction);
         }
         IndicesAliasesRequest.AliasActions addAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD);
-        addAction.index(indexName).alias(indexDefinition.getRemoteIndexAlias());
+        addAction.index(indexName).alias(indexDefinition.getIndexAlias());
         indicesAliasesRequest.addAliasAction(addAction);
         AcknowledgedResponse updateAliasResponse = indicesClient.updateAliases(indicesAliasesRequest, RequestOptions.DEFAULT);
         checkResponseAcknowledgement(updateAliasResponse, "Update alias call not acknowledged for alias "
-                + indexDefinition.getRemoteIndexAlias());
-        LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getRemoteIndexAlias(),
+                + indexDefinition.getIndexAlias());
+        LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getIndexAlias(),
                 indexName, updateAliasResponse.isAcknowledged());
 
         // once the alias has been updated, we can safely remove the old index
@@ -170,6 +217,6 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         }
         AcknowledgedResponse deleteIndexResponse = indicesClient.delete(deleteIndexRequest, RequestOptions.DEFAULT);
         checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for indices " + indices);
-        LOG.info("Deleted indices {}. Response acknowledged: {}", indices.toString(), deleteIndexResponse.isAcknowledged());
+        LOG.info("Deleted indices {}. Response acknowledged: {}", indices, deleteIndexResponse.isAcknowledged());
     }
 }

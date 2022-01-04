@@ -23,11 +23,9 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.FunctionIndexCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 
-import java.io.IOException;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -37,22 +35,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 
 @Ignore
 public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
-    // Set this connection string as
-    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
-    // key_id and key_secret are optional in case the ES server
-    // needs authentication
-    // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static String elasticConnectionString = System.getProperty("elasticConnectionString");
     @ClassRule
-    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
-
-    /*
-    Close the ES connection after every test method execution
-     */
-    @After
-    public void cleanup() throws IOException {
-        elasticRule.closeElasticConnection();
-    }
+    public static final ElasticConnectionRule elasticRule =
+            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticFunctionIndexCommonTest() {
         indexOptions = new ElasticIndexOptions();

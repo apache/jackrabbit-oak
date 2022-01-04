@@ -50,4 +50,13 @@ public class LucenePropertyIndexCommonTest extends PropertyIndexCommonTest {
         executorService.shutdown();
     }
 
+    @Override
+    protected String propertyExistenceQueryWithNullCheckExpectedExplain() {
+        return "lucene:test1(/oak:index/test1) :notNullProps:propa";
+    }
+
+    @Override
+    protected String propertyNonExistenceQueryExpectedExplain() {
+        return "lucene:test1(/oak:index/test1) :nullProps:propa";
+    }
 }

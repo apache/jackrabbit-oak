@@ -514,4 +514,15 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         verify(acMgr).getPrivilegeCollection(testPath, getEveryonePrincipalSet());
         verify(acMgr, never()).getPrivilegeCollection(testPath);
     }
+    
+    @Test
+    public void testPrivilegeCollectionFromNames() throws Exception {
+        PrivilegeCollection pc = acMgr.privilegeCollectionFromNames();
+        assertTrue(pc instanceof AbstractPrivilegeCollection);
+        assertArrayEquals(new Privilege[0], pc.getPrivileges());
+
+        pc = acMgr.privilegeCollectionFromNames(JCR_READ);
+        assertTrue(pc instanceof AbstractPrivilegeCollection);
+        assertArrayEquals(new Privilege[] {acMgr.privilegeFromName(JCR_READ)}, pc.getPrivileges());
+    }
 }

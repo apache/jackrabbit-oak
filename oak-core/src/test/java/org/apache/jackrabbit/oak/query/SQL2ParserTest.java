@@ -36,15 +36,15 @@ public class SQL2ParserTest {
     private static final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
 
     private static final SQL2Parser p = createTestSQL2Parser();
-    
+
     public static SQL2Parser createTestSQL2Parser() {
         return createTestSQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
     }
-    
+
     public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2,
             QueryEngineSettings qeSettings) {
         QueryStatsData data = new QueryStatsData("", "");
-        return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(), 
+        return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(),
                 data.new QueryExecutionStats());
     }
 
@@ -53,8 +53,8 @@ public class SQL2ParserTest {
     public void testIgnoreSqlComment() throws ParseException {
         p.parse("select * from [nt:unstructured] /* sql comment */");
         p.parse("select [jcr:path], [jcr:score], * from [nt:base] as a /* xpath: //* */");
-        p.parse("/* begin query */ select [jcr:path] /* this is the path */, " + 
-                "[jcr:score] /* the score */, * /* everything*/ " + 
+        p.parse("/* begin query */ select [jcr:path] /* this is the path */, " +
+                "[jcr:score] /* the score */, * /* everything*/ " +
                 "from [nt:base] /* all node types */ as a /* an identifier */");
     }
 
@@ -68,12 +68,12 @@ public class SQL2ParserTest {
         p.parse(new XPathToSQL2Converter()
                 .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
         p.parse(new XPathToSQL2Converter()
-                .convert("/jcr:root/test/*/*/nt:resource[@jcr:encoding]"));        
+                .convert("/jcr:root/test/*/*/nt:resource[@jcr:encoding]"));
         String xpath = "/jcr:root/etc/commerce/products//*[@cq:commerceType = 'product' " +
                 "and ((@size = 'M' or */@size= 'M' or */*/@size = 'M' " +
                 "or */*/*/@size = 'M' or */*/*/*/@size = 'M' or */*/*/*/*/@size = 'M'))]";
         p.parse(new XPathToSQL2Converter()
-                .convert(xpath));        
+                .convert(xpath));
     }
 
     // see OAK-OAK-830: XPathToSQL2Converter fails to wrap or clauses
@@ -105,9 +105,21 @@ public class SQL2ParserTest {
                 .convert("//*[fn:coalesce(fn:coalesce(j:c/@a, b), fn:coalesce(c, c:d)) = 'a']"));
     }
 
+    @Test
+    public void testFirst() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE FIRST([d:t])='a'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE FIRST([jcr:mixinTypes])='a'");
+    }
+
     @Test(expected = ParseException.class)
     public void coalesceFailsWithNoParam() throws ParseException {
         p.parse("SELECT * FROM [nt:base] WHERE COALESCE()='a'");
+    }
+
+    @Test(expected = ParseException.class)
+    public void firstFailsWithNoParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE FIRST()='a'");
     }
 
     @Test(expected = ParseException.class)

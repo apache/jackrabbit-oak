@@ -54,7 +54,7 @@ def buildModule(moduleSpec) {
             echo "MAVEN_OPTS now ${MAVEN_OPTS}"
             echo "Setting MAVEN_OPTS done"
             '''
-            timeout(60) {
+            timeout(70) {
                 checkout scm
                 withEnv(["Path+JDK=$JAVA_JDK_8/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_8","MAVEN_OPTS=-Xmx1024M"]) {
                     sh '''

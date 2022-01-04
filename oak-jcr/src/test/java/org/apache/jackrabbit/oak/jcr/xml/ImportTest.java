@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,9 +33,9 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
-import static org.junit.Assert.assertNotEquals;
 
 public class ImportTest extends AbstractJCRTest {
 
@@ -55,6 +58,10 @@ public class ImportTest extends AbstractJCRTest {
     }
 
     private InputStream getImportStream() throws RepositoryException, IOException {
+        return getImportStream(path);
+    }
+
+    private InputStream getImportStream(String path) throws RepositoryException, IOException {
         OutputStream out = new ByteArrayOutputStream();
         superuser.exportSystemView(path, out, true, false);
         return new ByteArrayInputStream(out.toString().getBytes());
@@ -74,6 +81,43 @@ public class ImportTest extends AbstractJCRTest {
 
         Node sibling = superuser.getNode(siblingPath);
         assertFalse(sibling.hasNode(nodeName1));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-9541">OAK-9541</a>
+     * @throws Exception
+     *
+     */
+    public void testOverwriteDifferentUUIDSamePath() throws Exception {
+        // export of node1/node1 (nt:folder in nt:folder, does not allow sns)
+        superuser.removeItem(path);
+        Node node = testRootNode.addNode(nodeName1, JcrConstants.NT_FOLDER);
+        Node subNode = node.addNode(nodeName1, JcrConstants.NT_FOLDER);
+        subNode.addMixin(mixReferenceable);
+        superuser.save();
+        uuid = subNode.getIdentifier();
+        InputStream sysViewInputStream = getImportStream(subNode.getPath());
+        sysViewInputStream.mark(Integer.MAX_VALUE);
+
+        // replace uuid of node1/node1
+        superuser.removeItem(subNode.getPath());
+        subNode = node.addNode(nodeName1, JcrConstants.NT_FOLDER);
+        subNode.addMixin(mixReferenceable);
+        assertNotEquals(uuid, subNode.getIdentifier());
+        superuser.save();
+
+        // reimport node1/node1 must throw exception
+        ItemExistsException e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING); });
+        assertFalse(e.getMessage().contains("UUID"));
+        sysViewInputStream.reset();
+        e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING); });
+        assertFalse(e.getMessage().contains("UUID"));
+        sysViewInputStream.reset();
+        e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW); });
+        assertFalse(e.getMessage().contains("UUID"));
+        sysViewInputStream.reset();
+        e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW); });
+        assertFalse(e.getMessage().contains("UUID"));
     }
 
     /**

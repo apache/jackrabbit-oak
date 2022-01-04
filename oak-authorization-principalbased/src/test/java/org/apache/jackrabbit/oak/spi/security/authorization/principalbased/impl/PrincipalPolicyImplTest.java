@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -608,6 +609,11 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
             @Override
             public Value[] getRestrictions(@NotNull String s) throws RepositoryException {
                 return entry.getRestrictions(s);
+            }
+
+            @Override
+            public @NotNull PrivilegeCollection getPrivilegeCollection() throws RepositoryException {
+                return entry.getPrivilegeCollection();
             }
 
             @Override

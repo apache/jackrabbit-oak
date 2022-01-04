@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
 import javax.jcr.Node;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -46,7 +48,9 @@ public class NamePathTest {
 
     @After
     public void teardown() throws RepositoryException {
+        Repository repo = session.getRepository();
         session.logout();
+        dispose(repo);
     }
 
     @Test

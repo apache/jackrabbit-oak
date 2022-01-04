@@ -219,20 +219,18 @@ public class IndexUpdate implements Editor, PathSource {
         rootState.setIgnoreReindexFlags(ignoreReindexFlag);
     }
 
-    private boolean shouldReindex(NodeBuilder definition, NodeState before,
-            String name) {
+    private boolean shouldReindex(NodeBuilder definition, NodeState before, String name) {
         PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
 
-        //Async indexes are not considered for reindexing for sync indexing
-        // Skip this check for elastic index
-        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ?
-        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)){
+        // Do not attempt reindex of indexes with no type or disabled
+        if (type == null || TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
             return false;
         }
 
-        //Do not attempt reindex of disabled indexes
-
-        if (type != null && TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
+        // Async indexes are not considered for reindexing for sync indexing
+        // Skip this check for elastic index
+        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ?
+        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)) {
             return false;
         }
 
@@ -242,29 +240,27 @@ public class IndexUpdate implements Editor, PathSource {
         }
         // reindex in the case this is a new node, even though the reindex flag
         // might be set to 'false' (possible via content import).
-        // However if its already indexed i.e. has some hidden nodes (containing hidden data)
+        // However, if its already indexed i.e. has some hidden nodes (containing hidden data)
         // then no need to reindex
 
         // WARNING: If there is _any_ hidden node, then it is assumed that
         // no reindex is needed. Even if the hidden node is completely unrelated
         // and doesn't contain index data (for example the node ":status").
         // See also OAK-7991.
-        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)
-                && !hasAnyHiddenNodes(definition);
+        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name) && !hasAnyHiddenNodes(definition);
         // See OAK-9449
-        // In case of elasticsearch, indexed data is stored remotely and not under hidden nodes, so
-        // in case of OutOfBand indexing during content import, there is no hidden node created for elastic (not even :status)
-        // So, we log a warn and return false to avoid unnecessary reindexing. The warning is only if the someone added the new index node and forgot to add
+        // In case of elasticsearch, indexed data is stored remotely and not under hidden nodes, so in case of OutOfBand
+        // indexing during content import, there is no hidden node created for elastic (not even :status)
+        // So, we log a warning and return false to avoid unnecessary reindexing. The warning is  displayed only if
+        // someone added the new index node and forgot to add
         // the reindex flag, in case OutOfBand Indexing has been performed, warning can be ignored.
         // Also, in case the new elastic node has been added with reindex = true , this method would have already returned true
         if (result && TYPE_ELASTICSEARCH.equals((type.getValue(Type.STRING)))) {
             log.warn("Found a new elastic index node [{}]. Please set the reindex flag = true to initiate reindexing." +
-                            "Please ignore if OutOfBand Reindexing has already been performed.",
-                    name);
+                    "Please ignore if OutOfBand Reindexing has already been performed.", name);
             return false;
         } else if (result) {
-            log.info("Found a new index node [{}]. Reindexing is requested",
-                    name);
+            log.info("Found a new index node [{}]. Reindexing is requested", name);
         }
         return result;
     }

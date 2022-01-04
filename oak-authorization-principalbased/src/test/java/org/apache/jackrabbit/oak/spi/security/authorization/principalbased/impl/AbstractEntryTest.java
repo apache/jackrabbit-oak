@@ -142,6 +142,11 @@ public class AbstractEntryTest extends AbstractPrincipalBasedTest {
         }
 
         @Override
+        protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            return bitsProvider;
+        }
+        
+        @Override
         public Privilege[] getPrivileges() {
             try {
                 return privilegesFromNames(bitsProvider.getPrivilegeNames(getPrivilegeBits()));

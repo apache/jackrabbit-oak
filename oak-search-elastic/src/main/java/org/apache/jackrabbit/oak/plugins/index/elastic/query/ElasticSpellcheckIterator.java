@@ -96,7 +96,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                             .query(query)
                             .size(100)
                             .fetchSource(FieldNames.PATH, null))
-                    .map(searchSource -> new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
+                    .map(searchSource -> new SearchRequest(indexNode.getDefinition().getIndexAlias())
                             .source(searchSource))
                     .reduce(new MultiSearchRequest(), MultiSearchRequest::add, (ms, ms2) -> ms);
 
@@ -128,7 +128,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
         final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
                 .suggest(suggestBuilder);
 
-        final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
+        final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getIndexAlias())
                 .source(searchSourceBuilder);
 
         SearchResponse searchResponse = indexNode.getConnection().getClient().search(searchRequest, RequestOptions.DEFAULT);

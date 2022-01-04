@@ -28,6 +28,33 @@ type of event changes they are interested in. The filtering criteria can be spec
 * Via Jackrabbit extension [JackrabbitEventFilter][3]
 * Via Jackrabbit Oak extension [OakEventFilter][4] (new in Oak 1.6)
 
+### Reliable Event Processing
+
+JCR event listeners might miss some events because:
+
+* Event listeners only see events that occurred after they are installed.
+  Earlier events are missed (e.g., events via migration).
+* In case of power failure (or similar) right after an event was persisted, but before the event listener was able to process it.
+
+To process events reliably, efficiently, and with low latency, consider using a hybrid approach:
+
+* At startup, use a query to process old events (that were missed so far).
+* Use an event listener to process recent events with low latency.
+
+For example, to reliably process changes to nodes, one might create an ordered index
+on the `jcr:lastModified` property of these nodes.
+(This assumes this property is updated when needed.)
+At startup of the application, an event listener is registered,
+so that subsequent events are processed with low latency.
+To process events that happened _before_ the listener was registered
+(e.g. via migration, or in case of a crash),
+run a query to check for `jcr:lastModified >= $lastProcessed`
+where `$lastProcessed` is the time when the last events were processed via event listener.
+This timestamp needs to be persisted from time to time
+(consider persisting it with a delay of for example one minute, to avoid too frequent updates).
+
+This way, one can be sure all events are processed.
+
 ### OakEventFilter
 
 `@since Oak 1.6`
@@ -46,23 +73,25 @@ To make use of new filtering capability use following approach
     
     ObservationManager om = session.getWorkspace().getObservationManager();
     
-    //Cast to JackrabbitObservationManager
+    // Cast to JackrabbitObservationManager
     JackrabbitObservationManager jrom = (JackrabbitObservationManager) om;
     
-    //Construct a JackrabbitEventFilter
+    // Construct a JackrabbitEventFilter
     JackrabbitEventFilter jrFilter = new JackrabbitEventFilter();
     
-    //Wrap it as OakEventFilter
+    // Wrap it as OakEventFilter
     OakEventFilter oakFilter = FilterFactory.wrap(jrFilter);
-    
+
     oakFilter.withIncludeSubtreeOnRemove();
-    //Set other filtering criteria
+
+    // Set other filtering criteria
+    // ...
     
     jrom.addEventListener(listener, oakFilter);
 
 Refer to [OakEventFilter][4] javadocs for more details on what filtering criteria are supported
 
-### Benefits of Filter approach
+### Benefits of Filter Approach
 
 In Jackrabbit Oak JCR `EventListener` are implemented as Oak [Observer][5] which are backed by an in memory
 queue. Upon any save call done at JCR layer NodeStore in Oak pushes repository root node in this queue which
@@ -73,10 +102,8 @@ filter helps Oak in _prefiltering_ changes before they are added to queue. For e
 interested in changes under '/content' then Oak can check if changes under that path have happened for given change, 
 if not then such a change is not queued.
 
-### Observation queue overflow
-
-[1]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/observation/EventListener.html
-[2]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/observation/ObservationManager.html
+[1]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/observation/EventListener.html
+[2]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/observation/ObservationManager.html
 [3]: https://jackrabbit.apache.org/api/2.14/org/apache/jackrabbit/api/observation/JackrabbitEventFilter.html
 [4]: https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/jcr/observation/filter/OakEventFilter.html
 [5]: https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/commit/Observer.html

@@ -72,7 +72,7 @@ public final class BinaryDownloadOptions {
      *
      * @return A String representation of the internet media type, or {@code null} if no
      *         type has been specified.
-     * @see <a href="https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
+     * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
      *     JCR 2.0 Repository Model - jcr:mimeType</a>
      */
     @Nullable
@@ -89,7 +89,7 @@ public final class BinaryDownloadOptions {
      *
      * @return The character encoding, or {@code null} if no
      *         encoding has been specified.
-     * @see <a href="https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
+     * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
      *     JCR 2.0 Repository Model - jcr:encoding</a>
      */
     @Nullable
@@ -188,7 +188,7 @@ public final class BinaryDownloadOptions {
          *
          * @param mediaType The internet media type.
          * @return The calling instance.
-         * @see <a href="https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
+         * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
          *     JCR 2.0 Repository Model - jcr:mimeType</a>
          */
         @NotNull
@@ -220,7 +220,7 @@ public final class BinaryDownloadOptions {
          *
          * @param characterEncoding A String representation of the jcr:encoding.
          * @return The calling instance.
-         * @see <a href="https://docs.adobe.com/content/docs/en/spec/jcr/2.0/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
+         * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.7.11.10%20mix:mimeType">
          *     JCR 2.0 Repository Model - jcr:encoding</a>
          */
         @NotNull

@@ -55,7 +55,7 @@ public class ElasticIndexerTest {
 
         NodeBuilder builder = root.builder();
 
-        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, true);
+        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, false);
         ElasticIndexer indexer = new ElasticIndexer(idxDefn, mock(FulltextBinaryTextExtractor.class), builder,
                 mock(IndexingProgressReporter.class), indexWriter, mock(ElasticIndexEditorProvider.class), mock(IndexHelper.class));
 

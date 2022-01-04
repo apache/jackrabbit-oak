@@ -40,7 +40,10 @@ import javax.management.openmbean.CompositeData;
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +63,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
-    private final Iterable<NodeStateEntry> nodeStates;
+    private final NodeStateEntryTraverserFactory nodeStatesFactory;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
     private final boolean compressionEnabled;
@@ -88,9 +91,9 @@ class TraverseWithSortStrategy implements SortStrategy {
     private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
 
 
-    TraverseWithSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator pathComparator,
+    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
                              NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
-        this.nodeStates = nodeStates;
+        this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
@@ -99,11 +102,14 @@ class TraverseWithSortStrategy implements SortStrategy {
 
     @Override
     public File createSortedStoreFile() throws IOException {
-        logFlags();
-        configureMemoryListener();
-        sortWorkDir = createdSortWorkDir(storeDir);
-        writeToSortedFiles();
-        return sortStoreFile();
+        try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(new LastModifiedRange(0,
+                Long.MAX_VALUE))) {
+            logFlags();
+            configureMemoryListener();
+            sortWorkDir = createdSortWorkDir(storeDir);
+            writeToSortedFiles(nodeStates);
+            return sortStoreFile();
+        }
     }
 
     @Override
@@ -132,7 +138,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         return sortedFile;
     }
 
-    private void writeToSortedFiles() throws IOException {
+    private void writeToSortedFiles(NodeStateEntryTraverser nodeStates) throws IOException {
         Stopwatch w = Stopwatch.createStarted();
         for (NodeStateEntry e : nodeStates) {
             entryCount++;
