@@ -65,7 +65,7 @@ public class TestUtils {
     }
 
     static Iterable<NodeStateEntry> createEntries(List<String> paths) {
-        return Iterables.transform(paths, p -> new NodeStateEntryBuilder(createNodeState(p), p).build());
+        return Iterables.transform(paths, p -> new NodeStateEntryBuilder(createNodeState(p), p).withID(getID(p)).build());
     }
 
     static Iterable<NodeStateEntry> createEntriesWithLastModified(Map<String, Long> paths) {
