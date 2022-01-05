@@ -151,12 +151,19 @@ public abstract class QueryEngineImpl implements QueryEngine {
         } else {
             LOG.debug("Parsing {} statement: {}", language, statement);
         }
+        QueryEngineSettings settings = context.getSettings();
+        if (statement.length() > (settings.getQueryLengthErrorLimit())){
+            LOG.error("Too large query: " + statement);
+            throw new ParseException("Query length "+ statement.length() + " is larger than max supported query length: " + settings.getQueryLengthErrorLimit(), 0);
+        }
+        if (statement.length() > (settings.getQueryLengthWarnLimit())){
+            LOG.warn("Query length {} breached queryWarnLimit {}. Query: {}", statement.length(), settings.getQueryLengthWarnLimit(), statement);
+        }
 
         NamePathMapper mapper = new NamePathMapperImpl(
                 new LocalNameMapper(context.getRoot(), mappings));
 
         NodeTypeInfoProvider nodeTypes = context.getNodeTypeInfoProvider();
-        QueryEngineSettings settings = context.getSettings();
         settings.getQueryValidator().checkStatement(statement);
 
         QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
