@@ -1067,7 +1067,7 @@ public class ClusterNodeInfo {
                             "anymore. {}", id, doc);
                     // break here and let the next lease update attempt fail
                     break;
-                } else if (doc.getRuntimeId().equals(runtimeId)) {
+                } else if (runtimeId.equals(doc.getRuntimeId())) {
                     // set lease end time to current value, as they belong
                     // to this same cluster node
                     leaseEndTime = doc.getLeaseEndTime();

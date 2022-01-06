@@ -299,7 +299,7 @@ public class ClusterNodeInfoTest {
 
         try {
             info.renewLease();
-            fail("Could not update lease anymore");
+            fail("Should not update lease anymore");
         } catch(DocumentStoreException e) {
             // expected
         }
@@ -357,7 +357,6 @@ public class ClusterNodeInfoTest {
     @Test
     public void renewLeaseShouldNotGoBackInTime() throws Exception {
         ClusterNodeInfo info = newClusterNodeInfo(1);
-        long leaseEnd = info.getLeaseEndTime();
         waitLeaseUpdateInterval();
 
         long newerLeaseEndTime = clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS +
@@ -370,9 +369,10 @@ public class ClusterNodeInfoTest {
         // now another renew happens, which will try to set a lesser lease end
         info.renewLease();
 
-        Document info2 = store.find(Collection.CLUSTER_NODES, "1");
+        ClusterNodeInfoDocument info2 = store.find(Collection.CLUSTER_NODES, "1");
+        assertNotNull(info2);
         // the lease end time should remain the same
-        assertEquals(newerLeaseEndTime, info2.get(ClusterNodeInfo.LEASE_END_KEY));
+        assertEquals(newerLeaseEndTime, info2.getLeaseEndTime());
     }
 
     @Test
