@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -60,7 +59,6 @@ public class RecoveryWithIncorrectClockTest {
         ClusterNodeInfo.resetClockToDefault();
     }
 
-    @Ignore("OAK-9656")
     @Test
     public void recover() throws Exception {
         // prevent ns1 from writing anything. This will also prevent any

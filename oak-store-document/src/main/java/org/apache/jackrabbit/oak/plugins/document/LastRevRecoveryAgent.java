@@ -22,6 +22,7 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asISO8601;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
@@ -140,11 +141,22 @@ public class LastRevRecoveryAgent {
     public int recover(int clusterId, long waitUntil)
             throws DocumentStoreException {
         ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
+        ClusterNodeInfoDocument me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
 
         if (nodeInfo != null) {
+            long now = revisionContext.getClock().getTime();
+            if (me != null && me.isActive() && me.getLeaseEndTime() < now) {
+                log.warn("Own clusterId {} has a leaseEnd {} ({}) older than current time {} ({}). " +
+                                "Refusing to run recovery on clusterId {}.",
+                        revisionContext.getClusterId(),
+                        me.getLeaseEndTime(), asISO8601(me.getLeaseEndTime()),
+                        now, asISO8601(now),
+                        clusterId);
+                return 0;
+            }
             // Check if _lastRev recovery needed for this cluster node
             // state is Active && current time past leaseEnd
-            if (nodeInfo.isRecoveryNeeded(revisionContext.getClock().getTime())) {
+            if (nodeInfo.isRecoveryNeeded(now)) {
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);

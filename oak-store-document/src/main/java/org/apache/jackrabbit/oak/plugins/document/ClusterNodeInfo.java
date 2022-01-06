@@ -20,12 +20,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.ACTIVE;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.NONE;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState.ACQUIRED;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asISO8601;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 
 import java.lang.management.ManagementFactory;
 import java.net.NetworkInterface;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1291,8 +1290,4 @@ public class ClusterNodeInfo {
         }
         return new DocumentStoreException(msg);
     }
-
-    private static String asISO8601(long ms) {
-        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
-   }
 }
