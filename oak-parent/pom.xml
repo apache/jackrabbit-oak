@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.42.0</version>
+  <version>1.43-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -1294,8 +1294,4 @@
       </build>
     </profile>
   </profiles>
-
-  <scm>
-    <tag>jackrabbit-oak-1.42.0</tag>
-  </scm>
 </project>
