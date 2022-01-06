@@ -152,9 +152,8 @@ final class CachingCommitValueResolver implements CommitValueResolver {
             try {
                 commitValueCache.put(changeRevision, value);
             } catch (RuntimeException re) {
-                LoggerFactory.getLogger(getClass()).error("resolve: RuntimeException with " +
+                LoggerFactory.getLogger(getClass()).warn("resolve: RuntimeException with " +
                         changeRevision + " - " + value, re);
-                throw re;
             }
         }
         return value;
