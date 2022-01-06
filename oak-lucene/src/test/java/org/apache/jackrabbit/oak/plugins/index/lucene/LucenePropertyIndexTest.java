@@ -592,21 +592,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void propertyExistenceQuery() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        test.addChild("b").setProperty("propa", "c");
-        test.addChild("c").setProperty("propb", "e");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b"));
-    }
-
-    @Test
     public void explainScoreTest() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
         idx.addChild(PROP_NODE).addChild("propa");
@@ -707,52 +692,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //Check that filter created out of query does not have is not null restriction
         assertThat(explain(q), not(containsString("[content].[tags] is not null")));
-    }
-
-    @Test
-    public void propertyExistenceQuery2() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
-
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(PROP_NAME, "propa");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        prop.setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithType(test, "a", "oak:TestNode").setProperty("propa", "a");
-        createNodeWithType(test, "b", "oak:TestNode").setProperty("propa", "c");
-        createNodeWithType(test, "c", "oak:TestNode").setProperty("propb", "e");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [oak:TestNode] where [propa] is not null";
-        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :notNullProps:propa"));
-        assertQuery(propabQuery, asList("/test/a", "/test/b"));
-    }
-
-    @Test
-    public void propertyNonExistenceQuery() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
-
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(PROP_NAME, "propa");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        prop.setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithType(test, "a", "oak:TestNode").setProperty("propa", "a");
-        createNodeWithType(test, "b", "oak:TestNode").setProperty("propa", "c");
-        createNodeWithType(test, "c", "oak:TestNode").setProperty("propb", "e");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [oak:TestNode] where [propa] is null";
-        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :nullProps:propa"));
-        assertQuery(propabQuery, asList("/test/c"));
     }
 
     private static Tree createNodeWithType(Tree t, String nodeName, String typeName){
