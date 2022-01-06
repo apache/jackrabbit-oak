@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -665,6 +666,11 @@ public class ElasticRequestHandler {
                         queries.add(q);
                     }
                 }
+                continue;
+            }
+
+            if (IndexConstants.INDEX_TAG_OPTION.equals(name) ||
+                    IndexConstants.INDEX_NAME_OPTION.equals(name)) {
                 continue;
             }
 
