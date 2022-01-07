@@ -27,32 +27,32 @@ import com.mongodb.ServerAddress;
 import org.apache.commons.io.FileUtils;
 
 import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.IMongodConfig;
-import de.flapdoodle.embed.mongo.config.MongoCmdOptionsBuilder;
-import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
+import de.flapdoodle.embed.mongo.config.ImmutableMongoCmdOptions;
+import de.flapdoodle.embed.mongo.config.ImmutableMongodConfig;
+import de.flapdoodle.embed.mongo.config.MongodConfig;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.mongo.config.Storage;
+import de.flapdoodle.embed.mongo.distribution.Feature;
 import de.flapdoodle.embed.mongo.distribution.Versions;
+import de.flapdoodle.embed.process.io.directories.Directory;
 import de.flapdoodle.embed.process.io.directories.FixedPath;
-import de.flapdoodle.embed.process.io.directories.IDirectory;
+import de.flapdoodle.embed.process.io.file.Files;
 import de.flapdoodle.embed.process.runtime.IStopable;
-
-import static de.flapdoodle.embed.process.io.directories.Directories.join;
 
 /**
  * Helper class for starting/stopping a mongod process.
  */
 public class MongodProcess {
 
-    private static final String VERSION = "3.4.10";
+    private static final String VERSION = "4.2.16";
 
-    private static final IDirectory TMP_DIR = join(new FixedPath("target"), new FixedPath("tmp"));
+    private static final Directory TMP_DIR = join(new FixedPath("target"), new FixedPath("tmp"));
 
     private IStopable process;
 
     private final MongodStarter starter;
 
-    private final IMongodConfig config;
+    private final MongodConfig config;
 
     MongodProcess(MongodStarter starter, String rsName, int port)
             throws IOException {
@@ -83,14 +83,33 @@ public class MongodProcess {
         return new ServerAddress(config.net().getBindIp(), config.net().getPort());
     }
 
-    private IMongodConfig createConfiguration(String rsName, int p)
+    static Directory join(final Directory left, final Directory right) {
+        return new Directory() {
+
+            @Override
+            public boolean isGenerated() {
+                return left.isGenerated() || right.isGenerated();
+            }
+
+            @Override
+            public File asFile() {
+                return Files.fileOf(left.asFile(), right.asFile());
+            }
+        };
+    }
+
+    private MongodConfig createConfiguration(String rsName, int p)
             throws IOException {
-        return new MongodConfigBuilder()
-                .version(Versions.withFeatures(() -> VERSION))
+        return ImmutableMongodConfig.builder()
+                .version(Versions.withFeatures(() -> VERSION, Feature.NO_HTTP_INTERFACE_ARG))
                 .net(new Net(InetAddress.getLoopbackAddress().getHostAddress(), p, false))
                 .replication(newStorage(p, rsName))
                 // enable journal
-                .cmdOptions(new MongoCmdOptionsBuilder().useNoJournal(false).build())
+                .cmdOptions(ImmutableMongoCmdOptions.builder()
+                        .useNoPrealloc(false)
+                        .useNoJournal(false)
+                        .useSmallFiles(false)
+                        .build())
                 .build();
     }
 
