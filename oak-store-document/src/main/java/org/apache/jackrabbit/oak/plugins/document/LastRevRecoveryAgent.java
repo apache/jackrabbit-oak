@@ -141,11 +141,20 @@ public class LastRevRecoveryAgent {
     public int recover(int clusterId, long waitUntil)
             throws DocumentStoreException {
         ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
-        ClusterNodeInfoDocument me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
 
         if (nodeInfo != null) {
+            // Check our own lease before running recovery for another
+            // clusterId (OAK-9656)
             long now = revisionContext.getClock().getTime();
-            if (me != null && me.isActive() && me.getLeaseEndTime() < now) {
+            ClusterNodeInfoDocument me = null;
+            if (clusterId != revisionContext.getClusterId()) {
+                // Get leaseEnd from our own cluster node info, unless
+                // we are doing recovery on startup for the clusterId
+                // we want to acquire. Then it's fine to go ahead with
+                // an expired lease.
+                me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
+            }
+            if (me != null && me.isRecoveryNeeded(now)) {
                 log.warn("Own clusterId {} has a leaseEnd {} ({}) older than current time {} ({}). " +
                                 "Refusing to run recovery on clusterId {}.",
                         revisionContext.getClusterId(),
