@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public class ReplicaSetDefaultWriteConcernIT {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    private Map<Integer, MongodProcess> executables = new HashMap<>();
+    private final Map<Integer, MongodProcess> executables = new HashMap<>();
 
     @Before
     public void before() {
