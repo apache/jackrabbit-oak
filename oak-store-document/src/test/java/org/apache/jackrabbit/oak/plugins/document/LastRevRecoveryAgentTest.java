@@ -31,6 +31,8 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -193,10 +195,11 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
             // expected
         }
 
-        ds1.getLastRevRecoveryAgent().recover(2);
+        ds1.getClusterInfo().renewLease();
+        assertThat(ds1.getLastRevRecoveryAgent().recover(2), greaterThan(0));
         ds1.runBackgroundOperations();
 
-        // now the write must succeed
+        // now the write operation must succeed
         b1 = ds1.getRoot().builder();
         b1.child("x").child("y").setProperty("p", "v11");
         merge(ds1, b1);
