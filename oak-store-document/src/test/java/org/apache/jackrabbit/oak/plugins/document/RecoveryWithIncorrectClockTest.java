@@ -30,6 +30,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RecoveryWithIncorrectClockTest {
 
@@ -75,6 +76,7 @@ public class RecoveryWithIncorrectClockTest {
         try {
             assertTrue(agent.isRecoveryNeeded());
             agent.performRecoveryIfNeeded();
+            fail("recovery must fail with expired lease");
         } catch (DocumentStoreException e) {
             // this is expected. any of the above LastRevRecoveryAgent calls
             // can and should fail because the lease for ns2 expired

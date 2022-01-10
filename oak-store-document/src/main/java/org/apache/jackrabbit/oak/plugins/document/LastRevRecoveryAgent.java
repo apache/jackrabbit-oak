@@ -153,13 +153,13 @@ public class LastRevRecoveryAgent {
                 // an expired lease.
                 ClusterNodeInfoDocument me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
                 if (me != null && me.isRecoveryNeeded(now)) {
-                    log.warn("Own clusterId {} has a leaseEnd {} ({}) older than current time {} ({}). " +
-                                    "Refusing to run recovery on clusterId {}.",
-                            revisionContext.getClusterId(),
-                            me.getLeaseEndTime(), asISO8601(me.getLeaseEndTime()),
-                            now, asISO8601(now),
+                    String msg = String.format(
+                            "Own clusterId %s has a leaseEnd %s (%s) older than current time %s (%s). " +
+                                    "Refusing to run recovery on clusterId %s.",
+                            revisionContext.getClusterId(), me.getLeaseEndTime(),
+                            asISO8601(me.getLeaseEndTime()), now, asISO8601(now),
                             clusterId);
-                    return 0;
+                    throw new DocumentStoreException(msg);
                 }
             }
             // Check if _lastRev recovery needed for this cluster node
