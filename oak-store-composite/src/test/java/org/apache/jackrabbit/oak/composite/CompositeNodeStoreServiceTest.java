@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.composite;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Properties;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecksService;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,10 +69,8 @@ public class CompositeNodeStoreServiceTest {
 		registerActivateMountInfoConfig("libs", ImmutableList.of("/libs"));
 		registerActivateMountInfoConfig("apps", ImmutableList.of("/apps"));
 
-		ctx.registerInjectActivateService(new MountInfoProviderService(), ImmutableMap.of(
-			"expectedMounts", new String[]{"libs", "apps"}
-		));
-
+        registerMountInfoProviderService("libs", "apps");
+        
 		// Register node stores
 		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
@@ -171,12 +167,19 @@ public class CompositeNodeStoreServiceTest {
 	}
 
 	private void registerActivateMountInfoConfig(String mountName, List<String> mountedPaths) {
-		MountInfoConfig mountInfoConfig = new MountInfoConfig();
-		ctx.bundleContext().registerService(MountInfoConfig.class.getName(), mountInfoConfig, new Properties());
-		MockOsgi.activate(mountInfoConfig, ctx.bundleContext(),
-			ImmutableMap.of(
-				"mountedPaths", mountedPaths.toArray(),
-				"mountName", mountName
-			));
-	}
+        MountInfoConfig mountInfoConfig = new MountInfoConfig();
+        ctx.registerService(mountInfoConfig);
+        mountInfoConfig.activate(ctx.bundleContext(), new MountInfoPropsBuilder()
+            .withMountPaths(mountedPaths.toArray(new String[0]))
+            .withMountName(mountName)
+            .buildMountInfoProps());
+    }
+
+    private void registerMountInfoProviderService(String... expectedMounts) {
+        MountInfoProviderService mountInfoProviderService = new MountInfoProviderService();
+        ctx.registerInjectActivateService(mountInfoProviderService);
+        mountInfoProviderService.activate(ctx.bundleContext(), new MountInfoPropsBuilder()
+            .withExpectedMounts(expectedMounts)
+            .buildProviderServiceProps());
+    }
 }

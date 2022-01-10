@@ -20,57 +20,53 @@ package org.apache.jackrabbit.oak.composite;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyUnbounded;
-import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import static java.util.stream.Collectors.toList;
 
-@Component(label = "Apache Jackrabbit Oak MountInfo Config", configurationFactory = true, metatype = true)
-@Service(MountInfoConfig.class)
+@Component(service = MountInfoConfig.class)
+@Designate(ocd = MountInfoConfig.Props.class, factory = true)
 public class MountInfoConfig {
 
-    private static final String[] PROP_MOUNTED_PATHS_DEFAULT = {};
+    @ObjectClassDefinition(name = "MountInfoConfig Properties")
+    public @interface Props {
 
-    @Property(label = "Mounted paths",
-        unbounded = PropertyUnbounded.ARRAY,
-        description = "Paths which are part of private mount"
-    )
-    private static final String PROP_MOUNT_PATHS = "mountedPaths";
+        String DEFAULT_MOUNT_NAME = "private";
+
+        @AttributeDefinition(
+            name = "Mounted paths",
+            description = "Paths which are part of private mount"
+        )
+        String[] mountedPaths() default {};
+
+        @AttributeDefinition(
+            name = "Mount name",
+            description = "Name of the mount"
+        )
+        String mountName() default DEFAULT_MOUNT_NAME;
+
+        @AttributeDefinition(
+            name = "Readonly",
+            description = "If enabled then mount would be considered as readonly"
+        )
+        boolean readOnlyMount() default true;
+
+        @AttributeDefinition(
+            name = "Paths supporting fragments",
+            description = "oak:mount-* under this paths will be included to mounts"
+        )
+        String[] pathsSupportingFragments() default {"/"};
+
+    }
+    
     private List<String> paths;
-
-    static final String PROP_MOUNT_NAME_DEFAULT = "private";
-
-    @Property(label = "Mount name",
-        description = "Name of the mount",
-        value = PROP_MOUNT_NAME_DEFAULT
-    )
-    private static final String PROP_MOUNT_NAME = "mountName";
     private String mountName;
-
-    private static final String[] PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT = {"/"};
-
-    @Property(label = "Paths supporting fragments",
-        unbounded = PropertyUnbounded.ARRAY,
-        description = "oak:mount-* under this paths will be included to mounts",
-        value = {"/"}
-    )
-    private static final String PROP_PATHS_SUPPORTING_FRAGMENTS = "pathsSupportingFragments";
     private List<String> pathsSupportingFragments;
-
-    private static final boolean PROP_MOUNT_READONLY_DEFAULT = true;
-
-    @Property(label = "Readonly",
-        description = "If enabled then mount would be considered as readonly",
-        boolValue = PROP_MOUNT_READONLY_DEFAULT
-    )
-    private static final String PROP_MOUNT_READONLY = "readOnlyMount";
-
     private boolean readOnly;
 
     public MountInfoConfig() {
@@ -84,11 +80,11 @@ public class MountInfoConfig {
     }
 
     @Activate
-    private void activate(BundleContext bundleContext, Map<String, ?> config) {
-        paths = trimAll(Arrays.asList(PropertiesUtil.toStringArray(config.get(PROP_MOUNT_PATHS), PROP_MOUNTED_PATHS_DEFAULT)));
-        mountName = PropertiesUtil.toString(config.get(PROP_MOUNT_NAME), PROP_MOUNT_NAME_DEFAULT).trim();
-        pathsSupportingFragments = trimAll(Arrays.asList(PropertiesUtil.toStringArray(config.get(PROP_PATHS_SUPPORTING_FRAGMENTS), PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT)));
-        readOnly = PropertiesUtil.toBoolean(config.get(PROP_MOUNT_READONLY), PROP_MOUNT_READONLY_DEFAULT);
+    void activate(BundleContext bundleContext, Props props) {
+        paths = trimAll(Arrays.asList(props.mountedPaths()));
+        mountName = props.mountName().trim();
+        pathsSupportingFragments = trimAll(Arrays.asList(props.pathsSupportingFragments()));
+        readOnly = props.readOnlyMount();
     }
 
     public List<String> getPaths() {
