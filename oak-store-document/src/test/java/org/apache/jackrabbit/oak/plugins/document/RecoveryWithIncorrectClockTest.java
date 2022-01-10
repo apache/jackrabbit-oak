@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertNotNull;
@@ -79,7 +80,7 @@ public class RecoveryWithIncorrectClockTest {
             // can and should fail because the lease for ns2 expired
         }
 
-        ClusterNodeInfoDocument infoDoc = store.find(Collection.CLUSTER_NODES, "" + 1);
+        ClusterNodeInfoDocument infoDoc = store.find(CLUSTER_NODES, "1");
         assertNotNull(infoDoc);
         // leaseEnd for clusterId must not have advanced to
         // time of clock that jumped ahead
