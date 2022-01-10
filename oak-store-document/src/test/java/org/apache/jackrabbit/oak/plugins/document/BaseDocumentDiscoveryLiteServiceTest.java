@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.LEASE_END_KEY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -312,15 +311,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         private boolean setLeaseTime(final int leaseTime, final int leaseUpdateInterval) throws NoSuchFieldException {
             ns.getClusterInfo().setLeaseTime(leaseTime);
             ns.getClusterInfo().setLeaseUpdateInterval(leaseUpdateInterval);
-            long newLeaseTime = System.currentTimeMillis() + (leaseTime / 3) - 10 /* 10ms safety margin */;
-            PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", newLeaseTime);
-
-            // OAK-9564: Apply the update low level to the nodeStore, as the max operation wouldn't let to apply the
-            // new lease time if it is lower than the current one.
-            UpdateOp op = new UpdateOp(String.valueOf(ns.getClusterId()), false);
-            op.set(LEASE_END_KEY, newLeaseTime);
-            ns.getDocumentStore().findAndUpdate(Collection.CLUSTER_NODES, op);
-
+            PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", System.currentTimeMillis() + (leaseTime / 3) - 10 /* 10ms safety margin */);
             boolean renewed = ns.renewClusterIdLease();
             return renewed;
         }
