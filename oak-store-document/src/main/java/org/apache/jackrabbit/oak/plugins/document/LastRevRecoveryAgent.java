@@ -146,22 +146,21 @@ public class LastRevRecoveryAgent {
             // Check our own lease before running recovery for another
             // clusterId (OAK-9656)
             long now = revisionContext.getClock().getTime();
-            ClusterNodeInfoDocument me = null;
             if (clusterId != revisionContext.getClusterId()) {
                 // Get leaseEnd from our own cluster node info, unless
                 // we are doing recovery on startup for the clusterId
                 // we want to acquire. Then it's fine to go ahead with
                 // an expired lease.
-                me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
-            }
-            if (me != null && me.isRecoveryNeeded(now)) {
-                log.warn("Own clusterId {} has a leaseEnd {} ({}) older than current time {} ({}). " +
-                                "Refusing to run recovery on clusterId {}.",
-                        revisionContext.getClusterId(),
-                        me.getLeaseEndTime(), asISO8601(me.getLeaseEndTime()),
-                        now, asISO8601(now),
-                        clusterId);
-                return 0;
+                ClusterNodeInfoDocument me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
+                if (me != null && me.isRecoveryNeeded(now)) {
+                    log.warn("Own clusterId {} has a leaseEnd {} ({}) older than current time {} ({}). " +
+                                    "Refusing to run recovery on clusterId {}.",
+                            revisionContext.getClusterId(),
+                            me.getLeaseEndTime(), asISO8601(me.getLeaseEndTime()),
+                            now, asISO8601(now),
+                            clusterId);
+                    return 0;
+                }
             }
             // Check if _lastRev recovery needed for this cluster node
             // state is Active && current time past leaseEnd
