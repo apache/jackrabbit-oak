@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Iterables;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -69,6 +70,7 @@ public class FlatFileNodeStoreBuilder {
      */
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
+    static final long DEFAULT_DUMP_THRESHOLD = FileUtils.ONE_MB;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private List<Long> lastModifiedBreakPoints;
     private final File workDir;
@@ -81,6 +83,7 @@ public class FlatFileNodeStoreBuilder {
     private long entryCount = 0;
     private File flatFileStoreDir;
     private final MemoryManager memoryManager;
+    private long dumpThreshold = DEFAULT_DUMP_THRESHOLD;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
@@ -120,6 +123,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withBlobStore(BlobStore blobStore) {
         this.blobStore = blobStore;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withDumpThreshold(long dumpThreshold) {
+        this.dumpThreshold = dumpThreshold;
         return this;
     }
 
@@ -185,7 +193,7 @@ public class FlatFileNodeStoreBuilder {
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager);
+                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager, dumpThreshold);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

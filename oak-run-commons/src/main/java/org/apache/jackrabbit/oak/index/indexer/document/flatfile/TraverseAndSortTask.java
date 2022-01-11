@@ -103,12 +103,13 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private final MemoryManager memoryManager;
     private String registrationID;
+    private final long dumpThreshold;
 
     TraverseAndSortTask(MongoDocumentTraverser.TraversingRange range, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
-                        MemoryManager memoryManager) throws IOException {
+                        MemoryManager memoryManager, long dumpThreshold) throws IOException {
         this.nodeStates = nodeStateEntryTraverserFactory.create(range);
         this.taskID = ID_PREFIX + nodeStates.getId();
         this.lastModifiedLowerBound = nodeStates.getDocumentTraversalRange().getLastModifiedRange().getLastModifiedFrom();
@@ -123,9 +124,13 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         this.phaser = phaser;
         this.nodeStateEntryTraverserFactory = nodeStateEntryTraverserFactory;
         this.memoryManager = memoryManager;
+        this.dumpThreshold = dumpThreshold;
         sortWorkDir = DirectoryHelper.createdSortWorkDir(storeDir, taskID, lastModifiedLowerBound, lastModifiedUpperBound);
+        if (range.getStartAfterDocumentID() != null) {
+            DirectoryHelper.markLastProcessedStatus(sortWorkDir, lastModifiedLowerBound, range.getStartAfterDocumentID());
+        }
         phaser.register();
-        log.debug("Task {} registered to phaser", taskID);
+        log.debug("Task {} with traversing range {} registered to phaser", taskID, range);
     }
 
     @Override
@@ -221,7 +226,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
 
     void addEntry(NodeStateEntry e) throws IOException {
         if (memoryManager.isMemoryLow()) {
-            if (memoryUsed >= FileUtils.ONE_MB) {
+            if (memoryUsed >= dumpThreshold) {
                 sortAndSaveBatch();
                 reset();
             } else {
@@ -243,7 +248,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 newTasksQueue.add(new TraverseAndSortTask(new MongoDocumentTraverser.TraversingRange(
                         new LastModifiedRange(splitPoint, this.lastModifiedUpperBound), null),
                         comparator, blobStore, storeDir, compressionEnabled, completedTasks,
-                        newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
+                        newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold));
                 this.lastModifiedUpperBound = splitPoint;
                 DirectoryHelper.setLastModifiedUpperLimit(sortWorkDir, lastModifiedUpperBound);
             }
@@ -300,7 +305,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry id = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), size, w,
                 lastSavedNodeStateEntry.getId());
-        DirectoryHelper.markLastProcessedStatus(sortWorkDir,
+        DirectoryHelper.markLastProcessedStatus(sortWorkDir, lastSavedNodeStateEntry.getLastModified(),
                 lastSavedNodeStateEntry.getId());
         sortedFiles.add(newtmpfile);
     }

@@ -78,6 +78,10 @@ public class MongoDocumentTraverser {
                     + idRangeQueryPart  + "}");
         }
 
+        public String getStartAfterDocumentID() {
+            return startAfterDocumentID;
+        }
+
         @Override
         public String toString() {
             return "Range: " + lastModifiedRange.toString() + ", startAfterDocument: " + startAfterDocumentID;

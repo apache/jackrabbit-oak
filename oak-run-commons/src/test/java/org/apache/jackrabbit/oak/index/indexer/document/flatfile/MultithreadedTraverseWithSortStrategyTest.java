@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Test;
@@ -27,11 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
@@ -45,7 +43,8 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<Long> lastModifiedBreakpoints = Arrays.asList(10L, 20L, 30L, 40L);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                lastModifiedBreakpoints, null, null, null, null, true, null) {
+                lastModifiedBreakpoints, null, null, null, null, true, null,
+                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD) {
 
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore, ConcurrentLinkedQueue<String> completedTasks) throws IOException {
@@ -60,33 +59,52 @@ public class MultithreadedTraverseWithSortStrategyTest {
         }
     }
 
-    private void createSortWorkDirs(File workDir, List<Long> lastModifiedBreakpoints, Set<Integer> partiallyCompletedDirs,
-                                    String startAfterDocID) throws IOException {
-        for (int i = 0; i < lastModifiedBreakpoints.size(); i++) {
-            long lastModLowerBound = lastModifiedBreakpoints.get(i);
-            long lastModUpperBound = i < lastModifiedBreakpoints.size() - 1 ? lastModifiedBreakpoints.get(i+1) : lastModLowerBound + 1;
-            File dir = DirectoryHelper.createdSortWorkDir(workDir, "test-" + i, lastModLowerBound, lastModUpperBound);
-            if (partiallyCompletedDirs.contains(i)) {
-                DirectoryHelper.markLastProcessedStatus(dir, startAfterDocID);
-            }
+    static class Execution {
+        String taskID;
+        long lastModLowerBound;
+        long lastModUpperBound;
+        long lastDownloadedLastMod;
+        String lastDownloadedID;
+        boolean completed;
+
+        public Execution(String taskID, long lastModLowerBound, long lastModUpperBound, long lastDownloadedLastMod,
+                         String lastDownloadedID, boolean completed) {
+            this.taskID = taskID;
+            this.lastModLowerBound = lastModLowerBound;
+            this.lastModUpperBound = lastModUpperBound;
+            this.lastDownloadedLastMod = lastDownloadedLastMod;
+            this.lastDownloadedID = lastDownloadedID;
+            this.completed = completed;
+        }
+    }
+
+    private void createSortWorkDir(File workDir, Execution execution) throws IOException {
+        File dir = DirectoryHelper.createdSortWorkDir(workDir, execution.taskID, execution.lastModLowerBound,
+                execution.lastModUpperBound);
+        if (execution.completed) {
+            DirectoryHelper.markCompleted(dir);
+        } else if (execution.lastDownloadedID != null) {
+            DirectoryHelper.markLastProcessedStatus(dir, execution.lastDownloadedLastMod, execution.lastDownloadedID);
         }
     }
 
     @Test
     public void rangesDuringResume() throws IOException {
-        int previousRunsCount = 5;
-        List<Long> lastModifiedBreakpoints = Arrays.asList(10L, 20L, 30L, 40L, 50L);
-        Set<Integer> partiallyCompletedDirs = new HashSet<>(Arrays.asList(1, 3)); // should be numbers between 0 and lastModifiedBreakpoints.length() - 1
-        String startAfterDocID = "1:/content";
+        List<Execution> previousRun = new ArrayList<Execution>() {{
+            add(new Execution("1", 10, 20, -1, null, true));
+            add(new Execution("2", 20, 30, 22, "1:/content", false));
+            add(new Execution("3", 30, 40, 34, "2:/sites/mypage", false));
+        }};
         List<File> workDirs = new ArrayList<>();
-        for (int i = 1; i <= previousRunsCount; i++) {
-            File workDir = new File("target/" + this.getClass().getSimpleName() + i + "-" + System.currentTimeMillis());
-            createSortWorkDirs(workDir, lastModifiedBreakpoints, i == 1 ? Collections.emptySet() : partiallyCompletedDirs, startAfterDocID);
-            workDirs.add(workDir);
+        File workDir = new File("target/" + this.getClass().getSimpleName() + "-" + System.currentTimeMillis());
+        for (Execution execution : previousRun) {
+            createSortWorkDir(workDir, execution);
         }
+        workDirs.add(workDir);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                null, null, null, null, workDirs, true, null) {
+                null, null, null, null, workDirs, true, null,
+                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD) {
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                          BlobStore blobStore, ConcurrentLinkedQueue<String> completedTasks) throws IOException {
@@ -94,12 +112,15 @@ public class MultithreadedTraverseWithSortStrategyTest {
             }
         };
         ranges.sort(Comparator.comparing(tr -> tr.getLastModifiedRange().getLastModifiedFrom()));
-        assertEquals(lastModifiedBreakpoints.size(), ranges.size());
-        for (int i = 0; i < lastModifiedBreakpoints.size(); i++) {
-            long lm = lastModifiedBreakpoints.get(i);
-            LastModifiedRange lmRange = new LastModifiedRange(lm, i < lastModifiedBreakpoints.size() - 1 ? lastModifiedBreakpoints.get(i+1) : lm+1);
-            String docID = partiallyCompletedDirs.contains(i) ? startAfterDocID : null;
-            assertEquals(ranges.get(i), new TraversingRange(lmRange, docID));
+        List<TraversingRange> expectedRanges = new ArrayList<TraversingRange>() {{
+            add(new TraversingRange(new LastModifiedRange(22, 23), "1:/content"));
+            add(new TraversingRange(new LastModifiedRange(23, 30), null));
+            add(new TraversingRange(new LastModifiedRange(34, 35), "2:/sites/mypage"));
+            add(new TraversingRange(new LastModifiedRange(35, 40), null));
+        }};
+        assertEquals(expectedRanges.size(), ranges.size());
+        for (int i = 0; i < expectedRanges.size(); i++) {
+            assertEquals(expectedRanges.get(i), ranges.get(i));
         }
     }
 

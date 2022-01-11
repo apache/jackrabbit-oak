@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -148,6 +149,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private final MemoryManager memoryManager;
 
+    private final long dumpThreshold;
+
     /**
      * Indicates the various phases of {@link #phaser}
      */
@@ -193,7 +196,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
-                                          boolean compressionEnabled, MemoryManager memoryManager) throws IOException {
+                                          boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold) throws IOException {
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new ConcurrentLinkedQueue<>();
@@ -208,6 +211,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             }
         };
         this.memoryManager = memoryManager;
+        this.dumpThreshold = dumpThreshold;
         createInitialTasks(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, blobStore, existingDataDumpDirs);
     }
 
@@ -232,14 +236,19 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                     if (!downloadCompleted && i == existingDataDumpDirs.size() - 1) {
                         long start = DirectoryHelper.getLastModifiedLowerLimit(existingSortWorkDir);
                         long end = DirectoryHelper.getLastModifiedUpperLimit(existingSortWorkDir);
-                        String lastDownloadDocID = DirectoryHelper.getIdOfLastDownloadedDocument(existingSortWorkDir);
-                        /*
-                         Adding 1 to end since document with last modified equal to end was being worked upon and upper limit
-                         in LastModifiedRange is exclusive. Also if end is -1, that means we didn't find any download updates
-                         in this folder. So we create an empty range (lower limit = upper limit) and retry this folder from beginning.
-                         */
-                        addTask(new TraversingRange(new LastModifiedRange(start, end), lastDownloadDocID), nodeStateEntryTraverserFactory,
-                                blobStore, completedTasks);
+                        DirectoryHelper.SavedState savedState = DirectoryHelper.getIdOfLastDownloadedDocument(existingSortWorkDir);
+                        if (savedState == null) {
+                            addTask(new TraversingRange(new LastModifiedRange(start, end), null), nodeStateEntryTraverserFactory,
+                                    blobStore, completedTasks);
+                        } else {
+                            start = savedState.lastModified;
+                            addTask(new TraversingRange(new LastModifiedRange(start, start+1), savedState.id), nodeStateEntryTraverserFactory,
+                                    blobStore, completedTasks);
+                            if (end != start + 1) {
+                                addTask(new TraversingRange(new LastModifiedRange(start + 1, end), null), nodeStateEntryTraverserFactory,
+                                        blobStore, completedTasks);
+                            }
+                        }
                     }
                     log.info("Including existing sorted files from directory {} (hasCompleted={})",
                             existingSortWorkDir.getAbsolutePath(), downloadCompleted);
@@ -262,7 +271,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager));
+                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold));
     }
 
     @Override
@@ -429,27 +438,52 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             return new File(sortWorkDir + "/" + COMPLETION_MARKER_FILE_NAME).exists();
         }
 
-        static void markLastProcessedStatus(File sortWorkDir, String idOfLastDownloadedDocument) {
+        static void markLastProcessedStatus(File sortWorkDir, long lastDownloadedDocLastModified, String lastDownloadedDocID) {
             try {
-                Files.write(Paths.get(sortWorkDir.getAbsolutePath() + "/" + STATUS_FILE_NAME), idOfLastDownloadedDocument.getBytes(),
+                Files.write(Paths.get(sortWorkDir.getAbsolutePath() + "/" + STATUS_FILE_NAME),
+                        new SavedState(lastDownloadedDocLastModified, lastDownloadedDocID).serialize().getBytes(),
                         StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             } catch (IOException e) {
-                log.warn("Resuming download will not be accurate. Could not save last processed status = " + idOfLastDownloadedDocument
+                log.warn("Resuming download will not be accurate. Could not save last processed status = " + lastDownloadedDocID
                         + " in " + sortWorkDir.getAbsolutePath(), e);
             }
         }
 
-        static String getIdOfLastDownloadedDocument(File sortWorkDir) throws IOException {
+        static SavedState getIdOfLastDownloadedDocument(File sortWorkDir) throws IOException {
             File statusFile = new File(sortWorkDir.getAbsolutePath() + "/" + STATUS_FILE_NAME);
             if (!statusFile.exists()) {
                 return null;
             }
-            return Files.readAllLines(statusFile.toPath()).get(0);
+            return SavedState.deserialize(Files.readAllLines(statusFile.toPath()).get(0));
         }
 
         static Stream<File> getDataFiles(File sortWorkDir) {
             return Arrays.stream(sortWorkDir.listFiles()).filter(f -> !STATUS_FILE_NAME.equals(f.getName()) &&
                     !COMPLETION_MARKER_FILE_NAME.equals(f.getName()) && !LAST_MODIFIED_UPPER_LIMIT.equals(f.getName()));
+        }
+
+        static class SavedState {
+            long lastModified;
+            String id;
+
+            public SavedState(long lastModified, String id) {
+                this.lastModified = lastModified;
+                this.id = id;
+            }
+
+            String serialize() {
+                return lastModified + ":" + id;
+            }
+
+            static SavedState deserialize(String s) {
+                int colonIndex = s.indexOf(":");
+                if (colonIndex == -1) {
+                    throw new IllegalArgumentException("Invalid serialized string " + s);
+                }
+                long lastMod = Long.parseLong(s.substring(0, colonIndex));
+                String id = s.substring(colonIndex + 1);
+                return new SavedState(lastMod, id);
+            }
         }
 
     }
