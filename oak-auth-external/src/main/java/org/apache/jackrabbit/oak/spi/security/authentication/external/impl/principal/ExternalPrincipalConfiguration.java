@@ -40,8 +40,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -141,13 +139,14 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return Collections.singletonList(new ExternalIdentityValidatorProvider(isSystemPrincipal(principals), protectedExternalIds()));
+        SystemPrincipalConfig spConfig = new SystemPrincipalConfig(getPrincipalNames());
+        return Collections.singletonList(new ExternalIdentityValidatorProvider(spConfig.containsSystemPrincipal(principals), protectedExternalIds()));
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.singletonList(new ExternalIdentityImporter());
+        return Collections.singletonList(new ExternalIdentityImporter(new SystemPrincipalConfig(getPrincipalNames())));
     }
 
     @Override
@@ -202,16 +201,8 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS);
     }
     
-    private boolean isSystemPrincipal(@NotNull Set<Principal> principals) {
-        if (principals.contains(SystemPrincipal.INSTANCE)) {
-            return true;
-        }
-        Set<String> principalNames = getParameters().getConfigValue(ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, Collections.emptySet());
-        for (Principal principal : principals) {
-            if (principal instanceof SystemUserPrincipal && principalNames.contains(principal.getName())) {
-                return true;
-            }
-        }
-        return false;
+    @NotNull
+    private Set<String> getPrincipalNames() {
+        return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, Collections.emptySet());
     }
 }

@@ -40,7 +40,6 @@ import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +50,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
-public class SystemPrincipalNamesConfigurationTest extends AbstractExternalAuthTest {
+public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
     
     private static final String SYSTEM_USER_NAME_1 = "systemUser1";
     private static final String SYSTEM_USER_NAME_2 = "systemUser2";
@@ -60,8 +59,9 @@ public class SystemPrincipalNamesConfigurationTest extends AbstractExternalAuthT
     private final Set<String> systemUserNames;
     
     private String workspaceName;
+    private SystemPrincipalConfig systemPrincipalConfig;
 
-    public SystemPrincipalNamesConfigurationTest(String[] systemUserNames, String name) {
+    public SystemPrincipalConfigTest(String[] systemUserNames, String name) {
         this.systemUserNames = (systemUserNames == null) ? null : ImmutableSet.copyOf(systemUserNames);
     }
 
@@ -79,6 +79,8 @@ public class SystemPrincipalNamesConfigurationTest extends AbstractExternalAuthT
         super.before();
         context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         workspaceName = root.getContentSession().getWorkspaceName();
+
+        systemPrincipalConfig = (systemUserNames == null) ? new SystemPrincipalConfig(Collections.emptySet()) : new SystemPrincipalConfig(systemUserNames);
     }
 
     @Override
@@ -87,6 +89,9 @@ public class SystemPrincipalNamesConfigurationTest extends AbstractExternalAuthT
     }
     
     private void assertIsSystem(@NotNull Set<Principal> principals, boolean expectedIsSystem) throws Exception {
+        assertEquals(expectedIsSystem, systemPrincipalConfig.containsSystemPrincipal(principals));
+        
+        // also verify validator-provider
         List<? extends ValidatorProvider> validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, principals, new MoveTracker());
         assertEquals(1, validatorProviders.size());
         ValidatorProvider vp = validatorProviders.get(0);

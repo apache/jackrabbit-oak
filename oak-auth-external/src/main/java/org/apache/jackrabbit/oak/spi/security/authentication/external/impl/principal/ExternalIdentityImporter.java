@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
@@ -42,12 +41,17 @@ class ExternalIdentityImporter implements ProtectedPropertyImporter, ExternalIde
 
     private static final Logger log = LoggerFactory.getLogger(ExternalIdentityImporter.class);
 
+    private final SystemPrincipalConfig systemPrincipalConfig;
+    
     private boolean isSystemSession;
 
+    ExternalIdentityImporter(@NotNull SystemPrincipalConfig systemPrincipalConfig) {
+        this.systemPrincipalConfig = systemPrincipalConfig;
+    }
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
     public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
-        isSystemSession = root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE);
+        isSystemSession = systemPrincipalConfig.containsSystemPrincipal(root.getContentSession().getAuthInfo().getPrincipals());
         return true;
     }
 
