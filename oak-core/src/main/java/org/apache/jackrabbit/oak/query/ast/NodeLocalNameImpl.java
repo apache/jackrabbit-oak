@@ -91,15 +91,19 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         if (v == null) {
             return;
         }
-        if (operator == Operator.NOT_EQUAL && v != null) {
+        if (operator == Operator.NOT_EQUAL) {
             // not supported
             return;
         }
         String name = NodeNameImpl.getName(query, v);
-        if (name != null && f.getSelector().equals(selector)
-                && NodeNameImpl.supportedOperator(operator)) {
-            f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
-                    operator, PropertyValues.newString(name));
+        if (name != null && f.getSelector().equals(selector)) {
+            if (NodeNameImpl.supportedOperator(operator)) {
+                f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
+                        operator, PropertyValues.newString(name));
+            }
+            String fn = getFunction(f.getSelector());
+            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
+                    operator, v, PropertyType.STRING);
         }
     }
 

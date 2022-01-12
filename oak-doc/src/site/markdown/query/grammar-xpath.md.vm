@@ -296,9 +296,12 @@ that point. `//` is *not* supported as part of relative path. So, `a/*/@test`,
 
 "jcr:score()" is the score returned by the index.
 
-"fn:coalesce": this returns the first operand if it is not null,
+"fn:coalesce": This returns the first operand if it is not null,
 and the second operand otherwise.
 `@since Oak 1.8`
+
+"jcr:first", "fn:path": Supported `@since Oak 1.42`, see OAK-9625.
+
 
 Examples:
 
@@ -307,7 +310,9 @@ Examples:
     items/type/@metaType
     indexRules/nt:base/*
     fn:string-length(@title)
+    jcr:first(@alias)
     fn:name()
+    fn:path()
     jcr:score ()
     fn:lower-case(@lastName)
     fn:coalesce(@lastName, @name)

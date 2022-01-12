@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
@@ -81,12 +82,12 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @ClassRule
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
 
-    /*
-    Close the ES connection after every test method execution
-     */
     @After
-    public void cleanup() throws IOException {
-        elasticRule.closeElasticConnection();
+    public void tearDown() throws IOException {
+        if (esConnection != null) {
+            esConnection.getClient().indices().delete(new DeleteIndexRequest(esConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
+            esConnection.close();
+        }
     }
 
     // Override this in extending test class to provide different ExtractedTextCache if needed
@@ -137,11 +138,14 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         return oak.withAsyncIndexing("async", DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS);
     }
 
+    protected ElasticConnection getElasticConnection() {
+        return elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
+                elasticRule.getElasticConnectionFromString();
+    }
+
     @Override
     protected ContentRepository createRepository() {
-
-        esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
-                elasticRule.getElasticConnectionFromString();
+        esConnection = getElasticConnection();
         ElasticIndexEditorProvider editorProvider = getElasticIndexEditorProvider(esConnection);
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(esConnection, getMetricHandler());
 

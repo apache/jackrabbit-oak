@@ -109,12 +109,20 @@ public class AstElementFactory {
         return new LowerCaseImpl(operand);
     }
 
+    public FirstImpl first(DynamicOperandImpl operand) {
+        return new FirstImpl(operand);
+    }
+
     public NodeLocalNameImpl nodeLocalName(String selectorName) {
         return new NodeLocalNameImpl(selectorName);
     }
 
     public NodeNameImpl nodeName(String selectorName) {
         return new NodeNameImpl(selectorName);
+    }
+
+    public PathImpl path(String selectorName) {
+        return new PathImpl(selectorName);
     }
 
     public NotImpl not(ConstraintImpl constraint) {

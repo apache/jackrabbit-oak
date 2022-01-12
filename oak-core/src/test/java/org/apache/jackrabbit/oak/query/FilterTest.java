@@ -85,6 +85,27 @@ public class FilterTest {
                 "where length([data/test]) > 2, " +
                 "path=*, property=[data/test=[is not null], " +
                 "function*length*@data/test=[(2..]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where name() >= 'x'";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where name() >= 'x', " +
+                "path=*, property=[function*@:name=[[x..]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where localname() >= 'x'";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where localname() >= 'x', " +
+                "path=*, property=[function*@:localname=[[x..]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where path() > 'x'";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where path() > 'x', " +
+                "path=*, property=[function*@:path=[(x..]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where first([jcr:mixinTypes]) >= ''";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where first([jcr:mixinTypes]) >= '', " +
+                "path=*, property=[function*first*@jcr:mixinTypes=[]])", createFilterSQL(sql2).toString());
+
     }
 
     @Test
@@ -109,12 +130,14 @@ public class FilterTest {
     public void localName() throws Exception {
         Filter f = createFilterSQL("select * from [nt:base] where localname() = 'resource'");
         assertEquals("[resource]", f.getPropertyRestrictions(":localname").toString());
+        assertEquals("[resource]", f.getPropertyRestrictions("function*@:localname").toString());
     }
 
     @Test
     public void name() throws Exception {
         Filter f = createFilter("//*[fn:name() = 'nt:resource']");
         assertEquals("[resource]", f.getPropertyRestrictions(":localname").toString());
+        assertEquals("[nt:resource]", f.getPropertyRestrictions("function*@:name").toString());
     }
 
     @Test

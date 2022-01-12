@@ -24,9 +24,9 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+
+import javax.jcr.query.Query;
 
 import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
@@ -57,6 +57,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
         TestUtil.useV2(indexDefn);
         indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        indexDefn.setProperty("tags", "x");
 
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
         props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
@@ -67,6 +68,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         TestUtil.enableFunctionIndex(props, "length([name])");
         TestUtil.enableFunctionIndex(props, "lower([name])");
         TestUtil.enableFunctionIndex(props, "upper([name])");
+        TestUtil.enableForFullText(props, "propa", false);
 
         root.commit();
     }
@@ -104,7 +106,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         final String query = "select [jcr:path] from [nt:base] where isdescendantnode('/test') and contains(*, 'hello')";
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
             List<String> paths = new ArrayList<>();
             result.forEachRemaining(paths::add);
             assertEquals(2, paths.size());
@@ -117,7 +119,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
             List<String> paths = new ArrayList<>();
             result.forEachRemaining(paths::add);
             assertEquals(1, paths.size());
@@ -135,7 +137,25 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             Iterator<String> result = executeQuery(
                     "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
-                    "JCR-SQL2").iterator();
+                    Query.JCR_SQL2).iterator();
+            assertTrue(result.hasNext());
+            assertEquals("/test/a", result.next());
+            assertEquals("/test/b", result.next());
+            assertFalse(result.hasNext());
+        });
+    }
+
+    @Test
+    public void descendantTestWithIndexTag() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a");
+        test.addChild("b");
+        root.commit();
+
+        assertEventually(() -> {
+            Iterator<String> result = executeQuery(
+                    "select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)",
+                    Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertEquals("/test/b", result.next());
@@ -153,7 +173,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             Iterator<String> result = executeQuery(
                     "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
-                    "JCR-SQL2").iterator();
+                    Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertFalse(result.hasNext());
@@ -179,7 +199,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             Iterator<String> result = executeQuery(
                     "select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
-                    "JCR-SQL2").iterator();
+                    Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/, /children", result.next());
             assertEquals("/, /jcr:system", result.next());
@@ -309,7 +329,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertFalse(result.hasNext());
@@ -326,7 +346,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("c").setProperty("text", "He said Hi.");
         root.commit();
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
@@ -349,7 +369,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("h").setProperty("text", "Hello");
         root.commit();
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
@@ -457,6 +477,46 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
                     singletonList("/test/c"));
         });
         setTraversalEnabled(true);
+    }
+
+
+    @Test
+    public void fullTextQueryTestAllowLeadingWildcards() throws Exception {
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "ship_to_canada");
+        test.addChild("b").setProperty("propa", "steamship_to_canada");
+        test.addChild("c").setProperty("propa", "ship_to_can");
+        test.addChild("d").setProperty("propa", "starship");
+        test.addChild("e").setProperty("propa", "Hello starship");
+        root.commit();
+
+        String query = "//*[jcr:contains(@propa, 'Hello *ship')] ";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/e"));
+        });
+    }
+
+
+    @Test
+    public void fullTextQueryTestAllowLeadingWildcards2() throws Exception {
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "ship_to_canada");
+        test.addChild("b").setProperty("propa", "steamship_to_canada");
+        test.addChild("c").setProperty("propa", "ship_to_can");
+        test.addChild("d").setProperty("propa", "starship");
+        test.addChild("e").setProperty("propa", "Hello starship");
+        root.commit();
+
+        String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c"));
+        });
     }
 
     private static Tree child(Tree t, String n, String type) {

@@ -22,6 +22,7 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asISO8601;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
@@ -142,9 +143,28 @@ public class LastRevRecoveryAgent {
         ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
 
         if (nodeInfo != null) {
+            // Check our own lease before running recovery for another
+            // clusterId (OAK-9656)
+            long now = revisionContext.getClock().getTime();
+            if (clusterId != revisionContext.getClusterId()) {
+                // Get leaseEnd from our own cluster node info, unless
+                // we are doing recovery on startup for the clusterId
+                // we want to acquire. Then it's fine to go ahead with
+                // an expired lease.
+                ClusterNodeInfoDocument me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
+                if (me != null && me.isRecoveryNeeded(now)) {
+                    String msg = String.format(
+                            "Own clusterId %s has a leaseEnd %s (%s) older than current time %s (%s). " +
+                                    "Refusing to run recovery on clusterId %s.",
+                            revisionContext.getClusterId(), me.getLeaseEndTime(),
+                            asISO8601(me.getLeaseEndTime()), now, asISO8601(now),
+                            clusterId);
+                    throw new DocumentStoreException(msg);
+                }
+            }
             // Check if _lastRev recovery needed for this cluster node
             // state is Active && current time past leaseEnd
-            if (nodeInfo.isRecoveryNeeded(revisionContext.getClock().getTime())) {
+            if (nodeInfo.isRecoveryNeeded(now)) {
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);

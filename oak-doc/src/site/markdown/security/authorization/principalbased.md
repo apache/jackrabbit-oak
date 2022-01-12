@@ -219,7 +219,7 @@ administrative principals and thus delegate the permission evalution to the defa
 
 This authorization model can be used in combinition with non-default mounts with one notable limitation:
 None of the non-default mounts may be located below the configured filter root (see `FilterProvider.getFilterRoot()`) in 
-order to make sure that all policies managemed and evaluated by this model are residing the same mount.
+order to make sure all policies defined by this model are located in the same mount.
 
 <a name="details_filterprovider"></a>
 #### FilterProvider Implementation

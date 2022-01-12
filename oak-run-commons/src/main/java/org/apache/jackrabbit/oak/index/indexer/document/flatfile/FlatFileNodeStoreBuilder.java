@@ -29,7 +29,6 @@ import java.util.Set;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
@@ -54,6 +53,17 @@ public class FlatFileNodeStoreBuilder {
      */
     static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
+
+
+    /**
+     * Default value for {@link #PROP_THREAD_POOL_SIZE}
+     */
+    static final String DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = "4";
+    /**
+     * System property for specifying number of threads for parallel download when using {@link MultithreadedTraverseWithSortStrategy}
+     */
+    static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
+
     /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */
@@ -70,6 +80,7 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
     private File flatFileStoreDir;
+    private final MemoryManager memoryManager;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
@@ -92,8 +103,14 @@ public class FlatFileNodeStoreBuilder {
         MULTITHREADED_TRAVERSE_WITH_SORT
     }
 
+    public FlatFileNodeStoreBuilder(File workDir, MemoryManager memoryManager) {
+        this.workDir = workDir;
+        this.memoryManager = memoryManager;
+    }
+
     public FlatFileNodeStoreBuilder(File workDir) {
         this.workDir = workDir;
+        this.memoryManager = new DefaultMemoryManager();
     }
 
     public FlatFileNodeStoreBuilder withLastModifiedBreakPoints(List<Long> lastModifiedBreakPoints) {
@@ -161,22 +178,16 @@ public class FlatFileNodeStoreBuilder {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy");
-                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
-                        Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
-                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory.create(new LastModifiedRange(0,
-                        Long.MAX_VALUE)), comparator, entryWriter, dir, useZip);
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, useZip, getMemoryManager());
+                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
-    }
-
-    MemoryManager getMemoryManager() {
-        return new DefaultMemoryManager();
     }
 
     private void logFlags() {

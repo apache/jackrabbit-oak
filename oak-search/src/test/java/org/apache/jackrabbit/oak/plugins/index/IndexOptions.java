@@ -44,10 +44,14 @@ public abstract class IndexOptions {
     }
 
     protected IndexDefinitionBuilder createIndex(IndexDefinitionBuilder builder, boolean isAsync, String... propNames) {
+        return createIndex(builder, "nt:base", isAsync, propNames);
+    }
+
+    protected IndexDefinitionBuilder createIndex(IndexDefinitionBuilder builder, String type, boolean isAsync, String... propNames) {
         if (!isAsync) {
             builder = builder.noAsync();
         }
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(type);
         for (String propName : propNames) {
             indexRule.property(propName).propertyIndex();
         }

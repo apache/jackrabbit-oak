@@ -676,6 +676,12 @@ public class SQL2Parser {
             } else {
                 op = factory.nodeLocalName(readName());
             }
+        } else if ("PATH".equalsIgnoreCase(functionName)) {
+            if (isToken(")")) {
+                op = factory.path(getOnlySelectorName());
+            } else {
+                op = factory.path(readName());
+            }
         } else if ("SCORE".equalsIgnoreCase(functionName)) {
             if (isToken(")")) {
                 op = factory.fullTextSearchScore(getOnlySelectorName());
@@ -687,6 +693,8 @@ public class SQL2Parser {
             read(",");
             DynamicOperandImpl op2 = parseDynamicOperand();
             op = factory.coalesce(op1, op2);
+        } else if ("FIRST".equalsIgnoreCase(functionName)) {
+            op = factory.first(parseDynamicOperand());
         } else if ("LOWER".equalsIgnoreCase(functionName)) {
             op = factory.lowerCase(parseDynamicOperand());
         } else if ("UPPER".equalsIgnoreCase(functionName)) {
@@ -696,7 +704,7 @@ public class SQL2Parser {
             read(",");
             op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
         } else {
-            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
         }
         read(")");
         return op;

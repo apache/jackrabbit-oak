@@ -366,24 +366,26 @@ Following are the details about the above mentioned config options which can be
 defined at the property definition level
 
 name
-: Property name. If not defined then property name is set to the node name.
-  If `isRegexp` is true then it defines the regular expression. Can also be set
-  to a relative property.
+: Property name. If not defined, then the property name is set to the node name.
+
+  Can also be set to a relative property, e.g., `jcr:content/metadata/color`.
+  For relative properties, one wildcard (`*`) is supported instead of a node name:
+  `*/color` aggregates the values of the property `color` of all direct child nodes.
+
+  If `isRegexp` is true, then the property name is a regular expression.
 
 isRegexp
-: If set to true then property name would be interpreted as a regular
-  expression and the given definition would be applicable for matching property
-  names. Note that expression should be structured such that it does not
-  match '/'.
-    * `.*` - This property definition is applicable for all properties of given
-      node
+: If set to true, then the property name is interpreted as a regular
+  expression, and the given definition is applicable for matching property names.
+  The expression must not match '/'.
+    * `^[^\/]*$` - Matches all properties of this node.
     * `jcr:content/metadata/.*` - This property definition is
-      applicable for all properties of child node _jcr:content/metadata_
+      applicable for all properties of the child node `jcr:content/metadata`
 
-  Note that the regular expression doesn't match intermediate nodes, so,
-  `jcr:content/.*/.*` would *not* index all properties for all children of
+  The regular expression only matches property names, and not intermediate nodes.
+  `jcr:content/.*/.*` does *not* index all properties for all children of
   `jcr:content`. [OAK-5187][OAK-5187] is an open improvement to track supporting
-  arbitrary intermediate child nodes.
+  regular expression matching for intermediate child nodes.
 
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
@@ -1127,6 +1129,7 @@ This allows to search for, and order by, the lower case version of the property 
 * fn:lower-case(fn:name())
 * fn:lower-case(fn:local-name())
 * fn:string-length(test/@data)
+* first([alias])
 * upper([data])
 * lower([test/data])
 * lower(name())
@@ -1134,6 +1137,7 @@ This allows to search for, and order by, the lower case version of the property 
 * length([test/data])
 * length(name())
 * name()
+* path()
 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
