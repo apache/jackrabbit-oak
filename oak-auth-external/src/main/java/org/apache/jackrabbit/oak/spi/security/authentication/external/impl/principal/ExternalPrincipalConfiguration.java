@@ -40,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -78,6 +80,11 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
                 label = "External Identity Protection",
                 description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
                 boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
+        @Property(name = ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, 
+                label = "System Principal Names", 
+                description = "Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check. Note that this configuration does not grant the required permission to perform the operation.", 
+                value = {}, 
+                cardinality = 10),
         @Property(name = OAK_SECURITY_NAME,
                 propertyPrivate= true, 
                 value = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration")
@@ -134,7 +141,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return Collections.singletonList(new ExternalIdentityValidatorProvider(principals, protectedExternalIds()));
+        return Collections.singletonList(new ExternalIdentityValidatorProvider(isSystemPrincipal(principals), protectedExternalIds()));
     }
 
     @NotNull
@@ -193,5 +200,18 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
     private boolean protectedExternalIds() {
         return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS);
+    }
+    
+    private boolean isSystemPrincipal(@NotNull Set<Principal> principals) {
+        if (principals.contains(SystemPrincipal.INSTANCE)) {
+            return true;
+        }
+        Set<String> principalNames = getParameters().getConfigValue(ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, Collections.emptySet());
+        for (Principal principal : principals) {
+            if (principal instanceof SystemUserPrincipal && principalNames.contains(principal.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
