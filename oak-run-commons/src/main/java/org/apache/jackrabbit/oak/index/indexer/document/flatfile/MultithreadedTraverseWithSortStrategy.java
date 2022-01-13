@@ -23,7 +23,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -115,6 +114,40 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTrav
  *     <li>After the advance of phase 2, the main thread returns the result - the list of sorted files which are then merged by the next step of indexing process.</li>
  * </ol>
  *
+ * <h3>Download task state save and resume explanation -</h3>
+ * <ol>
+ *     <li>Each {@link TraverseAndSortTask} is assigned a {@link TraversingRange} which indicates the range of documents which this task should process.</li>
+ *     <li>Each task creates a directory sort-work-dir, where it stores the downloaded data and it also contains information about the traversing range this
+ *     task has to process.</li>
+ *     <li>Whenever task split happens, the upper limit of last modified range information stored in the sort-work-dir of split task is changed</li>
+ *     <li>Data is downloaded from document store in increasing order of (_modified, _id)</li>
+ *     <li>After the task dumps a batch of data into sort-work-dir, it also saves the (_modified, _id) state information of last dumped document.</li>
+ *     <li>If a task completes successfully without any exception, the completion event is also marked in its sort-work-dir</li>
+ *     <li>See {@link MultithreadedTraverseWithSortStrategy.DirectoryHelper} for sort-work-dir management APIs</li>
+ *     <li>If there is some exception and operation has to be retried, the retry happens in following way -
+ *          <ol>
+ *              <li>New tasks are created for all the non-completed sort-work-dirs of previous run, in the following way -
+ *                  <ol>
+ *                      <li>If no state information was saved in the sort-work-dir, that means, no data dump happened for that dir, so we create one task with same
+ *                      traversing range information as this sort-work-dir</li>
+ *                      <li>
+ *                          If some state information is found, that means, some data was already dumped. So to avoid again downloading that data, we create two tasks-
+ *                          Suppose the traversing range of this sort-work-dir is - _modified in [10, 100) and the state information is (50, doc_id)
+ *                          <ol>
+ *                              <li>First task will download docs with _modified = 50 and _id < doc_id</li>
+ *                              <li>Second task downloads docs with _modified in [51, 100) </li>
+ *                          </ol>
+ *                      </li>
+ *                  </ol>
+ *              </li>
+ *              <li>If multiple retries have happened, there would be a list of sort-work-dirs from each of the runs i.e. a List<List<File>>.</li>
+ *              <li>The list should be sorted in order of run i.e. first list would be the list of dirs from first run and last list would be the list of files from the most recent run
+ *              which failed.</li>
+ *              <li>The data dump files from each of sort-work-dirs of every run would be considered, but for creating further tasks for downloading remaining data
+ *              only the sort-work-dirs from most recent run would be considered.</li>
+ *          </ol>
+ *     </li>
+ * </ol>
  */
 public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
@@ -242,9 +275,9 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                                     blobStore, completedTasks);
                         } else {
                             start = savedState.lastModified;
-                            addTask(new TraversingRange(new LastModifiedRange(start, start+1), savedState.id), nodeStateEntryTraverserFactory,
+                            addTask(new TraversingRange(new LastModifiedRange(start, start + 1), savedState.id), nodeStateEntryTraverserFactory,
                                     blobStore, completedTasks);
-                            if (end != start + 1) {
+                            if (end > start + 1) {
                                 addTask(new TraversingRange(new LastModifiedRange(start + 1, end), null), nodeStateEntryTraverserFactory,
                                         blobStore, completedTasks);
                             }
@@ -380,8 +413,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         private static final String PREFIX = "sort-work-dir-";
         private static final String LAST_MODIFIED_TIME_DELIMITER = "-from-";
         /**
-         * File name for file which indicates the id of last processed document. While resuming download, we need to download
-         * documents having id greater than this.
+         * File name for file which indicates the _id and _modified of last processed document. Let's say we saved the following
+         * values {_id=saved_id, _modified=saved_modified}, then while resuming download we need to download :
+         * 1. All documents with _modified = saved_modified which have _id > saved_id
+         * 2. All documents with _modified > saved_modified and _modified < LAST_MODIFIED_UPPER_LIMIT for this sort work dir
          */
         private static final String STATUS_FILE_NAME = "last-saved";
         /**

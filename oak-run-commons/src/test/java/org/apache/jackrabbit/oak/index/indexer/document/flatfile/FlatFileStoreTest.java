@@ -21,15 +21,11 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -190,8 +186,6 @@ public class FlatFileStoreTest {
             List<Long> lmValues = mongoDocs.stream().map(md -> md.lastModified).distinct().sorted().collect(Collectors.toList());
             List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lmValues.get(0), lmValues.get(lmValues.size() - 1), 10);
             TestMemoryManager memoryManager = new TestMemoryManager(true);
-//            File root = new File(BUILD_TARGET_FOLDER + "/" + System.currentTimeMillis());
-//            root.mkdir();
             FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot(), memoryManager));
             TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(mongoDocs);
             nsetf.setDeliveryBreakPoint((int)(mongoDocs.size() * 0.25));
