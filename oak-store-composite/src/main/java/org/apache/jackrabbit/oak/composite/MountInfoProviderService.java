@@ -157,7 +157,7 @@ public class MountInfoProviderService {
                         mountInfoConfig.getPathsSupportingFragments(),
                         mountInfoConfig.getPaths());
 
-                    LOG.info("Enabling mount for {}", mountInfoConfig.getMountName());
+                    LOG.info("Enabling mount for {} with paths: {}", mountInfoConfig.getMountName(), mountInfoConfig.getPaths());
                 }
             }
             mip = builder.build();

@@ -50,7 +50,12 @@ public class CompositeNodeStoreServiceTest {
 		// Create node stores
 		MemoryNodeStore nodeStoreLibs = new MemoryNodeStore();
 		MemoryNodeStore nodeStoreApps = new MemoryNodeStore();
-		MemoryNodeStore global = new MemoryNodeStore();
+		MemoryNodeStore globalStore = new MemoryNodeStore();
+		NodeBuilder globalRoot = globalStore.getRoot().builder();
+		NodeBuilder global = globalRoot.child("content");
+		global.child("content1");
+		global.child("content2");
+		globalStore.merge(globalRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
 		// Initialise node stores
 		NodeBuilder appsRoot = nodeStoreApps.getRoot().builder();
@@ -73,7 +78,7 @@ public class CompositeNodeStoreServiceTest {
         
 		// Register node stores
 		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(globalStore), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreLibs), ImmutableMap.of("role", "composite-mount-libs"));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreApps), ImmutableMap.of("role", "composite-mount-apps"));
 		ctx.registerInjectActivateService(new NodeStoreChecksService());
@@ -82,6 +87,7 @@ public class CompositeNodeStoreServiceTest {
 
 
 		NodeStore nodeStore = ctx.getService(NodeStore.class);
+		assertNotNull(nodeStore.getRoot().getChildNode("content").getChildNode("content1"));
 		assertNotNull(nodeStore.getRoot().getChildNode("apps").getChildNode("app1"));
 		assertNotNull(nodeStore.getRoot().getChildNode("libs").getChildNode("lib1"));
 	}
