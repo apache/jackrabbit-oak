@@ -504,8 +504,6 @@ public class ClusterNodeInfo {
                 update.notEquals(STATE, ACTIVE.name());
                 // 2) must not have a recovery lock
                 update.notEquals(REV_RECOVERY_LOCK, ACQUIRED.name());
-                // 3) must not be assigned to a different node
-                update.equals(RUNTIME_ID_KEY, null);
 
                 success = store.findAndUpdate(Collection.CLUSTER_NODES, update) != null;
             }
@@ -654,19 +652,24 @@ public class ClusterNodeInfo {
 
         String machineInfo = clusterNode.machineId;
         String instanceInfo = clusterNode.instanceId;
+        String runtimeInfo = clusterNode.runtimeId;
         if (before != null) {
             // machineId or instanceId may have changed
             String beforeMachineId = String.valueOf(before.get(MACHINE_ID_KEY));
             String beforeInstanceId = String.valueOf(before.get(INSTANCE_ID_KEY));
+            String beforeRuntimeId = String.valueOf(before.get(RUNTIME_ID_KEY));
             if (!clusterNode.machineId.equals(beforeMachineId)) {
                 machineInfo = "(changed) " + beforeMachineId + " -> " + machineInfo;
             }
             if (!clusterNode.instanceId.equals(beforeInstanceId)) {
                 instanceInfo = "(changed) " + beforeInstanceId + " -> " + instanceInfo;
             }
+            if (!clusterNode.runtimeId.equals(beforeRuntimeId)) {
+                runtimeInfo = "(changed) " + beforeRuntimeId + " -> " + runtimeInfo;
+            }
         }
-        LOG.info("Acquired ({}) clusterId {}. MachineId {}, InstanceId {}",
-                type, clusterNode.getId(), machineInfo, instanceInfo);
+        LOG.info("Acquired ({}) clusterId {}. MachineId {}, InstanceId {}, RuntimeId {}",
+                type, clusterNode.getId(), machineInfo, instanceInfo, runtimeInfo);
 
     }
 
@@ -1150,6 +1153,7 @@ public class ClusterNodeInfo {
                 "startTime: " + startTime + ",\n" +
                 "machineId: " + machineId + ",\n" +
                 "instanceId: " + instanceId + ",\n" +
+                "runtimeId: " + runtimeId + ",\n" +
                 "pid: " + PROCESS_ID + ",\n" +
                 "uuid: " + uuid + ",\n" +
                 "readWriteMode: " + readWriteMode + ",\n" +
