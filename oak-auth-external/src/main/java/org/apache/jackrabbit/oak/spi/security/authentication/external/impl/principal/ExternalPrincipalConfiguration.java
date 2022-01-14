@@ -78,6 +78,11 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
                 label = "External Identity Protection",
                 description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
                 boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
+        @Property(name = ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, 
+                label = "System Principal Names", 
+                description = "Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check. Note that this configuration does not grant the required permission to perform the operation.", 
+                value = {}, 
+                cardinality = 10),
         @Property(name = OAK_SECURITY_NAME,
                 propertyPrivate= true, 
                 value = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration")
@@ -134,13 +139,14 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return Collections.singletonList(new ExternalIdentityValidatorProvider(principals, protectedExternalIds()));
+        SystemPrincipalConfig spConfig = new SystemPrincipalConfig(getPrincipalNames());
+        return Collections.singletonList(new ExternalIdentityValidatorProvider(spConfig.containsSystemPrincipal(principals), protectedExternalIds()));
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.singletonList(new ExternalIdentityImporter());
+        return Collections.singletonList(new ExternalIdentityImporter(new SystemPrincipalConfig(getPrincipalNames())));
     }
 
     @Override
@@ -193,5 +199,10 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
     private boolean protectedExternalIds() {
         return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS);
+    }
+    
+    @NotNull
+    private Set<String> getPrincipalNames() {
+        return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, Collections.emptySet());
     }
 }

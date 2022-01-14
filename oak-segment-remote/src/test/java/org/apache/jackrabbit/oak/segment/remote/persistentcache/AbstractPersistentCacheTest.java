@@ -26,7 +26,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.*;
@@ -40,34 +39,35 @@ public abstract class AbstractPersistentCacheTest {
 
     protected static final Executor executor = Executors.newFixedThreadPool(THREADS);
 
-    protected static final Consumer<BiConsumer<Integer, Integer>> runConcurrently = r -> {
-        for (int i = 0; i < THREADS; ++i) {
-            int finalI = i;
-            executor.execute(() -> {
-                for (int j = finalI * SEGMENTS_PER_THREAD; j < (finalI + 1) * SEGMENTS_PER_THREAD; ++j) {
-                    r.accept(finalI, j);
-                }
-            });
-        }
-    };
-
     protected AbstractPersistentCache persistentCache;
 
     final AtomicInteger errors = new AtomicInteger(0);
     final AtomicInteger done = new AtomicInteger(0);
     int count; // for checking timeouts
 
-    protected Consumer<Supplier<Boolean>> waitWhile = (r -> {
-        for (count = 0; r.get() && count < TIMEOUT_COUNT; ++count) {
+    protected static void runConcurrently(BiConsumer<Integer, Integer> threadAndSegmentConsumer) {
+        for (int i = 0; i < THREADS; ++i) {
+            int threadIdx = i;
+            executor.execute(() -> {
+                for (int segmentIdx = threadIdx * SEGMENTS_PER_THREAD; segmentIdx < (threadIdx + 1) * SEGMENTS_PER_THREAD; ++segmentIdx) {
+                    threadAndSegmentConsumer.accept(threadIdx, segmentIdx);
+                }
+            });
+        }
+    }
+
+    protected void waitWhile(Supplier<Boolean> condition) {
+        for (count = 0; condition.get() && count < TIMEOUT_COUNT; ++count) {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
+                // ignore
             }
         }
-    });
+    }
 
     @Test
-    public void writeAndReadManySegments() throws Exception {
+    public void writeAndReadManySegments() {
         final List<TestSegment> testSegments = new ArrayList<>(SEGMENTS);
         final List<Map<String, Buffer>> segmentsRead = new ArrayList<>(THREADS);
 
@@ -80,7 +80,7 @@ public abstract class AbstractPersistentCacheTest {
             segmentsRead.add(segmentsReadThisThread);
         }
 
-        runConcurrently.accept((nThread, nSegment) -> {
+        runConcurrently((nThread, nSegment) -> {
             TestSegment segment = testSegments.get(nSegment);
             long[] id = segment.getSegmentId();
             try {
@@ -92,14 +92,14 @@ public abstract class AbstractPersistentCacheTest {
             }
         });
 
-        waitWhile.accept(() -> done.get() < SEGMENTS);
-        waitWhile.accept(() -> persistentCache.getWritesPending() > 0);
+        waitWhile(() -> done.get() < SEGMENTS);
+        waitWhile(() -> persistentCache.getWritesPending() > 0);
 
         assertEquals("Errors have occurred while writing", 0, errors.get());
         assertNoTimeout();
 
         done.set(0);
-        runConcurrently.accept((nThread, nSegment) -> {
+        runConcurrently((nThread, nSegment) -> {
             final Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(nThread);
             final TestSegment segment = testSegments.get(nSegment);
             final long[] id = segment.getSegmentId();
@@ -111,7 +111,7 @@ public abstract class AbstractPersistentCacheTest {
             }
         });
 
-        waitWhile.accept(() -> done.get() < SEGMENTS);
+        waitWhile(() -> done.get() < SEGMENTS);
 
         assertNoTimeout();
         assertEquals("Errors have occurred while reading", 0, errors.get());
@@ -133,13 +133,13 @@ public abstract class AbstractPersistentCacheTest {
     }
 
     @Test
-    public void testNonExisting() throws Exception {
+    public void testNonExisting() {
         final Random random = new Random();
         final long[] segmentIds = random.longs(2 * SEGMENTS).toArray();
         final AtomicInteger containsFailures = new AtomicInteger(0);
         final AtomicInteger readFailures = new AtomicInteger(0);
 
-        runConcurrently.accept((nThread, nSegment) -> {
+        runConcurrently((nThread, nSegment) -> {
             try {
                 long msb = segmentIds[2 * nSegment];
                 long lsb = segmentIds[2 * nSegment + 1];
@@ -156,7 +156,7 @@ public abstract class AbstractPersistentCacheTest {
             }
         });
 
-        waitWhile.accept(() -> done.get() < SEGMENTS);
+        waitWhile(() -> done.get() < SEGMENTS);
 
         assertEquals("exceptions occurred", 0, errors.get());
         assertNoTimeout();
@@ -175,11 +175,11 @@ public abstract class AbstractPersistentCacheTest {
         // We need this to give the cache's write thread pool time to start the thread
         Thread.sleep(1000);
 
-        waitWhile.accept(() -> persistentCache.getWritesPending() > 0);
+        waitWhile(() -> persistentCache.getWritesPending() > 0);
         assertNoTimeout();
         assertEquals(0, persistentCache.getWritesPending());
 
-        runConcurrently.accept((nThread, nSegment) -> {
+        runConcurrently((nThread, nSegment) -> {
             try {
                 if (!persistentCache.containsSegment(segmentId[0], segmentId[1])) {
                     containsFailures.incrementAndGet();
@@ -194,7 +194,7 @@ public abstract class AbstractPersistentCacheTest {
             }
         });
 
-        waitWhile.accept(() -> done.get() < SEGMENTS);
+        waitWhile(() -> done.get() < SEGMENTS);
 
         assertEquals("Exceptions occurred", 0, errors.get());
         assertNoTimeout();
@@ -203,11 +203,11 @@ public abstract class AbstractPersistentCacheTest {
     }
 
     @Test
-    public void testConcurrentWritesSameSegment() throws Exception {
+    public void testConcurrentWritesSameSegment() {
         final TestSegment testSegment = TestSegment.createSegment();
         long[] segmentId = testSegment.getSegmentId();
 
-        runConcurrently.accept((nThread, nSegment) -> {
+        runConcurrently((nThread, nSegment) -> {
             try {
                 persistentCache.writeSegment(segmentId[0], segmentId[1], testSegment.getSegmentBuffer());
             } catch (Throwable t) {
@@ -217,7 +217,7 @@ public abstract class AbstractPersistentCacheTest {
             }
         });
 
-        waitWhile.accept(() -> done.get() < SEGMENTS);
+        waitWhile(() -> done.get() < SEGMENTS);
 
         Buffer segmentRead = persistentCache.readSegment(segmentId[0], segmentId[1], () -> null);
         assertNotNull("The segment was not found", segmentRead);

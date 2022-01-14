@@ -21,6 +21,13 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.IndexQueryCommonTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
+
+import javax.jcr.query.Query;
 
 public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
@@ -39,4 +46,15 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
     }
+
+    @Test
+    public void descendantTestWithIndexTagExplain() throws Exception {
+        List<String> result = executeQuery(
+                    "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)", Query.JCR_SQL2);
+        assertEquals("[[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) "
+                + "{\"bool\":{\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}}],"
+                + "\"adjust_pure_negative\":true,\"boost\":1.0}}\n"
+                + "  where isdescendantnode([nt:base], [/test]) */]", result.toString());
+    }
+
 }
