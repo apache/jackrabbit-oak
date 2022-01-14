@@ -43,6 +43,7 @@ import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 import java.security.PrivilegedExceptionAction;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -142,9 +143,14 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
             securityProvider = TestSecurityProvider.newTestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
 
             // register PrincipalConfiguration with OSGi context
-            context.registerInjectActivateService(externalPrincipalConfiguration);
+            context.registerInjectActivateService(externalPrincipalConfiguration, getExternalPrincipalConfiguration());
         }
         return securityProvider;
+    }
+    
+    @NotNull
+    protected Map<String, Object> getExternalPrincipalConfiguration() {
+        return Collections.emptyMap();
     }
 
     @NotNull
