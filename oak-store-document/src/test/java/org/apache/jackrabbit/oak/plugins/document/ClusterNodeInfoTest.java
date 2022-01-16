@@ -375,6 +375,84 @@ public class ClusterNodeInfoTest {
         assertEquals(newerLeaseEndTime, info2.getLeaseEndTime());
     }
 
+    // OAK-9564
+    @Test
+    public void canGetDisposedClusterWithDifferentRuntimeId() {
+        ClusterNodeInfo info = newClusterNodeInfo(0);
+        int id = info.getId();
+        assertEquals(1, id);
+        // shut it down
+        info.dispose();
+
+        // edit the runtime ID
+        UpdateOp op = new UpdateOp(String.valueOf(id), false);
+        op.set(ClusterNodeInfo.RUNTIME_ID_KEY, "some-different-uuid");
+        assertNotNull(store.findAndUpdate(Collection.CLUSTER_NODES, op));
+
+        try {
+            info = newClusterNodeInfo(id);
+            assertEquals(info.getId(), id);
+        } catch(DocumentStoreException e) {
+            // should be able to acquire it again, because it was properly disposed
+            fail("Must be able to acquire the cluster again after disposal");
+        }
+    }
+
+    // OAK-9564
+    @Test
+    public void canGetRecoveredClusterWithDifferentRuntimeId() {
+        ClusterNodeInfo info = newClusterNodeInfo(0);
+        int id = info.getId();
+        assertEquals(1, id);
+        // shut it down
+        info.dispose();
+
+        // edit the data artificially to reproduce the bug where a cluster can't be acquired
+        // after it was recovered by a different node
+        UpdateOp op = new UpdateOp(String.valueOf(id), false);
+        op.set(ClusterNodeInfo.RUNTIME_ID_KEY, "some-different-uuid");
+        op.set(ClusterNodeInfo.REV_RECOVERY_BY, "");
+        op.set(ClusterNodeInfo.REV_RECOVERY_LOCK, "NONE");
+        op.set(ClusterNodeInfo.STATE, null);
+        op.set(ClusterNodeInfo.LEASE_END_KEY, null);
+        assertNotNull(store.findAndUpdate(Collection.CLUSTER_NODES, op));
+
+        // should be able to acquire it
+        try {
+            info = newClusterNodeInfo(id);
+            assertEquals(info.getId(), id);
+        } catch(DocumentStoreException e) {
+            fail("Must be able to acquire the cluster");
+        }
+    }
+
+    // OAK-9564
+    @Test
+    public void cannotGetActiveClusterWithDifferentRuntimeIdUntilExpires() {
+        ClusterNodeInfo info = newClusterNodeInfo(0);
+        int id = info.getId();
+        assertEquals(1, id);
+
+        // edit the runtime ID
+        UpdateOp op = new UpdateOp(String.valueOf(id), false);
+        op.set(ClusterNodeInfo.RUNTIME_ID_KEY, "some-different-uuid");
+        assertNotNull(store.findAndUpdate(Collection.CLUSTER_NODES, op));
+
+        // should be able to acquire it, but it should wait until the lease expire
+        ClusterNodeInfo infoNew = newClusterNodeInfo(id);
+        assertEquals(infoNew.getId(), id);
+        assertTrue(infoNew.getLeaseEndTime() > info.getLeaseEndTime());
+        assertNotEquals(infoNew.getRuntimeId(), info.getRuntimeId());
+        try {
+            info.performLeaseCheck();
+            fail("Must fail here, and not get cluster node info");
+        } catch(DocumentStoreException e) {
+            // expected exception
+            assertTrue(e.getMessage().startsWith("This oak instance failed to update the lease in"));
+        }
+        infoNew.performLeaseCheck();
+    }
+
     @Test
     public void readOnlyClusterNodeInfo() {
         ClusterNodeInfo info = ClusterNodeInfo.getReadOnlyInstance(store);

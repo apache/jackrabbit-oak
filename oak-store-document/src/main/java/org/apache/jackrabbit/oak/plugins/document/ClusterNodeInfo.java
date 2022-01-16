@@ -503,8 +503,6 @@ public class ClusterNodeInfo {
                 update.notEquals(STATE, ACTIVE.name());
                 // 2) must not have a recovery lock
                 update.notEquals(REV_RECOVERY_LOCK, ACQUIRED.name());
-                // 3) must not be assigned to a different node
-                update.equals(RUNTIME_ID_KEY, null);
 
                 success = store.findAndUpdate(Collection.CLUSTER_NODES, update) != null;
             }
