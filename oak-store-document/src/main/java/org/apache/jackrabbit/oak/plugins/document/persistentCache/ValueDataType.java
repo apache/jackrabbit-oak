@@ -23,11 +23,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
-import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-public class ValueDataType implements DataType {
+public class ValueDataType implements DataType<Object> {
     
     private final DocumentNodeStore docNodeStore;
     private final DocumentStore docStore;
@@ -62,17 +59,63 @@ public class ValueDataType implements DataType {
     }
 
     @Override
-    public void write(WriteBuffer buff, Object[] obj, int len, boolean key) {
+    public void write(WriteBuffer buff, Object storage, int len) {
         for (int i = 0; i < len; i++) {
-            write(buff, obj[i]);
+            write(buff, cast(storage)[i]);
         }
     }
 
     @Override
-    public void read(ByteBuffer buff, Object[] obj, int len, boolean key) {
+    public void read(ByteBuffer buff, Object storage, int len) {
         for (int i = 0; i < len; i++) {
-            obj[i] = read(buff);
+            cast(storage)[i] = read(buff);
         }
     }
     
+    /**
+     * Cast the storage object to an array of type T.
+     *
+     * @param storage the storage object
+     * @return the array
+     */
+    protected final Object[] cast(Object storage) {
+        return (Object[])storage;
+    }
+
+    @Override
+    public int binarySearch(Object key, Object storageObj, int size, int initialGuess) {
+        Object[] storage = cast(storageObj);
+        int low = 0;
+        int high = size - 1;
+        // the cached index minus one, so that
+        // for the first time (when cachedCompare is 0),
+        // the default value is used
+        int x = initialGuess - 1;
+        if (x < 0 || x > high) {
+            x = high >>> 1;
+        }
+        while (low <= high) {
+            int compare = compare(key, storage[x]);
+            if (compare > 0) {
+                low = x + 1;
+            } else if (compare < 0) {
+                high = x - 1;
+            } else {
+                return x;
+            }
+            x = (low + high) >>> 1;
+        }
+        return ~low;
+    }
+
+    @Override
+    public boolean isMemoryEstimationAllowed() {
+        return true;
+    }
+
+    @Override
+    public Object[] createStorage(int size) {
+        return new Object[size];
+    }
+
 }

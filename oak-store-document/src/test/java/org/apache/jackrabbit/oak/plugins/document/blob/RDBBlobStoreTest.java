@@ -146,7 +146,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
         LOG.info("max blob length for " + blobStoreName + " was " + test);
 
-        int expected = Math.max(blobStore.getBlockSize(), 2 * 1024 * 1024);
+        int expected = Math.max(blobStore.getBlockSize(), 1 * 1024 * 1024);
         assertTrue(blobStoreName + ": expected supported block size is " + expected + ", but measured: " + test, test >= expected);
     }
 
