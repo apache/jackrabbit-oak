@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.*;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.text.ParseException;
 import java.util.*;
 
 import javax.jcr.query.Query;
@@ -32,6 +31,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -518,6 +518,70 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c"));
         });
     }
+
+    @Test
+    public void testInequalityQuery_native() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        root.commit();
+
+        String query = "explain /jcr:root/test//*[propa!='bar']";
+
+        assertEventually(() -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, XPATH, NO_BINDINGS);
+            } catch (ParseException e) {
+                assertTrue(e.getMessage(), false);
+            }
+            ResultRow row = result.getRows().iterator().next();
+
+            System.out.println(row.getValue("plan"));
+            //assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test +propa:[* TO *]"));
+        });
+
+        String query2 = "/jcr:root/test//*[propa!='bar']";
+
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2", "/test/test3"));
+        });
+    }
+
+
+    @Test
+    public void testEqualityQuery_native() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        root.commit();
+
+        String query = "explain /jcr:root/test//*[propa='bar']";
+
+        assertEventually(() -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, XPATH, NO_BINDINGS);
+            } catch (ParseException e) {
+                assertTrue(e.getMessage(), false);
+            }
+            ResultRow row = result.getRows().iterator().next();
+           // assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test +propa:bar"));
+        });
+
+        String query2 = "/jcr:root/test//*[propa='bar']";
+
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
+        });
+    }
+
 
     private static Tree child(Tree t, String n, String type) {
         Tree t1 = t.addChild(n);

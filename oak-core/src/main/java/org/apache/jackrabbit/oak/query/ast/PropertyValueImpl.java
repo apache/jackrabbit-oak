@@ -125,12 +125,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
                     f.restrictPath(v.getValue(Type.STRING), PathRestriction.EXACT);
                 }
             } else {
-                if (operator == Operator.NOT_EQUAL && v != null) {
-                    // "x <> 1" also means "x is not null"
-                    f.restrictProperty(pn, Operator.NOT_EQUAL, null, propertyType);
-                } else {
-                    f.restrictProperty(pn, operator, v, propertyType);
-                }
+                f.restrictProperty(pn, operator, v, propertyType);
             }
         }
     }

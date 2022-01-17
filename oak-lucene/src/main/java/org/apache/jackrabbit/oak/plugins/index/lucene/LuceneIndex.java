@@ -73,19 +73,8 @@ import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.PhraseQuery;
-import org.apache.lucene.search.PrefixQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.TotalHitCountCollector;
-import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
@@ -622,6 +611,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     private static LuceneRequestFacade getLuceneRequest(Filter filter, IndexReader reader, boolean nonFullTextConstraints,
                                                         LuceneIndexDefinition indexDefinition) {
         List<Query> qs = new ArrayList<Query>();
+        List<BooleanClause> queryWithClauseList = new ArrayList<>();
         Analyzer analyzer = indexDefinition.getAnalyzer();
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft == null) {
@@ -630,6 +620,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             // which is used for testing
         } else {
             qs.add(getFullTextQuery(ft, analyzer, reader));
+            queryWithClauseList.add(new BooleanClause(getFullTextQuery(ft, analyzer, reader), MUST));
         }
         PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
         if (pr != null) {
@@ -641,6 +632,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     Query moreLikeThis = MoreLikeThisHelper.getMoreLikeThis(reader, analyzer, mltQueryString);
                     if (moreLikeThis != null) {
                         qs.add(moreLikeThis);
+                        queryWithClauseList.add(new BooleanClause(moreLikeThis, MUST));
                     }
                 }
             }
@@ -657,6 +649,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             } else {
                 try {
                     qs.add(queryParser.parse(query));
+                    queryWithClauseList.add(new BooleanClause(queryParser.parse(query), MUST));
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
                 }
@@ -665,11 +658,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             addNonFullTextConstraints(qs, filter, reader, analyzer,
                     indexDefinition);
         }
-        if (qs.size() == 0) {
+        if (queryWithClauseList.size() == 0) {
             return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
         }
 
-        return LucenePropertyIndex.performAdditionalWraps(qs);
+        return LucenePropertyIndex.performAdditionalWraps(queryWithClauseList);
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
