@@ -28,12 +28,14 @@ public class NodeStateEntry {
     private final String path;
     private final long memUsage;
     private final long lastModified;
+    private final String id;
 
-    private NodeStateEntry(NodeState nodeState, String path, long memUsage, long lastModified) {
+    private NodeStateEntry(NodeState nodeState, String path, long memUsage, long lastModified, String id) {
         this.nodeState = nodeState;
         this.path = path;
         this.memUsage = memUsage;
         this.lastModified = lastModified;
+        this.id = id;
     }
 
     public NodeState getNodeState() {
@@ -50,6 +52,10 @@ public class NodeStateEntry {
 
     public long getLastModified() {
         return lastModified;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @Override
@@ -78,6 +84,7 @@ public class NodeStateEntry {
         private final String path;
         private long memUsage;
         private long lastModified;
+        private String id;
 
         public NodeStateEntryBuilder(NodeState nodeState, String path) {
             this.nodeState = nodeState;
@@ -94,8 +101,13 @@ public class NodeStateEntry {
             return this;
         }
 
+        public NodeStateEntryBuilder withID(String id) {
+            this.id = id;
+            return this;
+        }
+
         public NodeStateEntry build() {
-            return new NodeStateEntry(nodeState, path, memUsage, lastModified);
+            return new NodeStateEntry(nodeState, path, memUsage, lastModified, id);
         }
     }
 }

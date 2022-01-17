@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -112,14 +113,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         }
 
         @Override
-        public NodeStateEntryTraverser create(LastModifiedRange lastModifiedRange) {
+        public NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange traversingRange) {
             IndexingProgressReporter progressReporterPerTask =
                     new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
             String entryTraverserID = TRAVERSER_ID_PREFIX + traverserInstanceCounter.incrementAndGet();
             //As first traversal is for dumping change the message prefix
             progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
             return new NodeStateEntryTraverser(entryTraverserID, rootRevision,
-                            documentNodeStore, documentStore, lastModifiedRange)
+                            documentNodeStore, documentStore, traversingRange)
                             .withProgressCallback((id) -> {
                                 try {
                                     progressReporterPerTask.traversedNode(() -> id);

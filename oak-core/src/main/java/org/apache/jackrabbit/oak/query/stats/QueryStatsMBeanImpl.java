@@ -41,7 +41,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final int SLOW_QUERY_LIMIT_SCANNED = 
-            Integer.getInteger("oak.query.slowScanLimit", 100000);
+            Integer.getInteger("oak.query.slowScanLimit", 5000);
     private final int MAX_STATS_DATA =
             Integer.getInteger("oak.query.stats", 5000);
     private final int MAX_POPULAR_QUERIES = 
