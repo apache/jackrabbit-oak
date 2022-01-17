@@ -851,7 +851,6 @@ public class LucenePropertyIndex extends FulltextIndex {
      */
     private static LuceneRequestFacade getLuceneRequest(IndexPlan plan, IndexAugmentorFactory augmentorFactory, IndexReader reader) {
         FulltextQueryTermsProvider augmentor = getIndexAgumentor(plan, augmentorFactory);
-        List<Query> qs = new ArrayList<>();
         List<BooleanClause> queryWithClauseList = new ArrayList<>();
 
 
@@ -865,7 +864,6 @@ public class LucenePropertyIndex extends FulltextIndex {
             // when using the LowCostLuceneIndexProvider
             // which is used for testing
         } else {
-            //qs.add(getFullTextQuery(plan, ft, analyzer, augmentor));
             queryWithClauseList.add(new BooleanClause(getFullTextQuery(plan, ft, analyzer, augmentor), MUST));
         }
 
@@ -889,13 +887,11 @@ public class LucenePropertyIndex extends FulltextIndex {
                     if (sp.isEmpty()) {
                         Query moreLikeThis = MoreLikeThisHelper.getMoreLikeThis(reader, analyzer, mltQueryString);
                         if (moreLikeThis != null) {
-                            //qs.add(moreLikeThis);
                             queryWithClauseList.add(new BooleanClause(moreLikeThis, MUST));
                         }
                     } else {
                         Query similarityQuery = SimSearchUtils.getSimilarityQuery(sp, reader, mltQueryString);
                         if (similarityQuery != null) {
-                            //qs.add(similarityQuery);
                             queryWithClauseList.add(new BooleanClause(similarityQuery, MUST));
                         }
                     }
@@ -912,14 +908,13 @@ public class LucenePropertyIndex extends FulltextIndex {
                 }
             } else {
                 try {
-                    //qs.add(queryParser.parse(query));
                     queryWithClauseList.add(new BooleanClause(queryParser.parse(query), MUST));
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
                 }
             }
         } else if (planResult.evaluateNonFullTextConstraints()) {
-            addNonFullTextConstraints(queryWithClauseList, qs, plan, reader);
+            addNonFullTextConstraints(queryWithClauseList, plan, reader);
         }
 
         if (queryWithClauseList.size() == 0
@@ -935,7 +930,6 @@ public class LucenePropertyIndex extends FulltextIndex {
                 orderRest.propertyName = oe.getPropertyName();
                 Query q = createQuery(oe.getPropertyName(), orderRest, pd);
                 if (q != null) {
-                    //qs.add(q);
                     queryWithClauseList.add(new BooleanClause(q, MUST));
                 }
             }
@@ -968,28 +962,6 @@ public class LucenePropertyIndex extends FulltextIndex {
      */
     @NotNull
     public static LuceneRequestFacade<Query> performAdditionalWraps(@NotNull List<BooleanClause> queryWithClauseList) {
-        checkNotNull(queryWithClauseList);
-        /*if (qs.size() == 1) {
-            Query q = qs.get(0);
-            if (q instanceof BooleanQuery) {
-                BooleanQuery ibq = (BooleanQuery) q;
-                boolean onlyNotClauses = true;
-                for (BooleanClause c : ibq.getClauses()) {
-                    if (c.getOccur() != BooleanClause.Occur.MUST_NOT) {
-                        onlyNotClauses = false;
-                        break;
-                    }
-                }
-                if (onlyNotClauses) {
-                    // if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
-                    // query to work
-                    ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
-                }
-                return new LuceneRequestFacade<>(ibq);
-            }
-            return new LuceneRequestFacade<>(qs.get(0));
-        }*/
-
         if (queryWithClauseList.size() == 1) {
             Query q = queryWithClauseList.get(0).getQuery();
             if (q instanceof BooleanQuery) {
@@ -1013,16 +985,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         BooleanQuery bq = new BooleanQuery();
-        /*for (Query q : qs) {
-            boolean unwrapped = false;
-            if (q instanceof BooleanQuery) {
-                unwrapped = unwrapMustNot((BooleanQuery) q, bq);
-            }
-
-            if (!unwrapped) {
-                bq.add(q, MUST);
-            }
-        }*/
 
         for (BooleanClause clause : queryWithClauseList) {
             boolean unwrapped = false;
@@ -1078,13 +1040,13 @@ public class LucenePropertyIndex extends FulltextIndex {
         return null;
     }
 
-    private static void addNonFullTextConstraints(List<BooleanClause> queryWithClauseList, List<Query> qs,
+    private static void addNonFullTextConstraints(List<BooleanClause> queryWithClauseList,
                                                   IndexPlan plan, IndexReader reader) {
         Filter filter = plan.getFilter();
         PlanResult planResult = getPlanResult(plan);
         IndexDefinition defn = planResult.indexDefinition;
         if (!filter.matchesAllTypes()) {
-            addNodeTypeConstraints(planResult.indexingRule, queryWithClauseList, qs, filter);
+            addNodeTypeConstraints(planResult.indexingRule, queryWithClauseList, filter);
         }
 
         String path = getPathRestriction(plan);
@@ -1094,7 +1056,6 @@ public class LucenePropertyIndex extends FulltextIndex {
                     if ("/".equals(path)) {
                         break;
                     }
-                    qs.add(new TermQuery(newAncestorTerm(path)));
                     queryWithClauseList.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), MUST)) ;
                 }
                 break;
@@ -1103,7 +1064,6 @@ public class LucenePropertyIndex extends FulltextIndex {
                     BooleanQuery bq = new BooleanQuery();
                     bq.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
                     bq.add(new BooleanClause(newDepthQuery(path, planResult), BooleanClause.Occur.MUST));
-                    qs.add(bq);
                     queryWithClauseList.add(new BooleanClause(bq, MUST));
                 }
                 break;
@@ -1113,11 +1073,9 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (planResult.isPathTransformed()) {
                     String parentPathSegment = planResult.getParentPathSegment();
                     if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
-                        qs.add(new TermQuery(newPathTerm(path + parentPathSegment)));
                         queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(path + parentPathSegment)), MUST));
                     }
                 } else {
-                    qs.add(new TermQuery(newPathTerm(path)));
                     queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(path)), MUST));
                 }
                 break;
@@ -1126,7 +1084,6 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // there's no parent of the root node
                     // we add a path that can not possibly occur because there
                     // is no way to say "match no documents" in Lucene
-                    qs.add(new TermQuery(new Term(FieldNames.PATH, "///")));
                     queryWithClauseList.add(new BooleanClause(new TermQuery(new Term(FieldNames.PATH, "///")), MUST));
                 } else {
                     // For transformed paths, we can only add path restriction if absolute path to property can be
@@ -1134,11 +1091,9 @@ public class LucenePropertyIndex extends FulltextIndex {
                     if (planResult.isPathTransformed()) {
                         String parentPathSegment = planResult.getParentPathSegment();
                         if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
-                            qs.add(new TermQuery(newPathTerm(getParentPath(path) + parentPathSegment)));
                             queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(getParentPath(path) + parentPathSegment)),MUST));
                         }
                     } else {
-                        qs.add(new TermQuery(newPathTerm(getParentPath(path))));
                         queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(getParentPath(path))), MUST));
                     }
                 }
@@ -1159,7 +1114,6 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (planResult.evaluateNodeNameRestriction()) {
                     Query q = createNodeNameQuery(pr);
                     if (q != null) {
-                        qs.add(q);
                         queryWithClauseList.add(new BooleanClause(q, MUST));
                     }
                 }
@@ -1176,13 +1130,12 @@ public class LucenePropertyIndex extends FulltextIndex {
                 String first = pr.first.getValue(STRING);
                 first = first.replace("\\", "");
                 if (JCR_PATH.equals(name)) {
-                    qs.add(new TermQuery(newPathTerm(first)));
                     queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(first)), MUST));
                     continue;
                 } else if ("*".equals(name)) {
                     //TODO Revisit reference constraint. For performant impl
                     //references need to be indexed in a different manner
-                    addReferenceConstraint(first, qs, queryWithClauseList, reader);
+                    addReferenceConstraint(first, queryWithClauseList, reader);
                     continue;
                 }
             }
@@ -1196,10 +1149,8 @@ public class LucenePropertyIndex extends FulltextIndex {
             if (q != null) {
 
                 if (pr.isNot) {
-                    qs.add(q);
                     queryWithClauseList.add(new BooleanClause(q, MUST_NOT));
                 } else {
-                    qs.add(q);
                     queryWithClauseList.add(new BooleanClause(q, MUST));
                 }
 
@@ -1430,11 +1381,10 @@ public class LucenePropertyIndex extends FulltextIndex {
         throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported " + pr);
     }
 
-    private static void addReferenceConstraint(String uuid, List<Query> qs, List<BooleanClause> queryWithClauseList,
+    private static void addReferenceConstraint(String uuid, List<BooleanClause> queryWithClauseList,
                                                IndexReader reader) {
         if (reader == null) {
             // getPlan call
-            qs.add(new TermQuery(new Term("*", uuid)));
             queryWithClauseList.add(new BooleanClause(new TermQuery(new Term("*", uuid)), MUST));
             return;
         }
@@ -1445,11 +1395,10 @@ public class LucenePropertyIndex extends FulltextIndex {
         for (String f : fields) {
             bq.add(new TermQuery(new Term(f, uuid)), SHOULD);
         }
-        qs.add(bq);
         queryWithClauseList.add(new BooleanClause(bq, MUST));
     }
 
-    private static void addNodeTypeConstraints(IndexingRule defn, List<BooleanClause> queryWithClauseList , List<Query> qs, Filter filter) {
+    private static void addNodeTypeConstraints(IndexingRule defn, List<BooleanClause> queryWithClauseList, Filter filter) {
         BooleanQuery bq = new BooleanQuery();
         PropertyDefinition primaryType = defn.getConfig(JCR_PRIMARYTYPE);
         //TODO OAK-2198 Add proper nodeType query support
@@ -1468,7 +1417,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         if (bq.clauses().size() != 0) {
-            qs.add(bq);
             queryWithClauseList.add(new BooleanClause(bq, MUST));
         }
     }

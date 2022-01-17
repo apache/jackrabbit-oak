@@ -523,10 +523,11 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     public void testInequalityQuery_native() throws Exception {
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("test1").setProperty("propa", "foo");
+        test.addChild("test1").setProperty("propa", "hello");
         test.addChild("test2").setProperty("propa", "foo");
         test.addChild("test3").setProperty("propa", "foo");
         test.addChild("test4").setProperty("propa", "bar");
+        test.addChild("test5").setProperty("propa", "bar");
         root.commit();
 
         String query = "explain /jcr:root/test//*[propa!='bar']";
@@ -540,8 +541,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             }
             ResultRow row = result.getRows().iterator().next();
 
-            System.out.println(row.getValue("plan"));
-            //assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test +propa:[* TO *]"));
+            assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test -propa:bar"));
         });
 
         String query2 = "/jcr:root/test//*[propa!='bar']";
@@ -572,7 +572,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
                 assertTrue(e.getMessage(), false);
             }
             ResultRow row = result.getRows().iterator().next();
-           // assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test +propa:bar"));
+            assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test +propa:bar"));
         });
 
         String query2 = "/jcr:root/test//*[propa='bar']";
