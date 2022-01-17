@@ -1350,7 +1350,10 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // [property]=[value]
                     // Return a TERM QUERY here - handling for NOT condition will be later on done while building the final bool query
                     // where we can add excludes/MUST_NOT clause for this TERM query.
-                    return new TermQuery(new Term(propertyName, pr.not.getValue(STRING)));
+                    BooleanQuery bool = new BooleanQuery();
+                    bool.add(new TermQuery(new Term(propertyName, pr.not.getValue(STRING))), MUST_NOT);
+                    return bool;
+                    //return new TermQuery(new Term(propertyName, pr.not.getValue(STRING)));
                 }
             }
         }
