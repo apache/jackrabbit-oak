@@ -610,7 +610,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
      */
     private static LuceneRequestFacade getLuceneRequest(Filter filter, IndexReader reader, boolean nonFullTextConstraints,
                                                         LuceneIndexDefinition indexDefinition) {
-        List<Query> qs = new ArrayList<Query>();
         List<BooleanClause> queryWithClauseList = new ArrayList<>();
         Analyzer analyzer = indexDefinition.getAnalyzer();
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -619,7 +618,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             // when using the LowCostLuceneIndexProvider
             // which is used for testing
         } else {
-            qs.add(getFullTextQuery(ft, analyzer, reader));
             queryWithClauseList.add(new BooleanClause(getFullTextQuery(ft, analyzer, reader), MUST));
         }
         PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
@@ -631,7 +629,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 if (reader != null) {
                     Query moreLikeThis = MoreLikeThisHelper.getMoreLikeThis(reader, analyzer, mltQueryString);
                     if (moreLikeThis != null) {
-                        qs.add(moreLikeThis);
                         queryWithClauseList.add(new BooleanClause(moreLikeThis, MUST));
                     }
                 }
@@ -648,7 +645,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 }
             } else {
                 try {
-                    qs.add(queryParser.parse(query));
                     queryWithClauseList.add(new BooleanClause(queryParser.parse(query), MUST));
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
