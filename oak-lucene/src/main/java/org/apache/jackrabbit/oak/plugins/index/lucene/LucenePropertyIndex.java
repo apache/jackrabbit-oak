@@ -863,8 +863,6 @@ public class LucenePropertyIndex extends FulltextIndex {
     private static LuceneRequestFacade getLuceneRequest(IndexPlan plan, IndexAugmentorFactory augmentorFactory, IndexReader reader) {
         FulltextQueryTermsProvider augmentor = getIndexAgumentor(plan, augmentorFactory);
         List<Query> qs = new ArrayList<>();
-
-
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         PlanResult planResult = getPlanResult(plan);
@@ -994,9 +992,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             }
             return new LuceneRequestFacade<>(qs.get(0));
         }
-
         BooleanQuery bq = new BooleanQuery();
-
         for (Query q : qs) {
             boolean unwrapped = false;
             if (q instanceof BooleanQuery) {
@@ -1104,7 +1100,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                             qs.add(new TermQuery(newPathTerm(getParentPath(path) + parentPathSegment)));
                         }
                     } else {
-                       qs.add(new TermQuery(newPathTerm(getParentPath(path))));
+                        qs.add(new TermQuery(newPathTerm(getParentPath(path))));
                     }
                 }
                 break;
@@ -1392,7 +1388,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (reader == null) {
             // getPlan call
             qs.add(new TermQuery(new Term("*", uuid)));
-
             return;
         }
 
