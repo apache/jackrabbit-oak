@@ -610,7 +610,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
      */
     private static LuceneRequestFacade getLuceneRequest(Filter filter, IndexReader reader, boolean nonFullTextConstraints,
                                                         LuceneIndexDefinition indexDefinition) {
-        List<BooleanClause> queryWithClauseList = new ArrayList<>();
+        List<Query> qs = new ArrayList<>();
         Analyzer analyzer = indexDefinition.getAnalyzer();
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft == null) {
@@ -618,7 +618,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             // when using the LowCostLuceneIndexProvider
             // which is used for testing
         } else {
-            queryWithClauseList.add(new BooleanClause(getFullTextQuery(ft, analyzer, reader), MUST));
+            qs.add(getFullTextQuery(ft, analyzer, reader));
         }
         PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
         if (pr != null) {
@@ -629,7 +629,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 if (reader != null) {
                     Query moreLikeThis = MoreLikeThisHelper.getMoreLikeThis(reader, analyzer, mltQueryString);
                     if (moreLikeThis != null) {
-                        queryWithClauseList.add(new BooleanClause(moreLikeThis, MUST));
+                        qs.add(moreLikeThis);
                     }
                 }
             }
@@ -645,7 +645,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 }
             } else {
                 try {
-                    queryWithClauseList.add(new BooleanClause(queryParser.parse(query), MUST));
+                    qs.add(queryParser.parse(query));
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
                 }
@@ -654,11 +654,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             addNonFullTextConstraints(qs, filter, reader, analyzer,
                     indexDefinition);
         }
-        if (queryWithClauseList.size() == 0) {
+        if (qs.size() == 0) {
             return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
         }
 
-        return LucenePropertyIndex.performAdditionalWraps(queryWithClauseList);
+        return LucenePropertyIndex.performAdditionalWraps(qs);
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
