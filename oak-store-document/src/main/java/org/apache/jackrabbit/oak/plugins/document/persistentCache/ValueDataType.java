@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import static org.apache.jackrabbit.oak.plugins.document.persistentCache.DataTypeUtil.cast;
+
 import java.nio.ByteBuffer;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -72,40 +74,9 @@ public class ValueDataType implements DataType<Object> {
         }
     }
     
-    /**
-     * Cast the storage object to an array of type T.
-     *
-     * @param storage the storage object
-     * @return the array
-     */
-    protected final Object[] cast(Object storage) {
-        return (Object[])storage;
-    }
-
     @Override
-    public int binarySearch(Object key, Object storageObj, int size, int initialGuess) {
-        Object[] storage = cast(storageObj);
-        int low = 0;
-        int high = size - 1;
-        // the cached index minus one, so that
-        // for the first time (when cachedCompare is 0),
-        // the default value is used
-        int x = initialGuess - 1;
-        if (x < 0 || x > high) {
-            x = high >>> 1;
-        }
-        while (low <= high) {
-            int compare = compare(key, storage[x]);
-            if (compare > 0) {
-                low = x + 1;
-            } else if (compare < 0) {
-                high = x - 1;
-            } else {
-                return x;
-            }
-            x = (low + high) >>> 1;
-        }
-        return ~low;
+    public int binarySearch(Object key, Object storage, int size, int initialGuess) {
+        return DataTypeUtil.binarySearch(this, key, storage, size, initialGuess);
     }
 
     @Override
