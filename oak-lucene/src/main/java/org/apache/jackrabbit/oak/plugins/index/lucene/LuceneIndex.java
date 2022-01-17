@@ -651,7 +651,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 }
             }
         } else if (nonFullTextConstraints) {
-            addNonFullTextConstraints(qs, filter, reader, analyzer,
+            addNonFullTextConstraints(queryWithClauseList, filter, reader, analyzer,
                     indexDefinition);
         }
         if (queryWithClauseList.size() == 0) {
@@ -661,10 +661,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         return LucenePropertyIndex.performAdditionalWraps(queryWithClauseList);
     }
 
-    private static void addNonFullTextConstraints(List<Query> qs,
+    private static void addNonFullTextConstraints(List<BooleanClause> queryWithClauseList,
                                                   Filter filter, IndexReader reader, Analyzer analyzer, IndexDefinition indexDefinition) {
         if (!filter.matchesAllTypes()) {
-            addNodeTypeConstraints(qs, filter);
+            addNodeTypeConstraints(queryWithClauseList, filter);
         }
 
         String path = filter.getPath();
@@ -677,7 +677,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 if (!path.endsWith("/")) {
                     path += "/";
                 }
-                qs.add(new PrefixQuery(newPathTerm(path)));
+                queryWithClauseList.add(new BooleanClause(new PrefixQuery(newPathTerm(path)), MUST));
             }
             break;
         case DIRECT_CHILDREN:
@@ -685,20 +685,20 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 if (!path.endsWith("/")) {
                     path += "/";
                 }
-                qs.add(new PrefixQuery(newPathTerm(path)));
+                queryWithClauseList.add(new BooleanClause(new PrefixQuery(newPathTerm(path)), MUST));
             }
             break;
         case EXACT:
-            qs.add(new TermQuery(newPathTerm(path)));
+            queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(path)), MUST));
             break;
         case PARENT:
             if (denotesRoot(path)) {
                 // there's no parent of the root node
                 // we add a path that can not possibly occur because there
                 // is no way to say "match no documents" in Lucene
-                qs.add(new TermQuery(new Term(FieldNames.PATH, "///")));
+                queryWithClauseList.add(new BooleanClause(new TermQuery(new Term(FieldNames.PATH, "///")), MUST));
             } else {
-                qs.add(new TermQuery(newPathTerm(getParentPath(path))));
+                queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(getParentPath(path))), MUST));
             }
             break;
         case NO_RESTRICTION:
@@ -734,8 +734,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             if (skipTokenization(name)) {
-                qs.add(new TermQuery(new Term(name, pr.first
-                        .getValue(STRING))));
+                queryWithClauseList.add(new BooleanClause(new TermQuery(new Term(name, pr.first
+                        .getValue(STRING))), MUST));
                 continue;
             }
 
@@ -765,15 +765,15 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     // remove trailing "*" for prefixquery
                     first = first.substring(0, first.length() - 1);
                     if (JCR_PATH.equals(name)) {
-                        qs.add(new PrefixQuery(newPathTerm(first)));
+                        queryWithClauseList.add(new BooleanClause(new PrefixQuery(newPathTerm(first)), MUST));
                     } else {
-                        qs.add(new PrefixQuery(new Term(name, first)));
+                        queryWithClauseList.add(new BooleanClause(new PrefixQuery(new Term(name, first)), MUST));
                     }
                 } else {
                     if (JCR_PATH.equals(name)) {
-                        qs.add(new WildcardQuery(newPathTerm(first)));
+                        queryWithClauseList.add(new BooleanClause(new WildcardQuery(newPathTerm(first)), MUST));
                     } else {
-                        qs.add(new WildcardQuery(new Term(name, first)));
+                        queryWithClauseList.add(new BooleanClause(new WildcardQuery(new Term(name, first)), MUST));
                     }
                 }
                 continue;
@@ -782,13 +782,13 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             if (first != null && first.equals(last) && pr.firstIncluding
                     && pr.lastIncluding) {
                 if (JCR_PATH.equals(name)) {
-                    qs.add(new TermQuery(newPathTerm(first)));
+                    queryWithClauseList.add(new BooleanClause(new TermQuery(newPathTerm(first)), MUST));
                 } else {
                     if ("*".equals(name)) {
-                        addReferenceConstraint(first, qs, reader);
+                        addReferenceConstraint(first, queryWithClauseList, reader);
                     } else {
                         for (String t : tokenize(first, analyzer)) {
-                            qs.add(new TermQuery(new Term(name, t)));
+                            queryWithClauseList.add(new BooleanClause(new TermQuery(new Term(name, t)),MUST));
                         }
                     }
                 }
@@ -797,8 +797,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
             first = tokenizeAndPoll(first, analyzer);
             last = tokenizeAndPoll(last, analyzer);
-            qs.add(TermRangeQuery.newStringRange(name, first, last,
-                    pr.firstIncluding, pr.lastIncluding));
+            queryWithClauseList.add(new BooleanClause(TermRangeQuery.newStringRange(name, first, last,
+                    pr.firstIncluding, pr.lastIncluding), MUST));
         }
     }
 
@@ -850,11 +850,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         return (rule.propertyTypes & (1 << type)) != 0;
     }
 
-    private static void addReferenceConstraint(String uuid, List<Query> qs,
+    private static void addReferenceConstraint(String uuid, List<BooleanClause> queryWithClauseList,
             IndexReader reader) {
         if (reader == null) {
             // getPlan call
-            qs.add(new TermQuery(new Term("*", uuid)));
+            queryWithClauseList.add(new BooleanClause(new TermQuery(new Term("*", uuid)), MUST));
             return;
         }
 
@@ -864,10 +864,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         for (String f : fields) {
             bq.add(new TermQuery(new Term(f, uuid)), SHOULD);
         }
-        qs.add(bq);
+        queryWithClauseList.add(new BooleanClause(bq, MUST));
     }
 
-    private static void addNodeTypeConstraints(List<Query> qs, Filter filter) {
+    private static void addNodeTypeConstraints(List<BooleanClause> queryWithClauseList, Filter filter) {
         BooleanQuery bq = new BooleanQuery();
         for (String type : filter.getPrimaryTypes()) {
             bq.add(new TermQuery(new Term(JCR_PRIMARYTYPE, type)), SHOULD);
@@ -875,7 +875,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         for (String type : filter.getMixinTypes()) {
             bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
         }
-        qs.add(bq);
+        queryWithClauseList.add(new BooleanClause(bq, MUST));
     }
 
     static Query getFullTextQuery(FullTextExpression ft, final Analyzer analyzer, final IndexReader reader) {

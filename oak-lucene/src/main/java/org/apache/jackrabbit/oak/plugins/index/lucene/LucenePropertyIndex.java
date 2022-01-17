@@ -853,7 +853,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         FulltextQueryTermsProvider augmentor = getIndexAgumentor(plan, augmentorFactory);
         List<BooleanClause> queryWithClauseList = new ArrayList<>();
 
-
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         PlanResult planResult = getPlanResult(plan);
@@ -976,7 +975,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (onlyNotClauses) {
                     // if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
                     // query to work
-                    // CHECK IF THIS IS NEEDED still ?????
+                    // TODO : CHECK IF THIS IS NEEDED still ?????
                     ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
                 }
                 return new LuceneRequestFacade<>(ibq);
@@ -993,7 +992,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 unwrapped = unwrapMustNot((BooleanQuery) q, bq);
             }
 
-            if (!unwrapped){
+            if (!unwrapped) {
                 bq.add(q, clause.getOccur());
             }
         }
