@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
@@ -131,6 +132,7 @@ public class CacheTest {
     }
     
     @Test
+    @Ignore
     public void interrupt() throws Exception {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
         PersistentCache cache = new PersistentCache("target/cacheTest,size=1,-compress");
