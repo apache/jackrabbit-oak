@@ -354,6 +354,16 @@ public interface Filter {
             if (lastIncluding != other.lastIncluding) {
                 return false;
             }
+            if (isNot != other.isNot) {
+                return false;
+            }
+            if (not == null) {
+                if (other.not != null) {
+                    return false;
+                }
+            } else if (!not.equals(other.not)) {
+                return false;
+            }
             if (list == null) {
                 if (other.list != null) {
                     return false;

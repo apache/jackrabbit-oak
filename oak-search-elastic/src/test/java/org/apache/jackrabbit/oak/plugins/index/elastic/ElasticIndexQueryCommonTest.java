@@ -64,22 +64,19 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @Override
     public String getContainsValueFortestInequalityQuery_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"bool\":{\"must\"" +
-                ":[{\"range\":{\"propa.keyword\":{\"from\":null,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}]," +
-                "\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"exists\":{\"field\":\"propa\",\"boost\":1.0}}," +
+                "{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
     }
 
     @Override
     public String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native() {
-        return "\"filter\":[{\"bool\":{\"must\":[{\"range\":{\"propa.keyword\":{\"from\":null,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}]," +
-                "\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+        return "\"filter\":[{\"exists\":{\"field\":\"propa\",\"boost\":1.0}},{\"bool\":" +
+                "{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
     }
 
     @Override
     public String getContainsValueFortestEqualityInequalityCombined_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}}," +
-                "{\"term\":{\"propb.keyword\":{\"value\":\"world\",\"boost\":1.0}}}," +
-                "{\"bool\":{\"must\":[{\"range\":{\"propa.keyword\":{\"from\":null,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}]," +
-                "\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"term\":{\"propb.keyword\":{\"value\":\"world\",\"boost\":1.0}}}," +
+                "{\"exists\":{\"field\":\"propa\",\"boost\":1.0}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
     }
 }

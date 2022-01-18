@@ -74,7 +74,7 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @Override
     public String getContainsValueFortestInequalityQuery_native() {
-        return "+:ancestors:/test -propa:bar";
+        return "+:ancestors:/test +propa:[* TO *] -propa:bar";
     }
 
     @Override
@@ -84,6 +84,6 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @Override
     public String getContainsValueFortestEqualityInequalityCombined_native() {
-        return "+:ancestors:/test +propb:world -propa:bar +propa:[* TO *]";
+        return "+:ancestors:/test +propb:world +propa:[* TO *] -propa:bar";
     }
 }

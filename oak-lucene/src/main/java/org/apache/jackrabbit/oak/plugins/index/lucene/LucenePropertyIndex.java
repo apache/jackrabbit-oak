@@ -1239,10 +1239,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // not null. For date lower bound of zero can be used
                     return NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // -[property]=[value] + [property]=[* to *]
+                    // -[property]=[value]
                     BooleanQuery bool = new BooleanQuery();
-                    // This is to exclude entries where property value is null or include all entries where property is not null
-                    bool.add(NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true), MUST);
                     // This will exclude entries with [property]=[value]
                     bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
                 }
@@ -1276,10 +1274,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // not null.
                     return NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // -[property]=[value] + [property]=[* to *]
+                    // -[property]=[value]
                     BooleanQuery bool = new BooleanQuery();
-                    // This is to exclude entries where property value is null or include all entries where property is not null
-                    bool.add(NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true), MUST);
                     // This will exclude entries with [property]=[value]
                     bool.add(NumericRangeQuery.newDoubleRange(propertyName, pr.not.getValue(DOUBLE), pr.not.getValue(DOUBLE), true, true), MUST_NOT);
                 }
@@ -1312,10 +1308,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // not null.
                     return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // -[property]=[value] + [property]=[* to *]
+                    // -[property]=[value]
                     BooleanQuery bool = new BooleanQuery();
-                    // This is to exclude entries where property value is null or include all entries where property is not null
-                    bool.add(NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true), MUST);
                     // This will exclude entries with [property]=[value]
                     bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
                 }
@@ -1352,10 +1346,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                 } else if (pr.isNotNullRestriction()) {
                     return new TermRangeQuery(propertyName, null, null, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // -[property]=[value] + [property]=[* to *]
+                    // -[property]=[value]
                     BooleanQuery bool = new BooleanQuery();
-                    // This is to exclude entries where property value is null or include all entries where property is not null
-                    bool.add(new TermRangeQuery(propertyName, null, null, true, true), MUST);
                     // This will exclude entries with [property]=[value]
                     bool.add(new TermQuery(new Term(propertyName, pr.not.getValue(STRING))), MUST_NOT);
                     return bool;
