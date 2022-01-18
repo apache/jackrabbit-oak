@@ -972,6 +972,23 @@ public class LucenePropertyIndex extends FulltextIndex {
     @NotNull
     public static LuceneRequestFacade<Query> performAdditionalWraps(@NotNull List<Query> qs) {
         if (qs.size() == 1) {
+            Query q = qs.get(0);
+            if (q instanceof BooleanQuery) {
+                BooleanQuery ibq = (BooleanQuery) q;
+                boolean onlyNotClauses = true;
+                for (BooleanClause c : ibq.getClauses()) {
+                    if (c.getOccur() != BooleanClause.Occur.MUST_NOT) {
+                        onlyNotClauses = false;
+                        break;
+                    }
+                }
+                if (onlyNotClauses) {
+                    // if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
+                    // query to work
+                    // This check is needed now for Older version of lucene(Implementation in LuceneIndex.java)
+                    ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
+                }
+            }
             return new LuceneRequestFacade<>(qs.get(0));
         }
         BooleanQuery bq = new BooleanQuery();
