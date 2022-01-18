@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
+import org.h2.mvstore.type.DataType;
 import org.h2.mvstore.type.StringDataType;
 
 /**
@@ -166,4 +167,40 @@ class DataTypeUtil {
         return new DocumentNodeState(store, p, rootRevision, props,
                 !noChildren, mem, lastRevision, false);
     }
+
+    /**
+     * Cast the storage object to an array of type T.
+     *
+     * @param storage the storage object
+     * @return the array
+     */
+    static Object[] cast(Object storage) {
+        return (Object[])storage;
+    }
+
+    static int binarySearch(DataType<Object> dataType, Object key, Object storageObj, int size, int initialGuess) {
+        Object[] storage = cast(storageObj);
+        int low = 0;
+        int high = size - 1;
+        // the cached index minus one, so that
+        // for the first time (when cachedCompare is 0),
+        // the default value is used
+        int x = initialGuess - 1;
+        if (x < 0 || x > high) {
+            x = high >>> 1;
+        }
+        while (low <= high) {
+            int compare = dataType.compare(key, storage[x]);
+            if (compare > 0) {
+                low = x + 1;
+            } else if (compare < 0) {
+                high = x - 1;
+            } else {
+                return x;
+            }
+            x = (low + high) >>> 1;
+        }
+        return ~low;
+    }
+
 }

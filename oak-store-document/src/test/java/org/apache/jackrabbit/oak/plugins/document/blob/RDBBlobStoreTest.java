@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.blob;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.security.MessageDigest;
@@ -76,6 +77,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         return result;
     }
 
+    private RDBBlobStoreFixture fixture;
     private RDBBlobStore blobStore;
     private String blobStoreName;
     private RDBDataSourceWrapper dsw;
@@ -83,6 +85,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStoreTest.class);
 
     public RDBBlobStoreTest(RDBBlobStoreFixture bsf) {
+        fixture = bsf;
         blobStore = bsf.createRDBBlobStore();
         blobStoreName = bsf.getName();
         dsw = bsf.getDataSource();
@@ -118,6 +121,9 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     @Test
     public void testBigBlob() throws Exception {
+        // OAK-9668: H2 has a limit of 1MB for BINARY VARYING
+        assumeTrue(fixture != RDBBlobStoreFixture.RDB_H2);
+
         int min = 0;
         int max = 8 * 1024 * 1024;
         int test = 0;
