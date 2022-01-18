@@ -19,12 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.dynamicBoost;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
+import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -50,22 +52,20 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
+import static org.junit.Assert.assertEquals;
+
+// dynamic boost: the - should not work for dynamic boost per Fabrizio, todo: should be documented
+// dynamic boost lite: not like dynamic boost, it doesn't respect confidence as order, todo: should be documented
 
 /**
- * Tests the index augmentation feature.
+ * Tests the dynamic boost indexing and queries
  */
 public class DynamicBoostTest extends AbstractQueryTest {
-
-    public static final String ASSET_NODE_TYPE =
-            "[dam:Asset]\n" +
-                    " - * (UNDEFINED) multiple\n" +
-                    " - * (UNDEFINED)\n" +
-                    " + * (nt:base) = oak:TestNode VERSION";
-
-    private static final String UNSTRUCTURED = "nt:unstructured";
+    public static final String ASSET_NODE_TYPE = "[dam:Asset]\n" + " - * (UNDEFINED) multiple\n" + " - * (UNDEFINED)\n" + " + * (nt:base) = oak:TestNode VERSION";
 
     private final SimpleIndexAugmentorFactory factory = new SimpleIndexAugmentorFactory();
 
@@ -77,101 +77,280 @@ public class DynamicBoostTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         IndexTracker tracker = new IndexTracker();
-        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
-                new ExtractedTextCache(0, 0),
-                factory, Mounts.defaultMountInfoProvider());
-        LuceneIndexProvider provider = new LuceneIndexProvider(tracker,
-                factory);
-        return new Oak()
-                .with(new OpenSecurityProvider())
+        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null, new ExtractedTextCache(0, 0), factory,
+                Mounts.defaultMountInfoProvider());
+        LuceneIndexProvider provider = new LuceneIndexProvider(tracker, factory);
+        return new Oak().with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
                 .with(editorProvider)
                 .createContentRepository();
     }
 
-    @Test public void withFieldProvider() throws Exception {
+    // Section 1. indexing test
+    @Test
+    public void testIndexingFieldProvider() throws Exception {
         NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
-        createIndex("dam:Asset");
+        createIndex("dam:Asset", false);
         root.commit();
         factory.indexFieldProvider = new IndexFieldProviderImpl();
+        factory.queryTermsProvider = new FulltextQueryTermsProviderImpl();
 
-        String log = runTest(IndexFieldProviderImpl.class, true);
-        assertEquals(
-                "[" +
-                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0" +
-                        "]", log);
+        String log = runIndexingTest(IndexFieldProviderImpl.class, true);
+        assertEquals("[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0" + "]", log);
     }
 
-    @Test public void withDynamicBoost() throws Exception {
-        NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
-        Tree props = createIndex("dam:Asset");
-        Tree pt = createNodeWithType(props, "predictedTags", UNSTRUCTURED);
-        pt.setProperty("name", "jcr:content/metadata/predictedTags/.*");
-        pt.setProperty("isRegexp", true);
-        pt.setProperty("dynamicBoost", true);
-        pt.setProperty("propertyIndex", true);
-        root.commit();
+    @Test
+    public void testIndexingDynamicBoost() throws Exception {
+        createAssetsIndexAndProperties(false, false);
 
-        String log = runTest(LuceneDocumentMaker.class, true);
+        String log = runIndexingTest(LuceneDocumentMaker.class, true);
         assertEquals(
-                "[" +
-                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " +
-                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " +
-                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
-                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
-                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
-                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
-                        "confidence is an array: jcr:content/metadata/predictedTags, " +
-                        "confidence is an array: jcr:content/metadata/predictedTags, " +
-                        "name is an array: jcr:content/metadata/predictedTags, " +
-                        "name is an array: jcr:content/metadata/predictedTags" +
-                        "]", log);
+                "[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " + "confidence is not finite: jcr:content/metadata/predictedTags, " + "confidence is not finite: jcr:content/metadata/predictedTags, " + "confidence parsing failed: jcr:content/metadata/predictedTags, " + "confidence parsing failed: jcr:content/metadata/predictedTags, " + "confidence is an array: jcr:content/metadata/predictedTags, " + "confidence is an array: jcr:content/metadata/predictedTags, " + "name is an array: jcr:content/metadata/predictedTags, " + "name is an array: jcr:content/metadata/predictedTags" + "]",
+                log);
     }
 
-    @Test public void withDynamicBoostLite() throws Exception {
-        NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
-        Tree props = createIndex("dam:Asset", true);
-        Tree pt = createNodeWithType(props, "predictedTags", UNSTRUCTURED);
-        pt.setProperty("name", "jcr:content/metadata/predictedTags/.*");
-        pt.setProperty("isRegexp", true);
-        pt.setProperty("dynamicBoost", true);
-        pt.setProperty("propertyIndex", true);
-        root.commit();
+    @Test
+    public void testIndexingDynamicBoostLite() throws Exception {
+        createAssetsIndexAndProperties(true, false);
 
-        String log = runTest(LuceneDocumentMaker.class, true);
+        String log = runIndexingTest(LuceneDocumentMaker.class, true);
         assertEquals("[]", log);
     }
 
-    @Test public void withDynamicBoostMissingProperty() throws Exception {
-        NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
-        Tree props = createIndex("dam:Asset");
-        Tree pt = createNodeWithType(props, "predictedTags", UNSTRUCTURED);
-        pt.setProperty("name", "jcr:content/metadata/predictedTags/.*");
-        pt.setProperty("isRegexp", true);
-        pt.setProperty("dynamicBoost", true);
-        pt.setProperty("propertyIndex", true);
-        root.commit();
+    @Test
+    public void testIndexingDynamicBoostMissingProperty() throws Exception {
+        createAssetsIndexAndProperties(true, false);
 
-        String log = runTest(LuceneDocumentMaker.class, false);
+        String log = runIndexingTest(LuceneDocumentMaker.class, false);
         assertEquals("[]", log);
     }
 
-    private String runTest(Class<?> loggerClass, boolean nameProperty) throws CommitFailedException {
-        LogCustomizer customLogs = LogCustomizer
-                .forLogger(loggerClass)
-                .enable(Level.TRACE).create();
+    // verifying fulltext query syntax ability, put here for comparison with dynamic boost and dynamic boost lite
+    @Test
+    public void testQueryFullTextWithTitle() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'titleone')]", XPATH, Arrays.asList("/test/asset1"));
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+        // case insensitive
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'LONG')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+        // wildcard works
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'title*')]", XPATH,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+        // space is treated as AND
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long titleone')]", XPATH, Arrays.asList("/test/asset1"));
+        // OR works
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long OR titleone')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+        // minus works
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long -titleone')]", XPATH, Arrays.asList("/test/asset2"));
+    }
+
+    // Section 2. Query dynamicboost testing
+    @Test
+    public void testQueryDynamicBoostBasic() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+
+        assertEquals(
+                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant " + "((jcr:content/metadata/predictedTags/plant:1 jcr:content/metadata/predictedTags/plant:1)^1.0E-4) ft:(\"plant\")\n" + "  where contains([a].[*], 'plant') */",
+                explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
+
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+    }
+
+    // dynamic boost: query should be case insensitive
+    @Test
+    public void testQueryDynamicBoostCaseInsensitive() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+    }
+
+    @Ignore //todo: bug? wildcard doesn't work at all for dynamic boost term
+    @Test
+    public void testQueryDynamicBoostWildcard() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blu*')]", XPATH, Arrays.asList("/test/asset3"));
+    }
+
+    // dynamic boost: should respect confidence as query result order
+    @Test
+    public void testQueryDynamicBoostOrder() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+
+        assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant')",
+                Arrays.asList("/test/asset2", "/test/asset3", "/test/asset1"));
+    }
+
+    // dynamic boost: space is explained as OR instead of AND which is documented as fulltext query in OAK doc todo: should be documented
+    @Test
+    public void testQueryDynamicBoostSpace() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')", SQL2,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+    }
+
+    @Test
+    public void testQueryDynamicBoostOr() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')", SQL2,
+                Arrays.asList("/test/asset2", "/test/asset3"));
+    }
+
+    @Ignore // todo: failed, minus doesn't work
+    @Test
+    public void testQueryDynamicBoostMinus() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
+    }
+
+
+    @Ignore
+    //todo: bug? if both terms are dynamic boost, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
+    // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
+    @Test
+    public void testQueryMixSpace() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue long')]", XPATH,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+    }
+
+    @Test
+    public void testQueryMixOr() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+        // explicit OR works as expected
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue OR long')]", XPATH,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+    }
+
+    @Ignore //todo: bug? minus doesn't work at for neither fulltext term nor dynamic boost term
+    @Test
+    public void testQueryMixMinus() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+        prepareTestAssets();
+        // dynamicBoost term then minus fulltext term
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant -titleone')]", XPATH, Arrays.asList("/test/asset2"));
+        // fulltext term then minus dynamicBoost term
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long -coffee')]", XPATH, Arrays.asList("/test/asset1"));
+    }
+
+
+    // Section 3. Query dynamicboost lite testing
+    @Test
+    public void testQueryDynamicBoostLiteBasic() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertEquals(
+                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant simtags:plant ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
+                explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
+
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+    }
+
+    @Ignore // dynamic boost lite: dynamic boost lite don't work as case insensitive like dynamic boost, todo: log a bug?
+    @Test
+    public void testQueryDynamicBoostLiteCaseInsensitive() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'FLOWER')", SQL2, Arrays.asList("/test/asset1", "/test/asset2"));
+    }
+
+    @Ignore //todo: bug? wildcard doesn't work at all for dynamic boost term
+    @Test
+    public void testQueryDynamicBoostLiteWildcard() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blu*')]", XPATH, Arrays.asList("/test/asset3"));
+    }
+
+    @Ignore
+    @Test
+    public void testQueryDynamicBoostLiteSpace() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')", SQL2,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+    }
+
+    @Ignore // dynamic boost lite: a space doesn't work at all, as GRANITE-36832 todo: log a bug?
+    @Test
+    public void testQueryDynamicBoostLiteOr() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')", SQL2,
+                Arrays.asList("/test/asset2", "/test/asset3"));
+    }
+
+    @Ignore // dynamic boost lite: - doesn't work as well todo: bug or design
+    @Test
+    public void testQueryDynamicBoostLiteMinus() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
+    }
+
+    @Ignore
+    //todo: bug? if both terms are dynamic boost lite, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
+    // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
+    @Test
+    public void testQueryLiteMixSpace() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue long')]", XPATH,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+    }
+
+    @Ignore //todo: bug? a explicit OR doesn't work for combination of fulltext and dyanmic boost lite terms
+    @Test
+    public void testQueryLiteMixOr() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue OR long')]", XPATH,
+                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+    }
+
+    @Ignore //todo: bug? minus doesn't work at for neither fulltext term nor dynamic boost lite term
+    @Test
+    public void testQueryLiteMixMinus() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant -titleone')]", XPATH, Arrays.asList("/test/asset2"));
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long -coffee')]", XPATH, Arrays.asList("/test/asset1"));
+    }
+
+    // Section 4. utils and assistant methods
+    private String runIndexingTest(Class<?> loggerClass, boolean nameProperty) throws CommitFailedException {
+        LogCustomizer customLogs = LogCustomizer.forLogger(loggerClass).enable(Level.TRACE).create();
         customLogs.starting();
         try {
-            Tree test = createNodeWithType(root.getTree("/"), "test", UNSTRUCTURED);
-            Tree node = createNodeWithType(test, "item", "dam:Asset");
-            Tree predicted =
-                    createNodeWithType(
-                            createNodeWithType(
-                                    createNodeWithType(node, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
-                                    "metadata", UNSTRUCTURED),
-                            "predictedTags", UNSTRUCTURED);
-            Tree t = createNodeWithType(predicted, "a", UNSTRUCTURED);
+            Tree test = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+            Tree node = createNodeWithType(test, "item", "dam:Asset", "");
+            Tree predicted = createNodeWithType(
+                    createNodeWithType(createNodeWithType(node, JcrConstants.JCR_CONTENT, JcrConstants.NT_UNSTRUCTURED, ""), "metadata",
+                            JcrConstants.NT_UNSTRUCTURED, ""), "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
+            Tree t = createNodeWithType(predicted, "a", JcrConstants.NT_UNSTRUCTURED, "");
             if (nameProperty) {
                 t.setProperty("name", "my:a");
             }
@@ -223,14 +402,72 @@ public class DynamicBoostTest extends AbstractQueryTest {
         }
     }
 
-    private static Tree createNodeWithType(Tree t, String nodeName, String typeName){
-        t = t.addChild(nodeName);
-        t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
-        return t;
+    private void prepareTestAssets() throws CommitFailedException {
+        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+
+        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "titleone long");
+        createPredictedTag(predicted1, "plant", 0.1);
+        createPredictedTag(predicted1, "flower", 0.1);
+
+        Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2", "titletwo long");
+        createPredictedTag(predicted2, "plant", 0.9);
+        createPredictedTag(predicted2, "flower", 0.1);
+        createPredictedTag(predicted2, "coffee", 0.5);
+
+        Tree predicted3 = createAssetNodeWithPredicted(testParent, "asset3", "titlethree short");
+        createPredictedTag(predicted3, "plant", 0.5);
+        createPredictedTag(predicted3, "blue", 0.5);
+        root.commit();
     }
 
-    private Tree createIndex(String nodeType) throws Exception {
-        return createIndex(nodeType, false);
+    private Tree createAssetNodeWithPredicted(Tree parent, String assetNodeName, String assetTitle) {
+        Tree node = createNodeWithType(parent, assetNodeName, "dam:Asset", "");
+        Tree predicted = createNodeWithType(
+                createNodeWithType(createNodeWithType(node, JcrConstants.JCR_CONTENT, JcrConstants.NT_UNSTRUCTURED, assetTitle), "metadata",
+                        JcrConstants.NT_UNSTRUCTURED, ""), "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
+        return predicted;
+    }
+
+    private void createPredictedTag(Tree parent, String tagName, double confidence) {
+        Tree node = createNodeWithType(parent, tagName, JcrConstants.NT_UNSTRUCTURED, "");
+        node.setProperty("name", tagName);
+        node.setProperty("confidence", confidence);
+    }
+
+    private Tree createNodeWithType(Tree parent, String nodeName, String nodeType, String title) {
+        Tree node = parent.addChild(nodeName);
+        node.setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
+        if (StringUtils.isNotEmpty(title)) {
+            node.setProperty("title", title, Type.STRING);
+        }
+        return node;
+    }
+
+    private void createAssetsIndexAndProperties(boolean lite, boolean similarityTags) throws Exception {
+        NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
+        Tree props = createIndex("dam:Asset", lite);
+
+        Tree predictedTagsDynamicBoost = createNodeWithType(props, "predictedTagsDynamicBoost", JcrConstants.NT_UNSTRUCTURED, "");
+        predictedTagsDynamicBoost.setProperty("name", "jcr:content/metadata/predictedTags/.*");
+        predictedTagsDynamicBoost.setProperty("isRegexp", true);
+        predictedTagsDynamicBoost.setProperty("dynamicBoost", true);
+        predictedTagsDynamicBoost.setProperty("propertyIndex", true);
+        predictedTagsDynamicBoost.setProperty("nodeScopeIndex", true);
+
+        Tree titleBoost = createNodeWithType(props, "title", JcrConstants.NT_UNSTRUCTURED, "");
+        titleBoost.setProperty("name", "jcr:content/title");
+        titleBoost.setProperty("propertyIndex", true);
+        titleBoost.setProperty("nodeScopeIndex", true);
+
+        if (similarityTags) {
+            Tree predictedTags = createNodeWithType(props, "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
+            predictedTags.setProperty("name", "jcr:content/metadata/predictedTags/*/name");
+            predictedTags.setProperty("isRegexp", true);
+            predictedTags.setProperty("similarityTags", true);
+        }
+        root.commit();
+
+        factory.queryTermsProvider = new FulltextQueryTermsProviderImpl();
     }
 
     private Tree createIndex(String nodeType, boolean lite) throws Exception {
@@ -241,18 +478,33 @@ public class DynamicBoostTest extends AbstractQueryTest {
         return TestUtil.newRulePropTree(index, nodeType);
     }
 
+    // utils
+    protected void assertOrderedQuery(String sql, List<String> paths) {
+        List<String> result = executeQuery(sql, AbstractQueryTest.SQL2, true, true);
+        assertEquals(paths, result);
+    }
+
+    private String explain(String query, String language) {
+        String explain = "explain " + query;
+        return executeQuery(explain, language).get(0);
+    }
+
+    private InputStream toInputStream(String x) {
+        return new ByteArrayInputStream(x.getBytes());
+    }
+
     private static class SimpleIndexAugmentorFactory extends IndexAugmentorFactory {
         IndexFieldProvider indexFieldProvider = IndexFieldProvider.DEFAULT;
+        FulltextQueryTermsProvider queryTermsProvider = FulltextQueryTermsProvider.DEFAULT;
 
         @Override
         public IndexFieldProvider getIndexFieldProvider(String nodeType) {
             return indexFieldProvider;
         }
 
+        @Override
+        public FulltextQueryTermsProvider getFulltextQueryTermsProvider(String nodeType) {
+            return queryTermsProvider;
+        }
     }
-
-    private static InputStream toInputStream(String x) {
-        return new ByteArrayInputStream(x.getBytes());
-    }
-
 }
