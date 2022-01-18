@@ -1202,10 +1202,10 @@ public class QueryImpl implements Query {
 
         if (potentiallySlowTraversalQuery || bestIndex == null) {
             // Log error for fulltext queries without index, since these cannot return results
-        	if(!filter.getFulltextConditions().isEmpty()) { 
-        		LOG.error("Fulltext query without index for filter {}; no results will be returned", filter);
-        	} else {
-	            LOG.debug("no proper index was found for filter {}", filter);      
+            if(!filter.getFulltextConditions().isEmpty()) { 
+                LOG.error("Fulltext query without index for filter {}; no results will be returned", filter);
+            } else {
+                LOG.debug("no proper index was found for filter {}", filter);      
             }
             
             StatisticsProvider statisticsProvider = getSettings().getStatisticsProvider();
