@@ -97,6 +97,18 @@ interface CompiledPermissions {
      * Returns {@code true} if the given {@code permissions} are granted on the
      * tree identified by the specified {@code path}.
      *
+     * @param path Path of an item
+     * @param isProperty If the path points to an property
+     * @param permissions The permissions to be tested.
+     * @return {@code true} if granted.
+     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(String, String)}
+     */
+    boolean isGranted(@NotNull String path, boolean isProperty, long permissions);
+    
+    /**
+     * Returns {@code true} if the given {@code permissions} are granted on the
+     * tree identified by the specified {@code path}.
+     *
      * @param path Path of a tree
      * @param permissions The permissions to be tested.
      * @return {@code true} if granted.

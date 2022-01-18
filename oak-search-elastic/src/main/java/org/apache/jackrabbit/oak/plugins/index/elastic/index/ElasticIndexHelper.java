@@ -21,7 +21,9 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -37,6 +39,20 @@ class ElasticIndexHelper {
 
     private static final String ES_DENSE_VECTOR_DIM_PROP = "dims";
 
+    // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
+    // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
+    private static final String INITIAL_REFRESH_INTERVAL = "-1";
+    private static final int INITIAL_NUMBER_OF_REPLICAS = 0;
+
+    /**
+     * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
+     * The returned object can be used to create and index optimized for bulk loads (eg: reindexing) but not for queries.
+     * To make it usable, a #enableIndexRequest needs to be performed.
+     * @param remoteIndexName the final index name
+     * @param indexDefinition the definition used to read settings/mappings
+     * @return a {@code CreateIndexRequest}
+     * @throws IOException if an error happens while creating the request
+     */
     public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
         final CreateIndexRequest request = new CreateIndexRequest(remoteIndexName);
 
@@ -60,14 +76,34 @@ class ElasticIndexHelper {
         return request;
     }
 
+    /**
+     * Returns a {@code UpdateSettingsRequest} to make an index ready to be queried and updated in near real time.
+     * @param remoteIndexName the final index name (no alias)
+     * @param indexDefinition the definition used to read settings/mappings
+     * @return an {@code UpdateSettingsRequest}
+     */
+    public static UpdateSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
+        UpdateSettingsRequest request = new UpdateSettingsRequest(remoteIndexName);
+
+        Settings.Builder settingsBuilder = Settings.builder()
+                .putNull("index.refresh_interval") // null=reset a setting back to the default value
+                .put("index.number_of_replicas", indexDefinition.numberOfReplicas);
+
+        return request.settings(settingsBuilder);
+    }
+
     private static XContentBuilder loadSettings(ElasticIndexDefinition indexDefinition) throws IOException {
         final XContentBuilder settingsBuilder = XContentFactory.jsonBuilder();
         settingsBuilder.startObject();
         if (indexDefinition.getSimilarityProperties().size() > 0) {
             settingsBuilder.field("elastiknn", true);
         }
-        settingsBuilder.field("number_of_shards", indexDefinition.numberOfShards);
-        settingsBuilder.field("number_of_replicas", indexDefinition.numberOfReplicas);
+        // static setting: cannot be changed after the index gets created
+        settingsBuilder.field("index.number_of_shards", indexDefinition.numberOfShards);
+
+        // dynamic settings: see #enableIndexRequest
+        settingsBuilder.field("index.refresh_interval", INITIAL_REFRESH_INTERVAL);
+        settingsBuilder.field("index.number_of_replicas", INITIAL_NUMBER_OF_REPLICAS);
         {
             settingsBuilder.startObject("analysis");
             {

@@ -57,7 +57,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
 
     private final Root root;
     private final String workspaceName;
-    private final Iterable principalPaths;
+    private final Iterable<String> principalPaths;
     private final MgrProvider mgrProvider;
     private final TreeTypeProvider typeProvider;
 
@@ -341,7 +341,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         Predicate<PermissionEntry> predicate;
         if (readOnly == null) {
             oakPath = REPOSITORY_PERMISSION_PATH;
-            predicate = EntryPredicate.create(null);
+            predicate = EntryPredicate.create();
         } else {
             oakPath = readOnly.getPath();
             predicate = EntryPredicate.create(readOnly, null);
@@ -366,7 +366,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         if (effectivePath == null) {
             return PrivilegeBits.EMPTY;
         } else {
-            return modAcBits.modifiable().diff(getGrantedPrivilegeBits(effectivePath, EntryPredicate.create(effectivePath)));
+            return modAcBits.modifiable().diff(getGrantedPrivilegeBits(effectivePath, EntryPredicate.create(effectivePath, false)));
         }
     }
 
@@ -393,7 +393,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     }
 
     @Nullable
-    private String getEffectivePath(@NotNull Tree tree) {
+    private static String getEffectivePath(@NotNull Tree tree) {
         Tree principalEntry = null;
         if (Utils.isPrincipalEntry(tree)) {
             principalEntry = tree;
@@ -408,7 +408,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         return ReadOnlyVersionManager.getInstance(immutableRoot, NamePathMapper.DEFAULT).getVersionable(versionTree, workspaceName);
     }
 
-    private boolean isVersionStoreTree(@NotNull Tree tree) {
+    private static boolean isVersionStoreTree(@NotNull Tree tree) {
         return ReadOnlyVersionManager.isVersionStoreTree(tree);
     }
 
@@ -430,7 +430,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
 
         private long getGranted() {
             if (grantedPermissions == -1) {
-                PrivilegeBits pb = getGrantedPrivilegeBits(REPOSITORY_PERMISSION_PATH, EntryPredicate.create(null));
+                PrivilegeBits pb = getGrantedPrivilegeBits(REPOSITORY_PERMISSION_PATH, EntryPredicate.create());
                 grantedPermissions = PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true);
             }
             return grantedPermissions;

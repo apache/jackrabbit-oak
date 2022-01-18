@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
@@ -38,7 +39,7 @@ public class NodeStateEntryReader {
     public NodeStateEntry read(String line){
         String[] parts = NodeStateEntryWriter.getParts(line);
         long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
-        return new NodeStateEntry(parseState(parts[1]), parts[0], memUsage);
+        return new NodeStateEntryBuilder(parseState(parts[1]), parts[0]).withMemUsage(memUsage).build();
     }
 
     private NodeState parseState(String part) {

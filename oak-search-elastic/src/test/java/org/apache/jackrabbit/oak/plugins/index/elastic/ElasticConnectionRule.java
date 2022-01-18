@@ -23,14 +23,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.client.RequestOptions;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.Network;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.utility.MountableFile;
 
@@ -52,27 +51,18 @@ To be used as a @ClassRule
 public class ElasticConnectionRule extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticConnectionRule.class);
-    private ElasticConnection elasticConnection;
-    private final String elasticConnectionString;
-    private static final String INDEX_PREFIX = "ElasticTest_";
+
+    private static final String INDEX_PREFIX = "elastic_test";
     private static final String PLUGIN_DIGEST = "060117b4150c87274d9cff0925ec16e714f28a40906a53a2cd2a23322bbb3189";
     private static boolean useDocker = false;
+
+    private final String elasticConnectionString;
 
     public ElasticConnectionRule(String elasticConnectionString) {
         this.elasticConnectionString = elasticConnectionString;
     }
 
     public ElasticsearchContainer elastic;
-
-    /*
-    Executed once in the test class' execution lifecycle, after the execution of apply()
-     */
-    @Override
-    protected void before() {
-        if (useDocker()) {
-            elasticConnection = getElasticConnectionForDocker();
-        }
-    }
 
     /*
     This is the first method to be executed. It gets executed exactly once at the beginning of the test class execution.
@@ -87,11 +77,15 @@ public class ElasticConnectionRule extends ExternalResource {
         downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
         if (elasticConnectionString == null || getElasticConnectionFromString() == null) {
             checkIfDockerClientAvailable();
+            Network network = Network.newNetwork();
+
             elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT)
                     .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                     .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
-                    .withCommand("bash /tmp/elasticstartscript.sh");
-            s = elastic.apply(s, description);
+                    .withCommand("bash /tmp/elasticstartscript.sh")
+                    .withNetwork(network);
+            elastic.start();
+
             setUseDocker(true);
         }
         return s;
@@ -99,7 +93,9 @@ public class ElasticConnectionRule extends ExternalResource {
 
     @Override
     protected void after() {
-        //TODO: See if something needs to be cleaned up at test class level ??
+        if (elastic != null && elastic.isRunning()) {
+            elastic.stop();
+        }
     }
 
     private void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
@@ -108,7 +104,7 @@ public class ElasticConnectionRule extends ExternalResource {
             LOG.info("Plugin file {} doesn't exist. Trying to download.", localPluginPath);
             try (CloseableHttpClient client = HttpClients.createDefault()) {
                 HttpGet get = new HttpGet("https://github.com/alexklibisz/elastiknn/releases/download/" + pluginVersion
-                        +"/elastiknn-" + pluginVersion +".zip");
+                        + "/elastiknn-" + pluginVersion + ".zip");
                 CloseableHttpResponse response = client.execute(get);
                 InputStream inputStream = response.getEntity().getContent();
                 MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
@@ -126,62 +122,50 @@ public class ElasticConnectionRule extends ExternalResource {
                     if (!pluginFile.delete()) {
                         deleteString = "Could not delete downloaded plugin file.";
                     }
-                    throw new RuntimeException("Plugin digest unequal. Found " + result.toString() + ". Expected " + PLUGIN_DIGEST + ". " + deleteString);
+                    throw new RuntimeException("Plugin digest unequal. Found " + result + ". Expected " + PLUGIN_DIGEST + ". " + deleteString);
                 }
-            } catch (IOException|NoSuchAlgorithmException e) {
+            } catch (IOException | NoSuchAlgorithmException e) {
                 throw new RuntimeException("Could not download similarity search plugin", e);
             }
         }
     }
 
     public ElasticConnection getElasticConnectionFromString() {
-        if (elasticConnection == null) {
-            try {
-                URI uri = new URI(elasticConnectionString);
-                String host = uri.getHost();
-                String scheme = uri.getScheme();
-                int port = uri.getPort();
-                String query = uri.getQuery();
+        try {
+            URI uri = new URI(elasticConnectionString);
+            String host = uri.getHost();
+            String scheme = uri.getScheme();
+            int port = uri.getPort();
+            String query = uri.getQuery();
 
-                String api_key = null;
-                String api_secret = null;
-                if (query != null) {
-                    api_key = query.split(",")[0].split("=")[1];
-                    api_secret = query.split(",")[1].split("=")[1];
-                }
-                elasticConnection = ElasticConnection.newBuilder()
-                        .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
-                        .withConnectionParameters(scheme, host, port)
-                        .withApiKeys(api_key, api_secret)
-                        .build();
-            } catch (URISyntaxException e) {
-                return null;
+            String api_key = null;
+            String api_secret = null;
+            if (query != null) {
+                api_key = query.split(",")[0].split("=")[1];
+                api_secret = query.split(",")[1].split("=")[1];
             }
+            return ElasticConnection.newBuilder()
+                    .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
+                    .withConnectionParameters(scheme, host, port)
+                    .withApiKeys(api_key, api_secret)
+                    .build();
+        } catch (URISyntaxException e) {
+            return null;
         }
-        return elasticConnection;
     }
 
     public ElasticConnection getElasticConnectionForDocker() {
-        if (elasticConnection == null) {
-            elasticConnection = ElasticConnection.newBuilder()
-                    .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
-                    .withConnectionParameters(ElasticConnection.DEFAULT_SCHEME,
-                            elastic.getContainerIpAddress(),
-                            elastic.getMappedPort(ElasticConnection.DEFAULT_PORT))
-                    .withApiKeys(null, null)
-                    .build();
-        }
-        return elasticConnection;
+        return getElasticConnectionForDocker(elastic.getContainerIpAddress(),
+                elastic.getMappedPort(ElasticConnection.DEFAULT_PORT));
     }
 
-    public void closeElasticConnection() throws IOException {
-        if (elasticConnection != null) {
-            elasticConnection.getClient().indices().delete(new DeleteIndexRequest(elasticConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
-            elasticConnection.close();
-            // Make this object null otherwise tests after the first test would
-            // receive an client that is closed.
-            elasticConnection = null;
-        }
+    public ElasticConnection getElasticConnectionForDocker(String containerIpAddress, int port) {
+        return ElasticConnection.newBuilder()
+                .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
+                .withConnectionParameters(ElasticConnection.DEFAULT_SCHEME,
+                        containerIpAddress, port)
+                .withApiKeys(null, null)
+                .build();
     }
 
     private void checkIfDockerClientAvailable() {

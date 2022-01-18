@@ -142,20 +142,20 @@ Below is the canonical index definition structure
 
     luceneIndex (oak:QueryIndexDefinition)
       - type (string) = 'lucene' mandatory
-      - compatVersion (long) = 2
       - async (string) = 'async' mandatory
-      - blobSize (long) = 32768
-      - maxFieldLength (long) = 10000
-      - evaluatePathRestrictions (boolean) = false
-      - name (string)
-      - includedPaths (string) multiple
-      - excludedPaths (string) multiple
-      - queryPaths (string) multiple = ['/']
-      - indexPath (string)
       - codec (string)
+      - compatVersion (long) = 2
+      - evaluatePathRestrictions (boolean) = false
+      - includedPaths (string) multiple
+      - queryPaths (string) multiple = ['/']
+      - excludedPaths (string) multiple
+      - maxFieldLength (long) = 10000
       - refresh (boolean)
-      - functionName (string)
       - useIfExists (string)
+      - blobSize (long) = 32768
+      - functionName (string)
+      - name (string)
+      - indexPath (string)
       + indexRules (nt:unstructured)
       + aggregates (nt:unstructured)
       + analyzers (nt:unstructured)
@@ -165,7 +165,14 @@ Following are the config options which can be defined at the index definition
 level
 
 type
-: Required and should always be `lucene`
+: Required and should always be `lucene`.
+
+async
+: Required and should always be `async`, or [`async`, `nrt`].
+
+codec
+: Optional string property.
+: Name of the [Lucene codec](#codec) to use
 
 compatVersion
 : Required integer property and should be set to 2
@@ -180,51 +187,32 @@ compatVersion
   of the relevant child is also checked.
   A compatVersion 2 full text index is usually faster to run queries.
 
-async
-: Required and should always be `async`
-
-[blobSize][OAK-2201]
-: Default value 32768 (32kb)
-: Size in bytes used for splitting the index files when storing them in NodeStore
-
-functionName
-: Name to be used to enable index usage with [native query support](#native-query)
-
 evaluatePathRestrictions
-: Optional boolean property defaults to `false`
+: Optional boolean property defaults to `false`.
 : If enabled the index can evaluate [path restrictions](#path-restrictions)
 
 includedPaths
-: Optional multi value property. Defaults to '/'
-: List of paths which should be [included](#include-exclude) in indexing.
-
-excludedPaths
-: Optional multi value property. Defaults to empty
-: List of paths which should be [excluded](#include-exclude) from indexing.
+: Optional multi value property. Defaults to '/'.
+: List of paths which should be included in the index.
+  If used, 'queryPaths' should be set to the same value(s).
+  See [Path Includes/Excludes](#include-exclude) for details.
 
 queryPaths
-: Optional multi value property. Defaults to '/'
-: List of paths for which the index can be used to perform queries. Refer to
-[Path Includes/Excludes](#include-exclude) for more details
+: Optional multi value property. Defaults to '/'.
+: List of paths for which the index can be used to perform queries.
+  If used, 'includedPaths' should be set to the same value(s).
+  See [Path Includes/Excludes](#include-exclude) for details.
 
-indexPath
-: Optional string property to specify [index path](#copy-on-write)
-: Path of the index definition in the repository. For e.g. if the index
-  definition is specified at `/oak:index/lucene` then set this path in `indexPath`
-
-codec
-: Optional string property
-: Name of the [Lucene codec](#codec) to use
-
-name
-: Optional property
-: Captures the name of the index which is used while logging
+excludedPaths
+: Optional multi value property. Defaults to empty.
+: List of paths which should be excluded from indexing.
+  See [Path Includes/Excludes](#include-exclude) for details.
 
 [maxFieldLength][OAK-2469]
 : Numbers of terms indexed per field. Defaults to 10000
 
 refresh
-: Optional boolean property
+: Optional boolean property.
 : Used to refresh the stored index definition. See [Effective Index Definition](#stored-index-definition)
 
 [useIfExists][OAK-7739]
@@ -240,6 +228,22 @@ refresh
   so this setting only affects index usage for queries.)
   This option is supported for indexes of type `lucene` and `property`.
   `@since Oak 1.10.0`
+
+[blobSize][OAK-2201]
+: Default value 32768 (32kb).
+: Size in bytes used for splitting the index files when storing them in NodeStore
+
+functionName
+: Name to be used to enable index usage with [native query support](#native-query).
+
+name
+: Deprecated. Optional property.
+: Captures the name of the index which is used while logging
+
+indexPath
+: Deprecated. Optional string property to specify [index path](#copy-on-write).
+: Path of the index definition in the repository. For e.g. if the index
+  definition is specified at `/oak:index/lucene` then set this path in `indexPath`
 
 #### <a name="indexing-rules"></a> Indexing Rules
 
@@ -362,24 +366,26 @@ Following are the details about the above mentioned config options which can be
 defined at the property definition level
 
 name
-: Property name. If not defined then property name is set to the node name.
-  If `isRegexp` is true then it defines the regular expression. Can also be set
-  to a relative property.
+: Property name. If not defined, then the property name is set to the node name.
+
+  Can also be set to a relative property, e.g., `jcr:content/metadata/color`.
+  For relative properties, one wildcard (`*`) is supported instead of a node name:
+  `*/color` aggregates the values of the property `color` of all direct child nodes.
+
+  If `isRegexp` is true, then the property name is a regular expression.
 
 isRegexp
-: If set to true then property name would be interpreted as a regular
-  expression and the given definition would be applicable for matching property
-  names. Note that expression should be structured such that it does not
-  match '/'.
-    * `.*` - This property definition is applicable for all properties of given
-      node
+: If set to true, then the property name is interpreted as a regular
+  expression, and the given definition is applicable for matching property names.
+  The expression must not match '/'.
+    * `^[^\/]*$` - Matches all properties of this node.
     * `jcr:content/metadata/.*` - This property definition is
-      applicable for all properties of child node _jcr:content/metadata_
+      applicable for all properties of the child node `jcr:content/metadata`
 
-  Note that the regular expression doesn't match intermediate nodes, so,
-  `jcr:content/.*/.*` would *not* index all properties for all children of
+  The regular expression only matches property names, and not intermediate nodes.
+  `jcr:content/.*/.*` does *not* index all properties for all children of
   `jcr:content`. [OAK-5187][OAK-5187] is an open improvement to track supporting
-  arbitrary intermediate child nodes.
+  regular expression matching for intermediate child nodes.
 
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
@@ -434,6 +440,18 @@ ordered
   only supported for single value property. Enabling this on multi value property
   would cause indexing to fail.
 
+  Ordering is supported on properties, and on functions. To order on the name of the node,
+  use the following query and index definition:
+
+    SELECT * FROM [sling:Folder] WHERE ISCHILDNODE('/content') ORDER BY NAME()
+    
+    + sling:Folder
+      + properties (nt:unstructured)
+        + nodeName (nt:unstructured)
+          - function (string) = 'name()'
+          - propertyIndex (boolean) = true
+          - ordered (boolean) = true
+  
 type
 : JCR Property type. Can be one of `Date`, `Boolean`, `Double` , `String`, `Long`, or `Binary`. 
   Mostly inferred from the indexed value. However in some cases where same property
@@ -521,7 +539,8 @@ Property name can be one of following
 4. The string `:nodeName` - this special case indexes node name as if it's a
    virtual property of the node being indexed. Setting this along with
    `nodeScopeIndex=true` is akin to setting `indexNodeName=true` on indexing
-   rule. (`@since Oak 1.3.15, 1.2.14`)
+   rule (`@since Oak 1.3.15, 1.2.14`).
+   Ordering is not supported. For ordering, use `function=name()` instead.
 
 ##### <a name="path-restrictions"></a> Evaluate Path Restrictions
 
@@ -543,29 +562,28 @@ size. Refer to [OAK-2306][OAK-2306] for more details.
 
 `@since Oak 1.0.14, 1.2.3`
 
-By default the indexer would index all the nodes under the subtree where the
-index  definition is defined as per the indexingRule. In some cases its required
-to index nodes under certain path. For e.g. if index is defined for global
-fulltext index which include the complete repository you might want to exclude
-certain path which contains transient system data.
+Sometimes, only nodes under certain paths should be indexed (`includedPaths`).
 
-For example if you application stores certain logs under `/var/log` and it is
-not supposed to be indexed as part of fulltext index then it can be excluded
+If `includedPaths` is used, then `queryPaths` should be set to the same value(s).
+This is because `excludedPaths` and `includedPaths` *don't* 
+affect the index selection logic for a query. 
+Path restrictions of queries are only checked against `queryPaths`. 
 
-    /oak:index/assetType
+The follow index definition causes nodes under `/content` and `/home` to be indexed:
+
+    /oak:index/abc
       - jcr:primaryType = "oak:QueryIndexDefinition"
       - compatVersion = 2
       - type = "lucene"
-      - excludedPaths = ["/var/log"]
+      - includedPaths = ["/content", "/home"]
+      - queryPaths = ["/content", "/home"]
 
-Above index definition would cause nodes under `/var/log` not to be indexed.
-In majority of case `excludedPaths` only makes sense. However in some cases
-it might be required to also specify explicit set of path which should be
-indexed. In that case make use of `includedPaths`
-
-Note that `excludedPaths` and `includedPaths` *does not* affect the index
-selection logic for a query i.e. if a query has any path restriction specified
-then that would not be checked against the `excludedPaths` and `includedPaths`.
+Sometimes, certain path should be excluded (`excludedPaths`), 
+e.g. transient system data.
+If the application stores logs under `/var/log`, and this data is
+not supposed to be indexed, then it can be excluded, by setting
+`excludedPaths` to `["/var/log"]`.
+However it is typically better to set `includedPaths` and `queryPaths`.
 
 <a name="query-paths"></a>
 **queryPaths**
@@ -573,43 +591,40 @@ then that would not be checked against the `excludedPaths` and `includedPaths`.
 If you need to ensure that a given index only gets used for query with specific
 path restrictions then you need to specify those paths in `queryPaths`.
 
-For example if `includedPaths` and `queryPaths` are set to _[ "/content/a", "/content/b" ]_.
-The index would be used for queries below "/content/a" as well as for queries below
-"/content/b". But not for queries without path restriction, or for queries below
-"/content/c".
+In most cases, if `queryPaths` is used, then `includedPaths` should be set to the same
+value, to reduce the index size.
+
+For example if `includedPaths` and `queryPaths` are set to `["/content", "/home"]`.
+The index would be used for queries below `/content` as well as for queries below
+`/home`. But it won't be used for queries without path restriction, or for queries below
+`/tmp`.
 
 **Usage**
 
-Key points to consider while using `excludedPaths`, `includedPaths` and `queryPaths`
+Key points to consider while using `includedPaths`, `queryPaths`, and `excludedPaths`, 
 
-1. Reduce what gets indexed in global fulltext index - For
-   setups where a global fulltext index is configured say at /oak:index/lucene which
-   indexes everything then `excludedPaths` can be used to avoid indexing transient
-   repository state like in '/var' or '/tmp'. This would help in improving indexing
-   rate. By far this is the primary usecase
+1. `includedPaths` and `queryPaths` should typically be set to the same value(s).
+   Also, the query should use a matching path restriction.
+   That way, the index size can be reduced, and there are no surprises
+   that queries don't show data that is stored in the repository.
 
-2. Reduce reindexing time - If its known that certain type of data is stored under specific
-   subtree only but the query is not specifying that path restriction then `includedPaths`
-   can be used to reduce reindexing time for existing content by ensuring that indexing
-   logic only traverses that path for building up the index
+2. Only data should be indexes that is needed.
+   This shrinks the index size, and speeds up indexing.
 
-3. Use `excludedPaths`, `includedPaths` with caution - When paths are excluded or included
-   then query engine is not aware of that. If wrong paths get excluded then its possible
-   that nodes which should have been part of query result get excluded as they are not indexed.
-   So only exclude those paths which do not have node matching given nodeType or nodes which
-   are known to be not part of any query result
+3. Use `includedPaths`, `excludedPaths`, and `queryPaths` with caution.
+   If the wrong paths are excluded, then some nodes might not show up in query results
+   that should.
 
 4. Sub-root index definitions (e.g. `/test/oak:index/index-def-node`) -
-   `excludedPaths` and `includedPaths` need to be relative to the path that index is defined
-    for. e.g. if the condition is supposed to be put for `/test/a` where the index definition
-    is at `/test/oak:index/index-def-node` then `/a` needs to be put as value of `excludedPaths`
-    or `includedPaths`. On the other hand, `queryPaths` remains to be an absolute path. So, for
-    the example above, `queryPaths` would get the value `/test/a`.
+   `excludedPaths` and `includedPaths` need to be relative to the path
+   that index is defined for. If the condition is supposed to be put for
+   `/test/a` where the index definition is at `/test/oak:index/index-def-node`
+   then `/a` needs to be put as value of `excludedPaths`
+   or `includedPaths`.
+   On the other hand, `queryPaths` remains to be an absolute path.
+   So, for the example above, `queryPaths` would get the value `/test/a`.
 
-In most cases use of `queryPaths` would not be required as index definition should not have
-any overlap.
-
-Refer to [OAK-2599][OAK-2599] for more details.
+See to [OAK-2599][OAK-2599] for more details.
 
 #### <a name="aggregation"></a>Aggregation
 
@@ -1114,12 +1129,15 @@ This allows to search for, and order by, the lower case version of the property 
 * fn:lower-case(fn:name())
 * fn:lower-case(fn:local-name())
 * fn:string-length(test/@data)
+* first([alias])
 * upper([data])
 * lower([test/data])
 * lower(name())
 * lower(localname())
 * length([test/data])
 * length(name())
+* name()
+* path()
 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
@@ -2134,7 +2152,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
           - propertyIndex = true
 ```
 
-[1]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
+[1]: https://s.apache.org/jcr-2.0-javadoc/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737
 [OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
@@ -2175,7 +2193,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [lucene-codec]: https://lucene.apache.org/core/4_7_1/core/org/apache/lucene/codecs/Codec.html
 [tika-download]: https://tika.apache.org/download.html
 [oak-run-tika]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#tika
-[jcr-contains]: https://docs.adobe.com/docs/en/spec/jcr/1.0/6.6.5.2_jcr_contains_Function.html
+[jcr-contains]: https://s.apache.org/jcr-1.0-spec/6.6.5.2_jcr_contains_Function.html
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
 [oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/

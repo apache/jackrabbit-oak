@@ -39,6 +39,7 @@ import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
@@ -99,6 +100,15 @@ public class IndexCommand implements Command {
         try {
             if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
                 performReindexInReadWriteMode(indexOpts);
+            } else if (indexOpts.isAsyncIndex()) {
+                Closer closer = Closer.create();
+                NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
+                AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(extendedIndexHelper, indexOpts.isCowCorEnabled(), closer,
+                        indexOpts.getAsyncLanes(), indexOpts.aysncDelay());
+                closer.register(asyncIndexerService);
+                closer.register(fixture);
+                asyncIndexerService.execute();
             } else {
                 try (Closer closer = Closer.create()) {
                     configureCustomizer(opts, closer, true);
@@ -325,7 +335,8 @@ public class IndexCommand implements Command {
     }
 
     private IndexerSupport createIndexerSupport(ExtendedIndexHelper extendedIndexHelper, String checkpoint) {
-        IndexerSupport indexerSupport = new IndexerSupport(extendedIndexHelper, checkpoint);
+        IndexerSupport indexerSupport = new IndexerSupport(extendedIndexHelper, checkpoint)
+                .withExistingDataDumpDir(indexOpts.getExistingDataDumpDir());
 
         File definitions = indexOpts.getIndexDefinitionsFile();
         if (definitions != null) {

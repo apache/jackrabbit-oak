@@ -86,6 +86,7 @@ public class SessionImpl implements JackrabbitSession {
     private SessionContext sessionContext;
     private SessionDelegate sd;
     private final CounterStats sessionCounter;
+    private final Object logoutMonitor = new Object();
 
     public SessionImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
@@ -230,6 +231,35 @@ public class SessionImpl implements JackrabbitSession {
                 return getItemInternal(getOakPathOrThrow(absPath));
             }
         });
+    }
+
+    @Override
+    @Nullable
+    public Node getParentOrNull(@NotNull Item item) throws RepositoryException {
+        checkAlive();
+        ItemImpl itemImpl = checkItemImpl(item);
+        checkContext(itemImpl, sessionContext);
+        return sd.performNullable(new ReadOperation<Node>("getParentOrNull") {
+            @Override
+            public Node performNullable() throws RepositoryException {
+                return NodeImpl.createNodeOrNull(itemImpl.dlg.getParent(), sessionContext);
+            }
+        });
+    }
+    
+    private static void checkContext(@NotNull ItemImpl item, @NotNull SessionContext context) throws RepositoryException {
+        if (item.sessionContext != context) {
+            throw new RepositoryException("Item '" + item + "' has been obtained through a different Session.");
+        }
+    }
+    
+    @NotNull
+    private static ItemImpl checkItemImpl(@NotNull Item item) throws RepositoryException {
+        if (item instanceof ItemImpl) {
+            return (ItemImpl) item;
+        } else {
+            throw new RepositoryException("Invalid item implementation '" + item.getClass().getName() + "'. Expected " + ItemImpl.class.getName());
+        }
     }
 
     //------------------------------------------------------------< Session >---
@@ -465,26 +495,28 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void logout() {
-        if (isLive()) {
-            sessionCounter.dec();
-            try {
-                sd.performVoid(new SessionOperation<Void>("logout") {
-                    @Override
-                    public void performVoid() {
-                        sessionContext.dispose();
-                        sd.logout();
-                    }
+        synchronized (logoutMonitor) {
+            if (isLive()) {
+                sessionCounter.dec();
+                try {
+                    sd.performVoid(new SessionOperation<Void>("logout") {
+                        @Override
+                        public void performVoid() {
+                            sessionContext.dispose();
+                            sd.logout();
+                        }
 
-                    @Override
-                    public boolean isLogout() {
-                        return true;
-                    }
-                });
-            } catch (RepositoryException e) {
-                throw new RuntimeException("Unexpected exception thrown by operation 'logout'", e);
-            } finally {
-                sd = null;
-                sessionContext = null;
+                        @Override
+                        public boolean isLogout() {
+                            return true;
+                        }
+                    });
+                } catch (RepositoryException e) {
+                    throw new RuntimeException("Unexpected exception thrown by operation 'logout'", e);
+                } finally {
+                    sd = null;
+                    sessionContext = null;
+                }
             }
         }
     }
@@ -766,7 +798,7 @@ public class SessionImpl implements JackrabbitSession {
     //--------------------------------------------------< JackrabbitSession >---
 
     @Override
-    public boolean hasPermission(String absPath, String... actions) throws RepositoryException {
+    public boolean hasPermission(@NotNull String absPath, @NotNull String... actions) throws RepositoryException {
         return hasPermission(absPath, Text.implode(actions, ","));
     }
 

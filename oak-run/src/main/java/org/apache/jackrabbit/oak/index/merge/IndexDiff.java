@@ -158,6 +158,7 @@ public class IndexDiff {
 
                     try {
                         JsonObject merged = IndexDefMergerUtils.merge(
+                                "",
                                 ancestor.getNodeName(), latestAncestor,
                                 latest.getNodeName(), latestCustomized,
                                 newProduct);

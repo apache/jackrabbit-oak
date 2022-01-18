@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class GroupPrincipalsTest {
@@ -45,12 +46,12 @@ public class GroupPrincipalsTest {
             }
 
             @Override
-            public Enumeration<? extends Principal> members() {
+            public @NotNull Enumeration<? extends Principal> members() {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public boolean isMember(Principal member) {
+            public boolean isMember(@NotNull Principal member) {
                 return false;
             }
         };

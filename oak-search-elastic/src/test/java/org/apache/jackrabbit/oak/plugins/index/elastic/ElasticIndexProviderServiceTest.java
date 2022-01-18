@@ -102,6 +102,24 @@ public class ElasticIndexProviderServiceTest {
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));
 
+        assertEquals(0, WhiteboardUtils.getServices(wb, Runnable.class).size());
+
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    @Test
+    public void withIndexCleanerSetup() throws Exception {
+        Map<String, Object> props = new HashMap<>();
+        props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
+        props.put(PROP_INDEX_PREFIX, "elastic");
+        props.put(PROP_ELASTIC_HOST, "localhost");
+        props.put(PROP_ELASTIC_PORT, elasticRule.elastic.getFirstMappedPort());
+        props.put("remoteIndexCleanupFrequency", 600);
+        MockOsgi.activate(service, context.bundleContext(), props);
+
+        assertNotNull(context.getService(QueryIndexProvider.class));
+        assertNotNull(context.getService(IndexEditorProvider.class));
+
         assertEquals(1, WhiteboardUtils.getServices(wb, Runnable.class).size());
 
         MockOsgi.deactivate(service, context.bundleContext());

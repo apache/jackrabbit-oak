@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -103,8 +104,6 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newMixinTypeQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newNodeTypeQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newNotNullPropQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newNullPropQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixQuery;
@@ -670,6 +669,11 @@ public class ElasticRequestHandler {
                 continue;
             }
 
+            if (IndexConstants.INDEX_TAG_OPTION.equals(name) ||
+                    IndexConstants.INDEX_NAME_OPTION.equals(name)) {
+                continue;
+            }
+
             if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
                 String first = pr.first.getValue(Type.STRING);
                 first = first.replace("\\", "");
@@ -787,7 +791,28 @@ public class ElasticRequestHandler {
             // and could contain other parts like renditions, node name, etc
             return multiMatchQuery.field(fieldName);
         } else {
-            return simpleQueryStringQuery(text).field(fieldName).defaultOperator(Operator.AND);
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
+            // simpleQueryStringQuery does not support leading wildcards whereas it's supported by default in queryStringQuery
+            // Not using queryStringQuery by default , since some functional cases break.
+            // simpleQueryStringQuery is less Strict, for instance searches for terms starting with / work, whereas
+            // with queryStringQuery, they throw an Exception (which ultimately results in an empty result set in oak),
+            // so using simpleQueryStringQuery by default would break certain functional cases.
+            // So only support this in case any term in the text String actually starts with *
+            // For example *hello or Hello *world
+            String[] textTerms = text.split(" ");
+            boolean allowLeadingWildCard = false;
+            for(String textTerm : textTerms) {
+                if (textTerm.startsWith("*")) {
+                    allowLeadingWildCard = true;
+                    break;
+                }
+            }
+
+            if (allowLeadingWildCard) {
+                return queryStringQuery(text).field(fieldName).defaultOperator(Operator.AND);
+            } else {
+                return simpleQueryStringQuery(text).analyzeWildcard(true).field(fieldName).defaultOperator(Operator.AND);
+            }
         }
     }
 
@@ -796,13 +821,10 @@ public class ElasticRequestHandler {
         int propType = FulltextIndex.determinePropertyType(defn, pr);
 
         if (pr.isNullRestriction()) {
-            return newNullPropQuery(defn.name);
+            return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(propertyName));
         }
-
-        //If notNullCheckEnabled explicitly enabled use the simple TermQuery
-        //otherwise later fallback to range query
-        if (pr.isNotNullRestriction() && defn.notNullCheckEnabled) {
-            return newNotNullPropQuery(defn.name);
+        if (pr.isNotNullRestriction()) {
+            return QueryBuilders.existsQuery(propertyName);
         }
 
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);

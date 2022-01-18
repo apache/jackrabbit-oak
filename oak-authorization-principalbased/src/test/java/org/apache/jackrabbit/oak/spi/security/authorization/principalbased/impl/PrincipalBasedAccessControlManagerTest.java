@@ -207,7 +207,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     /**
      * Since principal-based permissions are only evaluated if the complete set of principals is supported, the same
-     * should apply for {@link AccessControlManager#getEffectivePolicies(Set)}.
+     * should apply for {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getEffectivePolicies(Set)}.
      */
     @Test
     public void testGetEffectivePoliciesMixedPrincipalSet() throws Exception {

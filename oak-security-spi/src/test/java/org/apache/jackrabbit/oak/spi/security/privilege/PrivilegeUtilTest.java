@@ -21,17 +21,28 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
+
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class PrivilegeUtilTest {
@@ -65,6 +76,49 @@ public class PrivilegeUtilTest {
         PrivilegeDefinition def = PrivilegeUtil.readDefinition(defTree);
         assertEquals("name", def.getName());
         assertTrue(Iterables.elementsEqual(aggregateNames, PrivilegeUtil.readDefinition(defTree).getDeclaredAggregateNames()));
+    }
+    
+    @Test
+    public void testGetPrivilegeOakNameDefaultMapper() throws Exception {
+        assertEquals(JCR_READ, PrivilegeUtil.getOakName(JCR_READ, NamePathMapper.DEFAULT));
+        assertEquals(Privilege.JCR_ADD_CHILD_NODES, PrivilegeUtil.getOakName(Privilege.JCR_ADD_CHILD_NODES, NamePathMapper.DEFAULT));
+        assertEquals("anystring", PrivilegeUtil.getOakName("anystring", NamePathMapper.DEFAULT));
+    }
 
+    @Test
+    public void testGetPrivilegeOakName() throws Exception {
+        NamePathMapper mapper = mock(NamePathMapper.class);
+        when(mapper.getOakNameOrNull(Privilege.JCR_LIFECYCLE_MANAGEMENT)).thenReturn(JCR_LIFECYCLE_MANAGEMENT);
+        assertEquals(JCR_LIFECYCLE_MANAGEMENT, PrivilegeUtil.getOakName(Privilege.JCR_LIFECYCLE_MANAGEMENT, mapper));
+        verify(mapper).getOakNameOrNull(Privilege.JCR_LIFECYCLE_MANAGEMENT);
+        verifyNoMoreInteractions(mapper);
+    }
+    
+    @Test(expected = AccessControlException.class)
+    public void testGetPrivilegeOakNameFromNull() throws RepositoryException {
+        PrivilegeUtil.getOakName(null, NamePathMapper.DEFAULT);
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testGetPrivilegeOakNameResolvesToNull() throws RepositoryException {
+        PrivilegeUtil.getOakName(Privilege.JCR_READ, new NamePathMapper.Default() {
+            public @Nullable String getOakNameOrNull(@NotNull String jcrName) {
+                return null;
+            }
+        });
+    }
+    
+    @Test
+    public void testGetPrivilegeOakNamesFromNull() throws Exception {
+        NamePathMapper mapper = mock(NamePathMapper.class);
+        assertTrue(PrivilegeUtil.getOakNames(null, mapper).isEmpty());
+        verifyNoInteractions(mapper);
+    }
+    
+    @Test
+    public void testGetPrivilegeOakNamesFromEmptyArray() throws Exception {
+        NamePathMapper mapper = mock(NamePathMapper.class);
+        assertTrue(PrivilegeUtil.getOakNames(new String[0], mapper).isEmpty());
+        verifyNoInteractions(mapper);
     }
 }

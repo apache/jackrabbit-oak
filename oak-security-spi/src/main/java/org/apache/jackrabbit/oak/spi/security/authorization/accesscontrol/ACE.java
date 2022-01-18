@@ -16,32 +16,36 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
-import javax.jcr.security.AccessControlException;
-
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlEntry} interface.
  * It asserts that the basic contract is fulfilled but does perform any additional
  * validation on the principal, the privileges or the specified restrictions.
  */
+@ProviderType
 public abstract class ACE implements JackrabbitAccessControlEntry {
 
     private final Principal principal;
@@ -53,8 +57,19 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
 
     private int hashCode;
 
-    public ACE(Principal principal, PrivilegeBits privilegeBits,
-               boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws AccessControlException {
+    /**
+     * Creates a new access control entry.
+     * 
+     * @param principal The principal associated with this entry.
+     * @param privilegeBits The privilege bits defined for this entry.
+     * @param isAllow {@code true} if the entry is granting privileges.
+     * @param restrictions A optional set of restrictions.
+     * @param namePathMapper The name-path mapper
+     * @throws AccessControlException If the given {@code principal} or {@code privilegeBits} are {@code null} or if {@code privilegeBits} are {@link PrivilegeBits#isEmpty() empty}.
+     */
+    public ACE(@Nullable Principal principal, @Nullable PrivilegeBits privilegeBits,
+               boolean isAllow, @Nullable Set<Restriction> restrictions, 
+               @NotNull NamePathMapper namePathMapper) throws AccessControlException {
         if (principal == null || privilegeBits == null || privilegeBits.isEmpty()) {
             throw new AccessControlException();
         }
@@ -62,7 +77,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         this.principal = principal;
         this.privilegeBits = privilegeBits;
         this.isAllow = isAllow;
-        this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
+        this.restrictions = (restrictions == null) ? Collections.emptySet() : ImmutableSet.copyOf(restrictions);
         this.namePathMapper = namePathMapper;
         this.valueFactory = new PartialValueFactory(namePathMapper);
     }
@@ -77,6 +92,9 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     public Set<Restriction> getRestrictions() {
         return restrictions;
     }
+    
+    @NotNull
+    protected abstract PrivilegeBitsProvider getPrivilegeBitsProvider();
 
     //-------------------------------------------------< AccessControlEntry >---
     @NotNull
@@ -94,12 +112,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     @NotNull
     @Override
     public String[] getRestrictionNames() {
-        return Collections2.transform(restrictions, new Function<Restriction, String>() {
-            @Override
-            public String apply(Restriction restriction) {
-                return getJcrName(restriction);
-            }
-        }).toArray(new String[restrictions.size()]);
+        return Collections2.transform(restrictions, this::getJcrName).toArray(new String[restrictions.size()]);
     }
 
     @Nullable
@@ -110,9 +123,10 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
             if (jcrName.equals(restrictionName)) {
                 if (restriction.getDefinition().getRequiredType().isArray()) {
                     List<Value> values = valueFactory.createValues(restriction.getProperty());
-                    switch (values.size()) {
-                        case 1: return values.get(0);
-                        default : throw new ValueFormatException("Attempt to retrieve single value from multivalued property");
+                    if (values.size() == 1) {
+                        return values.get(0);
+                    } else {
+                        throw new ValueFormatException("Attempt to retrieve single value from multivalued property");
                     }
                 } else {
                     return valueFactory.createValue(restriction.getProperty());
@@ -133,6 +147,26 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
             }
         }
         return null;
+    }
+
+    @Override
+    public @NotNull PrivilegeCollection getPrivilegeCollection() {
+        return new AbstractPrivilegeCollection(privilegeBits) {
+            @Override
+            public Privilege[] getPrivileges() {
+                return ACE.this.getPrivileges();
+            }
+
+            @Override
+            @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+                return ACE.this.getPrivilegeBitsProvider();
+            }
+
+            @Override
+            @NotNull NamePathMapper getNamePathMapper() {
+                return namePathMapper;
+            }
+        };
     }
 
     //-------------------------------------------------------------< Object >---

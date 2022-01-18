@@ -46,6 +46,7 @@ import java.util.Set;
 
 import com.google.common.collect.Iterables;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -72,6 +73,14 @@ public class IndexUpdate implements Editor, PathSource {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
     private static final String TYPE_ELASTICSEARCH = "elasticsearch";
+
+    //This is used so that wrong index definitions are sparsely logged. After every 1000 indexing cycles, index definitions
+    // with wrong nodetype will be logged.
+    public static final long INDEX_JCR_TYPE_INVALID_LOG_LIMITER = Long.parseLong(System.getProperty("oak.indexer.indexJcrTypeInvalidLogLimiter", "1000"));
+
+    // Initial value is set at indexJcrTypeInvalidLogLimiter so that first logging start on first cycle/update itself.
+    // This counter is cyclically incremented till indexJcrTypeInvalidLogLimiter and then reset to 0
+    private static volatile long cyclicExecutionCount = INDEX_JCR_TYPE_INVALID_LOG_LIMITER;
 
     /**
      * <p>
@@ -123,7 +132,6 @@ public class IndexUpdate implements Editor, PathSource {
      * Editors for indexes that need to be re-indexed.
      */
     private final Map<String, Editor> reindex = new HashMap<String, Editor>();
-
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
@@ -211,20 +219,18 @@ public class IndexUpdate implements Editor, PathSource {
         rootState.setIgnoreReindexFlags(ignoreReindexFlag);
     }
 
-    private boolean shouldReindex(NodeBuilder definition, NodeState before,
-            String name) {
+    private boolean shouldReindex(NodeBuilder definition, NodeState before, String name) {
         PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
 
-        //Async indexes are not considered for reindexing for sync indexing
-        // Skip this check for elastic index
-        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ? 
-        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)){
+        // Do not attempt reindex of indexes with no type or disabled
+        if (type == null || TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
             return false;
         }
 
-        //Do not attempt reindex of disabled indexes
-
-        if (type != null && TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
+        // Async indexes are not considered for reindexing for sync indexing
+        // Skip this check for elastic index
+        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ?
+        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)) {
             return false;
         }
 
@@ -234,29 +240,27 @@ public class IndexUpdate implements Editor, PathSource {
         }
         // reindex in the case this is a new node, even though the reindex flag
         // might be set to 'false' (possible via content import).
-        // However if its already indexed i.e. has some hidden nodes (containing hidden data)
+        // However, if its already indexed i.e. has some hidden nodes (containing hidden data)
         // then no need to reindex
-        
+
         // WARNING: If there is _any_ hidden node, then it is assumed that
         // no reindex is needed. Even if the hidden node is completely unrelated
         // and doesn't contain index data (for example the node ":status").
         // See also OAK-7991.
-        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)
-                && !hasAnyHiddenNodes(definition);
+        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name) && !hasAnyHiddenNodes(definition);
         // See OAK-9449
-        // In case of elasticsearch, indexed data is stored remotely and not under hidden nodes, so
-        // in case of OutOfBand indexing during content import, there is no hidden node created for elastic (not even :status)
-        // So, we log a warn and return false to avoid unnecessary reindexing. The warning is only if the someone added the new index node and forgot to add
+        // In case of elasticsearch, indexed data is stored remotely and not under hidden nodes, so in case of OutOfBand
+        // indexing during content import, there is no hidden node created for elastic (not even :status)
+        // So, we log a warning and return false to avoid unnecessary reindexing. The warning is  displayed only if
+        // someone added the new index node and forgot to add
         // the reindex flag, in case OutOfBand Indexing has been performed, warning can be ignored.
         // Also, in case the new elastic node has been added with reindex = true , this method would have already returned true
         if (result && TYPE_ELASTICSEARCH.equals((type.getValue(Type.STRING)))) {
             log.warn("Found a new elastic index node [{}]. Please set the reindex flag = true to initiate reindexing." +
-                            "Please ignore if OutOfBand Reindexing has already been performed.",
-                    name);
+                    "Please ignore if OutOfBand Reindexing has already been performed.", name);
             return false;
         } else if (result) {
-            log.info("Found a new index node [{}]. Reindexing is requested",
-                    name);
+            log.info("Found a new index node [{}]. Reindexing is requested", name);
         }
         return result;
     }
@@ -280,8 +284,23 @@ public class IndexUpdate implements Editor, PathSource {
             NodeBuilder definition = definitions.getChildNode(name);
             if (isIncluded(rootState.async, definition)) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
+                String primaryType = definition.getName(JcrConstants.JCR_PRIMARYTYPE);
                 if (type == null) {
                     // probably not an index def
+                    continue;
+                }
+                /*
+                 Log a warning after every indexJcrTypeInvalidLogLimiter cycles of indexer where nodeState changed.
+                 and skip further execution for invalid nodetype of index definition.
+                 */
+                if (!IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType)) {
+                    // It is a cyclic counter which reset back to 0 after INDEX_JCR_TYPE_INVALID_LOG_LIMITER
+                    // This is to sparsely log this warning.
+                    if ((cyclicExecutionCount >= INDEX_JCR_TYPE_INVALID_LOG_LIMITER)) {
+                        log.warn("jcr:primaryType of index {} should be {} instead of {}", name, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, primaryType);
+                        cyclicExecutionCount = 0;
+                    }
+                    cyclicExecutionCount++;
                     continue;
                 }
 
@@ -310,9 +329,11 @@ public class IndexUpdate implements Editor, PathSource {
                     // (and implicitly isIncluded method allows async def in non-async cycle only for nrt/sync defs)
                     // then we don't need to handle missing handler
                     if (definition.hasProperty(ASYNC_PROPERTY_NAME) && rootState.async == null) {
-                        log.warn("Missing provider for nrt/sync index: {} (rootState.async: {}). " +
-                                "Please note, it means that index data should be trusted only after this index " +
-                                "is processed in an async indexing cycle.", definition, rootState.async);
+                        if (!TYPE_DISABLED.equals(type)) {
+                            log.warn("Missing provider for nrt/sync index: {} (rootState.async: {}). " +
+                                    "Please note, it means that index data should be trusted only after this index " +
+                                    "is processed in an async indexing cycle.", definition, rootState.async);
+                        }
                     } else {
                         rootState.missingProvider.onMissingIndex(type, definition, indexPath);
                     }

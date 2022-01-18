@@ -219,7 +219,7 @@ administrative principals and thus delegate the permission evalution to the defa
 
 This authorization model can be used in combinition with non-default mounts with one notable limitation:
 None of the non-default mounts may be located below the configured filter root (see `FilterProvider.getFilterRoot()`) in 
-order to make sure that all policies managemed and evaluated by this model are residing the same mount.
+order to make sure all policies defined by this model are located in the same mount.
 
 <a name="details_filterprovider"></a>
 #### FilterProvider Implementation
@@ -413,8 +413,8 @@ in the `org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 <!-- hidden references -->
 [Principal]: http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html
-[AccessControlList]: https://docs.adobe.com/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/security/AccessControlList.html
-[AccessControlEntry]: https://docs.adobe.com/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/security/AccessControlEntry.html
+[AccessControlList]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/security/AccessControlList.html
+[AccessControlEntry]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/security/AccessControlEntry.html
 [FilterProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/principalbased/FilterProvider.html
 [Filter]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/principalbased/Filter.html
 [JackrabbitAccessControlManager]: http://jackrabbit.apache.org/api/2.18/index.html?org/apache/jackrabbit/api/security/JackrabbitAccessControlManager.html
@@ -422,5 +422,5 @@ in the `org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 [JackrabbitAccessControlEntry]: http://jackrabbit.apache.org/api/2.18/index.html?org/apache/jackrabbit/api/security/JackrabbitAccessControlEntry.html
 [PrincipalAccessControlList]: http://jackrabbit.apache.org/api/2.18/index.html?org/apache/jackrabbit/api/security/authorization/PrincipalAccessControlList.html
 [Entry]: http://jackrabbit.apache.org/api/2.18/org/apache/jackrabbit/api/security/authorization/PrincipalAccessControlList.Entry.html
-[16.3 Access Control Policies]: https://docs.adobe.com/docs/en/spec/jcr/2.0/16_Access_Control_Management.html#16.3%20Access%20Control%20Policies
-[16.3.5 Scope of a Policy]: https://docs.adobe.com/docs/en/spec/jcr/2.0/16_Access_Control_Management.html#16.3.5%20Scope%20of%20a%20Policy
+[16.3 Access Control Policies]: https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html#16.3%20Access%20Control%20Policies
+[16.3.5 Scope of a Policy]: https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html#16.3.5%20Scope%20of%20a%20Policy

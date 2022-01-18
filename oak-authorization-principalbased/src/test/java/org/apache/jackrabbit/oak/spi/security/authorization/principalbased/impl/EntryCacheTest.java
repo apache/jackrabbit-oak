@@ -42,7 +42,6 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
 
     private RestrictionProvider restrictionProvider;
     private String accessControlledPath;
-    private Tree accessControlledTree;
     private Tree policyTree;
 
     @Before
@@ -51,7 +50,7 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
 
         restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
         accessControlledPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
-        accessControlledTree = root.getTree(accessControlledPath);
+        Tree accessControlledTree = root.getTree(accessControlledPath);
         TreeUtil.addMixin(accessControlledTree, MIX_REP_PRINCIPAL_BASED_MIXIN, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
         policyTree = TreeUtil.addChild(accessControlledTree, REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY);
     }

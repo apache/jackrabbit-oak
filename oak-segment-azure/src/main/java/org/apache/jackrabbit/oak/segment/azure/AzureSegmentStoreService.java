@@ -76,8 +76,8 @@ public class AzureSegmentStoreService {
             } else {
                 connectionString.append(configuration.connectionURL());
             }
-            log.info("Connection string: '{}'", connectionString.toString());
             CloudStorageAccount cloud = CloudStorageAccount.parse(connectionString.toString());
+            log.info("Connection string: '{}'", cloud.toString());
             CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(configuration.containerName());
             container.createIfNotExists();
 

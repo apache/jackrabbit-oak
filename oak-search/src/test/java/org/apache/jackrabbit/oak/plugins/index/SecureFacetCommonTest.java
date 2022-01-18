@@ -75,6 +75,7 @@ public abstract class SecureFacetCommonTest extends AbstractJcrTest {
         String indexName = UUID.randomUUID().toString();
         IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
         builder.noAsync();
+        builder.getBuilderTree().setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
         indexRule.property("cons").propertyIndex();
         indexRule.property("foo").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);

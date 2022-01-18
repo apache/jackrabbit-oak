@@ -33,6 +33,8 @@ public interface AstVisitor {
 
     boolean visit(CoalesceImpl node);
 
+    boolean visit(FirstImpl node);
+
     boolean visit(ColumnImpl node);
 
     boolean visit(ComparisonImpl node);
@@ -60,6 +62,8 @@ public interface AstVisitor {
     boolean visit(NodeLocalNameImpl node);
 
     boolean visit(NodeNameImpl node);
+
+    boolean visit(PathImpl node);
 
     boolean visit(NotImpl node);
 

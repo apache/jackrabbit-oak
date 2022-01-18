@@ -31,7 +31,7 @@ import java.util.HashMap;
 public final class TokenCredentials implements Credentials {
 
     private final String token;
-    private final HashMap<String, String> attributes = new HashMap<String, String>();
+    private final HashMap<String, String> attributes = new HashMap<>();
 
     /**
      * Create a new instance.
@@ -117,7 +117,7 @@ public final class TokenCredentials implements Credentials {
     @NotNull
     public String[] getAttributeNames() {
         synchronized (attributes) {
-            return attributes.keySet().toArray(new String[attributes.keySet().size()]);
+            return attributes.keySet().toArray(new String[0]);
         }
     }
 }

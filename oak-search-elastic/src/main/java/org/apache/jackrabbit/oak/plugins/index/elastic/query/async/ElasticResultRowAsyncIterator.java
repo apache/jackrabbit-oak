@@ -237,7 +237,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             requests++;
 
             Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
-                    indexNode.getDefinition().getRemoteIndexAlias());
+                    indexNode.getDefinition().getIndexAlias());
             indexNode.getConnection().getClient().getLowLevelClient().performRequestAsync(request, this);
             elasticMetricHandler.markQuery(true);
         }
@@ -326,13 +326,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
                 this.sorts.forEach(searchSourceBuilder::sort);
 
-                final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
+                final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getIndexAlias())
                         .source(searchSourceBuilder);
                 LOG.trace("Kicking new search after query {}", searchRequest.source());
 
                 searchStartTime = System.currentTimeMillis();
                 Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
-                        indexNode.getDefinition().getRemoteIndexAlias());
+                        indexNode.getDefinition().getIndexAlias());
                 indexNode.getConnection().getClient().getLowLevelClient().performRequestAsync(request, this);
                 elasticMetricHandler.markQuery(false);
             } else {

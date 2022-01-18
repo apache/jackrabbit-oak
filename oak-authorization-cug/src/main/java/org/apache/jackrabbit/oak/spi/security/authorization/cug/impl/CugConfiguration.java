@@ -178,7 +178,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new CugImporter(mountInfoProvider));
+        return Collections.singletonList(new CugImporter(mountInfoProvider));
     }
 
     @NotNull

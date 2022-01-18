@@ -19,30 +19,27 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.toArray;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -53,7 +50,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
  * stored in child nodes; say /x/section1 contains "Hello" and /x/section2
  * contains "World". If index aggregation is configured correctly, it will
  * combine all the text of the child nodes, and index that as /x. When doing a
- * fulltext search for for "Hello World", the index will then return /x.
+ * fulltext search for "Hello World", the index will then return /x.
  */
 public class Aggregate {
 
@@ -80,10 +77,10 @@ public class Aggregate {
     Aggregate(String nodeTypeName, List<? extends Include> includes,
               int recursionLimit) {
         this.nodeTypeName = nodeTypeName;
-        this.includes = ImmutableList.copyOf(includes);
+        this.includes = Collections.unmodifiableList(includes);
         this.reAggregationLimit = recursionLimit;
         this.relativeNodeIncludes = findRelativeNodeIncludes(includes);
-        this.nodeAggregates = hasNodeIncludes(includes);
+        this.nodeAggregates = includes.stream().anyMatch(input -> input instanceof NodeInclude);
     }
 
     public List<? extends Include> getIncludes() {
@@ -98,7 +95,7 @@ public class Aggregate {
     }
 
     public List<Matcher> createMatchers(AggregateRoot root){
-        List<Matcher> matchers = newArrayListWithCapacity(includes.size());
+        List<Matcher> matchers = new ArrayList<>(includes.size());
         for (Include include : includes) {
             matchers.add(new Matcher(this, include, root));
         }
@@ -147,7 +144,7 @@ public class Aggregate {
 
     private static void collectAggregatesForDirectMatchers(NodeState nodeState, List<Matcher> matchers,
                                                            ResultCollector collector) {
-        Map<String, ChildNodeEntry> children = Maps.newHashMap();
+        Map<String, ChildNodeEntry> children = new HashMap<>();
         //Collect potentially matching child nodestates based on matcher name
         for (Matcher m : matchers){
             String nodeName = m.getNodeName();
@@ -167,7 +164,7 @@ public class Aggregate {
     private static void matchChildren(List<Matcher> matchers, ResultCollector collector,
                                       Iterable<? extends ChildNodeEntry> children) {
         for (ChildNodeEntry cne : children) {
-            List<Matcher> nextSet = newArrayListWithCapacity(matchers.size());
+            List<Matcher> nextSet = new ArrayList<>(matchers.size());
             for (Matcher m : matchers) {
                 Matcher result = m.match(cne.getName(), cne.getNodeState());
                 if (result.getStatus() == Matcher.Status.MATCH_FOUND){
@@ -194,7 +191,7 @@ public class Aggregate {
     }
 
     private List<Matcher> createMatchers() {
-        List<Matcher> matchers = newArrayListWithCapacity(includes.size());
+        List<Matcher> matchers = new ArrayList<>(includes.size());
         for (Include include : includes) {
             matchers.add(new Matcher(this, include));
         }
@@ -202,7 +199,7 @@ public class Aggregate {
     }
 
     private static List<NodeInclude> findRelativeNodeIncludes(List<? extends Include> includes) {
-        List<NodeInclude> result = newArrayList();
+        List<NodeInclude> result = new ArrayList<>();
         for (Include i : includes){
             if (i instanceof NodeInclude){
                 NodeInclude ni = (NodeInclude) i;
@@ -211,16 +208,7 @@ public class Aggregate {
                 }
             }
         }
-        return ImmutableList.copyOf(result);
-    }
-
-    private static boolean hasNodeIncludes(List<? extends Include> includes) {
-        return Iterables.any(includes, new Predicate<Include>() {
-            @Override
-            public boolean apply(Include input) {
-                return input instanceof NodeInclude;
-            }
-        });
+        return Collections.unmodifiableList(result);
     }
 
     public interface AggregateMapper {
@@ -393,17 +381,20 @@ public class Aggregate {
             }
         }
 
+        /**
+         * Collect the aggregated results ignoring hidden properties
+         */
         @Override
         public void collectResults(String nodePath, NodeState nodeState, ResultCollector results) {
             if (pattern != null) {
                 for (PropertyState ps : nodeState.getProperties()) {
-                    if (pattern.matcher(ps.getName()).matches()) {
+                    if (!NodeStateUtils.isHidden(ps.getName()) && pattern.matcher(ps.getName()).matches()) {
                         results.onResult(new PropertyIncludeResult(ps, propertyDefinition, parentPath));
                     }
                 }
             } else {
                 PropertyState ps = nodeState.getProperty(propertyName);
-                if (ps != null) {
+                if (ps != null && !NodeStateUtils.isHidden(ps.getName())) {
                     results.onResult(new PropertyIncludeResult(ps, propertyDefinition, parentPath));
                 }
             }
@@ -568,9 +559,9 @@ public class Aggregate {
             this.matchedNodeState = null;
             this.currentPath = currentPath;
 
-            List<String> paths = newArrayList(m.aggregateStack);
+            List<String> paths = new ArrayList<>(m.aggregateStack);
             paths.add(currentPath);
-            this.aggregateStack = ImmutableList.copyOf(paths);
+            this.aggregateStack = Collections.unmodifiableList(paths);
         }
 
         public boolean isPatternBased() {
@@ -610,7 +601,7 @@ public class Aggregate {
                         return Collections.emptyList();
                     }
 
-                    List<Matcher> result = Lists.newArrayListWithCapacity(nextAgg.includes.size());
+                    List<Matcher> result = new ArrayList<>(nextAgg.includes.size());
                     for (Include i : nextAgg.includes){
                         result.add(new Matcher(this,  i, currentPath));
                     }
@@ -626,8 +617,8 @@ public class Aggregate {
         public void collectResults(ResultCollector results) {
             checkArgument(status == Status.MATCH_FOUND);
 
-            //If result being collected as part of reaggregation then take path
-            //from the stack otherwise its the current path
+            //If result being collected as part of re-aggregation then take path
+            //from the stack otherwise it's the current path
             String rootIncludePath = aggregateStack.isEmpty() ?  currentPath : aggregateStack.get(0);
             currentInclude.collectResults(rootState.rootInclude, rootIncludePath,
                     currentPath, matchedNodeState, results);

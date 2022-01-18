@@ -21,8 +21,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Aggregate
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
@@ -30,9 +28,7 @@ import java.security.Principal;
 import java.util.Set;
 
 public class AggregationFilterImpl implements AggregationFilter {
-
-    private static final Logger log = LoggerFactory.getLogger(AggregationFilterImpl.class);
-
+    
     @Override
     public boolean stop(@NotNull AggregatedPermissionProvider permissionProvider, @NotNull Set<Principal> principals) {
         // validation of principals already took place before creating 'PrincipalBasedPermissionProvider'

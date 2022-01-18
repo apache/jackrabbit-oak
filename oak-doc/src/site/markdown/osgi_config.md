@@ -251,6 +251,7 @@ journalGCMaxAge | 86400000 (24 hrs, was 6 hrs until 1.7.4) | Journal entries old
 journalGCInterval | 300000 (5 min) | The interval in milliseconds with which the journal garbage collector removes old journal entries. | 1.0.19, 1.2.3, 1.4
 blobCacheSize | 16 (MB) | DocumentNodeStore when running with Mongo will use `MongoBlobStore` by default unless a custom `BlobStore` is configured. In such scenario the size of in memory cache for the frequently used blobs can be configured via `blobCacheSize`. | 1.0
 persistentCache | "cache,binary=0" (prior to 1.6, the persistent cache was disabled by default) | The [persistent cache][persistent-cache], which is stored in the local file system. | 1.0.8
+persistentCacheIncludes | \["/"\] | List of paths defining the subtrees that are cached. | 1.8.0
 <a name="cache-allocation"></a> nodeCachePercentage | 35 (was 25 until 1.5.14) | Percentage of `cache` allocated for `nodeCache`. See [Caching][doc-cache] | 1.0.12
 prevDocCachePercentage | 4 | Percentage of `cache` allocated for `prevDocCache`. See [Caching][doc-cache] | 1.3.15
 childrenCachePercentage | 15 (was 10 until 1.5.14) | Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache] | 1.0.12

@@ -77,6 +77,7 @@ See also [OAK-5210].
   configuration is respected (see also [OAK-5194] and [OAK-5195])
 - With [OAK-9462] an implementation of `DynamicMembershipProvider` will be registered 
   and reflect autoMembership for synchronized external users in the User Management API (see below).
+  The same applies for the conditional auto-membership as introduced with [OAK-9463]
   
 #### Effect of Dynamic Membership on other Security Modules
   
@@ -120,9 +121,9 @@ membership feature until dynamic groups can be created with the
 Jackrabbit [User Management API](../../user.html) (see [OAK-2687]).
 
 Note however, that with [OAK-9462] groups listed in the **autoMembership** configuration 
-parameters will have dynamic group membership of external user identities reflected 
-in the corresponding API calls, most notably `Group.isMember`, `Group.isDeclaredMember`, 
-`Group.getMembers`, `Group.getDeclaredMembers` as well as `Authorizable.memberOf`
+parameters as well as the optional [AutoMembershipConfig] will have dynamic group membership 
+of external user identities reflected in the corresponding API calls, most notably `Group.isMember`, 
+`Group.isDeclaredMember`, `Group.getMembers`, `Group.getDeclaredMembers` as well as `Authorizable.memberOf`
 and `Authorizable.declaredMemberOf()`.
 
 ##### Authentication
@@ -146,6 +147,7 @@ membership configuration.
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/DefaultSyncConfig.html
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
 [PrincipalNameResolver]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/PrincipalNameResolver.html
+[AutoMembershipConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/AutoMembershipConfig.html
 [OAK-4101]: https://issues.apache.org/jira/browse/OAK-4101
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687
 [OAK-4087]: https://issues.apache.org/jira/browse/OAK-4087
@@ -153,3 +155,4 @@ membership configuration.
 [OAK-5195]: https://issues.apache.org/jira/browse/OAK-5195
 [OAK-5210]: https://issues.apache.org/jira/browse/OAK-5210
 [OAK-9462]: https://issues.apache.org/jira/browse/OAK-9462
+[OAK-9463]: https://issues.apache.org/jira/browse/OAK-9463

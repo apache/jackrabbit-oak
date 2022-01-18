@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.oak.query.ast.DescendantNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.DescendantNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.EquiJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.FirstImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchScoreImpl;
 import org.apache.jackrabbit.oak.query.ast.InImpl;
@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.query.ast.NodeNameImpl;
 import org.apache.jackrabbit.oak.query.ast.NotImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
+import org.apache.jackrabbit.oak.query.ast.PathImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyInexistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
@@ -249,6 +250,12 @@ public class QueryImpl implements Query {
             }
 
             @Override
+            public boolean visit(FirstImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+
+            @Override
             public boolean visit(ColumnImpl node) {
                 node.setQuery(query);
                 return true;
@@ -332,6 +339,13 @@ public class QueryImpl implements Query {
 
             @Override
             public boolean visit(NodeNameImpl node) {
+                node.setQuery(query);
+                node.bindSelector(source);
+                return true;
+            }
+
+            @Override
+            public boolean visit(PathImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return true;
@@ -526,6 +540,38 @@ public class QueryImpl implements Query {
         }
         return buff == null ? null : buff.toString();
     }
+
+    private void logAdditionalMessages() {
+        for (SelectorImpl s : selectors) {
+            if (s.getExecutionPlan() != null &&
+                    s.getExecutionPlan().getIndexPlan() != null) {
+                s.getExecutionPlan().getIndexPlan().getAdditionalMessages().forEach((level, list) -> {
+                    switch (level) {
+                        case TRACE: for (String msg : list) {
+                            LOG.trace(msg);
+                        }
+                        break;
+                        case DEBUG: for (String msg : list) {
+                            LOG.debug(msg);
+                        }
+                            break;
+                        case INFO: for (String msg : list) {
+                            LOG.info(msg);
+                        }
+                            break;
+                        case WARN: for (String msg : list) {
+                            LOG.warn(msg);
+                        }
+                        break;
+                        case ERROR: for (String msg : list) {
+                            LOG.error(msg);
+                        }
+                        break;
+                    }
+                });
+            }
+        }
+    }
     
     @Override
     public Iterator<ResultRowImpl> getRows() {
@@ -535,7 +581,7 @@ public class QueryImpl implements Query {
             LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
              "those restricted paths; query={}, plan={}", statement, warn);
         }
-        
+        logAdditionalMessages();
         if (explain) {
             String plan = getPlan();
             if (measure) {

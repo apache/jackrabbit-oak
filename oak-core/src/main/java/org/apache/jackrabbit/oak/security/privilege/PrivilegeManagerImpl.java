@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -67,7 +67,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     @NotNull
     @Override
     public Privilege getPrivilege(@NotNull String privilegeName) throws RepositoryException {
-        PrivilegeDefinition def = getPrivilegeDefinition(getOakName(privilegeName));
+        PrivilegeDefinition def = getPrivilegeDefinition(PrivilegeUtil.getOakName(privilegeName, namePathMapper));
         if (def == null) {
             throw new AccessControlException("No such privilege " + privilegeName);
         } else {
@@ -85,7 +85,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         if (Strings.isNullOrEmpty(privilegeName)) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
         }
-        PrivilegeDefinition definition = new ImmutablePrivilegeDefinition(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));
+        PrivilegeDefinition definition = new ImmutablePrivilegeDefinition(PrivilegeUtil.getOakName(privilegeName, namePathMapper), isAbstract, PrivilegeUtil.getOakNames(declaredAggregateNames, namePathMapper));
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(getWriteRoot());
         writer.writeDefinition(definition);
 
@@ -98,33 +98,6 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     @NotNull
     private Root getWriteRoot() {
         return root.getContentSession().getLatestRoot();
-    }
-
-    @NotNull
-    private Set<String> getOakNames(@Nullable String[] jcrNames) throws RepositoryException {
-        Set<String> oakNames;
-        if (jcrNames == null || jcrNames.length == 0) {
-            oakNames = Collections.emptySet();
-        } else {
-            oakNames = new HashSet<>(jcrNames.length);
-            for (String jcrName : jcrNames) {
-                String oakName = getOakName(jcrName);
-                oakNames.add(oakName);
-            }
-        }
-        return oakNames;
-    }
-
-    @NotNull
-    private String getOakName(@Nullable String jcrName) throws RepositoryException {
-        if (jcrName == null) {
-            throw new AccessControlException("Invalid privilege name 'null'");
-        }
-        String oakName = namePathMapper.getOakNameOrNull(jcrName);
-        if (oakName == null) {
-        	throw new AccessControlException("Cannot resolve privilege name " + jcrName);
-        }
-        return oakName;
     }
 
     @NotNull

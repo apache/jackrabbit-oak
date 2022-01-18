@@ -88,6 +88,7 @@ public class ExternalAuthorizableActionProviderTest extends AbstractExternalAuth
     public ExternalAuthorizableActionProviderTest(boolean failOnViolation, String name) {
         this.failOnViolation = failOnViolation;
     }
+    
     @Before
     public void before() throws Exception {
         super.before();

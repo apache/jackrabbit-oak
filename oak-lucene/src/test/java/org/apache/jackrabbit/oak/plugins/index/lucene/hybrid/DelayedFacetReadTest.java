@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -185,6 +186,8 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         This test's counter part is MultithreadedOldLuceneFacetProviderReadFailureTest which test old implementation having race condition on index reader opening
         and closing. The test in MultithreadedOldLuceneFacetProviderReadFailureTest is marked as ignored but can be tested on demand.
      */
+    // OAK-9561 Flaky test
+    @Ignore
     @Test
     public void facet() throws Exception {
         // Explicitly setting following configs to run DelayedLuceneFacetProvider and a thread sleep of 50 ms in refresh readers. Refer: OAK-8898

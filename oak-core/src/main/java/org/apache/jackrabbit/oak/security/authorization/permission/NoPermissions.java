@@ -70,6 +70,11 @@ final class NoPermissions implements CompiledPermissions {
     }
 
     @Override
+    public boolean isGranted(@NotNull String path, boolean isProperty, long permissions) {
+        return false;
+    }
+
+    @Override
     public boolean isGranted(@NotNull String path, long permissions) {
         return false;
     }

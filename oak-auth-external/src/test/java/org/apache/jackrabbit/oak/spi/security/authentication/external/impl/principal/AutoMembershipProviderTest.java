@@ -56,7 +56,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     @Before
     public void before() throws Exception {
         super.before();
-        provider = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING);
+        provider = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
     }
     
     @After
@@ -180,7 +180,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         UserManager um = spy(userManager);
         doThrow(new RepositoryException()).when(um).getAuthorizableByPath(anyString());
         
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING);
+        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
         assertFalse(amp.getMembers(automembershipGroup1, false).hasNext());
     }
 
@@ -190,7 +190,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("query failed", 0));
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
         
-        AutoMembershipProvider amp = new AutoMembershipProvider(r, userManager, getNamePathMapper(), MAPPING);
+        AutoMembershipProvider amp = new AutoMembershipProvider(r, userManager, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
         assertFalse(amp.getMembers(automembershipGroup1, false).hasNext());
     }
     
@@ -334,7 +334,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING);
+        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
     }
 
@@ -348,7 +348,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
         
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING);
+        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
     }
 
@@ -366,7 +366,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING);
+        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
         Set<Group> membership = ImmutableSet.copyOf(amp.getMembership(getTestUser(), true));
         assertEquals(2, membership.size());
     }

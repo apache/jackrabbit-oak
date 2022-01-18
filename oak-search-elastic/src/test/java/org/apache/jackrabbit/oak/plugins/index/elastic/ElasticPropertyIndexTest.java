@@ -140,18 +140,4 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
                 containsString("elasticsearch:test1")));
     }
 
-    @Test
-    public void propertyExistenceQuery() throws Exception {
-        setIndex("test1", createIndex("propa", "propb"));
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        test.addChild("b").setProperty("propa", "c");
-        test.addChild("c").setProperty("propb", "e");
-        root.commit();
-
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa is not null",
-                Arrays.asList("/test/a", "/test/b")));
-    }
-
 }

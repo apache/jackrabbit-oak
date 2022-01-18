@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -28,6 +29,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.GetIndexRequest;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +102,7 @@ public class ElasticIndexCleaner implements Runnable {
                  */
                 if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) || "disabled".equals(typeValue)) {
                     String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + childNodeEntry.getName();
-                    String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
+                    String remoteIndexName = getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
                     if (remoteIndexName != null) {
                         existingIndices.add(remoteIndexName);
                     } else if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue)){
@@ -147,6 +149,23 @@ public class ElasticIndexCleaner implements Runnable {
             }
         } catch (IOException e) {
             LOG.error("Could not delete remote indices", e);
+        }
+    }
+
+    protected static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
+        PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(nodeTypeProp.getValue(Type.STRING))) {
+            throw new IllegalArgumentException("Not an index definition node state");
+        }
+        PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
+        String typeValue = type != null ? type.getValue(Type.STRING) : "";
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
+            throw new IllegalArgumentException("Not an elastic index node");
+        }
+        try {
+            return ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, indexPath, indexNode.builder());
+        } catch (IllegalStateException ise) { // this happens when there is no seed for the index
+            return null;
         }
     }
 }

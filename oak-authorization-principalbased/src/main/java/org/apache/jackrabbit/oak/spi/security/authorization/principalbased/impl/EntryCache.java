@@ -81,7 +81,7 @@ class EntryCache implements Constants {
 
         private final String effectivePath;
         private final PrivilegeBits privilegeBits;
-        private RestrictionPattern pattern;
+        private final RestrictionPattern pattern;
 
         private PermissionEntryImpl(@NotNull Tree entryTree) {
             effectivePath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
@@ -105,8 +105,13 @@ class EntryCache implements Constants {
         }
 
         @Override
-        public boolean matches(@NotNull String treePath) {
-            return pattern.matches(treePath);
+        public boolean matches(@NotNull String oakPath) {
+            return pattern.matches(oakPath);
+        }
+
+        @Override
+        public boolean matches(@NotNull String oakPath, boolean isProperty) {
+            return pattern.matches(oakPath, isProperty);
         }
 
         @Override

@@ -95,7 +95,7 @@ public class ElasticConnection implements Closeable {
             throw new IllegalStateException("Already closed");
         }
 
-        // double checked locking to get good performance and avoid double initialization
+        // double-checked locking to get good performance and avoid double initialization
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
@@ -252,8 +252,11 @@ public class ElasticConnection implements Closeable {
 
             @Override
             public ElasticConnection build() {
+                if (!ElasticIndexNameHelper.isValidPrefix(indexPrefix)) {
+                    throw new IllegalArgumentException("The indexPrefix does not follow the elasticsearch naming convention: " + indexPrefix);
+                }
                 return new ElasticConnection(
-                        Objects.requireNonNull(ElasticIndexNameHelper.getElasticSafeName(indexPrefix), "indexPrefix must be not null"),
+                        Objects.requireNonNull(indexPrefix, "indexPrefix must be not null"),
                         Objects.requireNonNull(scheme, "scheme must be not null"),
                         Objects.requireNonNull(host, "host must be not null"),
                         Objects.requireNonNull(port, "port must be not null"),

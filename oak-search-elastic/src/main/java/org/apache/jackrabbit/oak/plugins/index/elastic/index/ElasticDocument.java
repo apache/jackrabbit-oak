@@ -44,8 +44,6 @@ public class ElasticDocument {
     private final Set<String> fulltext;
     private final Set<String> suggest;
     private final Set<String> spellcheck;
-    private final List<String> notNullProps;
-    private final List<String> nullProps;
     private final Map<String, List<Object>> properties;
     private final Map<String, Object> similarityFields;
     private final Map<String, Map<String, Double>> dynamicBoostFields;
@@ -56,8 +54,6 @@ public class ElasticDocument {
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
-        this.notNullProps = new ArrayList<>();
-        this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
         this.similarityFields = new HashMap<>();
         this.dynamicBoostFields = new HashMap<>();
@@ -78,14 +74,6 @@ public class ElasticDocument {
 
     void addSpellcheck(String value) {
         spellcheck.add(value);
-    }
-
-    void notNullProp(String propName) {
-        notNullProps.add(propName);
-    }
-
-    void nullProp(String propName) {
-        nullProps.add(propName);
     }
 
     // ES for String values (that are not interpreted as date or numbers etc) would analyze in the same
@@ -138,12 +126,6 @@ public class ElasticDocument {
                 if (spellcheck.size() > 0) {
                     builder.field(FieldNames.SPELLCHECK, spellcheck);
                 }
-                if (notNullProps.size() > 0) {
-                    builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
-                }
-                if (nullProps.size() > 0) {
-                    builder.field(FieldNames.NULL_PROPS, nullProps);
-                }
                 for (Map.Entry<String, Object> simProp: similarityFields.entrySet()) {
                     builder.field(simProp.getKey(), simProp.getValue());
                 }
@@ -168,9 +150,8 @@ public class ElasticDocument {
 
             ret = Strings.toString(builder);
         } catch (IOException e) {
-            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, " +
-                            "notNullProps: {}, nullProps: {}",
-                    path, properties, fulltext, suggest, notNullProps, nullProps, e);
+            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, ",
+                    path, properties, fulltext, suggest, e);
             ret = null;
         }
 

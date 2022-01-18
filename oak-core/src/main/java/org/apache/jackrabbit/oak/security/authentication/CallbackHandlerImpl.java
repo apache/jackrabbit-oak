@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.Credential
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default implementation of the {@link CallbackHandler} interface. It currently
@@ -91,7 +92,7 @@ class CallbackHandlerImpl implements CallbackHandler {
 
     //------------------------------------------------------------< private >---
 
-    private String getName() {
+    private @Nullable String getName() {
         if (credentials instanceof SimpleCredentials) {
             return ((SimpleCredentials) credentials).getUserID();
         } else {
@@ -99,7 +100,7 @@ class CallbackHandlerImpl implements CallbackHandler {
         }
     }
 
-    private char[] getPassword() {
+    private char @Nullable [] getPassword() {
         if (credentials instanceof SimpleCredentials) {
             return ((SimpleCredentials) credentials).getPassword();
         } else {

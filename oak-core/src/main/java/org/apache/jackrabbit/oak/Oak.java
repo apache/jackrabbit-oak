@@ -974,6 +974,14 @@ public class Oak {
         void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
             this.settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
         }
+
+        public void setIgnoredClassNamesInCallTrace(@NotNull String[] packageNames) {
+            settings.setIgnoredClassNamesInCallTrace(packageNames);
+        }
+
+        public @NotNull String[] getIgnoredClassNamesInCallTrace() {
+            return settings.getIgnoredClassNamesInCallTrace();
+        }
     }
 
     public static class OakDefaultComponents {

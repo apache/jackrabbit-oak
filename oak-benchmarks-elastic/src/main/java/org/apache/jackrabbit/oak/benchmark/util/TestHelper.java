@@ -49,7 +49,7 @@ public class TestHelper {
     Deletes the remote elastic index from the elastic server.
      */
     public static void cleanupRemoteElastic(ElasticConnection connection, String indexName) throws IOException {
-        String alias =  ElasticIndexNameHelper.getIndexAlias(connection.getIndexPrefix(), "/oak:index/" + indexName);
+        String alias =  ElasticIndexNameHelper.getElasticSafeIndexName(connection.getIndexPrefix(), "/oak:index/" + indexName);
         // get and delete the indexes which this alias is pointing to
         GetAliasesRequest getAliasesRequest = new GetAliasesRequest(alias);
         GetAliasesResponse aliasesResponse = connection.getClient().indices().getAlias(getAliasesRequest, RequestOptions.DEFAULT);

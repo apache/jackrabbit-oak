@@ -40,14 +40,32 @@ public interface RestrictionPattern {
     boolean matches(@NotNull Tree tree, @Nullable PropertyState property);
 
     /**
-     * Returns {@code true} if the underlying restriction matches the specified
-     * path.
+     * Returns {@code true} if the underlying restriction matches the specified path.
+     * Note, that if the nature of the item at {@code path} is know {@link #matches(String, boolean)} should be called 
+     * instead.
      *
      * @param path The path of the target item.
      * @return {@code true} if the underlying restriction matches the specified
      * path; {@code false} otherwise.
      */
     boolean matches(@NotNull String path);
+
+    /**
+     * Returns {@code true} if the underlying restriction matches the specified path and item type.
+     * If the nature of the item at {@code path} is unknown {@link #matches(String)} should be called instead.
+     * 
+     * Note, for backwards compatibility this method comes with a default implementation making it equivalent to {@link #matches(String)}.
+     * Implementations of the {@link RestrictionPattern} interface should overwrite the default if the underlying 
+     * restriction applies different behavior for nodes and properties.
+     *
+     * @param path The path of the target item.
+     * @param isProperty If {@code true} the target item is known to be a property, otherwise it is known to be a node.
+     * @return {@code true} if the underlying restriction matches the specified path and item type; {@code false} otherwise.
+     * @since OAK 1.42.0
+     */
+    default boolean matches(@NotNull String path, boolean isProperty) {
+        return matches(path);
+    }
 
     /**
      * Returns {@code true} if the underlying restriction matches for repository
@@ -71,6 +89,11 @@ public interface RestrictionPattern {
 
         @Override
         public boolean matches(@NotNull String path) {
+            return true;
+        }
+
+        @Override
+        public boolean matches(@NotNull String path, boolean isProperty) {
             return true;
         }
 

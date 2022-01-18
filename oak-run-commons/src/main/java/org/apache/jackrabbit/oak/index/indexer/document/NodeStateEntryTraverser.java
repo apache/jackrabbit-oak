@@ -44,26 +44,41 @@ import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.transform;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 
 public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closeable {
     private final Closer closer = Closer.create();
     private final RevisionVector rootRevision;
     private final DocumentNodeStore documentNodeStore;
     private final MongoDocumentStore documentStore;
+    /**
+     * Traverse only those node states which have been modified on or after lower limit
+     * and before the upper limit of this range.
+     */
+    private final TraversingRange traversingRange;
 
     private Consumer<String> progressReporter = id -> {};
     private Predicate<String> pathPredicate = path -> true;
 
-    public NodeStateEntryTraverser(DocumentNodeStore documentNodeStore,
+    private final String id;
+
+    public NodeStateEntryTraverser(String id, DocumentNodeStore documentNodeStore,
                                    MongoDocumentStore documentStore) {
-        this(documentNodeStore.getHeadRevision(), documentNodeStore, documentStore);
+        this(id, documentNodeStore.getHeadRevision(), documentNodeStore, documentStore,
+                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null));
     }
 
-    public NodeStateEntryTraverser(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                   MongoDocumentStore documentStore) {
+    public NodeStateEntryTraverser(String id, RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
+                                   MongoDocumentStore documentStore, TraversingRange traversingRange) {
+        this.id = id;
         this.rootRevision = rootRevision;
         this.documentNodeStore = documentNodeStore;
         this.documentStore = documentStore;
+        this.traversingRange = traversingRange;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @NotNull
@@ -101,6 +116,14 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
                 && pathPredicate.test(path);
     }
 
+    /**
+     * Returns the modification range corresponding to node states which are traversed by this.
+     * @return {@link LastModifiedRange}
+     */
+    public TraversingRange getDocumentTraversalRange() {
+        return traversingRange;
+    }
+
     @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
     private Iterable<NodeStateEntry> getEntries(NodeDocument doc) {
         Path path = doc.getPath();
@@ -115,7 +138,14 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         return transform(
                 concat(singleton(nodeState),
                     nodeState.getAllBundledNodesStates()),
-                dns -> new NodeStateEntry(dns, dns.getPath().toString())
+                dns -> {
+                    NodeStateEntry.NodeStateEntryBuilder builder =  new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
+                    if (doc.getModified() != null) {
+                        builder.withLastModified(doc.getModified());
+                    }
+                    builder.withID(doc.getId());
+                    return builder.build();
+                }
         );
     }
 
@@ -127,7 +157,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, id -> includeId(id));
+                .getAllDocuments(Collection.NODES, traversingRange, this::includeId);
     }
 
     private boolean includeId(String id) {

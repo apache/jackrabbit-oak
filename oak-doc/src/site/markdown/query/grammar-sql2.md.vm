@@ -257,11 +257,16 @@ Example: the condition `property(*, Reference) = $uuid` will search for any prop
 
 "lower", "upper", "length": Indexes on functions are supported `@since Oak 1.6`, see OAK-3574.
 
+"first", "path": Supported `@since Oak 1.42`, see OAK-9625.
+
 Examples:
 
     lower([firstName])
     coalesce([lastName], name())
     length(coalesce([lastName], name()))
+    first([alias])
+    name()
+    path()
     [jcr:content/title]
 
 ---

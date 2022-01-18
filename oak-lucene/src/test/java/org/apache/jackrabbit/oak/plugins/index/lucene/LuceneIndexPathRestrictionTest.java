@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -102,6 +104,55 @@ public class LuceneIndexPathRestrictionTest {
         f = createFilter(root, NT_BASE);
         f.restrictProperty("d/*/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         validateResult(f, of("/", "/test", "/test/c"));
+    }
+
+    @Test
+    public void entryCountWithNoPathRestriction() throws Exception {
+        IndexDefinitionBuilder idxBuilder =
+                new LuceneIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
+                        child("fooIndex"))
+                        .noAsync().evaluatePathRestrictions();
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.build();
+        commit();
+
+        NodeBuilder testRootBuilder = rootBuilder.child("test");
+        int count = 100;
+        for (int i = 0; i < count; i++) {
+            testRootBuilder.child("n" + i).setProperty("foo", "bar");
+        }
+        commit();
+
+        FilterImpl f;
+
+        // //*[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        // equality check: we assume FulltextIndexPlanner#DEFAULT_PROPERTY_WEIGHT different values
+        int cost = count / FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
+        assertEquals(cost, getEstimatedCount(f));
+
+        // /jcr:root/test/*[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        f.restrictPath("/test", PathRestriction.DIRECT_CHILDREN);
+        // direct children + equality check: we assume 50% of just checking for equality
+        assertEquals((int) (cost * 0.5), getEstimatedCount(f));
+
+        // /jcr:root/test//*[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        f.restrictPath("/test", PathRestriction.ALL_CHILDREN);
+        // descendants + equality check: we assume 90% of just checking for equality
+        assertEquals((int) (cost * 0.9), getEstimatedCount(f));
+
+        // /jcr:root/test/x[foo = 'bar']
+        f = createFilter(root, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        f.restrictPath("/test/x", PathRestriction.EXACT);
+        // exact path + equality check: we assume just 1 (as we have only one possible node)
+        assertEquals(1, getEstimatedCount(f));
+
     }
 
     @Test
@@ -263,6 +314,13 @@ public class LuceneIndexPathRestrictionTest {
         }
 
         assertEquals(f.toString(), expected, paths);
+    }
+
+    private long getEstimatedCount(Filter f) {
+        List<QueryIndex.IndexPlan> plans = index.getPlans(f, null, root);
+        assertEquals("Only one plan must show up", 1, plans.size());
+        QueryIndex.IndexPlan plan = plans.get(0);
+        return plan.getEstimatedEntryCount();
     }
 
     private void commit() throws Exception {

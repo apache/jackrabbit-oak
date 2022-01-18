@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLo
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -44,7 +43,6 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -177,7 +175,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
 
-        java.util.Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(
+        java.util.Map<Type, Object> valMap = ImmutableMap.of(
                 Type.BOOLEANS, ImmutableSet.of(Boolean.TRUE),
                 Type.LONGS, ImmutableSet.of(1234L),
                 Type.NAMES, ImmutableSet.of("id", "id2")
@@ -222,7 +220,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         when(ps.isArray()).thenReturn(false);
 
         try {
-            Validator v = new ExternalIdentityValidatorProvider(ImmutableSet.of(SystemPrincipal.INSTANCE), true).getRootValidator(ns, ns, null);
+            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns, null);
             v.propertyAdded(ps);
         } catch (CommitFailedException e) {
             assertException(e, CONSTRAINT, 71);
@@ -250,7 +248,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
 
-        java.util.Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(
+        java.util.Map<Type, Object> valMap = ImmutableMap.of(
                 Type.BOOLEAN, Boolean.TRUE,
                 Type.LONG, 1234L,
                 Type.NAME, "id"
@@ -279,7 +277,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         when(ps.isArray()).thenReturn(true);
 
         try {
-            Validator v = new ExternalIdentityValidatorProvider(ImmutableSet.of(SystemPrincipal.INSTANCE), true).getRootValidator(ns, ns, null);
+            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns, null);
             v.propertyAdded(ps);
         } catch (CommitFailedException e) {
             assertException(e, CONSTRAINT, 75);

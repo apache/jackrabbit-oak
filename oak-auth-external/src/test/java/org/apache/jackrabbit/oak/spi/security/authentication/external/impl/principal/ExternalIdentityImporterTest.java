@@ -22,7 +22,6 @@ import java.security.PrivilegedExceptionAction;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
@@ -89,12 +88,7 @@ public class ExternalIdentityImporterTest {
 
     Session createSession(Repository repo, boolean isSystem) throws Exception {
         if (isSystem) {
-            return Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
-                @Override
-                public Session run() throws RepositoryException {
-                    return repo.login(null, null);
-                }
-            });
+            return Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<Session>) () -> repo.login(null, null));
         } else {
             return repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
         }

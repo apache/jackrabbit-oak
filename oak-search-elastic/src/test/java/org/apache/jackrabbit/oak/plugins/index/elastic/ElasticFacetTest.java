@@ -51,7 +51,6 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.security.Privilege;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -62,6 +61,7 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
@@ -90,24 +90,17 @@ public class ElasticFacetTest {
     private final Map<String, Integer> actualAclLabelCount = new HashMap<>();
     private final Map<String, Integer> actualAclPar1LabelCount = new HashMap<>();
 
-    // Set this connection string as
-    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
-    // key_id and key_secret are optional in case the ES server
-    // needs authentication
-    // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
-
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+    public static final ElasticConnectionRule elasticRule =
+            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     /*
     Close the ES connection after every test method execution
      */
     @After
-    public void cleanup() throws IOException {
+    public void cleanup() {
         anonymousSession.logout();
         adminSession.logout();
-        elasticRule.closeElasticConnection();
     }
 
     @Before
@@ -159,7 +152,7 @@ public class ElasticFacetTest {
 
         String build() throws RepositoryException {
             final String indexName = UUID.randomUUID().toString();
-            indexDefinitionBuilder.build(adminSession.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(indexName));
+            indexDefinitionBuilder.build(adminSession.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(indexName, INDEX_DEFINITIONS_NODE_TYPE));
             return indexName;
         }
     }

@@ -113,6 +113,7 @@ class CugPolicyImpl implements CugPolicy {
 
     //----------------------------------------< JackrabbitAccessControlList >---
     @Override
+    @NotNull
     public String getPath() {
         return namePathMapper.getJcrPath(oakPath);
     }

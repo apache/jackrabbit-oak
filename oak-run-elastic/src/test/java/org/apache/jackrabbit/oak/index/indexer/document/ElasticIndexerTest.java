@@ -55,15 +55,15 @@ public class ElasticIndexerTest {
 
         NodeBuilder builder = root.builder();
 
-        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, true);
+        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, false);
         ElasticIndexer indexer = new ElasticIndexer(idxDefn, mock(FulltextBinaryTextExtractor.class), builder,
                 mock(IndexingProgressReporter.class), indexWriter, mock(ElasticIndexEditorProvider.class), mock(IndexHelper.class));
 
         NodeState testNode = EMPTY_NODE.builder().setProperty("foo", "bar").getNodeState();
 
-        assertTrue(indexer.index(new NodeStateEntry(testNode, "/content/x")));
-        assertFalse(indexer.index(new NodeStateEntry(testNode, "/x")));
-        assertFalse(indexer.index(new NodeStateEntry(testNode, "/")));
+        assertTrue(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/content/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/").build()));
     }
 
 }

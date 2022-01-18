@@ -25,7 +25,11 @@ import java.io.IOException;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +44,7 @@ class StoreAndSortStrategy implements SortStrategy {
     private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Iterable<NodeStateEntry> nodeStates;
+    private final NodeStateEntryTraverserFactory nodeStatesFactory;
     private final PathElementComparator comparator;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
@@ -51,9 +55,9 @@ class StoreAndSortStrategy implements SortStrategy {
     private long textSize;
 
 
-    public StoreAndSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator comparator,
+    public StoreAndSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator comparator,
                                 NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
-        this.nodeStates = nodeStates;
+        this.nodeStatesFactory = nodeStatesFactory;
         this.comparator = comparator;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
@@ -62,8 +66,11 @@ class StoreAndSortStrategy implements SortStrategy {
 
     @Override
     public File createSortedStoreFile() throws IOException {
-        File storeFile = writeToStore(storeDir, getStoreFileName());
-        return sortStoreFile(storeFile);
+        try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(new MongoDocumentTraverser.TraversingRange(new LastModifiedRange(0,
+                Long.MAX_VALUE), null))) {
+            File storeFile = writeToStore(nodeStates, storeDir, getStoreFileName());
+            return sortStoreFile(storeFile);
+        }
     }
 
     @Override
@@ -88,7 +95,7 @@ class StoreAndSortStrategy implements SortStrategy {
         return sorter.getSortedFile();
     }
 
-    private File writeToStore(File dir, String fileName) throws IOException {
+    private File writeToStore(NodeStateEntryTraverser nodeStates, File dir, String fileName) throws IOException {
         entryCount = 0;
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();

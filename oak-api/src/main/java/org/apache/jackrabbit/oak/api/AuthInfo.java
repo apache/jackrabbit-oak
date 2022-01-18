@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 public interface AuthInfo {
 
     AuthInfo EMPTY = new AuthInfo() {
+        @Nullable
         @Override
         public String getUserID() {
             return null;
@@ -42,6 +43,7 @@ public interface AuthInfo {
             return new String[0];
         }
 
+        @Nullable
         @Override
         public Object getAttribute(String attributeName) {
             return null;

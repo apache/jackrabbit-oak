@@ -117,8 +117,8 @@ public class ElasticIndexProviderService {
         String localTextExtractionDir();
 
         @AttributeDefinition(name = "Remote index cleanup frequency", description = "Frequency (in seconds) of running remote index deletion scheduled task." +
-                "Set this to -1 to disable the task. Default is 1 hour.")
-        int remoteIndexCleanupFrequency() default 60*60;
+                "Default is -1 (disabled)).")
+        int remoteIndexCleanupFrequency() default -1;
 
         @AttributeDefinition(name = "Remote index deletion threshold", description = "Time in seconds after which a remote index whose local index is not found gets deleted." +
                 "Default is 1 day.")
@@ -196,7 +196,8 @@ public class ElasticIndexProviderService {
             LOG.warn("The Elastic cluster at {} is not reachable. The index cleaner job has not been enabled", elasticConnection);
             return;
         }
-        if (contextConfig.remoteIndexCleanupFrequency() == -1) {
+        if (contextConfig.remoteIndexCleanupFrequency() <= 0) {
+            LOG.info("Index Cleaner disabled by configuration");
             return;
         }
         ElasticIndexCleaner task = new ElasticIndexCleaner(elasticConnection, nodeStore, contextConfig.remoteIndexDeletionThreshold());

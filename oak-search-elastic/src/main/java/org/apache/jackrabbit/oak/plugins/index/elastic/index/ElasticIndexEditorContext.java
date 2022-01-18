@@ -27,48 +27,26 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.UUID;
-
 class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocument> {
 
-    private final String indexPrefix;
-
     ElasticIndexEditorContext(NodeState root,
-                              NodeBuilder definition, @Nullable IndexDefinition indexDefinition,
+                              NodeBuilder definition, @Nullable ElasticIndexDefinition indexDefinition,
                               IndexUpdateCallback updateCallback,
                               ElasticIndexWriterFactory indexWriterFactory,
                               ExtractedTextCache extractedTextCache,
                               IndexingContext indexingContext,
-                              boolean asyncIndexing, String indexPrefix) {
+                              boolean asyncIndexing) {
         super(root, definition, indexDefinition, updateCallback, indexWriterFactory, extractedTextCache, indexingContext, asyncIndexing);
-        this.indexPrefix = indexPrefix;
     }
 
     @Override
     public IndexDefinition.Builder newDefinitionBuilder() {
-        return new ElasticIndexDefinition.Builder(indexPrefix);
+        return new ElasticIndexDefinition.Builder(((ElasticIndexDefinition) definition).getIndexPrefix());
     }
 
     @Override
     public DocumentMaker<ElasticDocument> newDocumentMaker(IndexDefinition.IndexingRule rule, String path) {
         return new ElasticDocumentMaker(getTextExtractor(), getDefinition(), rule, path);
-    }
-
-    @Override
-    public void enableReindexMode() {
-        super.enableReindexMode();
-
-        // Now, that index definition _might_ have been migrated by super call, it would be ok to
-        // get writer and provision index settings and mappings
-        try {
-            long seed = UUID.randomUUID().getMostSignificantBits();
-            // merge gets called on node store later in the indexing flow
-            definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
-            getWriter().provisionIndex(seed);
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to provision index", e);
-        }
     }
 
     @Override

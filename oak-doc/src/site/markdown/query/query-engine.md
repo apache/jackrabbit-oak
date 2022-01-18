@@ -33,6 +33,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
         * [Quoting](#Quoting)
         * [Equality for Path Constraints](#Equality_for_Path_Constraints)
     * [Slow Queries and Read Limits](#Slow_Queries_and_Read_Limits)
+    * [Keyset Pagination](#Keyset_Pagination)
     * [Full-Text Queries](#Full-Text_Queries)
     * [Excerpts and Highlighting](#Excerpts_and_Highlighting)
     * [Native Queries](#Native_Queries)
@@ -183,6 +184,8 @@ The syntax to limit a query to a certain tag is: `<query> option(index tag <tagN
 
 The query will only consider the indexes that contain the specified tag (that is, possibly multiple indexes).
 Each query supports one tag only.
+If a query doesn't explicitly uses this option, then all indexes are considered
+(including indexes with tags and indexes without tags).
 The tag name may only contain the characters `a-z, A-Z, 0-9, _`.
 
 Limitations:
@@ -306,6 +309,66 @@ in case there are separate indexes for `a` and `b`.
 For XPath queries, such conversion to `union` is always made,
 and for SQL-2 queries such a conversion is only made if the `union` query has a lower expected cost.
 When using `or` in combination with the same property, as in `a=1 or a=2`, then no conversion to `union` is made.
+
+### Keyset Pagination
+
+It is best to limit the result size to at most a few hundred entries.
+To read a large result, keyset pagination should be used.
+Note that "offset" with large values (more than a few hundred) should be avoided, as it can lead to performance and memory issues.
+Keyset pagination refers to ordering the result set by a key column, and then paginate using this column.
+It requires an ordered index on the key column. Example:
+
+    /jcr:root/content//element(*, nt:file)
+    [@jcr:lastModified >= $lastEntry]
+    order by @jcr:lastModified, @jcr:path
+
+For the first query, set `$lastEntry` to 0, and for subsequent queries,
+use the last modified time of the last result.
+
+An order index is needed for these queries to work efficiently, e.g.:
+
+    /oak:index/fileIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - includedPaths = [ "/content" ]
+      - queryPaths = [ "/content" ]
+      + indexRules
+        + nt:file
+          + properties
+            + jcrLastModified
+              - name = "jcr:lastModified"
+              - propertyIndex = true
+              - ordered = true
+
+Notice that multiple entries with the same modified date might exist.
+If your application requires that the same node is only processed once,
+then additional logic is required to skip over the entries already seen (for the same modified date).
+
+If there is no good property to use keyset pagination on, then the lowercase of the node name can be used.
+It is best to start with `$lastEntry` as an empty string, and then in each subsequent run use the lowercase version of the node name of the last entry.
+Notice that some nodes may appear in two query results, if there are multiple nodes with the same name.
+In this case, SQL-2 needs to be used, because with XPath, escaping is applied to names.
+
+    select [jcr:path], * from [nt:file] as a
+    where lower(name(a)) >= $lastEntry
+    and isdescendantnode(a, '/content')
+    order by lower(name(a)), [jcr:path]
+
+    /oak:index/fileIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - includedPaths = [ "/content" ]
+      - queryPaths = [ "/content" ]
+      + indexRules
+        + nt:file
+          + properties
+            + lowercaseName
+              - function = "lower(name())"
+              - propertyIndex = true
+              - ordered = true
+
 
 ### Full-Text Queries
 

@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -120,7 +120,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         PropertyState privs = PropertyStates.createProperty(REP_PRIVILEGES, privilegeBitsProvider.getPrivilegeNames(entry.getPrivilegeBits()), Type.NAMES);
         when(t.getProperty(REP_PRIVILEGES)).thenReturn(privs);
 
-        Iterable props = Iterables.transform(entry.getRestrictions(), (Function<Restriction, PropertyState>) restriction -> restriction.getProperty());
+        Iterable props = Iterables.transform(entry.getRestrictions(), Restriction::getProperty);
         Tree rTree = mock(Tree.class);
         when(rTree.getProperties()).thenReturn(props);
         when(t.getChild(REP_RESTRICTIONS)).thenReturn(rTree);
@@ -138,11 +138,11 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         return t;
     }
 
-    private Map<String, Value> createGlobRestriction(@NotNull String value) throws ValueFormatException {
+    private Map<String, Value> createGlobRestriction(@NotNull String value) {
         return ImmutableMap.of(getJcrName(REP_GLOB), getValueFactory(root).createValue(value));
     }
 
-    private Map<String, Value> createRestrictions(@NotNull String oakName, @NotNull String value) throws ValueFormatException {
+    private Map<String, Value> createRestrictions(@NotNull String oakName, @NotNull String value) {
         return ImmutableMap.of(getJcrName(oakName), getValueFactory(root).createValue(value));
     }
 
@@ -413,7 +413,6 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddAccessControlEntryWithEmptyNodePathRestriction() throws Exception {
-        ValueFactory vf = getValueFactory(root);
         assertTrue(emptyPolicy.addEntry(principal, privilegesFromNames(PrivilegeConstants.REP_ADD_PROPERTIES), true,
                 createRestrictions(REP_NODE_PATH, ""), null));
 
@@ -428,7 +427,6 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddAccessControlEntryWithNodePathRestriction() throws Exception {
-        ValueFactory vf = getValueFactory(root);
         assertTrue(emptyPolicy.addEntry(principal, privilegesFromNames(PrivilegeConstants.REP_ADD_PROPERTIES), true,
                 createRestrictions(REP_NODE_PATH, testJcrPath),
                 createMvRestrictions(AccessControlConstants.REP_ITEM_NAMES, PropertyType.NAME, "itemName")));
@@ -494,7 +492,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         for (AccessControlEntry entry : policy.getAccessControlEntries()) {
             assertFalse(policy.isEmpty());
             policy.removeAccessControlEntry(entry);
-        };
+        }
         assertTrue(policy.isEmpty());
     }
 
@@ -603,7 +601,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
             @Nullable
             @Override
-            public Value getRestriction(@NotNull String s) throws ValueFormatException, RepositoryException {
+            public Value getRestriction(@NotNull String s) throws RepositoryException {
                 return entry.getRestriction(s);
             }
 
@@ -611,6 +609,11 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
             @Override
             public Value[] getRestrictions(@NotNull String s) throws RepositoryException {
                 return entry.getRestrictions(s);
+            }
+
+            @Override
+            public @NotNull PrivilegeCollection getPrivilegeCollection() throws RepositoryException {
+                return entry.getPrivilegeCollection();
             }
 
             @Override

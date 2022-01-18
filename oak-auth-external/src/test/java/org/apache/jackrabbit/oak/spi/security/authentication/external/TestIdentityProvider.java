@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -207,7 +208,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
         @NotNull
         @Override
-        public Iterable<ExternalIdentityRef> getDeclaredGroups() {
+        public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
             return groups;
         }
 
@@ -259,7 +260,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() {
-            return null;
+            return Collections.emptyList();
         }
     }
 
