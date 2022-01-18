@@ -67,4 +67,23 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
                 + "  where isdescendantnode([nt:base], [/test]) */]", result.toString());
     }
 
+    @Override
+    public String getContainsValueFortestEqualityQuery_native() {
+        return "+:ancestors:/test +propa:bar";
+    }
+
+    @Override
+    public String getContainsValueFortestInequalityQuery_native() {
+        return "+:ancestors:/test -propa:bar";
+    }
+
+    @Override
+    public String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native() {
+        return "+propa:[* TO *] -propa:bar";
+    }
+
+    @Override
+    public String getContainsValueFortestEqualityInequalityCombined_native() {
+        return "+:ancestors:/test +propb:world -propa:bar +propa:[* TO *]";
+    }
 }

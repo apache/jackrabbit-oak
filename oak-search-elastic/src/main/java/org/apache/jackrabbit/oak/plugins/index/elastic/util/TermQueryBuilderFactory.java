@@ -127,7 +127,13 @@ public class TermQueryBuilderFactory {
                     .map(propToObj)
                     .collect(Collectors.toList()));
         }  else if (pr.isNot && pr.not!= null){
-            return boolQuery().mustNot(termQuery(propertyName, not));
+            // MUST_NOT [property]=[value] AND MUST [property]=[* to *]
+            return boolQuery()
+                    // This helps with the NOT equal to condition for given property
+                    .mustNot(termQuery(propertyName, not))
+                    // This helps to make sure entries returned by index are those where given property is not null
+                    // Using simply MUST_NOT with TERM query returns those entires also where this property is not set.
+                    .must(newRangeQuery(propertyName, null, null, true, true));
         } else {
             return null;
         }

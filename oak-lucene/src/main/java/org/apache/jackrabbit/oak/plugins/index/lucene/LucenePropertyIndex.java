@@ -972,24 +972,6 @@ public class LucenePropertyIndex extends FulltextIndex {
     @NotNull
     public static LuceneRequestFacade<Query> performAdditionalWraps(@NotNull List<Query> qs) {
         if (qs.size() == 1) {
-            Query q = qs.get(0);
-            if (q instanceof BooleanQuery) {
-                BooleanQuery ibq = (BooleanQuery) q;
-                boolean onlyNotClauses = true;
-                for (BooleanClause c : ibq.getClauses()) {
-                    if (c.getOccur() != BooleanClause.Occur.MUST_NOT) {
-                        onlyNotClauses = false;
-                        break;
-                    }
-                }
-                if (onlyNotClauses) {
-                    // if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
-                    // query to work
-                    // CHECK IF THIS IS NEEDED still ?????
-                    ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
-                }
-                return new LuceneRequestFacade<>(ibq);
-            }
             return new LuceneRequestFacade<>(qs.get(0));
         }
         BooleanQuery bq = new BooleanQuery();
@@ -1240,10 +1222,12 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // not null. For date lower bound of zero can be used
                     return NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // [property]=[value]
-                    // Return a TERM QUERY here - handling for NOT condition will be later on done while building the final bool query
-                    // where we can add excludes/MUST_NOT clause for this TERM query.
-                    return NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true);
+                    // -[property]=[value] + [property]=[* to *]
+                    BooleanQuery bool = new BooleanQuery();
+                    // This is to exclude entries where property value is null or include all entries where property is not null
+                    bool.add(NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true), MUST);
+                    // This will exclude entries with [property]=[value]
+                    bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
                 }
 
                 break;
@@ -1275,10 +1259,12 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // not null.
                     return NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // [property]=[value]
-                    // Return a TERM QUERY here - handling for NOT condition will be later on done while building the final bool query
-                    // where we can add excludes/MUST_NOT clause for this TERM query.
-                    return NumericRangeQuery.newDoubleRange(propertyName, pr.not.getValue(DOUBLE), pr.not.getValue(DOUBLE), true, true);
+                    // -[property]=[value] + [property]=[* to *]
+                    BooleanQuery bool = new BooleanQuery();
+                    // This is to exclude entries where property value is null or include all entries where property is not null
+                    bool.add(NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true), MUST);
+                    // This will exclude entries with [property]=[value]
+                    bool.add(NumericRangeQuery.newDoubleRange(propertyName, pr.not.getValue(DOUBLE), pr.not.getValue(DOUBLE), true, true), MUST_NOT);
                 }
                 break;
             }
@@ -1309,10 +1295,12 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // not null.
                     return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // [property]=[value]
-                    // Return a TERM QUERY here - handling for NOT condition will be later on done while building the final bool query
-                    // where we can add excludes/MUST_NOT clause for this TERM query.
-                    return NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true);
+                    // -[property]=[value] + [property]=[* to *]
+                    BooleanQuery bool = new BooleanQuery();
+                    // This is to exclude entries where property value is null or include all entries where property is not null
+                    bool.add(NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true), MUST);
+                    // This will exclude entries with [property]=[value]
+                    bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
                 }
                 break;
             }
@@ -1347,13 +1335,13 @@ public class LucenePropertyIndex extends FulltextIndex {
                 } else if (pr.isNotNullRestriction()) {
                     return new TermRangeQuery(propertyName, null, null, true, true);
                 } else if (pr.isNot && pr.not != null) {
-                    // [property]=[value]
-                    // Return a TERM QUERY here - handling for NOT condition will be later on done while building the final bool query
-                    // where we can add excludes/MUST_NOT clause for this TERM query.
+                    // -[property]=[value] + [property]=[* to *]
                     BooleanQuery bool = new BooleanQuery();
+                    // This is to exclude entries where property value is null or include all entries where property is not null
+                    bool.add(new TermRangeQuery(propertyName, null, null, true, true), MUST);
+                    // This will exclude entries with [property]=[value]
                     bool.add(new TermQuery(new Term(propertyName, pr.not.getValue(STRING))), MUST_NOT);
                     return bool;
-                    //return new TermQuery(new Term(propertyName, pr.not.getValue(STRING)));
                 }
             }
         }

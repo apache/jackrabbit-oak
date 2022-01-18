@@ -57,4 +57,29 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
                 + "  where isdescendantnode([nt:base], [/test]) */]", result.toString());
     }
 
+    @Override
+    public String getContainsValueFortestEqualityQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
+
+    @Override
+    public String getContainsValueFortestInequalityQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"bool\":{\"must\"" +
+                ":[{\"range\":{\"propa.keyword\":{\"from\":null,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}]," +
+                "\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
+
+    @Override
+    public String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native() {
+        return "\"filter\":[{\"bool\":{\"must\":[{\"range\":{\"propa.keyword\":{\"from\":null,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}]," +
+                "\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
+
+    @Override
+    public String getContainsValueFortestEqualityInequalityCombined_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}}," +
+                "{\"term\":{\"propb.keyword\":{\"value\":\"world\",\"boost\":1.0}}}," +
+                "{\"bool\":{\"must\":[{\"range\":{\"propa.keyword\":{\"from\":null,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}]," +
+                "\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
 }

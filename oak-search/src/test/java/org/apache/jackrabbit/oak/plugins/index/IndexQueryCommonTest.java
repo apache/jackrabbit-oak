@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Ignore;
 import org.junit.Test;
-
 import java.text.ParseException;
 import java.util.*;
 
@@ -73,6 +72,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         TestUtil.enableFunctionIndex(props, "lower([name])");
         TestUtil.enableFunctionIndex(props, "upper([name])");
         TestUtil.enableForFullText(props, "propa", false);
+        TestUtil.enableForFullText(props, "propb", false);
 
         root.commit();
     }
@@ -532,26 +532,62 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("test3").setProperty("propa", "foo");
         test.addChild("test4").setProperty("propa", "bar");
         test.addChild("test5").setProperty("propa", "bar");
+        test.addChild("test6");
         root.commit();
 
         String query = "explain /jcr:root/test//*[propa!='bar']";
 
-        assertEventually(() -> {
-            Result result = null;
-            try {
-                result = executeQuery(query, XPATH, NO_BINDINGS);
-            } catch (ParseException e) {
-                assertTrue(e.getMessage(), false);
-            }
-            ResultRow row = result.getRows().iterator().next();
-
-            assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test -propa:bar"));
-        });
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestInequalityQuery_native()));
 
         String query2 = "/jcr:root/test//*[propa!='bar']";
 
         assertEventually(() -> {
             assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2", "/test/test3"));
+        });
+    }
+
+    @Test
+    public void testInequalityQueryWithoutAncestorFilter_native() throws Exception {
+        Tree test = root.getTree("/");
+        test.addChild("test1").setProperty("propa", "hello");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        test.addChild("test5").setProperty("propa", "bar");
+        test.addChild("test6");
+        root.commit();
+
+        String query = "explain //*[propa!='bar']";
+
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestInequalityQueryWithoutAncestorFilter_native()));
+
+        String query2 = "//*[propa!='bar']";
+
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test1", "/test2", "/test3"));
+        });
+    }
+
+    @Test
+    public void testEqualityInequalityCombined_native() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "hello");
+        test.getChild("test1").setProperty("propb", "world");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        test.addChild("test5").setProperty("propa", "bar");
+        test.addChild("test6").setProperty("propb", "world");
+        root.commit();
+
+        String query = "explain /jcr:root/test//*[propa!='bar' and propb='world']";
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestEqualityInequalityCombined_native()));
+
+        String query2 = "/jcr:root/test//*[propa!='bar' and propb='world']";
+        // Expected - nodes with both properties defined and propb with value 'world' and propa with value not equal to bar should be returned
+        // /test/test6 should NOT be returned because for it propa = null
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test1"));
         });
     }
 
@@ -568,16 +604,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain /jcr:root/test//*[propa='bar']";
 
-        assertEventually(() -> {
-            Result result = null;
-            try {
-                result = executeQuery(query, XPATH, NO_BINDINGS);
-            } catch (ParseException e) {
-                assertTrue(e.getMessage(), false);
-            }
-            ResultRow row = result.getRows().iterator().next();
-            assertTrue(row.getValue("plan").toString().contains("+:ancestors:/test +propa:bar"));
-        });
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestEqualityQuery_native()));
 
         String query2 = "/jcr:root/test//*[propa='bar']";
 
@@ -591,6 +618,27 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         Tree t1 = t.addChild(n);
         t1.setProperty(JCR_PRIMARYTYPE, type, Type.NAME);
         return t1;
+    }
+
+    public abstract String getContainsValueFortestEqualityQuery_native();
+
+    public abstract String getContainsValueFortestInequalityQuery_native();
+
+    public abstract String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native();
+
+    public abstract String getContainsValueFortestEqualityInequalityCombined_native();
+
+    private Runnable getAssertionForExplainContains(String query, String language, String containValue) {
+        return () -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, language, NO_BINDINGS);
+            } catch (ParseException e) {
+                assertTrue(e.getMessage(), false);
+            }
+            ResultRow row = result.getRows().iterator().next();
+            assertTrue(row.getValue("plan").toString().contains(containValue));
+        };
     }
 
     private static void assertEventually(Runnable r) {
