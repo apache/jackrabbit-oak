@@ -1243,6 +1243,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     BooleanQuery bool = new BooleanQuery();
                     // This will exclude entries with [property]=[value]
                     bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
+                    return bool;
                 }
 
                 break;
@@ -1278,6 +1279,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     BooleanQuery bool = new BooleanQuery();
                     // This will exclude entries with [property]=[value]
                     bool.add(NumericRangeQuery.newDoubleRange(propertyName, pr.not.getValue(DOUBLE), pr.not.getValue(DOUBLE), true, true), MUST_NOT);
+                    return bool;
                 }
                 break;
             }
@@ -1312,6 +1314,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     BooleanQuery bool = new BooleanQuery();
                     // This will exclude entries with [property]=[value]
                     bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
+                    return bool;
                 }
                 break;
             }
