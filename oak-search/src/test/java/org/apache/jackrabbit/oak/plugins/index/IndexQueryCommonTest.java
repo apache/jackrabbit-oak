@@ -547,6 +547,27 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testNotNullQuery_native() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "hello");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4");
+        root.commit();
+
+        String query = "explain select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
+
+        assertEventually(getAssertionForExplainContains(query, SQL2, getContainsValueFortestNotNullQuery_native()));
+
+        String query2 = "select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
+
+        assertEventually(() -> {
+            assertQuery(query2, SQL2, Arrays.asList("/test/test1", "/test/test2", "/test/test3"));
+        });
+    }
+
+    @Test
     public void testInequalityQueryWithoutAncestorFilter_native() throws Exception {
         Tree test = root.getTree("/");
         test.addChild("test1").setProperty("propa", "hello");
@@ -627,6 +648,8 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     public abstract String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native();
 
     public abstract String getContainsValueFortestEqualityInequalityCombined_native();
+
+    public abstract String getContainsValueFortestNotNullQuery_native();
 
     private Runnable getAssertionForExplainContains(String query, String language, String containValue) {
         return () -> {

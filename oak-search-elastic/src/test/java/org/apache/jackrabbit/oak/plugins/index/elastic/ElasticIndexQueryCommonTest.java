@@ -79,4 +79,9 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"term\":{\"propb.keyword\":{\"value\":\"world\",\"boost\":1.0}}}," +
                 "{\"exists\":{\"field\":\"propa\",\"boost\":1.0}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
     }
+
+    @Override
+    public String getContainsValueFortestNotNullQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"exists\":{\"field\":\"propa\",\"boost\":1.0}}]";
+    }
 }
