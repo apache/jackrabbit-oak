@@ -220,7 +220,7 @@ public class JsopBuilder implements JsopWriter {
         if (value != null) {
             return value.length();
         } else {
-            return 4;// null = 4 chars
+            return "null".length();
         }
     }
 
