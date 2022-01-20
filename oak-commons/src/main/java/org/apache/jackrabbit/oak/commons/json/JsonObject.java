@@ -146,7 +146,7 @@ public class JsonObject {
     }
 
     private static void toJson(JsopBuilder buf, JsonObject obj) {
-        if(obj == null){
+        if (obj == null) {
             buf.value(null);
         } else {
             buf.object();
