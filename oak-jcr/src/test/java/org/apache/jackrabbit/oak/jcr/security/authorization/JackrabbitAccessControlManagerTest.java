@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -24,9 +25,10 @@ import org.apache.jackrabbit.test.NotExecutableException;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
 import java.util.Collections;
+import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -85,6 +87,23 @@ public class JackrabbitAccessControlManagerTest extends AbstractEvaluationTest {
             ((JackrabbitAccessControlManager) testAcMgr).getPrivilegeCollection(path, Collections.singleton(EveryonePrincipal.getInstance()));
             fail("AccessDeniedException expected");
         } catch (AccessDeniedException e) {
+            // success
+        }
+    }
+    
+    public void testPrivilegeCollectionFromNames() throws Exception {
+        PrivilegeCollection pc = jrAcMgr.privilegeCollectionFromNames(Privilege.JCR_READ, Privilege.JCR_WRITE);
+        
+        assertFalse(pc instanceof PrivilegeCollection.Default);
+        Set<Privilege> expected = ImmutableSet.copyOf(privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_WRITE}));
+        assertEquals(expected, ImmutableSet.copyOf(pc.getPrivileges()));
+    }
+
+    public void testPrivilegeCollectionFromInvalidNames() throws Exception {
+        try {
+            PrivilegeCollection pc = jrAcMgr.privilegeCollectionFromNames("invalidPrivilegeName");
+            fail("AccessControlException expected");
+        } catch (AccessControlException e) {
             // success
         }
     }

@@ -128,7 +128,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
 
     @Override
     public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath) throws RepositoryException {
-        return getPrivilegeCollection(getPrivilegeNames(absPath, getPermissionProvider(), Permissions.NO_PERMISSION));
+        return getPrivilegeCollection(getPrivilegeNames(absPath, getPermissionProvider(), Permissions.NO_PERMISSION), false);
     }
 
     @Override
@@ -137,13 +137,13 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
             return getPrivilegeCollection(absPath);
         } else {
             PermissionProvider provider = config.getPermissionProvider(root, workspaceName, principals);
-            return getPrivilegeCollection(getPrivilegeNames(absPath, provider, Permissions.READ_ACCESS_CONTROL));
+            return getPrivilegeCollection(getPrivilegeNames(absPath, provider, Permissions.READ_ACCESS_CONTROL), false);
         }
     }
 
     @Override
     public @NotNull PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        return getPrivilegeCollection(PrivilegeUtil.getOakNames(privilegeNames, namePathMapper));
+        return getPrivilegeCollection(PrivilegeUtil.getOakNames(privilegeNames, namePathMapper), true);
     }
 
     //----------------------------------------------------------< protected >---
@@ -303,8 +303,8 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     }
     
     @NotNull
-    private PrivilegeCollection getPrivilegeCollection(@NotNull Set<String> pNames) {
-        return new AbstractPrivilegeCollection(getPrivilegeBitsProvider().getBits(pNames)) {
+    private PrivilegeCollection getPrivilegeCollection(@NotNull Set<String> pNames, boolean validate) throws AccessControlException {
+        return new AbstractPrivilegeCollection(getPrivilegeBitsProvider().getBits(pNames, validate)) {
             @Override
             public Privilege[] getPrivileges() throws RepositoryException {
                 return AbstractAccessControlManager.this.getPrivileges(pNames);

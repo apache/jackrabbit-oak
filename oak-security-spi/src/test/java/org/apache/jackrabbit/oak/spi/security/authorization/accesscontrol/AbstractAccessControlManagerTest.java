@@ -525,4 +525,15 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         assertTrue(pc instanceof AbstractPrivilegeCollection);
         assertArrayEquals(new Privilege[] {acMgr.privilegeFromName(JCR_READ)}, pc.getPrivileges());
     }
+
+    @Test
+    public void testPrivilegeCollectionFromInvalidNames() throws Exception {
+        try {
+            PrivilegeCollection pc = acMgr.privilegeCollectionFromNames("invalid");
+            fail("invalid privilege name must be detected");
+        } catch (AccessControlException e) {
+            // success
+            assertEquals("Invalid privilege name contained in [invalid]", e.getMessage());
+        }
+    }
 }
