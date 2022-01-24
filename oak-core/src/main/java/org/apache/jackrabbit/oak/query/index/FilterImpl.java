@@ -361,7 +361,10 @@ public class FilterImpl implements Filter {
             break;
         case NOT_EQUAL:
             if (v != null) {
-                throw new IllegalArgumentException("NOT_EQUAL only supported for NOT_EQUAL NULL");
+                // This will be used to add the MUST_NOT clause while creating the final lucene query which will make the query as
+                // - prop:value instead of +prop:value
+                x.isNot = true;
+                x.not = v;
             }
             break;
         case GREATER_THAN:

@@ -210,6 +210,16 @@ public interface Filter {
         public boolean lastIncluding;
 
         /**
+         * Whether this is a not constraint
+         */
+        public boolean isNot;
+
+        /**
+         * The property value to NOT match
+         */
+        public PropertyValue not;
+
+        /**
          * Whether this is a like constraint. in this case only the 'first'
          * value should be taken into consideration
          */
@@ -232,7 +242,7 @@ public interface Filter {
         }
 
         public boolean isNotNullRestriction() {
-            return first == null && last == null && list == null && !lastIncluding && !firstIncluding;
+            return first == null && last == null && list == null && !lastIncluding && !firstIncluding && !isNot;
         }
 
         @Override
@@ -342,6 +352,16 @@ public interface Filter {
                 return false;
             }
             if (lastIncluding != other.lastIncluding) {
+                return false;
+            }
+            if (isNot != other.isNot) {
+                return false;
+            }
+            if (not == null) {
+                if (other.not != null) {
+                    return false;
+                }
+            } else if (!not.equals(other.not)) {
                 return false;
             }
             if (list == null) {
