@@ -176,6 +176,13 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                 name = "RFC7613 Username Comparison Profile",
                 description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.")
         boolean enableRFC7613UsercaseMappedProfile() default false;
+
+        // for OAK-9675
+        @AttributeDefinition(
+                name = "Authorizable Properties Mixin Types",
+                description = "Optional configuration defining the names of additional " +
+                        " mixin types that are allowed to define authorizable properties.")
+        String[] authorizablePropertiesMixins();
     }
 
     private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();

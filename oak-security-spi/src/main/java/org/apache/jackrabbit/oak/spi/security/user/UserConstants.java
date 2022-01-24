@@ -259,4 +259,13 @@ public interface UserConstants {
      * @since Oak 1.3.3
      */
     int PASSWORD_HISTORY_DISABLED_SIZE = 0;
+
+    /**
+     * OAK-9675 - Optional configuration parameter containing the names of any mixin types
+     * that are allowed to define authorizable properties.
+     *
+     * @since Oak 1.43.0
+     */
+    String PARAM_AUTHORIZABLE_PROPERTIES_MIXINS = "authorizablePropertiesMixins";
+
 }

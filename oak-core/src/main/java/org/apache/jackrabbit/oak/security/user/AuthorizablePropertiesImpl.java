@@ -20,10 +20,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -234,9 +236,34 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         }
         ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
         PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, true);
-        if (def.isProtected() || (authorizablePath.equals(parent.getPath())
-                && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
+        if (def.isProtected()) {
+            // exclude all protected properties
             return null;
+        } else if (authorizablePath.equals(parent.getPath())) {
+            // non-protected properties on the root must be defined by the expected
+            //  primary type or one of the configured mixin types
+            Boolean allowed = null;
+            NodeType declaringNodeType = def.getDeclaringNodeType();
+            if (declaringNodeType.isNodeType(UserConstants.NT_REP_AUTHORIZABLE)) {
+                // defined by the expected primary type so allowed
+                allowed = Boolean.TRUE;
+            } else {
+                // OAK-9675 - not declared by the primary type, so let's check for a mixin
+                if (declaringNodeType.isMixin()) {
+                    // check if the property is defined by any of the configured mixin type
+                    String[] allowedMixins = authorizable.getUserManager().getConfig().getConfigValue(UserConstants.PARAM_AUTHORIZABLE_PROPERTIES_MIXINS, null, String[].class);
+                    if (allowedMixins != null) {
+                        // check if the actual mixin name is one of the configured items
+                        String actualMixinName = declaringNodeType.getName();
+                        allowed = Stream.of(allowedMixins).anyMatch(actualMixinName::equals);
+                    }
+                }
+            }
+
+            if (!Boolean.TRUE.equals(allowed)) {
+                // not defined by an allowed node type
+                return null;
+            }
         } // else: non-protected property somewhere in the subtree of the user tree.
 
         return property;
