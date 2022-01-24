@@ -31,10 +31,6 @@
   <name>Oak Composite Store</name>
   <packaging>bundle</packaging>
 
-  <properties>
-    <pax-exam.version>4.13.4</pax-exam.version>
-  </properties>
-  
   <build>
     <plugins>
       <plugin>
@@ -211,55 +207,46 @@
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.testing.paxexam</artifactId>
-      <version>3.1.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-junit4</artifactId>
-      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-link-mvn</artifactId>
-      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-cm</artifactId>
-      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.url</groupId>
       <artifactId>pax-url-aether</artifactId>
-      <version>2.6.9</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.framework</artifactId>
-      <version>7.0.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>javax.inject</groupId>
       <artifactId>javax.inject</artifactId>
-      <version>1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam</artifactId>
-      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-container-forked</artifactId>
-      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
