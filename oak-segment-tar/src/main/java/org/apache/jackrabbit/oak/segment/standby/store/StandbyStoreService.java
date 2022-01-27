@@ -150,7 +150,7 @@ public class StandbyStoreService {
             return;
         }
 
-        if (MODE_PRIMARY.equals(mode)) {
+        if (MODE_STANDBY.equals(mode)) {
             bootstrapSecondary(context, fileStore);
             return;
         }
