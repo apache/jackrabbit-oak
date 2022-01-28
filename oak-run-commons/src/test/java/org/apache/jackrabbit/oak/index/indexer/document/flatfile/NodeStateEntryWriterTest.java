@@ -20,7 +20,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -40,6 +42,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(Parameterized.class)
 public class NodeStateEntryWriterTest {
     private BlobStore blobStore = new MemoryBlobStore();
     private NodeBuilder builder = EMPTY_NODE.builder();
@@ -169,4 +172,20 @@ public class NodeStateEntryWriterTest {
         assertTrue("Mem usage should increase with bigger node state", size3 > size2);
     }
 
+    @Test
+    public void toSerializedString() {
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+        NodeBuilder b1 = EMPTY_NODE.builder();
+        b1.setProperty("foo", "bar");
+
+        NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/").build();
+
+        String json = nw.asJson(e1.getNodeState());
+        List<String> pathElements = copyOf(elements(e1.getPath()));
+        Set<String> preferred = new HashSet<String>();
+
+        String line = nw.toSerializedString(pathElements, json, preferred);
+
+        assertEquals("0/|{\"foo\":\"bar\"}", line );
+    }
 }

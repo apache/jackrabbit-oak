@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -63,6 +64,36 @@ public class NodeStateEntryWriter {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
         StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
         sb.append('/');
+        pathJoiner.appendTo(sb, pathElements);
+        sb.append(DELIMITER).append(nodeStateAsJson);
+        return sb.toString();
+    }
+
+    // To Format: <depth>/<prefer>path|{}
+    // /|{}                         => 0/1]|{}
+    // /content|{}                  => 1/1]content|{}
+    // /content/dam/test|{}         => 3/1]content/1]dam/1]test|{}
+    // /content/dam/jcr:content|{}  => 3/1]content/1]dam/0]jcr:content|{}  # ex. jcr:content is preferred
+    public String toSerializedString(List<String> pathElements, String nodeStateAsJson, Set<String> preferred) {
+        int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
+        String depth = String.valueOf(pathElements.size());
+        // 1]content/1]dam/1]test
+        int serialLength = depth.length() + (2 * pathElements.size()) + pathElements.size() - 1;
+        int strSize = nodeStateAsJson.length() + pathStringSize + pathElements.size() + serialLength + 1;
+        StringBuilder sb = new StringBuilder(strSize);
+
+        sb.append(depth);
+        if (pathElements.size() == 0) {
+            sb.append('/');
+        } else {
+            for (String element : pathElements) {
+                sb.append('/');
+                sb.append(preferred.contains(element) ? '0' : '1');
+                sb.append(']');
+                sb.append(element);
+            }
+        }
+
         pathJoiner.appendTo(sb, pathElements);
         sb.append(DELIMITER).append(nodeStateAsJson);
         return sb.toString();

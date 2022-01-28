@@ -37,6 +37,10 @@ public class PathElementComparator implements Comparator<Iterable<String>> {
         this.preferred = ImmutableSet.copyOf(preferredPathElements);
     }
 
+    public Set<String> getPreferred() {
+        return preferred;
+    }
+
     @Override
     public int compare(Iterable<String> p1, Iterable<String> p2) {
         Iterator<String> i1 = p1.iterator();

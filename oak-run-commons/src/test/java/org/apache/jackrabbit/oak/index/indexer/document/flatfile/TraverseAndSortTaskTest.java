@@ -67,7 +67,7 @@ public class TraverseAndSortTaskTest {
 
         Queue<Callable<List<File>>> newTaskQueue = new LinkedList<>();
         File store = new File("target/" + this.getClass().getSimpleName() + "-" + System.currentTimeMillis());
-        TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, store, true,
+        TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, null, store, true,
                 new LinkedList<>(Collections.singletonList("1")), newTaskQueue, phaser, new NodeStateEntryTraverserFactoryImpl(), mockMemManager,
                 FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD);
 
