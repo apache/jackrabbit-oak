@@ -125,12 +125,20 @@ public class PropertyValueImpl extends DynamicOperandImpl {
                     f.restrictPath(v.getValue(Type.STRING), PathRestriction.EXACT);
                 }
             } else {
+                // "x <> 1" also means "x is not null" and "x <> 1"
                 if (operator == Operator.NOT_EQUAL && v != null) {
-                    // "x <> 1" also means "x is not null"
+                    // This handles "x is not null" part
+                    // Details -
+                    // This is being used to add the x is not null query for inequality queries on property x
+                    // Without this index implementations will return entries with null/no value for x for query like (x!=some_value)
+                    // and QE will need to do extra work to remove these entries.
+                    // We can handle x is not null from index implementations of lucene and elastic also but
+                    // this Restriction also needs to be added to support existing behaviour of PropertyIndex
                     f.restrictProperty(pn, Operator.NOT_EQUAL, null, propertyType);
-                } else {
-                    f.restrictProperty(pn, operator, v, propertyType);
                 }
+                // For NOT_EQUAL operator this will be the second restriction that will be added.
+                // This will be used by index implementations (Lucene and Elastic) to serve the not equal condition ("x <> 1") from index itself
+                f.restrictProperty(pn, operator, v, propertyType);
             }
         }
     }

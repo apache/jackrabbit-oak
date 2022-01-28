@@ -49,8 +49,8 @@ public class PersistentRedisCache extends AbstractPersistentCache {
 
     private static final String REDIS_PREFIX = "SEGMENT";
     private final IOMonitor redisCacheIOMonitor;
-    private JedisPool redisPool;
-    private SetParams setParamsWithExpire;
+    private final JedisPool redisPool;
+    private final SetParams setParamsWithExpire;
 
     public PersistentRedisCache(String redisHost, int redisPort, int redisExpireSeconds, int redisSocketTimeout,
             int redisConnectionTimeout, int redisMinConnections, int redisMaxConnections, int redisMaxTotalConnections,

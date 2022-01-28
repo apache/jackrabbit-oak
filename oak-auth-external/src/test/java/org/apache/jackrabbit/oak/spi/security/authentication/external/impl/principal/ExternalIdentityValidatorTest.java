@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLo
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -221,7 +220,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         when(ps.isArray()).thenReturn(false);
 
         try {
-            Validator v = new ExternalIdentityValidatorProvider(ImmutableSet.of(SystemPrincipal.INSTANCE), true).getRootValidator(ns, ns, null);
+            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns, null);
             v.propertyAdded(ps);
         } catch (CommitFailedException e) {
             assertException(e, CONSTRAINT, 71);
@@ -278,7 +277,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         when(ps.isArray()).thenReturn(true);
 
         try {
-            Validator v = new ExternalIdentityValidatorProvider(ImmutableSet.of(SystemPrincipal.INSTANCE), true).getRootValidator(ns, ns, null);
+            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns, null);
             v.propertyAdded(ps);
         } catch (CommitFailedException e) {
             assertException(e, CONSTRAINT, 75);

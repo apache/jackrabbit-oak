@@ -57,4 +57,31 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
                 + "  where isdescendantnode([nt:base], [/test]) */]", result.toString());
     }
 
+    @Override
+    public String getContainsValueFortestEqualityQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
+
+    @Override
+    public String getContainsValueFortestInequalityQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"exists\":{\"field\":\"propa\",\"boost\":1.0}}," +
+                "{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
+
+    @Override
+    public String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native() {
+        return "\"filter\":[{\"exists\":{\"field\":\"propa\",\"boost\":1.0}},{\"bool\":" +
+                "{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
+
+    @Override
+    public String getContainsValueFortestEqualityInequalityCombined_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"term\":{\"propb.keyword\":{\"value\":\"world\",\"boost\":1.0}}}," +
+                "{\"exists\":{\"field\":\"propa\",\"boost\":1.0}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    }
+
+    @Override
+    public String getContainsValueFortestNotNullQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"exists\":{\"field\":\"propa\",\"boost\":1.0}}]";
+    }
 }

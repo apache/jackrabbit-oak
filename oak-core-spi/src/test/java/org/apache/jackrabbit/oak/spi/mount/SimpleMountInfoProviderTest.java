@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.spi.mount;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.jackrabbit.oak.spi.mount.Mount;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.mount.Mounts;
-import org.apache.jackrabbit.oak.spi.mount.SimpleMountInfoProvider;
+import java.util.Set;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import static java.util.stream.Collectors.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -89,13 +89,47 @@ public class SimpleMountInfoProviderTest {
     public void mountsPlacedUnder() {
         
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("first", "/b")
-                .mount("second", "/d", "/b/a")
-                .mount("third", "/h", "/b/c")
+                .mount("first", "/a")
+                .mount("second", "/e", "/b/d")
+                .mount("third", "/f", "/b/c")
                 .build();
-        
-        Collection<Mount> mountsContainedBetweenPaths = mip.getMountsPlacedUnder("/b");
-        
-        assertEquals(2, mountsContainedBetweenPaths.size());
+
+        assertEquals(ImmutableSet.of("first", "second", "third"), mountNames(mip.getMountsPlacedUnder("/")));
+        assertEquals(ImmutableSet.of("second", "third"), mountNames(mip.getMountsPlacedUnder("/b")));
+    }
+
+    @Test
+    public void mountsPlacedUnderPathsAtDifferentDepth() {
+        MountInfoProvider mip = Mounts.newBuilder()
+            .mount("xxx", "/foo/xxx", "/a/b/c")
+            .mount("yyy", "/yyy", "/foo/yyy", "/a/b/d")
+            .mount("zzz", "/z/zz")
+            .build();
+
+        assertEquals(ImmutableSet.of("xxx", "yyy", "zzz"), mountNames(mip.getMountsPlacedUnder("/")));
+        assertEquals(ImmutableSet.of("xxx", "yyy"), mountNames(mip.getMountsPlacedUnder("/a")));
+        assertEquals(ImmutableSet.of("xxx", "yyy"), mountNames(mip.getMountsPlacedUnder("/a/b")));
+        assertEquals(ImmutableSet.of("xxx", "yyy"), mountNames(mip.getMountsPlacedUnder("/foo")));
+        assertEquals(ImmutableSet.of("zzz"), mountNames(mip.getMountsPlacedUnder("/z")));
+    }
+
+    @Test
+    public void mountsPlacedDirectlyUnderPathsAtDifferentDepth() {
+        MountInfoProvider mip = Mounts.newBuilder()
+            .mount("xxx", "/xxx", "/foo/xxx", "/a/b/c")
+            .mount("yyy", "/foo/yyy", "/a/b/d")
+            .mount("zzz", "/z/zz")
+            .build();
+
+        assertEquals(ImmutableSet.of("xxx"), mountNames(mip.getMountsPlacedDirectlyUnder("/")));
+        assertEquals(ImmutableSet.of("xxx", "yyy"), mountNames(mip.getMountsPlacedDirectlyUnder("/foo")));
+        assertEquals(ImmutableSet.of(), mountNames(mip.getMountsPlacedDirectlyUnder("/a")));
+        assertEquals(ImmutableSet.of("xxx", "yyy"), mountNames(mip.getMountsPlacedDirectlyUnder("/a/b")));
+        assertEquals(ImmutableSet.of("zzz"), mountNames(mip.getMountsPlacedDirectlyUnder("/z")));
+    }
+
+    @NotNull
+    private static Set<String> mountNames(Collection<Mount> mip) {
+        return mip.stream().map(Mount::getName).collect(toSet());
     }
 }
