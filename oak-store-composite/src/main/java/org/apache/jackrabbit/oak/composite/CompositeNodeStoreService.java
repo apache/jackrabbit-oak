@@ -48,14 +48,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.newIdentityHashSet;
+import static java.util.stream.Collectors.toSet;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class CompositeNodeStoreService {
@@ -97,7 +97,7 @@ public class CompositeNodeStoreService {
 
     private ComponentContext context;
 
-    private Set<NodeStoreProvider> nodeStoresInUse = newIdentityHashSet();
+    private final Set<NodeStoreProvider> nodeStoresInUse = newIdentityHashSet();
 
     private ServiceRegistration nsReg;
 
@@ -130,15 +130,7 @@ public class CompositeNodeStoreService {
             return; // already registered
         }
 
-        NodeStoreWithProps globalNs = null;
-        Set<String> availableMounts = new HashSet<>();
-        for (NodeStoreWithProps ns : nodeStores) {
-            if (isGlobalNodeStore(ns)) {
-                globalNs = ns;
-            } else {
-                availableMounts.add(getMountName(ns));
-            }
-        }
+        NodeStoreWithProps globalNs = nodeStores.stream().filter(this::isGlobalNodeStore).findFirst().orElse(null);
 
         if (globalNs == null) {
             LOG.info("Composite node store registration is deferred until there's a global node store registered in OSGi");
@@ -147,11 +139,8 @@ public class CompositeNodeStoreService {
             LOG.info("Found global node store: {}", globalNs.getDescription());
         }
 
-        for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            if (!availableMounts.contains(m.getName())) {
-                LOG.info("Composite node store registration is deferred until there's mount {} registered in OSGi", m.getName());
-                return;
-            }
+        if (!allMountsAvailable(mountInfoProvider)) {
+            return;
         }
         LOG.info("Node stores for all configured mounts are available");
 
@@ -184,7 +173,7 @@ public class CompositeNodeStoreService {
         CompositeNodeStoreStats nodeBuilderStats = new CompositeNodeStoreStats(statisticsProvider, "NODE_BUILDER", pathStats);
         builder.with(nodeStateStats, nodeBuilderStats);
 
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        Dictionary<String, Object> props = new Hashtable<>();
         props.put(Constants.SERVICE_PID, CompositeNodeStore.class.getName());
         props.put("oak.nodestore.description", new String[] { "nodeStoreType=compositeStore" } );
 
@@ -214,17 +203,31 @@ public class CompositeNodeStoreService {
 
         LOG.info("Registering the composite node store");
         nsReg = context.getBundleContext().registerService(
-                new String[]{
-                        NodeStore.class.getName()
-                },
+                NodeStore.class.getName(),
                 store,
                 props);
+    }
+
+    private boolean allMountsAvailable(MountInfoProvider mountInfoProvider) {
+        Set<String> availableMounts = nodeStores.stream()
+            .map(this::getMountName)
+            .filter(Objects::nonNull)
+            .collect(toSet());
+
+        for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
+            if (!availableMounts.contains(mount.getName())) {
+                LOG.info("Composite node store registration is deferred until there's mount {} registered in OSGi", mount.getName());
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private <T> void registerMBean(Whiteboard whiteboard,
                           Class<T> iface, T bean, String type, String name) {
         Registration reg = WhiteboardUtils.registerMBean(whiteboard, iface, bean, type, name);
-        mbeanRegistrations.register(() -> reg.unregister());
+        mbeanRegistrations.register(reg::unregister);
     }
 
     private boolean isGlobalNodeStore(NodeStoreWithProps ns) {
@@ -233,10 +236,7 @@ public class CompositeNodeStoreService {
 
     private String getMountName(NodeStoreWithProps ns) {
         String role = ns.getRole();
-        if (role == null) {
-            return null;
-        }
-        if (!role.startsWith(MOUNT_ROLE_PREFIX)) {
+        if (role == null || !role.startsWith(MOUNT_ROLE_PREFIX)) {
             return null;
         }
         return role.substring(MOUNT_ROLE_PREFIX.length());
@@ -259,6 +259,7 @@ public class CompositeNodeStoreService {
         nodeStoresInUse.clear();
     }
 
+    @SuppressWarnings("unused")
     protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config) throws IOException, CommitFailedException {
         NodeStoreWithProps newNs = new NodeStoreWithProps(ns, config);
         nodeStores.add(newNs);
@@ -273,13 +274,9 @@ public class CompositeNodeStoreService {
         }
     }
 
+    @SuppressWarnings("unused")
     protected void unbindNodeStore(NodeStoreProvider ns) throws IOException {
-        Iterator<NodeStoreWithProps> it = nodeStores.iterator();
-        while (it.hasNext()) {
-            if (it.next().getNodeStoreProvider() == ns) {
-                it.remove();
-            }
-        }
+        nodeStores.removeIf(nodeStoreWithProps -> nodeStoreWithProps.getNodeStoreProvider() == ns);
 
         if (context == null) {
             LOG.info("unbindNodeStore: context is null, delaying reconfiguration");
