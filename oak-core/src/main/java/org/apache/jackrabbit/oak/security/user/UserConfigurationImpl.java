@@ -180,7 +180,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         // for OAK-9675
         @AttributeDefinition(
                 name = "Authorizable Properties Mixin Types",
-                description = "Optional configuration defining the names of additional " +
+                description = "Optional configuration defining the names of any " +
                         " mixin types that are allowed to define authorizable properties.")
         String[] authorizablePropertiesMixins();
     }

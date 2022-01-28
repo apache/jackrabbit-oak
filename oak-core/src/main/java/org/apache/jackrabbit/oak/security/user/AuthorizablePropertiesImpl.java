@@ -242,11 +242,11 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         } else if (authorizablePath.equals(parent.getPath())) {
             // non-protected properties on the root must be defined by the expected
             //  primary type or one of the configured mixin types
-            Boolean allowed = null;
+            boolean allowed = false;
             NodeType declaringNodeType = def.getDeclaringNodeType();
             if (declaringNodeType.isNodeType(UserConstants.NT_REP_AUTHORIZABLE)) {
                 // defined by the expected primary type so allowed
-                allowed = Boolean.TRUE;
+                allowed = true;
             } else {
                 // OAK-9675 - not declared by the primary type, so let's check for a mixin
                 if (declaringNodeType.isMixin()) {
@@ -260,7 +260,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
                 }
             }
 
-            if (!Boolean.TRUE.equals(allowed)) {
+            if (!allowed) {
                 // not defined by an allowed node type
                 return null;
             }
