@@ -77,6 +77,24 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
     }
 
+    protected void createSecondIndex() throws Exception {
+        setTraversalEnabled(false);
+        Tree index = root.getTree("/");
+
+        Tree indexDef = createTestIndexNode("testIndex1", index, indexOptions.getIndexType());
+        TestUtil.useV2(indexDef);
+        indexDef.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+
+        Tree props = TestUtil.newRulePropTree(indexDef, "nt:base");
+
+        TestUtil.enableForFullText(props, "propa", false);
+        Tree dateProp = TestUtil.enableForFullText(props, "propDate", false);
+        dateProp.setProperty(FulltextIndexConstants.PROP_TYPE, "Date");
+
+        root.commit();
+
+    }
+
     @Ignore
     //TODO ES failing
     @Test
@@ -631,6 +649,20 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
+        });
+    }
+
+    @Test
+    public void testDate() throws Exception {
+        createSecondIndex();
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propDate", "foo");
+        test.getChild("test1").setProperty("propa", "bar");
+        root.commit();
+
+        String query = "/jcr:root/test//*[propa='bar']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
         });
     }
 

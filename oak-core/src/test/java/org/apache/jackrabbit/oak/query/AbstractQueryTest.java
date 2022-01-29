@@ -108,15 +108,19 @@ public abstract class AbstractQueryTest {
         root.commit();
     }
 
-    protected static Tree createTestIndexNode(Tree index, String type)
-            throws Exception {
+    protected  static Tree createTestIndexNode(String indexName, Tree index, String type) {
         Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
-                TEST_INDEX_NAME);
+                indexName);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         indexDef.setProperty(TYPE_PROPERTY_NAME, type);
         indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
         return indexDef;
+    }
+
+    protected static Tree createTestIndexNode(Tree index, String type)
+            throws Exception {
+        return createTestIndexNode(TEST_INDEX_NAME, index, type);
     }
 
     protected Result executeQuery(String statement, String language,
