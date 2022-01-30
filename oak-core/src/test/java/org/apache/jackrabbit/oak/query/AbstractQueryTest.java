@@ -316,10 +316,27 @@ public abstract class AbstractQueryTest {
 
     protected List<String> assertQuery(String sql, String language,
                                        List<String> expected, boolean skipSort) {
-        List<String> paths = executeQuery(sql, language, true, skipSort);
-        assertResult(expected, paths);
-        return paths;
+        return assertQuery(sql, language, expected, skipSort, false);
+    }
 
+    protected List<String> assertQuery(String sql, String language,
+                                       List<String> expected, boolean skipSort, boolean checkSort) {
+        List<String> paths = executeQuery(sql, language, true, skipSort);
+        if (checkSort) {
+            assertResult_Sorted(expected, paths);
+        } else {
+            assertResult(expected, paths);
+        }
+        return paths;
+    }
+
+    protected static void assertResult_Sorted(@NotNull List<String> expected, @NotNull List<String> actual) {
+        assertEquals("Result set size is different: " + actual, expected.size(),
+                actual.size());
+
+        for (int i =0; i < expected.size(); i++) {
+            assertEquals("Expected sorted result not found", expected.get(i), actual.get(i) );
+        }
     }
 
     protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {

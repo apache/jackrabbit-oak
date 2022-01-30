@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.text.ParseException;
 import java.util.*;
 
+import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
 import static java.util.Collections.singletonList;
@@ -74,25 +75,10 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         TestUtil.enableForFullText(props, "propa", false);
         TestUtil.enableForFullText(props, "propb", false);
 
-        root.commit();
-    }
-
-    protected void createSecondIndex() throws Exception {
-        setTraversalEnabled(false);
-        Tree index = root.getTree("/");
-
-        Tree indexDef = createTestIndexNode("testIndex1", index, indexOptions.getIndexType());
-        TestUtil.useV2(indexDef);
-        indexDef.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-
-        Tree props = TestUtil.newRulePropTree(indexDef, "nt:base");
-
-        TestUtil.enableForFullText(props, "propa", false);
-        Tree dateProp = TestUtil.enableForFullText(props, "propDate", false);
+        Tree dateProp = TestUtil.enableForOrdered(props, "propDate");
         dateProp.setProperty(FulltextIndexConstants.PROP_TYPE, "Date");
 
         root.commit();
-
     }
 
     @Ignore
@@ -653,18 +639,71 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testDate() throws Exception {
-        createSecondIndex();
+    public void testDateQueryWithIncorrectData() throws Exception {
         Tree test = root.getTree("/").addChild("test");
         test.addChild("test1").setProperty("propDate", "foo");
         test.getChild("test1").setProperty("propa", "bar");
+        test.addChild("test2").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "bar");
+        test.addChild("test3").setProperty("propDate", "2022-01-22T01:02:03.000Z", Type.DATE);
         root.commit();
 
+        // Query on propa should work fine even if the data on propDate is of incorrect type (i.e String instead of Date)
+        // It should return both /test/test1 -> where content for propDate is of incorrect data type
+        // and /test/test2 -> where content for propDate is of correct data type.
         String query = "/jcr:root/test//*[propa='bar']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test2", "/test/test1"));
+        });
+
+        // Check inequality query on propDate - this should not return /test/test1 -> since that node should not have been indexed for propDate
+        // due to incorrect data type in the content for this property.
+        String query2 = "/jcr:root/test//*[propDate!='2021-01-22T01:02:03.000Z']";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test3"));
+        });
+
+    }
+
+    @Test
+    public void testDateQueryWithCorrectData() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.getChild("test1").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "foo");
+        root.commit();
+
+        // Test query returns correct node on querying on dateProp
+        String query = "/jcr:root/test//*[propDate='2021-01-22T01:02:03.000Z']";
         assertEventually(() -> {
             assertQuery(query, XPATH, Arrays.asList("/test/test1"));
         });
+
+        // Test query returns correct node on querying on String type property
+        String query2 = "/jcr:root/test//*[propa='foo']";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2"));
+        });
     }
+
+    @Test
+    public void testDateQueryWithCorrectData_Ordered() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.getChild("test1").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test2").setProperty("propDate", "2019-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propDate", "2020-01-22T01:02:03.000Z", Type.DATE);
+        root.commit();
+
+        // Test query returns correct node on querying on dateProp
+        String query = "/jcr:root/test//*[propa='foo'] order by @propDate descending";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1", "/test/test3", "/test/test2"), true, true);
+        });
+    }
+
 
 
     private static Tree child(Tree t, String n, String type) {

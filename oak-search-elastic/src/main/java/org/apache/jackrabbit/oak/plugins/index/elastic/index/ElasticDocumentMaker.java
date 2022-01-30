@@ -143,10 +143,9 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
-        //int tag = property.getType().tag();
-        // Get the Type tag from the defined index definition here - and not from the actual property state - this way in case
+        // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
         // If the actual property value is different from the propert type defined in the index definition - this will try to convert the property if possible,
-        // other wise will log a warning and not try and add the property to index - otherwise we make the index not usable
+        // other wise will log a warning and not try and add the property to index - otherwise we make the index not usable (See OAK-9665).
         int tag = pd.getType();
         Object f;
         try {
