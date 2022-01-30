@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
@@ -29,11 +31,11 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
@@ -151,6 +153,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
     private final Charset charset = UTF_8;
     private final boolean compressionEnabled;
+    private final NodeStateEntryWriter entryWriter;
     /**
      * Directory where sorted files will be created.
      */
@@ -234,6 +237,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.preferred = pathComparator.getPreferred();
+        this.entryWriter = new NodeStateEntryWriter(blobStore);
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
             @Override
@@ -335,21 +339,103 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
+        System.out.println("!!!======================= A");
+        String sortedFileName = getSortedStoreFileName(compressionEnabled);
+        System.out.println("!!!======================= B");
+        File sortedFile = new File(storeDir, sortedFileName);
+        System.out.println("!!!======================= C");
+        File serializedSortedFile = new File(storeDir, String.format("serialized-%s", sortedFileName));
+
         List<File> inputSortedFilesToMerge = new ArrayList<>(sortedFiles);
-        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
-            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
-            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-            ExternalSort.mergeSortedFiles(inputSortedFilesToMerge,
-                    writer,
-                    comparator,
-                    charset,
-                    true, //distinct
-                    compressionEnabled, //useZip
-                    func2,
-                    func1
-            );
+//        inputSortedFilesToMerge.forEach(f -> {
+//            System.out.println(f.toString());
+//            try (BufferedReader br = new BufferedReader(new FileReader(f.getAbsolutePath()))) {
+//                String line;
+//                while ((line = br.readLine()) != null) {
+//                    System.out.println(line);
+//                }
+//            } catch (FileNotFoundException e) {
+//                e.printStackTrace();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
+
+//
+//        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
+//            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
+//            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+//            ExternalSort.mergeSortedFiles(inputSortedFilesToMerge,
+//                    writer,
+//                    comparator,
+//                    charset,
+//                    true, //distinct
+//                    compressionEnabled, //useZip
+//                    func2,
+//                    func1
+//            );
+//        }
+
+
+//        // ==========
+//        Path mergeDirPath = Paths.get(storeDir.getAbsolutePath(), "merge");
+//        Files.createDirectories(mergeDirPath);
+//
+//        Path deserializeSortedPath = mergeDirPath.resolve("serialized-store-sorted.json");
+//        Path serializeSortedPath = mergeDirPath.resolve("store-sorted.json");
+
+        System.out.println("!!!======================= D");
+        List<String> commands = new ArrayList<String>();
+        Collections.addAll(commands, "/usr/bin/sort");
+        if (compressionEnabled) Collections.addAll(commands, "--compress-program", "gzip");
+        Collections.addAll(commands, "-T", storeDir.getAbsolutePath());
+        Collections.addAll(commands, "-S", "2G");
+        Collections.addAll(commands, "-k", "1");
+        Collections.addAll(commands, "-t", "|");
+        Collections.addAll(commands, "-o", serializedSortedFile.getAbsolutePath());
+//                PathUtils.concat(storeDir.getAbsolutePath(), "serialized-store-sorted.json"));
+        Collections.addAll(commands, "-m");
+        sortedFiles.forEach(f -> commands.add(f.getAbsolutePath()));
+        System.out.println("!!!======================= Running");
+        System.out.println(commands.toString());
+
+        System.out.println("!!!======================= E");
+        try {
+            ProcessBuilder pb = new ProcessBuilder(commands);
+            Process p = pb.start();
+            p.waitFor();
+            System.out.println("Script executed successfully");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
+//      read file line by line and deserialize https://www.baeldung.com/java-read-lines-large-file#commonsio
+        String UTF_8 = StandardCharsets.UTF_8.name();
+
+        LineIterator it = FileUtils.lineIterator(serializedSortedFile, UTF_8);
+        final String newLine = System.getProperty("line.separator");
+        System.out.println("!!!======================= F");
+        try {
+            while (it.hasNext()) {
+                String serializeLine = it.nextLine();
+
+                // deserialize
+                String deserializeLine = entryWriter.deserialize(serializeLine);
+
+                System.out.println(String.format("original: %s\ndeserial: %s\n", serializeLine, deserializeLine));
+
+                // write line by line
+                FileUtils.writeStringToFile(sortedFile, deserializeLine+newLine, UTF_8, true);
+            }
+        } catch (Exception e) {
+            System.out.println("something went wrong");
+            System.out.println(e);
+        } finally {
+            LineIterator.closeQuietly(it);
+        }
+
+        System.out.println("!!!======================= G");
+
         log.info("Merging of sorted files completed in {}", w);
         return sortedFile;
     }

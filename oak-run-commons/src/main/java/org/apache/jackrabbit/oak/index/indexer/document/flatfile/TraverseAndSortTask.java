@@ -30,9 +30,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Phaser;
@@ -292,12 +290,28 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 NodeStateHolder h = entryBatch.removeFirst();
                 //Here holder line only contains nodeState json
                 //String text = entryWriter.toString(h.getPathElements(), h.getLine());
-                String text = entryWriter.toSerializedString(h.getPathElements(), h.getLine(), preferred);
+                String text = entryWriter.serialize(h.getPathElements(), h.getLine(), preferred);
                 writer.write(text);
                 writer.newLine();
                 textSize += text.length() + 1;
             }
         }
+
+
+        System.out.println("!!! ================= ");
+        System.out.println(newtmpfile.getPath());
+        try (BufferedReader br = new BufferedReader(new FileReader(newtmpfile.getAbsolutePath()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry id = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), size, w,
                 lastSavedNodeStateEntry.getId());

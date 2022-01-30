@@ -19,11 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
@@ -36,6 +40,7 @@ import static com.google.common.base.Preconditions.checkState;
 public class NodeStateEntryWriter {
     private static final String OAK_CHILD_ORDER = ":childOrder";
     private static final String DELIMITER = "|";
+    private static final String SERIALIZE_DELIMITER = "]";
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
@@ -70,14 +75,13 @@ public class NodeStateEntryWriter {
     }
 
     // To Format: <depth>/<prefer>path|{}
-    // /|{}                         => 0/1]|{}
-    // /content|{}                  => 1/1]content|{}
-    // /content/dam/test|{}         => 3/1]content/1]dam/1]test|{}
-    // /content/dam/jcr:content|{}  => 3/1]content/1]dam/0]jcr:content|{}  # ex. jcr:content is preferred
-    public String toSerializedString(List<String> pathElements, String nodeStateAsJson, Set<String> preferred) {
+    // /|{}                         => 000/1]|{}
+    // /content|{}                  => 001/1]content|{}
+    // /content/dam/test|{}         => 003/1]content/1]dam/1]test|{}
+    // /content/dam/jcr:content|{}  => 003/1]content/1]dam/0]jcr:content|{}  # ex. jcr:content is preferred
+    public String serialize(List<String> pathElements, String nodeStateAsJson, Set<String> preferred) {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
-        String depth = String.valueOf(pathElements.size());
-        // 1]content/1]dam/1]test
+        String depth = String.format("%03d", pathElements.size());;
         int serialLength = depth.length() + (2 * pathElements.size()) + pathElements.size() - 1;
         int strSize = nodeStateAsJson.length() + pathStringSize + pathElements.size() + serialLength + 1;
         StringBuilder sb = new StringBuilder(strSize);
@@ -89,14 +93,25 @@ public class NodeStateEntryWriter {
             for (String element : pathElements) {
                 sb.append('/');
                 sb.append(preferred.contains(element) ? '0' : '1');
-                sb.append(']');
+                sb.append(SERIALIZE_DELIMITER);
                 sb.append(element);
             }
         }
 
-        pathJoiner.appendTo(sb, pathElements);
         sb.append(DELIMITER).append(nodeStateAsJson);
         return sb.toString();
+    }
+
+    public String deserialize(String content) {
+        String serializedStr = NodeStateEntryWriter.getPath(content);
+        String nodeStateAsJson = NodeStateEntryWriter.getNodeState(content);
+
+        PathUtils.elements(serializedStr);
+        List<String> list = new ArrayList<String>(Arrays.asList(serializedStr.split("/")));
+        list.remove(0);
+        List<String> pathElements = list.stream().map(
+                str -> str.split(SERIALIZE_DELIMITER)[1]).collect(Collectors.toList());
+        return toString(pathElements, nodeStateAsJson);
     }
 
     public String asJson(NodeState nodeState) {
@@ -121,6 +136,10 @@ public class NodeStateEntryWriter {
 
     public static String getPath(String entryLine){
         return entryLine.substring(0, getDelimiterPosition(entryLine));
+    }
+
+    public static String getNodeState(String entryLine){
+        return entryLine.substring(getDelimiterPosition(entryLine) + 1);
     }
 
     public static String[] getParts(String line) {
