@@ -334,8 +334,8 @@ public abstract class AbstractQueryTest {
         assertEquals("Result set size is different: " + actual, expected.size(),
                 actual.size());
 
-        for (int i =0; i < expected.size(); i++) {
-            assertEquals("Expected sorted result not found", expected.get(i), actual.get(i) );
+        for (int i = 0; i < expected.size(); i++) {
+            assertEquals("Expected sorted result not found", expected.get(i), actual.get(i));
         }
     }
 

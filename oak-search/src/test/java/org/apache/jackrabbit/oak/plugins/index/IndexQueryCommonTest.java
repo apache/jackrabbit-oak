@@ -28,7 +28,6 @@ import org.junit.Test;
 import java.text.ParseException;
 import java.util.*;
 
-import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
 import static java.util.Collections.singletonList;

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import org.apache.commons.logging.Log;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -144,8 +143,9 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
         // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
-        // If the actual property value is different from the propert type defined in the index definition - this will try to convert the property if possible,
-        // other wise will log a warning and not try and add the property to index - otherwise we make the index not usable (See OAK-9665).
+        // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
+        // other wise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
+        // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
         int tag = pd.getType();
         Object f;
         try {
