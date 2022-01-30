@@ -662,6 +662,36 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             assertQuery(query2, XPATH, Arrays.asList("/test/test3"));
         });
+    }
+
+    @Test
+    public void testQueryWithDifferentDataTypesForSameProperty() throws Exception {
+        // propa doesn't have any type defined in index - so by default it's a String type property
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "bar");
+        test.addChild("test2").setProperty("propa", 10);
+        test.addChild("test3").setProperty("propa", 10L);
+        test.addChild("test4").setProperty("propa", true);
+        root.commit();
+
+        // Below queries will ensure propa is searchable with different data types as content and behaviour is similar for lucene and elastic.
+        String query = "/jcr:root/test//*[propa='bar']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
+        });
+
+        String query2 = "/jcr:root/test//*[propa=true]";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
+        });
+
+        String query3 = "/jcr:root/test//*[propa=10]";
+        assertEventually(() -> {
+            assertQuery(query3, XPATH, Arrays.asList("/test/test2", "/test/test3"));
+        });
+
+
+
 
     }
 
