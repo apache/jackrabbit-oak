@@ -1215,6 +1215,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             case PropertyType.DATE: {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;
                 Long last = pr.last != null ? FieldFactory.dateToLong(pr.last.getValue(Type.DATE)) : null;
+                Long not = pr.not != null ? FieldFactory.dateToLong(pr.not.getValue(Type.DATE)) : null;
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
@@ -1242,7 +1243,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // -[property]=[value]
                     BooleanQuery bool = new BooleanQuery();
                     // This will exclude entries with [property]=[value]
-                    bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
+                    bool.add(NumericRangeQuery.newLongRange(propertyName, not, not, true, true), MUST_NOT);
                     return bool;
                 }
 

@@ -106,36 +106,23 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
     @Override
     protected void indexTypedProperty(Document doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
-        // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
-        // If the actual property value is different from the propert type defined in the index definition - this will try to convert the property if possible,
-        // other wise will log a warning and not try and add the property to index. For lucene this is not really needed though, since even if we index
-        // a property with a wrong data (as compared to the defined property type) - Lucene index will still be usable and just ignores that particular property
-        // the problem is with elastic - but this is to just make the implementation same (with not impact on existing behaviour of lucene index).
-        int tag = pd.getType();
+        int tag = property.getType().tag();
 
         Field f;
-        try {
-            if (tag == Type.LONG.tag()) {
-                f = new LongField(pname, property.getValue(Type.LONG, i), Field.Store.NO);
-            } else if (tag == Type.DATE.tag()) {
-                String date = property.getValue(Type.DATE, i);
-                f = new LongField(pname, FieldFactory.dateToLong(date), Field.Store.NO);
-            } else if (tag == Type.DOUBLE.tag()) {
-                f = new DoubleField(pname, property.getValue(Type.DOUBLE, i), Field.Store.NO);
-            } else if (tag == Type.BOOLEAN.tag()) {
-                f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
-            } else {
-                f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
-            }
-
-            doc.add(f);
-        } catch (Exception e) {
-            log.warn(
-                    "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+        if (tag == Type.LONG.tag()) {
+            f = new LongField(pname, property.getValue(Type.LONG, i), Field.Store.NO);
+        } else if (tag == Type.DATE.tag()) {
+            String date = property.getValue(Type.DATE, i);
+            f = new LongField(pname, FieldFactory.dateToLong(date), Field.Store.NO);
+        } else if (tag == Type.DOUBLE.tag()) {
+            f = new DoubleField(pname, property.getValue(Type.DOUBLE, i), Field.Store.NO);
+        } else if (tag == Type.BOOLEAN.tag()) {
+            f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
+        } else {
+            f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
         }
+
+        doc.add(f);
     }
 
     @Override
