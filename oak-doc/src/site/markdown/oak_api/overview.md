@@ -15,12 +15,13 @@
    limitations under the License.
   -->
 
-Oak API
+Oak and Jackrabbit API
 --------------------------------------------------------------------------------
 
 
 - [Javadocs](../apidocs/) (latest release)
 - Javadoc of previous releases are available from [javadoc.io](http://www.javadoc.io/): 
+    - [oak-jackrabbit-api](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-jackrabbit-api/)
     - [oak-jcr](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-jcr/)
     - [oak-core](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-core/)
     - [oak-run](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-run/)
