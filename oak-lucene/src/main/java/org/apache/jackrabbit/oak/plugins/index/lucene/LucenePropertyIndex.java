@@ -1551,7 +1551,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             Query subQuery = new BooleanQuery();
             if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
-                subQuery = new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, text));
+                subQuery = new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, text.toLowerCase()));
             } else if (augmentor != null) {
                 subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
             }

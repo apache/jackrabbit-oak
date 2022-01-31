@@ -235,7 +235,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
     }
 
-    @Ignore // dynamic boost lite: dynamic boost lite don't work as case insensitive like dynamic boost, todo: log a bug?
     @Test
     public void testQueryDynamicBoostLiteCaseInsensitive() throws Exception {
         createAssetsIndexAndProperties(true, true);
