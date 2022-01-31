@@ -38,7 +38,7 @@ import java.util.List;
 
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
-    private static final Logger log = LoggerFactory.getLogger(ElasticDocumentMaker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticDocumentMaker.class);
 
     public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                 @NotNull IndexDefinition definition,
@@ -144,7 +144,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
         // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
         // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
-        // other wise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
+        // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
         // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
         int tag = pd.getType();
         Object f;
@@ -163,7 +163,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
             doc.addProperty(pname, f);
         } catch (Exception e) {
-            log.warn(
+            LOG.warn(
                     "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
                     getIndexName(), pname,
                     Type.fromTag(property.getType().tag(), false),

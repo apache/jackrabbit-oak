@@ -108,7 +108,7 @@ public abstract class AbstractQueryTest {
         root.commit();
     }
 
-    protected  static Tree createTestIndexNode(String indexName, Tree index, String type) {
+    protected static Tree createTestIndexNode(String indexName, Tree index, String type) {
         Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
                 indexName);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
@@ -118,8 +118,7 @@ public abstract class AbstractQueryTest {
         return indexDef;
     }
 
-    protected static Tree createTestIndexNode(Tree index, String type)
-            throws Exception {
+    protected static Tree createTestIndexNode(Tree index, String type) {
         return createTestIndexNode(TEST_INDEX_NAME, index, type);
     }
 
@@ -323,20 +322,18 @@ public abstract class AbstractQueryTest {
                                        List<String> expected, boolean skipSort, boolean checkSort) {
         List<String> paths = executeQuery(sql, language, true, skipSort);
         if (checkSort) {
-            assertResult_Sorted(expected, paths);
+            assertResultSorted(expected, paths);
         } else {
             assertResult(expected, paths);
         }
         return paths;
     }
 
-    protected static void assertResult_Sorted(@NotNull List<String> expected, @NotNull List<String> actual) {
+    protected static void assertResultSorted(@NotNull List<String> expected, @NotNull List<String> actual) {
         assertEquals("Result set size is different: " + actual, expected.size(),
                 actual.size());
 
-        for (int i = 0; i < expected.size(); i++) {
-            assertEquals("Expected sorted result not found", expected.get(i), actual.get(i));
-        }
+        assertEquals("Expected sorted result not found", expected, actual);
     }
 
     protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {

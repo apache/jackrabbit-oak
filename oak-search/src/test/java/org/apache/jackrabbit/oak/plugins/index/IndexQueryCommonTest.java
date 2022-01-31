@@ -688,10 +688,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             assertQuery(query3, XPATH, Arrays.asList("/test/test2", "/test/test3"));
         });
-
-
-
-
     }
 
     @Test
@@ -732,8 +728,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             assertQuery(query, XPATH, Arrays.asList("/test/test1", "/test/test3", "/test/test2"), true, true);
         });
     }
-
-
 
     private static Tree child(Tree t, String n, String type) {
         Tree t1 = t.addChild(n);
