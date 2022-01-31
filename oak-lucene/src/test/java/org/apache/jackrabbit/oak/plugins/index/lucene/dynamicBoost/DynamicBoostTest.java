@@ -171,14 +171,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
     }
 
-    @Ignore //todo: bug? wildcard doesn't work at all for dynamic boost term
-    @Test
-    public void testQueryDynamicBoostWildcard() throws Exception {
-        createAssetsIndexAndProperties(false, false);
-        prepareTestAssets();
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blu*')]", XPATH, Arrays.asList("/test/asset3"));
-    }
-
     // dynamic boost: should respect confidence as query result order
     @Test
     public void testQueryDynamicBoostOrder() throws Exception {
@@ -208,16 +200,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
                 Arrays.asList("/test/asset2", "/test/asset3"));
     }
 
-    @Ignore // todo: failed, minus doesn't work
-    @Test
-    public void testQueryDynamicBoostMinus() throws Exception {
-        createAssetsIndexAndProperties(false, false);
-        prepareTestAssets();
-
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
-    }
-
-
     @Ignore
     //todo: bug? if both terms are dynamic boost, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
     // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
@@ -237,18 +219,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue OR long')]", XPATH,
                 Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
     }
-
-    @Ignore //todo: bug? minus doesn't work at for neither fulltext term nor dynamic boost term
-    @Test
-    public void testQueryMixMinus() throws Exception {
-        createAssetsIndexAndProperties(false, false);
-        prepareTestAssets();
-        // dynamicBoost term then minus fulltext term
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant -titleone')]", XPATH, Arrays.asList("/test/asset2"));
-        // fulltext term then minus dynamicBoost term
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long -coffee')]", XPATH, Arrays.asList("/test/asset1"));
-    }
-
 
     // Section 3. Query dynamicboost lite testing
     @Test
@@ -302,15 +272,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
                 Arrays.asList("/test/asset2", "/test/asset3"));
     }
 
-    @Ignore // dynamic boost lite: - doesn't work as well todo: bug or design
-    @Test
-    public void testQueryDynamicBoostLiteMinus() throws Exception {
-        createAssetsIndexAndProperties(true, true);
-        prepareTestAssets();
-
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
-    }
-
     @Ignore
     //todo: bug? if both terms are dynamic boost lite, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
     // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
@@ -329,15 +290,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
         prepareTestAssets();
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue OR long')]", XPATH,
                 Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-    }
-
-    @Ignore //todo: bug? minus doesn't work at for neither fulltext term nor dynamic boost lite term
-    @Test
-    public void testQueryLiteMixMinus() throws Exception {
-        createAssetsIndexAndProperties(true, true);
-        prepareTestAssets();
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant -titleone')]", XPATH, Arrays.asList("/test/asset2"));
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long -coffee')]", XPATH, Arrays.asList("/test/asset1"));
     }
 
     // Section 4. utils and assistant methods

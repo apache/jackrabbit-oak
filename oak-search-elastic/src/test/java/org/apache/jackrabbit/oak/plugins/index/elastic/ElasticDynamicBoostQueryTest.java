@@ -141,16 +141,6 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         });
     }
 
-    @Ignore //todo: bug? wildcard doesn't work at all for dynamic boost term
-    @Test
-    public void testQueryDynamicBoostWildcard() throws Exception {
-        configureIndex();
-        prepareTestAssets();
-        assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'blu*')]", XPATH, Arrays.asList("/test/asset3"));
-        });
-    }
-
     @Test
     public void testQueryDynamicBoostOrder() throws Exception {
         configureIndex();
@@ -185,18 +175,6 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         });
     }
 
-    @Ignore // todo: failed, minus doesn't work
-    @Test
-    public void testQueryDynamicBoostMinus() throws Exception {
-        configureIndex();
-        prepareTestAssets();
-
-        assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'plant -flower')", SQL2,
-                    Arrays.asList("/test/asset3"));
-        });
-    }
-
     @Ignore //todo: bug? if both terms are dynamic boost, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
     // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
     @Test
@@ -219,19 +197,6 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
             // explicit OR works as expected
             assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'blue OR long')]", XPATH,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-        });
-    }
-
-    @Ignore //todo: bug? minus doesn't work at for neither fulltext term nor dynamic boost term
-    @Test
-    public void testQueryMixMinus() throws Exception {
-        configureIndex();
-        prepareTestAssets();
-        assertEventually(() -> {
-            // dynamicBoost term then minus fulltext term
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'plant -titleone')]", XPATH, Arrays.asList("/test/asset2"));
-            // fulltext term then minus dynamicBoost term
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'long -coffee')]", XPATH, Arrays.asList("/test/asset1"));
         });
     }
 
