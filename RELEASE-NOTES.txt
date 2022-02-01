@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.25
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.26
 
 Introduction
 ------------
@@ -7,34 +7,35 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.25 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.26 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.25
+Changes in Oak 1.8.26
 ---------------------
 
 
 Bug
-        [OAK-8967] - OR query with ORDER BY don't work as expected
-        [OAK-9519] - TlsGuardingConnection doesn't do a TLS handshake on reused connections
-        [OAK-9562] - Missing _bin when node is recreated after revision GC
-        [OAK-9591] - Implement hashcode() and equals() method in ItemDefinitionImpl
 
-Improvement
+        [OAK-9616] - Node.setPrimaryType() does not always support expanded names
+        [OAK-9677] - Standby mode not working anymore in Oak 1.8.25
 
-        [OAK-9451] - Cold Standby SSL certificates should be configurable
 
 Task
 
-        [OAK-8769] - oak-auth-ldap pom needs maintenance
-        [OAK-8974] - VersionGarbageCollectorIT should use fixtures from AbstractDocumentStoreTest
-        [OAK-9353] - Update Oak 1.8 to Jackrabbit 2.16.7
-        [OAK-9534] - Update Oak 1.8 to Jackrabbit 2.16.8
-        [OAK-9600] - Make "standby.secure" configurable
+        [OAK-8820] - Update slf4j dependency to 1.7.29
+        [OAK-9611] - Bump netty dependency from 4.1.66.Final to 4.1.68.Final
+        [OAK-9641] - Update Logback version to 1.2.8
+        [OAK-9643] - Update slf4j dependency to 1.7.32
+        [OAK-9645] - oak-solr-core - avoid transitive log4j test dependency
+        [OAK-9652] - Update Logback version to 1.2.10
+        [OAK-9657] - Update Oak 1.8 to Jackrabbit 2.16.9
+        [OAK-9661] - Upgrade Solr to v8.11.1
+        [OAK-9668] - Update H2DB dependency
+
 
 
 
