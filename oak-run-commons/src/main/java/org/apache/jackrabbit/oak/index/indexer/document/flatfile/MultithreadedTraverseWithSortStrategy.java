@@ -48,6 +48,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -339,29 +340,11 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        System.out.println("!!!======================= A");
         String sortedFileName = getSortedStoreFileName(compressionEnabled);
-        System.out.println("!!!======================= B");
         File sortedFile = new File(storeDir, sortedFileName);
-        System.out.println("!!!======================= C");
-        File serializedSortedFile = new File(storeDir, String.format("serialized-%s", sortedFileName));
+        File serializedSortedFile = new File(storeDir, String.format("serialized-%s", getSortedStoreFileName(false)));
 
-        List<File> inputSortedFilesToMerge = new ArrayList<>(sortedFiles);
-//        inputSortedFilesToMerge.forEach(f -> {
-//            System.out.println(f.toString());
-//            try (BufferedReader br = new BufferedReader(new FileReader(f.getAbsolutePath()))) {
-//                String line;
-//                while ((line = br.readLine()) != null) {
-//                    System.out.println(line);
-//                }
-//            } catch (FileNotFoundException e) {
-//                e.printStackTrace();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        });
-
-//
+//        List<File> inputSortedFilesToMerge = new ArrayList<>(sortedFiles);
 //        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
 //            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
 //            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
@@ -376,65 +359,49 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 //            );
 //        }
 
-
-//        // ==========
-//        Path mergeDirPath = Paths.get(storeDir.getAbsolutePath(), "merge");
-//        Files.createDirectories(mergeDirPath);
-//
-//        Path deserializeSortedPath = mergeDirPath.resolve("serialized-store-sorted.json");
-//        Path serializeSortedPath = mergeDirPath.resolve("store-sorted.json");
-
-        System.out.println("!!!======================= D");
         List<String> commands = new ArrayList<String>();
         Collections.addAll(commands, "/usr/bin/sort");
-        if (compressionEnabled) Collections.addAll(commands, "--compress-program", "gzip");
         Collections.addAll(commands, "-T", storeDir.getAbsolutePath());
         Collections.addAll(commands, "-S", "2G");
         Collections.addAll(commands, "-k", "1");
-        Collections.addAll(commands, "-t", "|");
+        Collections.addAll(commands, "-t", "\\|");
         Collections.addAll(commands, "-o", serializedSortedFile.getAbsolutePath());
-//                PathUtils.concat(storeDir.getAbsolutePath(), "serialized-store-sorted.json"));
-        Collections.addAll(commands, "-m");
-        sortedFiles.forEach(f -> commands.add(f.getAbsolutePath()));
-        System.out.println("!!!======================= Running");
+        if (compressionEnabled) {
+            Collections.addAll(commands, "--compress-program", "gzip");
+            Collections.addAll(commands, "-m");
+            sortedFiles.forEach(f -> commands.add(String.format("<(gunzip -c %s)", f.getAbsolutePath())));
+        } else {
+            Collections.addAll(commands, "-m");
+            sortedFiles.forEach(f -> commands.add(f.getAbsolutePath()));
+        }
         System.out.println(commands.toString());
 
-        System.out.println("!!!======================= E");
-        try {
-            ProcessBuilder pb = new ProcessBuilder(commands);
-            Process p = pb.start();
+        ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", String.join(" ", commands));
+        System.out.println(pb.command());
+        Process p = pb.start();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+             BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
+            String line;
             p.waitFor();
-            System.out.println("Script executed successfully");
+            while ((line = reader.readLine()) != null) log.info(line);
+            String cmdError = "";
+            while ((line = errReader.readLine()) != null)  cmdError += line;
+            if (cmdError.length() != 0) throw new Exception("command execution fail");
+            log.info("Sort command executed successfully");
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(String.format("Error while running command %s", pb.command()));
         }
 
-//      read file line by line and deserialize https://www.baeldung.com/java-read-lines-large-file#commonsio
-        String UTF_8 = StandardCharsets.UTF_8.name();
-
-        LineIterator it = FileUtils.lineIterator(serializedSortedFile, UTF_8);
-        final String newLine = System.getProperty("line.separator");
-        System.out.println("!!!======================= F");
-        try {
-            while (it.hasNext()) {
-                String serializeLine = it.nextLine();
-
-                // deserialize
-                String deserializeLine = entryWriter.deserialize(serializeLine);
-
-                System.out.println(String.format("original: %s\ndeserial: %s\n", serializeLine, deserializeLine));
-
-                // write line by line
-                FileUtils.writeStringToFile(sortedFile, deserializeLine+newLine, UTF_8, true);
+        try (BufferedReader reader = FlatFileStoreUtils.createReader(serializedSortedFile, false);
+             BufferedWriter writer = FlatFileStoreUtils.createWriter(sortedFile, compressionEnabled)) {
+            String line = reader.readLine();
+            while (line != null) {
+                String deserializeLine = entryWriter.deserialize(line);
+                writer.write(deserializeLine);
+                writer.newLine();
+                line = reader.readLine();
             }
-        } catch (Exception e) {
-            System.out.println("something went wrong");
-            System.out.println(e);
-        } finally {
-            LineIterator.closeQuietly(it);
         }
-
-        System.out.println("!!!======================= G");
 
         log.info("Merging of sorted files completed in {}", w);
         return sortedFile;
