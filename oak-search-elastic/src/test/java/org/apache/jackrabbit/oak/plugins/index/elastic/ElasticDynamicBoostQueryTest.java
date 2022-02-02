@@ -164,17 +164,6 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         });
     }
 
-    @Test
-    public void testQueryDynamicBoostOr() throws Exception {
-        configureIndex();
-        prepareTestAssets();
-
-        assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue OR coffee')", SQL2,
-                    Arrays.asList("/test/asset2", "/test/asset3"));
-        });
-    }
-
     @Ignore //todo: bug? if both terms are dynamic boost, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
     // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
     @Test
@@ -184,18 +173,6 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'blue long')]", XPATH,
-                    Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-        });
-    }
-
-    @Ignore // todo: failed, even explicit OR, the query only works with dynamicBoost field
-    @Test
-    public void testQueryMixOr() throws Exception {
-        configureIndex();
-        prepareTestAssets();
-        assertEventually(() -> {
-            // explicit OR works as expected
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'blue OR long')]", XPATH,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
         });
     }

@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -1551,7 +1552,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             Query subQuery = new BooleanQuery();
             if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
-                subQuery = new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, text.toLowerCase()));
+                subQuery = getSimTagsQueryTerm(text);
             } else if (augmentor != null) {
                 subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
             }
@@ -1567,6 +1568,29 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         return ret;
+    }
+
+    private static Query getSimTagsQueryTerm(String text) {
+        if (text == null || text.equals("")) {
+            return null;
+        }
+        LOG.debug("getSimTagsQueryTerm Text: {}", text);
+
+        String[] termArr = text.replaceAll("\\\\", "").split("\\s+");
+        Set<String> terms = new HashSet<>(Arrays.asList(termArr));
+        LOG.debug("getSimTagsQueryTerm terms: {}", terms);
+        if (terms.size() > 10) {
+            LOG.debug("Not adding query terms as number of terms {} exceeds maximum permissible value of {}", terms.size(), 10);
+            return null;
+        }
+
+        BooleanQuery query = new BooleanQuery();
+        for (String fragment : terms) {
+            Term term = new Term(FieldNames.SIMILARITY_TAGS, fragment.toLowerCase());
+            query.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
+            LOG.debug("Added simTags query term: {}", fragment.toLowerCase());
+        }
+        return query;
     }
 
     static Query tokenToQuery(String text, String fieldName, Analyzer analyzer) {
