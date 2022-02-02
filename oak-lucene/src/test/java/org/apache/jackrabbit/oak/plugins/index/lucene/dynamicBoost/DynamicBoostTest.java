@@ -209,9 +209,8 @@ public class DynamicBoostTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEquals(
-                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant (simtags:plant) ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
+                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant simtags:plant ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
                 explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
-
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
                 Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
@@ -226,25 +225,40 @@ public class DynamicBoostTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testQueryDynamicBoostLiteWildcard() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu*')", SQL2, Arrays.asList("/test/asset3"));
+    }
+
+    @Test
     public void testQueryDynamicBoostLiteSpace() throws Exception {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')", SQL2,
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coffee flower')", SQL2, Arrays.asList("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   plant')", SQL2, Arrays.asList("/test/asset3"));
+    }
+
+    @Test
+    public void testQueryDynamicBoostLiteExplicitOr() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR flower')", SQL2,
                 Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   coffee')", SQL2,
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')", SQL2,
                 Arrays.asList("/test/asset2", "/test/asset3"));
     }
 
-    @Ignore
-    //todo: bug? if both terms are dynamic boost lite, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
-    // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
     @Test
-    public void testQueryLiteMixSpace() throws Exception {
+    public void testQueryDynamicBoostLiteMinus() throws Exception {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue long')]", XPATH,
-                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
     }
 
     // Section 4. utils and assistant methods
