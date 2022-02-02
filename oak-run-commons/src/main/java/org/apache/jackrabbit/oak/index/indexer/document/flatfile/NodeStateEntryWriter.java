@@ -74,26 +74,24 @@ public class NodeStateEntryWriter {
         return sb.toString();
     }
 
-    // To Format: <depth>/<prefer>path|{}
-    // /|{}                         => 000/1]|{}
-    // /content|{}                  => 001/1]content|{}
-    // /content/dam/test|{}         => 003/1]content/1]dam/1]test|{}
-    // /content/dam/jcr:content|{}  => 003/1]content/1]dam/0]jcr:content|{}  # ex. jcr:content is preferred
+    // To Format: /<prefer>path|{}
+    // /|{}                         => /|{}
+    // /content|{}                  => /1content|{}
+    // /content/dam/test|{}         => /1content/1dam/1test|{}
+    // /content/dam/jcr:content|{}  => /1content/1dam/0jcr:content|{}  # ex. jcr:content is preferred
     public String serialize(List<String> pathElements, String nodeStateAsJson, Set<String> preferred) {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
-        String depth = String.format("%03d", pathElements.size());;
-        int serialLength = depth.length() + (2 * pathElements.size()) + pathElements.size() - 1;
-        int strSize = nodeStateAsJson.length() + pathStringSize + pathElements.size() + serialLength + 1;
+        int numOfSlashes = pathElements.size() == 0 ? pathElements.size() : 1;
+        int serialLength = pathElements.size() + 1; // <prefer> and delimiter
+        int strSize = nodeStateAsJson.length() + pathStringSize + numOfSlashes + serialLength;
         StringBuilder sb = new StringBuilder(strSize);
 
-        sb.append(depth);
         if (pathElements.size() == 0) {
             sb.append('/');
         } else {
             for (String element : pathElements) {
                 sb.append('/');
                 sb.append(preferred.contains(element) ? '0' : '1');
-                sb.append(SERIALIZE_DELIMITER);
                 sb.append(element);
             }
         }
@@ -106,11 +104,15 @@ public class NodeStateEntryWriter {
         String serializedStr = NodeStateEntryWriter.getPath(content);
         String nodeStateAsJson = NodeStateEntryWriter.getNodeState(content);
 
-        PathUtils.elements(serializedStr);
-        List<String> list = new ArrayList<String>(Arrays.asList(serializedStr.split("/")));
-        list.remove(0);
-        List<String> pathElements = list.stream().map(
-                str -> str.split(SERIALIZE_DELIMITER)[1]).collect(Collectors.toList());
+        String subStr = serializedStr.substring(1);
+        List<String> pathElements = new ArrayList<String>();
+        if (subStr.length() != 0) {
+            List<String> list = new ArrayList<String>(
+                    Arrays.asList(subStr.split("/")));
+            pathElements = list.stream()
+                    .map(str -> str.substring(1))
+                    .collect(Collectors.toList());
+        }
         return toString(pathElements, nodeStateAsJson);
     }
 

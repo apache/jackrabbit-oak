@@ -40,18 +40,18 @@ public class NodeStateEntryWriterSerializeTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
                 //inputPath propKey propVal preferredStr expectedSerialized expectedDeserialized
-                { "/", "foo", "bar", "", "000/|{\"foo\":\"bar\"}", "/|{\"foo\":\"bar\"}" },
-                { "/test", "foo", "bar", "", "001/1]test|{\"foo\":\"bar\"}", "/test|{\"foo\":\"bar\"}" },
-                { "/dir/asset", "key", "value", "", "002/1]dir/1]asset|{\"key\":\"value\"}",
+                { "/", "foo", "bar", "", "/|{\"foo\":\"bar\"}", "/|{\"foo\":\"bar\"}" },
+                { "/test", "foo", "bar", "", "/1test|{\"foo\":\"bar\"}", "/test|{\"foo\":\"bar\"}" },
+                { "/dir/asset", "key", "value", "", "/1dir/1asset|{\"key\":\"value\"}",
                         "/dir/asset|{\"key\":\"value\"}" },
                 { "/content/dam/jcr:content", "foo", "bar", "jcr:content",
-                        "003/1]content/1]dam/0]jcr:content|{\"foo\":\"bar\"}",
+                        "/1content/1dam/0jcr:content|{\"foo\":\"bar\"}",
                         "/content/dam/jcr:content|{\"foo\":\"bar\"}" },
                 { "/content/dam/jcr:content/test", "foo", "bar", "jcr:content,dam",
-                        "004/1]content/0]dam/0]jcr:content/1]test|{\"foo\":\"bar\"}",
+                        "/1content/0dam/0jcr:content/1test|{\"foo\":\"bar\"}",
                         "/content/dam/jcr:content/test|{\"foo\":\"bar\"}" },
                 { "/1/2/3/4/5/6/7/8/9/10/11/12", "12levels", "testcase", "jcr:content,dam",
-                        "012/1]1/1]2/1]3/1]4/1]5/1]6/1]7/1]8/1]9/1]10/1]11/1]12|{\"12levels\":\"testcase\"}",
+                        "/11/12/13/14/15/16/17/18/19/110/111/112|{\"12levels\":\"testcase\"}",
                         "/1/2/3/4/5/6/7/8/9/10/11/12|{\"12levels\":\"testcase\"}" },
         });
     }
@@ -72,7 +72,6 @@ public class NodeStateEntryWriterSerializeTest {
         assertEquals(expectedSerialized, serialized);
 
         String deserialized = nw.deserialize(serialized);
-        System.out.println(deserialized);
         assertEquals(expectedDeserialized, deserialized);
     }
 }
