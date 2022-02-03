@@ -90,7 +90,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected boolean indexFacetProperty(ElasticDocument doc, int tag, PropertyState property, String pname) {
         // faceting on ES works automatically for keyword (propertyIndex) and subsequently query params.
-        // We we don't need to add anything.
+        // We don't need to add anything.
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-terms-aggregation.html
         return false;
     }
@@ -215,9 +215,15 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob) throws IOException {
-        // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
-        // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
-        doc.addSimilarityField(pd.name, blob);
+        // without this check, if the vector size is not correct, the entire document will be skipped
+        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / 8) {
+            // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
+            // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
+            doc.addSimilarityField(pd.name, blob);
+        } else {
+            LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
+                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / 8);
+        }
     }
 
     @Override

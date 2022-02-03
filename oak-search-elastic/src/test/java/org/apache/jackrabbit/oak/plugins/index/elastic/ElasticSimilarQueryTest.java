@@ -258,6 +258,35 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         assertEquals("Similarity doesn't match", 12, map1.get("k"));
     }
 
+    @Test
+    public void vectorSimilarityWithWrongVectorSizes() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("fv");
+        builder.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex()
+                .similaritySearchDenseVectorSize(100);// test FVs have size 1048
+        Tree index = setIndex("test1", builder);
+        root.commit();
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            String[] split = line.split(",");
+            List<Double> values = Arrays.stream(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            byte[] bytes = toByteArray(values);
+            List<Double> actual = toDoubles(bytes);
+            assertEquals(values, actual);
+
+            Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+            String name = split[0];
+            Tree child = test.addChild(name);
+            child.setProperty("fv", blob, Type.BINARY);
+        }
+        root.commit();
+
+        // regardless of the wrong vectors, we should be able to index
+        assertEventually(() -> assertEquals(10, countDocuments(index)));
+    }
 
     @Test
     public void vectorSimilarity() throws Exception {
