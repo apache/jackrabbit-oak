@@ -221,8 +221,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
             // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
             doc.addSimilarityField(pd.name, blob);
         } else {
-            LOG.warn("[{}] Ignoring binary property {}. Expected dimension is {} but got {}",
-                    getIndexName(), pd.name, pd.getSimilaritySearchDenseVectorSize(), blob.length() / 8);
+            LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
+                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / 8);
         }
     }
 
