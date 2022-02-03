@@ -146,7 +146,7 @@ class ElasticBulkProcessorHandler {
 
     private BulkProcessor initBulkProcessor() {
         return BulkProcessor.builder(requestConsumer(),
-                new OakBulkProcessorListener())
+                new OakBulkProcessorListener(), this.indexName + "-bulk-processor")
                 .setBulkActions(indexDefinition.bulkActions)
                 .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
                 .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
