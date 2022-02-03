@@ -152,7 +152,7 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         });
     }
 
-    // dynamic boost: space is explained as OR instead of AND which is documented as fulltext query in OAK doc todo: should be documented
+    // dynamic boost: space is explained as OR instead of AND, this should be documented
     @Test
     public void testQueryDynamicBoostSpace() throws Exception {
         configureIndex();
@@ -160,19 +160,6 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue flower')", SQL2,
-                    Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-        });
-    }
-
-    @Ignore //todo: bug? if both terms are dynamic boost, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
-    // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
-    @Test
-    public void testQueryMixSpace() throws Exception {
-        configureIndex();
-        prepareTestAssets();
-
-        assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'blue long')]", XPATH,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
         });
     }

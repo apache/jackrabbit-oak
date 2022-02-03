@@ -87,7 +87,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
                 .createContentRepository();
     }
 
-    // Section 1. indexing test
     @Test
     public void testIndexingFieldProvider() throws Exception {
         NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
@@ -106,8 +105,17 @@ public class DynamicBoostTest extends AbstractQueryTest {
 
         String log = runIndexingTest(LuceneDocumentMaker.class, true);
         assertEquals(
-                "[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " + "confidence is not finite: jcr:content/metadata/predictedTags, " + "confidence is not finite: jcr:content/metadata/predictedTags, " + "confidence parsing failed: jcr:content/metadata/predictedTags, " + "confidence parsing failed: jcr:content/metadata/predictedTags, " + "confidence is an array: jcr:content/metadata/predictedTags, " + "confidence is an array: jcr:content/metadata/predictedTags, " + "name is an array: jcr:content/metadata/predictedTags, " + "name is an array: jcr:content/metadata/predictedTags" + "]",
-                log);
+                "[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " +
+                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " +
+                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                        "confidence is an array: jcr:content/metadata/predictedTags, " +
+                        "confidence is an array: jcr:content/metadata/predictedTags, " +
+                        "name is an array: jcr:content/metadata/predictedTags, " +
+                        "name is an array: jcr:content/metadata/predictedTags" +
+                        "]", log);
     }
 
     @Test
@@ -147,14 +155,15 @@ public class DynamicBoostTest extends AbstractQueryTest {
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long -titleone')]", XPATH, Arrays.asList("/test/asset2"));
     }
 
-    // Section 2. Query dynamicboost testing
     @Test
     public void testQueryDynamicBoostBasic() throws Exception {
         createAssetsIndexAndProperties(false, false);
         prepareTestAssets();
 
         assertEquals(
-                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant " + "((jcr:content/metadata/predictedTags/plant:1 jcr:content/metadata/predictedTags/plant:1)^1.0E-4) ft:(\"plant\")\n" + "  where contains([a].[*], 'plant') */",
+                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant " +
+                        "((jcr:content/metadata/predictedTags/plant:1 jcr:content/metadata/predictedTags/plant:1)^1.0E-4) ft:(\"plant\")\n" +
+                        "  where contains([a].[*], 'plant') */",
                 explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
 
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
@@ -162,7 +171,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
     }
 
-    // dynamic boost: query should be case insensitive
     @Test
     public void testQueryDynamicBoostCaseInsensitive() throws Exception {
         createAssetsIndexAndProperties(false, false);
@@ -171,7 +179,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
     }
 
-    // dynamic boost: should respect confidence as query result order
     @Test
     public void testQueryDynamicBoostOrder() throws Exception {
         createAssetsIndexAndProperties(false, false);
@@ -181,7 +188,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
                 Arrays.asList("/test/asset2", "/test/asset3", "/test/asset1"));
     }
 
-    // dynamic boost: space is explained as OR instead of AND which is documented as fulltext query in OAK doc todo: should be documented
+    // dynamic boost: space is explained as OR instead of AND, this should be documented
     @Test
     public void testQueryDynamicBoostSpace() throws Exception {
         createAssetsIndexAndProperties(false, false);
@@ -191,18 +198,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
                 Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
     }
 
-    @Ignore
-    //todo: bug? if both terms are dynamic boost, whitespace work as OR, but combine with fulltext term, the fulltext term don't respected at all
-    // if it's AND, it should return empty, if it's OR, it should return all 3 assets, but here it only return asset3, the fulltext term "long" is ignored
-    @Test
-    public void testQueryMixSpace() throws Exception {
-        createAssetsIndexAndProperties(false, false);
-        prepareTestAssets();
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue long')]", XPATH,
-                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-    }
-
-    // Section 3. Query dynamic boost lite testing
     @Test
     public void testQueryDynamicBoostLiteBasic() throws Exception {
         createAssetsIndexAndProperties(true, true);
