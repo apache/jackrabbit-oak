@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.query;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> {
+public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> {
 
     private final ElasticConnection elasticConnection;
     private final ElasticMetricHandler elasticMetricHandler;
 
-    ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
+    public ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
         this.elasticConnection = elasticConnection;
         this.elasticMetricHandler = elasticMetricHandler;
     }
