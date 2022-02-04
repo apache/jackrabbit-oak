@@ -49,6 +49,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -237,7 +238,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         this.sortedFiles = new ConcurrentLinkedQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
-        this.preferred = pathComparator.getPreferred();
+        this.preferred = pathComparator == null ? new HashSet<>() : pathComparator.getPreferred();
         this.entryWriter = new NodeStateEntryWriter(blobStore);
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
@@ -340,8 +341,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        String sortedFileName = getSortedStoreFileName(compressionEnabled);
-        File sortedFile = new File(storeDir, sortedFileName);
+        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
         File serializedSortedFile = new File(storeDir, String.format("serialized-%s", getSortedStoreFileName(false)));
 
 //        List<File> inputSortedFilesToMerge = new ArrayList<>(sortedFiles);
@@ -363,9 +363,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         Collections.addAll(commands, "/usr/bin/sort");
         Collections.addAll(commands, "-T", storeDir.getAbsolutePath());
         Collections.addAll(commands, "-S", "2G");
-        Collections.addAll(commands, "-k", "1");
-        Collections.addAll(commands, "-t", "\\|");
         Collections.addAll(commands, "-o", serializedSortedFile.getAbsolutePath());
+        Collections.addAll(commands, "-t", "/");
+        // Max depth of 100 level
+        IntStream.range(1, 50).forEach(i -> Collections.addAll(commands, String.format("-k%s,%s", i, i)));
         if (compressionEnabled) {
             Collections.addAll(commands, "--compress-program", "gzip");
             Collections.addAll(commands, "-m");
@@ -374,24 +375,28 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             Collections.addAll(commands, "-m");
             sortedFiles.forEach(f -> commands.add(f.getAbsolutePath()));
         }
-        System.out.println(commands.toString());
 
         ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", String.join(" ", commands));
-        System.out.println(pb.command());
+        log.info("Running merge command {}", pb.command());
         Process p = pb.start();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
              BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
             String line;
             p.waitFor();
+            log.info("Merging of sorted files completed in {}", w);
             while ((line = reader.readLine()) != null) log.info(line);
-            String cmdError = "";
-            while ((line = errReader.readLine()) != null)  cmdError += line;
-            if (cmdError.length() != 0) throw new Exception("command execution fail");
+            Boolean hasError = false;
+            while ((line = errReader.readLine()) != null)  {
+                log.error(line);
+                hasError = true;
+            }
+            if (hasError) throw new Exception("command execution fail");
             log.info("Sort command executed successfully");
         } catch (Exception e) {
             throw new RuntimeException(String.format("Error while running command %s", pb.command()));
         }
 
+        Stopwatch wDeserialize = Stopwatch.createStarted();
         try (BufferedReader reader = FlatFileStoreUtils.createReader(serializedSortedFile, false);
              BufferedWriter writer = FlatFileStoreUtils.createWriter(sortedFile, compressionEnabled)) {
             String line = reader.readLine();
@@ -402,8 +407,9 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                 line = reader.readLine();
             }
         }
+        log.info("Deserialize of sorted file completed in {}", wDeserialize);
 
-        log.info("Merging of sorted files completed in {}", w);
+
         return sortedFile;
     }
 

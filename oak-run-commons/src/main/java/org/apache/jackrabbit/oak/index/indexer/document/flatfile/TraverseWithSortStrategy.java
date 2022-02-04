@@ -19,18 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.management.MemoryNotificationInfo;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -70,6 +67,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private final boolean compressionEnabled;
     private final Charset charset = UTF_8;
     private final Comparator<NodeStateHolder> comparator;
+    private final Set<String> preferred;
     private NotificationEmitter emitter;
     private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
@@ -99,6 +97,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        this.preferred = pathComparator == null ? new HashSet<>() : pathComparator.getPreferred();
     }
 
     @Override
@@ -122,19 +121,71 @@ class TraverseWithSortStrategy implements SortStrategy {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
-            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
-            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-            ExternalSort.mergeSortedFiles(sortedFiles,
-                    writer,
-                    comparator,
-                    charset,
-                    true, //distinct
-                    compressionEnabled, //useZip
-                    func2,
-                    func1
-            );
+        File serializedSortedFile = new File(storeDir, String.format("serialized-%s", getSortedStoreFileName(false)));
+
+//        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
+//            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
+//            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+//            ExternalSort.mergeSortedFiles(sortedFiles,
+//                    writer,
+//                    comparator,
+//                    charset,
+//                    true, //distinct
+//                    compressionEnabled, //useZip
+//                    func2,
+//                    func1
+//            );
+//        }
+
+        List<String> commands = new ArrayList<String>();
+        Collections.addAll(commands, "/usr/bin/sort");
+        Collections.addAll(commands, "-T", storeDir.getAbsolutePath());
+        Collections.addAll(commands, "-S", "2G");
+        Collections.addAll(commands, "-o", serializedSortedFile.getAbsolutePath());
+        Collections.addAll(commands, "-t", "/");
+        // Max depth of 100 level
+        IntStream.range(1, 50).forEach(i -> Collections.addAll(commands, String.format("-k%s,%s", i, i)));
+        if (compressionEnabled) {
+            Collections.addAll(commands, "--compress-program", "gzip");
+            Collections.addAll(commands, "-m");
+            sortedFiles.forEach(f -> commands.add(String.format("<(gunzip -c %s)", f.getAbsolutePath())));
+        } else {
+            Collections.addAll(commands, "-m");
+            sortedFiles.forEach(f -> commands.add(f.getAbsolutePath()));
         }
+
+        ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", String.join(" ", commands));
+        log.info("Running merge command {}", pb.command());
+        Process p = pb.start();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+             BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
+            String line;
+            p.waitFor();
+            log.info("Merging of sorted files completed in {}", w);
+            while ((line = reader.readLine()) != null) log.info(line);
+            Boolean hasError = false;
+            while ((line = errReader.readLine()) != null)  {
+                log.error(line);
+                hasError = true;
+            }
+            if (hasError) throw new Exception("command execution fail");
+            log.info("Sort command executed successfully");
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Error while running command %s", pb.command()));
+        }
+
+        Stopwatch wDeserialize = Stopwatch.createStarted();
+        try (BufferedReader reader = FlatFileStoreUtils.createReader(serializedSortedFile, false);
+             BufferedWriter writer = FlatFileStoreUtils.createWriter(sortedFile, compressionEnabled)) {
+            String line = reader.readLine();
+            while (line != null) {
+                String deserializeLine = entryWriter.deserialize(line);
+                writer.write(deserializeLine);
+                writer.newLine();
+                line = reader.readLine();
+            }
+        }
+        log.info("Deserialize of sorted file completed in {}", wDeserialize);
         log.info("Merging of sorted files completed in {}", w);
         return sortedFile;
     }
@@ -190,7 +241,8 @@ class TraverseWithSortStrategy implements SortStrategy {
         try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
-                String text = entryWriter.toString(h.getPathElements(), h.getLine());
+                //String text = entryWriter.toString(h.getPathElements(), h.getLine());
+                String text = entryWriter.serialize(h.getPathElements(), h.getLine(), preferred);
                 writer.write(text);
                 writer.newLine();
                 textSize += text.length() + 1;
