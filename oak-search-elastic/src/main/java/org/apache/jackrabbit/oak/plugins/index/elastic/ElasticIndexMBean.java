@@ -25,6 +25,14 @@ import java.io.IOException;
 
 public class ElasticIndexMBean implements IndexMBean {
 
+    private final ElasticConnection elasticConnection;
+    private final ElasticIndexTracker indexTracker;
+
+    public ElasticIndexMBean(ElasticConnection elasticConnection, ElasticIndexTracker indexTracker) {
+        this.elasticConnection = elasticConnection;
+        this.indexTracker = indexTracker;
+    }
+
     @Override
     public TabularData getIndexStats() throws IOException {
         return null;

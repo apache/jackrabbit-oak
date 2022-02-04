@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.query;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import com.google.common.base.Ticker;
 import com.google.common.cache.LoadingCache;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.core.CountRequest;

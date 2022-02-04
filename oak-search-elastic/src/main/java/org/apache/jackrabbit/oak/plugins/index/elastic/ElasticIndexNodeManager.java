@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexNodeManager;
 import org.apache.jackrabbit.oak.plugins.index.search.update.ReaderRefreshPolicy;

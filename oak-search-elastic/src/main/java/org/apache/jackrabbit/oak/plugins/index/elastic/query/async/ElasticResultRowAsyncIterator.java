@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
