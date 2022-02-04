@@ -90,7 +90,7 @@ public class IndexAugmentorFactory {
     }
 
     @NotNull
-    FulltextQueryTermsProvider getFulltextQueryTermsProvider(String nodeType) {
+    public FulltextQueryTermsProvider getFulltextQueryTermsProvider(String nodeType) {
         FulltextQueryTermsProvider provider = fulltextQueryTermsProviderMap.get(nodeType);
         return (provider != null) ? provider : FulltextQueryTermsProvider.DEFAULT;
     }

@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
@@ -38,14 +39,17 @@ import org.slf4j.LoggerFactory;
  * An example fulltext query terms provider.
  */
 public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvider {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(FulltextQueryTermsProviderImpl.class);
     private static final String SEARCH_SPLIT_REGEX = "[ ]";
     private static final String NT_DAM_ASSET = "dam:Asset";
-    private static final String PREDICTED_TAGS_REL_PATH = "";
     private static final int MAX_FRAGMENT_SIZE = 2;
     private static final int MAX_QUERY_SIZE = 10;
-    
+
+    private static final String METADATA_FOLDER = "metadata";
+    private static final String PREDICTED_TAGS = "predictedTags";
+    private static final String PREDICTED_TAGS_REL_PATH = JcrConstants.JCR_CONTENT + "/" + METADATA_FOLDER + "/" + PREDICTED_TAGS + "/";
+
     @Override
     public Set<String> getSupportedTypes() {
         Set<String> supportedTypes = new HashSet<String>();
@@ -87,7 +91,7 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
         return query;
 
     }
-    
+
     private List<String> prepareFragments(Set<String> charTerms) {
 
         List<String> fragments = new ArrayList<String>();
@@ -111,7 +115,7 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
 
         return fragments;
     }
-    
+
     private <T> Set<Set<T>> powerSet(Set<T> originalSet) {
         Set<Set<T>> powerSet = new HashSet<Set<T>>();
         if (originalSet.isEmpty()) {
@@ -134,15 +138,15 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
         }
         return powerSet;
     }
-    
+
     private List<String> splitForSearch(String tagName) {
         return Arrays.asList(removeBackSlashes(tagName).split(SEARCH_SPLIT_REGEX));
     }
-    
+
     private String removeBackSlashes(String text) {
         return text.replaceAll("\\\\", "");
     }
-    
+
     protected BooleanQuery createQuery() {
         return new BooleanQuery();
     }
