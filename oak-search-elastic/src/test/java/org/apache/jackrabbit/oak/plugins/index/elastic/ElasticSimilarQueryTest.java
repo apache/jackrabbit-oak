@@ -235,7 +235,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         IndexDefinitionBuilder builder = createIndex(fieldName1);
         Tree tree = builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true).nodeScopeIndex()
                 .similaritySearchDenseVectorSize(2048).getBuilderTree();
-        tree.setProperty(ElasticPropertyDefinition.PROP_INDEX_SIMILARITY, "angular");
+        tree.setProperty(ElasticPropertyDefinition.PROP_INDEX_SIMILARITY, "cosine");
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_TABLES, 10);
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_FUNCTIONS, 12);
 
@@ -253,7 +253,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         Map<String, Object> map1 = (Map<String, Object>)(((Map<String, Object>)mappings.entrySet().iterator().next().getValue().
                 get(similarityFieldName1).sourceAsMap().get(similarityFieldName1)).get("elastiknn"));
         assertEquals("Dense vector size doesn't match", 2048, (int)map1.get("dims"));
-        assertEquals("Similarity doesn't match", "angular", map1.get("similarity"));
+        assertEquals("Similarity doesn't match", "cosine", map1.get("similarity"));
         assertEquals("Similarity doesn't match", 10, map1.get("L"));
         assertEquals("Similarity doesn't match", 12, map1.get("k"));
     }

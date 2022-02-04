@@ -126,7 +126,7 @@ public class ElasticConnection implements Closeable {
     public boolean isAvailable() {
         try {
             return this.getClient().ping(RequestOptions.DEFAULT);
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.warn("Error checking connection for {}, message: {}", this, e.getMessage());
             LOG.debug("", e);
             return false;
