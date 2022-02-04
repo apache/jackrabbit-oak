@@ -74,15 +74,15 @@ public class NodeStateEntryWriter {
         return sb.toString();
     }
 
-    // To Format: /<prefer>path|{}
-    // /|{}                         => /|{}
-    // /content|{}                  => /1content|{}
-    // /content/dam/test|{}         => /1content/1dam/1test|{}
-    // /content/dam/jcr:content|{}  => /1content/1dam/0jcr:content|{}  # ex. jcr:content is preferred
+    // To Format: /<prefer>path//|{}
+    // /|{}                         => ///|{}
+    // /content|{}                  => /1content//|{}
+    // /content/dam/test|{}         => /1content/1dam/1test//|{}
+    // /content/dam/jcr:content|{}  => /1content/1dam/0jcr:content//|{}  # ex. jcr:content is preferred
     public String serialize(List<String> pathElements, String nodeStateAsJson, Set<String> preferred) {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
         int numOfSlashes = pathElements.size() == 0 ? pathElements.size() : 1;
-        int serialLength = pathElements.size() + 1; // <prefer> and delimiter
+        int serialLength = pathElements.size() + 2 + 1; // <prefer>, //, and delimiter
         int strSize = nodeStateAsJson.length() + pathStringSize + numOfSlashes + serialLength;
         StringBuilder sb = new StringBuilder(strSize);
 
@@ -96,6 +96,7 @@ public class NodeStateEntryWriter {
             }
         }
 
+        sb.append("//");
         sb.append(DELIMITER).append(nodeStateAsJson);
         return sb.toString();
     }
@@ -104,7 +105,7 @@ public class NodeStateEntryWriter {
         String serializedStr = NodeStateEntryWriter.getPath(content);
         String nodeStateAsJson = NodeStateEntryWriter.getNodeState(content);
 
-        String subStr = serializedStr.substring(1);
+        String subStr = serializedStr.substring(1, serializedStr.length()-2);
         List<String> pathElements = new ArrayList<String>();
         if (subStr.length() != 0) {
             List<String> list = new ArrayList<String>(

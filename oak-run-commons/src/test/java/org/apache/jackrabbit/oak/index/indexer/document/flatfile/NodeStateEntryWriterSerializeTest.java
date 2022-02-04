@@ -40,18 +40,18 @@ public class NodeStateEntryWriterSerializeTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
                 //inputPath propKey propVal preferredStr expectedSerialized expectedDeserialized
-                { "/", "foo", "bar", "", "/|{\"foo\":\"bar\"}", "/|{\"foo\":\"bar\"}" },
-                { "/test", "foo", "bar", "", "/1test|{\"foo\":\"bar\"}", "/test|{\"foo\":\"bar\"}" },
-                { "/dir/asset", "key", "value", "", "/1dir/1asset|{\"key\":\"value\"}",
+                { "/", "foo", "bar", "", "///|{\"foo\":\"bar\"}", "/|{\"foo\":\"bar\"}" },
+                { "/test", "foo", "bar", "", "/1test//|{\"foo\":\"bar\"}", "/test|{\"foo\":\"bar\"}" },
+                { "/dir/asset", "key", "value", "", "/1dir/1asset//|{\"key\":\"value\"}",
                         "/dir/asset|{\"key\":\"value\"}" },
                 { "/content/dam/jcr:content", "foo", "bar", "jcr:content",
-                        "/1content/1dam/0jcr:content|{\"foo\":\"bar\"}",
+                        "/1content/1dam/0jcr:content//|{\"foo\":\"bar\"}",
                         "/content/dam/jcr:content|{\"foo\":\"bar\"}" },
                 { "/content/dam/jcr:content/test", "foo", "bar", "jcr:content,dam",
-                        "/1content/0dam/0jcr:content/1test|{\"foo\":\"bar\"}",
+                        "/1content/0dam/0jcr:content/1test//|{\"foo\":\"bar\"}",
                         "/content/dam/jcr:content/test|{\"foo\":\"bar\"}" },
                 { "/1/2/3/4/5/6/7/8/9/10/11/12", "12levels", "testcase", "jcr:content,dam",
-                        "/11/12/13/14/15/16/17/18/19/110/111/112|{\"12levels\":\"testcase\"}",
+                        "/11/12/13/14/15/16/17/18/19/110/111/112//|{\"12levels\":\"testcase\"}",
                         "/1/2/3/4/5/6/7/8/9/10/11/12|{\"12levels\":\"testcase\"}" },
         });
     }
