@@ -239,7 +239,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
                     indexNode.getDefinition().getIndexAlias());
             indexNode.getConnection().getClient().getLowLevelClient().performRequestAsync(request, this);
-            elasticMetricHandler.markQuery(true);
+            elasticMetricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
         /**
@@ -261,7 +261,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
             ElasticResponseHandler.SearchResponseHit[] searchHits = searchResponse.hits.hits;
             int hitsSize = searchHits != null ? searchHits.length : 0;
-            elasticMetricHandler.measureQuery(hitsSize, searchResponse.took, searchTotalTime, searchResponse.timedOut);
+            elasticMetricHandler.measureQuery(indexNode.getDefinition().getIndexPath(), hitsSize, searchResponse.took,
+                    searchTotalTime, searchResponse.timedOut);
             if (hitsSize > 0) {
                 long totalHits = searchResponse.hits.total.value;
                 LOG.debug("Processing search response that took {} to read {}/{} docs", searchResponse.took, hitsSize, totalHits);
@@ -307,7 +308,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
         @Override
         public void onFailure(Exception e) {
-            elasticMetricHandler.measureFailedQuery(System.currentTimeMillis() - searchStartTime);
+            elasticMetricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
+                    System.currentTimeMillis() - searchStartTime);
             LOG.error("Error retrieving data from Elastic: closing scanner, notifying listeners", e);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
@@ -334,7 +336,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
                         indexNode.getDefinition().getIndexAlias());
                 indexNode.getConnection().getClient().getLowLevelClient().performRequestAsync(request, this);
-                elasticMetricHandler.markQuery(false);
+                elasticMetricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");
             }

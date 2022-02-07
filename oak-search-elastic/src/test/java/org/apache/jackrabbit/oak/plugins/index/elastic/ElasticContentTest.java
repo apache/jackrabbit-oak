@@ -36,6 +36,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -183,14 +184,14 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
 
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
-        verify(spyMetricHandler, times(3)).markQuery(anyBoolean());
+        verify(spyMetricHandler, times(3)).markQuery(anyString(), anyBoolean());
 
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [b] = 'text'", results);
-        verify(spyMetricHandler, times(2)).markQuery(anyBoolean());
+        verify(spyMetricHandler, times(2)).markQuery(anyString(), anyBoolean());
 
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [c] = 'text'", results);
-        verify(spyMetricHandler, times(1)).markQuery(anyBoolean());
+        verify(spyMetricHandler, times(1)).markQuery(anyString(), anyBoolean());
     }
 }
