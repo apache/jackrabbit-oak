@@ -113,5 +113,15 @@ public class BnfSyntax implements BnfVisitor {
     public void visitRuleRepeat(boolean comma, Rule rule) {
         // not used
     }
+    
+    @Override
+    public void visitRuleOptional(ArrayList<Rule> list) {
+        // not used
+    }
+
+    @Override
+    public void visitRuleExtension(Rule rule, boolean compatibility) {
+        // not used
+    }    
 
 }
