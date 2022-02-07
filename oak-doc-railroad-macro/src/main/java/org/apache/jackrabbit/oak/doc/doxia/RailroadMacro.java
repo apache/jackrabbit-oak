@@ -65,13 +65,13 @@ public class RailroadMacro
             Railroad railroad = getRailroad(fileName);
 
             if (renderLink) {
-                sink.link(railroad.getLink("#" + topic));
+                sink.link(Railroad.getLink("#" + topic));
                 sink.text(topic);
                 sink.link_();
             } else {
                 if (setAnchor) {
                     sink.rawText("<h2>");
-                    sink.anchor(railroad.getLink(topic));
+                    sink.anchor(Railroad.getLink(topic));
                     sink.anchor_();
                     sink.text(topic);
                     sink.rawText("</h2>");

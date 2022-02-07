@@ -114,4 +114,14 @@ public class BnfSyntax implements BnfVisitor {
         // not used
     }
 
+    @Override
+    public void visitRuleOptional(ArrayList<Rule> list) {
+        // not used
+    }
+
+    @Override
+    public void visitRuleExtension(Rule rule, boolean compatibility) {
+        // not used
+    }
+
 }
