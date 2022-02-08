@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.state.ReadyOnlyBuilderUnsupportedOperationException;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -212,6 +213,8 @@ public class SessionDelegate {
             } finally {
                 postPerform(sessionOperation, t0);
             }
+        } catch (ReadyOnlyBuilderUnsupportedOperationException e) {
+            throw new RepositoryException(e);
         } finally {
             lock.unlock();
         }
@@ -247,6 +250,8 @@ public class SessionDelegate {
             } finally {
                 postPerform(sessionOperation, t0);
             }
+        } catch (ReadyOnlyBuilderUnsupportedOperationException e) {
+            throw new RepositoryException(e);
         } finally {
             lock.unlock();
         }
@@ -277,6 +282,8 @@ public class SessionDelegate {
             } finally {
                 postPerform(sessionOperation, t0);
             }
+        } catch (ReadyOnlyBuilderUnsupportedOperationException e) {
+            throw new RepositoryException(e);
         } finally {
             lock.unlock();
         }
