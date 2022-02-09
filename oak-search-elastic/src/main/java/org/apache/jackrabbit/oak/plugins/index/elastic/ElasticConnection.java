@@ -62,7 +62,7 @@ public class ElasticConnection implements Closeable {
     private final String apiKeyId;
     private final String apiKeySecret;
 
-    private volatile RestHighLevelClient client;
+    private volatile RestHighLevelClient hlClient;
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
@@ -96,9 +96,9 @@ public class ElasticConnection implements Closeable {
         }
 
         // double-checked locking to get good performance and avoid double initialization
-        if (client == null) {
+        if (hlClient == null) {
             synchronized (this) {
-                if (client == null) {
+                if (hlClient == null) {
                     RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme));
                     if (apiKeyId != null && !apiKeyId.isEmpty() &&
                             apiKeySecret != null && !apiKeySecret.isEmpty()) {
@@ -108,11 +108,11 @@ public class ElasticConnection implements Closeable {
                         Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
                         builder.setDefaultHeaders(headers);
                     }
-                    client = new RestHighLevelClient(builder);
+                    hlClient = new RestHighLevelClient(builder);
                 }
             }
         }
-        return client;
+        return hlClient;
     }
 
     public String getIndexPrefix() {
