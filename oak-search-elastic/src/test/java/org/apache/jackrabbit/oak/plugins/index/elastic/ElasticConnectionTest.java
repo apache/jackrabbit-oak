@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.Test;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -36,6 +38,21 @@ public class ElasticConnectionTest {
         RestHighLevelClient client2 = connection.getClient();
 
         assertEquals(client1, client2);
+        
+        connection.close();
+    }
+    
+    @Test
+    public void uniqueElasticsearchClient() throws IOException {
+        ElasticConnection connection = ElasticConnection.newBuilder()
+                .withIndexPrefix("my+test")
+                .withDefaultConnectionParameters()
+                .build();
+        
+        ElasticsearchClient clientA = connection.getElasticsearchClient();
+        ElasticsearchClient clientB = connection.getElasticsearchClient();
+        
+        assertEquals(clientA, clientB);
 
         connection.close();
     }
@@ -49,7 +66,7 @@ public class ElasticConnectionTest {
 
         connection.close();
 
-        connection.getClient();
+        connection.getElasticsearchClient();
     }
 
     @Test(expected = IllegalArgumentException.class)
