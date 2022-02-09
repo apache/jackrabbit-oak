@@ -122,7 +122,8 @@ class ElasticIndex extends FulltextIndex {
                         responseHandler,
                         plan,
                         partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
-                        getEstimator(plan.getPlanName())
+                        getEstimator(plan.getPlanName()),
+                        elasticIndexTracker.getElasticMetricHandler()
                 );
 
             }

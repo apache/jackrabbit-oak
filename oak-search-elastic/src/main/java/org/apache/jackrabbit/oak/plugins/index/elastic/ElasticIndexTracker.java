@@ -17,11 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> {
+public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager, ElasticIndexNode> implements Observer {
 
     private final ElasticConnection elasticConnection;
     private final ElasticMetricHandler elasticMetricHandler;
@@ -43,6 +45,19 @@ public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeMa
 
     @Override
     protected ElasticIndexNodeManager openIndex(String path, NodeState root, NodeState node) {
-        return new ElasticIndexNodeManager(path, root, elasticConnection, elasticMetricHandler);
+        return new ElasticIndexNodeManager(path, root, elasticConnection);
+    }
+
+    public ElasticIndexNode acquireIndexNode(String path) {
+        return super.acquireIndexNode(path, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
+    }
+
+    @Override
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+        update(root);
+    }
+
+    public ElasticMetricHandler getElasticMetricHandler() {
+        return elasticMetricHandler;
     }
 }

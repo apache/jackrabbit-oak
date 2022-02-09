@@ -27,9 +27,9 @@ public class ElasticIndexNodeManager extends IndexNodeManager<ElasticIndexNode> 
     private final String path;
 
     ElasticIndexNodeManager(String path, NodeState root,
-                            ElasticConnection elasticConnection, ElasticMetricHandler elasticMetricHandler) {
+                            ElasticConnection elasticConnection) {
         this.path = path;
-        this.elasticIndexNode = new ElasticIndexNode(root, path, elasticConnection, elasticMetricHandler) {
+        this.elasticIndexNode = new ElasticIndexNode(root, path, elasticConnection) {
             @Override
             public void release() {
                 ElasticIndexNodeManager.this.release();

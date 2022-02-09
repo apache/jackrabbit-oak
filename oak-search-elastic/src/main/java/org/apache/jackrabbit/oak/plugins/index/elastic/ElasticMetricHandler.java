@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Provides high level functions to track and measure activities against Elastic.
@@ -45,30 +44,21 @@ public class ElasticMetricHandler {
     private static final String QUERY_TIMED_OUT_RATE = "ELASTIC_QUERY_TIMED_OUT_RATE";
     private static final String QUERY_FAILED_RATE = "ELASTIC_QUERY_FAILED_RATE";
 
-    private final Function<Map<String, String>, MeterStats> queryRate;
-    private final Function<Map<String, String>, MeterStats> queryInternalRate;
+    private static final String INDEX_DOCUMENTS = "ELASTIC_INDEX_DOCUMENTS";
+    private static final String INDEX_SIZE = "ELASTIC_INDEX_SIZE";
 
-    private final Function<Map<String, String>, HistogramStats> queryHitsHistogram;
-    private final Function<Map<String, String>, TimerStats> queryServerTimer;
-    private final Function<Map<String, String>, TimerStats> queryTotalTimer;
-
-    private final Function<Map<String, String>, MeterStats> queryTimedOutRate;
-    private final Function<Map<String, String>, MeterStats> queryFailedRate;
+    private final BiFunction<String, Map<String, String>, MeterStats> meter;
+    private final BiFunction<String, Map<String, String>, HistogramStats> histogram;
+    private final BiFunction<String, Map<String, String>, TimerStats> timer;
 
     public ElasticMetricHandler(StatisticsProvider sp) {
         BiFunction<String, Map<String, String>, String> metricName = (name, labels) -> labels.entrySet().stream().reduce(name,
                 (n, e) -> n + ";" + e.getKey() + "=" + e.getValue(),
                 (n1, n2) -> n1 + n2);
 
-        queryRate = labels -> sp.getMeter(metricName.apply(QUERY_RATE, labels), StatsOptions.METRICS_ONLY);
-        queryInternalRate = labels -> sp.getMeter(metricName.apply(QUERY_INTERNAL_RATE, labels), StatsOptions.METRICS_ONLY);
-
-        queryHitsHistogram = labels -> sp.getHistogram(metricName.apply(QUERY_HITS, labels), StatsOptions.METRICS_ONLY);
-        queryServerTimer = labels -> sp.getTimer(metricName.apply(QUERY_SERVER_TIME, labels), StatsOptions.METRICS_ONLY);
-        queryTotalTimer = labels -> sp.getTimer(metricName.apply(QUERY_TOTAL_TIME, labels), StatsOptions.METRICS_ONLY);
-
-        queryTimedOutRate = labels -> sp.getMeter(metricName.apply(QUERY_TIMED_OUT_RATE, labels), StatsOptions.METRICS_ONLY);
-        queryFailedRate = labels -> sp.getMeter(metricName.apply(QUERY_FAILED_RATE, labels), StatsOptions.METRICS_ONLY);
+        meter = (name, labels) -> sp.getMeter(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
+        histogram = (name, labels) -> sp.getHistogram(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
+        timer = (name, labels) -> sp.getTimer(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
     }
 
     /**
@@ -78,46 +68,68 @@ public class ElasticMetricHandler {
      *     <li>{@code QUERY_INTERNAL_RATE}</li>
      * </ul>
      *
-     * @param indexPath the index path passed as metric label
+     * @param index the index passed as metric label
      * @param isRootQuery if {@code false} only {@code QUERY_INTERNAL_RATE} gets incremented
      */
-    public void markQuery(String indexPath, boolean isRootQuery) {
-        Map<String, String> labels = Collections.singletonMap("index", indexPath);
+    public void markQuery(String index, boolean isRootQuery) {
+        Map<String, String> labels = Collections.singletonMap("index", index);
         if (isRootQuery) {
-            queryRate.apply(labels).mark();
+            meter.apply(QUERY_RATE, labels).mark();
         }
-        queryInternalRate.apply(labels).mark();
+        meter.apply(QUERY_INTERNAL_RATE, labels).mark();
     }
 
     /**
      * Measures a single query execution
      *
-     * @param indexPath the index path passed as metric label
+     * @param index the index passed as metric label
      * @param hits the number of hits in the result set
      * @param serverTimeMs the Elastic server time in milliseconds
      * @param totalTimeMs the complete query execution time
      * @param timedOut Elastic could time out while returning partial results. When {@code true} these
      *                 occurrences get tracked
      */
-    public void measureQuery(String indexPath, int hits, long serverTimeMs, long totalTimeMs, boolean timedOut) {
-        Map<String, String> labels = Collections.singletonMap("index", indexPath);
-        queryHitsHistogram.apply(labels).update(hits);
-        queryServerTimer.apply(labels).update(serverTimeMs, TimeUnit.MILLISECONDS);
-        queryTotalTimer.apply(labels).update(totalTimeMs, TimeUnit.MILLISECONDS);
+    public void measureQuery(String index, int hits, long serverTimeMs, long totalTimeMs, boolean timedOut) {
+        Map<String, String> labels = Collections.singletonMap("index", index);
+        histogram.apply(QUERY_HITS, labels).update(hits);
+        timer.apply(QUERY_SERVER_TIME, labels).update(serverTimeMs, TimeUnit.MILLISECONDS);
+        timer.apply(QUERY_TOTAL_TIME, labels).update(totalTimeMs, TimeUnit.MILLISECONDS);
         if (timedOut) {
-            queryTimedOutRate.apply(labels).mark();
+            meter.apply(QUERY_TIMED_OUT_RATE, labels).mark();
         }
     }
 
     /**
      * Measures a failed query execution
      *
-     * @param indexPath the index path passed as metric label
+     * @param index the index passed as metric label
      * @param totalTimeMs the total execution time
      */
-    public void measureFailedQuery(String indexPath, long totalTimeMs) {
-        Map<String, String> labels = Collections.singletonMap("index", indexPath);
-        queryFailedRate.apply(labels).mark();
-        queryTotalTimer.apply(labels).update(totalTimeMs, TimeUnit.MILLISECONDS);
+    public void measureFailedQuery(String index, long totalTimeMs) {
+        Map<String, String> labels = Collections.singletonMap("index", index);
+        meter.apply(QUERY_FAILED_RATE, labels).mark();
+        timer.apply(QUERY_TOTAL_TIME, labels).update(totalTimeMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Tracks the number of document in an index
+     *
+     * @param index the index passed as metric label
+     * @param numDocs the current number of documents. Only top level documents are tracked
+     */
+    public void markDocuments(String index, long numDocs) {
+        Map<String, String> labels = Collections.singletonMap("index", index);
+        histogram.apply(INDEX_DOCUMENTS, labels).update(numDocs);
+    }
+
+    /**
+     * Tracks the size of an index
+     *
+     * @param index the index passed as metric label
+     * @param size the total size in bytes. The value includes potential replicas
+     */
+    public void markSize(String index, long size) {
+        Map<String, String> labels = Collections.singletonMap("index", index);
+        histogram.apply(INDEX_SIZE, labels).update(size);
     }
 }

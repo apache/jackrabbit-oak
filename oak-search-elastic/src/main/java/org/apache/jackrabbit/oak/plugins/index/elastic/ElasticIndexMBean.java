@@ -19,17 +19,17 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.plugins.index.search.IndexMBean;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.core.CountRequest;
 
 import javax.management.openmbean.TabularData;
 import java.io.IOException;
 
 public class ElasticIndexMBean implements IndexMBean {
 
-    private final ElasticConnection elasticConnection;
     private final ElasticIndexTracker indexTracker;
 
-    public ElasticIndexMBean(ElasticConnection elasticConnection, ElasticIndexTracker indexTracker) {
-        this.elasticConnection = elasticConnection;
+    public ElasticIndexMBean(ElasticIndexTracker indexTracker) {
         this.indexTracker = indexTracker;
     }
 
@@ -45,6 +45,9 @@ public class ElasticIndexMBean implements IndexMBean {
 
     @Override
     public String getDocCount(String indexPath) throws IOException {
+        ElasticIndexNode indexNode = indexTracker.acquireIndexNode(indexPath, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
+        CountRequest cr = new CountRequest(indexNode.getDefinition().getIndexAlias());
+        indexNode.getConnection().getClient().count(cr, RequestOptions.DEFAULT);
         return null;
     }
 }
