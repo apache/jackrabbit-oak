@@ -72,7 +72,6 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
     private final LoadingCache<StatsRequestDescriptor, Integer> countCache;
-    private final String indexName;
 
     ElasticIndexStatistics(@NotNull ElasticConnection elasticConnection,
                            @NotNull ElasticIndexDefinition indexDefinition) {
@@ -86,9 +85,6 @@ public class ElasticIndexStatistics implements IndexStatistics {
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.countCache = countCache;
-        // index name to get stats, try to always use the full name. If not available, use the alias
-        this.indexName = indexDefinition.getIndexFullName() != null ?
-                indexDefinition.getIndexFullName() : indexDefinition.getIndexAlias();
     }
 
     /**

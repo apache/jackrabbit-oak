@@ -60,7 +60,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
             ElasticIndexDefinition indexDefinition =
                     new ElasticIndexDefinition(root, definition.getNodeState(), indexPath, elasticConnection.getIndexPrefix());
 
-            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection);
+            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker);
 
             ElasticIndexEditorContext context = new ElasticIndexEditorContext(root,
                     definition, indexDefinition,
@@ -69,9 +69,6 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
                     extractedTextCache,
                     indexingContext,
                     true);
-
-            ElasticIndexMetricUpdateCallback metricUpdateCallback = new ElasticIndexMetricUpdateCallback(indexPath, indexTracker);
-            context.setPropertyUpdateCallback(metricUpdateCallback);
 
             return new ElasticIndexEditor(context);
         }

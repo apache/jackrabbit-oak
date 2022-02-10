@@ -52,7 +52,8 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
 
     public ElasticIndexerProvider(IndexHelper indexHelper, ElasticConnection connection) {
         this.indexHelper = indexHelper;
-        this.indexWriterFactory = new ElasticIndexWriterFactory(connection);
+        this.indexWriterFactory = new ElasticIndexWriterFactory(connection,
+                new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP)));
         this.connection = connection;
     }
 

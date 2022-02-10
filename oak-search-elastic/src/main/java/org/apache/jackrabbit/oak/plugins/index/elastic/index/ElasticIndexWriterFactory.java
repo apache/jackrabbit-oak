@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -26,9 +27,11 @@ import org.jetbrains.annotations.NotNull;
 
 public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<ElasticDocument> {
     private final ElasticConnection elasticConnection;
+    private final ElasticIndexTracker indexTracker;
 
-    public ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection) {
+    public ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection, @NotNull ElasticIndexTracker indexTracker) {
         this.elasticConnection = elasticConnection;
+        this.indexTracker = indexTracker;
     }
 
     @Override
@@ -41,6 +44,6 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
 
         ElasticIndexDefinition esDefinition = (ElasticIndexDefinition) definition;
 
-        return new ElasticIndexWriter(elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo);
+        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo);
     }
 }

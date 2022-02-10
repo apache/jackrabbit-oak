@@ -18,13 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -102,7 +100,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     private final String indexPrefix;
     private final String indexAlias;
-    private final String indexFullName;
     public final int bulkActions;
     public final long bulkSizeBytes;
     public final long bulkFlushIntervalMs;
@@ -150,14 +147,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .stream()
                 .flatMap(rule -> rule.getSimilarityProperties().stream())
                 .collect(Collectors.toList());
-
-        PropertyState seedPropertyState = defn.getProperty(PROP_INDEX_NAME_SEED);
-        if (seedPropertyState != null) {
-            this.indexFullName = ElasticIndexNameHelper.
-                    getRemoteIndexName(this.indexPrefix, this.getIndexPath(), seedPropertyState.getValue(Type.LONG));
-        } else {
-            this.indexFullName = null;
-        }
     }
 
     public String getIndexPrefix() {
@@ -171,16 +160,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     public String getIndexAlias() {
         return indexAlias;
-    }
-
-    /**
-     * Returns the full index name. This name is based on the index seed initialized in <code>ElasticIndexWriter</code>.
-     * For this reason, the value can be null until the merge is called on the related node.
-     *
-     * @return the index full name or <code>null</code> if the index has not been enabled yet.
-     */
-    public @Nullable String getIndexFullName() {
-        return indexFullName;
     }
 
     public Map<String, List<PropertyDefinition>> getPropertiesByName() {
