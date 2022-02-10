@@ -362,11 +362,11 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         List<String> commands = new ArrayList<String>();
         Collections.addAll(commands, "/usr/bin/sort");
         Collections.addAll(commands, "-T", storeDir.getAbsolutePath());
-        Collections.addAll(commands, "-S", "2G");
+//        Collections.addAll(commands, "-S", "2G");
+        Collections.addAll(commands, "--parallel", "8");
         Collections.addAll(commands, "-o", serializedSortedFile.getAbsolutePath());
-        Collections.addAll(commands, "-t", "/");
-        // Max depth of 100 level
-        IntStream.range(1, 50).forEach(i -> Collections.addAll(commands, String.format("-k%s,%s", i, i)));
+//        Collections.addAll(commands, "-t", "/");
+//        IntStream.range(1, 50).forEach(i -> Collections.addAll(commands, String.format("-k%s,%s", i, i)));
         if (compressionEnabled) {
             Collections.addAll(commands, "--compress-program", "gzip");
             Collections.addAll(commands, "-m");
