@@ -18,10 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.*;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 import java.io.File;
@@ -35,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -52,13 +50,17 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.Persist
 import com.google.common.base.Stopwatch;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
+import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility class for common stuff pertaining to tooling.
  */
 public class ToolUtils {
+
+    private static final Environment ENVIRONMENT = new Environment();
 
     private ToolUtils() {
         // prevent instantiation
@@ -144,18 +146,19 @@ public class ToolUtils {
     }
 
     public static CloudBlobDirectory createCloudBlobDirectory(String path) {
+        return createCloudBlobDirectory(path, ENVIRONMENT);
+    }
+    
+    public static CloudBlobDirectory createCloudBlobDirectory(String path, Environment environment) {
         Map<String, String> config = parseAzureConfigurationFromUri(path);
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
-        String key = System.getenv("AZURE_SECRET_KEY");
-
-        StorageCredentials credentials = null;
-        try {
-            credentials = new StorageCredentialsAccountAndKey(accountName, key);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Could not connect to the Azure Storage. Please verify if AZURE_SECRET_KEY environment variable "
-                            + "is correctly set!");
+        
+        StorageCredentials credentials;
+        if (config.containsKey(KEY_SHARED_ACCESS_SIGNATURE)) {
+            credentials = new StorageCredentialsSharedAccessSignature(config.get(KEY_SHARED_ACCESS_SIGNATURE));
+        } else {
+            credentials = getStorageCredentialsAccountAndKey(accountName, environment);
         }
 
         String uri = config.get(KEY_STORAGE_URI);
@@ -165,7 +168,18 @@ public class ToolUtils {
             return AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
         } catch (URISyntaxException | StorageException e) {
             throw new IllegalArgumentException(
-                    "Could not connect to the Azure Storage. Please verify the path provided!");
+                "Could not connect to the Azure Storage. Please verify the path provided!");
+        }
+    }
+
+    @NotNull
+    private static StorageCredentials getStorageCredentialsAccountAndKey(String accountName, Environment environment) {
+        String key = environment.getVariable("AZURE_SECRET_KEY");
+        try {
+            return new StorageCredentialsAccountAndKey(accountName, key);
+        } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException(
+                "Could not connect to the Azure Storage. Please verify if AZURE_SECRET_KEY environment variable is correctly set!");
         }
     }
 
