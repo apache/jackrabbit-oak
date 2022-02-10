@@ -24,14 +24,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -138,13 +138,11 @@ public class ElasticIndexCleaner implements Runnable {
                     danglingRemoteIndicesMap.remove(remoteIndexName);
                 }
             }
-            DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indicesToDelete.toArray(new String[]{}));
-            if (deleteIndexRequest.indices() != null && deleteIndexRequest.indices().length > 0) {
-                String indexString = Arrays.toString(deleteIndexRequest.indices());
-                AcknowledgedResponse acknowledgedResponse = elasticConnection.getClient().indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
-                LOG.info("Deleting remote indices {}", indexString);
-                if (!acknowledgedResponse.isAcknowledged()) {
-                    LOG.error("Could not delete remote indices " + indexString);
+            if(!indicesToDelete.isEmpty()) {
+            	DeleteIndexResponse response = elasticConnection.getElasticsearchClient().indices().delete(i->i.index(indicesToDelete));
+                LOG.info("Deleting remote indices {}", indicesToDelete);
+                if (!response.acknowledged()) {
+                    LOG.error("Could not delete remote indices " + indicesToDelete);
                 }
             }
         } catch (IOException e) {

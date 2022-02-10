@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -318,9 +317,7 @@ class ElasticBulkProcessorHandler {
             if (totalOperations > 0 && !isDataSearchable.get()) {
                 LOG.debug("Forcing refresh");
                 try {
-                    this.elasticConnection.getClient()
-                            .indices()
-                            .refresh(new RefreshRequest(indexName), RequestOptions.DEFAULT);
+                	this.elasticConnection.getElasticsearchClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
                     LOG.warn("Error refreshing index " + indexName, e);
                 }

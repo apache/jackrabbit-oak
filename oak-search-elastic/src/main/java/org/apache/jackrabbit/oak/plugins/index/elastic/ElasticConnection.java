@@ -101,6 +101,7 @@ public class ElasticConnection implements Closeable {
      * to follow the proposed migration strategy:
      * https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/7.16/migrate-hlrc.html
      * It double-checks locking to get good performance and avoid double initialization
+     * @deprecated
      * @return the old Elasticsearch client
      */
     public RestHighLevelClient getClient() {
