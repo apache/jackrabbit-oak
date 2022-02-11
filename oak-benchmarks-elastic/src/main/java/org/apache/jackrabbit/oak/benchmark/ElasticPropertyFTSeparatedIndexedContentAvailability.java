@@ -19,27 +19,23 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
-import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import javax.jcr.Repository;
 import java.io.File;
-
-import static com.google.common.collect.ImmutableSet.of;
+import java.util.Collections;
 
 /**
  * same as {@link ElasticPropertyFTIndexedContentAvailability} but will initialise a repository where the global
@@ -47,17 +43,17 @@ import static com.google.common.collect.ImmutableSet.of;
  */
 public class ElasticPropertyFTSeparatedIndexedContentAvailability extends PropertyFullTextTest {
 
+    private final ElasticConnection connection;
     private String currentFixtureName;
-    private ElasticConnection coordinate;
     private String elasticGlobalIndexName;
     private String elasticTitleIndexName;
 
     ElasticPropertyFTSeparatedIndexedContentAvailability(final File dump,
                                                          final boolean flat,
                                                          final boolean doReport,
-                                                         final Boolean storageEnabled, ElasticConnection coordinate) {
+                                                         final Boolean storageEnabled, ElasticConnection connection) {
         super(dump, flat, doReport, storageEnabled);
-        this.coordinate = coordinate;
+        this.connection = connection;
     }
 
     @Override
@@ -76,24 +72,22 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
         elasticTitleIndexName = TestHelper.getUniqueIndexName("elasticTitle");
         if (fixture instanceof OakRepositoryFixture) {
             currentFixtureName = fixture.toString();
-            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
-                @Override
-                public Jcr customize(Oak oak) {
-                    ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
-                            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-                    ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate,
-                            new ElasticMetricHandler(StatisticsProvider.NOOP));
-                    oak.with(editorProvider)
-                            .with((Observer) indexProvider)
-                            .with((QueryIndexProvider) indexProvider)
-                            .with((new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled)).async("fulltext-async"))
-                            // the WikipediaImporter set a property `title`
-                            .with(new FullTextPropertyInitialiser(elasticTitleIndexName, of("title"),
-                                    ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
-                            .withAsyncIndexing("async", 5)
-                            .withAsyncIndexing("fulltext-async", 5);
-                    return new Jcr(oak);
-                }
+            return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
+                ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+                        new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
+                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
+                oak.with(editorProvider)
+                        .with(indexProvider)
+                        .with(indexProvider)
+                        .with((new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled)).async("fulltext-async"))
+                        // the WikipediaImporter set a property `title`
+                        .with(new FullTextPropertyInitialiser(elasticTitleIndexName, Collections.singleton("title"),
+                                ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
+                        .withAsyncIndexing("async", 5)
+                        .withAsyncIndexing("fulltext-async", 5);
+                return new Jcr(oak);
             });
         }
         return super.createRepository(fixture);
@@ -102,8 +96,8 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
     @Override
     protected void afterSuite() throws Exception {
         super.afterSuite();
-        TestHelper.cleanupRemoteElastic(coordinate, elasticGlobalIndexName);
-        TestHelper.cleanupRemoteElastic(coordinate, elasticTitleIndexName);
+        TestHelper.cleanupRemoteElastic(connection, elasticGlobalIndexName);
+        TestHelper.cleanupRemoteElastic(connection, elasticTitleIndexName);
     }
 
 }
