@@ -214,7 +214,7 @@ public class SessionDelegate {
                 postPerform(sessionOperation, t0);
             }
         } catch (ReadyOnlyBuilderException e) {
-            throw new RepositoryException(e);
+            throw new ConstraintViolationException(e);
         } finally {
             lock.unlock();
         }
@@ -251,7 +251,7 @@ public class SessionDelegate {
                 postPerform(sessionOperation, t0);
             }
         } catch (ReadyOnlyBuilderException e) {
-            throw new RepositoryException(e);
+            throw new ConstraintViolationException(e);
         } finally {
             lock.unlock();
         }
@@ -283,7 +283,7 @@ public class SessionDelegate {
                 postPerform(sessionOperation, t0);
             }
         } catch (ReadyOnlyBuilderException e) {
-            throw new RepositoryException(e);
+            throw new ConstraintViolationException(e);
         } finally {
             lock.unlock();
         }
