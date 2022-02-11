@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 public class SessionDelegateTest extends AbstractDelegatorTest {
 
@@ -75,7 +76,7 @@ public class SessionDelegateTest extends AbstractDelegatorTest {
         verify(pp, times(6)).refresh();
     }
     
-    @Test(expected = RepositoryException.class)
+    @Test(expected = ConstraintViolationException.class)
     public void testModificationOnReadonlyBuilder() throws RepositoryException {
         PermissionProvider pp = mock(PermissionProvider.class);
         Root r = mockRoot(pp, false);
@@ -86,7 +87,7 @@ public class SessionDelegateTest extends AbstractDelegatorTest {
         delegate.perform(op);
     }
     
-    @Test(expected = RepositoryException.class)
+    @Test(expected = ConstraintViolationException.class)
     public void testModificationOnReadonlyBuilder_nullable() throws RepositoryException {
         PermissionProvider pp = mock(PermissionProvider.class);
         Root r = mockRoot(pp, false);
@@ -97,7 +98,7 @@ public class SessionDelegateTest extends AbstractDelegatorTest {
         delegate.performNullable(op);
     }
     
-    @Test(expected = RepositoryException.class)
+    @Test(expected = ConstraintViolationException.class)
     public void testModificationOnReadonlyBuilder_void() throws RepositoryException {
         PermissionProvider pp = mock(PermissionProvider.class);
         Root r = mockRoot(pp, false);
