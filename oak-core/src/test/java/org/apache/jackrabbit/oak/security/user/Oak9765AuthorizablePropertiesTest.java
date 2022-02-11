@@ -326,7 +326,7 @@ public class Oak9765AuthorizablePropertiesTest extends AbstractSecurityTest {
         root.commit();
 
         // and now re-read to verify it was persisted
-        authorizableProperties = getAuthorizableProperties(user1Session.getLatestRoot(), authorizable.getID());
+        authorizableProperties = getAuthorizableProperties(session.getLatestRoot(), authorizable.getID());
         assertTrue(authorizableProperties.hasProperty(propName));
         Value[] property = authorizableProperties.getProperty(propName);
         assertNotNull(property);
