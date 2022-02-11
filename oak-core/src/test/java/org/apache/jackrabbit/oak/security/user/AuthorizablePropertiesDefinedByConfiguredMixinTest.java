@@ -107,8 +107,8 @@ public class AuthorizablePropertiesDefinedByConfiguredMixinTest extends Abstract
     }
 
     /**
-     * Verify that the mixin defined property names are incluced in the 
-     * authrizable property names
+     * Verify that the mixin defined property names are included in the 
+     * authorizable property names
      */
     @Test
     public void testAuthorizableGetPropertyNamesIncludesPropertyDeclaredByMixinType() throws Exception {
