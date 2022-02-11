@@ -342,7 +342,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-        File serializedSortedFile = new File(storeDir, String.format("serialized-%s", getSortedStoreFileName(false)));
+//        File serializedSortedFile = new File(storeDir, String.format("serialized-%s", getSortedStoreFileName(false)));
 
 //        List<File> inputSortedFilesToMerge = new ArrayList<>(sortedFiles);
 //        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
@@ -364,7 +364,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         Collections.addAll(commands, "-T", storeDir.getAbsolutePath());
 //        Collections.addAll(commands, "-S", "2G");
         Collections.addAll(commands, "--parallel", "8");
-        Collections.addAll(commands, "-o", serializedSortedFile.getAbsolutePath());
+        Collections.addAll(commands, "-o", sortedFile.getAbsolutePath());
 //        Collections.addAll(commands, "-t", "/");
 //        IntStream.range(1, 50).forEach(i -> Collections.addAll(commands, String.format("-k%s,%s", i, i)));
         if (compressionEnabled) {
@@ -396,18 +396,18 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             throw new RuntimeException(String.format("Error while running command %s", pb.command()));
         }
 
-        Stopwatch wDeserialize = Stopwatch.createStarted();
-        try (BufferedReader reader = FlatFileStoreUtils.createReader(serializedSortedFile, false);
-             BufferedWriter writer = FlatFileStoreUtils.createWriter(sortedFile, compressionEnabled)) {
-            String line = reader.readLine();
-            while (line != null) {
-                String deserializeLine = entryWriter.deserialize(line);
-                writer.write(deserializeLine);
-                writer.newLine();
-                line = reader.readLine();
-            }
-        }
-        log.info("Deserialize of sorted file completed in {}", wDeserialize);
+//        Stopwatch wDeserialize = Stopwatch.createStarted();
+//        try (BufferedReader reader = FlatFileStoreUtils.createReader(serializedSortedFile, false);
+//             BufferedWriter writer = FlatFileStoreUtils.createWriter(sortedFile, compressionEnabled)) {
+//            String line = reader.readLine();
+//            while (line != null) {
+//                String deserializeLine = entryWriter.deserialize(line);
+//                writer.write(deserializeLine);
+//                writer.newLine();
+//                line = reader.readLine();
+//            }
+//        }
+//        log.info("Deserialize of sorted file completed in {}", wDeserialize);
 
 
         return sortedFile;
