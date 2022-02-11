@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -134,27 +133,6 @@ public class DynamicBoostTest extends AbstractQueryTest {
         assertEquals("[]", log);
     }
 
-    // verifying fulltext query syntax ability, put here for comparison with dynamic boost and dynamic boost lite
-    @Test
-    public void testQueryFullTextWithTitle() throws Exception {
-        createAssetsIndexAndProperties(false, false);
-        prepareTestAssets();
-
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'titleone')]", XPATH, Arrays.asList("/test/asset1"));
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
-        // case insensitive
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'LONG')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
-        // wildcard works
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'title*')]", XPATH,
-                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-        // space is treated as AND
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long titleone')]", XPATH, Arrays.asList("/test/asset1"));
-        // OR works
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long OR titleone')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
-        // minus works
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'long -titleone')]", XPATH, Arrays.asList("/test/asset2"));
-    }
-
     @Test
     public void testQueryDynamicBoostBasic() throws Exception {
         createAssetsIndexAndProperties(false, false);
@@ -224,7 +202,12 @@ public class DynamicBoostTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu*')", SQL2, Arrays.asList("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu?')", SQL2, Arrays.asList("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'bl?e')", SQL2, Arrays.asList("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '?lue')", SQL2, Arrays.asList("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coff*')", SQL2, Arrays.asList("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'co*ee')", SQL2, Arrays.asList("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '*ffee')", SQL2, Arrays.asList("/test/asset2"));
     }
 
     @Test
