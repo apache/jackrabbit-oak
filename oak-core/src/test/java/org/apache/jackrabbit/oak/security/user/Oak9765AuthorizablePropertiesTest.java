@@ -748,7 +748,7 @@ public class Oak9765AuthorizablePropertiesTest extends AbstractSecurityTest {
                 Tree privateNode = TreeUtil.addChild(authorizableNode, "private", "oak9765:userPrivate");
 
                 //pre-add properties as the user will only have rights to alterProperty and not to add a property
-                PropertyState property = privateNode.getProperty(PROP_DISPLAYNAME);
+                PropertyState property = privateNode.getProperty("email");
                 if (property == null) {
                     privateNode.setProperty("email", INITIAL_EMAIL_VALUE, Type.STRING);
                 }
