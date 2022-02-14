@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -523,6 +524,46 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
         assertEventually(() -> {
             assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c"));
+        });
+    }
+
+    @Test
+    public void fullTextQueryGeneric() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+
+        Tree testNodeA = test.addChild("nodea");
+        testNodeA.setProperty("a", "hello");
+        testNodeA.setProperty("b", "ocean");
+
+        Tree testNodeB = test.addChild("nodeb");
+        testNodeB.setProperty("a", "hello world");
+        testNodeB.setProperty("b", "soccer-shoe");
+
+        Tree testNodeC = test.addChild("nodec");
+        testNodeC.setProperty("a", "hello");
+        testNodeC.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            // case insensitive
+            assertQuery("//*[jcr:contains(., 'WORLD')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // wild card
+            assertQuery("//*[jcr:contains(., 'Hell*')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'He*o')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., '*llo')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., '?orld')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'wo?ld')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'worl?')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // space explained as AND
+            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // exclude
+            assertQuery("//*[jcr:contains(., 'hello -world')] ", XPATH, Arrays.asList("/test/nodea"));
+
+            // explicit OR
+            assertQuery("//*[jcr:contains(., 'ocean OR world')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
         });
     }
 

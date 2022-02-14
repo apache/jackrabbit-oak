@@ -19,38 +19,34 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
-import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import javax.jcr.Repository;
 import javax.jcr.query.Query;
 import java.io.File;
-
-import static com.google.common.collect.ImmutableSet.of;
+import java.util.Collections;
 
 public class ElasticPropertyTextSearchTest extends SearchTest {
 
-    private ElasticConnection coordinate;
+    private final ElasticConnection connection;
     private String indexName;
 
-    ElasticPropertyTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection coordinate) {
+    ElasticPropertyTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection connection) {
         super(dump, flat, doReport, storageEnabled);
-        this.coordinate = coordinate;
+        this.connection = connection;
     }
 
     @Override
@@ -72,22 +68,20 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
         indexName = TestHelper.getUniqueIndexName("elasticTitle");
         if (fixture instanceof OakRepositoryFixture) {
-            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
-                @Override
-                public Jcr customize(Oak oak) {
-                    ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
-                            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-                    ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate,
-                            new ElasticMetricHandler(StatisticsProvider.NOOP));
-                    oak.with(editorProvider)
-                            .with((Observer) indexProvider)
-                            .with((QueryIndexProvider) indexProvider)
-                            .with(new PropertyIndexEditorProvider())
-                            .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, of("title"),
-                                    ElasticIndexDefinition.TYPE_ELASTICSEARCH));
-                    return new Jcr(oak);
-                }
+            return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
+                ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+                        new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
+                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
+                oak.with(editorProvider)
+                        .with(indexProvider)
+                        .with(indexProvider)
+                        .with(new PropertyIndexEditorProvider())
+                        .with(new NodeTypeIndexProvider())
+                        .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, Collections.singleton("title"),
+                                ElasticIndexDefinition.TYPE_ELASTICSEARCH));
+                return new Jcr(oak);
             });
         }
         return super.createRepository(fixture);
@@ -96,6 +90,6 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
     @Override
     protected void afterSuite() throws Exception {
         super.afterSuite();
-        TestHelper.cleanupRemoteElastic(coordinate, indexName);
+        TestHelper.cleanupRemoteElastic(connection, indexName);
     }
 }

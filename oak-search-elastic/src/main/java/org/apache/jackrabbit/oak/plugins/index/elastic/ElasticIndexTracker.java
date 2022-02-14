@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.query;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> {
+public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager, ElasticIndexNode> implements Observer {
 
     private final ElasticConnection elasticConnection;
     private final ElasticMetricHandler elasticMetricHandler;
 
-    ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
+    public ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
         this.elasticConnection = elasticConnection;
         this.elasticMetricHandler = elasticMetricHandler;
     }
@@ -45,6 +45,19 @@ class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> 
 
     @Override
     protected ElasticIndexNodeManager openIndex(String path, NodeState root, NodeState node) {
-        return new ElasticIndexNodeManager(path, root, elasticConnection, elasticMetricHandler);
+        return new ElasticIndexNodeManager(path, root, elasticConnection);
+    }
+
+    public ElasticIndexNode acquireIndexNode(String path) {
+        return super.acquireIndexNode(path, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
+    }
+
+    @Override
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+        update(root);
+    }
+
+    public ElasticMetricHandler getElasticMetricHandler() {
+        return elasticMetricHandler;
     }
 }
