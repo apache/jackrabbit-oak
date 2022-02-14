@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -33,11 +34,14 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefini
 
 public class ElasticIndexEditorProvider implements IndexEditorProvider {
 
+    private final ElasticIndexTracker indexTracker;
     private final ElasticConnection elasticConnection;
     private final ExtractedTextCache extractedTextCache;
 
-    public ElasticIndexEditorProvider(@NotNull ElasticConnection elasticConnection,
+    public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
+                                      @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache) {
+        this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
     }
@@ -56,7 +60,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
             ElasticIndexDefinition indexDefinition =
                     new ElasticIndexDefinition(root, definition.getNodeState(), indexPath, elasticConnection.getIndexPrefix());
 
-            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection);
+            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker);
 
             ElasticIndexEditorContext context = new ElasticIndexEditorContext(root,
                     definition, indexDefinition,

@@ -17,22 +17,19 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
-import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import javax.jcr.Repository;
@@ -41,12 +38,12 @@ import java.util.Map;
 
 public class ElasticFacetSearchTest extends FacetSearchTest {
 
-    final private ElasticConnection coordinate;
+    final private ElasticConnection connection;
     protected String indexName;
 
     ElasticFacetSearchTest(Boolean storageEnabled, ElasticConnection coordinate) {
         super(storageEnabled);
-        this.coordinate = coordinate;
+        this.connection = coordinate;
     }
 
     @Override
@@ -57,30 +54,28 @@ public class ElasticFacetSearchTest extends FacetSearchTest {
         propMap.put(FACET_PROP_1, true);
         propMap.put(FACET_PROP_2, true);
         if (fixture instanceof OakRepositoryFixture) {
-            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
-                @Override
-                public Jcr customize(Oak oak) {
-                    ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
-                            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-                    ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate, new ElasticMetricHandler(StatisticsProvider.NOOP));
-                    oak.with(editorProvider)
-                            .with((Observer) indexProvider)
-                            .with((QueryIndexProvider) indexProvider)
-                            .with(new PropertyIndexEditorProvider())
-                            .with(new NodeTypeIndexProvider())
-                            .with(new FacetSearchTest.FacetIndexInitializer(indexName, propMap,
-                                    ElasticIndexDefinition.TYPE_ELASTICSEARCH, getFacetMode()));
-                    return new Jcr(oak);
-                }
+            return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
+                ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+                        new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
+                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
+                oak.with(editorProvider)
+                        .with(indexTracker)
+                        .with(indexProvider)
+                        .with(new PropertyIndexEditorProvider())
+                        .with(new NodeTypeIndexProvider())
+                        .with(new FacetIndexInitializer(indexName, propMap,
+                                ElasticIndexDefinition.TYPE_ELASTICSEARCH, getFacetMode()));
+                return new Jcr(oak);
             });
         }
         return super.createRepository(fixture);
-
     }
 
     @Override
     protected void afterSuite() throws Exception {
         super.afterSuite();
-        TestHelper.cleanupRemoteElastic(coordinate, indexName);
+        TestHelper.cleanupRemoteElastic(connection, indexName);
     }
 }

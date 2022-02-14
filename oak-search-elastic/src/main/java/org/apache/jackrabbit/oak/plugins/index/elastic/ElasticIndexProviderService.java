@@ -151,6 +151,8 @@ public class ElasticIndexProviderService {
     private File textExtractionDir;
 
     private ElasticConnection elasticConnection;
+    private ElasticMetricHandler metricHandler;
+    private ElasticIndexTracker indexTracker;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -166,6 +168,11 @@ public class ElasticIndexProviderService {
         //initializeExtractedTextCache(config, statisticsProvider);
 
         elasticConnection = getElasticConnection(config);
+        metricHandler = new ElasticMetricHandler(statisticsProvider);
+        indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler);
+
+        // register observer needed for index tracking
+        regs.add(bundleContext.registerService(Observer.class.getName(), indexTracker, null));
 
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
@@ -205,10 +212,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexProvider(BundleContext bundleContext) {
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(elasticConnection, new ElasticMetricHandler(statisticsProvider));
-
-        // register observer needed for index tracking
-        regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
@@ -216,7 +220,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexEditor(BundleContext bundleContext) {
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(elasticConnection, extractedTextCache);
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);

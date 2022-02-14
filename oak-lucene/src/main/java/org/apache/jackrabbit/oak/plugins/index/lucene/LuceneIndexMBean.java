@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
@@ -38,7 +37,7 @@ public interface LuceneIndexMBean {
 
     boolean isFailing();
 
-    @Description("Determines the set of index paths upto given maxLevel. This can be used to determine the value for" +
+    @Description("Determines the set of index paths up to given maxLevel. This can be used to determine the value for" +
             "[includedPaths]. For this to work you should have [evaluatePathRestrictions] set to true in your index " +
             "definition")
     String[] getIndexedPaths(
