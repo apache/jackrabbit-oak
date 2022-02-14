@@ -568,7 +568,7 @@ public class ElasticRequestHandler {
                 if (boost != null) {
                     fullTextQuery.boost(Float.parseFloat(boost));
                 }
-                BoolQueryBuilder shouldBoolQueryWrapper = boolQuery().should(fullTextQuery);
+                BoolQueryBuilder shouldBoolQueryWrapper = boolQuery().must(fullTextQuery);
                 // add dynamic boosts in OR if available
                 Stream<QueryBuilder> dynamicScoreQueries = dynamicScoreQueries(text);
                 dynamicScoreQueries.forEach(shouldBoolQueryWrapper::should);
@@ -785,7 +785,7 @@ public class ElasticRequestHandler {
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             pr.indexingRule.getNodeScopeAnalyzedProps().forEach(pd -> queryStringQueryBuilder.field(pd.name, pd.boost));
         }
-        return queryStringQueryBuilder.field(fieldName);
+        return queryStringQueryBuilder.field(fieldName).field(ElasticIndexDefinition.DYNAMIC_BOOST_TAGS);
     }
 
     private QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,

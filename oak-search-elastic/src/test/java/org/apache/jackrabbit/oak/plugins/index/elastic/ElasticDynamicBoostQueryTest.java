@@ -152,15 +152,53 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         });
     }
 
-    // dynamic boost: space is explained as OR instead of AND, this should be documented
     @Test
-    public void testQueryDynamicBoostSpace() throws Exception {
+    public void testQueryDynamicBoostWildcard() throws Exception {
         configureIndex();
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue flower')", SQL2,
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blu?')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'bl?e')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, '?lue')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'coff*')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'co*ee')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, '*ffee')", SQL2, Arrays.asList("/test/asset2"));
+        });
+    }
+
+    @Test
+    public void testQueryDynamicBoosSpace() throws Exception {
+        configureIndex();
+        prepareTestAssets();
+
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'coffee flower')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue   plant')", SQL2, Arrays.asList("/test/asset3"));
+        });
+    }
+
+    @Test
+    public void testQueryDynamicBoostExplicitOr() throws Exception {
+        configureIndex();
+        prepareTestAssets();
+
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue OR flower')", SQL2,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue OR coffee')", SQL2,
+                    Arrays.asList("/test/asset2", "/test/asset3"));
+        });
+    }
+
+    @Test
+    public void testQueryDynamicBoostMinus() throws Exception {
+        configureIndex();
+        prepareTestAssets();
+
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
         });
     }
 

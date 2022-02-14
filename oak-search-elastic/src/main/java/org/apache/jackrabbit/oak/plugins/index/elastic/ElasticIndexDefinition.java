@@ -68,6 +68,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String PROP_INDEX_NAME_SEED = ":nameSeed";
 
     /**
+     * Hidden property to store dynamic boost tags, it need additional field since query
+     */
+    public static final String DYNAMIC_BOOST_TAGS = ":dynamicBoostTags";
+
+    /**
      * Hidden property to store similarity tags
      */
     public static final String SIMILARITY_TAGS = ":simTags";
