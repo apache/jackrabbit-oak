@@ -25,11 +25,10 @@ import javax.management.openmbean.TabularData;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.apache.jackrabbit.oak.api.jmx.Name;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexMBean;
 
-public interface LuceneIndexMBean {
+public interface LuceneIndexMBean extends IndexMBean {
     String TYPE = "LuceneIndex";
-
-    TabularData getIndexStats() throws IOException;
 
     TabularData getBadIndexStats();
 
@@ -141,11 +140,5 @@ public interface LuceneIndexMBean {
 
     @Description("Fetches hybrid property index info as json for index at given path")
     String getHybridIndexInfo(@Name("indexPath") String indexPath);
-
-    @Description("Fetches index size for index at given path")
-    String getSize(@Name("indexPath") String indexPath) throws IOException;
-
-    @Description("Fetches current number of docs for index at given path")
-    String getDocCount(@Name("indexPath") String indexPath) throws IOException;
 
 }
