@@ -20,16 +20,21 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
+import javax.jcr.version.VersionException;
 
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.apache.jackrabbit.value.ValueFactoryImpl;
 
 public class PropertyTest extends AbstractJCRTest {
 
@@ -58,6 +63,12 @@ public class PropertyTest extends AbstractJCRTest {
         pdt.setRequiredType(PropertyType.LONG);
         template.getPropertyDefinitionTemplates().add(pdt);
 
+        pdt = ntMgr.createPropertyDefinitionTemplate();
+        pdt.setName("*"); // residual property type
+        pdt.setRequiredType(PropertyType.URI);
+        pdt.setProtected(true);
+        template.getPropertyDefinitionTemplates().add(pdt);
+        
         ntMgr.registerNodeType(template, true);
 
         node = testRootNode.addNode(nodeName2, NT_NAME);
@@ -273,5 +284,24 @@ public class PropertyTest extends AbstractJCRTest {
         pitr = n.getProperties(new String[] {"foo*", "cat*"});
         assertEquals(3, pitr.getSize());
         assertEquals(3, Iterators.size(pitr));
+    }
+    
+    public void testSetAndRemoveUnprotectedProperty() throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    	Property property = node.setProperty(BOOLEAN_PROP_NAME, true);
+    	assertNotNull(property);
+    	property.setValue(false);
+    	superuser.save();
+    	property.remove();
+    	superuser.save();
+    }
+    
+    public void testSetProtectedResidualProperty() throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
+    	Value uriValue = ValueFactoryImpl.getInstance().createValue("http://example.com", PropertyType.URI);
+    	try {
+    		node.setProperty("test", uriValue);
+    		fail("Setting protected property (according to residual propery type definition) must throw ConstraintViolationException");
+    	} catch (ConstraintViolationException e) {
+            // success
+        }
     }
 }
