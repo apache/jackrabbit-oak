@@ -1,33 +1,52 @@
 package org.apache.jackrabbit.oak.index;
 
+import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexImporter;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collections;
 
-public class ElasticIndexImporterSupport extends IndexImporterSupportBase{
-    private final IndexHelper indexHelper;
-    private final NodeStore nodeStore;
+public class ElasticIndexImporterSupport extends IndexImporterSupportBase implements Closeable {
+    private final String indexPrefix;
+    private final String scheme;
+    private final String host;
+    private final int port;
+    private final String apiKeyId;
+    private final String apiSecretId;
+    protected final Closer closer = Closer.create();
 
-    public ElasticIndexImporterSupport(IndexHelper indexHelper) {
+    public ElasticIndexImporterSupport(IndexHelper indexHelper ,String indexPrefix, String scheme,
+                                       String host, int port,
+                                       String apiKeyId, String apiSecretId) {
         super(indexHelper);
-        this.indexHelper = indexHelper;
-        this.nodeStore = indexHelper.getNodeStore();
+        this.indexPrefix = indexPrefix;
+        this.scheme = scheme;
+        this.host = host;
+        this.port = port;
+        this.apiKeyId = apiKeyId;
+        this.apiSecretId = apiSecretId;
     }
 
     @Override
-    protected IndexEditorProvider createIndexEditorProvider() throws IOException {
-        return null;
+    protected IndexEditorProvider createIndexEditorProvider() {
+        IndexEditorProvider elastic = createElasticEditorProvider();
+        return CompositeIndexEditorProvider.compose(Collections.singletonList(elastic));
     }
 
-    private void addImportProviders(IndexImporter importer) {
-        importer.addImporterProvider(new ElasticIndexImporter(indexHelper.getGCBlobStore()));
+    @Override
+    protected void addImportProviders(IndexImporter importer) {
+        importer.addImporterProvider(new ElasticIndexImporter());
     }
 
     private IndexEditorProvider createElasticEditorProvider() {
@@ -38,15 +57,22 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase{
                         host,
                         port
                 );
-        final ElasticConnection coordinate;
+        final ElasticConnection connection;
         if (apiKeyId != null && apiSecretId != null) {
-            coordinate = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
+            connection = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
         } else {
-            coordinate = buildStep.build();
+            connection = buildStep.build();
         }
-        closer.register(coordinate);
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
+        closer.register(connection);
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+                new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         return editorProvider;
+    }
+
+    @Override
+    public void close() throws IOException {
+        closer.close();
     }
 }

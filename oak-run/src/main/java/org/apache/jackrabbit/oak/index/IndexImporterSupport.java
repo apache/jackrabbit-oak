@@ -19,10 +19,8 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock;
@@ -33,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 
 class IndexImporterSupport extends IndexImporterSupportBase {

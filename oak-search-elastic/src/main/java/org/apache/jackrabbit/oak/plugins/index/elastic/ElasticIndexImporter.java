@@ -11,16 +11,13 @@ import java.io.IOException;
 
 public class ElasticIndexImporter implements IndexImporterProvider {
 
-    public ElasticIndexImporter(){
 
+    public ElasticIndexImporter(){
     }
 
     @Override
     public void importIndex(NodeState root, NodeBuilder definitionBuilder, File indexDir) throws IOException, CommitFailedException {
-
-        ReindexOperations reindexOps = new ReindexOperations(root, definitionBuilder, "",
-                new ElasticIndexDefinition.Builder());
-
+        // NOOP for elastic
     }
 
     @Override

@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
+import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -137,9 +138,14 @@ public class ElasticIndexCommand implements Command {
         //dumpIndexStats(indexOpts, indexHelper);
         //dumpIndexDefinitions(indexOpts, indexHelper);
         reindexOperation(indexOpts, indexHelper);
+
+        // For elastic implementation - this applies the newly created elastic defintion to the repo and brings the index up to date with the
+        // current state for async lane for this index.
+        importIndexOperation(indexOpts, indexHelper);
+
         // This will not work with --doc-traversal mode, since that only works with read only mode and apply index def needs read write mode
         // read write requirement - logic handled in applyIndexDefOperation
-        applyIndexDefOperation(indexOpts, indexHelper);
+        //applyIndexDefOperation(indexOpts, indexHelper);
     }
 
     private IndexHelper createIndexHelper(NodeStoreFixture fixture,
@@ -178,6 +184,19 @@ public class ElasticIndexCommand implements Command {
             return;
         }
         applyIndexDef(indexOpts, indexHelper);
+    }
+
+    private void importIndexOperation(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
+        if (indexOpts.isImportIndex()) {
+            File importDir = indexOpts.getIndexImportDir();
+            importIndex(indexHelper, importDir);
+        }
+    }
+
+    private void importIndex(IndexHelper indexHelper, File importDir) throws IOException, CommitFailedException {
+        new ElasticIndexImporterSupport(indexHelper, indexOpts.getIndexPrefix(),
+                indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
+                indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret()).importIndex(importDir);
     }
 
     private void applyIndexDef(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {

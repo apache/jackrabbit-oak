@@ -1,5 +1,6 @@
 package org.apache.jackrabbit.oak.index;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock;
@@ -8,6 +9,7 @@ import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
