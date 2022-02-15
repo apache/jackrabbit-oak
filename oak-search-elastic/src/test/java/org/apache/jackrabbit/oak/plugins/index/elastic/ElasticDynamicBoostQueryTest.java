@@ -168,7 +168,7 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void testQueryDynamicBoosSpace() throws Exception {
+    public void testQueryDynamicBoostSpace() throws Exception {
         configureIndex();
         prepareTestAssets();
 

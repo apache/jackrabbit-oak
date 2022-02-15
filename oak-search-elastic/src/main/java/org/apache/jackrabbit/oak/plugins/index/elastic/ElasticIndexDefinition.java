@@ -70,7 +70,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * Hidden property to store dynamic boost tags, it need additional field since query
      */
-    public static final String DYNAMIC_BOOST_TAGS = ":dynamicBoostTags";
+    public static final String DYNAMIC_BOOST_TAGS = ":fulltextDynamicBoostTags";
 
     /**
      * Hidden property to store similarity tags
