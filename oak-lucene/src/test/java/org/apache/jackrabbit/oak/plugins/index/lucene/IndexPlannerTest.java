@@ -1867,7 +1867,7 @@ public class IndexPlannerTest {
         // query without specifying index tag
 
         // case 1: tags are defined in the index definition
-        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.selectionPolicy(IndexSelectionPolicy.TAG);
         defnb.tags("bar", "baz");
 
@@ -1886,7 +1886,7 @@ public class IndexPlannerTest {
         // query without specifying index tag
 
         // case 2: tags are not defined in index definition
-        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.selectionPolicy(IndexSelectionPolicy.TAG);
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
