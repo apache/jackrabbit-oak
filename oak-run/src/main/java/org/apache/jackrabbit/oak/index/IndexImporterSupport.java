@@ -42,12 +42,6 @@ class IndexImporterSupport extends IndexImporterSupportBase {
         this.extendedIndexHelper = extendedIndexHelper;
     }
 
-    /*public void importIndex(File importDir) throws IOException, CommitFailedException {
-        IndexImporter importer = new IndexImporter(nodeStore, importDir, createIndexEditorProvider(), createLock());
-        addImportProviders(importer);
-        importer.importIndex();
-    }*/
-
     @Override
     protected void addImportProviders(IndexImporter importer) {
         importer.addImporterProvider(new LuceneIndexImporter(extendedIndexHelper.getGCBlobStore()));

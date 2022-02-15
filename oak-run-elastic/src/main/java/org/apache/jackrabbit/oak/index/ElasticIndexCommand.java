@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
-import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -194,9 +193,11 @@ public class ElasticIndexCommand implements Command {
     }
 
     private void importIndex(IndexHelper indexHelper, File importDir) throws IOException, CommitFailedException {
-        new ElasticIndexImporterSupport(indexHelper, indexOpts.getIndexPrefix(),
+        try (ElasticIndexImporterSupport elasticIndexImporterSupport = new ElasticIndexImporterSupport(indexHelper, indexOpts.getIndexPrefix(),
                 indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
-                indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret()).importIndex(importDir);
+                indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())) {
+           elasticIndexImporterSupport.importIndex(importDir);
+       }
     }
 
     private void applyIndexDef(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
