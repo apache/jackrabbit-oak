@@ -70,6 +70,8 @@ public class ElasticIndexCommand implements Command {
     private ElasticIndexOptions indexOpts;
     public static final String NAME = "index";
     private static final String LOG_SUFFIX = "indexing";
+    public static final String INDEX_INFO_TXT = "index-info.txt";
+    private File info;
 
     private final String summary = "Provides elastic index management related operations";
     private static boolean disableExitOnError;
@@ -141,10 +143,6 @@ public class ElasticIndexCommand implements Command {
         // For elastic implementation - this applies the newly created elastic defintion to the repo and brings the index up to date with the
         // current state for async lane for this index.
         importIndexOperation(indexOpts, indexHelper);
-
-        // This will not work with --doc-traversal mode, since that only works with read only mode and apply index def needs read write mode
-        // read write requirement - logic handled in applyIndexDefOperation
-        //applyIndexDefOperation(indexOpts, indexHelper);
     }
 
     private IndexHelper createIndexHelper(NodeStoreFixture fixture,
@@ -257,12 +255,15 @@ public class ElasticIndexCommand implements Command {
             }
         }
         indexerSupport.writeMetaInfo(checkpoint);
+        File destDir = indexerSupport.copyIndexFilesToOutput();
+        log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
+                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS), ElasticIndexCommand.getPath(destDir));
         log.info("Indexing completed for indexes {} in {} ({} ms)",
                 indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private IndexerSupport createIndexerSupport(IndexHelper indexHelper, String checkpoint) {
-        IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
+        IndexerSupport indexerSupport = new ElasticIndexerSupport(indexHelper, checkpoint);
 
         File definitions = indexOpts.getIndexDefinitionsFile();
         if (definitions != null) {

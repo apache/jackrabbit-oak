@@ -10,7 +10,10 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import java.io.Closeable;
@@ -40,8 +43,15 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
 
     @Override
     protected IndexEditorProvider createIndexEditorProvider() {
-        IndexEditorProvider elastic = createElasticEditorProvider();
-        return CompositeIndexEditorProvider.compose(Collections.singletonList(elastic));
+        /*IndexEditorProvider elastic = createElasticEditorProvider();
+        return CompositeIndexEditorProvider.compose(Collections.singletonList(elastic));*/
+        MountInfoProvider mip = indexHelper.getMountInfoProvider();
+        //Later we can add support for property index and other indexes here
+        return new CompositeIndexEditorProvider(
+                createElasticEditorProvider(),
+                new PropertyIndexEditorProvider().with(mip),
+                new ReferenceEditorProvider().with(mip)
+        );
     }
 
     @Override

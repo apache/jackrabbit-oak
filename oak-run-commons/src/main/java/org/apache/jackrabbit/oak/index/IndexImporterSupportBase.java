@@ -16,9 +16,11 @@ import java.io.IOException;
 public abstract class IndexImporterSupportBase {
 
     protected final NodeStore nodeStore;
+    protected final IndexHelper indexHelper;
 
     public IndexImporterSupportBase(IndexHelper indexHelper) {
         this.nodeStore = indexHelper.getNodeStore();
+        this.indexHelper = indexHelper;
     }
 
     public void importIndex(File importDir) throws IOException, CommitFailedException {
