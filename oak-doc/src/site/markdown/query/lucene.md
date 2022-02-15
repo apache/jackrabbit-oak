@@ -217,6 +217,14 @@ name
 : Optional property
 : Captures the name of the index which is used while logging
 
+tags
+: Optional multi value property. Defaults to empty.
+: List of [tags of this index][index-tags].
+
+selectionPolicy
+: Optional string property. Defaults to empty.
+: The [selection policy of this index][index-selection-policy].
+
 [maxFieldLength][OAK-2469]
 : Numbers of terms indexed per field. Defaults to 10000
 
@@ -2099,3 +2107,5 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
 [oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/
+[index-tags]: https://jackrabbit.apache.org/oak/docs/query/query-engine.html#Query_Option_Index_Tag
+[index-selection-policy]: https://jackrabbit.apache.org/oak/docs/query/query-engine.html#Index_Selection_Policy
