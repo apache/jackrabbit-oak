@@ -132,9 +132,8 @@ public class ElasticDocument {
                 for (Map.Entry<String, List<Object>> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue().size() == 1 ? prop.getValue().get(0) : prop.getValue());
                 }
+                Set<String> dynamicBoostTags = new LinkedHashSet<>();
                 for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
-                    Set<String> dynamicBoostTags = new LinkedHashSet<>();
-
                     builder.startArray(f.getKey());
                     for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
                         builder.startObject();
@@ -144,9 +143,8 @@ public class ElasticDocument {
                         dynamicBoostTags.add(v.getKey());
                     }
                     builder.endArray();
-
-                    builder.field(ElasticIndexDefinition.DYNAMIC_BOOST_TAGS, dynamicBoostTags);
                 }
+                builder.field(ElasticIndexDefinition.DYNAMIC_BOOST_TAGS, dynamicBoostTags);
                 if (!similarityTags.isEmpty()) {
                     builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);
                 }
