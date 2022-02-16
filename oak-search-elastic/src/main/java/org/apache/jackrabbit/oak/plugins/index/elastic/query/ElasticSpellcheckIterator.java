@@ -102,7 +102,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                     .reduce(new MultiSearchRequest(), MultiSearchRequest::add, (ms, ms2) -> ms);
 
             if (!multiSearch.requests().isEmpty()) {
-                MultiSearchResponse res = indexNode.getConnection().getClient().msearch(multiSearch, RequestOptions.DEFAULT);
+                MultiSearchResponse res = indexNode.getConnection().getOldClient().msearch(multiSearch, RequestOptions.DEFAULT);
                 ArrayList<FulltextResultRow> results = new ArrayList<>();
                 for (MultiSearchResponse.Item response : res.getResponses()) {
                     for (SearchHit doc : response.getResponse().getHits()) {
@@ -132,7 +132,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
         final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getIndexAlias())
                 .source(searchSourceBuilder);
 
-        SearchResponse searchResponse = indexNode.getConnection().getClient().search(searchRequest, RequestOptions.DEFAULT);
+        SearchResponse searchResponse = indexNode.getConnection().getOldClient().search(searchRequest, RequestOptions.DEFAULT);
 
         return StreamSupport
                 .stream(searchResponse.getSuggest().spliterator(), false)

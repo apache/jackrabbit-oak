@@ -153,7 +153,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
                 countRequest.query(QueryBuilders.matchAllQuery());
             }
 
-            CountResponse response = crd.connection.getClient().count(countRequest, RequestOptions.DEFAULT);
+            CountResponse response = crd.connection.getOldClient().count(countRequest, RequestOptions.DEFAULT);
             return (int) response.getCount();
         }
     }
@@ -175,7 +175,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private long size(StatsRequestDescriptor crd) throws IOException {
-            RestClient lowLevelClient = crd.connection.getClient().getLowLevelClient();
+            RestClient lowLevelClient = crd.connection.getOldClient().getLowLevelClient();
             Response response = lowLevelClient.performRequest(
                     new Request("GET", "/_cat/indices/" + crd.index + "?bytes=b&v=true&format=json"));
 

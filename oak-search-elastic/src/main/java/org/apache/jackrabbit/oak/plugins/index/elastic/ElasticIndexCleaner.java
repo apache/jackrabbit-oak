@@ -81,7 +81,7 @@ public class ElasticIndexCleaner implements Runnable {
             NodeState root = nodeStore.getRoot();
             GetIndexRequest getIndexRequest = new GetIndexRequest(elasticConnection.getIndexPrefix() + "*")
                     .indicesOptions(IndicesOptions.lenientExpandOpen());
-            String[] remoteIndices = elasticConnection.getClient().indices()
+            String[] remoteIndices = elasticConnection.getOldClient().indices()
                     .get(getIndexRequest, RequestOptions.DEFAULT).getIndices();
             if (remoteIndices == null || remoteIndices.length == 0) {
                 LOG.debug("No remote index found with prefix {}", indexPrefix);
@@ -139,7 +139,7 @@ public class ElasticIndexCleaner implements Runnable {
                 }
             }
             if(!indicesToDelete.isEmpty()) {
-            	DeleteIndexResponse response = elasticConnection.getElasticsearchClient().indices().delete(i->i.index(indicesToDelete));
+            	DeleteIndexResponse response = elasticConnection.getClient().indices().delete(i->i.index(indicesToDelete));
                 LOG.info("Deleting remote indices {}", indicesToDelete);
                 if (!response.acknowledged()) {
                     LOG.error("Could not delete remote indices " + indicesToDelete);

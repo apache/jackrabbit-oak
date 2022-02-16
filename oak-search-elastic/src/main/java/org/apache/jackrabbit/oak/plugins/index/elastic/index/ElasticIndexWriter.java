@@ -160,8 +160,8 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     private void provisionIndex() throws IOException {
         //TODO migrate from oldIndicesclient to esIndicesClient and delete
-        final IndicesClient indicesClient = elasticConnection.getClient().indices();
-        ElasticsearchIndicesClient esIndicesClient = elasticConnection.getElasticsearchClient().indices();
+        final IndicesClient indicesClient = elasticConnection.getOldClient().indices();
+        ElasticsearchIndicesClient esIndicesClient = elasticConnection.getClient().indices();
         // check if index already exists
         if(esIndicesClient.exists(i -> i.index(indexName)).value()) {
             LOG.info("Index {} already exists. Skip index provision", indexName);
@@ -191,8 +191,8 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     private void enableIndex() throws IOException {
         //TODO migrate from oldIndicesclient to esIndicesClient and delete
-        final IndicesClient oldIndicesClient = elasticConnection.getClient().indices();
-        ElasticsearchIndicesClient esIndicesClient = elasticConnection.getElasticsearchClient().indices();
+        final IndicesClient oldIndicesClient = elasticConnection.getOldClient().indices();
+        ElasticsearchIndicesClient esIndicesClient = elasticConnection.getClient().indices();
         // check if index already exists
         if (!esIndicesClient.exists(i -> i.index(indexName)).value()) {
             throw new IllegalStateException("cannot enable an index that does not exist");

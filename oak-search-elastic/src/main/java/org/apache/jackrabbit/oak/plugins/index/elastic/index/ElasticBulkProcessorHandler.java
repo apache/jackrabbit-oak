@@ -156,7 +156,7 @@ class ElasticBulkProcessorHandler {
     }
 
     protected BiConsumer<BulkRequest, ActionListener<BulkResponse>> requestConsumer() {
-        return (request, bulkListener) -> elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+        return (request, bulkListener) -> elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
     }
 
     public void add(DocWriteRequest<?> request) {
@@ -303,7 +303,7 @@ class ElasticBulkProcessorHandler {
                     request.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
                     isDataSearchable.set(true);
                 }
-                elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+                elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
             };
         }
 
@@ -317,7 +317,7 @@ class ElasticBulkProcessorHandler {
             if (totalOperations > 0 && !isDataSearchable.get()) {
                 LOG.debug("Forcing refresh");
                 try {
-                	this.elasticConnection.getElasticsearchClient().indices().refresh(b -> b.index(indexName));
+                	this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
                     LOG.warn("Error refreshing index " + indexName, e);
                 }

@@ -104,7 +104,7 @@ public class ElasticConnection implements Closeable {
      * @deprecated
      * @return the old Elasticsearch client
      */
-    public RestHighLevelClient getClient() {
+    public RestHighLevelClient getOldClient() {
         if (isClosed.get()) {
             throw new IllegalStateException("Already closed");
         }
@@ -137,8 +137,8 @@ public class ElasticConnection implements Closeable {
      * Gets the NEW Elasticsearch Client
      * @return the new Elasticsearch client
      */
-    public ElasticsearchClient getElasticsearchClient() {
-    	getClient();
+    public ElasticsearchClient getClient() {
+    	getOldClient();
 	    return esClient;
     }
 
@@ -152,7 +152,7 @@ public class ElasticConnection implements Closeable {
      */
     public boolean isAvailable() {
         try {
-            return this.getElasticsearchClient().ping().value();
+            return this.getClient().ping().value();
         } catch (Exception e) {
             LOG.warn("Error checking connection for {}, message: {}", this, e.getMessage());
             LOG.debug("", e);

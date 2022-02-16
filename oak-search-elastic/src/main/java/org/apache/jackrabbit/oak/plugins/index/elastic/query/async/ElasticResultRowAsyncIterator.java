@@ -238,7 +238,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
             Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
                     indexNode.getDefinition().getIndexAlias());
-            indexNode.getConnection().getClient().getLowLevelClient().performRequestAsync(request, this);
+            indexNode.getConnection().getOldClient().getLowLevelClient().performRequestAsync(request, this);
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -335,7 +335,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 searchStartTime = System.currentTimeMillis();
                 Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
                         indexNode.getDefinition().getIndexAlias());
-                indexNode.getConnection().getClient().getLowLevelClient().performRequestAsync(request, this);
+                indexNode.getConnection().getOldClient().getLowLevelClient().performRequestAsync(request, this);
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");

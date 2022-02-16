@@ -34,8 +34,8 @@ public class ElasticConnectionTest {
                 .withDefaultConnectionParameters()
                 .build();
 
-        RestHighLevelClient client1 = connection.getClient();
-        RestHighLevelClient client2 = connection.getClient();
+        RestHighLevelClient client1 = connection.getOldClient();
+        RestHighLevelClient client2 = connection.getOldClient();
 
         assertEquals(client1, client2);
         
@@ -49,8 +49,8 @@ public class ElasticConnectionTest {
                 .withDefaultConnectionParameters()
                 .build();
         
-        ElasticsearchClient clientA = connection.getElasticsearchClient();
-        ElasticsearchClient clientB = connection.getElasticsearchClient();
+        ElasticsearchClient clientA = connection.getClient();
+        ElasticsearchClient clientB = connection.getClient();
         
         assertEquals(clientA, clientB);
 
@@ -66,7 +66,7 @@ public class ElasticConnectionTest {
 
         connection.close();
 
-        connection.getElasticsearchClient();
+        connection.getClient();
     }
 
     @Test(expected = IllegalArgumentException.class)

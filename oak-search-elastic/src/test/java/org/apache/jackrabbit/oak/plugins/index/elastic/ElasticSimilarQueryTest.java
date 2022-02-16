@@ -244,7 +244,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         String alias =  ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), "/oak:index/" + indexName);
         GetFieldMappingsRequest fieldMappingsRequest = new GetFieldMappingsRequest();
         fieldMappingsRequest.indices(alias).fields(similarityFieldName1);
-        GetFieldMappingsResponse mappingsResponse = esConnection.getClient().indices().
+        GetFieldMappingsResponse mappingsResponse = esConnection.getOldClient().indices().
                 getFieldMapping(fieldMappingsRequest, RequestOptions.DEFAULT);
         final Map<String, Map<String, GetFieldMappingsResponse.FieldMappingMetadata>> mappings =
                 mappingsResponse.mappings();
