@@ -21,11 +21,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
+import static java.util.Arrays.asList;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_SELECTION_POLICY;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -73,7 +76,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PropertyIndexResult;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -81,7 +83,6 @@ import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -798,7 +799,7 @@ public class IndexPlannerTest {
         //have jcr:content as parent
         FullTextExpression fooExp = FullTextParser.parse("jcr:content/bar", "mountain OR valley");
         FullTextExpression barExp = FullTextParser.parse("jcr:content/foo", "mountain OR valley");
-        FullTextExpression exp = new FullTextAnd(Arrays.asList(fooExp, barExp));
+        FullTextExpression exp = new FullTextAnd(asList(fooExp, barExp));
         FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),exp);
 
         //No plan for unindex property
@@ -821,7 +822,7 @@ public class IndexPlannerTest {
 
         FullTextExpression fooExp = FullTextParser.parse("metadata/bar", "mountain OR valley");
         FullTextExpression barExp = FullTextParser.parse("jcr:content/foo", "mountain OR valley");
-        FullTextExpression exp = new FullTextAnd(Arrays.asList(fooExp, barExp));
+        FullTextExpression exp = new FullTextAnd(asList(fooExp, barExp));
         FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),exp);
 
         //No plan for unindex property
@@ -1868,8 +1869,10 @@ public class IndexPlannerTest {
 
         // case 1: tags are defined in the index definition
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
-        defnb.selectionPolicy(IndexSelectionPolicy.TAG);
-        defnb.tags("bar", "baz");
+        Tree tree = defnb.getBuilderTree();
+        tree.setProperty(INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG);
+        tree.removeProperty(INDEX_TAGS);
+        tree.setProperty(INDEX_TAGS, asList("bar", "baz"), STRINGS);
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
         LuceneIndexNode node = createIndexNode(defn);
@@ -1887,7 +1890,8 @@ public class IndexPlannerTest {
 
         // case 2: tags are not defined in index definition
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
-        defnb.selectionPolicy(IndexSelectionPolicy.TAG);
+        Tree tree = defnb.getBuilderTree();
+        tree.setProperty(INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG);
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
         LuceneIndexNode node = createIndexNode(defn);
