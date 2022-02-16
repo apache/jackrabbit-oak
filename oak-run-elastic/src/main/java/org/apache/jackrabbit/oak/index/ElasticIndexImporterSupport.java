@@ -18,7 +18,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Collections;
 
 public class ElasticIndexImporterSupport extends IndexImporterSupportBase implements Closeable {
     private final String indexPrefix;

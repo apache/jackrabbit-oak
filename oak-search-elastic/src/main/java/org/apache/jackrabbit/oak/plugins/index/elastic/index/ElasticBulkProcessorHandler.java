@@ -167,7 +167,12 @@ class ElasticBulkProcessorHandler {
 
     public boolean close() throws IOException {
         LOG.trace("Calling close on bulk processor {}", bulkProcessor);
-        bulkProcessor.close();
+        try {
+            bulkProcessor.awaitClose(indexDefinition.bulkFlushIntervalMs * 2, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e ){
+            LOG.error("Error waiting for bulkProcessor to close", e);
+        }
+
         LOG.trace("Bulk Processor {} closed", bulkProcessor);
 
         // de-register main controller
