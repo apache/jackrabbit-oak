@@ -25,8 +25,7 @@ public class ElasticIndexerSupport extends IndexerSupport {
     private void createIndexMetaDataForElastic() throws IOException {
         // Need to create this to make have similar meta data file as created by lucene
         // Effectively this will help us reuse the IndexImporter class in a better way without having to rewrite it completely
-        // for elastic and have code duplication
-
+        // for elastic and help avoid code duplication
         for (String indexPath : indexHelper.getIndexPaths()) {
             File dir = new File(getLocalIndexDir(), indexPath.substring(indexPath.lastIndexOf("/")));
             FileUtils.forceMkdir(dir);
