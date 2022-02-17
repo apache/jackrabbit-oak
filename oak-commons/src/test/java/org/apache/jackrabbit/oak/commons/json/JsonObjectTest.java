@@ -39,7 +39,7 @@ public class JsonObjectTest {
         assertEquals("{az=1, b=[2, 3], c=null}", b.getProperties().toString());
         assertEquals("{d={}}", b.getChildren().toString());
     }
-    
+
     @Test
     public void newObjectNotRespectingOrder() {
         JsonObject a = new JsonObject();
@@ -66,4 +66,30 @@ public class JsonObjectTest {
         assertEquals("{az=1, b=2}", a.getProperties().toString());
     }
 
+    @Test
+    public void handlesNullChild() {
+        JsonObject a = new JsonObject(true);
+        a.getChildren().put("test", (JsonObject) null);
+        assertEquals("{\n" +
+                "  \"test\": null\n" +
+                "}", a.toString());
+
+    }
+
+    @Test
+    public void handlesParsingNullValue() {
+        JsonObject b = JsonObject.fromJson("{\"key\": null}", true);
+        assertEquals("{\n" +
+                "  \"key\": null\n" +
+                "}", b.toString());
+    }
+
+    @Test
+    public void handlesSettingNullValue() {
+        JsonObject b = new JsonObject(true);
+        b.getProperties().put("key", null);
+        assertEquals("{\n" +
+                "  \"key\": null\n" +
+                "}", b.toString());
+    }
 }

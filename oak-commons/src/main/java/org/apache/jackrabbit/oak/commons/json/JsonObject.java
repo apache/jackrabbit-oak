@@ -146,15 +146,19 @@ public class JsonObject {
     }
 
     private static void toJson(JsopBuilder buf, JsonObject obj) {
-        buf.object();
-        for (String name : obj.props.keySet()) {
-            buf.key(name).encodedValue(obj.props.get(name));
+        if (obj == null) {
+            buf.value(null);
+        } else {
+            buf.object();
+            for (String name : obj.props.keySet()) {
+                buf.key(name).encodedValue(obj.props.get(name));
+            }
+            for (String name : obj.children.keySet()) {
+                buf.key(name);
+                toJson(buf, obj.children.get(name));
+            }
+            buf.endObject();
         }
-        for (String name : obj.children.keySet()) {
-            buf.key(name);
-            toJson(buf, obj.children.get(name));
-        }
-        buf.endObject();
     }
 
 }
