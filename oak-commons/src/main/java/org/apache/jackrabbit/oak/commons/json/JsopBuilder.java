@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons.json;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * A builder for Json and Jsop strings. It encodes string values, and knows when
  * a comma is needed. A comma is appended before '{', '[', a value, or a key;
@@ -208,10 +210,18 @@ public class JsopBuilder implements JsopWriter {
      */
     @Override
     public JsopBuilder encodedValue(String value) {
-        optionalCommaAndNewline(value.length());
+        optionalCommaAndNewline(strLength(value));
         buff.append(value);
         needComma = true;
         return this;
+    }
+
+    private int strLength(@Nullable String value) {
+        if (value != null) {
+            return value.length();
+        } else {
+            return "null".length();
+        }
     }
 
     private void optionalCommaAndNewline(int add) {
