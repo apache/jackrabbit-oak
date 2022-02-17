@@ -24,13 +24,12 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.indices.GetIndexRequest;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch._types.ExpandWildcard;
+import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 
 import java.io.IOException;
@@ -79,10 +78,13 @@ public class ElasticIndexCleaner implements Runnable {
     public void run() {
         try {
             NodeState root = nodeStore.getRoot();
-            GetIndexRequest getIndexRequest = new GetIndexRequest(elasticConnection.getIndexPrefix() + "*")
-                    .indicesOptions(IndicesOptions.lenientExpandOpen());
-            String[] remoteIndices = elasticConnection.getOldClient().indices()
-                    .get(getIndexRequest, RequestOptions.DEFAULT).getIndices();
+            
+            IndicesResponse indicesRes = elasticConnection.getClient()
+                    .cat().indices(r->r
+                            .index(elasticConnection.getIndexPrefix() + "*")
+                            .expandWildcards(ExpandWildcard.Open));
+            String[] remoteIndices = indicesRes.valueBody()
+                    .stream().map(i->i.index()).toArray(String[]::new);
             if (remoteIndices == null || remoteIndices.length == 0) {
                 LOG.debug("No remote index found with prefix {}", indexPrefix);
                 return;
@@ -139,7 +141,7 @@ public class ElasticIndexCleaner implements Runnable {
                 }
             }
             if(!indicesToDelete.isEmpty()) {
-            	DeleteIndexResponse response = elasticConnection.getClient().indices().delete(i->i.index(indicesToDelete));
+                DeleteIndexResponse response = elasticConnection.getClient().indices().delete(i->i.index(indicesToDelete));
                 LOG.info("Deleting remote indices {}", indicesToDelete);
                 if (!response.acknowledged()) {
                     LOG.error("Could not delete remote indices " + indicesToDelete);
