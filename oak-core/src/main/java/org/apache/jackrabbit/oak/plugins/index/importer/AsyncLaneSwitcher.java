@@ -77,6 +77,10 @@ public class AsyncLaneSwitcher {
         idxBuilder.setProperty(newAsyncState);
     }
 
+    public static boolean isLaneSwitched(NodeBuilder idxBuilder) {
+        return idxBuilder.hasProperty(ASYNC_PREVIOUS);
+    }
+
     public static String getTempLaneName(String laneName){
         return TEMP_LANE_PREFIX + laneName;
     }

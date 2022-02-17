@@ -173,16 +173,6 @@ public class ElasticIndexCommand implements Command {
         return new ArrayList<>(indexPaths);
     }
 
-    private void applyIndexDefOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
-        // return if index opts don't contain --applyIndexDef option or --read-write is not present
-        if (!indexOpts.isApplyIndexDef() || !opts.getCommonOpts().isReadWrite()) {
-            log.info("Index def not applied to repo. Run index command with --applyIndexDef and --read-write without the --reindex " +
-                    "opts to apply the index def");
-            return;
-        }
-        applyIndexDef(indexOpts, indexHelper);
-    }
-
     private void importIndexOperation(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
         if (indexOpts.isImportIndex()) {
             File importDir = indexOpts.getIndexImportDir();
@@ -196,20 +186,6 @@ public class ElasticIndexCommand implements Command {
                 indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())) {
            elasticIndexImporterSupport.importIndex(importDir);
        }
-    }
-
-    private void applyIndexDef(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
-        File definitions = indexOpts.getIndexDefinitionsFile();
-        if (definitions != null) {
-            Preconditions.checkArgument(definitions.exists(), "Index definitions file [%s] not found", getPath(definitions));
-            NodeStore store = indexHelper.getNodeStore();
-            NodeState root = store.getRoot();
-            NodeBuilder rootBuilder = root.builder();
-            new IndexDefinitionUpdater(definitions).apply(rootBuilder);
-            mergeWithConcurrentCheck(store, rootBuilder);
-        } else {
-            log.warn("No index definitions file provided");
-        }
     }
 
     private void reindexOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
@@ -234,12 +210,6 @@ public class ElasticIndexCommand implements Command {
                     indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
                     indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())) {
                 indexer.reindex();
-                // Wait for default flush interval before exiting the try block
-                // to make sure the client is not closed before the last flush
-                // TODO : See if this can be handled in a better manner
-                Thread.sleep(ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT * 2);
-            } catch (InterruptedException e) {
-                log.debug("Exception while waiting for Elastic connection to close", e);
             }
         } else {
             try (ElasticOutOfBandIndexer indexer = new ElasticOutOfBandIndexer(indexHelper, indexerSupport, indexOpts.getIndexPrefix(),
@@ -247,11 +217,6 @@ public class ElasticIndexCommand implements Command {
                     indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())) {
 
                 indexer.reindex();
-                // Wait for default flush interval before exiting the try block
-                // to make sure the client is not closed before the last flush
-                Thread.sleep(ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT * 2);
-            } catch (InterruptedException e) {
-                log.debug("Exception while waiting for Elastic connection to close", e);
             }
         }
         indexerSupport.writeMetaInfo(checkpoint);
