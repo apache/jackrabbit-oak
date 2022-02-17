@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.index.async.AsyncIndexerElastic;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
@@ -70,8 +69,6 @@ public class ElasticIndexCommand implements Command {
     private ElasticIndexOptions indexOpts;
     public static final String NAME = "index";
     private static final String LOG_SUFFIX = "indexing";
-    public static final String INDEX_INFO_TXT = "index-info.txt";
-    private File info;
 
     private final String summary = "Provides elastic index management related operations";
     private static boolean disableExitOnError;

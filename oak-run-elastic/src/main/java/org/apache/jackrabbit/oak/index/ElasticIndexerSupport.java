@@ -3,6 +3,7 @@ package org.apache.jackrabbit.oak.index;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import java.io.*;
@@ -29,7 +30,7 @@ public class ElasticIndexerSupport extends IndexerSupport {
         for (String indexPath : indexHelper.getIndexPaths()) {
             File dir = new File(getLocalIndexDir(), indexPath.substring(indexPath.lastIndexOf("/")));
             FileUtils.forceMkdir(dir);
-            File infoFile = new File(dir, "index-details.txt");
+            File infoFile = new File(dir, IndexerInfo.INDEX_METADATA_FILE_NAME);
             infoFile.createNewFile();
             Properties p = new Properties();
             p.setProperty("indexPath", indexPath);

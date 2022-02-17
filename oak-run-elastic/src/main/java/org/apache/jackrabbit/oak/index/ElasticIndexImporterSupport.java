@@ -42,10 +42,7 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
 
     @Override
     protected IndexEditorProvider createIndexEditorProvider() {
-        /*IndexEditorProvider elastic = createElasticEditorProvider();
-        return CompositeIndexEditorProvider.compose(Collections.singletonList(elastic));*/
         MountInfoProvider mip = indexHelper.getMountInfoProvider();
-        //Later we can add support for property index and other indexes here
         return new CompositeIndexEditorProvider(
                 createElasticEditorProvider(),
                 new PropertyIndexEditorProvider().with(mip),
