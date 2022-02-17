@@ -276,11 +276,6 @@ class ElasticIndexHelper {
             mappingBuilder.endObject();
         }
 
-        mappingBuilder.startObject(ElasticIndexDefinition.DYNAMIC_BOOST_TAGS)
-                .field("type", "text")
-                .field("analyzer", "oak_analyzer")
-                .endObject();
-
         for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
             ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
             int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();

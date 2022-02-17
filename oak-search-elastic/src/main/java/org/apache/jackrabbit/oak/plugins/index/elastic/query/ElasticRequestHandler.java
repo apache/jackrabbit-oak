@@ -783,7 +783,7 @@ public class ElasticRequestHandler {
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             pr.indexingRule.getNodeScopeAnalyzedProps().forEach(pd -> queryStringQueryBuilder.field(pd.name, pd.boost));
         }
-        return queryStringQueryBuilder.field(fieldName).field(ElasticIndexDefinition.DYNAMIC_BOOST_TAGS);
+        return queryStringQueryBuilder.field(fieldName);
     }
 
     private QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,

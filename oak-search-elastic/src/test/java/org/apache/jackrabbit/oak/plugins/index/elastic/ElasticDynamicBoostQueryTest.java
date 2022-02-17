@@ -54,7 +54,7 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]",
                     XPATH, Arrays.asList("/test/item1", "/test/item2"));
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red flower')",
                     Arrays.asList("/test/item1", "/test/item2"));
@@ -83,7 +83,7 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]",
                     XPATH, Arrays.asList("/test/item1", "/test/item2"));
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red-flower')",
                     Arrays.asList("/test/item1", "/test/item2"));
@@ -111,11 +111,11 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]",
                     XPATH, Arrays.asList("/test/item1", "/test/item2"));
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red flower')",
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'red flower')",
                     Arrays.asList("/test/item1", "/test/item2"));
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue flower')",
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')",
                     Arrays.asList("/test/item2", "/test/item1"));
         });
     }
@@ -125,9 +125,9 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         configureIndex(false);
         prepareTestAssets();
         assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'plant')]", XPATH,
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
         });
     }
 
@@ -136,7 +136,7 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         configureIndex(false);
         prepareTestAssets();
         assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
         });
     }
 
@@ -146,7 +146,7 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'plant')",
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant')",
                     Arrays.asList("/test/asset2", "/test/asset3", "/test/asset1"));
         });
     }
@@ -157,12 +157,12 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blu?')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'bl?e')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, '?lue')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'coff*')", SQL2, Arrays.asList("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'co*ee')", SQL2, Arrays.asList("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, '*ffee')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu?')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'bl?e')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '?lue')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coff*')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'co*ee')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '*ffee')", SQL2, Arrays.asList("/test/asset2"));
         });
     }
 
@@ -172,8 +172,8 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'coffee flower')", SQL2, Arrays.asList("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue   plant')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coffee flower')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   plant')", SQL2, Arrays.asList("/test/asset3"));
         });
     }
 
@@ -183,9 +183,9 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue OR flower')", SQL2,
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR flower')", SQL2,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue OR coffee')", SQL2,
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')", SQL2,
                     Arrays.asList("/test/asset2", "/test/asset3"));
         });
     }
@@ -196,8 +196,8 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
         });
     }
 
@@ -207,38 +207,38 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         prepareTestAssetsForBothBoostFields();
         assertEventually(() -> {
             // basic test
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'plant')]", XPATH,
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
 
             // case insensitive
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
 
             // test order
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'plant')",
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant')",
                     Arrays.asList("/test/asset2", "/test/asset3", "/test/asset1"));
 
             // test wildcard
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blu?')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'bl?e')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, '?lue')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'coff*')", SQL2, Arrays.asList("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'co*ee')", SQL2, Arrays.asList("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, '*ffee')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu?')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'bl?e')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '?lue')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coff*')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'co*ee')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '*ffee')", SQL2, Arrays.asList("/test/asset2"));
 
             // test space as AND
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'coffee flower')", SQL2, Arrays.asList("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue   plant')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coffee flower')", SQL2, Arrays.asList("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   plant')", SQL2, Arrays.asList("/test/asset3"));
 
             // explicit OR
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue OR flower')", SQL2,
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR flower')", SQL2,
                     Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'blue OR coffee')", SQL2,
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')", SQL2,
                     Arrays.asList("/test/asset2", "/test/asset3"));
 
             // exclude with minus
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(@title, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
         });
     }
 
@@ -299,7 +299,7 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         IndexDefinitionBuilder builder = createIndex(true, "dam:Asset", "title", "dynamicBoost");
         IndexDefinitionBuilder.PropertyRule title = builder.indexRule("dam:Asset")
                 .property("title")
-                .analyzed();
+                .analyzed().nodeScopeIndex();
         title.getBuilderTree().setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
         IndexDefinitionBuilder.IndexRule assetIndexRule = builder.indexRule("dam:Asset");
 

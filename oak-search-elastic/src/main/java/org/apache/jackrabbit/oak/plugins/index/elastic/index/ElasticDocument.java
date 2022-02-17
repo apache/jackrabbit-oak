@@ -113,6 +113,18 @@ public class ElasticDocument {
             builder.startObject();
             {
                 builder.field(FieldNames.PATH, path);
+                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
+                    builder.startArray(f.getKey());
+                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
+                        builder.startObject();
+                        builder.field("value", v.getKey());
+                        builder.field("boost", v.getValue());
+                        builder.endObject();
+                        // also add into fulltext field
+                        addFulltext(v.getKey());
+                    }
+                    builder.endArray();
+                }
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
@@ -132,19 +144,6 @@ public class ElasticDocument {
                 for (Map.Entry<String, List<Object>> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue().size() == 1 ? prop.getValue().get(0) : prop.getValue());
                 }
-                Set<String> dynamicBoostTags = new LinkedHashSet<>();
-                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
-                    builder.startArray(f.getKey());
-                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
-                        builder.startObject();
-                        builder.field("value", v.getKey());
-                        builder.field("boost", v.getValue());
-                        builder.endObject();
-                        dynamicBoostTags.add(v.getKey());
-                    }
-                    builder.endArray();
-                }
-                builder.field(ElasticIndexDefinition.DYNAMIC_BOOST_TAGS, dynamicBoostTags);
                 if (!similarityTags.isEmpty()) {
                     builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);
                 }
