@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
@@ -66,8 +67,10 @@ public class ElasticConnection implements Closeable {
     private final String apiKeyId;
     private final String apiKeySecret;
 
+    private volatile ElasticsearchTransport transport;
     private volatile RestHighLevelClient hlClient;
     private volatile ElasticsearchClient esClient;
+    private volatile ElasticsearchAsyncClient asyncClient;
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
@@ -108,7 +111,8 @@ public class ElasticConnection implements Closeable {
         if (isClosed.get()) {
             throw new IllegalStateException("Already closed");
         }
-
+        
+        // double-checked locking to get good performance and avoid double initialization
         if (hlClient == null) {
             synchronized (this) {
                 if (hlClient == null) {
@@ -122,24 +126,44 @@ public class ElasticConnection implements Closeable {
                         builder.setDefaultHeaders(headers);
                     }
                     hlClient = new RestHighLevelClient(builder);
-                    ElasticsearchTransport transport = new RestClientTransport(
+                    transport = new RestClientTransport(
             	        hlClient.getLowLevelClient(),
             	        new JacksonJsonpMapper()
             	    );
-            	    esClient = new ElasticsearchClient(transport);
                 }
             }
         }
         return hlClient;
     }
+    
+    private ElasticsearchTransport getTransportClient() {
+        if(transport==null) {
+            //TODO complete after migration
+            getOldClient();
+        }
+        return transport;
+    }
 
     /**
-     * Gets the NEW Elasticsearch Client
-     * @return the new Elasticsearch client
+     * Gets the Elasticsearch Client
+     * @return the Elasticsearch client
      */
     public ElasticsearchClient getClient() {
-    	getOldClient();
-	    return esClient;
+        if(esClient==null) {
+            esClient = new ElasticsearchClient(getTransportClient());
+        }
+        return esClient;
+    }
+    
+    /**
+     * Gets the Async Elasticsearch Client
+     * @return the Async Elasticsearch client
+     */
+    public ElasticsearchAsyncClient getAsyncClient() {
+        if(asyncClient==null) {
+            asyncClient = new ElasticsearchAsyncClient(getTransportClient());
+        }
+        return asyncClient;
     }
 
     public String getIndexPrefix() {
@@ -162,7 +186,7 @@ public class ElasticConnection implements Closeable {
 
     @Override
     public synchronized void close() throws IOException {
-        if (hlClient != null) {
+        if (esClient != null) {
         	esClient._transport().close();
         }
         isClosed.set(true);

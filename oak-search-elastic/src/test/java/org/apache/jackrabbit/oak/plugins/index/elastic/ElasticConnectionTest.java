@@ -33,21 +33,6 @@ public class ElasticConnectionTest {
                 .withIndexPrefix("my+test")
                 .withDefaultConnectionParameters()
                 .build();
-
-        RestHighLevelClient client1 = connection.getOldClient();
-        RestHighLevelClient client2 = connection.getOldClient();
-
-        assertEquals(client1, client2);
-        
-        connection.close();
-    }
-    
-    @Test
-    public void uniqueElasticsearchClient() throws IOException {
-        ElasticConnection connection = ElasticConnection.newBuilder()
-                .withIndexPrefix("my+test")
-                .withDefaultConnectionParameters()
-                .build();
         
         ElasticsearchClient clientA = connection.getClient();
         ElasticsearchClient clientB = connection.getClient();
