@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
@@ -1149,6 +1150,11 @@ public class LucenePropertyIndex extends FulltextIndex {
                         qs.add(q);
                     }
                 }
+                continue;
+            }
+
+            if (IndexConstants.INDEX_TAG_OPTION.equals(name) ||
+                    IndexConstants.INDEX_NAME_OPTION.equals(name)) {
                 continue;
             }
 

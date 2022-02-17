@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -45,7 +44,6 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.of;
@@ -620,6 +618,7 @@ public final class IndexDefinitionBuilder {
                 IndexConstants.USE_IF_EXISTS,
                 IndexConstants.QUERY_PATHS,
                 IndexConstants.INDEX_TAGS,
+                IndexConstants.INDEX_SELECTION_POLICY,
                 FulltextIndexConstants.BLOB_SIZE,
                 FulltextIndexConstants.COST_PER_ENTRY,
                 FulltextIndexConstants.COST_PER_EXECUTION);

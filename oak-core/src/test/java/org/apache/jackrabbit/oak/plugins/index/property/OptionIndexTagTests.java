@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -94,4 +98,70 @@ public class OptionIndexTagTests extends AbstractQueryTest {
         assertTrue(result, result.indexOf("/* nodeType ") >= 0);
     }
 
+    @Test
+    public void selectionPolicyWithTags() throws CommitFailedException {
+        // disable the counter index, so that traversal is normally not used
+        // (only used if there is no index)
+        Tree index = root.getTree("/oak:index/counter");
+        index.remove();
+        index = root.getTree("/oak:index/uuid");
+        index.setProperty("tags", "x");
+        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG);
+        root.commit();
+        String statement, result;
+
+        // query tag specified and matched index definition
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag x)";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+
+        // query tag specified but does not match index definition
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag y)";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertEquals(result, -1, result.indexOf("/* property uuid"));
+
+        // query tag is not specified but required in definition
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertEquals(result, -1, result.indexOf("/* property uuid"));
+
+        // just to be on a safe side, test the old flow still works when "selectionPolicy" has some random value
+        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, "foo");
+        root.commit();
+        // query tag is not specified and selectionPolicy is not suddenly "TAG"
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+    }
+
+    @Test
+    public void selectionPolicyWithoutTags() throws CommitFailedException {
+        // disable the counter index, so that traversal is normally not used
+        // (only used if there is no index)
+        Tree index = root.getTree("/oak:index/counter");
+        index.remove();
+        index = root.getTree("/oak:index/uuid");
+        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, IndexSelectionPolicy.TAG);
+        root.commit();
+        String statement, result;
+
+        // query tag specified but does not match index definition
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index tag y)";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertEquals(result, -1, result.indexOf("/* property uuid"));
+
+        // query tag is not specified but required in definition
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertEquals(result, -1, result.indexOf("/* property uuid"));
+
+        // just to be on a safe side, test the old flow still works when "selectionPolicy" has some random value
+        index.setProperty(IndexConstants.INDEX_SELECTION_POLICY, "foo");
+        root.commit();
+
+        // query tag is not specified and selectionPolicy is not suddenly "TAG"
+        statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1";
+        result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+        assertTrue(result, result.contains("/* property uuid"));
+    }
 }
