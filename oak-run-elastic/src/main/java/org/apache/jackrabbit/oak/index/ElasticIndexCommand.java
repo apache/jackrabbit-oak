@@ -217,11 +217,13 @@ public class ElasticIndexCommand implements Command {
             }
         }
         indexerSupport.writeMetaInfo(checkpoint);
+
+        // This will copy the metadata files (consisting of the checkpoint info and indexes that have been re-indexed)
+        // to the o/p directory. We need to do this because the working dir where they have been created would be cleaned up.
+        // In case of lucene, even the index files are created here and copied as part of this, but for elastic - it's just metadata.
         File destDir = indexerSupport.copyIndexFilesToOutput();
-        log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
+        log.info("Indexing completed for indexes {} in {} ({} ms) and index metadata files are copied to {}",
                 indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS), ElasticIndexCommand.getPath(destDir));
-        log.info("Indexing completed for indexes {} in {} ({} ms)",
-                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private IndexerSupport createIndexerSupport(IndexHelper indexHelper, String checkpoint) {
