@@ -179,9 +179,17 @@ public class ElasticIndexProviderService {
         // register observer needed for index tracking
         regs.add(bundleContext.registerService(Observer.class.getName(), indexTracker, null));
 
-        // register info provider for index stats
+        // register info provider for oak index stats
         regs.add(bundleContext.registerService(IndexInfoProvider.class.getName(),
                 new ElasticIndexInfoProvider(indexTracker, asyncIndexInfoService), null));
+
+        // register mbean for detailed elastic stats and utility actions
+        ElasticIndexMBean mBean = new ElasticIndexMBean(indexTracker);
+        oakRegs.add(registerMBean(whiteboard,
+                ElasticIndexMBean.class,
+                mBean,
+                ElasticIndexMBean.TYPE,
+                "Elastic Index statistics"));
 
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 

@@ -92,9 +92,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     @Override
     public int numDocs() {
-        return countCache.getUnchecked(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), null)
-        );
+        return countCache.getUnchecked(new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias()));
     }
 
     /**
@@ -113,7 +111,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     public long size() {
         return STATS_CACHE.getUnchecked(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), null)
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).size;
     }
 
@@ -122,8 +120,28 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     public long creationDate() {
         return STATS_CACHE.getUnchecked(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), null)
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).creationDate;
+    }
+
+    /**
+     * Returns the number of low level lucene documents for the remote index bound to the
+     * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
+     */
+    public int luceneNumDocs() {
+        return STATS_CACHE.getUnchecked(
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
+        ).luceneDocsCount;
+    }
+
+    /**
+     * Returns the number of deleted low level lucene documents for the remote index bound to the
+     * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
+     */
+    public int luceneNumDeletedDocs() {
+        return STATS_CACHE.getUnchecked(
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
+        ).luceneDocsDeleted;
     }
 
     static LoadingCache<StatsRequestDescriptor, Integer> setupCountCache(long maxSize, long expireMin, long refreshMin, @Nullable Ticker ticker) {
@@ -192,7 +210,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
             // We should switch to this once available, since the _cat API is not intended for use by applications
             Response response = lowLevelClient.performRequest(
                     new Request("GET", "/_cat/indices/" + crd.index
-                            + "?format=json&h=store.size,creation.date&bytes=b&time=ms")
+                            + "?format=json&h=store.size,creation.date,docs.count,docs.deleted&bytes=b&time=ms")
             );
 
             if (response != null) {
@@ -205,9 +223,13 @@ public class ElasticIndexStatistics implements IndexStatistics {
                     Map<String, String> indexProps = indices.get(0);
                     String size = indexProps.get("store.size");
                     String creationDate = indexProps.get("creation.date");
+                    String luceneDocsCount = indexProps.get("docs.count");
+                    String luceneDocsDeleted = indexProps.get("docs.deleted");
                     return new StatsResponse(
                             size != null ? Long.parseLong(size) : -1,
-                            creationDate != null ? Long.parseLong(creationDate) : -1
+                            creationDate != null ? Long.parseLong(creationDate) : -1,
+                            luceneDocsCount != null ? Integer.parseInt(luceneDocsCount) : -1,
+                            luceneDocsDeleted != null ? Integer.parseInt(luceneDocsDeleted) : -1
                     );
                 }
             }
@@ -224,6 +246,11 @@ public class ElasticIndexStatistics implements IndexStatistics {
         final String index;
         @Nullable
         final String field;
+
+        StatsRequestDescriptor(@NotNull ElasticConnection connection,
+                               @NotNull String index) {
+            this(connection, index, null);
+        }
 
         StatsRequestDescriptor(@NotNull ElasticConnection connection,
                                       @NotNull String index, @Nullable String field) {
@@ -250,12 +277,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
     static class StatsResponse {
 
         final long size;
-
         final long creationDate;
+        final int luceneDocsCount;
+        final int luceneDocsDeleted;
 
-        StatsResponse(long size, long creationDate) {
+        StatsResponse(long size, long creationDate, int luceneDocsCount, int luceneDocsDeleted) {
             this.size = size;
             this.creationDate = creationDate;
+            this.luceneDocsCount = luceneDocsCount;
+            this.luceneDocsDeleted = luceneDocsDeleted;
         }
     }
 }

@@ -37,13 +37,13 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 
-public class ElasticIndexInfoProvider implements IndexInfoProvider {
+class ElasticIndexInfoProvider implements IndexInfoProvider {
 
     private final ElasticIndexTracker indexTracker;
 
     private final AsyncIndexInfoService asyncIndexInfoService;
 
-    public ElasticIndexInfoProvider(@NotNull ElasticIndexTracker indexTracker,
+    ElasticIndexInfoProvider(@NotNull ElasticIndexTracker indexTracker,
                                     @NotNull AsyncIndexInfoService asyncIndexInfoService) {
         this.indexTracker = indexTracker;
         this.asyncIndexInfoService = asyncIndexInfoService;
