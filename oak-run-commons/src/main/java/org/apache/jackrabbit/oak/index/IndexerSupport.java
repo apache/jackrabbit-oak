@@ -119,7 +119,7 @@ public class IndexerSupport {
         }
     }
 
-    protected void dumpIndexDefinitions(NodeStore nodeStore) throws IOException, CommitFailedException {
+    protected void dumpIndexDefinitions(NodeStore nodeStore) throws IOException {
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore, indexHelper.getIndexPathService());
         printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
         PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
@@ -150,7 +150,7 @@ public class IndexerSupport {
         dumpIndexDefinitions(copyOnWriteStore);
     }
 
-    protected void switchIndexLanesBack(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+    protected void switchIndexLanesBack(NodeStore copyOnWriteStore) throws CommitFailedException {
         NodeState root = copyOnWriteStore.getRoot();
         NodeBuilder builder = root.builder();
 

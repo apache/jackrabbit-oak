@@ -46,7 +46,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,7 +136,7 @@ public class ElasticIndexCommand implements Command {
         //dumpIndexDefinitions(indexOpts, indexHelper);
         reindexOperation(indexOpts, indexHelper);
 
-        // For elastic implementation - this applies the newly created elastic defintion to the repo and brings the index up to date with the
+        // For elastic implementation - this applies the newly created elastic definition to the repo and brings the index up to date with the
         // current state for async lane for this index.
         importIndexOperation(indexOpts, indexHelper);
     }
