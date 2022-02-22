@@ -31,8 +31,8 @@ however there are differences:
   Changes take effect immediately after changing them.
   Existing documents in Elasticsearch are not changed.
 * `reindex` is ignored.
-  Indexes are automatically built when needed.
-  We recommend to build then using the `oak-run` tool.
+  Indexes are NOT automatically built when needed. They can be build by setting the `reindex` property to `true` or by using the `oak-run` tool.
+  We recommend to build them using the `oak-run` tool.
 * `codec` is ignored.
 * `compatVersion` is ignored.
 * `useIfExists` is ignored.
