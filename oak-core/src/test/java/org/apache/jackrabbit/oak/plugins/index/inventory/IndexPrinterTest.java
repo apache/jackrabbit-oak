@@ -70,7 +70,7 @@ public class IndexPrinterTest {
         JsonObject json = JsonObject.fromJson(output, true);
         Map<String, JsonObject> jsonMap = json.getChildren();
         assertTrue(jsonMap.containsKey("Async Indexers State"));
-        int size  = Integer.parseInt(jsonMap.get("Async Indexers State").getProperties().get("Number of async indexer lanes"));
+        int size = Integer.parseInt(jsonMap.get("Async Indexers State").getProperties().get("Number of async indexer lanes"));
         assertEquals(2, size);
 
         assertTrue(jsonMap.get("Async Indexers State").getChildren().containsKey("foo-async"));

@@ -108,11 +108,11 @@ public class IndexPrinter implements InventoryPrinter {
 
         po.text("Total number of indexes", indexesByType.values().stream().mapToInt(List::size).sum());
 
-        for (String type : indexesByType.keySet()){
+        for (String type : indexesByType.keySet()) {
             List<IndexInfo> typedInfo = indexesByType.get(type);
             po.startSection(type, true);
             po.text("Number of " + type + " indexes", typedInfo.size());
-            for (IndexInfo info : typedInfo){
+            for (IndexInfo info : typedInfo) {
                 indexInfo(po, info);
             }
             po.endSection();
@@ -128,33 +128,33 @@ public class IndexPrinter implements InventoryPrinter {
             po.text("Async lane name", info.getAsyncLaneName());
         }
 
-        if (info.getIndexedUpToTime() > 0){
+        if (info.getIndexedUpToTime() > 0) {
             po.text("Last indexed up to", formatTime(info.getIndexedUpToTime()));
         }
 
-        if (info.getLastUpdatedTime() > 0){
+        if (info.getLastUpdatedTime() > 0) {
             po.text("Last updated time", formatTime(info.getLastUpdatedTime()));
         }
 
-        if (info.getCreationTimestamp() > 0){
+        if (info.getCreationTimestamp() > 0) {
             po.text("Creation time", formatTime(info.getCreationTimestamp()));
         }
 
-        if (info.getReindexCompletionTimestamp() > 0){
+        if (info.getReindexCompletionTimestamp() > 0) {
             po.text("Reindex completion time", formatTime(info.getReindexCompletionTimestamp()));
         }
 
-        if (info.getSizeInBytes() >= 0){
+        if (info.getSizeInBytes() >= 0) {
             po.text("Size", IOUtils.humanReadableByteCount(info.getSizeInBytes()));
             po.text("Size (in bytes)", info.getSizeInBytes());
         }
 
-        if (info.getSuggestSizeInBytes() >= 0){
+        if (info.getSuggestSizeInBytes() >= 0) {
             po.text("Suggest size", IOUtils.humanReadableByteCount(info.getSuggestSizeInBytes()));
             po.text("Suggest size (in bytes)", info.getSuggestSizeInBytes());
         }
 
-        if (info.getEstimatedEntryCount() >= 0){
+        if (info.getEstimatedEntryCount() >= 0) {
             po.text("Estimated entry count", info.getEstimatedEntryCount());
         }
 
@@ -173,7 +173,7 @@ public class IndexPrinter implements InventoryPrinter {
         po.endSection();
     }
 
-    private static String formatTime(long time){
+    private static String formatTime(long time) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(time);
         Date date = cal.getTime();
@@ -188,7 +188,8 @@ public class IndexPrinter implements InventoryPrinter {
 
         abstract void startSection(String section, boolean topLevel);
 
-        void endSection() {}
+        void endSection() {
+        }
 
         abstract void text(String key, Object value);
 
