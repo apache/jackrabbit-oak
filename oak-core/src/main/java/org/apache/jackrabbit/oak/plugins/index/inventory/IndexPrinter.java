@@ -141,17 +141,17 @@ public class IndexPrinter implements InventoryPrinter {
         }
 
         if (info.getReindexCompletionTimestamp() > 0){
-            po.text("Reindex completion time ", formatTime(info.getReindexCompletionTimestamp()));
+            po.text("Reindex completion time", formatTime(info.getReindexCompletionTimestamp()));
         }
 
         if (info.getSizeInBytes() >= 0){
             po.text("Size", IOUtils.humanReadableByteCount(info.getSizeInBytes()));
-            po.text("Size (in Bytes)", info.getSizeInBytes());
+            po.text("Size (in bytes)", info.getSizeInBytes());
         }
 
         if (info.getSuggestSizeInBytes() >= 0){
             po.text("Suggest size", IOUtils.humanReadableByteCount(info.getSuggestSizeInBytes()));
-            po.text("Suggest size (in Bytes)", info.getSuggestSizeInBytes());
+            po.text("Suggest size (in bytes)", info.getSuggestSizeInBytes());
         }
 
         if (info.getEstimatedEntryCount() >= 0){
@@ -167,7 +167,7 @@ public class IndexPrinter implements InventoryPrinter {
         if (info.hasIndexDefinitionChangedWithoutReindexing()) {
             String diff = info.getIndexDefinitionDiff();
             if (diff != null) {
-                po.text("Index definition changed without reindexing ", diff);
+                po.text("Index definition changed without reindexing", diff);
             }
         }
         po.endSection();
