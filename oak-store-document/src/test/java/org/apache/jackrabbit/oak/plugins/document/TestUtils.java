@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NavigableMap;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -144,5 +146,17 @@ public class TestUtils {
 
     public static int getDeletedDocGCCount(VersionGCStats stats) {
         return stats.deletedDocGCCount;
+    }
+
+    public static int getMaxRangeHeight(NodeDocument doc) {
+        int height = 0;
+        for (Range r : doc.getPreviousRanges().values()) {
+            height = Math.max(r.getHeight(), height);
+        }
+        return height;
+    }
+
+    public static Iterator<NodeDocument> getAllPreviousDocs(NodeDocument doc) {
+        return doc.getAllPreviousDocs();
     }
 }
