@@ -39,7 +39,7 @@ public interface IndexInfo {
 
     /**
      * Returns name of the async index lane to which this index is bound to
-     * or null if its not an async index
+     * or null if it's not an async index
      */
     @Nullable
     String getAsyncLaneName();
@@ -98,7 +98,7 @@ public interface IndexInfo {
     boolean hasHiddenOakLibsMount();
 
     /**
-     *Determines if :property-index node is present
+     * Determines if :property-index node is present
      * @return true if the index is hybrid and has :property-index node, false otherwise.
      */
     boolean hasPropertyIndexNode();
