@@ -117,8 +117,11 @@ The following `Restriction` implementations are supported with the default Oak a
 | `rep:prefixes`   | String | true         | false     | Multivalued restriction to limit the effect to item names that match the specified namespace prefixes (session level remapping not respected) | Oak 1.0 |
 | `rep:itemNames`  | Name   | true         | false     | Multivalued restriction for property or node names | Oak 1.3.8 |
 | `rep:current`    | String | true         | false     | Multivalued restriction that limits the effect to a single level i.e. the target node where the access control entry takes effect and optionally all or a subset of it's properties. There is no inheritance of the ACE effect to nodes in the subtree or their properties. Expanded JCR property names and namespace remapping not supported (see below for details) | Oak 1.42.0 |
+| `rep:globs`      | String | true         | false     | Multivalued variant of the `rep:glob` restriction | Oak 1.44.0 |
+| `rep:subtrees`   | String | true         | false     | Multivalued restriction that limits effect to one or multiple subtrees (see below) | Oak 1.44.0 |
 
 
+<a name="rep_glob"></a>
 ##### rep:glob - Details and Examples
 
 For a nodePath `/foo` the following results can be expected for the different
@@ -157,6 +160,7 @@ Examples without wildcard char:
 
 See also [GlobPattern] for implementation details and the [GlobRestrictionTest] in the _oak-exercise_ module for training material.
 
+<a name="rep_current"></a>
 ##### rep:current - Details and Examples
 
 The restriction limits the effect to the target node. The value of the restriction property defines which properties of 
@@ -185,6 +189,39 @@ like e.g. `jcr:primaryType`. For all other paths the implementation of the `rep:
 point to non-existing nodes. Example: if `rep:current` is present with an ACE taking effect at `/foo` the call 
 `Session.hasPermission("/foo/non-existing",Session.ACTION_READ)` will always return `false` because the restriction
 will interpret `/foo/non-existing` as a path pointing to a node.
+
+<a name="rep_subtrees"></a>
+##### rep:subtrees - Details and Examples
+
+The `rep:subtrees` restriction allows to limit the effect to one or multiple subtrees below the access-controlled 
+node. It is a simplified variant of the common pattern using 2 `rep:glob` (wildcard) patterns to grant or 
+deny access on a particular node in the subtree and all its descendent items.
+
+A common pattern involving `rep:glob` may look as follows:
+- entry 1: `rep:glob` = "/\*/path/to/subtree"
+- entry 2: `rep:glob`= "/\*/path/to/subtree/\*"
+
+The `rep:subtrees` restriction neither requires multiple entries nor wildcard characters 
+that have shown to be prone to mistakes. The corresponding setup with `rep:subtrees` would be
+- entry: `rep:subtrees` = "/path/to/subtree"
+
+and matches both the tree defined at /foo/path/to/subtree as well as any subtree at /foo/*/path/to/subtree.
+
+For a node path `/foo` the following results can be expected for different values of `rep:subtrees`:
+
+| `rep:subtrees`| Result |
+|---------------|-------------------------------------------------------------|
+| [/cat]        |   all descendants of `/foo` whose path ends with `/cat` or that have an intermediate segment `/cat/` |
+| [/cat/]       |   all descendants of `/foo` that have an intermediate segment `/cat/` |
+| [cat]         |   all siblings or descendants of `/foo` whose path ends with `cat` or that have an intermediate segment ending with `cat` |
+| [cat/]        |   all siblings or descendants of `/foo` that have an intermediate segment ending with `cat` |
+
+Note:
+- variants of 'cat'-paths could also consist of multiple segments like e.g. `/cat/dog` or `/cat/dog`
+- different subtrees can be matched by defining multiple values in the restriction
+- in contrast to `rep:glob` no wildcard characters are required to make sure the restriction is evaluated against the whole tree below the access controlled node.
+- an empty value array will never match any path/item
+- null values and empty string values will be ignored
 
 
 <a name="representation"></a>

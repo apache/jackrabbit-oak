@@ -679,8 +679,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testRestrictions() throws Exception {
         String[] names = acl.getRestrictionNames();
         assertNotNull(names);
-        assertEquals(5, names.length);
-        assertArrayEquals(new String[] {REP_GLOB, REP_NT_NAMES, REP_PREFIXES, REP_ITEM_NAMES, REP_CURRENT}, names);
+        assertArrayEquals(new String[] {REP_GLOB, REP_NT_NAMES, REP_PREFIXES, REP_ITEM_NAMES, REP_CURRENT, REP_GLOBS, REP_SUBTREES}, names);
         assertEquals(PropertyType.STRING, acl.getRestrictionType(names[0]));
         assertEquals(PropertyType.NAME, acl.getRestrictionType(names[1]));
         assertEquals(PropertyType.STRING, acl.getRestrictionType(names[2]));
