@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -122,7 +121,6 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
 
     }
 
-    @Ignore("OAK-9700")
     @Test // OAK-9700
     public void malformedPreviousDocument() throws Exception {
         DocumentNodeStore ns = mk.getNodeStore();

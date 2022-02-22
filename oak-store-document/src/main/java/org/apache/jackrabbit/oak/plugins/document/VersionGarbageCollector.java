@@ -805,7 +805,10 @@ public class VersionGarbageCollector {
 
         private void addPreviousDocuments(Iterator<String> ids) throws IOException {
             while (ids.hasNext()) {
-                prevDocIdsToDelete.add(ids.next());
+                String id = ids.next();
+                if (id != null) {
+                    prevDocIdsToDelete.add(id);
+                }
             }
         }
 
