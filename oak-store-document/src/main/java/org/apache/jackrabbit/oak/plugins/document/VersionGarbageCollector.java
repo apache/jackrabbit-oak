@@ -680,7 +680,7 @@ public class VersionGarbageCollector {
                     addLeafDocument(id);
                 } else {
                     addDocument(id);
-                    addPreviousDocuments(previousDocs);
+                    addPreviousDocuments(previousDocs, doc.getId());
                 }
                 return true;
             } else {
@@ -803,11 +803,14 @@ public class VersionGarbageCollector {
             return prevDocIdsToDelete.getSize() - exclude.size();
         }
 
-        private void addPreviousDocuments(Iterator<String> ids) throws IOException {
+        private void addPreviousDocuments(Iterator<String> ids,
+                                          String mainDocId) throws IOException {
             while (ids.hasNext()) {
                 String id = ids.next();
                 if (id != null) {
                     prevDocIdsToDelete.add(id);
+                } else {
+                    log.debug("addPreviousDocuments: null id found via mainDocId={}", mainDocId);
                 }
             }
         }
