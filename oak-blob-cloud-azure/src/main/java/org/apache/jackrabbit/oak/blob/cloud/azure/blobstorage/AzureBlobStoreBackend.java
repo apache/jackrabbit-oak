@@ -165,7 +165,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             try {
                 Utils.setProxyIfNeeded(properties);
                 containerName = (String) properties.get(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
-                createBlobContainer = PropertiesUtil.toBoolean(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER), true);
+                createBlobContainer = PropertiesUtil.toBoolean(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER), true) 
+                    && PropertiesUtil.toString(properties.getProperty(AzureConstants.AZURE_SAS), "").isEmpty();
                 connectionString = Utils.getConnectionStringFromProperties(properties);
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
@@ -253,11 +254,11 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             return is;
         }
         catch (StorageException e) {
-            LOG.info("Error reading blob. identifier=%s", key);
+            LOG.info("Error reading blob. identifier={}", key);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         }
         catch (URISyntaxException e) {
-            LOG.debug("Error reading blob. identifier=%s", key);
+            LOG.debug("Error reading blob. identifier={}", key);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         } finally {
             if (contextClassLoader != null) {

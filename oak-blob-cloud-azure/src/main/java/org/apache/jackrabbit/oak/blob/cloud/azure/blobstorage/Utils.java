@@ -141,7 +141,8 @@ public final class Utils {
 
         return getConnectionString(
                 accountName,
-                accountKey);
+                accountKey, 
+                blobEndpoint);
     }
 
     private static String getConnectionStringForSas(String sasUri, String blobEndpoint, String accountName) {
@@ -152,12 +153,15 @@ public final class Utils {
         }
     }
 
-    public static String getConnectionString(final String accountName, final String accountKey) {
-        return String.format(
-            "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s",
-            accountName,
-            accountKey
-        );
+    public static String getConnectionString(final String accountName, final String accountKey, String blobEndpoint) {
+        StringBuilder connString = new StringBuilder("DefaultEndpointsProtocol=https");
+        connString.append(";AccountName=").append(accountName);
+        connString.append(";AccountKey=").append(accountKey);
+        
+        if (!Strings.isNullOrEmpty(blobEndpoint)) {
+            connString.append(";BlobEndpoint=").append(blobEndpoint);
+        }
+        return connString.toString();
     }
 
     /**
