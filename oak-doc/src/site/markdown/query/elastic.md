@@ -17,8 +17,7 @@
 
 ## Elastic Index
 
-Oak supports Elasticsearch (Elastic for short) based indexes to support 
-both property constraint and full text constraints. 
+Oak supports Elasticsearch (Elastic for short) based indexes for both property constraint and full text constraints. 
 Elastic indexes support similar features than [Lucene][lucene] indexes, 
 however there are differences:
 
