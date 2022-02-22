@@ -49,7 +49,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 
 /**
  *
@@ -129,7 +128,7 @@ public abstract class FulltextIndexEditorContext<D> {
 
   public FulltextIndexWriter<D> getWriter() {
     if (writer == null) {
-      //Lazy initialization so as to ensure that definition is based
+      //Lazy initialization to ensure that definition is based
       //on latest NodeBuilder state specially in case of reindexing
       writer = indexWriterFactory.newInstance(definition, definitionBuilder, indexingContext.getCommitInfo(), reindex);
     }
@@ -165,9 +164,8 @@ public abstract class FulltextIndexEditorContext<D> {
       NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
       status.setProperty(IndexDefinition.STATUS_LAST_UPDATED, getUpdatedTime(currentTime), Type.DATE);
       status.setProperty("indexedNodes", indexedNodes);
-      if (storedIndexDefinitionEnabled() && reindex) {
-        NodeBuilder indexDefinition = definitionBuilder.child(STATUS_NODE);
-        indexDefinition.setProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, ISO8601.format(currentTime), Type.DATE);
+      if (reindex) {
+        status.setProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, ISO8601.format(currentTime), Type.DATE);
         log.info(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP + " set to current time for index:" + definition.getIndexPath());
       }
 
