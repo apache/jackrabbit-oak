@@ -21,17 +21,17 @@ Oak supports Elasticsearch (Elastic for short) based indexes for both property c
 Elastic indexes support similar features than [Lucene][lucene] indexes, 
 however there are differences:
 
-* The `type` is `elastic`.
+* The `type` is `elasticsearch`.
 * The index definition needs to be under `/oak:index`.
   Other locations are not supported.
-* The `async` property needs to be set to `async`. 
+* The `async` property needs to be set to `elastic-async`. 
   Synchronous, `nrt` or other lanes are not supported.
   Indexes are updated asynchronously.
 * `refresh` is ignored.
   Changes take effect immediately after changing them.
   Existing documents in Elasticsearch are not changed.
-* `reindex` is ignored.
-  Indexes are NOT automatically built when needed. They can be build by setting the `reindex` property to `true` or by using the `oak-run` tool.
+* Indexes are NOT automatically built when needed: 
+  They can be build by setting the `reindex` property to `true` or by using the `oak-run` tool.
   We recommend to build them using the `oak-run` tool.
 * `codec` is ignored.
 * `compatVersion` is ignored.
@@ -42,5 +42,7 @@ however there are differences:
 * `indexPath` is ignored.
 * `analyzers` is ignored.
 * For property definitions, `sync` and `unique` are ignored.
+* The behavior for `dynamicBoost` is slightly different: 
+  For Lucene indexes, boosting is done in indexing, while for Elastic it is done at query time.
 
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html
