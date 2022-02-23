@@ -153,6 +153,10 @@ public final class Utils {
         }
     }
 
+    public static String getConnectionString(final String accountName, final String accountKey) {
+        return getConnectionString(accountName, accountKey, null);
+    }
+    
     public static String getConnectionString(final String accountName, final String accountKey, String blobEndpoint) {
         StringBuilder connString = new StringBuilder("DefaultEndpointsProtocol=https");
         connString.append(";AccountName=").append(accountName);
