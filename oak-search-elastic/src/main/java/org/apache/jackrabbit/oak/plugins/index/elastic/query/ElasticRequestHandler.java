@@ -568,11 +568,9 @@ public class ElasticRequestHandler {
                 if (boost != null) {
                     fullTextQuery.boost(Float.parseFloat(boost));
                 }
-                BoolQueryBuilder shouldBoolQueryWrapper = boolQuery().should(fullTextQuery);
-                // add dynamic boosts in OR if available
+                BoolQueryBuilder boolQueryBuilder = boolQuery().must(fullTextQuery);
                 Stream<QueryBuilder> dynamicScoreQueries = dynamicScoreQueries(text);
-                dynamicScoreQueries.forEach(shouldBoolQueryWrapper::should);
-                BoolQueryBuilder boolQueryBuilder = boolQuery().must(shouldBoolQueryWrapper);
+                dynamicScoreQueries.forEach(boolQueryBuilder::should);
 
                 if (not) {
                     BoolQueryBuilder bq = boolQuery().mustNot(boolQueryBuilder);

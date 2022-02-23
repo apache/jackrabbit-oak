@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
@@ -42,13 +41,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IndexPrinterTest {
-    private AsyncIndexInfoService asyncInfo = mock(AsyncIndexInfoService.class);
-    private IndexInfoService indexInfo = mock(IndexInfoService.class);
+    private final AsyncIndexInfoService asyncInfo = mock(AsyncIndexInfoService.class);
+    private final IndexInfoService indexInfo = mock(IndexInfoService.class);
 
-    private IndexPrinter printer = new IndexPrinter(indexInfo, asyncInfo);
+    private final IndexPrinter printer = new IndexPrinter(indexInfo, asyncInfo);
 
     @Test
-    public void asyncIndexInfo() throws Exception {
+    public void asyncIndexInfo() {
         when(indexInfo.getAllIndexInfo()).thenReturn(emptyList());
         when(asyncInfo.getAsyncLanes()).thenReturn(asList("foo-async", "bar-async"));
         when(asyncInfo.getInfo("foo-async"))
@@ -60,7 +59,7 @@ public class IndexPrinterTest {
     }
 
     @Test
-    public void asyncIndexInfoJson() throws Exception {
+    public void asyncIndexInfoJson() {
         when(indexInfo.getAllIndexInfo()).thenReturn(emptyList());
         when(asyncInfo.getAsyncLanes()).thenReturn(asList("foo-async", "bar-async"));
         when(asyncInfo.getInfo("foo-async"))
@@ -70,16 +69,16 @@ public class IndexPrinterTest {
 
         JsonObject json = JsonObject.fromJson(output, true);
         Map<String, JsonObject> jsonMap = json.getChildren();
-        assertTrue(jsonMap.keySet().contains("Async Indexers State"));
-        int size  = Integer.parseInt(jsonMap.get("Async Indexers State").getProperties().get("Number of async indexer lanes"));
+        assertTrue(jsonMap.containsKey("Async Indexers State"));
+        int size = Integer.parseInt(jsonMap.get("Async Indexers State").getProperties().get("Number of async indexer lanes"));
         assertEquals(2, size);
 
-        assertTrue(jsonMap.get("Async Indexers State").getChildren().keySet().contains("foo-async"));
-        assertTrue(jsonMap.get("Async Indexers State").getChildren().keySet().contains("bar-async"));
+        assertTrue(jsonMap.get("Async Indexers State").getChildren().containsKey("foo-async"));
+        assertTrue(jsonMap.get("Async Indexers State").getChildren().containsKey("bar-async"));
     }
 
     @Test
-    public void indexInfo() throws Exception{
+    public void indexInfo() {
         when(asyncInfo.getAsyncLanes()).thenReturn(emptyList());
 
         TestInfo info1 = new TestInfo("/oak:index/fooIndex", "property");
@@ -92,11 +91,10 @@ public class IndexPrinterTest {
         assertThat(output, containsString("/oak:index/fooIndex"));
         assertThat(output, containsString("/oak:index/barIndex"));
         assertThat(output, containsString("async"));
-
     }
 
     @Test
-    public void indexInfoJson() throws Exception{
+    public void indexInfoJson() {
         when(asyncInfo.getAsyncLanes()).thenReturn(emptyList());
 
         TestInfo info1 = new TestInfo("/oak:index/fooIndex", "property");
@@ -108,17 +106,16 @@ public class IndexPrinterTest {
         String output = getPrintOutput(Format.JSON);
         JsonObject json = JsonObject.fromJson(output, true);
         Map<String, JsonObject> jsonMap = json.getChildren();
-        assertTrue(jsonMap.keySet().contains("Async Indexers State"));
+        assertTrue(jsonMap.containsKey("Async Indexers State"));
 
         assertEquals(0, jsonMap.get("Async Indexers State").getChildren().size());
 
-        assertTrue(jsonMap.keySet().contains("lucene"));
-        assertTrue(jsonMap.keySet().contains("property"));
-        assertTrue(jsonMap.get("lucene").getChildren().keySet().contains("/oak:index/barIndex"));
-        assertFalse(jsonMap.get("lucene").getChildren().keySet().contains("/oak:index/fooIndex"));
-        assertTrue(jsonMap.get("property").getChildren().keySet().contains("/oak:index/fooIndex"));
-        assertFalse(jsonMap.get("property").getChildren().keySet().contains("/oak:index/barIndex"));
-
+        assertTrue(jsonMap.containsKey("lucene"));
+        assertTrue(jsonMap.containsKey("property"));
+        assertTrue(jsonMap.get("lucene").getChildren().containsKey("/oak:index/barIndex"));
+        assertFalse(jsonMap.get("lucene").getChildren().containsKey("/oak:index/fooIndex"));
+        assertTrue(jsonMap.get("property").getChildren().containsKey("/oak:index/fooIndex"));
+        assertFalse(jsonMap.get("property").getChildren().containsKey("/oak:index/barIndex"));
     }
 
     private String getPrintOutput(Format format) {

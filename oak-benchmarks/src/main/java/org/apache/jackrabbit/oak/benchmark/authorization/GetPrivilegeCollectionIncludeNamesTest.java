@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -49,7 +50,19 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
     
     public GetPrivilegeCollectionIncludeNamesTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport, String evalType) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
-        this.evalType = (Strings.isNullOrEmpty(evalType)) ? EvaluationType.ACCESSCONTORL_MANAGER_GET_PRIVILEGE_COLLECTION : EvaluationType.valueOf(evalType);
+        this.evalType = getEvalType(evalType);
+    }
+    
+    @NotNull
+    private static EvaluationType getEvalType(@Nullable String type) {
+        if (Strings.isNullOrEmpty(type)) {
+            return EvaluationType.ACCESSCONTORL_MANAGER_GET_PRIVILEGE_COLLECTION;
+        }
+        try {
+            return EvaluationType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            return EvaluationType.ACCESSCONTORL_MANAGER_GET_PRIVILEGE_COLLECTION;
+        }
     }
 
     @Override

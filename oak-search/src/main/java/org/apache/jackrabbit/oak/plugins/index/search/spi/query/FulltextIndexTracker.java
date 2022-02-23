@@ -195,7 +195,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
         return null;
     }
 
-    Set<String> getIndexNodePaths(){
+    public Set<String> getIndexNodePaths(){
         return indices.keySet();
     }
 
@@ -248,7 +248,6 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
 
         return null;
     }
-
 
     private static boolean isStatusChanged(NodeState before, NodeState after) {
         return !EqualsDiff.equals(before.getChildNode(STATUS_NODE), after.getChildNode(STATUS_NODE));

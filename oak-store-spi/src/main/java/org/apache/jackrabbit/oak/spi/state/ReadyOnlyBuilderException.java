@@ -14,7 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.10.0")
-package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
+package org.apache.jackrabbit.oak.spi.state;
 
-import org.osgi.annotation.versioning.Version;
+/**
+ * Indicates that a modification operation was tried to execute on a read-only builder.
+ * It should be used instead of throwing plain UnsupportedOperationExceptions in that situation.
+ */
+public class ReadyOnlyBuilderException extends UnsupportedOperationException {
+
+    public ReadyOnlyBuilderException (String reason) {
+        super(reason);
+    }
+}
