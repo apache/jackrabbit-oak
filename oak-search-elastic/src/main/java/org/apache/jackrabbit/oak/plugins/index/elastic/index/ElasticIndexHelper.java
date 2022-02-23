@@ -21,30 +21,15 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.apache.lucene.queries.function.FunctionMatchQuery;
-
-import co.elastic.clients.elasticsearch._types.mapping.BinaryProperty;
-import co.elastic.clients.elasticsearch._types.mapping.BooleanProperty;
-import co.elastic.clients.elasticsearch._types.mapping.DateProperty;
-import co.elastic.clients.elasticsearch._types.mapping.DoubleNumberProperty;
-import co.elastic.clients.elasticsearch._types.mapping.FieldNamesField;
-import co.elastic.clients.elasticsearch._types.mapping.KeywordProperty;
-import co.elastic.clients.elasticsearch._types.mapping.LongNumberProperty;
-import co.elastic.clients.elasticsearch._types.mapping.Property;
-import co.elastic.clients.elasticsearch._types.mapping.TextProperty;
-import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
-import co.elastic.clients.elasticsearch._types.mapping.TypeMapping.Builder;
-import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
-import co.elastic.clients.elasticsearch.indices.IndexSettings;
-import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
-import co.elastic.clients.util.ObjectBuilder;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 
 import java.io.IOException;
-import java.sql.Time;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -69,11 +54,26 @@ class ElasticIndexHelper {
      * @throws IOException if an error happens while creating the request
      */
     public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
-        return new CreateIndexRequest.Builder()
-                .index(remoteIndexName)
-                .settings(loadSettings(indexDefinition))
-                .mappings(mapIndexRules(mapInternalProperties(indexDefinition),indexDefinition))
-                .build();
+        final CreateIndexRequest request = new CreateIndexRequest(remoteIndexName);
+
+        // provision settings
+        request.settings(loadSettings(indexDefinition));
+
+        // provision mappings
+        final XContentBuilder mappingBuilder = XContentFactory.jsonBuilder();
+        mappingBuilder.startObject();
+        {
+            mappingBuilder.startObject("properties");
+            {
+                mapInternalProperties(mappingBuilder);
+                mapIndexRules(indexDefinition, mappingBuilder);
+            }
+            mappingBuilder.endObject();
+        }
+        mappingBuilder.endObject();
+        request.mapping(mappingBuilder);
+
+        return request;
     }
 
     /**
@@ -82,74 +82,110 @@ class ElasticIndexHelper {
      * @param indexDefinition the definition used to read settings/mappings
      * @return an {@code UpdateSettingsRequest}
      */
-    public static PutIndicesSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
-        return PutIndicesSettingsRequest.of(r->r
-                .index(remoteIndexName)
-                .settings(s->s
-                        .refreshInterval(i->i)// null=reset a setting back to the default value
-                        .numberOfReplicas(String.valueOf(indexDefinition.numberOfReplicas))));
-        // TODO check the refresh interval to null
-    }
-    
-    private static IndexSettings loadSettings(ElasticIndexDefinition indexDefinition) throws IOException {
-        return new IndexSettings.Builder()
-                .numberOfShards(String.valueOf(indexDefinition.numberOfShards))// dynamic settings: see #enableIndexRequest
-                .numberOfReplicas(String.valueOf(INITIAL_NUMBER_OF_REPLICAS))
-                .refreshInterval(t->t
-                        .time(INITIAL_REFRESH_INTERVAL))
-                .analysis(a->a
-                        .filter("oak_word_delimiter_graph_filter", f->f
-                                .definition(d->d
-                                        .wordDelimiterGraph(w->w
-                                                .generateWordParts(true)
-                                                .stemEnglishPossessive(true)
-                                                .generateNumberParts(true)
-                                                .preserveOriginal(indexDefinition.indexOriginalTerms()))))
-                        .filter("shingle", f->f
-                                .definition(d->d
-                                        .shingle(s->s
-                                                .minShingleSize("2")
-                                                .maxShingleSize("3"))))
-                        .analyzer("oak_analyzer", o->o
-                                .custom(c->c
-                                        .tokenizer("standard")
-                                        .filter("lowercase", "oak_word_delimiter_graph_filter")))
-                        .analyzer("ancestor_analyzer", o->o
-                                .custom(c->c
-                                        .tokenizer("path_hierarchy")))
-                        .analyzer("trigram", o->o
-                                .custom(c->c
-                                        .tokenizer("standard")
-                                        .filter("lowercase", "shingle"))))
-                .build();
+    public static UpdateSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
+        UpdateSettingsRequest request = new UpdateSettingsRequest(remoteIndexName);
+
+        Settings.Builder settingsBuilder = Settings.builder()
+                .putNull("index.refresh_interval") // null=reset a setting back to the default value
+                .put("index.number_of_replicas", indexDefinition.numberOfReplicas);
+
+        return request.settings(settingsBuilder);
     }
 
-    private static TypeMapping.Builder mapInternalProperties(ElasticIndexDefinition indexDefinition) {
-        return new TypeMapping.Builder()
-                .properties(FieldNames.PATH, f->f
-                        .keyword(k->k))
-                .properties(FieldNames.ANCESTORS, f->f
-                        .text(t->t
-                                .analyzer("ancestor_analyzer")
-                                .searchAnalyzer("keyword")
-                                .searchQuoteAnalyzer("keyword")))
-                .properties(FieldNames.PATH_DEPTH, f->f
-                        .integer(i->i
-                                .docValues(false)))
-                .properties(FieldNames.FULLTEXT, f->f
-                        .text(t->t
-                                .analyzer("oak_analyzer")))
-                // TODO: the mapping below is for features currently not supported. These need to be reviewed
-                //.properties(FieldNames.NOT_NULL_PROPS, f->f
-                //        .keyword(k->k))
-                //.properties(FieldNames.NULL_PROPS, f->f
-                //        .keyword(k->k))
-                //
-                // mapIndexRules
-                ;
+    private static XContentBuilder loadSettings(ElasticIndexDefinition indexDefinition) throws IOException {
+        final XContentBuilder settingsBuilder = XContentFactory.jsonBuilder();
+        settingsBuilder.startObject();
+        if (indexDefinition.getSimilarityProperties().size() > 0) {
+            settingsBuilder.field("elastiknn", true);
+        }
+        // static setting: cannot be changed after the index gets created
+        settingsBuilder.field("index.number_of_shards", indexDefinition.numberOfShards);
+
+        // dynamic settings: see #enableIndexRequest
+        settingsBuilder.field("index.refresh_interval", INITIAL_REFRESH_INTERVAL);
+        settingsBuilder.field("index.number_of_replicas", INITIAL_NUMBER_OF_REPLICAS);
+        {
+            settingsBuilder.startObject("analysis");
+            {
+                settingsBuilder.startObject("filter");
+                {
+                    settingsBuilder.startObject("oak_word_delimiter_graph_filter");
+                    {
+                        settingsBuilder.field("type", "word_delimiter_graph");
+                        settingsBuilder.field("generate_word_parts", true);
+                        settingsBuilder.field("stem_english_possessive", true);
+                        settingsBuilder.field("generate_number_parts", true);
+                        settingsBuilder.field("preserve_original", indexDefinition.indexOriginalTerms());
+                    }
+                    settingsBuilder.endObject();
+
+                    settingsBuilder.startObject("shingle")
+                            .field("type", "shingle")
+                            .field("min_shingle_size", 2)
+                            .field("max_shingle_size", 3)
+                            .endObject();
+                }
+                settingsBuilder.endObject();
+
+                settingsBuilder.startObject("analyzer");
+                {
+                    settingsBuilder.startObject("oak_analyzer");
+                    {
+                        settingsBuilder.field("type", "custom");
+                        settingsBuilder.field("tokenizer", "standard");
+                        settingsBuilder.field("filter", new String[]{"lowercase", "oak_word_delimiter_graph_filter"});
+                    }
+                    settingsBuilder.endObject();
+                    // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pathhierarchy-tokenizer.html
+                    settingsBuilder.startObject("ancestor_analyzer");
+                    {
+                        settingsBuilder.field("type", "custom");
+                        settingsBuilder.field("tokenizer", "path_hierarchy");
+                    }
+                    settingsBuilder.endObject();
+
+                    settingsBuilder.startObject("trigram")
+                            .field("type", "custom")
+                            .field("tokenizer", "standard")
+                            .array("filter", "lowercase", "shingle")
+                            .endObject();
+                }
+                settingsBuilder.endObject();
+            }
+            settingsBuilder.endObject();
+        }
+        settingsBuilder.endObject();
+        return settingsBuilder;
     }
-    
-    private static TypeMapping mapIndexRules(Builder mapInternalProperties, ElasticIndexDefinition indexDefinition) throws IOException {
+
+    private static void mapInternalProperties(XContentBuilder mappingBuilder) throws IOException {
+        mappingBuilder.startObject(FieldNames.PATH)
+                .field("type", "keyword")
+                .endObject();
+        mappingBuilder.startObject(FieldNames.ANCESTORS)
+                .field("type", "text")
+                .field("analyzer", "ancestor_analyzer")
+                .field("search_analyzer", "keyword")
+                .field("search_quote_analyzer", "keyword")
+                .endObject();
+        mappingBuilder.startObject(FieldNames.PATH_DEPTH)
+                .field("type", "integer")
+                .field("doc_values", false) // no need to sort/aggregate here
+                .endObject();
+        mappingBuilder.startObject(FieldNames.FULLTEXT)
+                .field("type", "text")
+                .field("analyzer", "oak_analyzer")
+                .endObject();
+        // TODO: the mapping below is for features currently not supported. These need to be reviewed
+        // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
+        //  .field("type", "keyword")
+        //  .endObject();
+        // mappingBuilder.startObject(FieldNames.NULL_PROPS)
+        // .field("type", "keyword")
+        // .endObject();
+    }
+
+    private static void mapIndexRules(ElasticIndexDefinition indexDefinition, XContentBuilder mappingBuilder) throws IOException {
         checkIndexRules(indexDefinition);
         boolean useInSuggest = false;
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
@@ -162,87 +198,108 @@ class ElasticIndexHelper {
                     useInSuggest = true;
                 }
             }
-            Property property = null;
+
+            mappingBuilder.startObject(name);
             {
                 // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
                 if (Type.BINARY.equals(type)) {
-                    property = new Property(BinaryProperty.of(b->b));
-                    property.binary();
+                    mappingBuilder.field("type", "binary");
                 } else if (Type.LONG.equals(type)) {
-                    property = new Property(LongNumberProperty.of(b->b));
+                    mappingBuilder.field("type", "long");
                 } else if (Type.DOUBLE.equals(type) || Type.DECIMAL.equals(type)) {
-                    property = new Property(DoubleNumberProperty.of(b->b));
+                    mappingBuilder.field("type", "double");
                 } else if (Type.DATE.equals(type)) {
-                    property = new Property(DateProperty.of(b->b));
+                    mappingBuilder.field("type", "date");
                 } else if (Type.BOOLEAN.equals(type)) {
-                    property = new Property(BooleanProperty.of(b->b));
+                    mappingBuilder.field("type", "boolean");
                 } else {
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
-                        property = new Property(TextProperty.of(b->b
-                                .analyzer("oak_analyzer")
-                                // always add keyword for sorting / faceting as sub-field
-                                .fields("keyword", t->t
-                                        .keyword(k->k
-                                                .ignoreAbove(256)))));
+                        mappingBuilder.field("type", "text");
+                        mappingBuilder.field("analyzer", "oak_analyzer");
+                        // always add keyword for sorting / faceting as sub-field
+                        mappingBuilder.startObject("fields");
+                        {
+                            mappingBuilder.startObject("keyword")
+                                    .field("type", "keyword")
+                                    .field("ignore_above", 256)
+                                    .endObject();
+                        }
+                        mappingBuilder.endObject();
                     } else {
                         // always add keyword for sorting / faceting
-                        property = new Property(KeywordProperty.of(b->b
-                                .ignoreAbove(256)));
+                        mappingBuilder
+                                .field("type", "keyword")
+                                .field("ignore_above", 256);
                     }
                 }
             }
-            mapInternalProperties.properties(name,property);
+            mappingBuilder.endObject();
         }
-        mapInternalProperties.properties(FieldNames.SPELLCHECK, f->f
-                .text(t->t
-                        .analyzer("trigram")));
+
+        mappingBuilder.startObject(FieldNames.SPELLCHECK)
+                .field("type", "text").field("analyzer", "trigram")
+                .endObject();
+
         if (useInSuggest) {
-            mapInternalProperties.properties(FieldNames.SUGGEST, f->f
-                    .nested(n->n
-                            // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
-                            .properties("value", v->v
-                                    .text(t->t
-                                            .analyzer("oak_analyzer")))));
+            mappingBuilder.startObject(FieldNames.SUGGEST);
+            {
+                mappingBuilder.field("type", "nested");
+                mappingBuilder.startObject("properties");
+                {
+                    // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
+                    mappingBuilder.startObject("value")
+                            .field("type", "text")
+                            .field("analyzer", "oak_analyzer")
+                            .endObject();
+                }
+                mappingBuilder.endObject();
+            }
+            mappingBuilder.endObject();
         }
 
         for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
-            mapInternalProperties.properties(pd.nodeName, f->f
-                    .nested(n->n
-                            .properties("value", ff->ff
-                                    .text(t->t
-                                            .analyzer("oak_analyzer")))
-                            .properties("boost", ff->ff
-                                    .double_(d->d))));
+            mappingBuilder.startObject(pd.nodeName);
+            {
+                mappingBuilder.field("type", "nested");
+                mappingBuilder.startObject("properties");
+                {
+                    mappingBuilder.startObject("value")
+                            .field("type", "text")
+                            .field("analyzer", "oak_analyzer")
+                            .endObject();
+                    mappingBuilder.startObject("boost")
+                            .field("type", "double")
+                            .endObject();
+                }
+                mappingBuilder.endObject();
+            }
+            mappingBuilder.endObject();
         }
 
-        // TODO define Property Type for Elastiknn
-//        for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
-//            ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
-//            int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
-//        
-//            
-//            mappingBuilder.startObject(FieldNames.createSimilarityFieldName(pd.name));
-//            {
-//                mappingBuilder.field("type", "elastiknn_dense_float_vector");
-//                mappingBuilder.startObject("elastiknn");
-//                {
-//                    mappingBuilder.field(ES_DENSE_VECTOR_DIM_PROP, denseVectorSize);
-//                    mappingBuilder.field("model", "lsh");
-//                    mappingBuilder.field("similarity", pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction());
-//                    mappingBuilder.field("L", pd.getSimilaritySearchParameters().getL());
-//                    mappingBuilder.field("k", pd.getSimilaritySearchParameters().getK());
-//                    mappingBuilder.field("w", pd.getSimilaritySearchParameters().getW());
-//                }
-//                mappingBuilder.endObject();
-//            }
-//            mappingBuilder.endObject();
-//        }
+        for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
+            ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
+            int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
+            mappingBuilder.startObject(FieldNames.createSimilarityFieldName(pd.name));
+            {
+                mappingBuilder.field("type", "elastiknn_dense_float_vector");
+                mappingBuilder.startObject("elastiknn");
+                {
+                    mappingBuilder.field(ES_DENSE_VECTOR_DIM_PROP, denseVectorSize);
+                    mappingBuilder.field("model", "lsh");
+                    mappingBuilder.field("similarity", pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction());
+                    mappingBuilder.field("L", pd.getSimilaritySearchParameters().getL());
+                    mappingBuilder.field("k", pd.getSimilaritySearchParameters().getK());
+                    mappingBuilder.field("w", pd.getSimilaritySearchParameters().getW());
+                }
+                mappingBuilder.endObject();
+            }
+            mappingBuilder.endObject();
+        }
 
-        mapInternalProperties.properties(ElasticIndexDefinition.SIMILARITY_TAGS, f->f
-                .text(t->t
-                        .analyzer("oak_analyzer")));
-        
-        return mapInternalProperties.build();
+        mappingBuilder.startObject(ElasticIndexDefinition.SIMILARITY_TAGS)
+                .field("type", "text")
+                .field("analyzer", "oak_analyzer")
+                .endObject();
     }
 
     // we need to check if in the defined rules there are properties with the same name and different types
@@ -260,5 +317,4 @@ class ElasticIndexHelper {
                     "different types " + fields);
         }
     }
-
 }
