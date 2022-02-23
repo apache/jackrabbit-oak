@@ -24,6 +24,12 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
+
+import co.elastic.clients.elasticsearch._types.Bytes;
+import co.elastic.clients.elasticsearch.cat.IndicesResponse;
+import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
+import co.elastic.clients.elasticsearch.core.CountRequest.Builder;
+
 import org.apache.http.util.EntityUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.elasticsearch.client.Request;
@@ -146,15 +152,17 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private int count(StatsRequestDescriptor crd) throws IOException {
-            CountRequest countRequest = new CountRequest(crd.index);
+            Builder reqBuilder = new co.elastic.clients.elasticsearch.core.CountRequest.Builder();
+            reqBuilder.index(crd.index);
             if (crd.field != null) {
-                countRequest.query(QueryBuilders.existsQuery(crd.field));
+                reqBuilder.query(q->q
+                        .exists(e->e
+                                .field(crd.field)));
             } else {
-                countRequest.query(QueryBuilders.matchAllQuery());
+                reqBuilder.query(q->q
+                        .matchAll(m->m));
             }
-
-            CountResponse response = crd.connection.getOldClient().count(countRequest, RequestOptions.DEFAULT);
-            return (int) response.getCount();
+            return (int) crd.connection.getClient().count(reqBuilder.build()).count();
         }
     }
 
@@ -175,25 +183,13 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private long size(StatsRequestDescriptor crd) throws IOException {
-            RestClient lowLevelClient = crd.connection.getOldClient().getLowLevelClient();
-            Response response = lowLevelClient.performRequest(
-                    new Request("GET", "/_cat/indices/" + crd.index + "?bytes=b&v=true&format=json"));
-
-            if (response != null) {
-                String rawBody = EntityUtils.toString(response.getEntity());
-                TypeReference<List<Map<String, String>>> typeRef = new TypeReference<List<Map<String, String>>>() {};
-                List<Map<String, String>> indices = MAPPER.readValue(rawBody, typeRef);
-
-                if (!indices.isEmpty()) {
-                    // we ask for a specific index, so we can get the first entry
-                    Map<String, String> indexProps = indices.get(0);
-                    String size = indexProps.get("store.size");
-                    if (size != null) {
-                        return Long.parseLong(size);
-                    }
-                }
+            String size = crd.connection.getClient().cat().indices(i->i
+                    .index(crd.index)
+                    .bytes(Bytes.Bytes))
+                .valueBody().get(0).storeSize();
+            if (size != null) {
+                return Long.parseLong(size);
             }
-
             return -1L;
         }
     }
