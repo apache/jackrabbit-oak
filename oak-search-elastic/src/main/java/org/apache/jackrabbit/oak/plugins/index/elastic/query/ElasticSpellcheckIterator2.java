@@ -51,9 +51,9 @@ import java.util.stream.StreamSupport;
  *     <li>multi search query to get a sample of 100 results for each suggestion for ACL check</li>
  * </ul>
  */
-class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
+class ElasticSpellcheckIterator2 implements Iterator<FulltextResultRow> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticSpellcheckIterator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticSpellcheckIterator2.class);
     protected final static String SPELLCHECK_PREFIX = "spellcheck?term=";
 
     private final ElasticIndexNode indexNode;
@@ -64,7 +64,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
     private Iterator<FulltextResultRow> internalIterator;
     private boolean loaded = false;
 
-    ElasticSpellcheckIterator(@NotNull ElasticIndexNode indexNode,
+    ElasticSpellcheckIterator2(@NotNull ElasticIndexNode indexNode,
                               @NotNull ElasticRequestHandler requestHandler,
                               @NotNull ElasticResponseHandler responseHandler) {
         this.indexNode = indexNode;
@@ -142,5 +142,30 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                 .map(s -> (PhraseSuggestion) s)
                 .flatMap(ps -> ps.getEntries().stream())
                 .flatMap(ps -> ps.getOptions().stream());
+    }
+    
+    private Stream<PhraseSuggestion.Entry.Option> suggestions2() throws IOException {
+        final SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.addSuggestion("oak:suggestion",
+                requestHandler.suggestQuery(spellCheckQuery));
+
+        final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
+                .suggest(suggestBuilder);
+
+        final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getIndexAlias())
+                .source(searchSourceBuilder);
+
+        SearchResponse searchResponse = indexNode.getConnection().getOldClient().search(searchRequest, RequestOptions.DEFAULT);
+
+        Source.Builder b;
+        indexNode.getConnection().getClient().search(s->s
+                .index(indexNode.getDefinition().getIndexAlias())
+                );
+//        
+//        return StreamSupport
+//                .stream(searchResponse.getSuggest().spliterator(), false)
+//                .map(s -> (PhraseSuggestion) s)
+//                .flatMap(ps -> ps.getEntries().stream())
+//                .flatMap(ps -> ps.getOptions().stream());
     }
 }

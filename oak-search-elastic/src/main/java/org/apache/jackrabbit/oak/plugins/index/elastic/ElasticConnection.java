@@ -126,19 +126,18 @@ public class ElasticConnection implements Closeable {
                         builder.setDefaultHeaders(headers);
                     }
                     hlClient = new RestHighLevelClient(builder);
-                    transport = new RestClientTransport(
-            	        hlClient.getLowLevelClient(),
-            	        new JacksonJsonpMapper()
-            	    );
                 }
             }
+        }
+        if(hlClient != null && transport == null) {
+            transport = new RestClientTransport(hlClient.getLowLevelClient(),new JacksonJsonpMapper());
         }
         return hlClient;
     }
     
-    private ElasticsearchTransport getTransportClient() {
+    public ElasticsearchTransport getTransportClient() {
         if(transport==null) {
-            //TODO complete after migration
+            //TODO complete after full migration using https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/connecting.html
             getOldClient();
         }
         return transport;
@@ -149,7 +148,7 @@ public class ElasticConnection implements Closeable {
      * @return the Elasticsearch client
      */
     public ElasticsearchClient getClient() {
-        if(esClient==null) {
+        if(esClient == null) {
             esClient = new ElasticsearchClient(getTransportClient());
         }
         return esClient;
@@ -160,7 +159,7 @@ public class ElasticConnection implements Closeable {
      * @return the Async Elasticsearch client
      */
     public ElasticsearchAsyncClient getAsyncClient() {
-        if(asyncClient==null) {
+        if(asyncClient == null) {
             asyncClient = new ElasticsearchAsyncClient(getTransportClient());
         }
         return asyncClient;
