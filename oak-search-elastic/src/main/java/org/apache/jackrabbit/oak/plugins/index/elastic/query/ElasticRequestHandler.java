@@ -206,6 +206,9 @@ public class ElasticRequestHandler {
                         );
                     }
                 }
+            }  else if (propertyRestrictionQuery.startsWith(SUGGEST_PREFIX)) {
+                String suggestQueryString = propertyRestrictionQuery.replace(SUGGEST_PREFIX, "");
+                boolQuery.must(suggestionMatchQuery(suggestQueryString));
             } else {
                 boolQuery.must(queryStringQuery(propertyRestrictionQuery));
             }

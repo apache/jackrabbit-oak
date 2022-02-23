@@ -96,6 +96,7 @@ class ElasticSuggestIterator implements Iterator<FulltextResultRow> {
             }
         }
         this.internalIterator = suggestionPriorityQueue.stream().distinct().iterator();
+        LOG.trace("loadSuggestions query {}", searchSourceBuilder);
     }
 
     private final static class ElasticSuggestion extends FulltextResultRow {
