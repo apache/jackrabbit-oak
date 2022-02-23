@@ -31,13 +31,14 @@ but probably be very slow.
 
 ### Indexes
 
-There are 3 main types of indexes available in Oak. For other type
+There are 4 main types of indexes available in Oak. For other type
 (eg: nodetype) please refer to the [query engine](./query-engine.html)
 documentation page.
 
 * [Lucene](./lucene.html)
-* [Solr](./solr.html)
+* [Elastic](./elastic.html)
 * [Property](./property-index.html)
+* [Solr](./solr.html)
 
 For more details on how indexing works (for all index types):
 
