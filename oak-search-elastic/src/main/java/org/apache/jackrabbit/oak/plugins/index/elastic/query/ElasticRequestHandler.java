@@ -16,6 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newAncestorQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery2;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixPathQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPropertyRestrictionQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
+import static org.apache.jackrabbit.util.ISO8601.parse;
+import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -63,35 +79,16 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.search.join.ScoreMode;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.InnerHitBuilder;
-import org.elasticsearch.index.query.MatchBoolPrefixQueryBuilder;
-import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.query.MoreLikeThisQueryBuilder;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.index.query.NestedQueryBuilder;
-import org.elasticsearch.index.query.Operator;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
-import org.elasticsearch.index.query.TermQueryBuilder;
-import org.elasticsearch.index.query.WrapperQueryBuilder;
-import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
-import org.elasticsearch.search.suggest.SuggestBuilders;
-import org.elasticsearch.search.suggest.phrase.DirectCandidateGeneratorBuilder;
-import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
 import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xcontent.XContentType;
 import org.elasticsearch.xcontent.json.JsonXContent;
@@ -101,55 +98,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.SuggestMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoostingQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
-import co.elastic.clients.elasticsearch._types.query_dsl.Like;
-import co.elastic.clients.elasticsearch._types.query_dsl.LikeDocument;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchPhraseQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MoreLikeThisQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query.Builder;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.search.InnerHits;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
-import co.elastic.clients.elasticsearch.core.search.SuggestOptionBuilders;
-import co.elastic.clients.elasticsearch.core.search.Suggester;
 import co.elastic.clients.json.JsonData;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newAncestorQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery2;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newMixinTypeQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newNodeTypeQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixPathQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPropertyRestrictionQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
-
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
-import static org.apache.jackrabbit.util.ISO8601.parse;
-import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
-import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
-import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
-import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
-import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
-import static org.elasticsearch.index.query.QueryBuilders.moreLikeThisQuery;
-import static org.elasticsearch.index.query.QueryBuilders.nestedQuery;
-import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
-import static org.elasticsearch.index.query.QueryBuilders.termQuery;
-import static org.elasticsearch.index.query.QueryBuilders.wrapperQuery;
-import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -228,7 +187,8 @@ public class ElasticRequestHandler {
                                     .minTermFreq(1)
                                     .minDocFreq(1)));
                 } else {
-                    bqBuilder.must(similarityQuery2(queryNodePath, sp));
+                    bqBuilder.must(m->m
+                            .bool(similarityQuery(queryNodePath, sp)));
                     if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
                         // add should clause to improve relevance using similarity tags
                         bqBuilder.should(s->s
@@ -389,9 +349,8 @@ public class ElasticRequestHandler {
                 .map(pr -> FulltextIndex.parseFacetField(pr.first.getValue(Type.STRING)));
     }
 
-    @Deprecated
-    private QueryBuilder similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
-        BoolQueryBuilder query = boolQuery();
+    private BoolQuery similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
+        BoolQuery.Builder query = new BoolQuery.Builder();
         if (!sp.isEmpty()) {
             LOG.debug("generating similarity query for {}", text);
             NodeState targetNodeState = rootState;
@@ -452,86 +411,17 @@ public class ElasticRequestHandler {
                     }
                     contentBuilder.endObject();
                     contentBuilder.endObject();
-                    WrapperQueryBuilder wqb = wrapperQuery(Strings.toString(contentBuilder));
-                    query.should(wqb);
+                    
+                    // TODO Angela check 
+                    query.should(s->s
+                            .wrapper(w->w
+                                    .query(Strings.toString(contentBuilder))));
                 } catch (IOException e) {
                     LOG.error("Could not create similarity query ", e);
                 }
             }
         }
-        return query;
-    }
-    
-    private Query similarityQuery2(@NotNull String text, List<PropertyDefinition> sp) {
-        BoolQuery.Builder query = boolQuery();
-        if (!sp.isEmpty()) {
-            LOG.debug("generating similarity query for {}", text);
-            NodeState targetNodeState = rootState;
-            for (String token : PathUtils.elements(text)) {
-                targetNodeState = targetNodeState.getChildNode(token);
-            }
-            if (!targetNodeState.exists()) {
-                throw new IllegalArgumentException("Could not find node " + text);
-            }
-            for (PropertyDefinition propertyDefinition : sp) {
-                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
-                String propertyPath = PathUtils.getParentPath(pd.name);
-                String propertyName = PathUtils.getName(pd.name);
-                NodeState tempState = targetNodeState;
-                for (String token : PathUtils.elements(propertyPath)) {
-                    if (token.isEmpty()) {
-                        break;
-                    }
-                    tempState = tempState.getChildNode(token);
-                }
-                PropertyState ps = tempState.getProperty(propertyName);
-                Blob property = ps != null ? ps.getValue(Type.BINARY) : null;
-                if (property == null) {
-                    LOG.warn("Couldn't find property {} on {}", pd.name, text);
-                    continue;
-                }
-                byte[] bytes;
-                try {
-                    bytes = new BlobByteSource(property).read();
-                } catch (IOException e) {
-                    LOG.error("Error reading bytes from property " + pd.name + " on " + text, e);
-                    continue;
-                }
-                String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
-                try {
-                    XContentBuilder contentBuilder = JsonXContent.contentBuilder();
-                    contentBuilder.startObject();
-                    contentBuilder.field("elastiknn_nearest_neighbors");
-                    contentBuilder.startObject();
-                    {
-                        contentBuilder.field("field", similarityPropFieldName);
-                        contentBuilder.field("vec");
-                        contentBuilder.startObject();
-                        {
-                            contentBuilder.field("values");
-                            contentBuilder.startArray();
-                            for (Double d : toDoubles(bytes)) {
-                                contentBuilder.value(d);
-                            }
-                            contentBuilder.endArray();
-                        }
-                        contentBuilder.endObject();
-                        contentBuilder.field("model", pd.getSimilaritySearchParameters().getQueryModel());
-                        contentBuilder.field("similarity",
-                                pd.getSimilaritySearchParameters().getQueryTimeSimilarityFunction());
-                        contentBuilder.field("candidates", pd.getSimilaritySearchParameters().getCandidates());
-                        contentBuilder.field("probes", pd.getSimilaritySearchParameters().getProbes());
-                    }
-                    contentBuilder.endObject();
-                    contentBuilder.endObject();
-                    WrapperQueryBuilder wqb = wrapperQuery(Strings.toString(contentBuilder));
-                    query.should(wqb);
-                } catch (IOException e) {
-                    LOG.error("Could not create similarity query ", e);
-                }
-            }
-        }
-        return query.build;
+        return query.build();
     }
 
     /*
@@ -621,51 +511,38 @@ public class ElasticRequestHandler {
         return mlt.build();
     }
 
-    @Deprecated
-    public PhraseSuggestionBuilder suggestQuery(String spellCheckQuery) {
-        BoolQueryBuilder query = boolQuery().must(new MatchPhraseQueryBuilder(FieldNames.SPELLCHECK, "{{suggestion}}"));
+    public PhraseSuggester suggestQuery(String spellCheckQuery) {
+        BoolQuery.Builder query = new BoolQuery.Builder()
+                .must(m->m
+                        .matchPhrase(mp->mp
+                                .field(FieldNames.SPELLCHECK)
+                                .query("{{suggestion}}")));
 
         nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
 
-        PhraseSuggestionBuilder.CandidateGenerator candidateGeneratorBuilder = new DirectCandidateGeneratorBuilder(
-                FieldNames.SPELLCHECK).suggestMode("missing");
-        return SuggestBuilders.phraseSuggestion(FieldNames.SPELLCHECK).size(10)
-                .addCandidateGenerator(candidateGeneratorBuilder).text(spellCheckQuery).collateQuery(query.toString());
+        return PhraseSuggester.of(ps->ps
+                .field(FieldNames.SPELLCHECK)
+                .size(10)
+                .directGenerator(d->d
+                        .field(FieldNames.SPELLCHECK)
+                        .suggestMode(SuggestMode.Missing))
+                .text(spellCheckQuery)
+                .collate(c->c
+                        .query(q->q
+                                .source(query.toString()))));
     }
 
-    public PhraseSuggestionBuilder suggestQuery2(String spellCheckQuery) {
-        Query query2 = Query.of(q -> q
-                .bool(b -> b.must(m -> m.matchPhrase(mp -> mp.field(FieldNames.SPELLCHECK).query("{{suggestion}}")))));
-
-        BoolQueryBuilder query = boolQuery().must(new MatchPhraseQueryBuilder(FieldNames.SPELLCHECK, "{{suggestion}}"));
-
+    public BoolQuery suggestMatchQuery(String suggestion) {
+        BoolQuery.Builder query = new BoolQuery.Builder()
+                .must(m -> m
+                        .match(mm -> mm
+                                .field(FieldNames.SPELLCHECK)
+                                .query(FieldValue.of(suggestion))
+                                .operator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
+                                .fuzzyTranspositions(false)
+                                .autoGenerateSynonymsPhraseQuery(false)));
         nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
-        // TODO nonFullTextConstriant2
-
-        PhraseSuggestionBuilder.CandidateGenerator candidateGeneratorBuilder = new DirectCandidateGeneratorBuilder(
-                FieldNames.SPELLCHECK).suggestMode("missing");
-        return SuggestBuilders.phraseSuggestion(FieldNames.SPELLCHECK).size(10)
-                .addCandidateGenerator(candidateGeneratorBuilder).text(spellCheckQuery).collateQuery(query.toString());
-    }
-
-    @Deprecated
-    public BoolQueryBuilder suggestMatchQuery(String suggestion) {
-        BoolQueryBuilder query = boolQuery().must(new MatchQueryBuilder(FieldNames.SPELLCHECK, suggestion)
-                .operator(Operator.AND).fuzzyTranspositions(false).autoGenerateSynonymsPhraseQuery(false));
-
-        nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
-
-        return query;
-    }
-
-    public Query suggestMatchQuery2(String suggestion) {
-        Query.of(q -> q.bool(
-                b -> b.must(m -> m.match(mm -> mm.field(FieldNames.SPELLCHECK).query(qq -> qq.stringValue(suggestion))
-                        .operator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
-                        .fuzzyTranspositions(false).autoGenerateSynonymsPhraseQuery(false)))));
-        nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
-
-        return query;
+        return query.build();
     }
 
     private Query fullTextQuery(FullTextExpression ft, final PlanResult pr) {
@@ -737,23 +614,18 @@ public class ElasticRequestHandler {
                 if (boost != null) {
                     fullTextQuery.boost(Float.valueOf(boost));
                 }
-                BoolQuery boolQueryBuilder = BoolQuery.of(b->b
+                BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder()
                         .must(m->m
-                                .queryString(fullTextQuery.build())));
-                Stream<BoolQuery> dynamicScoreQueries = dynamicScoreQueries2(text);
-                // TODO Angela HELP
-//                Original code:
-//                BoolQueryBuilder boolQueryBuilder = boolQuery().must(fullTextQuery);
-//                Stream<QueryBuilder> dynamicScoreQueries = dynamicScoreQueries(text);
-//                dynamicScoreQueries.forEach(boolQueryBuilder::should);
-                dynamicScoreQueries.forEach(boolQueryBuilder::should);
+                                .queryString(fullTextQuery.build()));
+                Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(text);
+                dynamicScoreQueries.forEach(dsq -> boolQueryBuilder.should(s->s.nested(dsq)));
 
                 if (not) {
                     result.set(BoolQuery.of(b->b
                             .mustNot(mn->mn
-                                    .bool(boolQueryBuilder))));
+                                    .bool(boolQueryBuilder.build()))));
                 } else {
-                    result.set(boolQueryBuilder);
+                    result.set(boolQueryBuilder.build());
                 }
                 return true;
             }
@@ -762,16 +634,20 @@ public class ElasticRequestHandler {
                 .bool(result.get()));
     }
 
-    @Deprecated
-    private Stream<Query.Builder> dynamicScoreQueries(String text) {
+    private Stream<NestedQuery> dynamicScoreQueries(String text) {
         return elasticIndexDefinition.getDynamicBoostProperties().stream()
-                .map(pd -> nestedQuery(pd.nodeName, functionScoreQuery()),
-                        ScoreFunctionBuilders.fieldValueFactorFunction(pd.nodeName + ".boost")), ScoreMode.Avg));
-    }
-    private Stream<BoolQuery> dynamicScoreQueries2(String text) {
-        return elasticIndexDefinition.getDynamicBoostProperties().stream()
-                .map(pd -> NestedQuery.of(n->n.path(pd.nodeName).query(functionScoreQuery())) ,
-                        ScoreFunctionBuilders.fieldValueFactorFunction(pd.nodeName + ".boost")), ScoreMode.Avg));
+                .map(pd -> NestedQuery.of(n->n
+                        .path(pd.nodeName)
+                        .query(q->q
+                                .functionScore(s->s
+                                        .query(fq->fq
+                                                .match(m->m
+                                                        .field(pd.nodeName + ".value")
+                                                        .query(FieldValue.of(text))))
+                                        .functions(f->f
+                                                .fieldValueFactor(fv->fv
+                                                        .field(pd.nodeName + ".boost")))))
+                        .scoreMode(ChildScoreMode.Avg)));
     }
 
     private List<Query> nonFullTextConstraints(IndexPlan plan, PlanResult planResult) {

@@ -34,6 +34,7 @@
 
   <properties>
     <elasticsearch.version>7.16.3</elasticsearch.version>
+    <elasticsearch.client.version>7.17.0</elasticsearch.client.version>
     <lucene.version>8.10.1</lucene.version>
 	<jackson.version>2.12.3</jackson.version>
   </properties>
@@ -123,7 +124,7 @@
 	<dependency>
       <groupId>co.elastic.clients</groupId>
       <artifactId>elasticsearch-java</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.client.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
