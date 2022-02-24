@@ -57,51 +57,27 @@ public class TermQueryBuilderFactory {
     private TermQueryBuilderFactory() {
     }
 
-    public static PrefixQueryBuilder newPrefixQuery(String field, @NotNull String value) {
-        return prefixQuery(field, value);
-    }
-
-    public static Query newPrefixQuery2(String field, @NotNull String value) {
+    public static Query newPrefixQuery(String field, @NotNull String value) {
         return Query.of(q -> q.prefix(p -> p.field(field).value(value)));
     }
 
-    public static WildcardQueryBuilder newWildcardQuery(String field, @NotNull String value) {
-        return wildcardQuery(field, value);
-    }
-
-    public static Query newWildcardQuery2(String field, @NotNull String value) {
+    public static Query newWildcardQuery(String field, @NotNull String value) {
         return Query.of(q -> q.wildcard(w -> w.field(field).value(value)));
     }
 
-    public static TermQueryBuilder newPathQuery(String path) {
-        return termQuery(PATH, preparePath(path));
-    }
-
-    public static Query newPathQuery2(String path) {
+    public static Query newPathQuery(String path) {
         return Query.of(q -> q.term(t -> t.field(PATH).value(FieldValue.of(preparePath(path)))));
     }
 
-    public static PrefixQueryBuilder newPrefixPathQuery(String path) {
-        return prefixQuery(PATH, preparePath(path));
-    }
-
-    public static Query newPrefixPathQuery2(String path) {
+    public static Query newPrefixPathQuery(String path) {
         return Query.of(q -> q.prefix(p -> p.field(PATH).value(path)));
     }
 
-    public static WildcardQueryBuilder newWildcardPathQuery(@NotNull String value) {
-        return wildcardQuery(PATH, value);
-    }
-
-    public static Query newWildcardPathQuery2(@NotNull String value) {
+    public static Query newWildcardPathQuery(@NotNull String value) {
         return Query.of(q -> q.wildcard(w -> w.field(PATH).value(value)));
     }
 
-    public static TermQueryBuilder newAncestorQuery(String path) {
-        return termQuery(FieldNames.ANCESTORS, preparePath(path));
-    }
-
-    public static Query newAncestorQuery2(String path) {
+    public static Query newAncestorQuery(String path) {
         return Query.of(q -> q.term(t -> t.field(FieldNames.ANCESTORS).value(FieldValue.of(preparePath(path)))));
     }
 
