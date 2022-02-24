@@ -308,12 +308,12 @@ public class FulltextIndexPlanner {
             if (queryFilterPattern != null) {
                 if (ft != null && !queryFilterPattern.matcher(ft.toString()).find()) {
                     plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
-                            + queryFilterPattern + " to search for value " + ft.toString());
+                            + queryFilterPattern + " to search for value '" + ft.toString() + "'");
                 }
                  for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-                    if (!queryFilterPattern.matcher(pr.toString()).find()) {
+                    if (!pr.propertyName.startsWith(":") && !queryFilterPattern.matcher(pr.toString()).find()) {
                         plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
-                                + queryFilterPattern + " to search for value " + pr.toString());
+                                + queryFilterPattern + " to search for value '" + pr.toString() + "'");
                     }
                 }
             }

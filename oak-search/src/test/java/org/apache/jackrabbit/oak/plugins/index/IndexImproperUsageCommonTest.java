@@ -63,7 +63,7 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
 
     private static final String PATH_RESTRICTION_WARN_MESSAGE = "Index definition of index used have path restrictions and query won't return nodes from " +
             "those restricted paths";
-    private static final String QUERY_FILTER_WARN_MESSAGE = "improper use of index /oak:index/%s with queryFilterRegex %s";
+    private static final String QUERY_FILTER_WARN_MESSAGE = "improper use of index /oak:index/%s with queryFilterRegex %s to search for value '%s'";
 
     @Before
     public void loggingAppenderStart() {
@@ -148,12 +148,22 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = \"oak\""), containsString(indexOptions.getIndexType() + ":" + indexName));
-            // List appender should not have any warn logs as we are searching under right descendant as per path restrictions
+        	assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"oak\"").contains(indexOptions.getIndexType() + ":" + indexName));
+            // List appender should not have any warn logs as we are searching using a term matching regex
             assertFalse(isWarnMessagePresent(listAppender ,String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex)));
+            
             assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"ack\"").contains(indexOptions.getIndexType() + ":" + indexName));
-            // List appender now will have warn log as we are searching under root(/) but index definition have include path restriction.
-            assertTrue(isWarnMessagePresent(listAppender, String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex)));
+            // List appender now still have warn log as property restriction does not match regex restriction.
+            assertTrue(isWarnMessagePresent(listAppender, String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex, "ack")));
+
+            assertTrue(explain("select [jcr:path] from [nt:base] where [:propa] = \"uck\" and [propb] = \"oak\"").contains(indexOptions.getIndexType() + ":" + indexName));
+            // List appender should not have any warn logs as the property restrictions which does not match regex restriction starts with ":" so is ignored
+            assertFalse(isWarnMessagePresent(listAppender, String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex, "uck")));
+            
+            assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"ock\" and [propb] = \"oak\"").contains(indexOptions.getIndexType() + ":" + indexName));
+            // List appender now still have warn log as one of the property restrictions does not match regex restriction.
+            assertTrue(isWarnMessagePresent(listAppender, String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex, "ock")));
+        
         });
     }
 
