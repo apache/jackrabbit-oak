@@ -35,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Phaser;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
@@ -69,7 +70,7 @@ public class TraverseAndSortTaskTest {
         File store = new File("target/" + this.getClass().getSimpleName() + "-" + System.currentTimeMillis());
         TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, null, store, true,
                 new LinkedList<>(Collections.singletonList("1")), newTaskQueue, phaser, new NodeStateEntryTraverserFactoryImpl(), mockMemManager,
-                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD);
+                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, new ConcurrentLinkedQueue<File>());
 
         NodeStateEntry mockEntry = Mockito.mock(NodeStateEntry.class);
         long lastModified = (lmRange.getLastModifiedFrom() + lmRange.getLastModifiedTo())/2;
