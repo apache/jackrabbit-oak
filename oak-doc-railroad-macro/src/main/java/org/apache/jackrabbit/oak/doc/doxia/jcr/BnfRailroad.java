@@ -33,7 +33,7 @@ public class BnfRailroad implements BnfVisitor {
 
     private static final boolean RAILROAD_DOTS = true;
 
-    private static final Map<String, String> XPATH_KEYWORD_TO_ESCAPE = new HashMap();
+    private static final Map<String, String> XPATH_KEYWORD_TO_ESCAPE = new HashMap<>();
     static {
         XPATH_KEYWORD_TO_ESCAPE.put("|", "@PIPE@");
         XPATH_KEYWORD_TO_ESCAPE.put("element", "@ELEMENT@");
@@ -240,5 +240,17 @@ public class BnfRailroad implements BnfVisitor {
         buff.append("</td><td class=\"le\"></td></tr></table>");
         html = buff.toString();
     }
+    
+    @Override
+    public void visitRuleOptional(ArrayList<Rule> list) {
+        for (Rule r : list) {
+            visitRuleOptional(r);
+        }
+    }
+
+    @Override
+    public void visitRuleExtension(Rule rule, boolean compatibility) {
+        // not used
+    }    
 
 }

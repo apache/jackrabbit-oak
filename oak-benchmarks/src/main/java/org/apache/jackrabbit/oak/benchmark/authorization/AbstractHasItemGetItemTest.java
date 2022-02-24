@@ -94,11 +94,16 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
             int cnt = 0;
             int targetCnt = (principal.getName().equals(pGrantedRead.getName())) ? numberOfACEs-1 : numberOfACEs;
             while (cnt < targetCnt) {
-                if (Utils.addEntry(acMgr, principal, getRandom(nodePaths), (Privilege[]) Utils.getRandom(allPrivileges, 3).toArray(new Privilege[0]))) {
+                if (createEntry(acMgr, principal, getRandom(nodePaths), (Privilege[]) Utils.getRandom(allPrivileges, 3).toArray(new Privilege[0]))) {
                     cnt++;
                 }
             }
         }
+    }
+    
+    boolean createEntry(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal, @NotNull String path, 
+                        @NotNull Privilege[] privileges) throws RepositoryException {
+        return Utils.addEntry(acMgr, principal, path, privileges);
     }
 
     @Override

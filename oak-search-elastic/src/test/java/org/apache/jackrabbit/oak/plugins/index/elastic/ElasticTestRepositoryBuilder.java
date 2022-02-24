@@ -38,13 +38,15 @@ import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvid
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
     private final ElasticConnection esConnection;
+    private final ElasticIndexTracker indexTracker;
     private final int asyncIndexingTimeInSeconds = 5;
 
     public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
+        this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = getIndexEditorProvider();
-        this.indexProvider = new ElasticIndexProvider(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        this.indexProvider = new ElasticIndexProvider(indexTracker);
         this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
                 editorProvider,
                 new NodeCounterEditorProvider()
@@ -58,7 +60,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 .with(initialContent)
                 .with(securityProvider)
                 .with(editorProvider)
-                .with((Observer) indexProvider)
+                .with(indexTracker)
                 .with(indexProvider)
                 .with(indexEditorProvider)
                 .with(queryIndexProvider)
@@ -70,7 +72,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
     }
 
     private IndexEditorProvider getIndexEditorProvider() {
-        return new ElasticIndexEditorProvider(esConnection,
+        return new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
     }
 }

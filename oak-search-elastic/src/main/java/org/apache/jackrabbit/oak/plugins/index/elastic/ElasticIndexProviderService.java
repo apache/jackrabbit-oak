@@ -21,7 +21,9 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -136,6 +138,9 @@ public class ElasticIndexProviderService {
     @Reference
     private NodeStore nodeStore;
 
+    @Reference
+    private AsyncIndexInfoService asyncIndexInfoService;
+
     @Reference(policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL,
             policyOption = ReferencePolicyOption.GREEDY
@@ -151,6 +156,8 @@ public class ElasticIndexProviderService {
     private File textExtractionDir;
 
     private ElasticConnection elasticConnection;
+    private ElasticMetricHandler metricHandler;
+    private ElasticIndexTracker indexTracker;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -166,6 +173,23 @@ public class ElasticIndexProviderService {
         //initializeExtractedTextCache(config, statisticsProvider);
 
         elasticConnection = getElasticConnection(config);
+        metricHandler = new ElasticMetricHandler(statisticsProvider);
+        indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler);
+
+        // register observer needed for index tracking
+        regs.add(bundleContext.registerService(Observer.class.getName(), indexTracker, null));
+
+        // register info provider for oak index stats
+        regs.add(bundleContext.registerService(IndexInfoProvider.class.getName(),
+                new ElasticIndexInfoProvider(indexTracker, asyncIndexInfoService), null));
+
+        // register mbean for detailed elastic stats and utility actions
+        ElasticIndexMBean mBean = new ElasticIndexMBean(indexTracker);
+        oakRegs.add(registerMBean(whiteboard,
+                ElasticIndexMBean.class,
+                mBean,
+                ElasticIndexMBean.TYPE,
+                "Elastic Index statistics"));
 
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
@@ -205,10 +229,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexProvider(BundleContext bundleContext) {
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(elasticConnection, new ElasticMetricHandler(statisticsProvider));
-
-        // register observer needed for index tracking
-        regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
@@ -216,7 +237,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexEditor(BundleContext bundleContext) {
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(elasticConnection, extractedTextCache);
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);

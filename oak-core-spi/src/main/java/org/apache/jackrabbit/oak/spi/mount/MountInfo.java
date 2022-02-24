@@ -79,8 +79,12 @@ public final class MountInfo implements Mount {
     @Override
     public boolean isDirectlyUnder(String path) {
         path = SANITIZE_PATH.apply(path);
-        String nextPath = includedPaths.higher(path);
-        return nextPath != null && path.equals(getParentPath(nextPath));
+        for (String nextPath : includedPaths) {
+            if (path.equals(getParentPath(nextPath))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

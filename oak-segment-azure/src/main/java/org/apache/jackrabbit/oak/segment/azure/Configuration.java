@@ -54,6 +54,17 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
     @AttributeDefinition(
             name = "Azure connection string (optional)",
             description = "Connection string to be used to connect to the Azure Storage. " +
-                    "Setting it will override the accountName and accessKey properties.")
+                    "Setting it will take precedence over accountName/accessKey and sharedAccessSignature properties.")
     String connectionURL() default "";
+
+    @AttributeDefinition(
+        name = "Azure Shared Access Signature (optional)",
+        description = "Shared Access Signature string to be used to connect to the Azure Storage. " +
+            "Setting it will take precedence over accountName/accessKey properties.")
+    String sharedAccessSignature() default "";
+
+    @AttributeDefinition(
+        name = "Azure Blob Endpoint URL (optional)",
+        description = "Blob Endpoint URL used to connect to the Azure Storage")
+    String blobEndpoint() default "";
 }

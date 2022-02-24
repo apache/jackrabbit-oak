@@ -1333,7 +1333,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void testSetPolicyWithRestrictions() throws Exception {
         ACL acl = TestUtility.getApplicablePolicy(acMgr, testPath);
         acl.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("/a/b", valueFactory));
-        acl.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("/c/d", valueFactory));
+        acl.addEntry(testPrincipal, testPrivileges, true, null, Collections.singletonMap(REP_GLOBS, new Value[] {valueFactory.createValue("/c/d")}));
         acMgr.setPolicy(testPath, acl);
         root.commit();
 

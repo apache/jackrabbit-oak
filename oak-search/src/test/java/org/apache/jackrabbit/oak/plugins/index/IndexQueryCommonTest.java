@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -73,6 +74,9 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         TestUtil.enableFunctionIndex(props, "upper([name])");
         TestUtil.enableForFullText(props, "propa", false);
         TestUtil.enableForFullText(props, "propb", false);
+
+        Tree dateProp = TestUtil.enableForOrdered(props, "propDate");
+        dateProp.setProperty(FulltextIndexConstants.PROP_TYPE, "Date");
 
         root.commit();
     }
@@ -524,6 +528,46 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void fullTextQueryGeneric() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+
+        Tree testNodeA = test.addChild("nodea");
+        testNodeA.setProperty("a", "hello");
+        testNodeA.setProperty("b", "ocean");
+
+        Tree testNodeB = test.addChild("nodeb");
+        testNodeB.setProperty("a", "hello world");
+        testNodeB.setProperty("b", "soccer-shoe");
+
+        Tree testNodeC = test.addChild("nodec");
+        testNodeC.setProperty("a", "hello");
+        testNodeC.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            // case insensitive
+            assertQuery("//*[jcr:contains(., 'WORLD')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // wild card
+            assertQuery("//*[jcr:contains(., 'Hell*')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'He*o')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., '*llo')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., '?orld')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'wo?ld')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'worl?')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // space explained as AND
+            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // exclude
+            assertQuery("//*[jcr:contains(., 'hello -world')] ", XPATH, Arrays.asList("/test/nodea"));
+
+            // explicit OR
+            assertQuery("//*[jcr:contains(., 'ocean OR world')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+        });
+    }
+
+    @Test
     public void testInequalityQuery_native() throws Exception {
 
         Tree test = root.getTree("/").addChild("test");
@@ -634,6 +678,97 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void testDateQueryWithIncorrectData() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propDate", "foo");
+        test.getChild("test1").setProperty("propa", "bar");
+        test.addChild("test2").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "bar");
+        test.addChild("test3").setProperty("propDate", "2022-01-22T01:02:03.000Z", Type.DATE);
+        root.commit();
+
+        // Query on propa should work fine even if the data on propDate is of incorrect type (i.e String instead of Date)
+        // It should return both /test/test1 -> where content for propDate is of incorrect data type
+        // and /test/test2 -> where content for propDate is of correct data type.
+        String query = "/jcr:root/test//*[propa='bar']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test2", "/test/test1"));
+        });
+
+        // Check inequality query on propDate - this should not return /test/test1 -> since that node should not have been indexed for propDate
+        // due to incorrect data type in the content for this property.
+        String query2 = "/jcr:root/test//*[propDate!='2021-01-22T01:02:03.000Z']";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test3"));
+        });
+    }
+
+    @Test
+    public void testQueryWithDifferentDataTypesForSameProperty() throws Exception {
+        // propa doesn't have any type defined in index - so by default it's a String type property
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "bar");
+        test.addChild("test2").setProperty("propa", 10);
+        test.addChild("test3").setProperty("propa", 10L);
+        test.addChild("test4").setProperty("propa", true);
+        root.commit();
+
+        // Below queries will ensure propa is searchable with different data types as content and behaviour is similar for lucene and elastic.
+        String query = "/jcr:root/test//*[propa='bar']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
+        });
+
+        String query2 = "/jcr:root/test//*[propa=true]";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
+        });
+
+        String query3 = "/jcr:root/test//*[propa=10]";
+        assertEventually(() -> {
+            assertQuery(query3, XPATH, Arrays.asList("/test/test2", "/test/test3"));
+        });
+    }
+
+    @Test
+    public void testDateQueryWithCorrectData() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.getChild("test1").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "foo");
+        root.commit();
+
+        // Test query returns correct node on querying on dateProp
+        String query = "/jcr:root/test//*[propDate='2021-01-22T01:02:03.000Z']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
+        });
+
+        // Test query returns correct node on querying on String type property
+        String query2 = "/jcr:root/test//*[propa='foo']";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2"));
+        });
+    }
+
+    @Test
+    public void testDateQueryWithCorrectData_Ordered() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.getChild("test1").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test2").setProperty("propDate", "2019-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propDate", "2020-01-22T01:02:03.000Z", Type.DATE);
+        root.commit();
+
+        // Test query returns correct node on querying on dateProp
+        String query = "/jcr:root/test//*[propa='foo'] order by @propDate descending";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1", "/test/test3", "/test/test2"), true, true);
+        });
+    }
 
     private static Tree child(Tree t, String n, String type) {
         Tree t1 = t.addChild(n);

@@ -30,11 +30,15 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextDocumen
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticDocumentMaker.class);
 
     public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                 @NotNull IndexDefinition definition,
@@ -86,7 +90,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected boolean indexFacetProperty(ElasticDocument doc, int tag, PropertyState property, String pname) {
         // faceting on ES works automatically for keyword (propertyIndex) and subsequently query params.
-        // We we don't need to add anything.
+        // We don't need to add anything.
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-terms-aggregation.html
         return false;
     }
@@ -138,22 +142,33 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
-        int tag = property.getType().tag();
-
+        // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
+        // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
+        // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
+        // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
+        int tag = pd.getType();
         Object f;
-        if (tag == Type.LONG.tag()) {
-            f = property.getValue(Type.LONG, i);
-        } else if (tag == Type.DATE.tag()) {
-            f = property.getValue(Type.DATE, i);
-        } else if (tag == Type.DOUBLE.tag()) {
-            f = property.getValue(Type.DOUBLE, i);
-        } else if (tag == Type.BOOLEAN.tag()) {
-            f = property.getValue(Type.BOOLEAN, i).toString();
-        } else {
-            f = property.getValue(Type.STRING, i);
-        }
+        try {
+            if (tag == Type.LONG.tag()) {
+                f = property.getValue(Type.LONG, i);
+            } else if (tag == Type.DATE.tag()) {
+                f = property.getValue(Type.DATE, i);
+            } else if (tag == Type.DOUBLE.tag()) {
+                f = property.getValue(Type.DOUBLE, i);
+            } else if (tag == Type.BOOLEAN.tag()) {
+                f = property.getValue(Type.BOOLEAN, i).toString();
+            } else {
+                f = property.getValue(Type.STRING, i);
+            }
 
-        doc.addProperty(pname, f);
+            doc.addProperty(pname, f);
+        } catch (Exception e) {
+            LOG.warn(
+                    "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
+                    getIndexName(), pname,
+                    Type.fromTag(property.getType().tag(), false),
+                    Type.fromTag(tag, false), path, e);
+        }
     }
 
     /**
@@ -200,9 +215,15 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob) throws IOException {
-        // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
-        // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
-        doc.addSimilarityField(pd.name, blob);
+        // without this check, if the vector size is not correct, the entire document will be skipped
+        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / 8) {
+            // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
+            // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
+            doc.addSimilarityField(pd.name, blob);
+        } else {
+            LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
+                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / 8);
+        }
     }
 
     @Override

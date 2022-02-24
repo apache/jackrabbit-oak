@@ -235,7 +235,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         IndexDefinitionBuilder builder = createIndex(fieldName1);
         Tree tree = builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true).nodeScopeIndex()
                 .similaritySearchDenseVectorSize(2048).getBuilderTree();
-        tree.setProperty(ElasticPropertyDefinition.PROP_INDEX_SIMILARITY, "angular");
+        tree.setProperty(ElasticPropertyDefinition.PROP_INDEX_SIMILARITY, "cosine");
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_TABLES, 10);
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_FUNCTIONS, 12);
 
@@ -253,11 +253,40 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         Map<String, Object> map1 = (Map<String, Object>)(((Map<String, Object>)mappings.entrySet().iterator().next().getValue().
                 get(similarityFieldName1).sourceAsMap().get(similarityFieldName1)).get("elastiknn"));
         assertEquals("Dense vector size doesn't match", 2048, (int)map1.get("dims"));
-        assertEquals("Similarity doesn't match", "angular", map1.get("similarity"));
+        assertEquals("Similarity doesn't match", "cosine", map1.get("similarity"));
         assertEquals("Similarity doesn't match", 10, map1.get("L"));
         assertEquals("Similarity doesn't match", 12, map1.get("k"));
     }
 
+    @Test
+    public void vectorSimilarityWithWrongVectorSizes() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("fv");
+        builder.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex()
+                .similaritySearchDenseVectorSize(100);// test FVs have size 1048
+        Tree index = setIndex("test1", builder);
+        root.commit();
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            String[] split = line.split(",");
+            List<Double> values = Arrays.stream(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            byte[] bytes = toByteArray(values);
+            List<Double> actual = toDoubles(bytes);
+            assertEquals(values, actual);
+
+            Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+            String name = split[0];
+            Tree child = test.addChild(name);
+            child.setProperty("fv", blob, Type.BINARY);
+        }
+        root.commit();
+
+        // regardless of the wrong vectors, we should be able to index
+        assertEventually(() -> assertEquals(10, countDocuments(index)));
+    }
 
     @Test
     public void vectorSimilarity() throws Exception {

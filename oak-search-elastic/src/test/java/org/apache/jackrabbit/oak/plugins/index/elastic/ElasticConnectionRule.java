@@ -53,7 +53,7 @@ public class ElasticConnectionRule extends ExternalResource {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticConnectionRule.class);
 
     private static final String INDEX_PREFIX = "elastic_test";
-    private static final String PLUGIN_DIGEST = "060117b4150c87274d9cff0925ec16e714f28a40906a53a2cd2a23322bbb3189";
+    private static final String PLUGIN_DIGEST = "db479aeee452b2a0f6e3c619ecdf27ca5853e54e7bc787e5c56a49899c249240";
     private static boolean useDocker = false;
 
     private final String elasticConnectionString;
@@ -71,7 +71,7 @@ public class ElasticConnectionRule extends ExternalResource {
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
         // see if docker is to be used or not... initialize docker rule only if that's the case.
-        final String pluginVersion = "7.10.2.3";
+        final String pluginVersion = "7.16.3.0";
         final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
         final String localPluginPath = "target/" + pluginFileName;
         downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);

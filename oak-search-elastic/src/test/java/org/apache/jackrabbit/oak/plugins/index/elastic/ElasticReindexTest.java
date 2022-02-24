@@ -29,8 +29,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -79,18 +77,19 @@ public class ElasticReindexTest {
     private void createRepository() throws RepositoryException {
         ElasticConnection connection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(connection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(connection,
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
                 new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
+                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         NodeStore nodeStore = new MemoryNodeStore(INITIAL_CONTENT);
 
         Oak oak = new Oak(nodeStore)
                 .with(new OpenSecurityProvider())
                 .with(editorProvider)
-                .with((Observer) indexProvider)
-                .with((QueryIndexProvider) indexProvider)
+                .with(indexTracker)
+                .with(indexProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider());
 

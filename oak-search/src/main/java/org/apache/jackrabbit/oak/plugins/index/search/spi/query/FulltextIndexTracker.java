@@ -54,7 +54,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IND
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
+public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N extends IndexNode> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FulltextIndexTracker.class);
     private static final PerfLogger PERF_LOGGER =
@@ -94,7 +94,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
 
     /**
      * Receives the before and after state to decide when to reload the {@link IndexNode}.
-     * By default it checks for changes of the :status node and the index definition.
+     * By default, it checks for changes of the :status node and the index definition.
      *
      * @param before before state, non-existent if this node was added
      * @param after after state, non-existent if this node was removed
@@ -174,9 +174,9 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
         refresh = true;
     }
 
-    public IndexNode acquireIndexNode(String path, String type) {
+    public N acquireIndexNode(String path, String type) {
         I index = indices.get(path);
-        IndexNode indexNode = index != null ? index.acquire() : null;
+        N indexNode = index != null ? index.acquire() : null;
         if (indexNode != null) {
             return indexNode;
         } else {
@@ -195,7 +195,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
         return null;
     }
 
-    Set<String> getIndexNodePaths(){
+    public Set<String> getIndexNodePaths(){
         return indices.keySet();
     }
 
@@ -207,13 +207,13 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
         return root;
     }
 
-    private synchronized IndexNode findIndexNode(String path, String type) {
+    private synchronized N findIndexNode(String path, String type) {
         // Retry the lookup from acquireIndexNode now that we're
         // synchronized. The acquire() call is guaranteed to succeed
         // since the close() method is also synchronized.
         I index = indices.get(path);
         if (index != null) {
-            IndexNode indexNode = index.acquire();
+            N indexNode = index.acquire();
             return checkNotNull(indexNode);
         }
 
@@ -230,7 +230,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
             if (IndexHelper.isIndexNodeOfType(node, type)) {
                 index = openIndex(path, root, node);
                 if (index != null) {
-                    IndexNode indexNode = index.acquire();
+                    N indexNode = index.acquire();
                     checkNotNull(indexNode);
                     indices = ImmutableMap.<String, I>builder()
                             .putAll(indices)
@@ -248,7 +248,6 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
 
         return null;
     }
-
 
     private static boolean isStatusChanged(NodeState before, NodeState after) {
         return !EqualsDiff.equals(before.getChildNode(STATUS_NODE), after.getChildNode(STATUS_NODE));

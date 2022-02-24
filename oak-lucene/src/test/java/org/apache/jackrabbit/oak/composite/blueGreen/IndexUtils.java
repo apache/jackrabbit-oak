@@ -142,7 +142,7 @@ public class IndexUtils {
         try {
             libsNode.addNode("illegal");
             Assert.fail();
-        } catch (UnsupportedOperationException e) {
+        } catch (RepositoryException e) {
             // expected
         }
     }

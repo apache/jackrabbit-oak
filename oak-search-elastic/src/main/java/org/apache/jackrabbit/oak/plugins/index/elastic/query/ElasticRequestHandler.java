@@ -16,73 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import org.apache.http.entity.ContentType;
-import org.apache.http.nio.entity.NByteArrayEntity;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.MoreLikeThisHelperUtil;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.search.join.ScoreMode;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.InnerHitBuilder;
-import org.elasticsearch.index.query.MatchBoolPrefixQueryBuilder;
-import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.query.MoreLikeThisQueryBuilder;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.index.query.NestedQueryBuilder;
-import org.elasticsearch.index.query.Operator;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.WrapperQueryBuilder;
-import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
-import org.elasticsearch.search.suggest.SuggestBuilders;
-import org.elasticsearch.search.suggest.phrase.DirectCandidateGeneratorBuilder;
-import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -96,6 +29,75 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import javax.jcr.PropertyType;
+
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NByteArrayEntity;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.MoreLikeThisHelperUtil;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.search.join.ScoreMode;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.InnerHitBuilder;
+import org.elasticsearch.index.query.MatchBoolPrefixQueryBuilder;
+import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.MoreLikeThisQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.NestedQueryBuilder;
+import org.elasticsearch.index.query.Operator;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.QueryStringQueryBuilder;
+import org.elasticsearch.index.query.WrapperQueryBuilder;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.phrase.DirectCandidateGeneratorBuilder;
+import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentType;
+import org.elasticsearch.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -113,19 +115,17 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
-import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.moreLikeThisQuery;
-import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.nestedQuery;
 import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
-import static org.elasticsearch.index.query.QueryBuilders.simpleQueryStringQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 import static org.elasticsearch.index.query.QueryBuilders.wrapperQuery;
+import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -568,11 +568,9 @@ public class ElasticRequestHandler {
                 if (boost != null) {
                     fullTextQuery.boost(Float.parseFloat(boost));
                 }
-                BoolQueryBuilder shouldBoolQueryWrapper = boolQuery().should(fullTextQuery);
-                // add dynamic boosts in OR if available
+                BoolQueryBuilder boolQueryBuilder = boolQuery().must(fullTextQuery);
                 Stream<QueryBuilder> dynamicScoreQueries = dynamicScoreQueries(text);
-                dynamicScoreQueries.forEach(shouldBoolQueryWrapper::should);
-                BoolQueryBuilder boolQueryBuilder = boolQuery().must(shouldBoolQueryWrapper);
+                dynamicScoreQueries.forEach(boolQueryBuilder::should);
 
                 if (not) {
                     BoolQueryBuilder bq = boolQuery().mustNot(boolQueryBuilder);
@@ -779,41 +777,13 @@ public class ElasticRequestHandler {
     }
 
     private static QueryBuilder fullTextQuery(String text, String fieldName, PlanResult pr) {
-        // default match query are executed in OR, we need to use AND instead to avoid that
-        // every document having at least one term in the `text` will match. If there are multiple
-        // contains clause they will go to different match queries and will be executed in OR
-        if (FieldNames.FULLTEXT.equals(fieldName) && !pr.indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
-            MultiMatchQueryBuilder multiMatchQuery = multiMatchQuery(text)
-                    .operator(Operator.AND)
-                    .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS);
-            pr.indexingRule.getNodeScopeAnalyzedProps().forEach(pd -> multiMatchQuery.field(pd.name, pd.boost));
-            // Add the query for actual fulltext field also. That query would not be boosted
-            // and could contain other parts like renditions, node name, etc
-            return multiMatchQuery.field(fieldName);
-        } else {
-            // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
-            // simpleQueryStringQuery does not support leading wildcards whereas it's supported by default in queryStringQuery
-            // Not using queryStringQuery by default , since some functional cases break.
-            // simpleQueryStringQuery is less Strict, for instance searches for terms starting with / work, whereas
-            // with queryStringQuery, they throw an Exception (which ultimately results in an empty result set in oak),
-            // so using simpleQueryStringQuery by default would break certain functional cases.
-            // So only support this in case any term in the text String actually starts with *
-            // For example *hello or Hello *world
-            String[] textTerms = text.split(" ");
-            boolean allowLeadingWildCard = false;
-            for(String textTerm : textTerms) {
-                if (textTerm.startsWith("*")) {
-                    allowLeadingWildCard = true;
-                    break;
-                }
-            }
-
-            if (allowLeadingWildCard) {
-                return queryStringQuery(text).field(fieldName).defaultOperator(Operator.AND);
-            } else {
-                return simpleQueryStringQuery(text).analyzeWildcard(true).field(fieldName).defaultOperator(Operator.AND);
-            }
+        LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
+        QueryStringQueryBuilder queryStringQueryBuilder = queryStringQuery(FulltextIndex.rewriteQueryText(text)).defaultOperator(
+                Operator.AND).type(MultiMatchQueryBuilder.Type.CROSS_FIELDS);
+        if (FieldNames.FULLTEXT.equals(fieldName)) {
+            pr.indexingRule.getNodeScopeAnalyzedProps().forEach(pd -> queryStringQueryBuilder.field(pd.name, pd.boost));
         }
+        return queryStringQueryBuilder.field(fieldName);
     }
 
     private QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,

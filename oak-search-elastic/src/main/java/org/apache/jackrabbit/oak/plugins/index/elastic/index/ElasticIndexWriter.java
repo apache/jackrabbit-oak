@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -39,7 +41,7 @@ import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.xcontent.XContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
@@ -50,12 +52,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
 
 class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexWriter.class);
 
+    private final ElasticIndexTracker indexTracker;
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
 
@@ -64,10 +67,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final boolean reindex;
     private final String indexName;
 
-    ElasticIndexWriter(@NotNull ElasticConnection elasticConnection,
+    ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
+                       @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull NodeBuilder definitionBuilder,
                        boolean reindex, CommitInfo commitInfo) {
+        this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.reindex = reindex;
@@ -94,9 +99,11 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     @TestOnly
-    ElasticIndexWriter(@NotNull ElasticConnection elasticConnection,
+    ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
+                       @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler) {
+        this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.bulkProcessorHandler = bulkProcessorHandler;
@@ -126,7 +133,27 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             // if we are closing a writer in reindex mode, it means we need to open the new index for queries
             this.enableIndex();
         }
+        if (updateStatus) {
+            // update the metrics only when ES has been updated. This is anyway a best-effort attempt since indexes are
+            // refreshed asynchronously and the values could be not up-to-date. The metrics will therefore "eventually
+            // converge" with the actual index values.
+            saveMetrics();
+        }
         return updateStatus;
+    }
+
+    private void saveMetrics() {
+        ElasticIndexNode indexNode = indexTracker.acquireIndexNode(indexDefinition.getIndexPath());
+        if (indexNode != null) {
+            try {
+                indexTracker.getElasticMetricHandler().markDocuments(indexName, indexNode.getIndexStatistics().numDocs());
+                indexTracker.getElasticMetricHandler().markSize(indexName, indexNode.getIndexStatistics().size());
+            } catch (Exception e) {
+                LOG.warn("Unable to store metrics for {}", indexNode.getDefinition().getIndexPath(), e);
+            } finally {
+                indexNode.release();
+            }
+        }
     }
 
     private void provisionIndex() throws IOException {

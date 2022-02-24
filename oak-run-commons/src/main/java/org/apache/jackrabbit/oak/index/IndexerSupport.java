@@ -62,7 +62,7 @@ public class IndexerSupport {
      */
     private static final String REINDEX_LANE = "offline-reindex-async";
     private Map<String, String> checkpointInfo = Collections.emptyMap();
-    private final IndexHelper indexHelper;
+    protected final IndexHelper indexHelper;
     private File localIndexDir;
     private File indexDefinitions;
     private String checkpoint;
@@ -119,7 +119,7 @@ public class IndexerSupport {
         }
     }
 
-    private void dumpIndexDefinitions(NodeStore nodeStore) throws IOException, CommitFailedException {
+    protected void dumpIndexDefinitions(NodeStore nodeStore) throws IOException {
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore, indexHelper.getIndexPathService());
         printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
         PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
@@ -150,7 +150,7 @@ public class IndexerSupport {
         dumpIndexDefinitions(copyOnWriteStore);
     }
 
-    private void switchIndexLanesBack(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+    protected void switchIndexLanesBack(NodeStore copyOnWriteStore) throws CommitFailedException {
         NodeState root = copyOnWriteStore.getRoot();
         NodeBuilder builder = root.builder();
 
