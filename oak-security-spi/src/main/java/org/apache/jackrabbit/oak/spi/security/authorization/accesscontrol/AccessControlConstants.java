@@ -93,6 +93,41 @@ public interface AccessControlConstants {
     String REP_CURRENT = "rep:current";
 
     /**
+     * <p>Name of the optional multi-valued access control restriction that allows to combine more than one 
+     * {@link #REP_GLOB} restriction. The effect is equivalent to defining multiple access control entries with a 
+     * single {@link #REP_GLOB} restriction each and will match a given path or item if any of the specified glob-values 
+     * matches.</p>
+     * <p>
+     * Note, that an empty value array will never match any path/item.</p>
+     * <p>
+     * The corresponding restriction type is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}
+     * </p>
+     */
+    String REP_GLOBS = "rep:globs";
+
+    /**
+     * <p>Name of the optional multi-valued access control restriction that allows to limit the effect to one or multiple  
+     * subtrees. It is a simplified variant of the common pattern using 2 {@link #REP_GLOB} wildcard patterns to grant or 
+     * deny access on a particular node in the subtree and all its descendent items.</p>
+     *
+     * <pre>
+     * NodePath = "/foo"
+     * Restriction   |   Matches
+     * -----------------------------------------------------------------------------
+     * /cat          |   all descendants of /foo whose path ends with "/cat" or that have an intermediate segment /cat/
+     * /cat/         |   all descendants of /foo that have an intermediate segment /cat/
+     * cat           |   all siblings or descendants of /foo whose path ends with "cat" or that have an intermediate segment ending with "cat"
+     * cat/          |   all siblings or descendants of /foo that have an intermediate segment ending with "cat"
+     * </pre>
+     *  
+     * <p>Note, that variants of 'cat'-paths could also consist of multiple segments like e.g. '/cat/dog' or '/cat/dog'</p> 
+     * <p>Note, that in contrast to {@link #REP_GLOB}</p> no wildcard characters are used to specify the restriction.
+     * <p>Note, that an empty value array will never match any path/item.</p>
+     * <p>Note, that null values and empty string values will be omitted.</p>
+     */
+    String REP_SUBTREES = "rep:subtrees";
+
+    /**
      * @since OAK 1.0
      */
     String REP_RESTRICTIONS = "rep:restrictions";

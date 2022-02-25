@@ -16,35 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
-import java.io.IOException;
-
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock;
 import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexImporter;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import java.io.File;
+import java.io.IOException;
 
-class IndexImporterSupport extends IndexImporterSupportBase {
+public abstract class IndexImporterSupportBase {
 
-    private final ExtendedIndexHelper extendedIndexHelper;
+    protected final NodeStore nodeStore;
+    protected final IndexHelper indexHelper;
 
-    public IndexImporterSupport(ExtendedIndexHelper extendedIndexHelper) {
-        super(extendedIndexHelper);
-        this.extendedIndexHelper = extendedIndexHelper;
+    public IndexImporterSupportBase(IndexHelper indexHelper) {
+        this.nodeStore = indexHelper.getNodeStore();
+        this.indexHelper = indexHelper;
     }
 
-    @Override
-    protected void addImportProviders(IndexImporter importer) {
-        importer.addImporterProvider(new LuceneIndexImporter(extendedIndexHelper.getGCBlobStore()));
+    public void importIndex(File importDir) throws IOException, CommitFailedException {
+        IndexImporter importer = new IndexImporter(nodeStore, importDir, createIndexEditorProvider(), createLock());
+        addImportProviders(importer);
+        importer.importIndex();
     }
 
     private AsyncIndexerLock createLock() {
@@ -56,18 +54,9 @@ class IndexImporterSupport extends IndexImporterSupportBase {
         return AsyncIndexerLock.NOOP_LOCK;
     }
 
-    @Override
-    protected IndexEditorProvider createIndexEditorProvider() throws IOException {
-        MountInfoProvider mip = extendedIndexHelper.getMountInfoProvider();
-        //Later we can add support for property index and other indexes here
-        return new CompositeIndexEditorProvider(
-                createLuceneEditorProvider(),
-                new PropertyIndexEditorProvider().with(mip),
-                new ReferenceEditorProvider().with(mip)
-        );
-    }
+    protected abstract IndexEditorProvider createIndexEditorProvider() throws IOException;
 
-    private IndexEditorProvider createLuceneEditorProvider() throws IOException {
-        return extendedIndexHelper.getLuceneIndexHelper().createEditorProvider();
-    }
+    protected abstract void addImportProviders(IndexImporter importer);
+
+
 }
