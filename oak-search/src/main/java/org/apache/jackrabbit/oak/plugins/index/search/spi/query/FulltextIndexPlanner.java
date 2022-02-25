@@ -308,12 +308,13 @@ public class FulltextIndexPlanner {
             if (queryFilterPattern != null) {
                 if (ft != null && !queryFilterPattern.matcher(ft.toString()).find()) {
                     plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
-                            + queryFilterPattern + " to search for value '" + ft.toString() + "'");
+                            + queryFilterPattern + " to search for value '" + ft + "'");
                 }
                  for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                	// Ignore properties beginning with ";" like :indexTag / :indexName etx
                     if (!pr.propertyName.startsWith(":") && !queryFilterPattern.matcher(pr.toString()).find()) {
                         plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
-                                + queryFilterPattern + " to search for value '" + pr.toString() + "'");
+                                + queryFilterPattern + " to search for value '" + pr + "'");
                     }
                 }
             }
