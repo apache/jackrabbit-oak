@@ -968,9 +968,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
             Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+            // see https://docs.microsoft.com/en-us/rest/api/storageservices/put-block#uri-parameters
             presignedURIRequestParams.put("comp", "block");
             for (long blockId = 1; blockId <= numParts; ++blockId) {
-                presignedURIRequestParams.put("blockId",
+                presignedURIRequestParams.put("blockid",
                         Base64.encode(String.format("%06d", blockId)));
                 uploadPartURIs.add(
                         createPresignedURI(key,
