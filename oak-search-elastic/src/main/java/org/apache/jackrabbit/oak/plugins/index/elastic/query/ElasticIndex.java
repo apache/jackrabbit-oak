@@ -91,7 +91,7 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
-        return Strings.toString(new ElasticRequestHandler(plan, getPlanResult(plan), rootState).baseQuery());
+        return new ElasticRequestHandler(plan, getPlanResult(plan), rootState).baseQuery().toString();
     }
 
     @Override

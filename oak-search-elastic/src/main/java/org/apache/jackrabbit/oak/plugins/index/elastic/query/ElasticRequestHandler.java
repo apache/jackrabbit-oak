@@ -274,6 +274,7 @@ public class ElasticRequestHandler {
      * @param indexName           the index to query
      * @return a low level {@link Request} instance
      */
+    @Deprecated
     public Request createLowLevelRequest(SearchSourceBuilder searchSourceBuilder, String indexName) {
         String endpoint = "/" + indexName
                 + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";

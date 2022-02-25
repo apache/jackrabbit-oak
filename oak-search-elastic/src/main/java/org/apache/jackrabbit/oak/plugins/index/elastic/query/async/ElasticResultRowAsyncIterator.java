@@ -36,8 +36,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -174,7 +177,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private final List<SearchHitListener> searchHitListeners = new ArrayList<>();
         private final List<AggregationListener> aggregationListeners = new ArrayList<>();
 
-        private final QueryBuilder query;
+        private final BoolQuery query;
         private final List<FieldSortBuilder> sorts;
         private final String[] sourceFields;
 
@@ -318,6 +321,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         /**
          * Triggers a scan of a new chunk of the result set, if needed.
          */
+        @Deprecated
         private void scan() {
             if (semaphore.tryAcquire() && anyDataLeft.get()) {
                 final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
@@ -334,6 +338,32 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
                 searchStartTime = System.currentTimeMillis();
                 Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
+                        indexNode.getDefinition().getIndexAlias());
+                indexNode.getConnection().getOldClient().getLowLevelClient().performRequestAsync(request, this);
+                metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
+            } else {
+                LOG.trace("Scanner is closing or still processing data from the previous scan");
+            }
+        }
+        private void scan2() {
+            if (semaphore.tryAcquire() && anyDataLeft.get()) {
+                /*final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
+                        .query(query)
+                        .size(getFetchSize(requests++))
+                        .fetchSource(sourceFields, null)
+                        .searchAfter(lastHitSortValues);*/
+
+                final co.elastic.clients.elasticsearch.core.SearchRequest searchSourceBuilder = co.elastic.clients.elasticsearch.core.SearchRequest.of(s->s
+                        .index(indexNode.getDefinition().getIndexAlias())
+                        .query(q->q.bool(query))
+                        .size(getFetchSize(requests++))
+                        .source(f->f
+                                .filter(ff->ff.includes(Arrays.asList(sourceFields))))
+                        .searchAfter(Arrays.asList(lastHitSortValues)));
+                LOG.trace("Kicking new search after query {}", searchSourceBuilder.source());
+
+                searchStartTime = System.currentTimeMillis();
+                Request request = elasticRequestHandler.createLowLevelRequest2(searchSourceBuilder,
                         indexNode.getDefinition().getIndexAlias());
                 indexNode.getConnection().getOldClient().getLowLevelClient().performRequestAsync(request, this);
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
