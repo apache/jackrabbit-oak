@@ -150,7 +150,7 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-        	assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"oak\"").contains(indexOptions.getIndexType() + ":" + indexName));
+            assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"oak\"").contains(indexOptions.getIndexType() + ":" + indexName));
             // List appender should not have any warn logs as we are searching using a term matching regex
             assertFalse(isWarnMessagePresent(listAppender ,String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex, "oak")));
             
