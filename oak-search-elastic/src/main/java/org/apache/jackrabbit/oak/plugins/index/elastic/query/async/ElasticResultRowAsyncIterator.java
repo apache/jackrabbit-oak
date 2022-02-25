@@ -194,7 +194,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
-
+        
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
             this.sorts = elasticRequestHandler.baseSorts();
@@ -321,31 +321,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         /**
          * Triggers a scan of a new chunk of the result set, if needed.
          */
-        @Deprecated
         private void scan() {
-            if (semaphore.tryAcquire() && anyDataLeft.get()) {
-                final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
-                        .query(query)
-                        .size(getFetchSize(requests++))
-                        .fetchSource(sourceFields, null)
-                        .searchAfter(lastHitSortValues);
-
-                this.sorts.forEach(searchSourceBuilder::sort);
-
-                final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getIndexAlias())
-                        .source(searchSourceBuilder);
-                LOG.trace("Kicking new search after query {}", searchRequest.source());
-
-                searchStartTime = System.currentTimeMillis();
-                Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
-                        indexNode.getDefinition().getIndexAlias());
-                indexNode.getConnection().getOldClient().getLowLevelClient().performRequestAsync(request, this);
-                metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
-            } else {
-                LOG.trace("Scanner is closing or still processing data from the previous scan");
-            }
-        }
-        private void scan2() {
             if (semaphore.tryAcquire() && anyDataLeft.get()) {
                 /*final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
                         .query(query)
@@ -359,7 +335,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .size(getFetchSize(requests++))
                         .source(f->f
                                 .filter(ff->ff.includes(Arrays.asList(sourceFields))))
-                        .searchAfter(Arrays.asList(lastHitSortValues)));
+                        //TODO Anglea check this
+                        //.searchAfter(Arrays.asList(lastHitSortValues))
+                        );
                 LOG.trace("Kicking new search after query {}", searchSourceBuilder.source());
 
                 searchStartTime = System.currentTimeMillis();
