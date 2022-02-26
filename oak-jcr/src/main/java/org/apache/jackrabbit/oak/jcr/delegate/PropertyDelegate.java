@@ -94,7 +94,7 @@ public class PropertyDelegate extends ItemDelegate {
     public boolean isProtected() throws InvalidItemStateException {
         NodeDelegate p = getParent();
         if (p != null) {
-            return p.isProtected(name);
+            return p.isProtected(name, getPropertyState().getType());
         } else {
             throw newInvalidItemStateException();
         }
