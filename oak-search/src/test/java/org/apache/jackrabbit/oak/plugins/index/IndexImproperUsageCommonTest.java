@@ -24,7 +24,7 @@ import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.Type;import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -63,7 +63,7 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
 
     private static final String PATH_RESTRICTION_WARN_MESSAGE = "Index definition of index used have path restrictions and query won't return nodes from " +
             "those restricted paths";
-    private static final String QUERY_FILTER_WARN_MESSAGE = "improper use of index /oak:index/%s with queryFilterRegex %s";
+    private static final String QUERY_FILTER_WARN_MESSAGE = "improper use of index /oak:index/%s with queryFilterRegex %s to search for value '%s'";
 
     @Before
     public void loggingAppenderStart() {
@@ -140,6 +140,8 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
         final String indexName = "test1";
         Tree idx = createIndex(indexName, of("propa", "propb"));
         idx.setProperty(PROP_QUERY_FILTER_REGEX, regex);
+        idx.setProperty("tags", of("testtag"), Type.STRINGS);
+
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -148,12 +150,18 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = \"oak\""), containsString(indexOptions.getIndexType() + ":" + indexName));
-            // List appender should not have any warn logs as we are searching under right descendant as per path restrictions
-            assertFalse(isWarnMessagePresent(listAppender ,String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex)));
+            assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"oak\"").contains(indexOptions.getIndexType() + ":" + indexName));
+            // List appender should not have any warn logs as we are searching using a term matching regex
+            assertFalse(isWarnMessagePresent(listAppender ,String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex, "oak")));
+            
             assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"ack\"").contains(indexOptions.getIndexType() + ":" + indexName));
-            // List appender now will have warn log as we are searching under root(/) but index definition have include path restriction.
-            assertTrue(isWarnMessagePresent(listAppender, String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex)));
+            // List appender now still have warn log as property restriction does not match regex restriction.
+            assertTrue(isWarnMessagePresent(listAppender, String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex, "ack")));
+          
+            assertTrue(explain("select [jcr:path] from [nt:base] where [propa] = \"oak\" option (index tag testtag)").contains(indexOptions.getIndexType() + ":" + indexName));
+            // List appender should not have any warn logs as the property restrictions which does not match regex restriction starts with ":" so is ignored
+            assertFalse(isWarnMessagePresent(listAppender, String.format(QUERY_FILTER_WARN_MESSAGE, indexName, regex, "testtag")));
+        
         });
     }
 
@@ -175,6 +183,7 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
         Tree index = root.getTree("/");
         return createIndex(index, name, propNames);
     }
+    
 
     public Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
@@ -184,6 +193,7 @@ public abstract class IndexImproperUsageCommonTest extends AbstractQueryTest {
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         def.setProperty(PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 

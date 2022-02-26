@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalU
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
 import org.apache.jackrabbit.oak.benchmark.authorization.GetPrivilegeCollectionIncludeNamesTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.MvGlobsAndSubtreesTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.SaveHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.HasPermissionHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.HasPrivilegesHasItemGetItemTest;
@@ -295,6 +296,11 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfInitialAce().value(options),
                                 benchmarkOptions.getNumberOfGroups().value(options),
                                 benchmarkOptions.getReport().value(options), 
+                                benchmarkOptions.getEvalutionType().value(options)),
+                        new MvGlobsAndSubtreesTest(benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options),
                                 benchmarkOptions.getEvalutionType().value(options)),
                         new ConcurrentReadDeepTreeTest(
                                 benchmarkOptions.getRunAsAdmin().value(options),
