@@ -92,7 +92,7 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public boolean isProtected() throws InvalidItemStateException {
-        return getParent().isProtected(name, state.getType());
+        return getParent().isProtected(name, getPropertyState().getType());
     }
 
     @NotNull

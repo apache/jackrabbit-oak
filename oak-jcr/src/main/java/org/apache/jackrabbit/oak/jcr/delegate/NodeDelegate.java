@@ -212,7 +212,7 @@ public class NodeDelegate extends ItemDelegate {
         // property definitions. Iterate through them to check whether
         // there's a matching, protected one.
         if (protectedResidual) {
-            Tree definition = findMatchingResidualPropertyDefinition(null, types, propertyType, true);
+            Tree definition = findMatchingResidualPropertyDefinition(types, propertyType);
             if (definition != null && TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
                 return true;
             }
@@ -615,13 +615,13 @@ public class NodeDelegate extends ItemDelegate {
         return findMatchingResidualPropertyDefinition(fuzzyMatch, types, propertyType.isArray(), definedType, undefinedType, exactTypeMatch);
     }
 
-    private Tree findMatchingResidualPropertyDefinition(Tree fuzzyMatch, List<Tree> types, Type<?> propertyType, boolean exactTypeMatch) {
+    private Tree findMatchingResidualPropertyDefinition(List<Tree> types, Type<?> propertyType) {
         String definedType = propertyType.toString();
         String undefinedType = UNDEFINED.toString();
         if (propertyType.isArray()) {
             undefinedType = UNDEFINEDS.toString();
         }
-        return findMatchingResidualPropertyDefinition(fuzzyMatch, types, propertyType.isArray(), definedType, undefinedType, exactTypeMatch);
+        return findMatchingResidualPropertyDefinition(null, types, propertyType.isArray(), definedType, undefinedType, true);
     }
 
     private Tree findMatchingResidualPropertyDefinition(Tree fuzzyMatch, List<Tree> types, boolean isMultiValue, String definedType, String undefinedType, boolean exactTypeMatch) {

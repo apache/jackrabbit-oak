@@ -23,18 +23,17 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-import javax.jcr.version.VersionException;
 
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
+
+import com.google.common.collect.Iterators;
 
 public class PropertyTest extends AbstractJCRTest {
 
@@ -285,22 +284,22 @@ public class PropertyTest extends AbstractJCRTest {
         assertEquals(3, pitr.getSize());
         assertEquals(3, Iterators.size(pitr));
     }
-    
-    public void testSetAndRemoveUnprotectedProperty() throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
-    	Property property = node.setProperty(BOOLEAN_PROP_NAME, true);
-    	assertNotNull(property);
-    	property.setValue(false);
-    	superuser.save();
-    	property.remove();
-    	superuser.save();
+
+    public void testSetAndRemoveUnprotectedProperty() throws RepositoryException {
+        Property property = node.setProperty(BOOLEAN_PROP_NAME, true);
+        assertNotNull(property);
+        property.setValue(false);
+        superuser.save();
+        property.remove();
+        superuser.save();
     }
-    
-    public void testSetProtectedResidualProperty() throws ValueFormatException, VersionException, LockException, ConstraintViolationException, RepositoryException {
-    	Value uriValue = ValueFactoryImpl.getInstance().createValue("http://example.com", PropertyType.URI);
-    	try {
-    		node.setProperty("test", uriValue);
-    		fail("Setting protected property (according to residual propery type definition) must throw ConstraintViolationException");
-    	} catch (ConstraintViolationException e) {
+
+    public void testSetProtectedResidualProperty() throws RepositoryException {
+        Value uriValue = ValueFactoryImpl.getInstance().createValue("http://example.com", PropertyType.URI);
+        try {
+            node.setProperty("test", uriValue);
+            fail("Setting protected property (according to residual property type definition) must throw ConstraintViolationException");
+        } catch (ConstraintViolationException e) {
             // success
         }
     }
