@@ -142,6 +142,10 @@ Microsoft Azure node stores are also supported using the following command.  The
 
     $ java -jar oak-run-*.jar explore az:https://myaccount.blob.core.windows.net/container/repository [--skip-size-check]
 
+If using a Shared Access Signature, the SAS token has to be appended to the azure URI.
+
+    $ java -jar oak-run-*.jar explore az:https://myaccount.blob.core.windows.net/container/repository?<sas-token> [--skip-size-check]
+
 frozennoderefsbyscanning
 ------------------------
 
