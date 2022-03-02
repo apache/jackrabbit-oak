@@ -53,6 +53,7 @@ The feature has to be explicitly enabled by setting properties on the DataStore.
 | `presignedHttpDownloadURICacheMaxSize`  | Integer  | 0 (disabled)     | **Experimental.** Cache size for reusing download URLs. Expired URLs will be cached for half their expiry time, hence if this feature is enabled, clients might get URLs that expire after half of `presignedHttpDownloadURIExpirySeconds`. Setting to 0 disables the cache. |
 | `presignedHttpDownloadURIVerifyExists` | Boolean | true | Flag to determine whether to check that a binary exists in blob storage before issuing a presigned download URI.  The default is to verify existence first, providing assurance that the signed URI references an existing binary.  If this flag is set to false, the existence check is skipped.  This makes generating the signed URI anywhere from 100 to 1000 times faster since no network API calls are made, but means it is possible in some cases to return a signed URI that doesn't reference an existing blob.  See [OAK-7998](https://issues.apache.org/jira/browse/OAK-7998) and [OAK-8552](https://issues.apache.org/jira/browse/OAK-8552) for more details. |
 | S3:&nbsp;`presignedURIEnableTransferAcceleration` <br/>Azure:&nbsp;n/a                                     | Boolean  | false (disabled) | **Experimental.** Enables [S3 Transfer Acceleration](https://docs.aws.amazon.com/AmazonS3/latest/dev/transfer-acceleration.html) for both upload and download URLs. Transfer acceleration must be enabled on the S3 bucket before Oak starts. |
+| (`@since Oak 1.44`) `presignedHttpDownloadURIExpirySecondsMax` | Integer | 0 | An optional upper-bound time limit for download URLs. Download URLs will, by default, use the time limit specified by `presignedHttpDownloadURIExpirySeconds`, but clients may optional request a different TTL up to the limit specified by this value.  If not specified, the upper-bound time limit will be the same value as `presignedHttpDownloadURIExpirySeconds`. |
 
 ## API Javadoc
 
@@ -111,6 +112,20 @@ Also note that clients should always check whether the URI returned from the `ge
 
 * If the binary is stored in-line in the node store.  If the binary is smaller than the minimum upload size, it will be stored in the node store instead of in cloud blob storage, and thus a direct download URI cannot be provided.
 * If the data store implementation is using asynchronous uploads and the binary is still in cache.  If a client adds a binary via the repository (i.e. not using the direct binary upload feature) and then immediately requests a download URI for it, it is possible that the binary is still in cache and not yet uploaded to cloud storage, and thus a direct download URI cannot be provided.
+
+`@since Oak 1.44`
+Clients may request a different TTL for the download URI via the `expirySeconds` value of `BinaryDownloadProperties`.  For example, to request a download URI with a custom TTL of 800 seconds, you would do the following:
+
+```
+BinaryDownloadOptions.BinaryDownloadOptionsBuilder builder = BinaryDownloadOptions.builder()
+    .withExpirySeconds(800);
+
+BinaryDownloadOptions options = builder.build();
+```
+
+If the TTL value requested exceeds the maximum configured allowable TTL (as specified by the configuration option `presignedHttpDownloadURIExpirySecondsMax`) or is otherwise invalid, `null` will be returned.  Otherwise, the resulting signed URL will include a signature that is valid for the specified number of seconds.  Additionally, the signed URL will specify that the value of `max-age` in the `Cache-Control` header in responses to requests for this URL be the specified value.
+
+If no custom TTL value is specified, a default value of -1 will be used which signifies to use the default TTL value as specified by the configuration option `presignedHttpDownloadURIExpirySeconds`.  This default value will then be used for the signed URL expiration and for the `max-age` value of the `Cache-Control` header, as described above.
 
 ### Upload
 
