@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -48,10 +46,6 @@ public class BrokenNetworkIT extends TestBase {
 
     private TemporaryFileStore clientFileStore1 = new TemporaryFileStore(folder, true);
 
-    private TemporaryFileStore clientFileStore2 = new TemporaryFileStore(folder, true);
-
-    private NetworkErrorProxy proxy;
-
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
             .around(serverFileStore)
@@ -62,16 +56,6 @@ public class BrokenNetworkIT extends TestBase {
 
     @Rule
     public TemporaryPort proxyPort = new TemporaryPort();
-
-    @Before
-    public void beforeClass() {
-        proxy = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
-    }
-
-    @After
-    public void afterClass() {
-        proxy.close();
-    }
 
     @Test
     public void testProxy() throws Exception {
@@ -190,48 +174,63 @@ public class BrokenNetworkIT extends TestBase {
     }
 
     private void useProxy(boolean ssl, int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
-        FileStore storeS = serverFileStore.fileStore();
-        FileStore storeC = clientFileStore1.fileStore();
-        FileStore storeC2 = clientFileStore2.fileStore();
+        FileStore serverStore = serverFileStore.fileStore();
+        FileStore clientStore = clientFileStore1.fileStore();
 
-        NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
+        NodeStore store = SegmentNodeStoreBuilders.builder(serverStore).build();
         addTestContent(store, "server");
-        storeS.flush();  // this speeds up the test a little bit...
+        serverStore.flush();
 
-        try (
-                StandbyServerSync serverSync =  StandbyServerSync.builder()
-                        .withPort(serverPort.getPort())
-                        .withFileStore(storeS)
-                        .withSecureConnection(ssl)
-                        .build();
-                StandbyClientSync clientSync = StandbyClientSync.builder()
-                        .withPort(proxyPort.getPort())
-                        .withFileStore(storeC)
-                        .withSecureConnection(ssl)
-                        .build();
-        ) {
-            proxy.skipBytes(skipPosition, skipBytes);
-            proxy.flipByte(flipPosition);
-            proxy.connect();
-
+        try (StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(serverStore)
+                .withBlobChunkSize(MB)
+                .withSecureConnection(ssl)
+                .build()) {
             serverSync.start();
 
-            clientSync.run();
+            File spoolFolder = folder.newFolder();
 
-            if (skipBytes > 0 || flipPosition >= 0) {
-                assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
-                assertEquals(storeC2.getHead(), storeC.getHead());
-
-                proxy.reset();
-                if (intermediateChange) {
-                    addTestContent(store, "server2");
-                    storeS.flush();
-                }
+            try (
+                    NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
+                    StandbyClientSync clientSync = StandbyClientSync.builder()
+                            .withHost(getServerHost())
+                            .withPort(proxyPort.getPort())
+                            .withFileStore(clientStore)
+                            .withSecureConnection(ssl)
+                            .withReadTimeoutMs(getClientTimeout())
+                            .withAutoClean(false)
+                            .withSpoolFolder(spoolFolder)
+                            .build()
+            ) {
+                ignored.skipBytes(skipPosition, skipBytes);
+                ignored.flipByte(flipPosition);
+                ignored.connect();
                 clientSync.run();
             }
 
-            assertEquals(storeS.getHead(), storeC.getHead());
+            assertFalse("stores are equal", serverStore.getHead().equals(clientStore.getHead()));
+
+            if (intermediateChange) {
+                addTestContent(store, "server2");
+                serverStore.flush();
+            }
+
+            try (StandbyClientSync clientSync = StandbyClientSync.builder()
+                    .withHost(getServerHost())
+                    .withPort(serverPort.getPort())
+                    .withFileStore(clientStore)
+                    .withSecureConnection(ssl)
+                    .withReadTimeoutMs(getClientTimeout())
+                    .withAutoClean(false)
+                    .withSpoolFolder(spoolFolder)
+                    .build()
+            ) {
+                clientSync.run();
+            }
         }
+
+        assertEquals("stores are not equal", serverStore.getHead(), clientStore.getHead());
     }
 
 }
