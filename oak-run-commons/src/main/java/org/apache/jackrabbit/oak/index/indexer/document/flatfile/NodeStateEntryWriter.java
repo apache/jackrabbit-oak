@@ -19,15 +19,10 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
@@ -40,7 +35,6 @@ import static com.google.common.base.Preconditions.checkState;
 public class NodeStateEntryWriter {
     private static final String OAK_CHILD_ORDER = ":childOrder";
     private static final String DELIMITER = "|";
-    private static final String SLASH_REPLACEMENT = "\t";
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
@@ -74,48 +68,6 @@ public class NodeStateEntryWriter {
         return sb.toString();
     }
 
-    // To Format: \t<prefer>path|{}
-    // /|{}                         => \t|{}
-    // /content|{}                  => \t1content|{}
-    // /content/dam/test|{}         => \t1content\t1dam\t1test|{}
-    // /content/dam/jcr:content|{}  => \t1content\t1dam\t0jcr:content|{}  # ex. jcr:content is preferred
-    public String serialize(List<String> pathElements, String nodeStateAsJson, Set<String> preferred) {
-        int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
-        int numOfSlashes = pathElements.size() == 0 ? pathElements.size() : 1;
-        int serialLength = pathElements.size() + 1; // <prefer>, and delimiter
-        int strSize = nodeStateAsJson.length() + pathStringSize + numOfSlashes + serialLength;
-        StringBuilder sb = new StringBuilder(strSize);
-
-        if (pathElements.size() == 0) {
-            sb.append(SLASH_REPLACEMENT);
-        } else {
-            for (String element : pathElements) {
-                sb.append(SLASH_REPLACEMENT);
-                sb.append(preferred.contains(element) ? '0' : '1');
-                sb.append(element);
-            }
-        }
-
-        sb.append(DELIMITER).append(nodeStateAsJson);
-        return sb.toString();
-    }
-
-    public String deserialize(String content) {
-        String serializedStr = NodeStateEntryWriter.getPath(content);
-        String nodeStateAsJson = NodeStateEntryWriter.getNodeState(content);
-
-        String subStr = serializedStr.substring(1);
-        List<String> pathElements = new ArrayList<String>();
-        if (subStr.length() != 0) {
-            List<String> list = new ArrayList<String>(
-                    Arrays.asList(subStr.split(SLASH_REPLACEMENT)));
-            pathElements = list.stream()
-                    .map(str -> str.substring(1))
-                    .collect(Collectors.toList());
-        }
-        return toString(pathElements, nodeStateAsJson);
-    }
-
     public String asJson(NodeState nodeState) {
         jw.resetWriter();
         jw.object();
@@ -138,10 +90,6 @@ public class NodeStateEntryWriter {
 
     public static String getPath(String entryLine){
         return entryLine.substring(0, getDelimiterPosition(entryLine));
-    }
-
-    public static String getNodeState(String entryLine){
-        return entryLine.substring(getDelimiterPosition(entryLine) + 1);
     }
 
     public static String[] getParts(String line) {

@@ -20,9 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -170,4 +168,5 @@ public class NodeStateEntryWriterTest {
         assertTrue("Mem usage should increase with longer path", size2 > size1);
         assertTrue("Mem usage should increase with bigger node state", size3 > size2);
     }
+
 }

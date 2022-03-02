@@ -608,7 +608,6 @@ public class ExternalSort {
                 } catch (Exception e) {}
             }
             for (File f : files) {
-                System.out.printf("=====x deleting %s\n", f.getName());
                 f.delete();
             }
         }

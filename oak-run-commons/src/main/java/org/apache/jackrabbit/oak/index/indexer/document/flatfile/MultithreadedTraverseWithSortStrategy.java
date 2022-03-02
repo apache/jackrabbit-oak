@@ -160,7 +160,6 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      * Comparator used for comparing node states for creating sorted files.
      */
     private final Comparator<NodeStateHolder> comparator;
-    private final Set<String> preferred;
     private final ConcurrentLinkedQueue<File> sortedFiles;
     private final ConcurrentLinkedQueue<Throwable> throwables;
     /**
@@ -238,7 +237,6 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         this.sortedFiles = new ConcurrentLinkedQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
-        this.preferred = pathComparator == null ? new HashSet<>() : pathComparator.getPreferred();
         this.entryWriter = new NodeStateEntryWriter(blobStore);
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
@@ -310,7 +308,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
-        taskQueue.add(new TraverseAndSortTask(range, comparator, preferred, blobStore, storeDir,
+        taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
                 compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold, sortedFiles));
     }
 

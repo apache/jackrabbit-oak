@@ -30,8 +30,17 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Phaser;
@@ -62,7 +71,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final File storeDir;
     private final boolean compressionEnabled;
     private final Comparator<NodeStateHolder> comparator;
-    private final Set<String> preferred;
     private long entryCount;
     private long memoryUsed;
     private final File sortWorkDir;
@@ -100,7 +108,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final long dumpThreshold;
 
     TraverseAndSortTask(MongoDocumentTraverser.TraversingRange range, Comparator<NodeStateHolder> comparator,
-                        Set<String> preferred, BlobStore blobStore, File storeDir, boolean compressionEnabled,
+                        BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                         MemoryManager memoryManager, long dumpThreshold, ConcurrentLinkedQueue parentSortedFiles) throws IOException {
@@ -113,7 +121,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.comparator = comparator;
-        this.preferred = preferred;
         this.completedTasks = completedTasks;
         this.newTasksQueue = newTasksQueue;
         this.phaser = phaser;
@@ -245,7 +252,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
                 newTasksQueue.add(new TraverseAndSortTask(new MongoDocumentTraverser.TraversingRange(
                         new LastModifiedRange(splitPoint, this.lastModifiedUpperBound), null),
-                        comparator, preferred, blobStore, storeDir, compressionEnabled, completedTasks,
+                        comparator, blobStore, storeDir, compressionEnabled, completedTasks,
                         newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold, parentSortedFiles));
                 this.lastModifiedUpperBound = splitPoint;
                 DirectoryHelper.setLastModifiedUpperLimit(sortWorkDir, lastModifiedUpperBound);
