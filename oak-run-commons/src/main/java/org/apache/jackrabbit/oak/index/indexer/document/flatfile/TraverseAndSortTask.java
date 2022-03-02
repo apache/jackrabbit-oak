@@ -167,6 +167,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             completedTasks.add(taskID);
             DirectoryHelper.markCompleted(sortWorkDir);
             parentSortedFiles.addAll(sortedFiles);
+
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
@@ -207,7 +208,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         log.info("{} Dumped {} nodestates in json format in {}",taskID, entryCount, w);
         log.info("{} Created {} sorted files of size {} to merge", taskID,
                 sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
-        parentSortedFiles.addAll(sortedFiles);
     }
 
     File getSortWorkDir() {
@@ -294,7 +294,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             while (!entryBatch.isEmpty()) {
                 NodeStateHolder h = entryBatch.removeFirst();
                 //Here holder line only contains nodeState json
-//                String text = entryWriter.serialize(h.getPathElements(), h.getLine(), preferred);
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
                 writer.write(text);
                 writer.newLine();
@@ -308,8 +307,6 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         DirectoryHelper.markLastProcessedStatus(sortWorkDir, lastSavedNodeStateEntry.getLastModified(),
                 lastSavedNodeStateEntry.getId());
         sortedFiles.add(newtmpfile);
-        log.info("=======x sorted file length {}", sortedFiles.size());
-        log.info("=======x parent sorted file length {}", parentSortedFiles.size());
     }
 
     private void logFlags() {

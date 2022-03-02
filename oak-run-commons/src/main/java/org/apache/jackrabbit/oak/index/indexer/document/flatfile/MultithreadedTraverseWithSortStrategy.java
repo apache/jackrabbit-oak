@@ -338,8 +338,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         Stopwatch w = Stopwatch.createStarted();
         sortedFiles.add(MERGE_POISON_PILL);
         mergePhaser.awaitAdvance(0);
-        log.info("Merging of final sorted files completed in {}", w);
-//        sortStoreFile();
+        log.info("Merging of sorted files completed in {}", w);
         return sortedFile;
     }
 
@@ -347,81 +346,6 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     public long getEntryCount() {
         //todo - get actual entry count for correct progress estimation
         return 0;
-    }
-
-    private File sortStoreFile() throws IOException {
-        log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
-        Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, "original"+getSortedStoreFileName(compressionEnabled));
-//        File serializedSortedFile = new File(storeDir, String.format("serialized-%s", getSortedStoreFileName(false)));
-
-        List<File> inputSortedFilesToMerge = new ArrayList<>(sortedFiles);
-        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
-            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
-            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-            ExternalSort.mergeSortedFiles(inputSortedFilesToMerge,
-                    writer,
-                    comparator,
-                    charset,
-                    true, //distinct
-                    compressionEnabled, //useZip
-                    func2,
-                    func1
-            );
-        }
-
-//        List<String> commands = new ArrayList<String>();
-//        Collections.addAll(commands, "/usr/bin/sort");
-//        Collections.addAll(commands, "-T", storeDir.getAbsolutePath());
-////        Collections.addAll(commands, "-S", "2G");
-//        Collections.addAll(commands, "--parallel", "8");
-//        Collections.addAll(commands, "-o", sortedFile.getAbsolutePath());
-////        Collections.addAll(commands, "-t", "/");
-////        IntStream.range(1, 50).forEach(i -> Collections.addAll(commands, String.format("-k%s,%s", i, i)));
-//        if (compressionEnabled) {
-//            Collections.addAll(commands, "--compress-program", "gzip");
-//            Collections.addAll(commands, "-m");
-//            sortedFiles.forEach(f -> commands.add(String.format("<(gunzip -c %s)", f.getAbsolutePath())));
-//        } else {
-//            Collections.addAll(commands, "-m");
-//            sortedFiles.forEach(f -> commands.add(f.getAbsolutePath()));
-//        }
-//
-//        ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", String.join(" ", commands));
-//        log.info("Running merge command {}", pb.command());
-//        Process p = pb.start();
-//        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-//             BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
-//            String line;
-//            p.waitFor();
-//            log.info("Merging of sorted files completed in {}", w);
-//            while ((line = reader.readLine()) != null) log.info(line);
-//            Boolean hasError = false;
-//            while ((line = errReader.readLine()) != null)  {
-//                log.error(line);
-//                hasError = true;
-//            }
-//            if (hasError) throw new Exception("command execution fail");
-//            log.info("Sort command executed successfully");
-//        } catch (Exception e) {
-//            throw new RuntimeException(String.format("Error while running command %s", pb.command()));
-//        }
-
-//        Stopwatch wDeserialize = Stopwatch.createStarted();
-//        try (BufferedReader reader = FlatFileStoreUtils.createReader(serializedSortedFile, false);
-//             BufferedWriter writer = FlatFileStoreUtils.createWriter(sortedFile, compressionEnabled)) {
-//            String line = reader.readLine();
-//            while (line != null) {
-//                String deserializeLine = entryWriter.deserialize(line);
-//                writer.write(deserializeLine);
-//                writer.newLine();
-//                line = reader.readLine();
-//            }
-//        }
-//        log.info("Deserialize of sorted file completed in {}", wDeserialize);
-
-
-        return sortedFile;
     }
 
     /**
@@ -461,7 +385,6 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                     for (Future<List<File>> result : results) {
                         try {
                             result.get();
-//                            sortedFiles.addAll(result.get());
                         } catch (Throwable e) {
                             throwables.add(e);
                             exceptionsCaught = true;
@@ -481,13 +404,12 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
 
     private class MergeRunner implements Runnable {
-        private final ArrayList<File> lastMergedFiles = new ArrayList<File>();
+        private final ArrayList<File> intermediateMergedFiles = new ArrayList<File>();
         private final ArrayList<File> mergedFiles = new ArrayList<File>();
         private final File sortedFile;
         private final File mergeDir = new File(storeDir, "merge");
         private final int failureThreshold = 100;
-        private File lastMergedFile = null;
-        private final int batchMergeSize = 63;
+        private final int batchMergeSize = 64;
         private int nextMergedLength = 0;
 
 
@@ -516,166 +438,72 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             return true;
         }
 
-        // this might not always be 63 files since the sortedList thread is always adding
-        // but as long as we keep track of files that are already merged we won't merge a file twice
         private ArrayList<File> getUnmergedFiles(int size) {
             ArrayList<File> unmergedFiles = new ArrayList<File>();
-            sortedFiles.forEach(file -> {
-                if (!mergedFiles.contains(file) && unmergedFiles.size() < size) {
-                    unmergedFiles.add(file);
+            for (File f : sortedFiles) {
+                if (!mergedFiles.contains(f) && f != MERGE_POISON_PILL) {
+                    unmergedFiles.add(f);
                 }
-            });
+                if (unmergedFiles.size() == size) {
+                    break;
+                }
+            }
             return unmergedFiles;
         }
-//
-//        private void mergeFromLastPoint(File mergedFile) {
-//            ArrayList<File> unmergedFiles = getUnmergedFiles();
-//
-//            ArrayList<File> mergeTarget = new ArrayList<File>();
-//            mergeTarget.addAll(unmergedFiles);
-//            if (lastMergedFile != null && lastMergedFile.exists()) {
-//                mergeTarget.add(lastMergedFile);
-//            }
-//
-//            boolean success = merge(mergeTarget, mergedFile);
-//            if (success) {
-//                mergedFiles.addAll(unmergedFiles);
-//                nextMergedLength += unmergedFiles.size();
-//                lastMergedFile = mergedFile;
-//            }
-//        }
 
         @Override
         public void run() {
-            // 1. wait for 64 files (compare with merged list)
-            //    construct new list of files to be merged by checking if its already merged
-            // 2. merge with lastMergedFile
+            // 1. wait for n files (compare with merged list)
+            // 2. construct new list of files to be merged by checking if its already merged
+            //    and create intermediate merge file
+            //    (if final merge) merge all intermediate merge files and create sorted file
             // 3. add all merged files to merged list
-            // 4. update last merged file to new one
             int mergeFailureCount = 0;
             nextMergedLength += batchMergeSize;
 
             while (true) {
-                log.info("==========x in loop");
                 if (mergeFailureCount >= failureThreshold) {
                     log.error("give up merging due to failure occurs more than %s times", failureThreshold);
                     break;
                 }
 
                 boolean isFinal = false;
-                File mergedFile = null;
-                int tmp = sortedFiles.size() ;
-                while (sortedFiles.size() < nextMergedLength) {
-                    int size = sortedFiles.size();
-                    if (tmp != size) {
-                        log.info("==========x waiting with current count {} nextMergedLength {}", sortedFiles.size(), nextMergedLength);
-                        tmp = size;
-                    }
-                    // if poison pill appears while waiting, break the loop and to final merge
-                    if (sortedFiles.contains(MERGE_POISON_PILL)) {
-                        log.error("==========x stop waiting because poison pill found");
-                        isFinal = true;
-                        break;
-                    }
-                }
-
-                if (mergedFile == null) {
-                    mergedFile = new File(mergeDir, String.format("intermediate-%s", nextMergedLength));
-                }
-
-                ArrayList<File> unmergedFiles = getUnmergedFiles(isFinal ? Integer.MAX_VALUE : batchMergeSize);
-                if (unmergedFiles.contains(MERGE_POISON_PILL)) {
-                    unmergedFiles.remove(MERGE_POISON_PILL);
-                    mergedFile = sortedFile;
-                    log.info("==========x Find poison pill");
-                }
+                File mergedFile = new File(mergeDir, String.format("intermediate-%s", nextMergedLength));
+                while (sortedFiles.size() <= nextMergedLength && !sortedFiles.contains(MERGE_POISON_PILL)) {}
 
                 ArrayList<File> mergeTarget = new ArrayList<File>();
+                if (sortedFiles.contains(MERGE_POISON_PILL)) {
+                    isFinal = true;
+                    mergedFile = sortedFile;
+                    mergeTarget.addAll(intermediateMergedFiles);
+                }
+                ArrayList<File> unmergedFiles = getUnmergedFiles(isFinal ? Integer.MAX_VALUE : batchMergeSize);
                 mergeTarget.addAll(unmergedFiles);
 
-                if (lastMergedFile != null && lastMergedFile.exists()) {
-                    log.info("==========x add last merged file {}", lastMergedFile.getName());
-                    mergeTarget.add(lastMergedFile);
-                }
+                log.info("Performing merge for {} with size {}", mergedFile.getName(), mergeTarget.size());
 
-                log.info("==========x Performing merge with size {}", mergeTarget.size());
+                // for oak-indexing-benchmark to get result only
+                if (isFinal) {
+                    log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
+                }
                 if (merge(mergeTarget, mergedFile)) {
-                    log.info("==========x merge success");
                     mergedFiles.addAll(unmergedFiles);
                     nextMergedLength += unmergedFiles.size();
-                    lastMergedFile = mergedFile;
-                    lastMergedFiles.add(mergedFile);
-                    log.info("==========x nextMergedLength {}", nextMergedLength);
-                    nextMergedLength += batchMergeSize;
+                    intermediateMergedFiles.add(mergedFile);
                     if (isFinal) {
                         break;
                     }
                 } else {
-                    log.info("==========x Merge failed");
+                    log.error("Merge failed for {}", mergedFile.getName());
                     mergeFailureCount += 1;
                 }
             }
 
-            log.info("=========x lastMergedFiles size: {}", lastMergedFiles.size());
-            for (File f : lastMergedFiles) {
-                log.info("=========x mergedFile name: {}", f.getName());
-            }
-            log.info("==========x merge failure {}", mergeFailureCount);
-            log.info("==========x mergePhaser.arriveAndDeregister");
+            log.info("intermediateMergedFiles size: {}", intermediateMergedFiles.size());
+            log.info("sortedFiles size: {}", sortedFiles.size());
+            log.warn("total merge failure {}", mergeFailureCount);
 
             mergePhaser.arriveAndDeregister();
-            // Final Merge
-//            ArrayList<File> mergeTarget = new ArrayList<File>();
-//            mergeTarget.addAll(getUnmergedFiles());
-//            if (lastMergedFile != null && lastMergedFile.exists()) {
-//                mergeTarget.add(lastMergedFile);
-//            }
-
-//            while (!sortedFiles.contains(MERGE_POISON_PILL)) {
-//                File mergedFile;
-//
-//                ArrayList<File> unmergedFiles = new ArrayList<File>();
-//                sortedFiles.forEach(file -> {
-//                    if (file == MERGE_POISON_PILL) {
-//                        finalSort.set(true);
-//                    } else if (!mergedFiles.contains(file)) {
-//                        unmergedFiles.add(file);
-//                    }
-//                });
-//
-//                if (finalSort.get()) {
-//                    mergedFile = sortedFile;
-//                } else {
-//                    mergedFile = new File(mergeDir, String.format("intermediate-%s", mergeCount));
-//                }
-//                log.info("batch merging files {} to {}", unmergedFiles, mergedFile.getName());
-//
-//
-//                // merge logic
-//                List<File> inputSortedFilesToMerge = new ArrayList<>(unmergedFiles);
-//                try (BufferedWriter writer = createWriter(mergedFile, compressionEnabled)) {
-//                    Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
-//                    Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-//                    ExternalSort.mergeSortedFiles(inputSortedFilesToMerge,
-//                            writer,
-//                            comparator,
-//                            charset,
-//                            true, //distinct
-//                            compressionEnabled, //useZip
-//                            func2,
-//                            func1
-//                    );
-//                    mergeCount++;
-//                    mergedFiles.addAll(unmergedFiles);
-//                    if (finalSort.get()) {
-//                        break;
-//                    }
-//                    // add to sortedFiles to be merge in next iteration
-//                    sortedFiles.add(mergedFile);
-//                } catch (IOException e) {
-//                    log.error("Merge failed with IOException", e);
-//                }
-//            }
         }
     }
 
