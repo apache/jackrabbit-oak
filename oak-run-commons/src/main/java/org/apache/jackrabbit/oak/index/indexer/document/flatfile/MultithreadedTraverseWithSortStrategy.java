@@ -151,11 +151,11 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
     private final Charset charset = UTF_8;
     private final boolean compressionEnabled;
-    private final NodeStateEntryWriter entryWriter;
     /**
      * Directory where sorted files will be created.
      */
     private final File storeDir;
+    private final File mergeDir;
     /**
      * Comparator used for comparing node states for creating sorted files.
      */
@@ -233,11 +233,12 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
                                           boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold) throws IOException {
         this.storeDir = storeDir;
+        this.mergeDir = new File(storeDir, "merge");
+        FileUtils.forceMkdir(mergeDir);
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new ConcurrentLinkedQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
-        this.entryWriter = new NodeStateEntryWriter(blobStore);
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
             @Override
@@ -268,6 +269,9 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                 for (File existingSortWorkDir : existingWorkDirs) {
                     if (!existingSortWorkDir.isDirectory()) {
                         log.info("Not a directory {}. Skipping it.", existingSortWorkDir.getAbsolutePath());
+                        continue;
+                    } else if (existingSortWorkDir.getName().equals("merge")) {
+                        log.info("Intermediate Merge Directory. Skipping it.", existingSortWorkDir.getAbsolutePath());
                         continue;
                     }
                     boolean downloadCompleted = DirectoryHelper.hasCompleted(existingSortWorkDir);
@@ -405,14 +409,12 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         private final ArrayList<File> intermediateMergedFiles = new ArrayList<File>();
         private final ArrayList<File> mergedFiles = new ArrayList<File>();
         private final File sortedFile;
-        private final File mergeDir = new File(storeDir, "merge");
         private final int failureThreshold = 100;
         private final int batchMergeSize = 64;
         private int nextMergedLength = 0;
 
 
         public MergeRunner(File sortedFile) throws IOException {
-            FileUtils.forceMkdir(mergeDir);
             this.sortedFile = sortedFile;
         }
 
