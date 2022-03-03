@@ -59,11 +59,29 @@ public class FlatFileNodeStoreBuilder {
     /**
      * Default value for {@link #PROP_THREAD_POOL_SIZE}
      */
-    static final String DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = "4";
+    static final int DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = 4;
     /**
      * System property for specifying number of threads for parallel download when using {@link MultithreadedTraverseWithSortStrategy}
      */
     static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
+
+    /**
+     * Default value for {@link #PROP_MERGE_THREAD_POOL_SIZE}
+     */
+    static final int DEFAULT_NUMBER_OF_MERGE_TASK_THREADS = 4;
+    /**
+     * System property for specifying number of threads for parallel merge when using {@link MultithreadedTraverseWithSortStrategy}
+     */
+    static final String PROP_MERGE_THREAD_POOL_SIZE = "oak.indexer.mergeTaskThreadPoolSize";
+
+    /**
+     * Default value for {@link #PROP_MERGE_TASK_BATCH_SIZE}
+     */
+    static final int DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK = 64;
+    /**
+     * System property for specifying number of files for batch merge task when using {@link MultithreadedTraverseWithSortStrategy}
+     */
+    static final String PROP_MERGE_TASK_BATCH_SIZE = "oak.indexer.mergeTaskBatchSize";
 
     /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
