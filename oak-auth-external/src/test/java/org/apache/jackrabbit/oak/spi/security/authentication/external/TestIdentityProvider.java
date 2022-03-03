@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
@@ -281,6 +283,22 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() {
             return ImmutableList.of();
+        }
+    }
+    public static class UserWithSupplierProperties extends TestUser {
+
+        public final String stringValue = "customValue";
+        public final BigDecimal bigDecimal = new BigDecimal("99.99");
+        public final Boolean boolValue = Boolean.TRUE;
+
+        public UserWithSupplierProperties(String userId, @NotNull String idpName) {
+            super(userId, idpName);
+            withProperty("profile/id", "zw2")
+                .withProperty("profile/name", "Supplied properties user")
+                .withProperty("stringSuppliedValue", (Supplier) () -> stringValue)
+                .withProperty("bigDecimalSuppliedValue", (Supplier) () -> bigDecimal)
+                .withProperty("nullSupplier", (Supplier) () -> null)
+                .withProperty("booleanSuppliedValue", (Supplier) () -> boolValue);
         }
     }
 }
