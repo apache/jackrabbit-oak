@@ -82,7 +82,7 @@ public abstract class SegmentCopyTestBase {
 
     protected abstract SegmentNodeStorePersistence getDestPersistence() throws Exception;
 
-    protected abstract String getSrcPathOrUri() throws URISyntaxException, InvalidKeyException, StorageException, Exception;
+    protected abstract String getSrcPathOrUri();
 
     protected abstract String getDestPathOrUri();
 
@@ -242,10 +242,17 @@ public abstract class SegmentCopyTestBase {
         return uri.toString();
     }
 
-    protected String getAzurePersistencePathOrUriSas() throws Exception {
+    protected String getAzurePersistencePathOrUriSas() {
         StringBuilder uri = new StringBuilder("az:");
-        String sasToken = azurite.getContainer(AZURE_CONTAINER)
-                .generateSharedAccessSignature(policy(READ_WRITE), null);
+        String sasToken;
+
+        try {
+            sasToken = azurite.getContainer(AZURE_CONTAINER)
+                    .generateSharedAccessSignature(policy(READ_WRITE), null);
+        } catch (StorageException | InvalidKeyException | URISyntaxException e) {
+            throw new RuntimeException("Error while accessing container ", e);
+        }
+
         uri.append("http://127.0.0.1:");
         uri.append(azurite.getMappedPort()).append("/");
         uri.append(AZURE_CONTAINER).append("/");

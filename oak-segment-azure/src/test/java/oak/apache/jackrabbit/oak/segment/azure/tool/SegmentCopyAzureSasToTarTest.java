@@ -15,7 +15,7 @@ public class SegmentCopyAzureSasToTarTest extends SegmentCopyTestBase{
     }
 
     @Override
-    protected String getSrcPathOrUri() throws Exception {
+    protected String getSrcPathOrUri(){
         return getAzurePersistencePathOrUriSas();
     }
 
