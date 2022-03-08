@@ -264,60 +264,6 @@ public abstract class DataStoreTestBase extends TestBase {
     }
 
     /*
-     * See OAK-5902.
-     */
-    @Test
-    public void testSyncBigBlob() throws Exception {
-        final long blobSize = GB;
-        final int seed = 13;
-
-        FileStore primary = getPrimary();
-        FileStore secondary = getSecondary();
-
-        NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        addTestContentOnTheFly(store, "server", blobSize, seed);
-
-        try (
-                StandbyServerSync serverSync = StandbyServerSync.builder()
-                        .withPort(serverPort.getPort())
-                        .withFileStore(primary)
-                        .withBlobChunkSize(8 * MB)
-                        .build();
-                StandbyClientSync cl = StandbyClientSync.builder()
-                        .withHost(getServerHost())
-                        .withPort(serverPort.getPort())
-                        .withFileStore(secondary)
-                        .withSecureConnection(false)
-                        .withReadTimeoutMs(2 * 60 * 1000)
-                        .withAutoClean(false)
-                        .withSpoolFolder(folder.newFolder())
-                        .build()
-        ) {
-            serverSync.start();
-            primary.flush();
-            cl.run();
-            assertEquals(primary.getHead(), secondary.getHead());
-        }
-
-        assertTrue(primary.getStats().getApproximateSize() < MB);
-        assertTrue(secondary.getStats().getApproximateSize() < MB);
-
-        PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
-        assertNotNull(ps);
-        assertEquals(Type.BINARY.tag(), ps.getType().tag());
-        Blob b = ps.getValue(Type.BINARY);
-        assertEquals(blobSize, b.length());
-
-        try (
-                InputStream randomInputStream = newRandomInputStream(blobSize, seed);
-                InputStream blobInputStream = b.getNewStream()
-        ) {
-            assertTrue(IOUtils.contentEquals(randomInputStream, blobInputStream));
-        }
-    }
-
-    /*
      * See OAK-4969.
      */
     @Test
