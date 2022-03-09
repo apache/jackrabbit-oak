@@ -158,10 +158,9 @@ public class IndexDiff {
 
                     try {
                         JsonObject merged = IndexDefMergerUtils.merge(
-                                "",
-                                ancestor.getNodeName(), latestAncestor,
+                                "", latestAncestor,
                                 latest.getNodeName(), latestCustomized,
-                                newProduct);
+                                newProduct, n.getNodeName());
                         fileName = PathUtils.getName(n.nextCustomizedName());
                         writeFile(Paths.get(targetDirectory, fileName + ".json"),
                                 addParent(n.nextCustomizedName(), merged));

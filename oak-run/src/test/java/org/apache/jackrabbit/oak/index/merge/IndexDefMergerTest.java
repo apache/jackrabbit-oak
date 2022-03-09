@@ -69,10 +69,9 @@ public class IndexDefMergerTest {
         JsonObject product = e.getChildren().get("product");
         try {
             JsonObject got = IndexDefMergerUtils.merge(
-                    "",
-                    "/oak:index/test-1", ancestor,
+                    "", ancestor,
                     "/oak:index/test-1-custom-1", custom,
-                    product);
+                    product, "/oak:index/test-2");
             JsonObject expected = e.getChildren().get("expected");
             assertEquals(expected.toString(), got.toString());
         } catch (UnsupportedOperationException e2) {
