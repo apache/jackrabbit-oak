@@ -38,11 +38,11 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
-import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -50,18 +50,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class DataStoreTestBase extends TestBase {
 
-    private static final int MB = 1024 * 1024;
+    private static final Logger logger = LoggerFactory.getLogger(DataStoreTestBase.class);
 
     private static final long GB = 1024 * 1024 * 1024;
-
-    private NetworkErrorProxy proxy;
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -72,11 +72,14 @@ public abstract class DataStoreTestBase extends TestBase {
     @Rule
     public TemporaryPort proxyPort = new TemporaryPort();
 
+    @Rule
+    public TestName testName = new TestName();
+
     abstract FileStore getPrimary();
 
     abstract FileStore getSecondary();
 
-    abstract boolean storesShouldBeEqual();
+    abstract boolean storesShouldBeDifferent();
 
     private InputStream newRandomInputStream(final long size, final int seed) {
         return new InputStream() {
@@ -125,13 +128,13 @@ public abstract class DataStoreTestBase extends TestBase {
     }
 
     @Before
-    public void before() {
-        proxy = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
+    public void before() throws Exception {
+        logger.info("Test begin: {}", testName.getMethodName());
     }
 
     @After
     public void after() {
-        proxy.close();
+        logger.info("Test end: {}", testName.getMethodName());
     }
 
     @Test
@@ -147,20 +150,20 @@ public abstract class DataStoreTestBase extends TestBase {
 
         // run 1: unsuccessful
         try (
-            StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
-            StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(4_000)
-                .withAutoClean(false)
-                .withSpoolFolder(spoolFolder)
-                .build()
+                StandbyServerSync serverSync = StandbyServerSync.builder()
+                        .withPort(serverPort.getPort())
+                        .withFileStore(primary)
+                        .withBlobChunkSize(MB)
+                        .build();
+                StandbyClientSync cl = StandbyClientSync.builder()
+                        .withHost(getServerHost())
+                        .withPort(serverPort.getPort())
+                        .withFileStore(secondary)
+                        .withSecureConnection(false)
+                        .withReadTimeoutMs(4_000)
+                        .withAutoClean(false)
+                        .withSpoolFolder(spoolFolder)
+                        .build()
         ) {
             serverSync.start();
             // no persisted head on primary
@@ -172,20 +175,20 @@ public abstract class DataStoreTestBase extends TestBase {
 
         // run 2: successful
         try (
-            StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
-            StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(4_000)
-                .withAutoClean(false)
-                .withSpoolFolder(spoolFolder)
-                .build()
+                StandbyServerSync serverSync = StandbyServerSync.builder()
+                        .withPort(serverPort.getPort())
+                        .withFileStore(primary)
+                        .withBlobChunkSize(MB)
+                        .build();
+                StandbyClientSync cl = StandbyClientSync.builder()
+                        .withHost(getServerHost())
+                        .withPort(serverPort.getPort())
+                        .withFileStore(secondary)
+                        .withSecureConnection(false)
+                        .withReadTimeoutMs(4_000)
+                        .withAutoClean(false)
+                        .withSpoolFolder(spoolFolder)
+                        .build()
         ) {
             serverSync.start();
             // this time persisted head will be available on primary
@@ -198,14 +201,14 @@ public abstract class DataStoreTestBase extends TestBase {
         assertTrue(secondary.getStats().getApproximateSize() < MB);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
-            .getChildNode("server").getProperty("testBlob");
+                .getChildNode("server").getProperty("testBlob");
         assertNotNull(ps);
         assertEquals(Type.BINARY.tag(), ps.getType().tag());
         Blob b = ps.getValue(Type.BINARY);
         assertEquals(blobSize, b.length());
         byte[] testData = new byte[blobSize];
         try (
-            InputStream blobInputStream = b.getNewStream()
+                InputStream blobInputStream = b.getNewStream()
         ) {
             ByteStreams.readFully(blobInputStream, testData);
             assertArrayEquals(data, testData);
@@ -221,20 +224,20 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
         try (
-            StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
-            StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                StandbyServerSync serverSync = StandbyServerSync.builder()
+                        .withPort(serverPort.getPort())
+                        .withFileStore(primary)
+                        .withBlobChunkSize(MB)
+                        .build();
+                StandbyClientSync cl = StandbyClientSync.builder()
+                        .withHost(getServerHost())
+                        .withPort(serverPort.getPort())
+                        .withFileStore(secondary)
+                        .withSecureConnection(false)
+                        .withReadTimeoutMs(getClientTimeout())
+                        .withAutoClean(false)
+                        .withSpoolFolder(folder.newFolder())
+                        .build()
         ) {
             serverSync.start();
             primary.flush();
@@ -253,64 +256,10 @@ public abstract class DataStoreTestBase extends TestBase {
         assertEquals(blobSize, b.length());
         byte[] testData = new byte[blobSize];
         try (
-            InputStream blobInputStream = b.getNewStream()
+                InputStream blobInputStream = b.getNewStream()
         ) {
             ByteStreams.readFully(blobInputStream, testData);
             assertArrayEquals(data, testData);
-        }
-    }
-
-    /*
-     * See OAK-5902.
-     */
-    @Test
-    public void testSyncBigBlob() throws Exception {
-        final long blobSize = GB;
-        final int seed = 13;
-
-        FileStore primary = getPrimary();
-        FileStore secondary = getSecondary();
-
-        NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        addTestContentOnTheFly(store, "server", blobSize, seed);
-
-        try (
-            StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(8 * MB)
-                .build();
-            StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(2 * 60 * 1000)
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
-        ) {
-            serverSync.start();
-            primary.flush();
-            cl.run();
-            assertEquals(primary.getHead(), secondary.getHead());
-        }
-
-        assertTrue(primary.getStats().getApproximateSize() < MB);
-        assertTrue(secondary.getStats().getApproximateSize() < MB);
-
-        PropertyState ps = secondary.getHead().getChildNode("root")
-            .getChildNode("server").getProperty("testBlob");
-        assertNotNull(ps);
-        assertEquals(Type.BINARY.tag(), ps.getType().tag());
-        Blob b = ps.getValue(Type.BINARY);
-        assertEquals(blobSize, b.length());
-
-        try (
-            InputStream randomInputStream = newRandomInputStream(blobSize, seed);
-            InputStream blobInputStream = b.getNewStream()
-        ) {
-            assertTrue(IOUtils.contentEquals(randomInputStream, blobInputStream));
         }
     }
 
@@ -326,20 +275,20 @@ public abstract class DataStoreTestBase extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-            StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
-            StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                StandbyServerSync serverSync = StandbyServerSync.builder()
+                        .withPort(serverPort.getPort())
+                        .withFileStore(primary)
+                        .withBlobChunkSize(MB)
+                        .build();
+                StandbyClientSync clientSync = StandbyClientSync.builder()
+                        .withHost(getServerHost())
+                        .withPort(serverPort.getPort())
+                        .withFileStore(secondary)
+                        .withSecureConnection(false)
+                        .withReadTimeoutMs(getClientTimeout())
+                        .withAutoClean(false)
+                        .withSpoolFolder(folder.newFolder())
+                        .build()
         ) {
             serverSync.start();
 
@@ -376,7 +325,6 @@ public abstract class DataStoreTestBase extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-6239")
     public void testProxyFlippedIntermediateByte2() throws Exception {
         useProxy(0, 0, 150000, false);
     }
@@ -393,56 +341,82 @@ public abstract class DataStoreTestBase extends TestBase {
 
     private void useProxy(int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
         int blobSize = 5 * MB;
+
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
-        try (
-                StandbyServerSync serverSync =  StandbyServerSync.builder()
-                    .withPort(serverPort.getPort())
-                    .withFileStore(primary)
-                    .build();
-                StandbyClientSync clientSync = StandbyClientSync.builder()
-                    .withPort(proxyPort.getPort())
-                    .withFileStore(secondary)
-                    .build();
-        ) {
-            proxy.skipBytes(skipPosition, skipBytes);
-            proxy.flipByte(flipPosition);
-            proxy.connect();
+        primary.flush();
 
+        try (StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build()) {
             serverSync.start();
-            primary.flush();
 
-            clientSync.run();
+            File spoolFolder = folder.newFolder();
 
-            if (skipBytes > 0 || flipPosition >= 0) {
-                if (!storesShouldBeEqual()) {
-                    assertFalse("stores are not expected to be equal", primary.getHead().equals(secondary.getHead()));
-                }
-                proxy.reset();
-                if (intermediateChange) {
-                    blobSize = 2 * MB;
-                    data = addTestContent(store, "server", blobSize);
-                    primary.flush();
-                }
+            try (
+                    NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
+                    StandbyClientSync clientSync = StandbyClientSync.builder()
+                            .withHost(getServerHost())
+                            .withPort(proxyPort.getPort())
+                            .withFileStore(secondary)
+                            .withSecureConnection(false)
+                            .withReadTimeoutMs(getClientTimeout())
+                            .withAutoClean(false)
+                            .withSpoolFolder(spoolFolder)
+                            .build()
+            ) {
+                ignored.skipBytes(skipPosition, skipBytes);
+                ignored.flipByte(flipPosition);
+                ignored.connect();
                 clientSync.run();
             }
-            assertEquals(primary.getHead(), secondary.getHead());
+
+            if (storesShouldBeDifferent()) {
+                assertFalse("stores are equal", primary.getHead().equals(secondary.getHead()));
+            }
+
+            if (intermediateChange) {
+                blobSize = 2 * MB;
+                data = addTestContent(store, "server", blobSize);
+                primary.flush();
+            }
+
+            try (StandbyClientSync clientSync = StandbyClientSync.builder()
+                    .withHost(getServerHost())
+                    .withPort(serverPort.getPort())
+                    .withFileStore(secondary)
+                    .withSecureConnection(false)
+                    .withReadTimeoutMs(getClientTimeout())
+                    .withAutoClean(false)
+                    .withSpoolFolder(spoolFolder)
+                    .build()
+            ) {
+                clientSync.run();
+            }
         }
+
+        assertEquals(primary.getHead(), secondary.getHead());
 
         assertTrue(primary.getStats().getApproximateSize() < MB);
         assertTrue(secondary.getStats().getApproximateSize() < MB);
 
-        PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
+        PropertyState ps = secondary.getHead()
+                .getChildNode("root")
+                .getChildNode("server")
+                .getProperty("testBlob");
         assertNotNull(ps);
         assertEquals(Type.BINARY.tag(), ps.getType().tag());
         Blob b = ps.getValue(Type.BINARY);
         assertEquals(blobSize, b.length());
         byte[] testData = new byte[blobSize];
-        ByteStreams.readFully(b.getNewStream(), testData);
-        assertArrayEquals(data, testData);
+        try (InputStream blobInputStream = b.getNewStream()) {
+            ByteStreams.readFully(blobInputStream, testData);
+            assertArrayEquals(data, testData);
+        }
     }
 }
