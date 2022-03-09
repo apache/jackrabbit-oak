@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.22
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.23
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.22 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.23 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
@@ -18,20 +18,25 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.6.22
+Changes in Oak 1.6.23
 ---------------------
 
 Bug
 
-    [OAK-5887] - Stricter validation on primary type change
-    [OAK-9519] - TlsGuardingConnection doesn't do a TLS handshake on reused connections
-    [OAK-9562] - Missing _bin when node is recreated after revision GC
+    [OAK-9677] - Standby mode not working anymore in Oak 1.8.25
+    [OAK-9711] - org.apache.jackrabbit.oak.segment.standby.BrokenNetworkIT failures
+
+Improvement
+
+    [OAK-9451] - Cold Standby SSL certificates should be configurable
 
 Task
 
-    [OAK-8769] - oak-auth-ldap pom needs maintenance
-    [OAK-8974] - VersionGarbageCollectorIT should use fixtures from AbstractDocumentStoreTest
-    [OAK-9569] - Update Oak 1.6 to Jackrabbit 2.14.10
+    [OAK-8820] - Update slf4j dependency to 1.7.29
+    [OAK-8955] - Update slf4j dependency to 1.7.30
+    [OAK-9641] - Update Logback version to 1.2.8
+    [OAK-9643] - Update slf4j dependency to 1.7.32
+    [OAK-9661] - Upgrade Solr to v8.11.1
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
