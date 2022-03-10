@@ -148,8 +148,6 @@ public class IndexDefMergerUtils {
             return cp;
         } else if (Objects.equals(ap, cp)) {
             return pp;
-        } else if (ap == null) {
-            return cp; // if property doesn't exist in the ancestor, prefer customization over the product value
         } else {
             conflicts.add("Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap + "; custom=" + cp
                     + "; product=" + pp);

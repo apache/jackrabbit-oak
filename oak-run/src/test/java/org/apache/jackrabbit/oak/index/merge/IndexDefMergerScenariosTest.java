@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -41,9 +40,9 @@ import org.slf4j.LoggerFactory;
  * Test merging index definitions.
  */
 @RunWith(Parameterized.class)
-public class IndexDefMergerScenariosTest {
+public class IndexDefMergerScenariosTest extends ParameterizedMergingTestBase {
 
-    private static final Logger log = LoggerFactory.getLogger(IndexDefMergerScenariosTest.class);
+    private static final Logger log = LoggerFactory.getLogger(IndexDefMergerConflictsTest.class);
 
     @Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -60,53 +59,17 @@ public class IndexDefMergerScenariosTest {
         });
     }
 
-    public static Object[] testCase(String name, String testCaseFile) {
-        return new Object[] {
-                name,
-                testCaseFile
-        };
-    }
-
-    private final String testCaseFile;
-    private final String testCaseName;
-    private final JsonObject buildIndexes;
-    private final JsonObject runIndexes;
     private final JsonObject expectedIndexes;
 
     public IndexDefMergerScenariosTest(String name, String testCaseFile)
             throws IOException {
-        this.testCaseName = name;
-        this.testCaseFile = testCaseFile;
-        JsonObject testCase = readTestCaseFile(testCaseFile);
-        this.buildIndexes = getChild(testCase, "build");
-        this.runIndexes = getChild(testCase, "run");
-        this.expectedIndexes = getChild(testCase, "expected");
-    }
-
-    private JsonObject readTestCaseFile(String testCaseFileName) {
-        return Optional.ofNullable(IndexDefMergerScenariosTest.class.getResourceAsStream(testCaseFileName))
-                .map(in -> {
-                    try {
-                        return IOUtils.toString(in, StandardCharsets.UTF_8.toString());
-                    } catch (IOException e) {
-                        throw new IllegalArgumentException(
-                                "Unexpected IOException reading test case file: " + testCaseFileName, e);
-                    }
-                })
-                .map(s -> JsonObject.fromJson(s, true))
-                .orElseThrow(() -> new IllegalArgumentException("Unable to read test case file: " + testCaseFileName));
-    }
-
-    private JsonObject getChild(JsonObject testCase, String fieldName) {
-        return Optional.ofNullable(testCase.getChildren().get(fieldName))
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Unable to run test: " + testCaseName + ", Expected field " + fieldName + " not set"));
+        super(name, testCaseFile);
+        this.expectedIndexes = super.getTestCaseChild("expected");
     }
 
     @Test
-    public void testMerge() {
+    public void verifyExpectedMergeResult() {
         IndexDefMergerUtils.merge(buildIndexes, runIndexes);
-
         File output = new File("target" + File.separator + "surefire-output" + File.separator
                 + getClass().getCanonicalName().replace(".", "-") + File.separator + testCaseFile);
         try {

@@ -1,7 +1,7 @@
 {
   "run": {
     "/oak:index/lucene": { "a": 1, "b": 10, "x": 1, "z": 2 },
-    "/oak:index/lucene-custom-1": { "a": 2, "b": 10, "c": 1, "x": 1 }
+    "/oak:index/lucene-custom-1": { "a": 2, "b": 10, "c": 1,  "x": 1 }
   },
   "build": {
     "/oak:index/lucene-2": { "a": 1, "b": 11, "d": 100, "z": 2 }
