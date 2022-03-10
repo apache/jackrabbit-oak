@@ -195,6 +195,7 @@
           <excludes>
             <exclude>**/merge.txt</exclude>
             <exclude>**/mergeIndexes.txt</exclude>
+            <exclude>**/*.json</exclude>
           </excludes>
         </configuration>
       </plugin>
