@@ -149,7 +149,7 @@ public class IndexDefMergerUtils {
         } else if (Objects.equals(ap, cp)) {
             return pp;
         } else if (ap == null) {
-            return cp;
+            return cp; // if property doesn't exist in the ancestor, prefer customization over the product value
         } else {
             conflicts.add("Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap + "; custom=" + cp
                     + "; product=" + pp);
@@ -165,9 +165,9 @@ public class IndexDefMergerUtils {
         if (level == 0 && USE_PRODUCT_CHILD_LEVEL_0.contains(child)) {
             return p;
         }
-        if(c == null && p != null){
-            return p;
-        }else if (isSameJson(a, p) || isSameJson(c, p)) {
+        if (c == null && p != null) {
+            return p; // restore child nodes in product index if removed in custom index
+        } else if (isSameJson(a, p) || isSameJson(c, p)) {
             return c;
         } else if (isSameJson(a, c)) {
             return p;
