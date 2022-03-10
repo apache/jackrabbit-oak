@@ -50,6 +50,16 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
         this.compressionEnabled = compressionEnabled;
     }
 
+    public String getFlatFileStorePath() {
+        if (storeFile.exists() && storeFile.isFile() && storeFile.canRead()) {
+            return storeFile.getAbsolutePath();
+        }
+
+        String msg = String.format("Cannot read store file at [%s]",
+                storeFile.getAbsolutePath());
+        throw new IllegalArgumentException(msg);
+    }
+
     public long getEntryCount() {
         return entryCount;
     }

@@ -113,7 +113,7 @@ public class IndexerSupport {
         return checkpointedState;
     }
 
-    private void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
+    public void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
         if (indexDefinitions != null) {
             new IndexDefinitionUpdater(indexDefinitions).apply(rootBuilder);
         }

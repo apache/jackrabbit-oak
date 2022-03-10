@@ -53,7 +53,7 @@ public class FlatFileNodeStoreBuilder {
      * Allowed values are the values from enum {@link SortStrategyType}
      */
     static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
-    private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
+    public static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
 
 
     /**
