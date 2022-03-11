@@ -74,7 +74,7 @@ public class IndexImporter {
     private final IndexEditorProvider indexEditorProvider;
     private final AsyncIndexerLock indexerLock;
     private final IndexDefinitionUpdater indexDefinitionUpdater;
-    private final boolean preserveCheckpoint = Boolean.parseBoolean(System.getProperty(OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT, "true"));
+    private final boolean preserveCheckpoint = Boolean.parseBoolean(System.getProperty(OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT, "false"));
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
