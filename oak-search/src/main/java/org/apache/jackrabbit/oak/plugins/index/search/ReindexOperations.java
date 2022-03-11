@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -63,12 +64,14 @@ public class ReindexOperations {
     public IndexDefinition apply(boolean useStateFromBuilder) {
         IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
         definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
+        definitionBuilder.removeProperty(IndexImporter.indexImportStateKey);
 
         //Avoid obtaining the latest NodeState from builder as that would force purge of current transient state
         //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
         //For case where index definition is rewritten there we get fresh state
         NodeState defnState = useStateFromBuilder ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
         if (storedIndexDefinitionEnabled) {
+            definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
             definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
             if (definitionBuilder.getChildNode(STATUS_NODE).exists()) {
                 definitionBuilder.getChildNode(STATUS_NODE).removeProperty(REINDEX_COMPLETION_TIMESTAMP);
