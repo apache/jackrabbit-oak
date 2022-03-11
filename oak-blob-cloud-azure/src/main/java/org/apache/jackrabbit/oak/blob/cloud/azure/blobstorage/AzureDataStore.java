@@ -25,6 +25,7 @@ import java.util.Properties;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.sas.SasTokenGenerator;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -41,6 +42,8 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     protected Properties properties;
 
+    private SasTokenGenerator sasTokenGenerator;
+
     private AzureBlobStoreBackend azureBlobStoreBackend;
 
     @Override
@@ -48,8 +51,13 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         azureBlobStoreBackend = new AzureBlobStoreBackend();
         if (null != properties) {
             azureBlobStoreBackend.setProperties(properties);
+            azureBlobStoreBackend.setSasTokenGenerator(sasTokenGenerator);
         }
         return azureBlobStoreBackend;
+    }
+
+    void setSasTokenGenerator(SasTokenGenerator sasTokenGenerator) {
+        this.sasTokenGenerator = sasTokenGenerator;
     }
 
     public void setProperties(final Properties properties) {

@@ -19,8 +19,12 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.sas.SasTokenGenerator;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
 import org.osgi.framework.Constants;
@@ -32,9 +36,13 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
+@Component
 public abstract class AbstractAzureDataStoreService extends AbstractDataStoreService {
     private static final String DESCRIPTION = "oak.datastore.description";
 
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    private SasTokenGenerator sasTokenGenerator;
+    
     private ServiceRegistration delegateReg;
 
     @Override
@@ -43,6 +51,7 @@ public abstract class AbstractAzureDataStoreService extends AbstractDataStoreSer
         properties.putAll(config);
 
         AzureDataStore dataStore = new AzureDataStore();
+        dataStore.setSasTokenGenerator(sasTokenGenerator);
         dataStore.setStatisticsProvider(getStatisticsProvider());
         dataStore.setProperties(properties);
 
@@ -68,5 +77,9 @@ public abstract class AbstractAzureDataStoreService extends AbstractDataStoreSer
     @Override
     protected String[] getDescription() {
         return new String[] {"type=AzureBlob"};
+    }
+
+    void bindSasTokenGenerator(SasTokenGenerator sasTokenGenerator) {
+        this.sasTokenGenerator = sasTokenGenerator;
     }
 }

@@ -24,16 +24,18 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.EnumSet;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.StreamSupport;
-import org.jetbrains.annotations.NotNull;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -43,34 +45,44 @@ import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureTestHelper.getConfigurationWithAccessKey;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureTestHelper.getConfigurationWithConnectionString;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureTestHelper.getConfigurationWithSasToken;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureTestHelper.getContainer;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureTestHelper.policy;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureTestHelper.writeBlob;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class AzureBlobStoreBackendTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
-    
-    private static final String CONTAINER_NAME = "blobstore";
+
     private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
     private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
 
     private CloudBlobContainer container;
-    
+
+    @Before
+    public void setUp() throws Exception {
+        container = getContainer(azurite);
+    }
+
     @After
     public void tearDown() throws Exception {
-        if (container != null) {
-            container.deleteIfExists();
-        }
+        container.deleteIfExists();
     }
 
     @Test
     public void initWithSharedAccessSignature_readOnly() throws Exception {
-        CloudBlobContainer container = createBlobContainer();
+        CloudBlobContainer container = initBlobContainer();
         String sasToken = container.generateSharedAccessSignature(policy(READ_ONLY), null);
 
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
-        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
+        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken, azurite));
         
         azureBlobStoreBackend.init();
         
@@ -80,11 +92,11 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void initWithSharedAccessSignature_readWrite() throws Exception {
-        CloudBlobContainer container = createBlobContainer();
+        CloudBlobContainer container = initBlobContainer();
         String sasToken = container.generateSharedAccessSignature(policy(READ_WRITE), null);
 
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
-        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
+        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken, azurite));
         
         azureBlobStoreBackend.init();
 
@@ -94,12 +106,12 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void connectWithSharedAccessSignatureURL_expired() throws Exception {
-        CloudBlobContainer container = createBlobContainer();
+        CloudBlobContainer container = initBlobContainer();
         SharedAccessBlobPolicy expiredPolicy = policy(READ_WRITE, yesterday());
         String sasToken = container.generateSharedAccessSignature(expiredPolicy, null);
 
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
-        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
+        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken, azurite));
 
         azureBlobStoreBackend.init();
         
@@ -110,7 +122,7 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void initWithAccessKey() throws Exception {
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
-        azureBlobStoreBackend.setProperties(getConfigurationWithAccessKey());
+        azureBlobStoreBackend.setProperties(getConfigurationWithAccessKey(azurite));
 
         azureBlobStoreBackend.init();
         
@@ -121,7 +133,7 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void initWithConnectionURL() throws Exception {
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
-        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString(azurite));
 
         azureBlobStoreBackend.init();
 
@@ -129,55 +141,49 @@ public class AzureBlobStoreBackendTest {
         assertReadAccessGranted(azureBlobStoreBackend, ImmutableSet.of("file"));
     }
 
-    private CloudBlobContainer createBlobContainer() throws Exception {
-        container = azurite.getContainer("blobstore");
+    @Test
+    public void createHttpDownloadURI() throws DataStoreException {
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithAccessKey(azurite));
+        azureBlobStoreBackend.init();
+        DataIdentifier identifier = writeBlob(azureBlobStoreBackend, "test123456");
+
+        URI downloadURI = azureBlobStoreBackend.createHttpDownloadURI(identifier, DataRecordDownloadOptions.DEFAULT);
+        
+        assertNotNull(downloadURI);
+        assertEquals(AzuriteDockerRule.ACCOUNT_NAME + ".blob.core.windows.net", downloadURI.getHost());
+        assertEquals("/blobstore/test-123456", downloadURI.getPath());
+        assertValidDownloadUriQuery(downloadURI);
+    }
+
+    @Test
+    public void createHttpDownloadURI_withCustomSasTokenGenerator() throws DataStoreException {
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithAccessKey(azurite));
+        azureBlobStoreBackend.setSasTokenGenerator((blob, policy, optionalHeaders) -> "customSasToken");
+        azureBlobStoreBackend.init();
+        DataIdentifier identifier = writeBlob(azureBlobStoreBackend);
+
+        URI downloadURI = azureBlobStoreBackend.createHttpDownloadURI(identifier, DataRecordDownloadOptions.DEFAULT);
+        
+        assertEquals("customSasToken", downloadURI.getQuery());
+    }
+
+    private static void assertValidDownloadUriQuery(URI downloadURI) {
+        String query = downloadURI.getQuery();
+        assertTrue("Expected 'sig' property in query, but was " + query, query.contains("sig="));
+        assertTrue("Expected 'rscc' property in query, but was " + query, query.contains("rscc=private, max-age=60, immutable"));
+        assertTrue("Expected 'sp' property in query, but was " + query, query.contains("sp=r"));
+        assertTrue("Expected 'sr' property in query, but was " + query, query.contains("sr=b"));
+        assertTrue("Expected 'se' property in query, but was " + query, query.contains("se="));
+        assertTrue("Expected 'sv' property in query, but was " + query, query.contains("sv="));
+    }
+
+    private CloudBlobContainer initBlobContainer() throws Exception {
         for (String blob : BLOBS) {
             container.getBlockBlobReference(blob + ".txt").uploadText(blob);
         }
         return container;
-    }
-    
-    private static Properties getConfigurationWithSasToken(String sasToken) {
-        Properties properties = getBasicConfiguration();
-        properties.setProperty(AzureConstants.AZURE_SAS, sasToken);
-        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "false");
-        return properties;
-    }
-    
-    private static Properties getConfigurationWithAccessKey() {
-        Properties properties = getBasicConfiguration();
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, AzuriteDockerRule.ACCOUNT_KEY);
-        return properties;
-    }
-
-    @NotNull
-    private static Properties getConfigurationWithConnectionString() {
-        Properties properties = getBasicConfiguration();
-        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
-        return properties;
-    }
-    
-    @NotNull
-    private static Properties getBasicConfiguration() {
-        Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
-        properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
-        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "");
-        return properties;
-    }
-
-    @NotNull
-    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions, Instant expirationTime) {
-        SharedAccessBlobPolicy sharedAccessBlobPolicy = new SharedAccessBlobPolicy();
-        sharedAccessBlobPolicy.setPermissions(permissions);
-        sharedAccessBlobPolicy.setSharedAccessExpiryTime(Date.from(expirationTime));
-        return sharedAccessBlobPolicy;
-    }
-
-    @NotNull
-    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions) {
-        return policy(permissions, Instant.now().plus(Duration.ofDays(7)));
     }
 
     private static void assertReadAccessGranted(AzureBlobStoreBackend backend, Set<String> expectedBlobs) throws Exception {
@@ -206,7 +212,7 @@ public class AzureBlobStoreBackendTest {
         backend.getAzureContainer()
             .getBlockBlobReference(blob + ".txt").uploadText(blob);
     }
-   
+
     private static void assertWriteAccessNotGranted(AzureBlobStoreBackend backend) {
         try {
             assertWriteAccessGranted(backend, "test.txt");
@@ -228,12 +234,9 @@ public class AzureBlobStoreBackendTest {
     private static Instant yesterday() {
         return Instant.now().minus(Duration.ofDays(1));
     }
-    
+
     private static ImmutableSet<String> concat(ImmutableSet<String> set, String element) {
         return ImmutableSet.<String>builder().addAll(set).add(element).build();
     }
-   
-    private static String getConnectionString() {
-        return Utils.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azurite.getBlobEndpoint());
-    }
+
 }

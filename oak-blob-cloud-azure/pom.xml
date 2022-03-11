@@ -42,7 +42,8 @@
                           *
                         </Import-Package>
                         <Export-Package>
-                            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
+                            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage,
+                            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.sas
                         </Export-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                         <Embed-Dependency>

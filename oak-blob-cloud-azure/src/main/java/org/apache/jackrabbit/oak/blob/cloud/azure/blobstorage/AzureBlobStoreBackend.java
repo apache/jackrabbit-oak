@@ -76,6 +76,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.sas.SasTokenGenerator;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
@@ -110,6 +111,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final int MAX_UNIQUE_RECORD_TRIES = 10;
     private static final int DEFAULT_CONCURRENT_REQUEST_COUNT = 2;
     private static final int MAX_CONCURRENT_REQUEST_COUNT = 50;
+    private static final SasTokenGenerator DEFAULT_SAS_TOKEN_GENERATOR = new DefaultSasTokenGenerator();
 
     private Properties properties;
     private String containerName;
@@ -125,11 +127,17 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private boolean presignedDownloadURIVerifyExists = true;
 
     private Cache<String, URI> httpDownloadURICache;
+    
+    private SasTokenGenerator sasTokenGenerator = DEFAULT_SAS_TOKEN_GENERATOR;
 
     private byte[] secret;
 
     public void setProperties(final Properties properties) {
         this.properties = properties;
+    }
+
+    public void setSasTokenGenerator(SasTokenGenerator sasTokenGenerator) {
+        this.sasTokenGenerator = sasTokenGenerator != null ? sasTokenGenerator : DEFAULT_SAS_TOKEN_GENERATOR;
     }
 
     protected CloudBlobContainer getAzureContainer() throws DataStoreException {
@@ -1142,16 +1150,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         URI presignedURI = null;
         try {
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
-            String sharedAccessSignature =
-                    null == optionalHeaders ?
-                            blob.generateSharedAccessSignature(policy,
-                                    null) :
-                            blob.generateSharedAccessSignature(policy,
-                                    optionalHeaders,
-                                    null,
-                                    null,
-                                    null,
-                                    true);
+            String sharedAccessSignature = sasTokenGenerator.generateSharedAccessSignature(blob, policy, optionalHeaders);
             // Shared access signature is returned encoded already.
 
             String uriString = String.format("https://%s/%s/%s?%s",
