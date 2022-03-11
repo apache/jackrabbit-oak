@@ -40,8 +40,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -74,7 +74,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private long memoryUsed;
     private final File sortWorkDir;
     private final List<File> sortedFiles = new ArrayList<>();
-    private final ConcurrentLinkedQueue<File> parentSortedFiles;
+    private final BlockingQueue<File> parentSortedFiles;
     private final LinkedList<NodeStateHolder> entryBatch = new LinkedList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
@@ -110,7 +110,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
-                        MemoryManager memoryManager, long dumpThreshold, ConcurrentLinkedQueue parentSortedFiles) throws IOException {
+                        MemoryManager memoryManager, long dumpThreshold, BlockingQueue parentSortedFiles) throws IOException {
         this.nodeStates = nodeStateEntryTraverserFactory.create(range);
         this.taskID = ID_PREFIX + nodeStates.getId();
         this.lastModifiedLowerBound = nodeStates.getDocumentTraversalRange().getLastModifiedRange().getLastModifiedFrom();

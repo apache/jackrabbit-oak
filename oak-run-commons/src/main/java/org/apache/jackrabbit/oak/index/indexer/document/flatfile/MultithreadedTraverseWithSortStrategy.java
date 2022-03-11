@@ -65,9 +65,11 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTrav
 
 /**
  * This class implements a sort strategy where node store is concurrently traversed for downloading node states by
- * multiple threads (number of threads is configurable via java system property {@link FlatFileNodeStoreBuilder#PROP_THREAD_POOL_SIZE}.
+ * multiple threads (number of threads is configurable via java system property {@link FlatFileNodeStoreBuilder#PROP_THREAD_POOL_SIZE}
+ * and sorted node states are written to files while concurrently being merged by multiple threads (number of threads is
+ * configurable via java system property {@link FlatFileNodeStoreBuilder#PROP_MERGE_THREAD_POOL_SIZE}.
  * The traverse/download and sort tasks are submitted to an executor service. Each of those tasks create some sorted files which
- * are then merged (sorted) into one.
+ * are merged while still downloading and in the end being merged (sorted) into one.
  *
  * <h3>Download task creation/splitting and result collection explanation -</h3>
  *
@@ -153,6 +155,45 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTrav
  *          </ol>
  *     </li>
  * </ol>
+ *
+ * <h3>Merge task explanation -</h3>
+ *
+ * SORTED_FILE_QUEUE=MultithreadedTraverseWithSortStrategy#sortedFiles
+ * MERGED_FILE_LIST=MergeRunner#mergedFiles
+ * UNMERGED_FILE_LIST=MergeRunner#unmergedFiles
+ * <ol>
+ *     <li>Have a BlockingQueue of sorted files (SORTED_FILE_QUEUE) that need to be executed for merge. Each of the task has been assigned a list of files.</li>
+ *     <li>Task thread (TraverseAndSortTask) on completion adds sorted files to this queue</li>
+ *     <li>Another monitoring thread (MultithreadedTraverseWithSortStrategy#MergeRunner) is consuming from this SORTED_FILE_QUEUE and submitting those
+ *     part of the files in batch (batch file size is configurable via java system property {@link FlatFileNodeStoreBuilder#PROP_MERGE_TASK_BATCH_SIZE}
+ *     to executor service for merge
+ *          <ol>
+ *              <li>The monitoring thread pulls any sorted file and add it in SORTED_FILE_QUEUE to the UNMERGED_FILE_LIST</li>
+ *              <li>When UNMERGED_FILE_LIST grows larger than two times the batch merge size, a merge task is submitted for merge
+ *              with the smaller half portion of the UNMERGED_FILE_LIST</li>
+ *              <li>Files submitted for merge will be removed from UNMERGED_FILE_LIST and added to MERGED_FILE_LIST</li>
+ *          </ol>
+ *     </li>
+ *     <li>A poison pill is added to SORTED_FILE_QUEUE upon download completion</li>
+ *     <li>Once poison pill occurs, the monitoring thread stops submitting new merge task and proceed to final merging
+ *          <ol>
+ *              <li>Final merge waits for all existing tasks finish</li>
+ *              <li>All files left in UNMERGED_FILE_LIST and all previously task results are collected to be merged</li>
+ *          </ol>
+ *     </li>
+ *     <li>
+ *         We use a phaser (MultithreadedTraverseWithSortStrategy#mergePhaser) for coordination between main thread and the monitoring thread. This phaser has one phase -
+ *         <ol>
+ *             <li>Waiting for a single final merged file to be created</li>
+ *         </ol>
+ *     </li>
+ *     <li>
+ *         We use another phaser for coordination between monitoring thread (MergeRunner) and the merge task executor (MergeTask). This phaser has one phase -
+ *         <ol>
+ *             <li>Waiting for all merge tasks complete</li>
+ *         </ol>
+ *     </li>
+ * </ol>
  */
 public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
@@ -164,11 +205,13 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      */
     private final File storeDir;
     private final File mergeDir;
+    private final String mergeDirName = "merge";
+
     /**
      * Comparator used for comparing node states for creating sorted files.
      */
     private final Comparator<NodeStateHolder> comparator;
-    private final ConcurrentLinkedQueue<File> sortedFiles;
+    private final BlockingQueue<File> sortedFiles;
     private final ConcurrentLinkedQueue<Throwable> throwables;
     /**
      * Queue for traverse/download and sort tasks. After an initial creation of tasks, new tasks could be added to this queue
@@ -241,10 +284,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
                                           boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold) throws IOException {
         this.storeDir = storeDir;
-        this.mergeDir = new File(storeDir, "merge");
+        this.mergeDir = new File(storeDir, mergeDirName);
         FileUtils.forceMkdir(mergeDir);
         this.compressionEnabled = compressionEnabled;
-        this.sortedFiles = new ConcurrentLinkedQueue<>();
+        this.sortedFiles = new LinkedBlockingQueue<File>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         taskQueue = new LinkedBlockingQueue<>();
@@ -278,7 +321,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                     if (!existingSortWorkDir.isDirectory()) {
                         log.info("Not a directory {}. Skipping it.", existingSortWorkDir.getAbsolutePath());
                         continue;
-                    } else if (existingSortWorkDir.getName().equals("merge")) {
+                    } else if (existingSortWorkDir.getName().equals(mergeDirName)) {
                         log.info("Intermediate Merge Directory {}. Skipping it.", existingSortWorkDir.getAbsolutePath());
                         continue;
                     }
@@ -443,7 +486,6 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         private final Phaser mergeTaskPhaser;
         private final List<File> mergeTarget;
         private final File mergedFile;
-        private final int failureThreshold = 5;
 
         MergeTask(List<File> mergeTarget, Phaser mergeTaskPhaser, File mergedFile) {
             this.mergeTarget = mergeTarget;
@@ -456,11 +498,9 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         public File call() {
             log.info("performing merge for {} with size {}", mergedFile.getName(), mergeTarget.size());
             try {
-                for (int mergeFailureCount = 0; mergeFailureCount <= failureThreshold; mergeFailureCount++) {
-                    if (merge(mergeTarget, mergedFile)) {
-                        log.info("merge complete for {}", mergedFile.getName());
-                        return mergedFile;
-                    }
+                if (merge(mergeTarget, mergedFile)) {
+                    log.info("merge complete for {}", mergedFile.getName());
+                    return mergedFile;
                 }
                 log.error("merge failed for {}", mergedFile.getName());
             } finally {
@@ -481,7 +521,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      * </ol>
      * Strategy -
      * <ol>
-     *      <li>Wait for n files (compare with merged list)</li>
+     *      <li>Wait for n files</li>
      *      <li>construct new list of files to be merged by checking if its already merged</li>
      *    and create intermediate merge file
      *    (if final merge) merge all intermediate merge files and create sorted file
@@ -490,11 +530,12 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      */
     private class MergeRunner implements Runnable {
         private final ArrayList<File> mergedFiles = new ArrayList<File>();
+        private final ArrayList<File> unmergedFiles = new ArrayList<File>();
         private final File sortedFile;
-        private int nextMergedLength = 0;
         private final ExecutorService executorService;
         private final int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
         private final int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
+        private final Comparator fileSizeComparator = new SizeFileComparator();
 
         public MergeRunner(File sortedFile) {
             this.sortedFile = sortedFile;
@@ -502,44 +543,57 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         }
 
         private List<File> getSmallestUnmergedFiles(int size) {
-            ArrayList<File> unmergedFiles = new ArrayList<File>();
-            for (File f : sortedFiles) {
-                if (!mergedFiles.contains(f) && f != MERGE_POISON_PILL) {
-                    unmergedFiles.add(f);
-                }
-            }
-            unmergedFiles.sort(new SizeFileComparator());
+            ArrayList<File> result = new ArrayList<File>(unmergedFiles);
+            result.remove(MERGE_POISON_PILL);
+            result.sort(fileSizeComparator);
+            int endIdx = size > result.size() ? result.size() : size;
+            return result.subList(0, endIdx);
+        }
 
-            return unmergedFiles.subList(0, (size - 1) > unmergedFiles.size() ? unmergedFiles.size() : (size - 1));
+        private void markAsMerged(List<File> target) {
+            mergedFiles.addAll(target);
+            unmergedFiles.removeAll(target);
         }
 
         @Override
         public void run() {
-            nextMergedLength += batchMergeSize;
             Phaser mergeTaskPhaser = new Phaser(1);
             List<Future<File>> results = new ArrayList<>();
+            List<File> mergeTarget = new ArrayList<>();
+            int count = 0;
 
             while (true) {
-                while (!sortedFiles.contains(MERGE_POISON_PILL) && sortedFiles.size() <= nextMergedLength) {
-                    // waiting for n files to be merged in a batch
+                try {
+                    unmergedFiles.add(sortedFiles.take());
+                    if (sortedFiles.contains(MERGE_POISON_PILL) || unmergedFiles.contains(MERGE_POISON_PILL)) {
+                        break;
+                    }
+                    // add another batchMergeSize so that we choose the smallest of a larger range
+                    if (unmergedFiles.size() >= 2*batchMergeSize) {
+                        count++;
+                        mergeTarget.clear();
+                        mergeTarget = getSmallestUnmergedFiles(batchMergeSize);
+                        Callable<File> mergeTask = new MergeTask(mergeTarget, mergeTaskPhaser,
+                                new File(mergeDir, String.format("intermediate-%s", count)));
+                        markAsMerged(mergeTarget);
+                        results.add(executorService.submit(mergeTask));
+                    }
+                } catch (InterruptedException e) {
+                    log.error("Failed while draining from sortedFiles {}", e);
                 }
-                if (sortedFiles.contains(MERGE_POISON_PILL)) {
-                    break;
-                }
-
-                List<File> mergeTarget = getSmallestUnmergedFiles(batchMergeSize);
-                Callable<File> mergeTask = new MergeTask(mergeTarget, mergeTaskPhaser,
-                        new File(mergeDir, String.format("intermediate-%s", nextMergedLength)));
-                results.add(executorService.submit(mergeTask));
-                nextMergedLength += batchMergeSize;
-                log.info("next merge length is {}", nextMergedLength);
-                mergedFiles.addAll(mergeTarget);
             }
 
-            // final merge
             log.info("Waiting for batch sorting tasks completion");
             mergeTaskPhaser.arriveAndAwaitAdvance();
-            ArrayList<File> mergeTarget = new ArrayList<File>();
+            executorService.shutdown();
+
+            // final merge
+            mergeTarget.clear();
+            sortedFiles.drainTo(unmergedFiles);
+            unmergedFiles.remove(MERGE_POISON_PILL);
+            mergeTarget.addAll(unmergedFiles);
+            markAsMerged(mergeTarget);
+            log.info("There are still {} sorted files not merged yet", mergeTarget.size());
             try {
                 boolean exceptionsCaught = false;
                 for (Future<File> result : results) {
@@ -554,24 +608,17 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             } finally {
                 mergeTaskPhaser.arrive();
             }
-            mergeTarget.addAll(getSmallestUnmergedFiles(Integer.MAX_VALUE));
 
-            log.info("All batch sorting tasks have completed, total of {}", mergeTarget.size());
+            log.info("All batch sorting tasks have completed, total of {}", count);
             log.info("Proceeding to perform merge of {} sorted files", mergeTarget.size());
-            int finalMergeFailureThreshold = 5;
-            for (int finalMergeFailureCount = 0; finalMergeFailureCount <= finalMergeFailureThreshold; finalMergeFailureCount++) {
-                if (!merge(mergeTarget, sortedFile)) {
-                    log.error("merge failed for {}", sortedFile.getName());
-                } else {
-                    log.info("merge complete for {}", sortedFile.getName());
-                    break;
-                }
+            if (!merge(mergeTarget, sortedFile)) {
+                log.error("merge failed for {}", sortedFile.getName());
+            } else {
+                log.info("merge complete for {}", sortedFile.getName());
             }
-            // MERGE_POISON_PILL does not count
-            log.info("Original sorted file length {}", sortedFiles.size()-1);
+            log.info("Total batch sorted file merged is {}", mergedFiles.size());
 
             mergePhaser.arriveAndDeregister();
-            executorService.shutdown();
         }
     }
 
