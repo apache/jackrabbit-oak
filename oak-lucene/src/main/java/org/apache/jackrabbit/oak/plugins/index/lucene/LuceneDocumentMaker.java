@@ -283,8 +283,10 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             }
 
             if (f != null && includePropertyValue(property, 0, pd)) {
-                doc.add(f);
-                fieldAdded = true;
+                if (doc.getField(f.name()) == null) {
+                    doc.add(f);
+                    fieldAdded = true;
+                }
             }
         } catch (Exception e) {
             log.warn(

@@ -458,10 +458,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             PropertyState functionValue = calculateValue(path, state, pd.functionCode);
             if (functionValue != null) {
                 if (pd.ordered) {
-                    addTypedOrderedFields(fields, functionValue, pd.function, pd);
+                    fieldAdded |= addTypedOrderedFields(fields, functionValue, pd.function, pd);
                 }
-                addTypedFields(fields, functionValue, pd.function, pd);
-                fieldAdded = true;
+                fieldAdded |= addTypedFields(fields, functionValue, pd.function, pd);
             }
         }
         return fieldAdded;
