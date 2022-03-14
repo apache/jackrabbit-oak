@@ -44,25 +44,6 @@ public class IndexDefMergerTest {
         }
     }
 
-    @Test
-    public void mergeIndexes() throws IOException, CommitFailedException {
-        String s = readFromResource("mergeIndexes.txt");
-        JsonObject json = JsonObject.fromJson(s, true);
-        for(JsonObject e : array(json.getProperties().get("tests"))) {
-            mergeIndexes(e);
-        }
-    }
-
-    private void mergeIndexes(JsonObject e) {
-        JsonObject all = e.getChildren().get("all");
-        JsonObject newDefs = e.getChildren().get("new");
-        JsonObject expectedNew = e.getChildren().get("expectedNew");
-        IndexDefMergerUtils.merge(newDefs, all);
-        assertEquals(
-                expectedNew.toString(),
-                newDefs.toString());
-    }
-
     private void merge(JsonObject e) {
         JsonObject ancestor = e.getChildren().get("ancestor");
         JsonObject custom = e.getChildren().get("custom");

@@ -163,7 +163,9 @@ public class IndexDefMergerUtils {
         if (level == 0 && USE_PRODUCT_CHILD_LEVEL_0.contains(child)) {
             return p;
         }
-        if (isSameJson(a, p) || isSameJson(c, p)) {
+        if (c == null && p != null) {
+            return p; // restore child nodes in product index if removed in custom index
+        } else if (isSameJson(a, p) || isSameJson(c, p)) {
             return c;
         } else if (isSameJson(a, c)) {
             return p;

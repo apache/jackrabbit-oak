@@ -17,7 +17,7 @@
   "ancestor": {"o": {"a": 1}},
   "custom": {},
   "product": {"o": {"a": 2}},
-  "expected":"Conflicts detected: [Could not merge value; path=/o property=a; ancestor=1; custom=null; product=2]"
+  "expected": {"merges": ["/oak:index/test-2", "/oak:index/test-1-custom-1"],"o": {"a": 2}}
 },
 {
   "ancestor": {"a": 1},

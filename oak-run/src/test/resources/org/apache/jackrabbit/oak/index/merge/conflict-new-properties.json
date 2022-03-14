@@ -1,0 +1,168 @@
+{
+  "build": {
+    "/oak:index/lucene-2": {
+      "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+      ":version": 2,
+      "includePropertyTypes": ["String", "Binary"],
+      "type": "lucene",
+      "async": "async",
+      "reindex": false,
+      "reindexCount": 1,
+      "indexRules": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "nt:base": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "includePropertyTypes": ["String", "Binary"],
+          "properties": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "sling:alias": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:alias",
+              "index": false
+            },
+            "jcr:lastmodifiedby": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "str:jcr:lastmodifiedby",
+              "index": false
+            },
+            "sling:resourcetype": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:resourcetype",
+              "index": false
+            },
+            "jcr:createdby": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "str:jcr:createdby",
+              "index": false
+            },
+            "sling:vanitypath": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:vanitypath",
+              "index": false
+            },
+            "prop0": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "nodeScopeIndex": true,
+              "propertyIndex": false,
+              "analyzed": true,
+              "useInExcerpt": true,
+              "isRegexp": true,
+              "name": "^[^\\/]*$"
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "run": {
+    "/oak:index/lucene-1": {
+      "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+      ":version": 2,
+      "includePropertyTypes": ["String", "Binary"],
+      "type": "lucene",
+      "async": "async",
+      "reindex": false,
+      "reindexCount": 1,
+      "indexRules": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "nt:base": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "includePropertyTypes": ["String", "Binary"],
+          "properties": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "sling:alias": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:alias",
+              "index": false
+            },
+            "jcr:lastmodifiedby": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "str:jcr:lastmodifiedby",
+              "index": false
+            },
+            "sling:resourcetype": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:resourcetype",
+              "index": false
+            },
+            "jcr:createdby": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "str:jcr:createdby",
+              "index": false
+            },
+            "prop0": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "nodeScopeIndex": true,
+              "propertyIndex": false,
+              "analyzed": true,
+              "useInExcerpt": true,
+              "isRegexp": true,
+              "name": "^[^\\/]*$"
+            }
+          }
+        }
+      }
+    },
+    "/oak:index/lucene-1-custom-1": {
+      "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+      ":version": 2,
+      "includePropertyTypes": ["String", "Binary"],
+      "type": "lucene",
+      "async": "async",
+      "reindex": false,
+      "reindexCount": 1,
+      "indexRules": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "nt:base": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "includePropertyTypes": ["String", "Binary"],
+          "properties": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "sling:alias": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:alias",
+              "index": false
+            },
+            "jcr:lastmodifiedby": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "str:jcr:lastmodifiedby",
+              "index": false
+            },
+            "sling:resourcetype": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:resourcetype",
+              "index": false
+            },
+            "jcr:createdby": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "str:jcr:createdby",
+              "index": false
+            },
+            "myco:myProperty": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "myco:myProperty",
+              "index": false
+            },
+            "sling:vanitypath": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "name": "sling:vanitypath2",
+              "index": false
+            },
+            "prop0": {
+              "jcr:primaryType": "nam:nt:unstructured",
+              "nodeScopeIndex": true,
+              "propertyIndex": false,
+              "analyzed": true,
+              "useInExcerpt": true,
+              "isRegexp": true,
+              "name": "^[^\\/]*$"
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "expected": "Index: /oak:index/lucene-2: Conflicts detected: [Could not merge value; path=/indexRules/nt:base/properties/sling:vanitypath property=name; ancestor=null; custom=\"sling:vanitypath2\"; product=\"sling:vanitypath\"]"
+}
