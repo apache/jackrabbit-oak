@@ -372,9 +372,11 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         String watcherThreadName = "watcher";
         String mergerThreadName = "merger";
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
+        watcher.setDaemon(true);
         watcher.start();
         File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
         Thread merger = new Thread(new MergeRunner(sortedFile), mergerThreadName);
+        merger.setDaemon(true);
         merger.start();
         phaser.awaitAdvance(Phases.WAITING_FOR_TASK_SPLITS.value);
         log.debug("All tasks completed. Signalling {} to proceed to result collection.", watcherThreadName);
@@ -579,7 +581,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                         results.add(executorService.submit(mergeTask));
                     }
                 } catch (InterruptedException e) {
-                    log.error("Failed while draining from sortedFiles {}", e);
+                    log.error("Failed while draining from sortedFiles", e);
                 }
             }
 

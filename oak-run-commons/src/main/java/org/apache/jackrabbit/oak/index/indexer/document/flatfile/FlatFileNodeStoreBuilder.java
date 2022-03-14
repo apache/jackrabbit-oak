@@ -68,7 +68,7 @@ public class FlatFileNodeStoreBuilder {
     /**
      * Default value for {@link #PROP_MERGE_THREAD_POOL_SIZE}
      */
-    static final int DEFAULT_NUMBER_OF_MERGE_TASK_THREADS = 4;
+    static final int DEFAULT_NUMBER_OF_MERGE_TASK_THREADS = 1;
     /**
      * System property for specifying number of threads for parallel merge when using {@link MultithreadedTraverseWithSortStrategy}
      */
