@@ -192,7 +192,17 @@ public class IndexDiff {
     static JsonObject compareIndexes(String directory, String index1, String index2) {
         Path indexPath = Paths.get(directory);
         JsonObject target = new JsonObject(true);
-        compareIndexesIndexesInDirectory(indexPath, index1, index2, target);
+        compareIndexesInDirectory(indexPath, index1, index2, target);
+        return target;
+    }
+
+    public static JsonObject compareIndexesAgainstBase(String directory, String indexBaseFile) {
+        Path indexPath = Paths.get(directory);
+        JsonObject baseIndexes = parseIndexDefinitions(indexBaseFile);
+        removeUninterestingIndexProperties(baseIndexes);
+        simplify(baseIndexes, true);
+        JsonObject target = new JsonObject(true);
+        compareIndexesInDirectory(indexPath, baseIndexes, target);
         return target;
     }
 
@@ -224,9 +234,9 @@ public class IndexDiff {
         }
     }
 
-    private static void compareIndexesIndexesInDirectory(Path indexPath, String index1, String index2,
+    private static void compareIndexesInDirectory(Path indexPath, String index1, String index2,
             JsonObject target) {
-        if (Files.isExecutable(indexPath)) {
+        if (Files.isDirectory(indexPath)) {
             indexFiles(indexPath).forEach(path -> {
                 JsonObject indexDefinitions = IndexDiff.parseIndexDefinitions(path.toString());
                 compareIndexes(indexDefinitions, indexPath.toString(), path.toString(), index1, index2, target);
@@ -237,6 +247,19 @@ public class IndexDiff {
                 JsonObject indexDefinitions = allIndexDefinitions.getChildren().get(key);
                 compareIndexes(indexDefinitions, "", key, index1, index2, target);
             }
+        }
+    }
+
+    private static void compareIndexesInDirectory(Path indexPath, JsonObject baseIndexes, JsonObject target) {
+        if (Files.isDirectory(indexPath)) {
+            indexFiles(indexPath).forEach(path -> {
+                JsonObject indexDefinitions = IndexDiff.parseIndexDefinitions(path.toString());
+                removeUninterestingIndexProperties(indexDefinitions);
+                simplify(indexDefinitions, true);
+                compareIndexes(indexDefinitions, indexPath.toString(), path.toString(), baseIndexes, target);
+            });
+        } else {
+            throw new IllegalArgumentException("Not a directory: " + indexPath);
         }
     }
 
@@ -328,6 +351,23 @@ public class IndexDiff {
         JsonObject i2 = indexDefinitions.getChildren().get(index2);
         if (i1 != null && i2 != null) {
             compareIndexes("", i1, i2, targetFile);
+        }
+        addIfNotEmpty(basePath, fileName, targetFile, target);
+    }
+
+    private static void compareIndexes(JsonObject indexDefinitions, String basePath, String fileName,
+            JsonObject baseIndexes, JsonObject target) {
+        JsonObject targetFile = new JsonObject(true);
+        for (String indexName : baseIndexes.getChildren().keySet()) {
+            JsonObject baseIndex = baseIndexes.getChildren().get(indexName);
+            JsonObject compareIndex = indexDefinitions.getChildren().get(indexName);
+            if (compareIndex != null) {
+                JsonObject targetIndex = new JsonObject(true);
+                compareIndexes("", baseIndex, compareIndex, targetIndex);
+                if (!targetIndex.getChildren().isEmpty()) {
+                    targetFile.getChildren().put(indexName, targetIndex);
+                }
+            }
         }
         addIfNotEmpty(basePath, fileName, targetFile, target);
     }
@@ -487,16 +527,22 @@ public class IndexDiff {
     }
 
     private static void simplify(JsonObject json) {
+        simplify(json, false);
+    }
+
+    private static void simplify(JsonObject json, boolean thoroughly) {
         for(String k : json.getChildren().keySet()) {
             JsonObject child = json.getChildren().get(k);
-            simplify(child);
+            simplify(child, thoroughly);
 
             // the following properties are not strictly needed for display,
-            // but we keep them to avoid issues with validation
-            // child.getProperties().remove("jcr:created");
-            // child.getProperties().remove("jcr:createdBy");
-            // child.getProperties().remove("jcr:lastModified");
-            // child.getProperties().remove("jcr:lastModifiedBy");
+            // but we keep them by default, to avoid issues with validation
+            if (thoroughly) {
+                child.getProperties().remove("jcr:created");
+                child.getProperties().remove("jcr:createdBy");
+                child.getProperties().remove("jcr:lastModified");
+                child.getProperties().remove("jcr:lastModifiedBy");
+            }
 
             // the UUID we remove, because duplicate UUIDs are not allowed
             child.getProperties().remove("jcr:uuid");
