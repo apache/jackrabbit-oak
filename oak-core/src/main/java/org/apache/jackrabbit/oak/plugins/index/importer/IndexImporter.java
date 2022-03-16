@@ -74,7 +74,7 @@ public class IndexImporter {
     private final IndexEditorProvider indexEditorProvider;
     private final AsyncIndexerLock indexerLock;
     private final IndexDefinitionUpdater indexDefinitionUpdater;
-    private final boolean preserveCheckpoint = Boolean.parseBoolean(System.getProperty(OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT, "false"));
+    private final boolean preserveCheckpoint = Boolean.getBoolean(OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT);
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
@@ -296,12 +296,12 @@ public class IndexImporter {
     }
 
     private void releaseCheckpoint() {
-        if (!preserveCheckpoint) {
-            nodeStore.release(indexerInfo.checkpoint);
-            log.info("Released the referred checkpoint [{}]", indexerInfo.checkpoint);
-        } else {
+        if (preserveCheckpoint) {
             log.info("Preserving the referred checkpoint [{}]. This could have been done in case this checkpoint is needed by a process later on." +
                     " Please make sure to remove the checkpoint once it's no longer needed.", indexerInfo.checkpoint);
+        } else {
+            nodeStore.release(indexerInfo.checkpoint);
+            log.info("Released the referred checkpoint [{}]", indexerInfo.checkpoint);
         }
 
     }
