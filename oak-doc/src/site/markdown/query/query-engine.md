@@ -605,7 +605,7 @@ The `suggestions` String would be have the following pattern
     RowIterator it = result.getRows();
     List<String> suggestions = new LinkedList<String>();
     while (it.hasNext()) {
-        suggestions.add(row.getValue("rep:suggest()").getString());
+        suggestions.add(it.getValue("rep:suggest()").getString());
     }
 
 If either Lucene or Solr were configured to provide the suggestions feature,
