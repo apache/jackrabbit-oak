@@ -17,15 +17,18 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.jackrabbit.oak.indexversion.PurgeOldIndexVersion;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 public class PurgeOldIndexVersionCommand implements Command {
     private long threshold;
@@ -36,7 +39,9 @@ public class PurgeOldIndexVersionCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         Options opts = parseCommandLineParams(args);
-        new PurgeOldIndexVersion().execute(opts, threshold, indexPaths);
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
+            new PurgeOldIndexVersion().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths);
+        }
     }
 
     private Options parseCommandLineParams(String... args) throws Exception {

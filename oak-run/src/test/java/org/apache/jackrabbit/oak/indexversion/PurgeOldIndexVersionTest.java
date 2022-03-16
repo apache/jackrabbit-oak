@@ -137,7 +137,6 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             fixture = new RepositoryFixture(storeDir);
             fixture.close();
             List<String> logs = custom.getLogs();
-            assertTrue(logs.size() == 1);
             assertThat("custom fooIndex don't have product version ", logs.toString(),
                     containsString("IndexVersionOperation List is not valid for index"));
         } finally {
