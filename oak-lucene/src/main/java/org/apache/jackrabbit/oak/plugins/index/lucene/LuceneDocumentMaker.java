@@ -56,9 +56,15 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
 
     private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
+    
+    // warn once every 10 seconds at most
+    private static final long DUPLICATE_WARNING_INTERVAL_MS = 10 * 1000;
 
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
+    
+    // when did we warn (static, as we construct new objects quite often)
+    private static long lastDuplicateWarning;
 
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
@@ -286,6 +292,12 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 if (doc.getField(f.name()) == null) {
                     doc.add(f);
                     fieldAdded = true;
+                } else {
+                    long now = System.currentTimeMillis();
+                    if (now > lastDuplicateWarning + DUPLICATE_WARNING_INTERVAL_MS) {
+                        log.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
+                        lastDuplicateWarning = now;
+                    }
                 }
             }
         } catch (Exception e) {
