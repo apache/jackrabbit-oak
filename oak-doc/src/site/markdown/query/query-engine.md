@@ -587,7 +587,7 @@ Clients wanting to obtain suggestions could use the following JCR code:
     RowIterator it = result.getRows();
     String suggestions = "";
     if (it.hasNext()) {
-        suggestions = row.getValue("rep:suggest()").getString()
+        suggestions = it.getValue("rep:suggest()").getString()
     }
 
 The `suggestions` String would be have the following pattern
