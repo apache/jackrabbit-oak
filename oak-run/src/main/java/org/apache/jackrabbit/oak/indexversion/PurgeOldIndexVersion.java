@@ -57,17 +57,18 @@ public class PurgeOldIndexVersion {
      * @throws IOException
      * @throws CommitFailedException
      */
-    public void execute(NodeStore nodeStore, boolean isReadWriteRepository, long purgeThresholdMillis, List<String> indexPaths) throws IOException, CommitFailedException {
-        if (!isReadWriteRepository) {
-            LOG.info("Repository is opened in read-only mode");
-            return;
-        }
+    public void execute(NodeStore nodeStore, boolean isReadWriteRepository, long purgeThresholdMillis, List<String> indexPaths) throws
+            IOException, CommitFailedException {
         List<IndexVersionOperation> purgeIndexList = getPurgeIndexes(nodeStore, purgeThresholdMillis, indexPaths);
         if (!purgeIndexList.isEmpty()) {
-            LOG.info("Found indexes for purging: '{}'", purgeIndexList);
-            long purgeStart = System.currentTimeMillis();
-            purgeOldIndexVersion(nodeStore, purgeIndexList);
-            LOG.info("Index purging done, took '{}' ms", (System.currentTimeMillis() - purgeStart));
+            if (isReadWriteRepository) {
+                LOG.info("Found indexes for purging: '{}'", purgeIndexList);
+                long purgeStart = System.currentTimeMillis();
+                purgeOldIndexVersion(nodeStore, purgeIndexList);
+                LOG.info("Index purging done, took '{}' ms", (System.currentTimeMillis() - purgeStart));
+            } else {
+                LOG.info("Repository is opened in read-only mode, the purging indexes for '{}' are: {}", indexPaths, purgeIndexList);
+            }
         } else {
             LOG.info("No indexes are found to be purged");
         }
@@ -75,7 +76,7 @@ public class PurgeOldIndexVersion {
 
     public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths) throws IOException, CommitFailedException {
         List<IndexVersionOperation> purgeIndexList = new ArrayList<>();
-        LOG.info("Start execute purge index over node type '{}' over index paths '{}'", nodeStore.getClass().getSimpleName(), indexPaths);
+        LOG.info("Getting indexes to purge over node type '{}' and index paths '{}'", nodeStore.getClass().getSimpleName(), indexPaths);
         List<String> sanitisedIndexPaths = sanitiseUserIndexPaths(indexPaths);
         Set<String> indexPathSet = filterIndexPaths(getRepositoryIndexPaths(nodeStore), sanitisedIndexPaths);
         Map<String, Set<String>> segregateIndexes = segregateIndexes(indexPathSet);

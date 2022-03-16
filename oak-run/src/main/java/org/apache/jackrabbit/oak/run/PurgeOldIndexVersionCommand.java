@@ -25,12 +25,16 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 public class PurgeOldIndexVersionCommand implements Command {
+    private static final Logger LOG = LoggerFactory.getLogger(PurgeOldIndexVersionCommand.class);
+
     private long threshold;
     private List<String> indexPaths;
     private long DEFAULT_PURGE_THRESHOLD = TimeUnit.DAYS.toMillis(5); // 5 days in millis
@@ -40,6 +44,9 @@ public class PurgeOldIndexVersionCommand implements Command {
     public void execute(String... args) throws Exception {
         Options opts = parseCommandLineParams(args);
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
+            if (!opts.getCommonOpts().isReadWrite()) {
+                LOG.info("Repository connected in read-only mode. Use '--read-write' for write operations");
+            }
             new PurgeOldIndexVersion().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths);
         }
     }
