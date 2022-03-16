@@ -536,7 +536,7 @@ Clients wanting to obtain spellchecks could use the following JCR code:
     RowIterator it = result.getRows();
     String spellchecks = "";
     if (it.hasNext()) {
-        spellchecks = row.getValue("rep:spellcheck()").getString()
+        spellchecks = it.getValue("rep:spellcheck()").getString()
     }
 
 The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
@@ -551,7 +551,7 @@ The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w
     RowIterator it = result.getRows();
     List<String> spellchecks = new LinkedList<String>();
     while (it.hasNext()) {
-        spellchecks.add(row.getValue("rep:spellcheck()").getString());
+        spellchecks.add(it.getValue("rep:spellcheck()").getString());
     }
 
 If either Lucene or Solr were configured to provide the spellcheck feature, see
