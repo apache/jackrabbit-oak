@@ -277,7 +277,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     public void donotDeleteNonReadWriteMode() throws Exception {
         LogCustomizer custom = LogCustomizer
                 .forLogger(
-                        "org.apache.jackrabbit.oak.indexversion.PurgeOldIndexVersion")
+                        "org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
                 .enable(Level.INFO).create();
         try {
             custom.starting();
@@ -303,7 +303,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             fixture.close();
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),
-                    containsString("Repository is opened in read-only mode"));
+                    containsString("Repository connected in read-only mode."));
         } finally {
             custom.finished();
         }
