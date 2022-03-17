@@ -137,7 +137,6 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             fixture = new RepositoryFixture(storeDir);
             fixture.close();
             List<String> logs = custom.getLogs();
-            assertTrue(logs.size() == 1);
             assertThat("custom fooIndex don't have product version ", logs.toString(),
                     containsString("IndexVersionOperation List is not valid for index"));
         } finally {
@@ -278,7 +277,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     public void donotDeleteNonReadWriteMode() throws Exception {
         LogCustomizer custom = LogCustomizer
                 .forLogger(
-                        "org.apache.jackrabbit.oak.indexversion.PurgeOldIndexVersion")
+                        "org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
                 .enable(Level.INFO).create();
         try {
             custom.starting();
@@ -304,7 +303,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             fixture.close();
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),
-                    containsString("Repository is opened in read-only mode"));
+                    containsString("Repository connected in read-only mode."));
         } finally {
             custom.finished();
         }
