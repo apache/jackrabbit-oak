@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -39,7 +38,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
     private final ElasticConnection esConnection;
     private final ElasticIndexTracker indexTracker;
-    private final int asyncIndexingTimeInSeconds = 5;
+    private final int asyncIndexingTimeInSeconds = 1;
 
     public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
