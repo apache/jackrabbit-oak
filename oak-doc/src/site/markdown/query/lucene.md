@@ -146,6 +146,8 @@ Below is the canonical index definition structure
       - codec (string)
       - compatVersion (long) = 2
       - evaluatePathRestrictions (boolean) = false
+      - valueRegex (string)
+      - queryFilterRegex (string)
       - includedPaths (string) multiple
       - queryPaths (string) multiple = ['/']
       - excludedPaths (string) multiple
@@ -190,6 +192,19 @@ compatVersion
 evaluatePathRestrictions
 : Optional boolean property defaults to `false`.
 : If enabled the index can evaluate [path restrictions](#path-restrictions)
+
+valueRegex
+: Optional string property
+: A regular expression for property value in index definition. If this is specified,
+  then only those properties would be added to index whose value matches the regex
+  defined by this property.
+
+queryFilterRegex
+: Optional string property
+: A regular expression for query text. If this property is present in an index definition,
+  then those queries whose search text doesn't match this pattern but are still using the index will log a warning.
+  If this property is not specified, but valueRegex is specified, that property is also used for the use
+  case specified here.
 
 includedPaths
 : Optional multi value property. Defaults to '/'.
