@@ -47,8 +47,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
 import java.util.stream.Stream;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_DATA_DUMP_THREADS;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_THREAD_POOL_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.*;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_MERGE_TASK_THREADS;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 
@@ -237,7 +237,6 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                                           boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold) throws IOException {
         this.storeDir = storeDir;
         this.mergeDir = new File(storeDir, mergeDirName);
-        FileUtils.forceMkdir(mergeDir);
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
@@ -327,7 +326,9 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         watcher.setDaemon(true);
         watcher.start();
         File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, storeDir, comparator, mergePhaser, compressionEnabled);
+        int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
+        int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, compressionEnabled);
         Thread merger = new Thread(mergeRunner, mergerThreadName);
         merger.setDaemon(true);
         merger.start();

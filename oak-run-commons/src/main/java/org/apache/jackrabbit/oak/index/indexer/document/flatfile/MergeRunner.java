@@ -93,9 +93,9 @@ public class MergeRunner implements Runnable {
     private final boolean compressionEnabled;
     private final ArrayList<File> mergedFiles = Lists.newArrayList();
     private final ArrayList<File> unmergedFiles = Lists.newArrayList();
-    private final ExecutorService executorService;
-    private final int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
-    private final int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
+    private ExecutorService executorService;
+    private final int threadPoolSize;
+    private final int batchMergeSize;
     private final Comparator fileSizeComparator = new SizeFileComparator();
 
     /**
@@ -134,16 +134,16 @@ public class MergeRunner implements Runnable {
      * @param compressionEnabled if true, the created files would be compressed
      */
     MergeRunner(File sortedFile, BlockingQueue<File> sortedFiles, File mergeDir, Comparator comparator,
-                Phaser phaser, boolean compressionEnabled) throws IOException {
+                Phaser phaser, int batchMergeSize, int threadPoolSize, boolean compressionEnabled) {
         this.mergeDir = mergeDir;
-        FileUtils.forceMkdir(mergeDir);
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = sortedFiles;
         this.sortedFile = sortedFile;
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = comparator;
         this.phaser = phaser;
-        this.executorService = Executors.newFixedThreadPool(threadPoolSize);
+        this.batchMergeSize = batchMergeSize;
+        this.threadPoolSize = threadPoolSize;
     }
 
     private boolean merge(List<File> files, File outputFile) {
@@ -207,6 +207,12 @@ public class MergeRunner implements Runnable {
 
     @Override
     public void run() {
+        this.executorService = Executors.newFixedThreadPool(threadPoolSize);
+        try {
+            FileUtils.forceMkdir(mergeDir);
+        } catch (IOException e) {
+            log.error("failed to create merged directory {}", mergeDir.getAbsolutePath());
+        }
         Phaser mergeTaskPhaser = new Phaser(1);
         List<Future<File>> results = Lists.newArrayList();
         int count = 0;
