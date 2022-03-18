@@ -976,7 +976,11 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         }
 
         root.commit();
-        postCommitHook();
+        // pure paranoia, this test seems to be more suceptable to delays in indexng
+        // than others
+        for (int j = 0; j < 5; j++) {
+            postCommitHook();
+        }
 
         // Check ordering works for func and non func properties
         assertOrderedPlanAndQuery(
@@ -1007,7 +1011,11 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             i--;
         }
         root.commit();
-        postCommitHook();
+        // pure paranoia, this test seems to be more suceptable to delays in indexng
+        // than others
+        for (int j = 0; j < 5; j++) {
+            postCommitHook();
+        }
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo])",
