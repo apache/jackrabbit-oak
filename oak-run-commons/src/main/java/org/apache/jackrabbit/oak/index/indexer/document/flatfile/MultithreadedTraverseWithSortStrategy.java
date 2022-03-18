@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
@@ -33,7 +34,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -149,7 +149,12 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
     private final boolean compressionEnabled;
-    /**
+    /**        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
+     Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, storeDir, comparator, mergePhaser, compressionEnabled);
+     Thread merger = new Thread(mergeRunner, mergerThreadName);
+     merger.setDaemon(true);
+     merger.start();
+     phaser.awaitAdvance(Phases.WAITING_FOR_TASK_SPLITS.value);
      * Directory where sorted files will be created.
      */
     private final File storeDir;
@@ -234,7 +239,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         this.mergeDir = new File(storeDir, mergeDirName);
         FileUtils.forceMkdir(mergeDir);
         this.compressionEnabled = compressionEnabled;
-        this.sortedFiles = new LinkedBlockingQueue<File>();
+        this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         taskQueue = new LinkedBlockingQueue<>();
@@ -372,7 +377,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         public void run() {
             try {
                 log.info("Using a thread pool of size {}", threadPoolSize);
-                List<Future<List<File>>> results = new ArrayList<>();
+                List<Future<List<File>>> results = Lists.newArrayList();
                 while (true) {
                     Callable<List<File>> task = taskQueue.take();
                     if (task == POISON_PILL) {
