@@ -139,7 +139,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
                         rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> {
-                    if(pd.function != null){
+                    if (pd.function != null) {
                         return pd.function;
                     } else {
                         return pd.name;
