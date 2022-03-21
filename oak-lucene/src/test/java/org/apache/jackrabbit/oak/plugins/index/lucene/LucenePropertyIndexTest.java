@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collection;
@@ -51,6 +52,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -63,6 +65,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -102,10 +105,12 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Lists.newArrayList;
@@ -177,11 +182,21 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
 
+    private LogCustomizer customizer;
+
+    @Before
+    public void setup(){
+        customizer = LogCustomizer.forLogger(LuceneDocumentMaker.class.getName()).filter(Level.INFO).create();
+        customizer.starting();
+    }
+
     @After
     public void after() {
         new ExecutorCloser(executorService).close();
         IndexDefinition.setDisableStoredIndexDefinition(false);
+        customizer.finished();
     }
+
 
     @Override
     protected void createTestIndexNode() throws Exception {
@@ -3666,4 +3681,35 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             accessCount = 0;
         }
     }
+
+    @Test
+    public void truncateStringInCaseStringIsGreaterThanMAX_STRING_PROPERTY_LENGTH_AndOrderByIsConfigured() throws Exception {
+        Tree idx = createIndex("test1", of("propa"));
+        Tree tr = idx.addChild(PROP_NODE).addChild("propa");
+        tr.setProperty("ordered", true, Type.BOOLEAN); // in case of ordered throws error that it can't index node
+        tr.setProperty("analyzed", true, Type.BOOLEAN);
+        idx.addChild(PROP_NODE).addChild("propa");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        int length = LuceneDocumentMaker.MAX_STRING_PROPERTY_LENGTH + 2;
+        String generatedString = RandomStringUtils.random(length, true, true);
+        test.addChild("a").setProperty("propa", "abcd pqrs" + generatedString.substring(0, length));
+        test.addChild("b").setProperty("propa", "abcd efgh " + generatedString.substring(0, length));
+        root.commit();
+
+        boolean truncationLogPresent = false;
+        String failureLog = MessageFormat.format("Truncating property :dv{0} for node {1} as it is > {2,number,#}", "propa", "/test/a", LuceneDocumentMaker.MAX_STRING_PROPERTY_LENGTH);
+
+        for (String log : customizer.getLogs()) {
+            if (log.equals(failureLog)) {
+                truncationLogPresent = true;
+                break;
+            }
+        }
+        assertTrue(truncationLogPresent);
+        // order of result should be first b and then a i.e. sorted on propa
+        assertQuery("select [jcr:path] from [nt:base] where contains(@propa, 'abcd') order by propa", asList("/test/b", "/test/a"));
+    }
+
 }
