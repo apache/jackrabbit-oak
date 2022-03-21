@@ -536,7 +536,7 @@ Clients wanting to obtain spellchecks could use the following JCR code:
     RowIterator it = result.getRows();
     String spellchecks = "";
     if (it.hasNext()) {
-        spellchecks = row.getValue("rep:spellcheck()").getString()
+        spellchecks = it.getValue("rep:spellcheck()").getString()
     }
 
 The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
@@ -551,7 +551,7 @@ The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w
     RowIterator it = result.getRows();
     List<String> spellchecks = new LinkedList<String>();
     while (it.hasNext()) {
-        spellchecks.add(row.getValue("rep:spellcheck()").getString());
+        spellchecks.add(it.getValue("rep:spellcheck()").getString());
     }
 
 If either Lucene or Solr were configured to provide the spellcheck feature, see
@@ -587,7 +587,7 @@ Clients wanting to obtain suggestions could use the following JCR code:
     RowIterator it = result.getRows();
     String suggestions = "";
     if (it.hasNext()) {
-        suggestions = row.getValue("rep:suggest()").getString()
+        suggestions = it.getValue("rep:suggest()").getString()
     }
 
 The `suggestions` String would be have the following pattern
@@ -605,7 +605,7 @@ The `suggestions` String would be have the following pattern
     RowIterator it = result.getRows();
     List<String> suggestions = new LinkedList<String>();
     while (it.hasNext()) {
-        suggestions.add(row.getValue("rep:suggest()").getString());
+        suggestions.add(it.getValue("rep:suggest()").getString());
     }
 
 If either Lucene or Solr were configured to provide the suggestions feature,

@@ -18,6 +18,14 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -26,9 +34,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
-import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -38,43 +43,60 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 public class PurgeOldIndexVersion {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeOldIndexVersion.class);
 
-    public void execute(Options opts, long purgeThresholdMillis, List<String> indexPaths) throws Exception {
-        boolean isReadWriteRepository = opts.getCommonOpts().isReadWrite();
-        if (!isReadWriteRepository) {
-            LOG.info("Repository connected in read-only mode. Use '--read-write' for write operations");
+    /**
+     * Execute purging index based on the index version naming and last time index time
+     *
+     * @param nodeStore             the node store
+     * @param isReadWriteRepository bool to indicate if it's read write repository, if yes, the purge index will not execute
+     * @param purgeThresholdMillis  the threshold of time length since last time index time to determine, will purge if exceed that
+     * @param indexPaths            the index path or parent path
+     *
+     * @throws IOException
+     * @throws CommitFailedException
+     */
+    public void execute(NodeStore nodeStore, boolean isReadWriteRepository, long purgeThresholdMillis, List<String> indexPaths) throws
+            IOException, CommitFailedException {
+        List<IndexVersionOperation> purgeIndexList = getPurgeIndexes(nodeStore, purgeThresholdMillis, indexPaths);
+        if (!purgeIndexList.isEmpty()) {
+            if (isReadWriteRepository) {
+                LOG.info("Found indexes for purging: '{}'", purgeIndexList);
+                long purgeStart = System.currentTimeMillis();
+                purgeOldIndexVersion(nodeStore, purgeIndexList);
+                LOG.info("Index purging done, took '{}' ms", (System.currentTimeMillis() - purgeStart));
+            } else {
+                LOG.info("Repository is opened in read-only mode, the purging indexes for '{}' are: {}", indexPaths, purgeIndexList);
+            }
+        } else {
+            LOG.info("No indexes are found to be purged");
         }
-        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
-            NodeStore nodeStore = fixture.getStore();
-            List<String> sanitisedIndexPaths = sanitiseUserIndexPaths(indexPaths);
-            Set<String> indexPathSet = filterIndexPaths(getRepositoryIndexPaths(nodeStore), sanitisedIndexPaths);
-            Map<String, Set<String>> segregateIndexes = segregateIndexes(indexPathSet);
-            for (Map.Entry<String, Set<String>> entry : segregateIndexes.entrySet()) {
-                String baseIndexPath = entry.getKey();
-                String parentPath = PathUtils.getParentPath(entry.getKey());
-                List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
-                NodeState indexDefParentNode = NodeStateUtils.getNode(nodeStore.getRoot(),
-                        parentPath);
-                List<IndexVersionOperation> toDeleteIndexNameObjectList =
-                        IndexVersionOperation.generateIndexVersionOperationList(indexDefParentNode, indexNameObjectList, purgeThresholdMillis);
-                if (isReadWriteRepository && !toDeleteIndexNameObjectList.isEmpty()) {
-                    purgeOldIndexVersion(nodeStore, toDeleteIndexNameObjectList);
-                } else {
-                    LOG.info("Repository is opened in read-only mode: IndexOperations" +
-                            " for index at path {} are : {}", baseIndexPath, toDeleteIndexNameObjectList);
-                }
+    }
+
+    public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths) throws IOException, CommitFailedException {
+        List<IndexVersionOperation> purgeIndexList = new ArrayList<>();
+        LOG.info("Getting indexes to purge over node type '{}' and index paths '{}'", nodeStore.getClass().getSimpleName(), indexPaths);
+        List<String> sanitisedIndexPaths = sanitiseUserIndexPaths(indexPaths);
+        Set<String> indexPathSet = filterIndexPaths(getRepositoryIndexPaths(nodeStore), sanitisedIndexPaths);
+        Map<String, Set<String>> segregateIndexes = segregateIndexes(indexPathSet);
+        for (Map.Entry<String, Set<String>> entry : segregateIndexes.entrySet()) {
+            String baseIndexPath = entry.getKey();
+            LOG.info("Validate purge index over base of '{}': '{}'", baseIndexPath, entry.getValue());
+            String parentPath = PathUtils.getParentPath(entry.getKey());
+            List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
+            NodeState indexDefParentNode = NodeStateUtils.getNode(nodeStore.getRoot(), parentPath);
+            List<IndexVersionOperation> toDeleteIndexNameObjectList = IndexVersionOperation.generateIndexVersionOperationList(
+                    indexDefParentNode, indexNameObjectList, purgeThresholdMillis);
+            toDeleteIndexNameObjectList.removeIf(item -> (item.getOperation() == IndexVersionOperation.Operation.NOOP));
+            if (!toDeleteIndexNameObjectList.isEmpty()) {
+                LOG.info("Found some index need to be purged over base'{}': '{}'", baseIndexPath, toDeleteIndexNameObjectList);
+                purgeIndexList.addAll(toDeleteIndexNameObjectList);
+            } else {
+                LOG.info("No index found to be purged over base: '{}'", baseIndexPath);
             }
         }
+        return purgeIndexList;
     }
 
     /**

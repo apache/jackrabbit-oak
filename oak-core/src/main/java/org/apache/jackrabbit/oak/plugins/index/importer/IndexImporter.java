@@ -57,6 +57,11 @@ public class IndexImporter {
      * Symbolic name use to indicate sync indexes
      */
     static final String ASYNC_LANE_SYNC = "sync";
+    /*
+    * System property name for flag for preserve checkpoint. If this is set to true, then checkpoint cleanup will be skipped.
+    * Default is set to false.
+     */
+    public static final String OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT = "oak.index.importer.preserveCheckpoint";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore nodeStore;
@@ -69,6 +74,7 @@ public class IndexImporter {
     private final IndexEditorProvider indexEditorProvider;
     private final AsyncIndexerLock indexerLock;
     private final IndexDefinitionUpdater indexDefinitionUpdater;
+    private final boolean preserveCheckpoint = Boolean.getBoolean(OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT);
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
@@ -290,8 +296,14 @@ public class IndexImporter {
     }
 
     private void releaseCheckpoint() {
-        nodeStore.release(indexerInfo.checkpoint);
-        log.info("Released the referred checkpoint [{}]", indexerInfo.checkpoint);
+        if (preserveCheckpoint) {
+            log.info("Preserving the referred checkpoint [{}]. This could have been done in case this checkpoint is needed by a process later on." +
+                    " Please make sure to remove the checkpoint once it's no longer needed.", indexerInfo.checkpoint);
+        } else {
+            nodeStore.release(indexerInfo.checkpoint);
+            log.info("Released the referred checkpoint [{}]", indexerInfo.checkpoint);
+        }
+
     }
 
     private void incrementReIndexCount(NodeBuilder definition) {

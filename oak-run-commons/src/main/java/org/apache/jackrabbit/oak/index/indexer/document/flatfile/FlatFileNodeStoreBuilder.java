@@ -55,7 +55,6 @@ public class FlatFileNodeStoreBuilder {
     public static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
 
-
     /**
      * Default value for {@link #PROP_THREAD_POOL_SIZE}
      */

@@ -54,6 +54,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> importIndex;
     private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Void> enableCowCor;
+    private final OptionSpec<Void> buildFlatFileStoreSeparately;
     private final OptionSpec<Integer> consistencyCheck;
     private final OptionSpec<Long> asyncDelay;
     protected OptionSet options;
@@ -108,6 +109,7 @@ public class IndexOptions implements OptionsBean {
         docTraversal = parser.accepts("doc-traversal-mode", "Use Document traversal mode for reindex in " +
                 "DocumentNodeStore setups. This may provide better performance in some cases (experimental)");
         enableCowCor = parser.accepts("enable-cow-cor", "Enables COW/COR during async indexing using oak-run");
+        buildFlatFileStoreSeparately = parser.accepts("build-flatfilestore-separately", "Builds FlatFileStore as a separate step and then uses it as part of the doc-traversal-mode for reindexing");
 
         indexImportDir = parser.accepts("index-import-dir", "Directory containing index files. This " +
                 "is required when --index-import operation is selected")
@@ -219,6 +221,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean isCowCorEnabled() {
         return options.has(enableCowCor);
+    }
+
+    public boolean buildFlatFileStoreSeparately() {
+        return options.has(buildFlatFileStoreSeparately);
     }
 
     public String getCheckpoint(){
