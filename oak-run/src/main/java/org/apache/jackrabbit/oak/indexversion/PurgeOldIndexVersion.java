@@ -82,9 +82,9 @@ public class PurgeOldIndexVersion {
         Map<String, Set<String>> segregateIndexes = segregateIndexes(indexPathSet);
         for (Map.Entry<String, Set<String>> entry : segregateIndexes.entrySet()) {
             String baseIndexPath = entry.getKey();
-            LOG.info("Validate purge index over base of '{}': '{}'", baseIndexPath, entry.getValue());
-            String parentPath = PathUtils.getParentPath(entry.getKey());
+            String parentPath = PathUtils.getParentPath(baseIndexPath);
             List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
+            LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath,indexNameObjectList);
             NodeState indexDefParentNode = NodeStateUtils.getNode(nodeStore.getRoot(), parentPath);
             List<IndexVersionOperation> toDeleteIndexNameObjectList = IndexVersionOperation.generateIndexVersionOperationList(
                     indexDefParentNode, indexNameObjectList, purgeThresholdMillis);

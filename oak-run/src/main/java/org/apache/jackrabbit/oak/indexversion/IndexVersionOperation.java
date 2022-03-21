@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -25,11 +30,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 
 /*
     Main operation of this class is to mark IndexName's with operations
@@ -70,56 +70,91 @@ public class IndexVersionOperation {
      */
     public static List<IndexVersionOperation> generateIndexVersionOperationList(NodeState indexDefParentNode,
                                                                                 List<IndexName> indexNameObjectList, long purgeThresholdMillis) {
-        int activeProductVersion = -1;
         List<IndexName> reverseSortedIndexNameList = getReverseSortedIndexNameList(indexNameObjectList);
-        removeDisabledCustomIndexesFromList(indexDefParentNode, reverseSortedIndexNameList);
         List<IndexVersionOperation> indexVersionOperationList = new LinkedList<>();
-        for (IndexName indexNameObject : reverseSortedIndexNameList) {
-            NodeState indexNode = indexDefParentNode
-                    .getChildNode(PathUtils.getName(indexNameObject.getNodeName()));
-            /*
-            All Indexes are by default NOOP until we get index which is active for more than threshold limit
-             */
-            if (activeProductVersion == -1) {
-                indexVersionOperationList.add(new IndexVersionOperation(indexNameObject));
-                if (indexNode.hasChildNode(IndexDefinition.STATUS_NODE)) {
-                    if (indexNode.getChildNode(IndexDefinition.STATUS_NODE)
-                            .getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP) != null) {
-                        String reindexCompletionTime = indexDefParentNode
-                                .getChildNode(PathUtils.getName(indexNameObject.getNodeName()))
-                                .getChildNode(IndexDefinition.STATUS_NODE)
-                                .getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP).getValue(Type.DATE);
-                        long reindexCompletionTimeInMillis = PurgeOldVersionUtils.getMillisFromString(reindexCompletionTime);
-                        long currentTimeInMillis = System.currentTimeMillis();
-                        if (currentTimeInMillis - reindexCompletionTimeInMillis > purgeThresholdMillis) {
-                            activeProductVersion = indexNameObject.getProductVersion();
-                        }
+
+        List<IndexName> disableIndexNameObjectList = removeDisabledCustomIndexesFromList(indexDefParentNode, reverseSortedIndexNameList);
+        // for disabled indexes, we check if they exist in read-only repo, it not anymore, do full deletion then, otherwise, no action needed
+        for (IndexName indexNameObject : disableIndexNameObjectList) {
+            String indexName = indexNameObject.getNodeName();
+            NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
+            IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
+            if (!isHiddenOakMountExists(indexNode)) {
+                indexVersionOperation.setOperation(Operation.DELETE);
+            }
+            indexVersionOperationList.add(indexVersionOperation);
+        }
+
+        if (!reverseSortedIndexNameList.isEmpty()) {
+            IndexName activeIndexNameObject = reverseSortedIndexNameList.remove(0);
+            NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
+            boolean isActiveIndexLongEnough = isIndexPurgeReady(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
+            int activeProductVersion = activeIndexNameObject.getProductVersion();
+            indexVersionOperationList.add(new IndexVersionOperation(activeIndexNameObject));
+
+            // for rest indexes except active index
+            for (IndexName indexNameObject : reverseSortedIndexNameList) {
+                String indexName = indexNameObject.getNodeName();
+                NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
+                IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
+                // if active index not long enough, NOOP for all indexes
+                if (isActiveIndexLongEnough) {
+                    if (indexNameObject.getProductVersion() == activeProductVersion && indexNameObject.getCustomerVersion() == 0) {
+                        indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
                     } else {
-                        LOG.warn(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP
-                                + " property is not set for index " + indexNameObject.getNodeName());
+                        // the check hidden oak mount logic only works when passing through the proper composite store
+                        if (isHiddenOakMountExists(indexNode)) {
+                            LOG.info("Found hidden oak mount node for: '{}', disable it but no index definition deletion", indexName);
+                            indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
+                        } else {
+                            indexVersionOperation.setOperation(Operation.DELETE);
+                        }
                     }
                 }
-            } else {
-            /*
-            Once we found active index, we mark all its custom version with DELETE
-            and OOTB same product version index with DELETE_HIDDEN_AND_DISABLE
-             */
-                if (indexNameObject.getProductVersion() == activeProductVersion
-                        && indexNameObject.getCustomerVersion() == 0) {
-                    IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
-                    indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
-                    indexVersionOperationList.add(indexVersionOperation);
-                } else {
-                    IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
-                    indexVersionOperation.setOperation(Operation.DELETE);
-                    indexVersionOperationList.add(indexVersionOperation);
-                }
+                LOG.info("The operation for index '{}' will be: '{}'", indexName, indexVersionOperation.getOperation());
+                indexVersionOperationList.add(indexVersionOperation);
             }
         }
         if (!isValidIndexVersionOperationList(indexVersionOperationList)) {
+            LOG.info("Not valid version operation list: '{}', skip all", indexNameObjectList);
             indexVersionOperationList = Collections.emptyList();
         }
         return indexVersionOperationList;
+    }
+
+    // do index purge ready based on the active index's last reindexing time is longer enough, we do this for prevent rollback
+    private static boolean isIndexPurgeReady(IndexName activeIndexName, NodeState activeIndexNode, long purgeThresholdMillis) {
+        // the 1st index must be active
+        String indexName = activeIndexName.getNodeName();
+        if (activeIndexNode.hasChildNode(IndexDefinition.STATUS_NODE)) {
+            if (activeIndexNode.getChildNode(IndexDefinition.STATUS_NODE)
+                    .getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP) != null) {
+                String reindexCompletionTime = activeIndexNode.getChildNode(IndexDefinition.STATUS_NODE)
+                        .getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP)
+                        .getValue(Type.DATE);
+                long reindexCompletionTimeInMillis = PurgeOldVersionUtils.getMillisFromString(reindexCompletionTime);
+                long currentTimeInMillis = System.currentTimeMillis();
+                if (currentTimeInMillis - reindexCompletionTimeInMillis > purgeThresholdMillis) {
+                    LOG.info("Found active index {} is longer enough", indexName);
+                    return true;
+                } else {
+                    LOG.info("The last index time '{}' isn't longer enough for: {}", reindexCompletionTime, indexName);
+                }
+            } else {
+                LOG.warn("{} property is not set for index {}", IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, indexName);
+            }
+        }
+        LOG.info("The active index '{}' indexing time isn't long enough", indexName);
+        return false;
+    }
+
+    private static boolean isHiddenOakMountExists(NodeState indexNode) {
+        for (String nodeName : indexNode.getChildNodeNames()) {
+            if (nodeName.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /*
@@ -163,15 +198,18 @@ public class IndexVersionOperation {
         return isValid;
     }
 
-    private static void removeDisabledCustomIndexesFromList(NodeState indexDefParentNode,
+    private static List<IndexName> removeDisabledCustomIndexesFromList(NodeState indexDefParentNode,
                                                             List<IndexName> indexNameObjectList) {
+        List<IndexName> disableIndexNameObjectList = new ArrayList<>();
         for (int i = 0; i < indexNameObjectList.size(); i++) {
             NodeState indexNode = indexDefParentNode
                     .getChildNode(PathUtils.getName(indexNameObjectList.get(i).getNodeName()));
             if (indexNode.getProperty("type") != null && "disabled".equals(indexNode.getProperty("type").getValue(Type.STRING))) {
+                disableIndexNameObjectList.add(indexNameObjectList.get(i));
                 indexNameObjectList.remove(i);
             }
         }
+        return disableIndexNameObjectList;
     }
 
     /*
