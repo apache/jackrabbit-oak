@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -35,6 +27,14 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.junit.ClassRule;
+
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
     @ClassRule
@@ -66,11 +66,6 @@ public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
         repositoryOptionsUtil = builder.build();
 
         return repositoryOptionsUtil.getOak().createContentRepository();
-    }
-
-    @Override
-    protected void createTestIndexNode() {
-        // setTraversalEnabled(false);
     }
 
     protected Tree createIndex(String name, Set<String> propNames) {
