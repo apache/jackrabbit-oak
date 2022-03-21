@@ -61,6 +61,11 @@
             <artifactId>oak-segment-tar</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-search</artifactId>
+            <version>${project.version}</version>
+        </dependency>
          <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-segment-remote</artifactId>
