@@ -18,21 +18,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValues;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValues;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 public class ElasticIndexDefinition extends IndexDefinition {
 
@@ -133,9 +134,16 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         this.propertiesByName = getDefinedRules()
                 .stream()
-                .flatMap(rule -> StreamSupport.stream(rule.getProperties().spliterator(), false))
+                .flatMap(rule -> Stream.concat(StreamSupport.stream(rule.getProperties().spliterator(), false),
+                        rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
-                .collect(Collectors.groupingBy(pd -> pd.name));
+                .collect(Collectors.groupingBy(pd -> {
+                    if (pd.function != null) {
+                        return pd.function;
+                    } else {
+                        return pd.name;
+                    }
+                }));
 
         this.dynamicBoostProperties = getDefinedRules()
                 .stream()

@@ -57,14 +57,12 @@ class ElasticIndexPlanner extends FulltextIndexPlanner {
                 // support for path ordering in both directions
                 orderEntries.add(o);
             }
-            // TODO: add support for function-based sorting
-//            for (PropertyDefinition functionIndex : rule.getFunctionRestrictions()) {
-//                if (functionIndex.ordered && o.getPropertyName().equals(functionIndex.function)) {
-//                    // can manage any order desc/asc
-//                    orderEntries.add(o);
-//                    result.sortedProperties.add(functionIndex);
-//                }
-//            }
+            for (PropertyDefinition functionIndex : rule.getFunctionRestrictions()) {
+                if (functionIndex.ordered && o.getPropertyName().equals(functionIndex.function)) {
+                    // can manage any order desc/asc
+                    orderEntries.add(o);
+                }
+            }
         }
 
         //TODO Should we return order entries only when all order clauses are satisfied
