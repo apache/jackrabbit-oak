@@ -178,10 +178,14 @@ public class IndexVersionOperation {
         IndexVersionOperation indexWithDeleteHiddenOp = null;
         for (IndexVersionOperation indexVersionOperation : indexVersionOperations) {
             if (indexVersionOperation.getOperation() == Operation.NOOP) {
-                lastNoopOperationIndexVersion = indexVersionOperation;
+                if (lastNoopOperationIndexVersion == null) {
+                    lastNoopOperationIndexVersion = indexVersionOperation;
+                }
             }
             if (indexVersionOperation.getOperation() == Operation.DELETE_HIDDEN_AND_DISABLE) {
-                indexWithDeleteHiddenOp = indexVersionOperation;
+                if (indexWithDeleteHiddenOp == null) {
+                    indexWithDeleteHiddenOp = indexVersionOperation;
+                }
             }
         }
         if (lastNoopOperationIndexVersion.getIndexName().getCustomerVersion() == 0) {

@@ -20,13 +20,16 @@ package org.apache.jackrabbit.oak.indexversion;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -35,6 +38,7 @@ import org.apache.jackrabbit.oak.index.RepositoryFixture;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -44,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -55,7 +58,8 @@ import static org.junit.Assert.assertThat;
 public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";
 
-    private void createCustomIndex(String path, int ootbVersion, int customVersion, boolean asyncIndex) throws IOException, RepositoryException {
+    private void createCustomIndex(String path, int ootbVersion, int customVersion, boolean asyncIndex) throws IOException,
+            RepositoryException {
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
@@ -63,20 +67,14 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
 
         Session session = fixture.getAdminSession();
-        String indexName = customVersion != 0
-                ? path + "-" + ootbVersion + "-custom-" + customVersion
-                : path + "-" + ootbVersion;
-        Node fooIndex = getOrCreateByPath(indexName,
-                "oak:QueryIndexDefinition", session);
+        String indexName = customVersion != 0 ? path + "-" + ootbVersion + "-custom-" + customVersion : path + "-" + ootbVersion;
+        Node fooIndex = getOrCreateByPath(indexName, "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
         session.save();
         session.logout();
     }
 
-    /*
-        All indexes have reindexCompletionTime present (Reindexing is done after creating all indexes)
-     */
     @Test
     public void deleteOldIndexCompletely() throws Exception {
         createTestData(false);
@@ -87,39 +85,28 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
-        fixture.getAsyncIndexUpdate("async").run();
-        fixture.close();
-        PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
-        File storeDir = fixture.getDir();
-        String[] args = {
-                storeDir.getAbsolutePath(),
-                "--read-write",
-                "--threshold=1"
-        };
 
-        command.execute(args);
-        fixture = new RepositoryFixture(storeDir);
-        fixture.close();
+        runIndexPurgeCommand(true, 1, "");
 
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex").exists());
-        Assert.assertEquals(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
-        Assert.assertFalse(isHiddenChildNodePresent(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4")));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-2").exists());
+        NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals(indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
+        Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
+        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
     }
 
     @Test
-    public void invalidIndexOperationVersion() throws Exception {
-
-        LogCustomizer custom = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO).create();
+    public void noDeleteIfActiveIndexTimeThresholdNotMeet() throws Exception {
+        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                .enable(Level.INFO)
+                .create();
         try {
             custom.starting();
             createTestData(false);
@@ -129,20 +116,86 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
-            fixture.getAsyncIndexUpdate("async").run();
-            fixture.close();
-            PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
 
-            // File outDir = temporaryFolder.newFolder();
-            File storeDir = fixture.getDir();
-            String[] args = {
-                    storeDir.getAbsolutePath(),
-                    "--read-write",
-                    "--threshold=1"
-            };
-            command.execute(args);
-            fixture = new RepositoryFixture(storeDir);
-            fixture.close();
+            runIndexPurgeCommand(true, TimeUnit.DAYS.toMillis(1), "");
+
+            List<String> logs = custom.getLogs();
+            assertThat(logs.toString(),
+                    containsString("The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't long enough"));
+
+            NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        } finally {
+            custom.finished();
+        }
+    }
+
+    // currently, there is known issue where indexing time will be missed during indexing job running, that need to be fixed separately.
+    // but before which is fixed, the purging will not do deletion in that case
+    @Test
+    public void noDeleteIfActiveIndexTimeMissing() throws Exception {
+        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                .enable(Level.INFO)
+                .create();
+        try {
+            custom.starting();
+            createTestData(false);
+            createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
+
+            NodeStore store = fixture.getNodeStore();
+            NodeBuilder rootBuilder = store.getRoot().builder();
+            rootBuilder.getChildNode("oak:index")
+                    .getChildNode("fooIndex-4-custom-2")
+                    .getChildNode(IndexDefinition.STATUS_NODE)
+                    .removeProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
+            store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            runIndexPurgeCommand(true, 1, "");
+
+            List<String> logs = custom.getLogs();
+            assertThat(logs.toString(),
+                    containsString("reindexCompletionTimestamp property is not set for index /oak:index/fooIndex-4-custom-2"));
+
+            NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        } finally {
+            custom.finished();
+        }
+    }
+
+
+    @Test
+    public void noDeleteIfInvalidIndexOperationVersion() throws Exception {
+        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                .enable(Level.INFO)
+                .create();
+        try {
+            custom.starting();
+            createTestData(false);
+            createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
+
+            runIndexPurgeCommand(true, 1, "");
+
             List<String> logs = custom.getLogs();
             assertThat("custom fooIndex don't have product version ", logs.toString(),
                     containsString("IndexVersionOperation List is not valid for index"));
@@ -151,54 +204,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         }
     }
 
-/*
-    Not all indexes have reIndexCompletionTime present (Reindexing is done before creating all indexes)
-    We are deleting hidden nodes for indexes fooIndex-4-custom-2 and fooIndex-3-custom-2
-    Now according to logic because   fooIndex-4-custom-1 will have reindexCompletionTimestamp all index
-    versions previous to this will get be marked for deletion or deleting hidden node operation.
- */
-
     @Test
-    public void deleteOldIndexPartially() throws Exception {
-        createTestData(false);
-        createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
-        createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
-        createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
-        createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
-        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
-        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
-        fixture.getAsyncIndexUpdate("async").run();
-        createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
-        PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
-        //        PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(fixture.getNodeStore(), "/oak:index/fooIndex-4-custom-2");
-        //        PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(fixture.getNodeStore(), "/oak:index/fooIndex-3-custom-2");
-        fixture.close();
-
-        File storeDir = fixture.getDir();
-        String[] args = {
-                storeDir.getAbsolutePath(),
-                "--read-write",
-                "--threshold=1"
-        };
-
-        command.execute(args);
-        fixture = new RepositoryFixture(storeDir);
-        fixture.close();
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex").exists());
-        Assert.assertEquals(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
-        Assert.assertFalse(isHiddenChildNodePresent(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4")));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-2").exists());
-    }
-
-    @Ignore
-    @Test
-    public void donotDeleteDisabledIndexes() throws Exception {
+    public void noDeleteForDisabledIndexesIfOakMountExists() throws Exception {
         createTestData(false);
         createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
@@ -207,34 +214,28 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
+
         NodeStore store = fixture.getNodeStore();
         NodeBuilder rootBuilder = store.getRoot().builder();
-        NodeBuilder nodeBuilder = rootBuilder.getChildNode("oak:index")
-                .getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
+        // for disabled indexes, it will still be deleted if no oak mount, but will be kept if oak mount exists
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fixture.close();
-        PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
-        File storeDir = fixture.getDir();
-        String[] args = {
-                storeDir.getAbsolutePath(),
-                "--read-write",
-                "--threshold=1",
-                "--index-paths=/oak:index/fooIndex,/oak:index"
-        };
-        command.execute(args);
-        fixture = new RepositoryFixture(storeDir);
-        fixture.close();
 
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex").exists());
-        Assert.assertEquals(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
-        Assert.assertFalse(isHiddenChildNodePresent(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4")));
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-2").exists());
+        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1"));
+
+        runIndexPurgeCommand(true, 1, "/oak:index/fooIndex,/oak:index");
+        NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals(indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
+        Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
     }
 
     @Test
@@ -253,40 +254,29 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         createCustomIndex(FOO1_INDEX_PATH, 3, 1, false);
         createCustomIndex(FOO1_INDEX_PATH, 3, 2, false);
 
-        fixture.getAsyncIndexUpdate("async").run();
-        fixture.close();
-        PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
-        File storeDir = fixture.getDir();
-        String[] args = {
-                storeDir.getAbsolutePath(),
-                "--read-write",
-                "--threshold=1",
-                "--index-paths=/oak:index/fooIndex"
-        };
-        command.execute(args);
-        fixture = new RepositoryFixture(storeDir);
-        fixture.close();
+        runIndexPurgeCommand(true, 1, "/oak:index/fooIndex");
 
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex").exists());
-        Assert.assertEquals(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
-        Assert.assertFalse(isHiddenChildNodePresent(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4")));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-2").exists());
+        NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
 
-        Assert.assertTrue("Index:" + "fooIndex1-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex1-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals(indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
+        Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
+        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+
+        Assert.assertTrue("Index:" + "fooIndex1-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex1-3-custom-1").exists());
     }
 
     @Test
-    public void donotDeleteNonReadWriteMode() throws Exception {
-        LogCustomizer custom = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
-                .enable(Level.INFO).create();
+    public void noDeleteIfNonReadWriteMode() throws Exception {
+        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
+                .enable(Level.INFO)
+                .create();
         try {
             custom.starting();
             createTestData(false);
@@ -297,18 +287,9 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
-            fixture.getAsyncIndexUpdate("async").run();
-            fixture.close();
-            PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
 
-            File storeDir = fixture.getDir();
-            String[] args = {
-                    storeDir.getAbsolutePath()
-            };
+            runIndexPurgeCommand(false, 1, "");
 
-            command.execute(args);
-            fixture = new RepositoryFixture(storeDir);
-            fixture.close();
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),
                     containsString("Repository connected in read-only mode."));
@@ -318,7 +299,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     }
 
     @Test
-    public void testDisableIndexWithOakMount() throws Exception {
+    public void disableIndexesIfOakMountExists() throws Exception {
         createTestData(false);
         createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
@@ -330,54 +311,49 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
 
         addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-3", "fooIndex-3-custom-1"));
 
+        runIndexPurgeCommand(true, 1, "");
+
+        NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+        Assert.assertFalse(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse(indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse(indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertFalse(indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+
+        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
+    }
+
+    private void runIndexPurgeCommand(boolean readWrite, long threshold, String indexPaths) throws Exception {
         fixture.getAsyncIndexUpdate("async").run();
         fixture.close();
-
         PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
         File storeDir = fixture.getDir();
-        String[] args = {
-                storeDir.getAbsolutePath(),
-                "--read-write",
-                "--threshold=1"
-        };
-
-        command.execute(args);
-        fixture = new RepositoryFixture(storeDir, fixture.getNodeStore());
+        List<String> argsList = new ArrayList<>();
+        argsList.add(storeDir.getAbsolutePath());
+        if (readWrite) {
+            argsList.add("--read-write");
+        }
+        argsList.add("--threshold=" + threshold);
+        if (StringUtils.isNotEmpty(indexPaths)) {
+            argsList.add("--index-paths=" + indexPaths);
+        }
+        command.execute(argsList.toArray((new String[0])));
+        fixture = new RepositoryFixture(storeDir);
         fixture.close();
-
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-3" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3").exists());
-        Assert.assertEquals(fixture.getNodeStore()
-                .getRoot()
-                .getChildNode("oak:index")
-                .getChildNode("fooIndex-3")
-                .getProperty("type")
-                .getValue(Type.STRING), "disabled");
-        Assert.assertTrue("Index:" + "fooIndex-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertEquals(fixture.getNodeStore()
-                .getRoot()
-                .getChildNode("oak:index")
-                .getChildNode("fooIndex-3-custom-1")
-                .getProperty("type")
-                .getValue(Type.STRING), "disabled");
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex").exists());
-        Assert.assertEquals(fixture.getNodeStore()
-                .getRoot()
-                .getChildNode("oak:index")
-                .getChildNode("fooIndex-4")
-                .getProperty("type")
-                .getValue(Type.STRING), "disabled");
-        Assert.assertFalse(isHiddenChildNodePresent(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4")));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-2").exists());
     }
 
     private void addMockHiddenOakMount(NodeStore nodeStore, List<String> indexes) throws CommitFailedException {
         NodeBuilder rootNodeBuilder = nodeStore.getRoot().builder();
         for (String item : indexes) {
             if (rootNodeBuilder.getChildNode("oak:index").getChildNode(item).exists()) {
-                rootNodeBuilder.getChildNode("oak:index").getChildNode(item).setChildNode(":oak:mount-mock-node", EmptyNodeState.EMPTY_NODE);
+                rootNodeBuilder.getChildNode("oak:index")
+                        .getChildNode(item)
+                        .setChildNode(":oak:mount-mock-node", EmptyNodeState.EMPTY_NODE);
             }
         }
         EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
@@ -393,5 +369,4 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         }
         return isHiddenChildNodePresent;
     }
-
 }

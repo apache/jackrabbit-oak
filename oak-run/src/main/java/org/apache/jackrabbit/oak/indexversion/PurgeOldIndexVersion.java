@@ -168,24 +168,28 @@ public class PurgeOldIndexVersion {
         return indexNameObjectList;
     }
 
-    private void purgeOldIndexVersion(NodeStore store,
-                                      List<IndexVersionOperation> toDeleteIndexNameObjectList) throws CommitFailedException {
+    private void purgeOldIndexVersion(NodeStore store, List<IndexVersionOperation> toDeleteIndexNameObjectList) throws
+            CommitFailedException {
         for (IndexVersionOperation toDeleteIndexNameObject : toDeleteIndexNameObjectList) {
             NodeState root = store.getRoot();
             NodeBuilder rootBuilder = root.builder();
-            NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, toDeleteIndexNameObject.getIndexName().getNodeName());
+            String nodeName = toDeleteIndexNameObject.getIndexName().getNodeName();
+            NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, nodeName);
             if (nodeBuilder.exists()) {
                 if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE_HIDDEN_AND_DISABLE) {
+                    LOG.info("Disabling {}", nodeName);
                     nodeBuilder.setProperty("type", "disabled", Type.STRING);
-                    PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, toDeleteIndexNameObject.getIndexName().getNodeName());
+                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+                    store.merge(rootBuilder, hook, CommitInfo.EMPTY);
+                    PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, nodeName);
                 } else if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE) {
+                    LOG.info("Deleting {}", nodeName);
                     nodeBuilder.remove();
+                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+                    store.merge(rootBuilder, hook, CommitInfo.EMPTY);
                 }
-                EditorHook hook = new EditorHook(
-                        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
-                store.merge(rootBuilder, hook, CommitInfo.EMPTY);
             } else {
-                LOG.error("nodebuilder null for path " + toDeleteIndexNameObject.getIndexName().getNodeName());
+                LOG.error("nodebuilder null for path " + nodeName);
             }
         }
     }
