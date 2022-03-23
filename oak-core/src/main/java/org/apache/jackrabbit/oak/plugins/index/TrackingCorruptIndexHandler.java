@@ -94,7 +94,12 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             }
         }
         if (meter != null) {
-            meter.mark(indexes.size());
+            // indexes.size() gives us the number of remaining corrupt indices.
+            // meter.mark(indexes.size()) increments the current meter count by indexes.size(). We don't want that here.
+            // We actually want to set the the meter count to indexes.size(), the api doesn't seem to support that.
+            // So we instead add indexes.size() - meter.getCount() , which will always be <= 0. So this effectively will reduce the meter count
+            // by number of indexes fixed in this call.
+            meter.mark(indexes.size() - meter.getCount());
         }
     }
 
