@@ -183,7 +183,7 @@ public class IndexImporter {
             updateIndexImporterState(builder, IndexImportState.NULL, IndexImportState.SWITCHLANE, false);
             mergeWithConcurrentCheck(nodeStore, builder);
         } catch (CommitFailedException e) {
-            LOG.error("Failed while performing importIndexData and updating indexImportState from  [{}] to  [{}]",
+            LOG.error("Failed while performing switchLanes and updating indexImportState from  [{}] to  [{}]",
                     IndexImportState.NULL, IndexImportState.SWITCHLANE);
             throw e;
         }
