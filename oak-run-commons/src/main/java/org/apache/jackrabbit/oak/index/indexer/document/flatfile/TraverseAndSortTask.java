@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -41,6 +40,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,6 +74,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private long memoryUsed;
     private final File sortWorkDir;
     private final List<File> sortedFiles = new ArrayList<>();
+    private final BlockingQueue<File> parentSortedFiles;
     private final LinkedList<NodeStateHolder> entryBatch = new LinkedList<>();
     private NodeStateEntry lastSavedNodeStateEntry;
     private final String taskID;
@@ -109,7 +110,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                         BlobStore blobStore, File storeDir, boolean compressionEnabled,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
-                        MemoryManager memoryManager, long dumpThreshold) throws IOException {
+                        MemoryManager memoryManager, long dumpThreshold, BlockingQueue parentSortedFiles) throws IOException {
         this.nodeStates = nodeStateEntryTraverserFactory.create(range);
         this.taskID = ID_PREFIX + nodeStates.getId();
         this.lastModifiedLowerBound = nodeStates.getDocumentTraversalRange().getLastModifiedRange().getLastModifiedFrom();
@@ -125,6 +126,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         this.nodeStateEntryTraverserFactory = nodeStateEntryTraverserFactory;
         this.memoryManager = memoryManager;
         this.dumpThreshold = dumpThreshold;
+        this.parentSortedFiles = parentSortedFiles;
         sortWorkDir = DirectoryHelper.createdSortWorkDir(storeDir, taskID, lastModifiedLowerBound, lastModifiedUpperBound);
         if (range.getStartAfterDocumentID() != null) {
             DirectoryHelper.markLastProcessedStatus(sortWorkDir, lastModifiedLowerBound, range.getStartAfterDocumentID());
@@ -170,6 +172,8 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             log.info("Completed task {}", taskID);
             completedTasks.add(taskID);
             DirectoryHelper.markCompleted(sortWorkDir);
+            parentSortedFiles.addAll(sortedFiles);
+
             return sortedFiles;
         } catch (IOException e) {
             log.error(taskID + " could not complete download ", e);
@@ -248,7 +252,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 newTasksQueue.add(new TraverseAndSortTask(new MongoDocumentTraverser.TraversingRange(
                         new LastModifiedRange(splitPoint, this.lastModifiedUpperBound), null),
                         comparator, blobStore, storeDir, compressionEnabled, completedTasks,
-                        newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold));
+                        newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold, parentSortedFiles));
                 this.lastModifiedUpperBound = splitPoint;
                 DirectoryHelper.setLastModifiedUpperLimit(sortWorkDir, lastModifiedUpperBound);
             }
@@ -302,6 +306,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 textSize += text.length() + 1;
             }
         }
+
         log.info("{} Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}. Last entry id = {}", taskID,
                 humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), size, w,
                 lastSavedNodeStateEntry.getId());
