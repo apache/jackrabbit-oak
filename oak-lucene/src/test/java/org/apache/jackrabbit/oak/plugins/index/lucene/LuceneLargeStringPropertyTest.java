@@ -195,7 +195,7 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
     }
 
     @Test
-    public void truncateStringInCaseStringIsGreaterThanMAX_STRING_PROPERTY_LENGTH_AndOrderByIsConfigured() throws Exception {
+    public void truncateStringInCaseStringIsGreaterThanMaxStringPropertyLengthAndOrderbyIsConfigured() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
         Tree tr = idx.addChild(PROP_NODE).addChild("propa");
         tr.setProperty("ordered", true, Type.BOOLEAN); // in case of ordered throws error that it can't index node
@@ -206,13 +206,16 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         int length = LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH + 2;
         String generatedString = RandomStringUtils.random(length, true, true);
-        test.addChild("a").setProperty("propa", "abcd pqrs" + generatedString.substring(0, length));
-        test.addChild("b").setProperty("propa", "abcd efgh " + generatedString.substring(0, length));
+        String aVal ="abcd pqrs" + generatedString.substring(0, length);
+        String bVal = "abcd efgh " + generatedString.substring(0, length);
+
+        test.addChild("a").setProperty("propa", aVal);
+        test.addChild("b").setProperty("propa", bVal);
         root.commit();
 
         boolean truncationLogPresent = false;
-        String failureLog = MessageFormat.format("Truncating property :dv{0} for node {1} as it is > {2,number,#}", "propa", "/test/a", LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
-
+        String failureLog = MessageFormat.format("Truncating property :dv{0} having length {1,number,#} at path:[{2}] as it is > {3,number,#}",
+                "propa", aVal.length(), "/test/a", LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
         for (String log : customizer.getLogs()) {
             if (log.equals(failureLog)) {
                 truncationLogPresent = true;
