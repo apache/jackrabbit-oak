@@ -375,10 +375,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Set<String> processed = Sets.newHashSet();
         Predicate<Tree> predicate = new PrincipalPredicate(principals);
         for (ResultRow row : aceResult.getRows()) {
-            String acePath = row.getPath();
+            Tree aceTree = row.getTree(null);
+            String acePath = aceTree.getPath();
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
 
-            Tree accessControlledTree = r.getTree(Text.getRelativeParent(acePath, 2));
+            Tree accessControlledTree = aceTree.getParent().getParent();
             if (!POLICY_NODE_NAMES.contains(aclName) || !accessControlledTree.exists()) {
                 log.debug("Isolated access control entry -> ignore query result at {}", acePath);
                 continue;
@@ -488,7 +489,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         List<ACE> entries = new ArrayList<>();
         Map<String, Principal> principalMap = new HashMap<>();
         for (ResultRow row : aceResult.getRows()) {
-            Tree aceTree = root.getTree(row.getPath());
+            Tree aceTree = row.getTree(null);
             if (Util.isACE(aceTree, ntMgr)) {
                 String aclPath = Text.getRelativeParent(aceTree.getPath(), 1);
                 String path;

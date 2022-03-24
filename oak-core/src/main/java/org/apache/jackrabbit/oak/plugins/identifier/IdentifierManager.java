@@ -133,13 +133,17 @@ public class IdentifierManager {
 
             checkArgument(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
 
-            String basePath = resolveUUID(uuid);
-            if (basePath == null) {
+            Tree tree = resolveUUIDToTree(createPropertyValue(uuid));
+            if (tree == null) {
                 return null;
             } else if (k == -1) {
-                return root.getTree(basePath);
+                return tree;
             } else {
-                return root.getTree(PathUtils.concat(basePath, identifier.substring(k + 1)));
+                Iterable<String> subpath = PathUtils.elements(identifier.substring(k + 1));
+                for (String element : subpath) {
+                    tree = tree.getChild(element);
+                }
+                return tree;
             }
         }
     }
@@ -171,7 +175,7 @@ public class IdentifierManager {
     public String getPath(PropertyState referenceValue) {
         int type = referenceValue.getType().tag();
         if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
-            return resolveUUID(referenceValue);
+            return resolveUUID(PropertyValues.create(referenceValue));
         } else {
             throw new IllegalArgumentException("Invalid value type");
         }
@@ -338,14 +342,17 @@ public class IdentifierManager {
 
     @Nullable
     public String resolveUUID(String uuid) {
-        return resolveUUID(StringPropertyState.stringProperty("", uuid));
+        return resolveUUID(createPropertyValue(uuid));
+    }
+    
+    @Nullable
+    private String resolveUUID(@NotNull PropertyValue uuid) {
+        Tree tree = resolveUUIDToTree(uuid);
+        return (tree == null) ? null : tree.getPath();
     }
 
-    private String resolveUUID(PropertyState uuid) {
-        return resolveUUID(PropertyValues.create(uuid));
-    }
-
-    private String resolveUUID(PropertyValue uuid) {
+    @Nullable
+    private Tree resolveUUIDToTree(@NotNull PropertyValue uuid) {
         try {
             Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
@@ -355,20 +362,24 @@ public class IdentifierManager {
                     Query.JCR_SQL2,
                     bindings, NO_MAPPINGS);
 
-            String path = null;
+            Tree tree = null;
             for (ResultRow rr : result.getRows()) {
-                if (path != null) {
-                    log.error("multiple results for identifier lookup: " + path + " vs. " + rr.getPath());
+                if (tree != null) {
+                    log.error("multiple results for identifier lookup: " + tree.getPath() + " vs. " + rr.getPath());
                     return null;
                 } else {
-                    path = rr.getPath();
+                    tree = rr.getTree(null);
                 }
             }
-            return path;
+            return tree;
         } catch (ParseException ex) {
             log.error("query failed", ex);
             return null;
         }
     }
-
+    
+    @NotNull
+    private static PropertyValue createPropertyValue(@NotNull String uuid) {
+        return PropertyValues.create(StringPropertyState.stringProperty("", uuid));
+    }
 }

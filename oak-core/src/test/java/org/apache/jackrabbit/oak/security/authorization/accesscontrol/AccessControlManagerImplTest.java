@@ -1745,12 +1745,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
         ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
 
-        ResultRow row = when(mock(ResultRow.class).getPath()).thenReturn(ace.getPath()).getMock();
-        Iterable rows = ImmutableList.of(row);
-        Result res = mock(Result.class);
-        when(res.getRows()).thenReturn(rows).getMock();
-        QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(res);
+        QueryEngine qe = mockQueryEngine(ace);
         when(r.getQueryEngine()).thenReturn(qe);
 
         AccessControlManagerImpl mgr = createAccessControlManager(r, getNamePathMapper());
@@ -1770,17 +1765,22 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
         ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
 
-        ResultRow row = when(mock(ResultRow.class).getPath()).thenReturn(ace.getPath()).getMock();
-        Iterable rows = ImmutableList.of(row);
-        Result res = mock(Result.class);
-        when(res.getRows()).thenReturn(rows).getMock();
-        QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(res);
+        QueryEngine qe = mockQueryEngine(ace);
         when(r.getQueryEngine()).thenReturn(qe);
 
         AccessControlManagerImpl mgr = createAccessControlManager(r, getNamePathMapper());
         AccessControlPolicy[] policies = mgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
         assertPolicies(policies, 0);
+    }
+    
+    private static QueryEngine mockQueryEngine(@NotNull Tree aceTree) throws Exception {
+        ResultRow row = when(mock(ResultRow.class).getTree(null)).thenReturn(aceTree).getMock();
+        Iterable rows = ImmutableList.of(row);
+        Result res = mock(Result.class);
+        when(res.getRows()).thenReturn(rows).getMock();
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(res);
+        return qe;
     }
 
     @Test(expected = RepositoryException.class)
