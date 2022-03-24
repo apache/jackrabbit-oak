@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.collect.Lists;
@@ -24,10 +42,6 @@ import java.util.concurrent.Phaser;
 import java.util.function.Function;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_MERGE_TASK_THREADS;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_THREAD_POOL_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_TASK_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 
 
@@ -96,7 +110,7 @@ public class MergeRunner implements Runnable {
     private ExecutorService executorService;
     private final int threadPoolSize;
     private final int batchMergeSize;
-    private final Comparator fileSizeComparator = new SizeFileComparator();
+    private final Comparator<? super File> fileSizeComparator = new SizeFileComparator();
 
     /**
      * The end result file after merging all sorted files.
@@ -133,7 +147,7 @@ public class MergeRunner implements Runnable {
      * @param mergeDir directory where sorted files will be created.
      * @param compressionEnabled if true, the created files would be compressed
      */
-    MergeRunner(File sortedFile, BlockingQueue<File> sortedFiles, File mergeDir, Comparator comparator,
+    MergeRunner(File sortedFile, BlockingQueue<File> sortedFiles, File mergeDir, Comparator<NodeStateHolder> comparator,
                 Phaser phaser, int batchMergeSize, int threadPoolSize, boolean compressionEnabled) {
         this.mergeDir = mergeDir;
         this.compressionEnabled = compressionEnabled;
