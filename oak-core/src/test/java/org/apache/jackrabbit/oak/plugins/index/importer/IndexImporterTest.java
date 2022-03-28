@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.Set;
 
@@ -33,6 +34,7 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -64,6 +66,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.ImmutableSet.of;
@@ -89,6 +92,19 @@ public class IndexImporterTest {
 
     private NodeStore store = new MemoryNodeStore();
     private IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    private LogCustomizer customizer;
+
+    @Before
+    public void setup(){
+        customizer = LogCustomizer.forLogger(IndexImporter.class.getName()).filter(Level.INFO).create();
+        customizer.starting();
+    }
+
+    @After
+    public void after() {
+        customizer.finished();
+    }
+
 
     @Test(expected = IllegalArgumentException.class)
     public void importIndex_NoMeta() throws Exception{
@@ -143,10 +159,11 @@ public class IndexImporterTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("idx-a").setProperty("type", "property");
         builder.child("idx-a").setProperty("foo", "bar");
+        builder.child("idx-a").setProperty("async", "async");
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        createIndexDirs("/idx-a");
+        String checkpoint = createIndexDirs("/idx-a");
 
         IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
 
@@ -164,10 +181,11 @@ public class IndexImporterTest {
             }
         };
         importer.addImporterProvider(provider);
-        importer.switchLanes();
-        importer.importIndexData();
-
-        assertTrue(store.getRoot().getChildNode("idx-a").getBoolean("imported"));
+        try{
+            importer.importIndex();
+        } catch (Exception e){
+            assertTrue(store.getRoot().getChildNode("idx-a").getBoolean("imported"));
+        }
     }
 
     @Test
@@ -264,6 +282,7 @@ public class IndexImporterTest {
         //It would not pickup /e as thats not yet indexed as part of last checkpoint
         assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
         assertNull(store.retrieve(checkpoint));
+        assertNull(store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
     }
 
     @Test
@@ -537,5 +556,156 @@ public class IndexImporterTest {
         PrintWriter pw = new PrintWriter(sw);
         printer.print(pw, Format.JSON, false);
         Files.write(sw.toString(), file, UTF_8);
+    }
+
+    private String importDataIncrementalUpdateBeforeSetupMethod() throws IOException, CommitFailedException {
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("a").setProperty("foo", "abc");
+        builder.child("b").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        new AsyncIndexUpdate("async", store, provider).run();
+
+        String checkpoint = createIndexDirs("/oak:index/fooIndex");
+        builder = store.getRoot().builder();
+        builder.child("c").setProperty("foo", "abc");
+        builder.child("d").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        new AsyncIndexUpdate("async", store, provider).run();
+
+        FilterImpl f = createFilter(store.getRoot(), NT_BASE);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+        assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+
+        builder = store.getRoot().builder();
+        builder.child("e").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        return checkpoint;
+    }
+
+    private IndexImporterProvider getImporterProvider(String checkpoint) {
+        IndexImporterProvider importerProvider = new IndexImporterProvider() {
+            @Override
+            public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+                assertEquals("fooIndex", indexDir.getName());
+                assertEquals(2, defn.getProperty(REINDEX_COUNT).getValue(Type.LONG).longValue());
+                defn.getChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME).remove();
+
+                NodeState cpState = store.retrieve(checkpoint);
+                NodeState indexData = NodeStateUtils.getNode(cpState, "/oak:index/fooIndex/:index");
+                defn.setChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME, indexData);
+            }
+
+            @Override
+            public String getType() {
+                return "property";
+            }
+        };
+        return importerProvider;
+    }
+
+    @Test
+    public void importDataIncrementalupdateTestFailureAtSwitchlaneState() throws Exception {
+        String checkpoint = importDataIncrementalUpdateBeforeSetupMethod();
+        try {
+            IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK) {
+                @Override
+                void switchLanes() throws CommitFailedException {
+                    throw new CommitFailedException("dummy", 1, "Explicitly throw CommitFailedException");
+                }
+            };
+            importer.addImporterProvider(getImporterProvider(checkpoint));
+            importer.importIndex();
+        } finally {
+            NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+            assertEquals("async", idx.getString("async"));
+            FilterImpl f = createFilter(store.getRoot(), NT_BASE);
+            PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+
+            lookup = new PropertyIndexLookup(store.getRoot());
+            //It would not pickup /e as thats not yet indexed as part of last checkpoint
+            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            // checkpoint is not released because of failure
+            assertNotNull(store.retrieve(checkpoint));
+            // As failure is on switchlanes no update happened i.e. no state change got committed
+            assertEquals("State matching failed",
+                    null,
+                    store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
+
+            // Test retry logic
+            String failureLog = MessageFormat.format("IndexImporterStepExecutor:{0} failed after {1} retries",
+                    IndexImporter.IndexImportState.SWITCH_LANE, IndexImporter.RETRIES);
+            boolean failureLogPresent = false;
+            for (String log : customizer.getLogs()) {
+                if (log.equals(failureLog)) {
+                    failureLogPresent = true;
+                    break;
+                }
+            }
+            assertTrue(failureLogPresent);
+
+            assertEquals("State matching failed",
+                    null,
+                    store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
+        }
+    }
+
+    @Test
+    public void importDataIncrementalUpdateTestFailureAtImportIndexDataState() throws Exception {
+        String checkpoint = importDataIncrementalUpdateBeforeSetupMethod();
+        try {
+            IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK) {
+                @Override
+                void importIndexData() throws CommitFailedException, IOException {
+                    throw new IOException("Explicitly throw IOException");
+                }
+            };
+            ;
+            importer.addImporterProvider(getImporterProvider(checkpoint));
+            importer.importIndex();
+        } finally {
+            NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+            assertEquals("async", idx.getString("async"));
+            FilterImpl f = createFilter(store.getRoot(), NT_BASE);
+            PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+
+            lookup = new PropertyIndexLookup(store.getRoot());
+            //It would not pickup /e as thats not yet indexed as part of last checkpoint
+            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            assertNotNull(store.retrieve(checkpoint));
+            assertEquals("State matching failed",
+                    IndexImporter.IndexImportState.SWITCH_LANE.toString(),
+                    store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY).getValue(Type.STRING));
+        }
+    }
+
+    @Test
+    public void importDataIncrementalUpdateNoFailure() throws Exception {
+        String checkpoint = importDataIncrementalUpdateBeforeSetupMethod();
+        try {
+            IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+            importer.addImporterProvider(getImporterProvider(checkpoint));
+            importer.importIndex();
+            NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+            assertEquals("async", idx.getString("async"));
+        } finally {
+            NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+            assertEquals("async", idx.getString("async"));
+            FilterImpl f = createFilter(store.getRoot(), NT_BASE);
+            PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+            //It would not pickup /e as thats not yet indexed as part of last checkpoint
+            assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+            assertNull(store.retrieve(checkpoint));
+            assertEquals("State matching failed",
+                    null,
+                    store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
+        }
     }
 }

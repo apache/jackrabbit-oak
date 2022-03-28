@@ -23,12 +23,15 @@ import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ReindexOperations;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 
 public class ElasticIndexImporter implements IndexImporterProvider {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexCleaner.class);
 
     public ElasticIndexImporter(){
     }
@@ -36,6 +39,7 @@ public class ElasticIndexImporter implements IndexImporterProvider {
     @Override
     public void importIndex(NodeState root, NodeBuilder definitionBuilder, File indexDir) throws IOException, CommitFailedException {
         // NOOP for elastic
+        LOG.info("No need to import data in case of elastic since this is a remote index. Exiting with NOOP");
     }
 
     @Override
