@@ -53,6 +53,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPat
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 
 public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
+    // Lucene doesn't support indexing data larger than 32766 (OAK-9707)
+    public static final int STRING_PROPERTY_MAX_LENGTH = 32766;
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
 
     private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
@@ -284,8 +286,12 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 f = new SortedDocValuesField(name,
                         new BytesRef(property.getValue(Type.BOOLEAN).toString()));
             } else if (tag == Type.STRING.tag()) {
-                f = new SortedDocValuesField(name,
-                        new BytesRef(property.getValue(Type.STRING)));
+                String stringValue = property.getValue(Type.STRING);
+                if (stringValue.length() > STRING_PROPERTY_MAX_LENGTH){
+                    log.warn("Truncating property {} having length {} at path:[{}] as it is > {}", name, stringValue.length(), this.path, STRING_PROPERTY_MAX_LENGTH);
+                    stringValue = stringValue.substring(0, STRING_PROPERTY_MAX_LENGTH);
+                }
+                f = new SortedDocValuesField(name, new BytesRef(stringValue));
             }
 
             if (f != null && includePropertyValue(property, 0, pd)) {
