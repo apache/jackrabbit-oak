@@ -640,7 +640,7 @@ public class IndexImporterTest {
 
             // Test retry logic
             String failureLog = MessageFormat.format("IndexImporterStepExecutor:{0} failed after {1} retries",
-                    IndexImporter.IndexImportState.SWITCHLANE, IndexImporter.RETRIES);
+                    IndexImporter.IndexImportState.SWITCH_LANE, IndexImporter.RETRIES);
             boolean failureLogPresent = false;
             for (String log : customizer.getLogs()) {
                 if (log.equals(failureLog)) {
@@ -681,7 +681,7 @@ public class IndexImporterTest {
             assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
             assertNotNull(store.retrieve(checkpoint));
             assertEquals("State matching failed",
-                    IndexImporter.IndexImportState.SWITCHLANE.toString(),
+                    IndexImporter.IndexImportState.SWITCH_LANE.toString(),
                     store.getRoot().getChildNode("oak:index").getChildNode("fooIndex").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY).getValue(Type.STRING));
         }
     }

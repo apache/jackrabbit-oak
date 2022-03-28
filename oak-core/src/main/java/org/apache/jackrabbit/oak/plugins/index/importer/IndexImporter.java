@@ -78,7 +78,7 @@ public class IndexImporter {
     private final IndexDefinitionUpdater indexDefinitionUpdater;
     private final boolean preserveCheckpoint = Boolean.getBoolean(OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT);
 
-    static final int RETRIES = Integer.parseInt(System.getProperty("oak.index.import.retries", "5"));
+    static final int RETRIES = Integer.getInteger("oak.index.import.retries", 5);
     public static final String INDEX_IMPORT_STATE_KEY = "indexImportState";
     private final Set<String> indexPathsToUpdate;
 
@@ -100,7 +100,7 @@ public class IndexImporter {
     }
 
     enum IndexImportState {
-        NULL, SWITCHLANE, IMPORT_INDEX_DATA, BRING_INDEX_UPTODATE, RELEASE_CHECKPOINT
+        NULL, SWITCH_LANE, IMPORT_INDEX_DATA, BRING_INDEX_UPTODATE, RELEASE_CHECKPOINT
     }
 
     public void importIndex() throws IOException, CommitFailedException {
@@ -115,7 +115,7 @@ public class IndexImporter {
 
             //Step 1 - Switch the index lanes so that async indexer does not touch them
             //while we are importing the index data
-            runWithRetry(RETRIES, IndexImportState.SWITCHLANE, this::switchLanes);
+            runWithRetry(RETRIES, IndexImportState.SWITCH_LANE, this::switchLanes);
             LOG.info("Done with switching of index lanes before import");
 
             //Step 2 - Import the existing index data.
@@ -180,11 +180,11 @@ public class IndexImporter {
                     AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
                 }
             }
-            updateIndexImporterState(builder, IndexImportState.NULL, IndexImportState.SWITCHLANE, false);
+            updateIndexImporterState(builder, IndexImportState.NULL, IndexImportState.SWITCH_LANE, false);
             mergeWithConcurrentCheck(nodeStore, builder);
         } catch (CommitFailedException e) {
             LOG.error("Failed while performing switchLanes and updating indexImportState from  [{}] to  [{}]",
-                    IndexImportState.NULL, IndexImportState.SWITCHLANE);
+                    IndexImportState.NULL, IndexImportState.SWITCH_LANE);
             throw e;
         }
     }
@@ -219,11 +219,11 @@ public class IndexImporter {
                 getImporter(indexInfo.type).importIndex(root, idxBuilder, indexInfo.indexDir);
                 indexDisabler.markDisableFlagIfRequired(indexInfo.indexPath, idxBuilder);
             }
-            updateIndexImporterState(root.builder(), IndexImportState.SWITCHLANE, IndexImportState.IMPORT_INDEX_DATA, false);
+            updateIndexImporterState(root.builder(), IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA, false);
             mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider);
         } catch (CommitFailedException e) {
             LOG.error("Failed while performing importIndexData and updating indexImportState from  [{}] to  [{}]",
-                    IndexImportState.SWITCHLANE, IndexImportState.IMPORT_INDEX_DATA);
+                    IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA);
             throw e;
         }
     }
