@@ -167,6 +167,11 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected boolean indexFacetProperty(Document doc, int tag, PropertyState property, String pname) {
         String facetFieldName = FieldNames.createFacetFieldName(pname);
+        log.info("------------------------------------");
+        log.info("Facet field name is: " + facetFieldName);
+        log.info("pname is: " + pname);
+        log.info("------------------------------------");
+        getFacetsConfig().setIndexFieldName(pname, facetFieldName);
         getFacetsConfig().setIndexFieldName(pname, facetFieldName);
 
         boolean fieldAdded = false;
