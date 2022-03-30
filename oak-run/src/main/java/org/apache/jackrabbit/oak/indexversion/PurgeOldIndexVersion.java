@@ -82,9 +82,9 @@ public class PurgeOldIndexVersion {
         Map<String, Set<String>> segregateIndexes = segregateIndexes(indexPathSet);
         for (Map.Entry<String, Set<String>> entry : segregateIndexes.entrySet()) {
             String baseIndexPath = entry.getKey();
-            LOG.info("Validate purge index over base of '{}': '{}'", baseIndexPath, entry.getValue());
-            String parentPath = PathUtils.getParentPath(entry.getKey());
+            String parentPath = PathUtils.getParentPath(baseIndexPath);
             List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
+            LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath,indexNameObjectList);
             NodeState indexDefParentNode = NodeStateUtils.getNode(nodeStore.getRoot(), parentPath);
             List<IndexVersionOperation> toDeleteIndexNameObjectList = IndexVersionOperation.generateIndexVersionOperationList(
                     indexDefParentNode, indexNameObjectList, purgeThresholdMillis);
@@ -168,24 +168,28 @@ public class PurgeOldIndexVersion {
         return indexNameObjectList;
     }
 
-    private void purgeOldIndexVersion(NodeStore store,
-                                      List<IndexVersionOperation> toDeleteIndexNameObjectList) throws CommitFailedException {
+    private void purgeOldIndexVersion(NodeStore store, List<IndexVersionOperation> toDeleteIndexNameObjectList) throws
+            CommitFailedException {
         for (IndexVersionOperation toDeleteIndexNameObject : toDeleteIndexNameObjectList) {
             NodeState root = store.getRoot();
             NodeBuilder rootBuilder = root.builder();
-            NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, toDeleteIndexNameObject.getIndexName().getNodeName());
+            String nodeName = toDeleteIndexNameObject.getIndexName().getNodeName();
+            NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, nodeName);
             if (nodeBuilder.exists()) {
                 if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE_HIDDEN_AND_DISABLE) {
+                    LOG.info("Disabling {}", nodeName);
                     nodeBuilder.setProperty("type", "disabled", Type.STRING);
-                    PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, toDeleteIndexNameObject.getIndexName().getNodeName());
+                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+                    store.merge(rootBuilder, hook, CommitInfo.EMPTY);
+                    PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, nodeName);
                 } else if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE) {
+                    LOG.info("Deleting {}", nodeName);
                     nodeBuilder.remove();
+                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+                    store.merge(rootBuilder, hook, CommitInfo.EMPTY);
                 }
-                EditorHook hook = new EditorHook(
-                        new IndexUpdateProvider(new PropertyIndexEditorProvider()));
-                store.merge(rootBuilder, hook, CommitInfo.EMPTY);
             } else {
-                LOG.error("nodebuilder null for path " + toDeleteIndexNameObject.getIndexName().getNodeName());
+                LOG.error("nodebuilder null for path " + nodeName);
             }
         }
     }
