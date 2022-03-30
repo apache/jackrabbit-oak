@@ -29,15 +29,9 @@
         </encoder>
     </appender>
 
-    <!--
-    <logger name="org.apache.jackrabbit.oak.index.IndexerSupport" level="TRACE"/>
-    -->
     <logger name="org.apache.jackrabbit.oak.plugins.index.search.spi.query" level="TRACE"/>
 
     <root level="INFO">
-        <!--
-        <appender-ref ref="console"/>
-        -->
         <appender-ref ref="file"/>
     </root>
 
