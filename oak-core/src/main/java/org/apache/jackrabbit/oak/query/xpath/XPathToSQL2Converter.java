@@ -397,7 +397,11 @@ public class XPathToSQL2Converter {
                     } else if (readIf("tag")) {
                         options.indexTag = readIdentifier();
                     }
-                } else {
+                } else if (readIf("offset")) {
+                    options.offset = readNumber();
+                } else if (readIf("limit")) {
+                    options.limit = readNumber();
+                }else { 
                     break;
                 }
                 readIf(",");
@@ -832,6 +836,20 @@ public class XPathToSQL2Converter {
             throw getSyntaxError(expected);
         }
         read();
+    }
+
+    private long readNumber() throws ParseException {
+        if (currentTokenType == VALUE_NUMBER) {
+            try {
+                long l = Long.parseLong(currentToken);
+                read();
+                return l;
+            } catch (NumberFormatException nfe) {
+                throw getSyntaxError("[0-9]");
+            }
+        } else {
+            throw getSyntaxError("[0-9]");
+        }
     }
 
     private Expression.Property readProperty() throws ParseException {

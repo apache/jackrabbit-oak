@@ -28,6 +28,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
     * [Query Options](#Query_Options)
         * [Query Option Traversal](#Query_Option_Traversal)
         * [Query Option Index Tag](#Query_Option_Index_Tag)
+        * [Query Option Offset / Limit](#Query_Option_Offset__Limit)
         * [Index Selection Policy](#Index_Selection_Policy)
     * [Compatibility](#Compatibility)
         * [Result Size](#Result_Size)
@@ -123,8 +124,8 @@ If an index implementation can not query the data, it has to return `Infinity` (
 
 ### Query Options
 
-With query options, you can enforce the usage of indexes (failing the query if there is no index),
-and you can limit which indexes should be considered.
+With query options, you can enforce the usage of indexes (failing the query if there is no index), 
+limit which indexes should be considered and set the limit and offset for a query.
 
 #### Query Option Traversal
 
@@ -152,6 +153,26 @@ This is supported for both XPath and SQL-2, as follows:
     where ischildnode('/oak:index')
     order by name()
     option(traversal ok)
+
+
+#### Query Option Offset / Limit
+
+`@since Oak 1.44.0 (OAK-9740)`
+
+By setting the offset / limit of a query you can set the limits and offsets set on the query object.
+Note, this setting will be overriden by any settings made via the `Query#setOffset` or `Query#setLimit` methods.
+
+The syntax is `option(limit {num}, offset {num})` at the very end of the statement, after `order by` 
+and can be used in conjunction with any other option.
+
+This is supported for both XPath and SQL-2, as follows:
+
+    /jcr:root/oak:index/*[@type='lucene'] option(limit 100)
+
+    select * from [nt:base]
+    where ischildnode('/oak:index')
+    order by name()
+    option(offset 19, limit 20)
 
 #### Query Option Index Tag
 

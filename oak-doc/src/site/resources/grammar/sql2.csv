@@ -127,7 +127,9 @@ simpleName
 "Grammar","Options","
 OPTION( {
     TRAVERSAL { OK | WARN | FAIL | DEFAULT } |
-    INDEX TAG tagName
+    INDEX TAG tagName |
+    OFFSET number |
+    LIMIT number
     } [ , ... ] )
 ","
 "

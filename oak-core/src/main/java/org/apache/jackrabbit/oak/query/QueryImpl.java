@@ -474,6 +474,14 @@ public class QueryImpl implements Query {
         return constraint;
     }
 
+    public long getLimit() {
+        return limit;
+    }
+
+    public long getOffset() {
+        return offset;
+    }
+
     public OrderingImpl[] getOrderings() {
         return orderings;
     }

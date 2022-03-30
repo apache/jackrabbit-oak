@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.query;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
@@ -110,6 +111,38 @@ public class SQL2ParserTest {
         p.parse("SELECT * FROM [nt:base] WHERE FIRST([d:t])='a'");
 
         p.parse("SELECT * FROM [nt:base] WHERE FIRST([jcr:mixinTypes])='a'");
+    }
+
+    @Test
+    public void testLimitOffSet() throws ParseException {
+        QueryImpl parsed = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 10, LIMIT 100)");
+        assertEquals(10L, parsed.getOffset());
+        assertEquals(100L, parsed.getLimit());
+
+        QueryImpl parsedXPath = (QueryImpl) p.parse(new XPathToSQL2Converter()
+                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(offset 2, limit 75)"));
+        assertEquals(2L, parsedXPath.getOffset());
+        assertEquals(75L, parsedXPath.getLimit());
+
+        QueryImpl parsedLimitOnly = (QueryImpl) p.parse(new XPathToSQL2Converter()
+                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(limit 98)"));
+        assertEquals(0L, parsedLimitOnly.getOffset());
+        assertEquals(98L, parsedLimitOnly.getLimit());
+
+        QueryImpl parsedOffsetOnly = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 23)");
+        assertEquals(23L, parsedOffsetOnly.getOffset());
+        assertEquals(Long.MAX_VALUE, parsedOffsetOnly.getLimit());
+    }
+
+    @Test(expected = ParseException.class)
+    public void testOffsetNotDouble() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 10.0, LIMIT 100)");
+    }
+
+    @Test(expected = ParseException.class)
+    public void testLimitNotDouble() throws ParseException {
+        p.parse(new XPathToSQL2Converter()
+                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(offset 2, limit 75.0)"));
     }
 
     @Test(expected = ParseException.class)

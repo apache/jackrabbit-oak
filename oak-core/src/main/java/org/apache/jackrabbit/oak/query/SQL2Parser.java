@@ -182,6 +182,10 @@ public class SQL2Parser {
                     } else if (readIf("TAG")) {
                         options.indexTag = readLabel();
                     }
+                } else if (readIf("OFFSET")) {
+                    q.setOffset(readBase10WholeNumber());
+                } else if (readIf("LIMIT")) {
+                    q.setLimit(readBase10WholeNumber());
                 } else {
                     break;
                 }
@@ -289,6 +293,14 @@ public class SQL2Parser {
         }
 
         return factory.selector(nodeTypeInfo, selectorName);
+    }
+
+    private long readBase10WholeNumber() throws ParseException {
+        String label = readName();
+        if (!label.matches("\\d*") || label.isEmpty() || label.length() > 19 /* Length of MAX_LONG */) {
+            throw getSyntaxError("0-9");
+        }
+        return Long.parseLong(label);
     }
     
     private String readLabel() throws ParseException {

@@ -376,6 +376,21 @@ public class Statement {
             buff.append("]");
             optionCount++;
         }
+        if (queryOptions.offset != -1) {
+            if (optionCount > 0) {
+                buff.append(", ");
+            }
+            buff.append("offset ");
+            buff.append(queryOptions.offset);
+            optionCount++;
+        }
+        if (queryOptions.limit != -1) {
+            if (optionCount > 0) {
+                buff.append(", ");
+            }
+            buff.append("limit ");
+            buff.append(queryOptions.limit);
+        }
         buff.append(")");
     }
     
