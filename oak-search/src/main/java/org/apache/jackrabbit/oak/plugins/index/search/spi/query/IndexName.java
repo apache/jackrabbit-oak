@@ -245,9 +245,9 @@ public class IndexName implements Comparable<IndexName> {
             }
             return isIndexActiveMerged(indexNode, rootState);
         } catch (StackOverflowError e) {
-            LOG.error("Fail to check index activeness for {} with error {}", indexPath, e);
+            LOG.error("Fail to check index activeness for {} due to StackOverflowError", indexPath, e);
+            return true;
         }
-        return true;
     }
 
     private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState) {
