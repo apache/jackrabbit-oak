@@ -19,11 +19,15 @@ package org.apache.jackrabbit.oak.security.user;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -263,11 +267,11 @@ public class MembershipProviderTest extends MembershipBaseTest {
         assertTrue(mp.isDeclaredMember(groupTree, memberTree));
         assertTrue(mp.isMember(groupTree, memberTree));
 
-        assertFalse(Iterators.contains(mp.getMembership(memberTree, false), groupTree.getPath()));
-        assertFalse(Iterators.contains(mp.getMembership(memberTree, true), groupTree.getPath()));
+        assertFalse(contains(mp.getMembership(memberTree, false), groupTree));
+        assertFalse(contains(mp.getMembership(memberTree, true), groupTree));
         root.commit();
-        assertTrue(Iterators.contains(mp.getMembership(memberTree, false), groupTree.getPath()));
-        assertTrue(Iterators.contains(mp.getMembership(memberTree, true), groupTree.getPath()));
+        assertTrue(contains(mp.getMembership(memberTree, false), groupTree));
+        assertTrue(contains(mp.getMembership(memberTree, true), groupTree));
     }
 
     @Test
@@ -311,7 +315,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         member.addMember(createUser());
         root.commit();
 
-        Iterator<String> res = mp.getMembers(getTree(g), true);
+        Iterator<Tree> res = mp.getMembers(getTree(g), true);
         assertEquals(2, Iterators.size(res));
     }
 
@@ -326,7 +330,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         g.addMember(user);
         root.commit();
 
-        Iterator<String> res = mp.getMembers(getTree(g), true);
+        Iterator<Tree> res = mp.getMembers(getTree(g), true);
         assertEquals(2, Iterators.size(res));
     }
 
@@ -338,7 +342,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         member.addMember(createUser());
         root.commit();
 
-        Iterator<String> res = mp.getMembers(getTree(g), false);
+        Iterator<Tree> res = mp.getMembers(getTree(g), false);
         assertEquals(1, Iterators.size(res));
     }
 
@@ -355,7 +359,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
 
         root.commit();
 
-        Iterator<String> res = mp.getMembership(getTree(user), true);
+        Iterator<Tree> res = mp.getMembership(getTree(user), true);
         assertEquals(3, Iterators.size(res));
     }
 
@@ -373,7 +377,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
 
         root.commit();
 
-        Iterator<String> res = mp.getMembership(getTree(user), true);
+        Iterator<Tree> res = mp.getMembership(getTree(user), true);
         assertEquals(3, Iterators.size(res));
     }
 
@@ -390,7 +394,24 @@ public class MembershipProviderTest extends MembershipBaseTest {
 
         root.commit();
 
-        Iterator<String> res = mp.getMembership(getTree(user), false);
+        Iterator<Tree> res = mp.getMembership(getTree(user), false);
         assertEquals(1, Iterators.size(res));
+    }
+    
+    @Test
+    public void testMembershipReferencesOutsideGroup() throws Exception {
+        UserProvider up = new UserProvider(root, getUserConfiguration().getParameters());
+        User user = createUser();
+        Tree tree = TreeUtil.getOrAddChild(root.getTree(PathUtils.ROOT_PATH), "test", JcrConstants.NT_UNSTRUCTURED);
+        tree = TreeUtil.getOrAddChild(tree, "test", UserConstants.NT_REP_MEMBER_REFERENCES);
+        tree.setProperty(UserConstants.REP_MEMBERS, Collections.singletonList(up.getContentID(user.getID())), Type.WEAKREFERENCES);
+        root.commit();
+        
+        Iterator<Tree> it = mp.getMembership(root.getTree(user.getPath()), false);
+        assertFalse(it.hasNext());
+    }
+    
+    private static boolean contains(@NotNull Iterator<Tree> treeIterator, @NotNull Tree tree) {
+        return Iterators.contains(Iterators.transform(treeIterator, Tree::getPath), tree.getPath());
     }
 }

@@ -274,9 +274,9 @@ class UserPrincipalProvider implements PrincipalProvider {
 
         // caching not configured or cache expired: use the membershipProvider to calculate
         if (doLoad) {
-            Iterator<String> groupPaths = membershipProvider.getMembership(authorizableTree, true);
-            while (groupPaths.hasNext()) {
-                Tree groupTree = userProvider.getAuthorizableByPath(groupPaths.next());
+            Iterator<Tree> groupTrees = membershipProvider.getMembership(authorizableTree, true);
+            while (groupTrees.hasNext()) {
+                Tree groupTree = groupTrees.next();
                 if (UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
                     Principal gr = createGroupPrincipal(groupTree);
                     if (gr != null) {
