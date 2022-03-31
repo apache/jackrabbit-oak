@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -34,6 +33,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
@@ -48,9 +49,12 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.codecs.Codec;
+import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+
+import ch.qos.logback.classic.Level;
 
 public class InvalidIndexDefinitionTest extends AbstractQueryTest {
 
@@ -129,7 +133,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
     @Test
     public void negativeBlobSize() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
-        // 1L + Integer.MAX_VALUE results in IllegalArgumentException: Out of range: 2147483648
+        // there's a minimum blobSize (now), so negative values are ignored
         def.setProperty("blobSize", -1);
         root.commit();
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
@@ -157,15 +161,23 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
     }
 
     @Test
-    public void invalidIncludedPath() throws CommitFailedException {
+    public void invalidIncludedPaths() throws CommitFailedException {
         // this will commit, but in oak-run it will not work:
         // ERROR o.a.j.o.p.i.search.IndexDefinition - Config error for index definition at /oak:index/... . 
         // Please correct the index definition and reindex after correction. Additional Info : No valid include provided. Includes [/tmp], Excludes [/tmp]
         // java.lang.IllegalStateException: No valid include provided. Includes [/tmp], Excludes [/tmp]
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
         Tree def = createIndexNodeAndData();
-        def.setProperty(PathFilter.PROP_INCLUDED_PATHS, List.of("/tmp/testNode"), Type.STRINGS);
-        def.setProperty(PathFilter.PROP_EXCLUDED_PATHS, List.of("/tmp"), Type.STRINGS);
-        root.commit();
+        def.setProperty(PathFilter.PROP_INCLUDED_PATHS, Lists.newArrayList("/tmp/testNode"), Type.STRINGS);
+        def.setProperty(PathFilter.PROP_EXCLUDED_PATHS, Lists.newArrayList("/tmp"), Type.STRINGS);
+        try {
+            customLogs.starting();
+            String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/test . Please correct the index definition and reindex after correction. Additional Info : java.lang.IllegalStateException: No valid include provided. Includes [/tmp/testNode], Excludes [/tmp]";
+            root.commit();
+            assertThat(customLogs.getLogs(), IsCollectionContaining.hasItem(expectedLogMessage));
+        } finally {
+            customLogs.finished();
+        }
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("traverse"));
         assertQuery(query, Lists.newArrayList("/tmp/testNode"));
