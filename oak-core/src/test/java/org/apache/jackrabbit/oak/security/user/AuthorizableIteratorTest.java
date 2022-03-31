@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.junit.Before;
@@ -41,19 +42,19 @@ import static org.mockito.Mockito.when;
 
 public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
-    private Iterator<String> userOakPathIterator;
+    private Iterator<Tree> userTreeIterator;
 
     @Before
     @Override
     public void before() throws Exception {
         super.before();
 
-        userOakPathIterator = Iterators.singletonIterator(getNamePathMapper().getOakPath(getTestUser().getPath()));
+        userTreeIterator = Iterators.singletonIterator(root.getTree(getNamePathMapper().getOakPath(getTestUser().getPath())));
     }
 
     @Test
     public void testGetSize() {
-        AuthorizableIterator it = AuthorizableIterator.create(userOakPathIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
         assertEquals(-1, it.getSize());
     }
 
@@ -65,34 +66,34 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testRemove() {
-        AuthorizableIterator it = AuthorizableIterator.create(userOakPathIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
         it.next();
         it.remove();
     }
 
     @Test
     public void testTypeMatch() {
-        AuthorizableIterator it = AuthorizableIterator.create(userOakPathIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.USER);
         assertTrue(it.hasNext());
         assertTrue(it.next() instanceof User);
     }
 
     @Test
     public void testTypeMatch2() {
-        AuthorizableIterator it = AuthorizableIterator.create(userOakPathIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
         assertTrue(it.hasNext());
         assertTrue(it.next() instanceof User);
     }
 
     @Test
     public void testTypeMismatch() {
-        AuthorizableIterator it = AuthorizableIterator.create(userOakPathIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.GROUP);
+        AuthorizableIterator it = AuthorizableIterator.create(userTreeIterator, (UserManagerImpl) getUserManager(root), AuthorizableType.GROUP);
         assertFalse(it.hasNext());
     }
 
     @Test
     public void testInvalidPath() {
-        AuthorizableIterator it = AuthorizableIterator.create(Iterators.singletonIterator(PathUtils.ROOT_PATH), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
+        AuthorizableIterator it = AuthorizableIterator.create(Iterators.singletonIterator(root.getTree(PathUtils.ROOT_PATH)), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
         assertFalse(it.hasNext());
     }
     

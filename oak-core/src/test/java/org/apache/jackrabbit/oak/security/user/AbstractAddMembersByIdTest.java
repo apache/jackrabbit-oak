@@ -288,9 +288,9 @@ public abstract class AbstractAddMembersByIdTest extends AbstractUserTest {
 
             boolean found = false;
             MembershipProvider mp = userManager.getMembershipProvider();
-            for (Iterator<String> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
-                String p = it.next();
-                if (testGroup.getPath().equals(p)) {
+            for (Iterator<Tree> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
+                Tree t = it.next();
+                if (testGroup.getPath().equals(t.getPath())) {
                     found = true;
                 }
             }

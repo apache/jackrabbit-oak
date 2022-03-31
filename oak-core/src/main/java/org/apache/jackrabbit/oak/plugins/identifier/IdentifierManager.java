@@ -24,7 +24,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
@@ -148,6 +147,12 @@ public class IdentifierManager {
         }
     }
 
+    @Nullable
+    public Tree getTree(@NotNull PropertyValue referenceValue) {
+        checkType(referenceValue.getType());
+        return resolveUUIDToTree(referenceValue);
+    }
+    
     /**
      * The path of the tree identified by the specified {@code identifier} or {@code null}.
      *
@@ -173,12 +178,8 @@ public class IdentifierManager {
      */
     @Nullable
     public String getPath(PropertyState referenceValue) {
-        int type = referenceValue.getType().tag();
-        if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
-            return resolveUUID(PropertyValues.create(referenceValue));
-        } else {
-            throw new IllegalArgumentException("Invalid value type");
-        }
+        checkType(referenceValue.getType());
+        return resolveUUID(PropertyValues.create(referenceValue));
     }
 
     /**
@@ -191,12 +192,8 @@ public class IdentifierManager {
      */
     @Nullable
     public String getPath(PropertyValue referenceValue) {
-        int type = referenceValue.getType().tag();
-        if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
-            return resolveUUID(referenceValue);
-        } else {
-            throw new IllegalArgumentException("Invalid value type");
-        }
+        checkType(referenceValue.getType());
+        return resolveUUID(referenceValue);
     }
 
     /**
@@ -300,11 +297,11 @@ public class IdentifierManager {
      * @param propertyName The name of the reference properties.
      * @param ntName The node type name to be used for the query.
      * @param weak if {@code true} only weak references are returned. Otherwise on hard references are returned.
-     * @return A set of oak paths of those reference properties referring to the
+     * @return A set of oak trees containing reference properties referring to the
      *         specified {@code tree} and matching the constraints.
      */
     @NotNull
-    public Iterable<String> getReferences(@NotNull Tree tree, @NotNull final String propertyName,
+    public Iterable<Tree> getReferences(@NotNull Tree tree, @NotNull final String propertyName,
                                           @NotNull String ntName, boolean weak) {
         if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
@@ -321,18 +318,8 @@ public class IdentifierManager {
                             QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, bindings, NO_MAPPINGS);
 
-            Iterable<String> resultPaths = Iterables.transform(result.getRows(), new Function<ResultRow, String>() {
-                @Override
-                public String apply(ResultRow row) {
-                    return PathUtils.concat(row.getPath(), propertyName);
-                }
-            });
-            return Iterables.filter(resultPaths, new Predicate<String>() {
-                        @Override
-                        public boolean apply(String path) {
-                            return !path.startsWith(VersionConstants.VERSION_STORE_PATH);
-                        }
-                    }
+            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), (Function<ResultRow, Tree>) row -> row.getTree(null));
+            return Iterables.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
             );
         } catch (ParseException e) {
             log.error("query failed", e);
@@ -381,5 +368,12 @@ public class IdentifierManager {
     @NotNull
     private static PropertyValue createPropertyValue(@NotNull String uuid) {
         return PropertyValues.create(StringPropertyState.stringProperty("", uuid));
+    }
+    
+    private static void checkType(@NotNull Type propertyType) {
+        int type = propertyType.tag();
+        if (!(type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE)) {
+            throw new IllegalArgumentException("Invalid value type");
+        }
     }
 }
