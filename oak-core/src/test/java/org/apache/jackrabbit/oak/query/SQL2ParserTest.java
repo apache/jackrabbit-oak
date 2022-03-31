@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.query;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
@@ -116,22 +117,22 @@ public class SQL2ParserTest {
     @Test
     public void testLimitOffSet() throws ParseException {
         QueryImpl parsed = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 10, LIMIT 100)");
-        assertEquals(10L, parsed.getOffset());
-        assertEquals(100L, parsed.getLimit());
+        assertEquals(10L, parsed.getOffset().get().longValue());
+        assertEquals(100L, parsed.getLimit().get().longValue());
 
         QueryImpl parsedXPath = (QueryImpl) p.parse(new XPathToSQL2Converter()
                 .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(offset 2, limit 75)"));
-        assertEquals(2L, parsedXPath.getOffset());
-        assertEquals(75L, parsedXPath.getLimit());
+        assertEquals(2L, parsedXPath.getOffset().get().longValue());
+        assertEquals(75L, parsedXPath.getLimit().get().longValue());
 
         QueryImpl parsedLimitOnly = (QueryImpl) p.parse(new XPathToSQL2Converter()
                 .convert("/jcr:root/test/*/nt:resource[@jcr:encoding] option(limit 98)"));
-        assertEquals(0L, parsedLimitOnly.getOffset());
-        assertEquals(98L, parsedLimitOnly.getLimit());
+        assertFalse(parsedLimitOnly.getOffset().isPresent());
+        assertEquals(98L, parsedLimitOnly.getLimit().get().longValue());
 
         QueryImpl parsedOffsetOnly = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(OFFSET 23)");
-        assertEquals(23L, parsedOffsetOnly.getOffset());
-        assertEquals(Long.MAX_VALUE, parsedOffsetOnly.getLimit());
+        assertEquals(23L, parsedOffsetOnly.getOffset().get().longValue());
+        assertFalse(parsedOffsetOnly.getLimit().isPresent());
     }
 
     @Test(expected = ParseException.class)

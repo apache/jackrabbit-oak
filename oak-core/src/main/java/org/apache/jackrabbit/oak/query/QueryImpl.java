@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -171,8 +172,8 @@ public class QueryImpl implements Query {
     
     private boolean explain, measure;
     private boolean distinct;
-    private long limit = Long.MAX_VALUE;
-    private long offset;
+    private Optional<Long> limit = Optional.empty();
+    private Optional<Long> offset = Optional.empty();
     private long size = -1;
     private boolean prepared;
     private ExecutionContext context;
@@ -474,11 +475,11 @@ public class QueryImpl implements Query {
         return constraint;
     }
 
-    public long getLimit() {
+    public Optional<Long> getLimit() {
         return limit;
     }
 
-    public long getOffset() {
+    public Optional<Long> getOffset() {
         return offset;
     }
 
@@ -497,12 +498,12 @@ public class QueryImpl implements Query {
 
     @Override
     public void setLimit(long limit) {
-        this.limit = limit;
+        this.limit = Optional.of(limit);
     }
 
     @Override
     public void setOffset(long offset) {
-        this.offset = offset;
+        this.offset = Optional.of(offset);
     }
 
     @Override
@@ -621,8 +622,10 @@ public class QueryImpl implements Query {
         } else {
             orderBy = ResultRowImpl.getComparator(orderings);
         }
+        long localLimit = limit.orElse(Long.MAX_VALUE);
+        long localOffset = offset.orElse(0L);
         Iterator<ResultRowImpl> it =
-                FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy, settings);
+                FilterIterators.newCombinedFilter(rowIt, distinct, localLimit, localOffset, orderBy, settings);
         if (orderBy != null) {
             // this will force the rows to be read, so that the size is known
             it.hasNext();
@@ -630,9 +633,9 @@ public class QueryImpl implements Query {
             // but we also have to take limit and offset into account
             long read = rowIt.getReadCount();
             // we will ignore whatever is behind 'limit+offset'
-            read = Math.min(saturatedAdd(limit, offset), read);
+            read = Math.min(saturatedAdd(localLimit, localOffset), read);
             // and we will skip 'offset' entries
-            read = Math.max(0, read - offset);
+            read = Math.max(0, read - localOffset);
             size = read;
         }
         if (measure) {
@@ -1110,13 +1113,16 @@ public class QueryImpl implements Query {
             IndexPlan indexPlan = null;
             if (index instanceof AdvancedQueryIndex) {
                 AdvancedQueryIndex advIndex = (AdvancedQueryIndex) index;
-                long maxEntryCount = limit;
-                if (offset > 0) {
-                    if (offset + limit < 0) {
+
+                long localLimit = limit.orElse(Long.MAX_VALUE);
+                long localOffset = offset.orElse(0L);
+                long maxEntryCount = localLimit;
+                if (localOffset > 0) {
+                    if (localOffset + localLimit < 0) {
                         // long overflow
                         maxEntryCount = Long.MAX_VALUE;
                     } else {
-                        maxEntryCount = offset + limit;
+                        maxEntryCount = localOffset + localLimit;
                     }
                 }
                 List<IndexPlan> ipList = advIndex.getPlans(
@@ -1418,7 +1424,7 @@ public class QueryImpl implements Query {
             // "order by" was used, so we know the size
             return size;
         }
-        return Math.min(limit, source.getSize(context.getBaseState(), precision, max));
+        return Math.min(limit.orElse(Long.MAX_VALUE), source.getSize(context.getBaseState(), precision, max));
     }
 
     @Override
@@ -1590,5 +1596,5 @@ public class QueryImpl implements Query {
     public QueryExecutionStats getQueryExecutionStats() {
         return stats;
     }
-    
+
 }

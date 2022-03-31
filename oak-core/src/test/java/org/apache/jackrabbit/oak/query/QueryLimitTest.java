@@ -26,8 +26,6 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.Properties;
 
-import javax.jcr.query.Row;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
