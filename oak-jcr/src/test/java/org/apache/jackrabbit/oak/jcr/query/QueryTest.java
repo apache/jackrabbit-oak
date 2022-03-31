@@ -115,6 +115,29 @@ public class QueryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void testSettingsOverride() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+
+        Node testRoot = session.getNode("/").addNode("settings-override-test","nt:unstructured");
+        for(int count: IntStream.range(0, 100).toArray()){
+            testRoot.addNode("settings-override-test-child"+count,"nt:unstructured");
+        }
+        session.save();
+
+        Query q = qm.createQuery("SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/settings-override-test]) OPTION(OFFSET 10)", Query.JCR_SQL2);
+        q.setLimit(90);
+        NodeIterator it = q.execute().getNodes();
+        int count = 0;
+        while(it.hasNext()){
+            count++;
+            it.next();
+        }
+        assertEquals(90, count);
+    }
+
+    @Test
     public void traversalOption() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
