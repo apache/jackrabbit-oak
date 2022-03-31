@@ -126,7 +126,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public FacetsConfig getFacetsConfig() {
-        if (facetsConfig == null){
+        if (facetsConfig == null) {
             facetsConfig = FacetHelper.getFacetsConfig(definitionBuilder);
         }
         return facetsConfig;
