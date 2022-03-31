@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetsConfigProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -33,13 +34,15 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryT
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.FacetsConfig;
 
-public class LuceneIndexer implements NodeStateIndexer {
+public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     private final IndexDefinition definition;
     private final FulltextBinaryTextExtractor binaryTextExtractor;
     private final NodeBuilder definitionBuilder;
     private final LuceneIndexWriter indexWriter;
     private final IndexingProgressReporter progressReporter;
+    private FacetsConfig facetsConfig;
 
     public LuceneIndexer(IndexDefinition definition, LuceneIndexWriter indexWriter,
                          NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
@@ -111,11 +114,22 @@ public class LuceneIndexer implements NodeStateIndexer {
     private LuceneDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule indexingRule, String path) {
         return new LuceneDocumentMaker(
                 binaryTextExtractor,
-                () -> FacetHelper.getFacetsConfig(definitionBuilder), //TODO FacetsConfig handling
-                null,   //TODO augmentorFactory
+                // we re-use the facet config
+                this,
+                // augmentorFactory is not supported (it is deprecated)
+                null,
                 definition,
                 indexingRule,
                 path
         );
     }
+
+    @Override
+    public FacetsConfig getFacetsConfig() {
+        if (facetsConfig == null){
+            facetsConfig = FacetHelper.getFacetsConfig(definitionBuilder);
+        }
+        return facetsConfig;
+    }
+
 }
