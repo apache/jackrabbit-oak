@@ -515,4 +515,14 @@ public class UnionQueryImpl implements Query {
             }
         }
     }
+
+    @Override
+    public long getLimit() {
+        return -1;
+    }
+
+    @Override
+    public long getOffset() {
+        return -1;
+    }
 }

@@ -17,11 +17,23 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Optional;
+import java.util.Properties;
+
+import javax.jcr.query.Row;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -31,11 +43,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.event.Level;
-
-import java.text.ParseException;
-import java.util.Properties;
-
-import static org.junit.Assert.assertThrows;
 
 public class QueryLimitTest extends AbstractQueryTest {
 
@@ -107,5 +114,19 @@ public class QueryLimitTest extends AbstractQueryTest {
         } finally {
             customLogs.finished();
         }
+    }
+
+    @Test
+    public void queryLimitFromOptions() throws Exception {
+        String query = "SELECT [jcr:path] FROM [nt:base] AS a OPTION(LIMIT 10)";
+
+        Iterator<? extends ResultRow> row = qe.executeQuery(query, QueryEngineImpl.SQL2, Optional.empty(),
+                Optional.empty(), Collections.emptyMap(), Collections.emptyMap()).getRows().iterator();
+        int count = 0;
+        while (row.hasNext()) {
+            count++;
+            row.next();
+        }
+        assertEquals(10, count);
     }
 }

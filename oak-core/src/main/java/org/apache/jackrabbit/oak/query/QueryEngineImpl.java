@@ -24,14 +24,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
@@ -243,18 +244,12 @@ public abstract class QueryEngineImpl implements QueryEngine {
             Map<String, String> mappings) throws ParseException {
         return executeQuery(statement, language, Long.MAX_VALUE, 0, bindings, mappings);
     }
-    
+
     @Override
     public Result executeQuery(
-            String statement, String language, long limit, long offset,
+            String statement, String language, Optional<Long> limit, Optional<Long> offset,
             Map<String, ? extends PropertyValue> bindings,
             Map<String, String> mappings) throws ParseException {
-        if (limit < 0) {
-            throw new IllegalArgumentException("Limit may not be negative, is: " + limit);
-        }
-        if (offset < 0) {
-            throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
-        }
 
         // avoid having to deal with null arguments
         if (bindings == null) {
@@ -266,23 +261,26 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         ExecutionContext context = getExecutionContext();
         List<Query> queries = parseQuery(statement, language, context, mappings);
-        
+
+        long actualLimit = getLimit(queries, limit);
+        long actualOffset = getOffset(queries, offset);
+
         for (Query q : queries) {
             q.setExecutionContext(context);
-            q.setLimit(limit);
-            q.setOffset(offset);
+            q.setLimit(actualLimit);
+            q.setOffset(actualOffset);
             if (bindings != null) {
                 for (Entry<String, ? extends PropertyValue> e : bindings.entrySet()) {
                     q.bindValue(e.getKey(), e.getValue());
                 }
             }
-            q.setTraversalEnabled(traversalEnabled);            
+            q.setTraversalEnabled(traversalEnabled);
         }
 
         boolean mdc = false;
         try {
             long start = System.nanoTime();
-            Query query = prepareAndSelect(queries); 
+            Query query = prepareAndSelect(queries);
             query.getQueryExecutionStats().execute(System.nanoTime() - start);
             mdc = setupMDC(query);
             return query.executeQuery();
@@ -292,7 +290,38 @@ public abstract class QueryEngineImpl implements QueryEngine {
             }
         }
     }
-    
+
+    @Override
+    public Result executeQuery(
+            String statement, String language, long limit, long offset,
+            Map<String, ? extends PropertyValue> bindings,
+            Map<String, String> mappings) throws ParseException {
+        return executeQuery(statement, language, Optional.of(limit), Optional.of(offset), bindings, mappings);
+
+    }
+
+    private long getOffset(List<Query> queries, Optional<Long> passedOffset) {
+        if (!passedOffset.isPresent()) {
+            return queries.stream().filter(q -> q.getOffset() >= 0).findFirst().map(Query::getOffset)
+                    .orElse(0L);
+        }
+        if (passedOffset.get() < 0) {
+            throw new IllegalArgumentException("Offset may not be negative, is: " + passedOffset.get());
+        }
+        return passedOffset.get();
+    }
+
+    private long getLimit(List<Query> queries, Optional<Long> passedLimit) {
+        if (!passedLimit.isPresent()) {
+            return queries.stream().filter(q -> q.getLimit() > 0).findFirst().map(Query::getLimit)
+                    .orElse(Long.MAX_VALUE);
+        }
+        if (passedLimit.get() < 0) {
+            throw new IllegalArgumentException("Limit may not be negative, is: " + passedLimit.get());
+        }
+        return passedLimit.get();
+    }
+
     /**
      * Prepare all the available queries and by based on the {@link QuerySelectionMode} flag return
      * the appropriate.

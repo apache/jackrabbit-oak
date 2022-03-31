@@ -43,6 +43,10 @@ public interface Query {
 
     void setOffset(long offset);
 
+    long getLimit();
+
+    long getOffset();
+
     void bindValue(String key, PropertyValue value);
 
     void setTraversalEnabled(boolean traversalEnabled);
