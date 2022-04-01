@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -26,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.facet.FacetsConfig;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -37,7 +39,7 @@ public class LuceneIndexerTest {
     private NodeState root = INITIAL_CONTENT;
 
     @Test
-    public void nodeIndexed_WithIncludedPaths() throws Exception{
+    public void nodeIndexed_WithIncludedPaths() throws Exception {
         LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base").property("foo").propertyIndex();
         idxb.includedPaths("/content");
@@ -54,6 +56,29 @@ public class LuceneIndexerTest {
         assertTrue(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/content/x").build()));
         assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/x").build()));
         assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/").build()));
+
+        indexer.close();
     }
+
+    @Test
+    public void facetConfig() throws Exception {
+        LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
+        idxb.indexRule("nt:base").property("foo").propertyIndex().facets();
+        idxb.includedPaths("/content");
+
+        NodeState defn = idxb.build();
+        IndexDefinition idxDefn = new IndexDefinition(root, defn, "/oak:index/testIndex");
+
+        NodeBuilder builder = root.builder();
+        LuceneIndexer indexer = new LuceneIndexer(idxDefn, mock(LuceneIndexWriter.class), builder,
+                mock(FulltextBinaryTextExtractor.class), mock(IndexingProgressReporter.class));
+
+        FacetsConfig config1 = indexer.getFacetsConfig();
+        FacetsConfig config2 = indexer.getFacetsConfig();
+        assertTrue(config1 == config2);
+
+        indexer.close();
+    }
+
 
 }
