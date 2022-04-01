@@ -406,8 +406,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.indexSelectionPolicy
                     = getOptionalValue(defn, IndexConstants.INDEX_SELECTION_POLICY, null);
             this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
-
-            this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
+            this.blobSize = Math.max(1024, getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE));
 
             this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
 
