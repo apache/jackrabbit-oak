@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
@@ -101,6 +102,7 @@ public class FlatFileNodeStoreBuilder {
     private File flatFileStoreDir;
     private final MemoryManager memoryManager;
     private long dumpThreshold = DEFAULT_DUMP_THRESHOLD;
+    private Predicate<String> pathPredicate = path -> true;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
@@ -165,6 +167,11 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    public FlatFileNodeStoreBuilder withPathPredicate(Predicate<String> pathPredicate) {
+        this.pathPredicate = pathPredicate;
+        return this;
+    }
+
     public FlatFileStore build() throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
@@ -210,7 +217,7 @@ public class FlatFileNodeStoreBuilder {
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager, dumpThreshold);
+                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager, dumpThreshold, pathPredicate);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

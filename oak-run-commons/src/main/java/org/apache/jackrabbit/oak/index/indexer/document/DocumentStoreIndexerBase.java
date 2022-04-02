@@ -19,16 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Closer;
@@ -65,6 +55,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
@@ -115,7 +115,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         }
 
         private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                                    MongoDocumentStore documentStore, Logger traversalLogger, CompositeIndexer indexer, Predicate<String> pathPredicate) {
+                                                    MongoDocumentStore documentStore, Logger traversalLogger, CompositeIndexer indexer,
+                                                    Predicate<String> pathPredicate) {
             this.rootRevision = rootRevision;
             this.documentNodeStore = documentNodeStore;
             this.documentStore = documentStore;
@@ -140,8 +141,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                                     throw new RuntimeException(e);
                                 }
                                 traversalLogger.trace(id);
-                            })
-                            .withPathPredicate((pathPredicate != null) ? pathPredicate : indexer::shouldInclude);
+                            });
         }
     }
 

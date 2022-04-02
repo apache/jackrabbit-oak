@@ -45,6 +45,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.*;
@@ -184,6 +185,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private final long dumpThreshold;
 
+    private Predicate<String> pathPredicate = path -> true;
+
     /**
      * Indicates the various phases of {@link #phaser}
      */
@@ -229,13 +232,15 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
-                                          boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold) throws IOException {
+                                          boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold,
+                                          Predicate<String> pathPredicate) throws IOException {
         this.storeDir = storeDir;
         this.mergeDir = new File(storeDir, mergeDirName);
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        this.pathPredicate = pathPredicate;
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
             @Override
@@ -314,7 +319,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold, sortedFiles));
+                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
+                memoryManager, dumpThreshold, sortedFiles, pathPredicate));
     }
 
     @Override
