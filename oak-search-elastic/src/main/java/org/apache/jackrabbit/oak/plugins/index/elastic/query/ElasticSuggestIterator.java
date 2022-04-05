@@ -35,6 +35,7 @@ import co.elastic.clients.elasticsearch.core.search.Suggestion;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -112,7 +113,10 @@ class ElasticSuggestIterator implements Iterator<FulltextResultRow> {
                 }
             }
         }
-        this.internalIterator = suggestionPriorityQueue.stream().distinct().iterator();
+        String fieldName;
+        String[] fields=null;
+        
+        suggestionPriorityQueue.stream().forEach(Object::toString);
     }
 
     private final static class ElasticSuggestion extends FulltextResultRow {

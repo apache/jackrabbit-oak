@@ -113,10 +113,11 @@ public class ElasticConnection implements Closeable {
         }
         
         // double-checked locking to get good performance and avoid double initialization
-        if (hlClient == null) {
+        RestClientBuilder builder=null;
+        if (hlClient == null || lowClient==null) {
             synchronized (this) {
                 if (hlClient == null) {
-                    RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme));
+                    builder = RestClient.builder(new HttpHost(host, port, scheme));
                     if (apiKeyId != null && !apiKeyId.isEmpty() &&
                             apiKeySecret != null && !apiKeySecret.isEmpty()) {
                         String apiKeyAuth = Base64.getEncoder().encodeToString(
@@ -126,6 +127,8 @@ public class ElasticConnection implements Closeable {
                         builder.setDefaultHeaders(headers);
                     }
                     hlClient = new RestHighLevelClient(builder);
+                    //TODO Angela review
+                    lowClient = builder.build();
                 }
             }
         }
@@ -133,6 +136,15 @@ public class ElasticConnection implements Closeable {
             transport = new RestClientTransport(hlClient.getLowLevelClient(),new JacksonJsonpMapper());
         }
         return hlClient;
+    }
+    RestClient lowClient=null;
+    public RestClient getLowClient() {
+        if(lowClient==null) {
+            //TODO complete after full migration using https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/connecting.html
+            getOldClient();
+        }
+        return lowClient;
+        
     }
     
     public ElasticsearchTransport getTransportClient() {

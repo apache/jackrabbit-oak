@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -37,6 +38,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.json.JsonpDeserializer;
+import co.elastic.clients.transport.TransportOptions;
+import co.elastic.clients.transport.rest_client.RestClientOptions;
+import co.elastic.clients.transport.Endpoint;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -196,6 +201,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private final Semaphore semaphore = new Semaphore(1);
         
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
+            
+            
             this.query = elasticRequestHandler.baseQuery();
             this.sorts = elasticRequestHandler.baseSorts();
 
@@ -217,9 +224,15 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 }
             };
 
+            co.elastic.clients.elasticsearch.core.SearchRequest searchSourceBuilder = co.elastic.clients.elasticsearch.core.SearchRequest.of(s->s
+                    .query(q->q
+                            .bool(query))
+                    .sort(this.sorts)
+                    .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests)))
+                    .so(sourceFields, null);
             listeners.forEach(register);
             this.sourceFields = sourceFieldsSet.toArray(new String[0]);
-
+            
             SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
                     .query(query)
                     // use a smaller size when the query contains aggregations. This improves performance
@@ -241,7 +254,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
             Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
                     indexNode.getDefinition().getIndexAlias());
-            indexNode.getConnection().getOldClient().getLowLevelClient().performRequestAsync(request, this);
+            indexNode.getConnection().getLowClient().performRequestAsync(request, this);
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -329,21 +342,22 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .fetchSource(sourceFields, null)
                         .searchAfter(lastHitSortValues);*/
 
-                final co.elastic.clients.elasticsearch.core.SearchRequest searchSourceBuilder = co.elastic.clients.elasticsearch.core.SearchRequest.of(s->s
+                final co.elastic.clients.elasticsearch.core.SearchRequest searchSourceBuilder2 = co.elastic.clients.elasticsearch.core.SearchRequest.of(s->s
                         .index(indexNode.getDefinition().getIndexAlias())
-                        .query(q->q.bool(query))
+                        .query(q->q
+                                .bool(query))
                         .size(getFetchSize(requests++))
                         .source(f->f
                                 .filter(ff->ff.includes(Arrays.asList(sourceFields))))
                         //TODO Anglea check this
                         //.searchAfter(Arrays.asList(lastHitSortValues))
                         );
-                LOG.trace("Kicking new search after query {}", searchSourceBuilder.source());
+                LOG.trace("Kicking new search after query {}", searchSourceBuilder2.source());
 
                 searchStartTime = System.currentTimeMillis();
-                Request request = elasticRequestHandler.createLowLevelRequest2(searchSourceBuilder,
+                Request request = elasticRequestHandler.createLowLevelRequest2(searchSourceBuilder2,
                         indexNode.getDefinition().getIndexAlias());
-                indexNode.getConnection().getOldClient().getLowLevelClient().performRequestAsync(request, this);
+                indexNode.getConnection().getLowClient().performRequestAsync(request, this);
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");
