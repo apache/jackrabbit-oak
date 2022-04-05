@@ -183,9 +183,9 @@ public class SQL2Parser {
                         options.indexTag = readLabel();
                     }
                 } else if (readIf("OFFSET")) {
-                    q.setOffset(readBase10WholeNumber());
+                    q.setOffset(readNumber());
                 } else if (readIf("LIMIT")) {
-                    q.setLimit(readBase10WholeNumber());
+                    q.setLimit(readNumber());
                 } else {
                     break;
                 }
@@ -295,12 +295,13 @@ public class SQL2Parser {
         return factory.selector(nodeTypeInfo, selectorName);
     }
 
-    private long readBase10WholeNumber() throws ParseException {
+    private long readNumber() throws ParseException {
         String label = readName();
-        if (!label.matches("\\d*") || label.isEmpty() || label.length() > 19 /* Length of MAX_LONG */) {
+        try {
+            return Long.parseLong(label);
+        } catch (NumberFormatException nfe) {
             throw getSyntaxError("0-9");
         }
-        return Long.parseLong(label);
     }
     
     private String readLabel() throws ParseException {

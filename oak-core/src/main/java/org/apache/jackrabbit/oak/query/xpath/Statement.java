@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.query.xpath;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
@@ -353,44 +355,23 @@ public class Statement {
             return;
         }
         buff.append(" option(");
-        int optionCount = 0;
+        List<String> optionValues = new ArrayList<>();
         if (queryOptions.traversal != Traversal.DEFAULT) {
-            buff.append("traversal " + queryOptions.traversal);
-            optionCount++;
+            optionValues.add("traversal " + queryOptions.traversal);
         }
         if (queryOptions.indexName != null) {
-            if (optionCount > 0) {
-                buff.append(", ");
-            }
-            buff.append("index name [");
-            buff.append(queryOptions.indexName);
-            buff.append("]");
-            optionCount++;
+            optionValues.add("index name [" + queryOptions.indexName + "]");
         }
         if (queryOptions.indexTag != null) {
-            if (optionCount > 0) {
-                buff.append(", ");
-            }
-            buff.append("index tag [");
-            buff.append(queryOptions.indexTag);
-            buff.append("]");
-            optionCount++;
+            optionValues.add("index tag [" + queryOptions.indexTag + "]");
         }
         if (queryOptions.offset != -1) {
-            if (optionCount > 0) {
-                buff.append(", ");
-            }
-            buff.append("offset ");
-            buff.append(queryOptions.offset);
-            optionCount++;
+            optionValues.add("offset " + queryOptions.offset);
         }
         if (queryOptions.limit != -1) {
-            if (optionCount > 0) {
-                buff.append(", ");
-            }
-            buff.append("limit ");
-            buff.append(queryOptions.limit);
+            optionValues.add("limit " + queryOptions.limit);
         }
+        buff.append(optionValues.stream().collect(Collectors.joining(", ")));
         buff.append(")");
     }
     

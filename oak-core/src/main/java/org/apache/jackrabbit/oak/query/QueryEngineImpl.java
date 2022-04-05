@@ -300,7 +300,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
     }
 
-    private long getOffset(List<Query> queries, Optional<Long> passedOffset) {
+    private static long getOffset(List<Query> queries, Optional<Long> passedOffset) {
         if (!passedOffset.isPresent()) {
             return queries.stream().map(Query::getOffset).filter(Optional::isPresent).map(Optional::get).findFirst()
                     .orElse(0L);
@@ -311,7 +311,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         return passedOffset.get();
     }
 
-    private long getLimit(List<Query> queries, Optional<Long> passedLimit) {
+    private static long getLimit(List<Query> queries, Optional<Long> passedLimit) {
         if (!passedLimit.isPresent()) {
             return queries.stream().map(Query::getLimit).filter(Optional::isPresent).map(Optional::get).findFirst()
                     .orElse(Long.MAX_VALUE);
