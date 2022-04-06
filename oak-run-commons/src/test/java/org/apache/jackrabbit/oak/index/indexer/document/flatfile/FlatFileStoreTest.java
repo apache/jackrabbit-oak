@@ -19,17 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -46,11 +35,24 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_TASK_BATCH_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class FlatFileStoreTest {
@@ -209,6 +211,65 @@ public class FlatFileStoreTest {
             assertEquals(sortedPaths, entryPaths);
         } finally {
             System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
+    }
+
+    private void assertContainsMergeFolder(File dir, Boolean mustBeEmpty) {
+        Boolean mergeFolderExist = false;
+        for (File workDir : dir.listFiles()) {
+            if (workDir.getName().equals("merge") && workDir.isDirectory()) {
+                mergeFolderExist = true;
+                if (mustBeEmpty) {
+                    assertTrue("merge directory should not be empty", workDir.listFiles().length == 0);
+                }
+                break;
+            }
+        }
+        assertTrue("merge directory should exist", mergeFolderExist);
+    }
+
+    @Test
+    public void resumePreviousUnfinishedDownloadAndMerge() throws Exception {
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
+            System.setProperty(PROP_MERGE_TASK_BATCH_SIZE, "2");
+            List<TestMongoDoc> mongoDocs = getTestData();
+            List<Long> lmValues = mongoDocs.stream().map(md -> md.lastModified).distinct().sorted().collect(Collectors.toList());
+            List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lmValues.get(0), lmValues.get(lmValues.size() - 1), 10);
+            TestMemoryManager memoryManager = new TestMemoryManager(true);
+            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot(), memoryManager));
+            TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(mongoDocs);
+            nsetf.setDeliveryBreakPoint((int)(mongoDocs.size() * 0.50));
+            FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+            assertNull(flatStore);
+            File existingFlatFileStoreDir1 = spyBuilder.getFlatFileStoreDir();
+            assertContainsMergeFolder(existingFlatFileStoreDir1, false);
+            spyBuilder.addExistingDataDumpDir(existingFlatFileStoreDir1);
+            nsetf.setDeliveryBreakPoint((int)(mongoDocs.size() * 0.75));
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+            assertNull(flatStore);
+            memoryManager.isMemoryLow = false;
+            List<String> entryPaths;
+            File existingFlatFileStoreDir2 = spyBuilder.getFlatFileStoreDir();
+            assertContainsMergeFolder(existingFlatFileStoreDir2, false);
+            spyBuilder.addExistingDataDumpDir(existingFlatFileStoreDir2);
+            nsetf.setDeliveryBreakPoint(Integer.MAX_VALUE);
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false);
+            entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                    .map(NodeStateEntry::getPath)
+                    .collect(Collectors.toList());
+
+            // Intermediate MergeFiles should be deleted after being merged
+            assertContainsMergeFolder(existingFlatFileStoreDir1, true);
+            assertContainsMergeFolder(existingFlatFileStoreDir2, true);
+            assertContainsMergeFolder(spyBuilder.getFlatFileStoreDir(), true);
+
+            List<String> sortedPaths = TestUtils.sortPaths(mongoDocs.stream().map(md -> md.path).collect(Collectors.toList()));
+            assertEquals(mongoDocs.size(), nsetf.getTotalProvidedDocCount());
+            assertEquals(sortedPaths, entryPaths);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+            System.clearProperty(PROP_MERGE_TASK_BATCH_SIZE);
         }
     }
 

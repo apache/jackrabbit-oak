@@ -149,12 +149,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
     private final boolean compressionEnabled;
-    /**        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-     Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, storeDir, comparator, mergePhaser, compressionEnabled);
-     Thread merger = new Thread(mergeRunner, mergerThreadName);
-     merger.setDaemon(true);
-     merger.start();
-     phaser.awaitAdvance(Phases.WAITING_FOR_TASK_SPLITS.value);
+    /**
      * Directory where sorted files will be created.
      */
     private final File storeDir;
@@ -274,6 +269,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                         continue;
                     } else if (existingSortWorkDir.getName().equals(mergeDirName)) {
                         log.info("Intermediate Merge Directory {}. Skipping it.", existingSortWorkDir.getAbsolutePath());
+                        DirectoryHelper.getDataFiles(existingSortWorkDir).forEach(file -> {
+                            log.debug("Including existing intermediate merged file {}", file.getPath());
+                            sortedFiles.add(file);
+                        });
                         continue;
                     }
                     boolean downloadCompleted = DirectoryHelper.hasCompleted(existingSortWorkDir);
@@ -319,7 +318,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     }
 
     @Override
-    public File createSortedStoreFile() throws IOException, CompositeException {
+    public File createSortedStoreFile() throws CompositeException {
         String watcherThreadName = "watcher";
         String mergerThreadName = "merger";
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
@@ -341,6 +340,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             for (Throwable throwable : throwables) {
                 exception.addSuppressed(throwable);
             }
+            sortedFiles.add(MergeRunner.MERGE_FORCE_STOP_POISON_PILL);
+            mergePhaser.awaitAdvance(0);
             throw exception;
         }
         log.debug("Result collection complete. Proceeding to final merge.");

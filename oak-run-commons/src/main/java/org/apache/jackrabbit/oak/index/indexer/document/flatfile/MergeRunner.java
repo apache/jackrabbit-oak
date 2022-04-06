@@ -39,6 +39,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -100,6 +101,20 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  *         </ol>
  *     </li>
  * </ol>
+ *
+ * <h3>Force Stop Explanation -</h3>
+ * <ol>
+ *     <li>On receiving MERGE_FORCE_STOP_POISON_PILL in SORTED_FILE_QUEUE from parent thread, all un-started tasks will be skipped.</li>
+ *     <li>No more tasks will be created on MERGE_FORCE_STOP_POISON_PILL message is received.</li>
+ *     <li>Running merge will continue to finish.</li>
+ *     <li>Final merge will not be performed.</li>
+ *     <li>This will not result in lose of data under conditions that -</li>
+ *          <ol>
+ *              <li>Files will not be removed until merge task is completed. Parent thread should add unmerged files to the SORTED_FILE_QUEUE on retry.</li>
+ *              <li>Merged files will still be under the merge folder. Parent thread should add those files to the SORTED_FILE_QUEUE on retry.</li>
+ *          </ol>
+ *     </li>
+ * </ol>
  */
 public class MergeRunner implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(MergeRunner.class);
@@ -136,9 +151,17 @@ public class MergeRunner implements Runnable {
     private final Phaser phaser;
 
     /**
-     * This poison pill is added to {@link #sortedFiles} to indicate that download phase has completed.
+     * This poison pill is added to {@link #sortedFiles} to indicate that download phase has completed successfully and
+     * merge should advance to the final merge stage.
      */
     public static final File MERGE_POISON_PILL = new File("");
+
+    /**
+     * This poison pill is added to {@link #sortedFiles} to indicate that download phase has failed and
+     * merge should shut down immediately and not advance to the final merge stage.
+     */
+    public static final File MERGE_FORCE_STOP_POISON_PILL = new File("merge-force-stop-poison-pill");
+    private final AtomicBoolean mergeCancelled;
 
     /**
      * Constructor.
@@ -158,6 +181,7 @@ public class MergeRunner implements Runnable {
         this.phaser = phaser;
         this.batchMergeSize = batchMergeSize;
         this.threadPoolSize = threadPoolSize;
+        this.mergeCancelled = new AtomicBoolean(false);
     }
 
     private boolean merge(List<File> files, File outputFile) {
@@ -236,7 +260,7 @@ public class MergeRunner implements Runnable {
                 File f = sortedFiles.take();
                 unmergedFiles.add(f);
                 log.debug("added sorted file {} to the unmerged list", f.getName());
-                if (f.equals(MERGE_POISON_PILL)) {
+                if (f.equals(MERGE_POISON_PILL) || f.equals(MERGE_FORCE_STOP_POISON_PILL)) {
                     break;
                 }
                 // add another batchMergeSize so that we choose the smallest of a larger range
@@ -254,6 +278,17 @@ public class MergeRunner implements Runnable {
             }
         }
         log.info("Waiting for batch sorting tasks completion");
+
+        // Parent thread signals to stop immediately
+        if (unmergedFiles.contains(MERGE_FORCE_STOP_POISON_PILL)) {
+            log.info("Merger receives force stop signal, shutting down all merge tasks");
+            this.mergeCancelled.set(true);
+            mergeTaskPhaser.arriveAndAwaitAdvance();
+            executorService.shutdown();
+            mergeTaskPhaser.arrive();
+            phaser.arriveAndDeregister();
+            return;
+        }
         mergeTaskPhaser.arriveAndAwaitAdvance();
         executorService.shutdown();
 
@@ -297,14 +332,20 @@ public class MergeRunner implements Runnable {
             mergeTaskPhaser.register();
         }
 
+
         @Override
-        public File call() {
+        public File call() throws Exception {
             try {
-                if (merge(mergeTarget, mergedFile)) {
-                    log.info("merge complete for {}", mergedFile.getName());
-                    return mergedFile;
+                String mergedFileName = mergedFile.getName();
+                if (mergeCancelled.get()) {
+                    log.debug("merge cancelled, skipping merge task");
+                    throw new Exception("merge skipped for " + mergedFileName);
+                } else if (merge(mergeTarget, mergedFile)) {
+                    log.info("merge complete for {}", mergedFileName);
+                } else {
+                    log.error("merge failed for {}", mergedFileName);
+                    throw new Exception("merge failed for " + mergedFileName);
                 }
-                log.error("merge failed for {}", mergedFile.getName());
             } finally {
                 mergeTaskPhaser.arriveAndDeregister();
             }
