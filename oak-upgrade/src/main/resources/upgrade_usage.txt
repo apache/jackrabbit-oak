@@ -98,3 +98,5 @@ An descriptor of the Oak node store. Possible options:
 --skip-init               Don't initialize the destination repository
 --skip-name-check         Don't look for long-named nodes at the beginning of
                           the migration
+--skip-create-azure-container Skipping creation of the Azure container, if it
+                              does not yet exists

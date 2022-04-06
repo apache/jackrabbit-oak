@@ -100,20 +100,31 @@ public final class AzureUtilities {
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageCredentials credentials,
             String uri, String dir) throws URISyntaxException, StorageException {
+        return cloudBlobDirectoryFrom(credentials, uri, dir, false);
+    }
+
+    public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageCredentials credentials,
+            String uri, String dir, boolean skipCreateContainer) throws URISyntaxException, StorageException {
         StorageUri storageUri = new StorageUri(new URI(uri));
         CloudBlobContainer container = new CloudBlobContainer(storageUri, credentials);
-
-        container.createIfNotExists();
-
+        if (!skipCreateContainer) {
+            container.createIfNotExists();
+        }
         return container.getDirectoryReference(dir);
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
             String dir) throws InvalidKeyException, URISyntaxException, StorageException {
+        return cloudBlobDirectoryFrom(connection, containerName, dir, false);
+    }
+
+    public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
+            String dir, boolean skipCreateContainer) throws InvalidKeyException, URISyntaxException, StorageException {
         CloudStorageAccount cloud = CloudStorageAccount.parse(connection);
         CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(containerName);
-        container.createIfNotExists();
-
+        if (!skipCreateContainer) {
+            container.createIfNotExists();
+        }
         return container.getDirectoryReference(dir);
     }
 

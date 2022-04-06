@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 
+import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
@@ -48,6 +50,8 @@ public class SegmentAzureFactory implements NodeStoreFactory {
     private final String connectionString;
     private final String containerName;
     private final String dir;
+    private final String sasToken;
+    private final boolean skipCreateContainer;
 
     private int segmentCacheSize;
     private final boolean readOnly;
@@ -61,6 +65,8 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         private String uri;
         private String connectionString;
         private String containerName;
+        private String sasToken;
+        private boolean skipCreateContainer;
 
         public Builder(String dir, int segmentCacheSize, boolean readOnly) {
             this.dir = dir;
@@ -87,6 +93,14 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             this.containerName = containerName;
             return this;
         }
+        public Builder sasToken(String sasToken) {
+            this.sasToken = sasToken;
+            return this;
+        }
+        public Builder skipCreateContainer(boolean skipCreateContainer) {
+            this.skipCreateContainer = skipCreateContainer;
+            return this;
+        }
 
         public SegmentAzureFactory build() {
             return new SegmentAzureFactory(this);
@@ -101,6 +115,8 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         this.dir = builder.dir;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.readOnly = builder.readOnly;
+        this.sasToken = builder.sasToken;
+        this.skipCreateContainer = builder.skipCreateContainer;
     }
 
     @Override
@@ -143,11 +159,16 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         CloudBlobDirectory cloudBlobDirectory = null;
 
         if (accountName != null && uri != null) {
-            String key = System.getenv("AZURE_SECRET_KEY");
-            StorageCredentials credentials = new StorageCredentialsAccountAndKey(accountName, key);
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
+            StorageCredentials credentials;
+            if (!StringUtils.isBlank(sasToken)) {
+                credentials = new StorageCredentialsSharedAccessSignature(sasToken);
+            } else {
+                String key = System.getenv("AZURE_SECRET_KEY");
+                credentials = new StorageCredentialsAccountAndKey(accountName, key);
+            }
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir, skipCreateContainer);
         } else if (connectionString != null && containerName != null) {
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir, skipCreateContainer);
         }
 
         if (cloudBlobDirectory == null) {
