@@ -316,10 +316,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
             return queries.stream().map(Query::getLimit).filter(Optional::isPresent).map(Optional::get).findFirst()
                     .orElse(Long.MAX_VALUE);
         }
-        if (passedLimit.get() < 0) {
+        long limit = passedLimit.get();
+        if (limit < 0) {
             throw new IllegalArgumentException("Limit may not be negative, is: " + passedLimit.get());
         }
-        return passedLimit.get();
+        return limit;
     }
 
     /**
