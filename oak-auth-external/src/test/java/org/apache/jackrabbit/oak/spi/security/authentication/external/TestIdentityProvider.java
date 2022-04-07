@@ -285,7 +285,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             return ImmutableList.of();
         }
     }
-    public static class UserWithSupplierProperties extends TestUser {
+
+    public static final class UserWithSupplierProperties extends TestUser {
 
         public final String stringValue = "customValue";
         public final BigDecimal bigDecimal = new BigDecimal("99.99");

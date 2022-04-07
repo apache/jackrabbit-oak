@@ -1201,6 +1201,9 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         }
     }
 
+    /**
+     * See https://issues.apache.org/jira/browse/OAK-9746
+     */
     @Test
     public void testSyncPropertiesSupplier() throws Exception {
         //given
