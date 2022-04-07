@@ -290,11 +290,15 @@ public class ElasticRequestHandler {
         }
         return request;
     }
-    public Request createLowLevelRequest2(SearchRequest searchSourceBuilder, String indexName) {
-        String endpoint = "/" + indexName
+    public Request createLowLevelRequest2(SearchRequest searchReq) {
+        String endpoint = "/" + searchReq.index()
                 + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
         Request request = new Request("POST", endpoint);
-        request.setJsonEntity(searchSourceBuilder._DESERIALIZER.toString());
+        String jsonString = ElasticIndexUtils.toString(searchReq);
+        //TODO Angela check the request contains the right HTTP header for tha json body
+        //TODO Angela add anything that elasticsearch-java is not supporting yet
+        //TODO Angela Replace createLowLevelRequest
+        request.setJsonEntity(jsonString);
         return request;
     }
 

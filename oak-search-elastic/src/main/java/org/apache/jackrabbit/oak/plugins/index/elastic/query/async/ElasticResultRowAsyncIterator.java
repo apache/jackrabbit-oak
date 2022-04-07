@@ -21,17 +21,15 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
-import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -42,6 +40,7 @@ import co.elastic.clients.json.JsonpDeserializer;
 import co.elastic.clients.transport.TransportOptions;
 import co.elastic.clients.transport.rest_client.RestClientOptions;
 import co.elastic.clients.transport.Endpoint;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -199,10 +198,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
-        
+
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
-            
-            
             this.query = elasticRequestHandler.baseQuery();
             this.sorts = elasticRequestHandler.baseSorts();
 
@@ -223,37 +220,30 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     needsAggregations.set(true);
                 }
             };
-
-            co.elastic.clients.elasticsearch.core.SearchRequest searchSourceBuilder = co.elastic.clients.elasticsearch.core.SearchRequest.of(s->s
-                    .query(q->q
-                            .bool(query))
-                    .sort(this.sorts)
-                    .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests)))
-                    .so(sourceFields, null);
             listeners.forEach(register);
             this.sourceFields = sourceFieldsSet.toArray(new String[0]);
             
-            SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
-                    .query(query)
+            SearchRequest searchReq = SearchRequest.of(s->s
+                    .index(indexNode.getDefinition().getIndexAlias())
+                    .query(q->q
+                            .bool(query))
                     // use a smaller size when the query contains aggregations. This improves performance
                     // when the client is only interested in insecure facets
-                    .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests))
-                    .fetchSource(sourceFields, null);
+                    .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests)));
+                    //.fetchSource(sourceFields, null);
 
-            this.sorts.forEach(searchSourceBuilder::sort);
+            //this.sorts.forEach(searchReq::sort);
 
             if (needsAggregations.get()) {
-                elasticRequestHandler.aggregations().forEach(searchSourceBuilder::aggregation);
+                // elasticRequestHandler.aggregations().forEach(searchReq::aggregation);
             }
-
-            LOG.trace("Kicking initial search for query {}", searchSourceBuilder);
+            LOG.trace("Kicking initial search for query {}", ElasticIndexUtils.toString(searchReq));
             semaphore.tryAcquire();
 
             searchStartTime = System.currentTimeMillis();
             requests++;
 
-            Request request = elasticRequestHandler.createLowLevelRequest(searchSourceBuilder,
-                    indexNode.getDefinition().getIndexAlias());
+            Request request = elasticRequestHandler.createLowLevelRequest2(searchReq);
             indexNode.getConnection().getLowClient().performRequestAsync(request, this);
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
@@ -336,13 +326,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
          */
         private void scan() {
             if (semaphore.tryAcquire() && anyDataLeft.get()) {
-                /*final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
-                        .query(query)
-                        .size(getFetchSize(requests++))
-                        .fetchSource(sourceFields, null)
-                        .searchAfter(lastHitSortValues);*/
-
-                final co.elastic.clients.elasticsearch.core.SearchRequest searchSourceBuilder2 = co.elastic.clients.elasticsearch.core.SearchRequest.of(s->s
+                final SearchRequest searchReq = SearchRequest.of(s->s
                         .index(indexNode.getDefinition().getIndexAlias())
                         .query(q->q
                                 .bool(query))
@@ -352,11 +336,10 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         //TODO Anglea check this
                         //.searchAfter(Arrays.asList(lastHitSortValues))
                         );
-                LOG.trace("Kicking new search after query {}", searchSourceBuilder2.source());
+                LOG.trace("Kicking new search after query {}", searchReq.source());
 
                 searchStartTime = System.currentTimeMillis();
-                Request request = elasticRequestHandler.createLowLevelRequest2(searchSourceBuilder2,
-                        indexNode.getDefinition().getIndexAlias());
+                Request request = elasticRequestHandler.createLowLevelRequest2(searchReq);
                 indexNode.getConnection().getLowClient().performRequestAsync(request, this);
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {

@@ -17,16 +17,22 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
 
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import co.elastic.clients.json.JsonpMapper;
+import co.elastic.clients.json.JsonpSerializable;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import jakarta.json.stream.JsonGenerator;
 
 public class ElasticIndexUtils {
 
@@ -87,5 +93,20 @@ public class ElasticIndexUtils {
             wrap.putDouble(values.get(i));
         }
         return bytes;
+    }
+    
+    /**
+     * Provides a string with the serialisation of the object.
+     * Typically used to obtain the DSL representation of Elasticsearch requests or partial requests.
+     * @param query
+     * @return Json serialisation as a string.
+     */
+    public static String toString(JsonpSerializable query) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        JsonpMapper mapper = new JacksonJsonpMapper();
+        JsonGenerator generator = mapper.jsonProvider().createGenerator(baos);
+        query.serialize(generator, mapper);
+        generator.close();
+        return baos.toString();
     }
 }
