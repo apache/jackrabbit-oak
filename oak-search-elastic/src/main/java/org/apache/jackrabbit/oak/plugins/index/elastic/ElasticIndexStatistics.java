@@ -24,6 +24,12 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
+
+import co.elastic.clients.elasticsearch._types.Bytes;
+import co.elastic.clients.elasticsearch.cat.IndicesResponse;
+import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
+import co.elastic.clients.elasticsearch.core.CountRequest.Builder;
+
 import org.apache.http.util.EntityUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.elasticsearch.client.Request;
@@ -176,15 +182,17 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private int count(StatsRequestDescriptor crd) throws IOException {
-            CountRequest countRequest = new CountRequest(crd.index);
+            Builder reqBuilder = new co.elastic.clients.elasticsearch.core.CountRequest.Builder();
+            reqBuilder.index(crd.index);
             if (crd.field != null) {
-                countRequest.query(QueryBuilders.existsQuery(crd.field));
+                reqBuilder.query(q->q
+                        .exists(e->e
+                                .field(crd.field)));
             } else {
-                countRequest.query(QueryBuilders.matchAllQuery());
+                reqBuilder.query(q->q
+                        .matchAll(m->m));
             }
-
-            CountResponse response = crd.connection.getClient().count(countRequest, RequestOptions.DEFAULT);
-            return (int) response.getCount();
+            return (int) crd.connection.getClient().count(reqBuilder.build()).count();
         }
     }
 
@@ -205,36 +213,21 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {
-            RestClient lowLevelClient = crd.connection.getClient().getLowLevelClient();
-            // TODO: the elastic rest high-level client does not currently support the index stats API.
-            // We should switch to this once available, since the _cat API is not intended for use by applications
-            Response response = lowLevelClient.performRequest(
-                    new Request("GET", "/_cat/indices/" + crd.index
-                            + "?format=json&h=store.size,creation.date,docs.count,docs.deleted&bytes=b&time=ms")
-            );
-
-            if (response != null) {
-                String rawBody = EntityUtils.toString(response.getEntity());
-                TypeReference<List<Map<String, String>>> typeRef = new TypeReference<List<Map<String, String>>>() {};
-                List<Map<String, String>> indices = MAPPER.readValue(rawBody, typeRef);
-
-                if (!indices.isEmpty()) {
-                    // we ask for a specific index, so we can get the first entry
-                    Map<String, String> indexProps = indices.get(0);
-                    String size = indexProps.get("store.size");
-                    String creationDate = indexProps.get("creation.date");
-                    String luceneDocsCount = indexProps.get("docs.count");
-                    String luceneDocsDeleted = indexProps.get("docs.deleted");
-                    return new StatsResponse(
+            IndicesRecord record = crd.connection.getClient().cat().indices(i->i
+                    .index(crd.index)
+                    .bytes(Bytes.Bytes))
+                .valueBody().get(0);
+            String size = record.storeSize();
+            String creationDate = record.creationDateString();
+            String luceneDocsCount = record.docsCount();
+            String luceneDocsDeleted = record.docsDeleted();
+            
+            return new StatsResponse(
                             size != null ? Long.parseLong(size) : -1,
                             creationDate != null ? Long.parseLong(creationDate) : -1,
                             luceneDocsCount != null ? Integer.parseInt(luceneDocsCount) : -1,
                             luceneDocsDeleted != null ? Integer.parseInt(luceneDocsDeleted) : -1
-                    );
-                }
-            }
-
-            return null;
+            );
         }
     }
 

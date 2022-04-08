@@ -47,6 +47,8 @@ import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
@@ -157,12 +159,11 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     private void provisionIndex() throws IOException {
-        final IndicesClient indicesClient = elasticConnection.getClient().indices();
+        //TODO migrate from oldIndicesclient to esIndicesClient and delete
+        final IndicesClient indicesClient = elasticConnection.getOldClient().indices();
+        ElasticsearchIndicesClient esIndicesClient = elasticConnection.getClient().indices();
         // check if index already exists
-        boolean exists = elasticConnection.getClient().indices().exists(
-                new GetIndexRequest(indexName), RequestOptions.DEFAULT
-        );
-        if (exists) {
+        if(esIndicesClient.exists(i -> i.index(indexName)).value()) {
             LOG.info("Index {} already exists. Skip index provision", indexName);
             return;
         }
@@ -189,10 +190,11 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     private void enableIndex() throws IOException {
-        final IndicesClient indicesClient = elasticConnection.getClient().indices();
+        //TODO migrate from oldIndicesclient to esIndicesClient and delete
+        final IndicesClient oldIndicesClient = elasticConnection.getOldClient().indices();
+        ElasticsearchIndicesClient esIndicesClient = elasticConnection.getClient().indices();
         // check if index already exists
-        boolean exists = indicesClient.exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
-        if (!exists) {
+        if (!esIndicesClient.exists(i -> i.index(indexName)).value()) {
             throw new IllegalStateException("cannot enable an index that does not exist");
         }
 
@@ -201,14 +203,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
             LOG.debug("Updating Index Settings with request {}", requestMsg);
         }
-        AcknowledgedResponse response = indicesClient.putSettings(request, RequestOptions.DEFAULT);
+        AcknowledgedResponse response = oldIndicesClient.putSettings(request, RequestOptions.DEFAULT);
         LOG.info("Updated settings for index {}. Response acknowledged: {}",
                 indexName, response.isAcknowledged());
         checkResponseAcknowledgement(response, "Update index settings call not acknowledged for index " + indexName);
 
         // update the mapping
         GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getIndexAlias());
-        GetAliasesResponse aliasesResponse = indicesClient.getAlias(getAliasesRequest, RequestOptions.DEFAULT);
+        GetAliasesResponse aliasesResponse = oldIndicesClient.getAlias(getAliasesRequest, RequestOptions.DEFAULT);
         Map<String, Set<AliasMetadata>> aliases = aliasesResponse.getAliases();
         IndicesAliasesRequest indicesAliasesRequest = new IndicesAliasesRequest();
         for (String oldIndexName : aliases.keySet()) {
@@ -219,14 +221,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         IndicesAliasesRequest.AliasActions addAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD);
         addAction.index(indexName).alias(indexDefinition.getIndexAlias());
         indicesAliasesRequest.addAliasAction(addAction);
-        AcknowledgedResponse updateAliasResponse = indicesClient.updateAliases(indicesAliasesRequest, RequestOptions.DEFAULT);
+        AcknowledgedResponse updateAliasResponse = oldIndicesClient.updateAliases(indicesAliasesRequest, RequestOptions.DEFAULT);
         checkResponseAcknowledgement(updateAliasResponse, "Update alias call not acknowledged for alias "
                 + indexDefinition.getIndexAlias());
         LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getIndexAlias(),
                 indexName, updateAliasResponse.isAcknowledged());
 
         // once the alias has been updated, we can safely remove the old index
-        deleteOldIndices(indicesClient, aliases.keySet());
+        deleteOldIndices(oldIndicesClient, aliases.keySet());
     }
 
     private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {

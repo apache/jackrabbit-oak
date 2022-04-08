@@ -29,8 +29,15 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
+import co.elastic.clients.elasticsearch.core.search.Suggestion;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.PriorityQueue;
 
@@ -77,25 +84,39 @@ class ElasticSuggestIterator implements Iterator<FulltextResultRow> {
     public FulltextResultRow next() {
         return internalIterator.next();
     }
-
+    
     private void loadSuggestions() throws IOException {
-        BoolQueryBuilder suggestionQuery = requestHandler.suggestionMatchQuery(suggestQuery);
-        SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
+        Query suggestionQuery = requestHandler.suggestionMatchQuery(suggestQuery);
+        co.elastic.clients.elasticsearch.core.SearchRequest req = co.elastic.clients.elasticsearch.core.SearchRequest.of(s->s
+                .index(indexNode.getDefinition().getIndexAlias())
                 .query(suggestionQuery)
                 .size(100)
-                .fetchSource(FieldNames.PATH, null);
-        SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getIndexAlias())
-                .source(searchSourceBuilder);
-        SearchResponse res = indexNode.getConnection().getClient().search(searchRequest, RequestOptions.DEFAULT);
+                .source(ss->ss
+                        .filter(f->f
+                                .includes(FieldNames.PATH))));
+        co.elastic.clients.elasticsearch.core.SearchResponse<ElasticSuggestion> res = indexNode.getConnection().getClient().search(req,ElasticSuggestion.class);
         PriorityQueue<ElasticSuggestion> suggestionPriorityQueue = new PriorityQueue<>((a, b) -> Double.compare(b.score, a.score));
-        for (SearchHit doc : res.getHits()) {
-            if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
-                for (SearchHit suggestion : doc.getInnerHits().get(FieldNames.SUGGEST).getHits()) {
-                    suggestionPriorityQueue.add(new ElasticSuggestion((String) suggestion.getSourceAsMap().get("value"), suggestion.getScore()));
+// Original code TODO Angela check it does the same
+//      for (SearchHit doc : res.getHits()) {
+//      if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
+//          for (SearchHit suggestion : doc.getInnerHits().get(FieldNames.SUGGEST).getHits()) {
+//              suggestionPriorityQueue.add(new ElasticSuggestion((String) suggestion.getSourceAsMap().get("value"), suggestion.getScore()));
+//          }
+//      }
+//  }
+//  this.internalIterator = suggestionPriorityQueue.stream().distinct().iterator();
+        
+        for(String key: res.suggest().keySet()) {
+            if (responseHandler.isAccessible(key)) { //TODO Angela check that key is a path
+                for (Hit<ElasticSuggestion> hit : res.hits().hits()) {
+                    suggestionPriorityQueue.add(new ElasticSuggestion((String) hit.source().suggestion, hit.score()));
                 }
             }
         }
-        this.internalIterator = suggestionPriorityQueue.stream().distinct().iterator();
+        String fieldName;
+        String[] fields=null;
+        
+        suggestionPriorityQueue.stream().forEach(Object::toString);
     }
 
     private final static class ElasticSuggestion extends FulltextResultRow {

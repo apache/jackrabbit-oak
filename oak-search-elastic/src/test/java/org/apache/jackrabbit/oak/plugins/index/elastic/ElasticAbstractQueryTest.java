@@ -38,16 +38,14 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.core.CountRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch.core.CountRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -83,7 +81,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @After
     public void tearDown() throws IOException {
         if (esConnection != null) {
-            esConnection.getClient().indices().delete(new DeleteIndexRequest(esConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
+        	esConnection.getClient().indices().delete(i->i.index(esConnection.getIndexPrefix() + "*"));
             esConnection.close();
         }
     }
@@ -220,8 +218,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
 
         try {
-            return esConnection.getClient().indices()
-                    .exists(new GetIndexRequest(esIdxDef.getIndexAlias()), RequestOptions.DEFAULT);
+            return esConnection.getClient().indices().exists(i -> i.index(esIdxDef.getIndexAlias())).value();
         } catch (IOException e) {
             return false;
         }
@@ -229,13 +226,13 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected long countDocuments(Tree index) {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
-
-        CountRequest request = new CountRequest(esIdxDef.getIndexAlias());
+        
+        CountRequest count = CountRequest.of( r -> r.index(esIdxDef.getIndexAlias()));
         try {
-            return esConnection.getClient().count(request, RequestOptions.DEFAULT).getCount();
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+			return esConnection.getClient().count(count).count();
+		} catch (ElasticsearchException | IOException e) {
+			throw new IllegalStateException(e);
+		}
     }
 
     private ElasticIndexDefinition getElasticIndexDefinition(Tree index) {

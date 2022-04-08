@@ -34,6 +34,12 @@ import org.elasticsearch.cluster.health.ClusterIndexHealth;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import co.elastic.clients.elasticsearch._types.HealthStatus;
+import co.elastic.clients.elasticsearch._types.Level;
+import co.elastic.clients.elasticsearch.cluster.HealthRequest;
+import co.elastic.clients.elasticsearch.cluster.HealthResponse;
+import co.elastic.clients.elasticsearch.cluster.health.IndexHealthStats;
+
 import java.io.IOException;
 import java.util.Collection;
 
@@ -80,13 +86,14 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
     public boolean isValid(String indexPath) throws IOException {
         ElasticIndexNode node = indexTracker.acquireIndexNode(indexPath);
         try {
-            ClusterHealthRequest request = new ClusterHealthRequest(node.getDefinition().getIndexAlias());
-            request.level(ClusterHealthRequest.Level.INDICES);
-            ClusterHealthResponse response = node.getConnection().getClient().cluster().health(
-                    request, RequestOptions.DEFAULT
-            );
-            Collection<ClusterIndexHealth> indices = response.getIndices().values();
-            return indices.stream().map(i -> i.getStatus() == ClusterHealthStatus.GREEN).findFirst().orElse(false);
+            HealthRequest request = new HealthRequest.Builder()
+                    .index(node.getDefinition().getIndexAlias())
+                    .level(Level.Indices)
+                    .build();
+            HealthResponse response = node.getConnection().getClient().cluster().health(
+                    request);
+            Collection<IndexHealthStats> indices = response.indices().values();
+            return indices.stream().map(i -> i.status() == HealthStatus.Green).findFirst().orElse(false);
         } finally {
             node.release();
         }

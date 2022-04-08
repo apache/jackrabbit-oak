@@ -57,7 +57,7 @@ public class ElasticIndexStatisticsTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
-        when(elasticConnectionMock.getClient()).thenReturn(elasticClientMock);
+        when(elasticConnectionMock.getOldClient()).thenReturn(elasticClientMock);
     }
 
     @Test
