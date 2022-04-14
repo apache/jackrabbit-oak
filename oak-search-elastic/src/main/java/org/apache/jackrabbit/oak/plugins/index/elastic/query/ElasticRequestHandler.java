@@ -265,39 +265,21 @@ public class ElasticRequestHandler {
 
         return list;
     }
-
+    
     /**
-     * Receives a {@link SearchSourceBuilder} as input and converts it to a low
+     * Receives a {@link SearchRequest} as input and converts it to a low
      * level {@link Request} reducing the response in order to reduce size and
      * improve speed.
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#common-options-response-filtering
-     *
-     * @param searchSourceBuilder the search request
-     * @param indexName           the index to query
+     * 
+     * @param searchReq the search request
      * @return a low level {@link Request} instance
      */
-    public Request createLowLevelRequest(SearchSourceBuilder searchSourceBuilder, String indexName) {
-        String endpoint = "/" + indexName
-                + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
-        Request request = new Request("POST", endpoint);
-        try {
-            BytesRef source = XContentHelper.toXContent(searchSourceBuilder, XContentType.JSON, EMPTY_PARAMS, false)
-                    .toBytesRef();
-            request.setEntity(new NByteArrayEntity(source.bytes, source.offset, source.length,
-                    ContentType.create(XContentType.JSON.mediaTypeWithoutParameters(), (Charset) null)));
-        } catch (IOException e) {
-            throw new IllegalStateException("Error creating request entity", e);
-        }
-        return request;
-    }
-    public Request createLowLevelRequest2(SearchRequest searchReq) {
+    public Request createLowLevelRequest(SearchRequest searchReq) {
         String endpoint = "/" + searchReq.index()
                 + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
         Request request = new Request("POST", endpoint);
         String jsonString = ElasticIndexUtils.toString(searchReq);
-        //TODO Angela check the request contains the right HTTP header for tha json body
-        //TODO Angela add anything that elasticsearch-java is not supporting yet
-        //TODO Angela Replace createLowLevelRequest
         request.setJsonEntity(jsonString);
         return request;
     }
