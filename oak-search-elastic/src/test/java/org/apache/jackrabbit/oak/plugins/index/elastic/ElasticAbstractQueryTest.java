@@ -81,7 +81,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @After
     public void tearDown() throws IOException {
         if (esConnection != null) {
-        	esConnection.getClient().indices().delete(i->i.index(esConnection.getIndexPrefix() + "*"));
+        	esConnection.getClient().indices().delete(i->i
+        	        .index(esConnection.getIndexPrefix() + "*"));
             esConnection.close();
         }
     }
@@ -218,7 +219,10 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
 
         try {
-            return esConnection.getClient().indices().exists(i -> i.index(esIdxDef.getIndexAlias())).value();
+            return esConnection.getClient().indices()
+                    .exists(i -> i
+                            .index(esIdxDef.getIndexAlias()))
+                    .value();
         } catch (IOException e) {
             return false;
         }
@@ -227,7 +231,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected long countDocuments(Tree index) {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
         
-        CountRequest count = CountRequest.of( r -> r.index(esIdxDef.getIndexAlias()));
+        CountRequest count = CountRequest.of( r -> r
+                .index(esIdxDef.getIndexAlias()));
         try {
 			return esConnection.getClient().count(count).count();
 		} catch (ElasticsearchException | IOException e) {

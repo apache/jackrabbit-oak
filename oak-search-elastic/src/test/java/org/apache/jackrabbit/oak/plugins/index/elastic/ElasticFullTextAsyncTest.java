@@ -66,6 +66,8 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertThat(explain(query, XPATH), containsString("elasticsearch:" + indexId));
+            //TODO Angela remove the line below
+            System.out.println(query);
             assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/c", "/test/d"));
         });
     }

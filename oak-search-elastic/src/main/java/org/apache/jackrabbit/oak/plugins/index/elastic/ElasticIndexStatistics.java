@@ -16,7 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Ticker;
 import com.google.common.cache.CacheBuilder;
@@ -26,29 +35,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
 
 import co.elastic.clients.elasticsearch._types.Bytes;
-import co.elastic.clients.elasticsearch.cat.IndicesResponse;
+import co.elastic.clients.elasticsearch.cat.CatRequestBase;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
-import co.elastic.clients.elasticsearch.core.CountRequest.Builder;
-
-import org.apache.http.util.EntityUtils;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.core.CountRequest;
-import org.elasticsearch.client.core.CountResponse;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.TestOnly;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import co.elastic.clients.elasticsearch.core.CountRequest;
 
 /**
  * Cache-based {@code IndexStatistics} implementation providing statistics for Elasticsearch reducing
@@ -182,17 +171,17 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private int count(StatsRequestDescriptor crd) throws IOException {
-            Builder reqBuilder = new co.elastic.clients.elasticsearch.core.CountRequest.Builder();
-            reqBuilder.index(crd.index);
+            CountRequest.Builder cBuilder = new CountRequest.Builder();
+            cBuilder.index(crd.index);
             if (crd.field != null) {
-                reqBuilder.query(q->q
+                cBuilder.query(q->q
                         .exists(e->e
                                 .field(crd.field)));
             } else {
-                reqBuilder.query(q->q
+                cBuilder.query(q->q
                         .matchAll(m->m));
             }
-            return (int) crd.connection.getClient().count(reqBuilder.build()).count();
+            return (int) crd.connection.getClient().count(cBuilder.build()).count();
         }
     }
 
@@ -213,6 +202,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {
+            // TODO Angela check
             IndicesRecord record = crd.connection.getClient().cat().indices(i->i
                     .index(crd.index)
                     .bytes(Bytes.Bytes))

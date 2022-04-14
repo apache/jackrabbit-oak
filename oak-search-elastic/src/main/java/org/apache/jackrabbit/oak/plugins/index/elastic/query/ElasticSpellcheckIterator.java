@@ -17,27 +17,27 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
+import org.apache.lucene.search.DocValuesRewriteMethod;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.SuggestMode;
 import co.elastic.clients.elasticsearch.core.MsearchRequest;
+import co.elastic.clients.elasticsearch.core.MsearchResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.reindex.Source;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.elasticsearch.core.search.PhraseSuggestCollateQuery;
-import co.elastic.clients.elasticsearch.core.search.SourceConfig;
-import co.elastic.clients.elasticsearch.core.search.SourceFilter;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.PhraseSuggestOption;
 import co.elastic.clients.elasticsearch.core.search.Suggester;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.PriorityQueue;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -85,44 +85,170 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
     public FulltextResultRow next() {
         return internalIterator.next();
     }
-
+    
     private void loadSuggestions() {
+        ArrayList<FulltextResultRow> results = new ArrayList<>();
         try {
-            
-            final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
-            final MsearchRequest multiSearch = null; 
-            final SearchRequest searchRequest = SearchRequest.of(s->s
+            SearchResponse<FulltextResultRow> sRes = indexNode.getConnection().getClient().search(s->s
                     .index(indexNode.getDefinition().getIndexAlias())
-                    .suggest(f->f
-                            .suggesters("oak:suggestion", t->t
-                                    .phrase(requestHandler.suggestQuery(spellCheckQuery)))));
-            
-//            SearchResponse<PhraseSuggestion> searchResponse = indexNode.getConnection().getClient().search(searchRequest, PhraseSuggestion.class);
-//            for(String key: searchResponse.suggest().keySet()) {
-//                if (responseHandler.isAccessible(key)) { //TODO Angela check that key is a path
-//                    for (Hit<PhraseSuggestion> hit : searchResponse.hits().hits()) {
-//                        suggestionTexts.offer(hit.so);
-//                    }
-//                }
-//            }
-//
-//            if (!multiSearch.requests().isEmpty()) {
-//                MultiSearchResponse res = indexNode.getConnection().getClient().msearch(multiSearch, FulltextResultRow.class);
-//                ArrayList<FulltextResultRow> results = new ArrayList<>();
-//                for (MultiSearchResponse.Item response : res.getResponses()) {
-//                    for (SearchHit doc : response.getResponse().getHits()) {
-//                        if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
-//                            results.add(new FulltextResultRow(suggestionTexts.poll()));
-//                            break;
-//                        }
-//                    }
-//                }
-//                this.internalIterator = results.iterator();
-//            }
-
-        } catch (Exception e) {
-            LOG.error("Error processing suggestions for " + spellCheckQuery, e);
+                    .suggest(ss->ss
+                            .suggesters("oak:suggestion",q->q
+                                    .phrase(requestHandler.suggestQuery(spellCheckQuery))))
+                                    /*.phrase(ps->ps
+                                            .text("taste")
+                                            .field(":spellcheck")
+                                            .size(10)
+                                            .realWordErrorLikelihood(0.95)
+                                            .directGenerator(d->d
+                                                    .field(":spellcheck")
+                                                    .suggestMode(SuggestMode.Missing))
+                                            .collate(c->c
+                                                    .query(cq->cq
+                                                            .source("\"{\\\\n  \\\\\\\"bool\\\\\\\" : {\\\\n    \\\\\\\"must\\\\\\\" : [\\\\n      {\\\\n        \\\\\\\"match_phrase\\\\\\\" : {\\\\n          \\\\\\\":spellcheck\\\\\\\" : {\\\\n            \\\\\\\"query\\\\\\\" : \\\\\\\"{{suggestion}}\\\\\\\",\\\\n            \\\\\\\"slop\\\\\\\" : 0,\\\\n            \\\\\\\"zero_terms_query\\\\\\\" : \\\\\\\"NONE\\\\\\\",\\\\n            \\\\\\\"boost\\\\\\\" : 1.0\\\\n          }\\\\n        }\\\\n      },\\\\n      {\\\\n        \\\\\\\"bool\\\\\\\" : {\\\\n          \\\\\\\"adjust_pure_negative\\\\\\\" : true,\\\\n          \\\\\\\"boost\\\\\\\" : 1.0\\\\n        }\\\\n      },\\\\n      {\\\\n        \\\\\\\"term\\\\\\\" : {\\\\n          \\\\\\\":ancestors\\\\\\\" : {\\\\n            \\\\\\\"value\\\\\\\" : \\\\\\\"/content1\\\\\\\",\\\\n            \\\\\\\"boost\\\\\\\" : 1.0\\\\n          }\\\\n        }\\\\n      }\\\\n    ],\\\\n    \\\\\\\"adjust_pure_negative\\\\\\\" : true,\\\\n    \\\\\\\"boost\\\\\\\" : 1.0\\\\n  }\""))
+                                                    .prune(false)))))*/
+                    ,FulltextResultRow.class);
+            // TODO Angela delete below
+            String toDelete = ElasticIndexUtils.toString(sRes);
+            final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
+            for(FulltextResultRow row : sRes.documents()) {
+                if (responseHandler.isAccessible(row.path)) {
+                    results.add(new FulltextResultRow(suggestionTexts.poll()));
+                    break;
+                }
+            }
+            this.internalIterator = results.iterator();
+            int a=4;
+/*            final MsearchRequest multiSearch = MsearchRequest.of(m->m
+                    .searches(s->s
+                            .body(b->b
+                                    .))); 
+                    
+                    StreamSupport
+                    .stream(sRes.suggest().keySet(), false)
+                    .map(s -> (PhraseSuggestOption) s)
+                    .flatMap(ps -> ps.getEntries().stream())
+                    .flatMap(ps -> ps.getOptions().stream())
+                    .map(s -> {
+                        String text = s.getText().string();
+                        suggestionTexts.offer(text);
+                        return requestHandler.suggestMatchQuery(text);
+                    })
+                    .map(query -> SearchSourceBuilder.searchSource()
+                            .query(query)
+                            .size(100)
+                            .fetchSource(FieldNames.PATH, null))
+                    .map(searchSource -> new SearchRequest(indexNode.getDefinition().getIndexAlias())
+                            .source(searchSource))
+                    .reduce(new MsearchRequest.Builder(), MsearchRequest::add, (ms, ms2) -> ms)
+                    .build();*/
+        } catch (ElasticsearchException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
+        
+        // TODO Angela implement with new client
+        /*
+        try {
+            final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
+            
+            SearchResponse searchResponse = indexNode.getConnection().getClient().search(s->s
+                    .index(indexNode.getDefinition().getIndexAlias())
+                    .suggest(su->su
+                            .suggesters("oak:suggestion", requestHandler.suggestQuery(spellCheckQuery)))
+                    , PhraseSuggestOption.class);
+            final MsearchRequest multiSearch = StreamSupport
+                    .stream(searchResponse.suggest().keySet(), false)
+                    .map(s -> (PhraseSuggestOption) s)
+                    .flatMap(ps -> ps.getEntries().stream())
+                    .flatMap(ps -> ps.getOptions().stream())
+                    .map(s -> {
+                        String text = s.getText().string();
+                        suggestionTexts.offer(text);
+                        return requestHandler.suggestMatchQuery(text);
+                    })
+                    .map(query -> SearchSourceBuilder.searchSource()
+                            .query(query)
+                            .size(100)
+                            .fetchSource(FieldNames.PATH, null))
+                    .map(searchSource -> new SearchRequest(indexNode.getDefinition().getIndexAlias())
+                            .source(searchSource))
+                    .reduce(new MsearchRequest.Builder(), MsearchRequest::add, (ms, ms2) -> ms)
+                    .build();
 
+            if (!multiSearch.searches().isEmpty()) {
+                MsearchResponse<FulltextResultRow> res = indexNode.getConnection().getClient().msearch(multiSearch,FulltextResultRow.class);
+                ArrayList<FulltextResultRow> results = new ArrayList<>();
+                for(Object o : res.responses()) {
+                    FulltextResultRow doc = (FulltextResultRow)o;
+                    if (responseHandler.isAccessible(doc.path)) {
+                        results.add(new FulltextResultRow(suggestionTexts.poll()));
+                        break;
+                    }
+                }
+                this.internalIterator = results.iterator();
+            }
+        } catch (IOException e) {
+            LOG.error("Error processing suggestions for " + spellCheckQuery, e);
+        }*/
     }
+
+//    private void loadSuggestions() {
+//      try {
+//          final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
+//          final MultiSearchRequest multiSearch = suggestions()
+//                  .map(s -> {
+//                      String text = s.getText().string();
+//                      suggestionTexts.offer(text);
+//                      return requestHandler.suggestMatchQuery(text);
+//                  })
+//                  .map(query -> SearchSourceBuilder.searchSource()
+//                          .query(query)
+//                          .size(100)
+//                          .fetchSource(FieldNames.PATH, null))
+//                  .map(searchSource -> new SearchRequest(indexNode.getDefinition().getIndexAlias())
+//                          .source(searchSource))
+//                  .reduce(new MultiSearchRequest(), MultiSearchRequest::add, (ms, ms2) -> ms);
+//
+//          if (!multiSearch.requests().isEmpty()) {
+//              MultiSearchResponse res = indexNode.getConnection().getClient().msearch(multiSearch, RequestOptions.DEFAULT);
+//              ArrayList<FulltextResultRow> results = new ArrayList<>();
+//              for (MultiSearchResponse.Item response : res.getResponses()) {
+//                  for (SearchHit doc : response.getResponse().getHits()) {
+//                      if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
+//                          results.add(new FulltextResultRow(suggestionTexts.poll()));
+//                          break;
+//                      }
+//                  }
+//              }
+//              this.internalIterator = results.iterator();
+//          }
+//
+//      } catch (IOException e) {
+//          LOG.error("Error processing suggestions for " + spellCheckQuery, e);
+//      }
+//
+//  }
+//    private Stream<PhraseSuggestion.Entry.Option> suggestions() throws IOException {
+//        final SuggestBuilder suggestBuilder = new SuggestBuilder();
+//        suggestBuilder.addSuggestion("oak:suggestion",
+//                requestHandler.suggestQuery(spellCheckQuery));
+//
+//        final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
+//                .suggest(suggestBuilder);
+//
+//        final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getIndexAlias())
+//                .source(searchSourceBuilder);
+//
+//        SearchResponse searchResponse = indexNode.getConnection().getClient().search(searchRequest, RequestOptions.DEFAULT);
+//
+//        return StreamSupport
+//                .stream(searchResponse.getSuggest().spliterator(), false)
+//                .map(s -> (PhraseSuggestion) s)
+//                .flatMap(ps -> ps.getEntries().stream())
+//                .flatMap(ps -> ps.getOptions().stream());
+//    }
+    
 }
