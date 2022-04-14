@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
@@ -44,11 +46,12 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.ResponseListener;
-import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 
@@ -177,7 +180,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private final List<AggregationListener> aggregationListeners = new ArrayList<>();
 
         private final BoolQuery query;
-        private final List<FieldSortBuilder> sorts;
+        private final List<SortOptions> sorts;
         private final List<String> sourceFields;
 
         // concurrent data structures to coordinate chunks loading
@@ -189,7 +192,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private long searchStartTime;
 
         // reference to the last document sort values for search_after queries
-        private Object[] lastHitSortValues;
+        private List<String> lastHitSorts;
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
@@ -197,6 +200,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
             this.sorts = elasticRequestHandler.baseSorts();
+            
+          //TODO Angela remove line debuging only
+            String toRemove1 = ElasticIndexUtils.toString(query);
+          //TODO Angela remove the line below
+            System.out.println(toRemove1);
+          //TODO Angela remove line debuging only
+            //String toRemove2 = ElasticIndexUtils.toString(sorts);
 
             this.sourceFields = new Vector<String>();
             AtomicBoolean needsAggregations = new AtomicBoolean(false);
@@ -217,23 +227,26 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             };
             listeners.forEach(register);
             
+            Map<String,Aggregation> aggs = new HashMap<String,Aggregation>(0);
+            if (needsAggregations.get()) {
+                elasticRequestHandler.aggregations(aggs);
+            }
+            
             SearchRequest searchReq = SearchRequest.of(s->s
                     .index(indexNode.getDefinition().getIndexAlias())
                     .query(q->q
                             .bool(query))
                     // use a smaller size when the query contains aggregations. This improves performance
                     // when the client is only interested in insecure facets
-                
+                    .sort(sorts)
                     .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests))
+                    .aggregations(aggs)
                     .source(so->so
                             .filter(sof->sof
                                     .includes(sourceFields))));
-
-            //this.sorts.forEach(searchReq::sort);
-
-            if (needsAggregations.get()) {
-                // elasticRequestHandler.aggregations().forEach(searchReq::aggregation);
-            }
+            
+          //TODO Angela remove line debuging only
+            String toRemove3 = ElasticIndexUtils.toString(searchReq);
             LOG.trace("Kicking initial search for query {}", ElasticIndexUtils.toString(searchReq));
             semaphore.tryAcquire();
 
@@ -269,7 +282,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             if (hitsSize > 0) {
                 long totalHits = searchResponse.hits.total.value;
                 LOG.debug("Processing search response that took {} to read {}/{} docs", searchResponse.took, hitsSize, totalHits);
-                lastHitSortValues = searchHits[hitsSize - 1].sort;
+                for(Object o: searchHits[hitsSize - 1].sort) {
+                    lastHitSorts.add((String) o);
+                }
                 scannedRows += hitsSize;
                 anyDataLeft.set(totalHits > scannedRows);
                 estimator.update(indexPlan.getFilter(), totalHits);
@@ -331,9 +346,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .source(so->so
                                 .filter(sof->sof
                                         .includes(sourceFields)))
-                        //TODO Anglea check this
-                        //.searchAfter(Arrays.asList(lastHitSortValues))
+                        .sort(this.sorts)
+                        .searchAfter(lastHitSorts)
                         );
+                
+                //TODO Angela remove line debuging only
+                String toRemove = ElasticIndexUtils.toString(searchReq);
+                
                 LOG.trace("Kicking new search after query {}", searchReq.source());
 
                 searchStartTime = System.currentTimeMillis();
