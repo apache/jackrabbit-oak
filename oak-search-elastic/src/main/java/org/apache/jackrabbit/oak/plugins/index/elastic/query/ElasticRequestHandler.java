@@ -256,7 +256,7 @@ public class ElasticRequestHandler {
 
         return sortOptions;
     }
-
+    
     /**
      * Receives a {@link SearchRequest} as input and converts it to a low
      * level {@link Request} reducing the response in order to reduce size and

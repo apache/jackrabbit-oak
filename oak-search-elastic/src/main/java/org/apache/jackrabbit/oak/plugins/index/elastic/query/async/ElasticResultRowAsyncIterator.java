@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
+
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
+
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
@@ -178,6 +181,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private final List<AggregationListener> aggregationListeners = new ArrayList<>();
 
         private final BoolQuery query;
+
         private final @NotNull List<SortOptions> sorts;
         private final SourceConfig sourceConfig;
 
@@ -199,11 +203,11 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             this.query = elasticRequestHandler.baseQuery();
             this.sorts = elasticRequestHandler.baseSorts();
 
-            Set<String> sourceFieldsSet = new HashSet<>();
+            this.sourceFields = new Vector<String>();
             AtomicBoolean needsAggregations = new AtomicBoolean(false);
             Consumer<ElasticResponseListener> register = (listener) -> {
                 allListeners.add(listener);
-                sourceFieldsSet.addAll(listener.sourceFields());
+                sourceFields.addAll(listener.sourceFields());
                 if (listener instanceof SearchHitListener) {
                     SearchHitListener searchHitListener = (SearchHitListener) listener;
                     searchHitListeners.add(searchHitListener);
@@ -336,6 +340,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .searchAfter(lastHitSortValues)
                         .query(q -> q.bool(query))
                         .size(getFetchSize(requests++))
+
                 );
                 LOG.trace("Kicking new search after query {}", searchReq.source());
 
