@@ -58,7 +58,7 @@ public class FlatFileNodeStoreBuilder {
     /**
      * Default value for {@link #PROP_THREAD_POOL_SIZE}
      */
-    static final int DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = 4;
+    static final int DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = 8;
     /**
      * System property for specifying number of threads for parallel download when using {@link MultithreadedTraverseWithSortStrategy}
      */
