@@ -483,6 +483,8 @@ public class ElasticRequestHandler {
                                 .query("{{suggestion}}")));
 
         nonFullTextConstraints(indexPlan, planResult).forEach(bqBuilder::must);
+        Query query = Query.of(q->q
+                .bool(bqBuilder.build()));
 
         return PhraseSuggester.of(ps->ps
                 .field(FieldNames.SPELLCHECK)
@@ -493,7 +495,7 @@ public class ElasticRequestHandler {
                 .text(spellCheckQuery)
                 .collate(c->c
                         .query(q->q
-                                .source(ElasticIndexUtils.toString(bqBuilder.build())))));
+                                .source(ElasticIndexUtils.toString(query)))));
     }
 
     public BoolQuery suggestMatchQuery2(String suggestion) {
@@ -633,11 +635,10 @@ public class ElasticRequestHandler {
             }
             break;
         case DIRECT_CHILDREN:
-            queries.add(
-                    Query.of(q -> q
-                            .bool(b -> b
-                                    .must(newAncestorQuery(path))
-                                    .must(newDepthQuery(path, planResult)))));
+            queries.add(Query.of(q -> q
+                    .bool(b -> b
+                            .must(newAncestorQuery(path))
+                            .must(newDepthQuery(path, planResult)))));
             break;
         case EXACT:
             // For transformed paths, we can only add path restriction if absolute path to
