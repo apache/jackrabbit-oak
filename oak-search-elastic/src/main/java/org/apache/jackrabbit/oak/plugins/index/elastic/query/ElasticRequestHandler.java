@@ -493,7 +493,7 @@ public class ElasticRequestHandler {
                 .text(spellCheckQuery)
                 .collate(c->c
                         .query(q->q
-                                .source(bqBuilder.toString()))));
+                                .source(ElasticIndexUtils.toString(bqBuilder.build())))));
     }
 
     public BoolQuery suggestMatchQuery2(String suggestion) {
