@@ -30,10 +30,8 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
-import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,9 +46,9 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 
-import org.apache.http.entity.ContentType;
-import org.apache.http.nio.entity.NByteArrayEntity;
-import org.apache.http.util.EntityUtils;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -80,18 +78,11 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.xcontent.XContentBuilder;
-import org.elasticsearch.xcontent.XContentType;
 import org.elasticsearch.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -120,9 +111,9 @@ public class ElasticRequestHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticRequestHandler.class);
     private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
     protected final static String SUGGEST_PREFIX = "suggest?term=";
-    private static final List<FieldSortBuilder> DEFAULT_SORTS = Arrays.asList(
-            SortBuilders.fieldSort("_score").order(SortOrder.DESC),
-            SortBuilders.fieldSort(FieldNames.PATH).order(SortOrder.ASC) // tie-breaker
+    private static final List<SortOptions> DEFAULT_SORTS = Arrays.asList(
+            SortOptions.of(f -> f.field(fs -> fs.field("_score").order(SortOrder.Desc))),
+            SortOptions.of(f -> f.field(fs -> fs.field(FieldNames.PATH).order(SortOrder.Asc)))// tie-breaker
     );
 
     private final IndexPlan indexPlan;
@@ -231,14 +222,14 @@ public class ElasticRequestHandler {
         return bqBuilder.build();
     }
 
-    public @NotNull List<FieldSortBuilder> baseSorts() {
+    public @NotNull List<SortOptions> baseSorts() {
         List<QueryIndex.OrderEntry> sortOrder = indexPlan.getSortOrder();
         if (sortOrder == null || sortOrder.isEmpty()) {
             return DEFAULT_SORTS;
         }
         Map<String, List<PropertyDefinition>> indexProperties = elasticIndexDefinition.getPropertiesByName();
         boolean hasTieBreaker = false;
-        List<FieldSortBuilder> list = new ArrayList<>();
+        List<SortOptions> sortOptions = new ArrayList<>();
         for (QueryIndex.OrderEntry o : sortOrder) {
             hasTieBreaker = false;
             String sortPropertyName = o.getPropertyName();
@@ -254,50 +245,32 @@ public class ElasticRequestHandler {
                 LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
                 continue;
             }
-            FieldSortBuilder order = SortBuilders.fieldSort(fieldName)
-                    .order(QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder()) ? SortOrder.ASC : SortOrder.DESC);
-            list.add(order);
+            sortOptions.add(SortOptions.of(f -> f.field(fs -> fs.field(fieldName)
+                    .order(QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder()) ? SortOrder.Asc : SortOrder.Desc)))
+            );
         }
 
         if (!hasTieBreaker) {
-            list.add(SortBuilders.fieldSort(FieldNames.PATH).order(SortOrder.ASC));
+            sortOptions.add(SortOptions.of(f -> f.field(fs -> fs.field(FieldNames.PATH).order(SortOrder.Asc))));
         }
 
-        return list;
+        return sortOptions;
     }
 
     /**
-     * Receives a {@link SearchSourceBuilder} as input and converts it to a low
+     * Receives a {@link SearchRequest} as input and converts it to a low
      * level {@link Request} reducing the response in order to reduce size and
      * improve speed.
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#common-options-response-filtering
      *
-     * @param searchSourceBuilder the search request
-     * @param indexName           the index to query
+     * @param searchReq the search request
      * @return a low level {@link Request} instance
      */
-    public Request createLowLevelRequest(SearchSourceBuilder searchSourceBuilder, String indexName) {
-        String endpoint = "/" + indexName
-                + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
-        Request request = new Request("POST", endpoint);
-        try {
-            BytesRef source = XContentHelper.toXContent(searchSourceBuilder, XContentType.JSON, EMPTY_PARAMS, false)
-                    .toBytesRef();
-            request.setEntity(new NByteArrayEntity(source.bytes, source.offset, source.length,
-                    ContentType.create(XContentType.JSON.mediaTypeWithoutParameters(), (Charset) null)));
-        } catch (IOException e) {
-            throw new IllegalStateException("Error creating request entity", e);
-        }
-        return request;
-    }
-    public Request createLowLevelRequest2(SearchRequest searchReq) {
-        String endpoint = "/" + searchReq.index()
+    public Request createLowLevelRequest(SearchRequest searchReq) {
+        String endpoint = "/" + String.join(",", searchReq.index())
                 + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
         Request request = new Request("POST", endpoint);
         String jsonString = ElasticIndexUtils.toString(searchReq);
-        //TODO Angela check the request contains the right HTTP header for tha json body
-        //TODO Angela add anything that elasticsearch-java is not supporting yet
-        //TODO Angela Replace createLowLevelRequest
         request.setJsonEntity(jsonString);
         return request;
     }
@@ -326,10 +299,15 @@ public class ElasticRequestHandler {
                 .anyMatch(pr -> QueryConstants.REP_FACET.equals(pr.propertyName));
     }
 
-    public Stream<TermsAggregationBuilder> aggregations() {
-        return facetFields().map(facetProp -> AggregationBuilders.terms(facetProp)
-                .field(elasticIndexDefinition.getElasticKeyword(facetProp))
-                .size(elasticIndexDefinition.getNumberOfTopFacets()));
+    public Stream<Aggregation> aggregations() {
+        return facetFields().map(facetProp -> Aggregation.of(af ->
+                af.terms(tf -> tf.field(elasticIndexDefinition.getElasticKeyword(facetProp))
+                        .size(elasticIndexDefinition.getNumberOfTopFacets()))
+                ));
+
+//                AggregationBuilders.terms(facetProp)
+//                .field(elasticIndexDefinition.getElasticKeyword(facetProp))
+//                .size(elasticIndexDefinition.getNumberOfTopFacets()));
     }
 
     public Stream<String> facetFields() {

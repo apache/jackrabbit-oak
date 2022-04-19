@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.Test;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;

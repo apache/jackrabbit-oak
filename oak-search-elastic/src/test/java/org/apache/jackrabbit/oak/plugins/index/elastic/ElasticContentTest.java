@@ -176,7 +176,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
             IndexDefinitionBuilder builder = createIndex(p).noAsync();
             builder.getBuilderTree().setProperty("queryFetchSizes", fetchSizes, Type.LONGS);
             builder.indexRule("nt:base").property(p).propertyIndex();
-            setIndex(UUID.randomUUID().toString(), builder);
+            setIndex(p + "_" + UUID.randomUUID(), builder);
         };
 
         buildIndex.accept("a", Collections.singletonList(1L));

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
-
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -97,8 +96,7 @@ public class ElasticIndexUtils {
     
     /**
      * Provides a string with the serialisation of the object.
-     * Typically used to obtain the DSL representation of Elasticsearch requests or partial requests.
-     * @param query
+     * Typically, used to obtain the DSL representation of Elasticsearch requests or partial requests.
      * @return Json serialisation as a string.
      */
     public static String toString(JsonpSerializable query) {
