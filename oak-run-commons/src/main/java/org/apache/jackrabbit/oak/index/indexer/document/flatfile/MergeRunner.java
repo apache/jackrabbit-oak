@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -339,12 +340,12 @@ public class MergeRunner implements Runnable {
                 String mergedFileName = mergedFile.getName();
                 if (mergeCancelled.get()) {
                     log.debug("merge cancelled, skipping merge task");
-                    throw new Exception("merge skipped for " + mergedFileName);
+                    throw new EOFException("merge skipped for " + mergedFileName);
                 } else if (merge(mergeTarget, mergedFile)) {
                     log.info("merge complete for {}", mergedFileName);
                 } else {
                     log.error("merge failed for {}", mergedFileName);
-                    throw new Exception("merge failed for " + mergedFileName);
+                    throw new RuntimeException("merge failed for " + mergedFileName);
                 }
             } finally {
                 mergeTaskPhaser.arriveAndDeregister();

@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -160,7 +161,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     }
 
     @Override
-    public List<File> call() {
+    public List<File> call() throws EOFException {
         try {
             Random random = new Random();
             while (MemoryManager.Type.JMX_BASED.equals(memoryManager.getType()) && !registerWithMemoryManager()) {
@@ -180,9 +181,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
             parentSortedFiles.addAll(sortedFiles);
 
             return sortedFiles;
-        } catch (IOException e) {
-            log.error(taskID + " could not complete download with ", e);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error(taskID + " dumping existing progress because it could not complete download with ", e);
             try {
                 sortAndSaveBatch();
@@ -192,6 +191,8 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 log.warn(taskID + " failed to dump existing progress with ", dumpErr);
             }
             throw e;
+        } catch (IOException e) {
+            log.error(taskID + " could not complete download with ", e);
         } finally {
             phaser.arriveAndDeregister();
             log.info("{} entered finally block.", taskID);
