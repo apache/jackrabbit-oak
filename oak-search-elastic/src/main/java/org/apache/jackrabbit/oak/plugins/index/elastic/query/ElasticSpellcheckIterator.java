@@ -89,11 +89,11 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
     private void loadSuggestions() {
         ArrayList<FulltextResultRow> results = new ArrayList<>();
         try {
-            SearchResponse<FulltextResultRow> sRes = indexNode.getConnection().getClient().search(s->s
+            SearchRequest sReq = SearchRequest.of(s->s
                     .index(indexNode.getDefinition().getIndexAlias())
                     .suggest(ss->ss
                             .suggesters("oak:suggestion",q->q
-                                    .phrase(requestHandler.suggestQuery(spellCheckQuery))))
+                                    .phrase(requestHandler.suggestQuery(spellCheckQuery)))));
                                     /*.phrase(ps->ps
                                             .text("taste")
                                             .field(":spellcheck")
@@ -106,7 +106,9 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                                                     .query(cq->cq
                                                             .source("\"{\\\\n  \\\\\\\"bool\\\\\\\" : {\\\\n    \\\\\\\"must\\\\\\\" : [\\\\n      {\\\\n        \\\\\\\"match_phrase\\\\\\\" : {\\\\n          \\\\\\\":spellcheck\\\\\\\" : {\\\\n            \\\\\\\"query\\\\\\\" : \\\\\\\"{{suggestion}}\\\\\\\",\\\\n            \\\\\\\"slop\\\\\\\" : 0,\\\\n            \\\\\\\"zero_terms_query\\\\\\\" : \\\\\\\"NONE\\\\\\\",\\\\n            \\\\\\\"boost\\\\\\\" : 1.0\\\\n          }\\\\n        }\\\\n      },\\\\n      {\\\\n        \\\\\\\"bool\\\\\\\" : {\\\\n          \\\\\\\"adjust_pure_negative\\\\\\\" : true,\\\\n          \\\\\\\"boost\\\\\\\" : 1.0\\\\n        }\\\\n      },\\\\n      {\\\\n        \\\\\\\"term\\\\\\\" : {\\\\n          \\\\\\\":ancestors\\\\\\\" : {\\\\n            \\\\\\\"value\\\\\\\" : \\\\\\\"/content1\\\\\\\",\\\\n            \\\\\\\"boost\\\\\\\" : 1.0\\\\n          }\\\\n        }\\\\n      }\\\\n    ],\\\\n    \\\\\\\"adjust_pure_negative\\\\\\\" : true,\\\\n    \\\\\\\"boost\\\\\\\" : 1.0\\\\n  }\""))
                                                     .prune(false)))))*/
-                    ,FulltextResultRow.class);
+            // TODO Angela delete below
+            String toDelete1 = ElasticIndexUtils.toString(sReq);
+            SearchResponse<FulltextResultRow> sRes = indexNode.getConnection().getClient().search(sReq,FulltextResultRow.class);
             // TODO Angela delete below
             String toDelete = ElasticIndexUtils.toString(sRes);
             final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
