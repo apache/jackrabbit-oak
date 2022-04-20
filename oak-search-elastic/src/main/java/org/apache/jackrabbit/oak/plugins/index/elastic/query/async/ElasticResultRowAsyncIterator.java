@@ -230,16 +230,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                                 .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests));
 
                         if (needsAggregations.get()) {
-
+                            builder.aggregations(elasticRequestHandler.aggregations());
                         }
 
                         return builder;
                     }
             );
 
-            if (needsAggregations.get()) {
-                // elasticRequestHandler.aggregations().forEach(searchReq::aggregation);
-            }
             LOG.trace("Kicking initial search for query {}", ElasticIndexUtils.toString(searchReq));
             semaphore.tryAcquire();
 
@@ -275,7 +272,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             if (hitsSize > 0) {
                 long totalHits = searchResponse.hits.total.value;
                 LOG.debug("Processing search response that took {} to read {}/{} docs", searchResponse.took, hitsSize, totalHits);
-                lastHitSortValues = Arrays.stream(searchHits[hitsSize - 1].sort).map(o -> o.toString()).collect(Collectors.toList());
+                lastHitSortValues = Arrays.stream(searchHits[hitsSize - 1].sort).map(Object::toString).collect(Collectors.toList());
                 scannedRows += hitsSize;
                 anyDataLeft.set(totalHits > scannedRows);
                 estimator.update(indexPlan.getFilter(), totalHits);
