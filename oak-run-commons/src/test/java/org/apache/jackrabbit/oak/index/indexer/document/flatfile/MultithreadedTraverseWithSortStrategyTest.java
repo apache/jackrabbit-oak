@@ -44,7 +44,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
                 lastModifiedBreakpoints, null, null, null, null, true, null,
-                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD) {
+                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, path -> true) {
 
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore, ConcurrentLinkedQueue<String> completedTasks) throws IOException {
@@ -104,7 +104,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
                 null, null, null, null, workDirs, true, null,
-                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD) {
+                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, path -> true) {
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                          BlobStore blobStore, ConcurrentLinkedQueue<String> completedTasks) throws IOException {

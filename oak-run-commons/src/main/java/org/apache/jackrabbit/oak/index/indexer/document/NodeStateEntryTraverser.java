@@ -19,12 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -36,9 +30,13 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.transform;
@@ -58,7 +56,6 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     private final TraversingRange traversingRange;
 
     private Consumer<String> progressReporter = id -> {};
-    private Predicate<String> pathPredicate = path -> true;
 
     private final String id;
 
@@ -92,11 +89,6 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         return this;
     }
 
-    public NodeStateEntryTraverser withPathPredicate(Predicate<String> pathPredicate) {
-        this.pathPredicate = pathPredicate;
-        return this;
-    }
-
     @Override
     public void close() throws IOException {
         closer.close();
@@ -110,10 +102,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     }
 
     private boolean includeDoc(NodeDocument doc) {
-        String path = doc.getPath().toString();
-        return !doc.isSplitDocument()
-                && !NodeStateUtils.isHiddenPath(path)
-                && pathPredicate.test(path);
+        return !doc.isSplitDocument();
     }
 
     /**
@@ -157,31 +146,12 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, traversingRange, this::includeId);
+                .getAllDocuments(Collection.NODES, traversingRange, this::reportProgress);
     }
 
-    private boolean includeId(String id) {
+    private boolean reportProgress(String id) {
         progressReporter.accept(id);
-        //Cannot interpret long paths as they are hashed. So let them
-        //be included
-        if (Utils.isIdFromLongPath(id)){
-            return true;
-        }
-
-        //Not easy to determine path for previous docs
-        //Given there count is pretty low compared to others
-        //include them all so that they become part of cache
-        if (Utils.isPreviousDocId(id)){
-            return true;
-        }
-
-        String path = Utils.getPathFromId(id);
-
-        //Exclude hidden nodes from index data
-        if (NodeStateUtils.isHiddenPath(path)){
-            return false;
-        }
-
-        return pathPredicate.test(path);
+        // always returning true here and do the path predicate and hidden node filter when iterating.
+        return true;
     }
 }
