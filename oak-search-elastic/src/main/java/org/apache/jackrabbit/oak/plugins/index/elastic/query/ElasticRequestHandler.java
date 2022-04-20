@@ -32,8 +32,10 @@ import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,8 +82,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.search.WildcardQuery;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.NotNull;
@@ -101,7 +101,6 @@ import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.search.InnerHits;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
-import co.elastic.clients.json.JsonData;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -170,32 +169,22 @@ public class ElasticRequestHandler {
                     // string and turn into a query
                     // elastic can understand.
                     MoreLikeThisQuery mltq = mltQuery(mltParams);
-                    bqBuilder.must(m->m
-                            .moreLikeThis(mltq));
-                    // add should clause to improve relevance using similarity tags
-                    bqBuilder.should(s->s
-                            .moreLikeThis(m->m
-                                    .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
-                                    .like(mltq.like())
-                                    .minTermFreq(1)
-                                    .minDocFreq(1)));
+                    bqBuilder.must(m -> m.moreLikeThis(mltq));
                 } else {
-                    bqBuilder.must(m->m
-                            .bool(similarityQuery(queryNodePath, sp)));
-                    if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
-                        // add should clause to improve relevance using similarity tags
-                        bqBuilder.should(s->s
-                                .moreLikeThis(m->m
-                                        .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
-                                        .like(l->l
-                                                .document(d->d
-                                                        .doc(JsonData.of(ElasticIndexUtils.idFromPath(queryNodePath)))))
-                                        .minTermFreq(1)
-                                        .minDocFreq(1)
-                                        .boost(elasticIndexDefinition.getSimilarityTagsBoost())));
-                        //TODO Angela check the like.docuemnt.doc JsonData...
-                    }
+                    bqBuilder.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
                 }
+
+                if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
+                    // add should clause to improve relevance using similarity tags
+                    bqBuilder.should(s -> s
+                            .moreLikeThis(m -> m
+                                    .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
+                                    .like(l -> l.document(d -> d.id(ElasticIndexUtils.idFromPath(queryNodePath))))
+                                    .minTermFreq(1)
+                                    .minDocFreq(1)
+                                    .boost(elasticIndexDefinition.getSimilarityTagsBoost())));
+                }
+
             } else {
                 bqBuilder.must(m->m
                         .queryString(qs->qs
@@ -377,11 +366,14 @@ public class ElasticRequestHandler {
                     }
                     contentBuilder.endObject();
                     contentBuilder.endObject();
-                    
-                    // TODO Angela check 
-                    query.should(s->s
-                            .wrapper(w->w
-                                    .query(Strings.toString(contentBuilder))));
+
+                    query.should(s -> s
+                            .wrapper(w -> w
+                                    .query(Base64.getEncoder().encodeToString(
+                                            Strings.toString(contentBuilder).getBytes(StandardCharsets.UTF_8))
+                                    )
+                            )
+                    );
                 } catch (IOException e) {
                     LOG.error("Could not create similarity query ", e);
                 }
@@ -409,33 +401,28 @@ public class ElasticRequestHandler {
      * on the type of content)
      */
     private MoreLikeThisQuery mltQuery(Map<String, String> mltParams) {
-        // creates a shallow copy of mltParams so we can remove the entries to
+        // creates a shallow copy of mltParams, so we can remove the entries to
         // improve validation without changing the original structure
         Map<String, String> shallowMltParams = new HashMap<>(mltParams);
-        String text1 = shallowMltParams.remove(MoreLikeThisHelperUtil.MLT_STREAM_BODY);
+        String text = shallowMltParams.remove(MoreLikeThisHelperUtil.MLT_STREAM_BODY);
 
         MoreLikeThisQuery.Builder mlt = new MoreLikeThisQuery.Builder();
         String fields = shallowMltParams.remove(MoreLikeThisHelperUtil.MLT_FILED);
         // It's expected the text here to be the path of the doc
         // In case the path of a node is greater than 512 bytes,
         // we hash it before storing it as the _id for the elastic doc
-        String text = ElasticIndexUtils.idFromPath(text1);
+        String id = ElasticIndexUtils.idFromPath(text);
         if (fields == null || FieldNames.PATH.equals(fields)) {
             // Handle the case 1) where default query sent by SimilarImpl (No Custom fields)
             // We just need to specify the doc (Item) whose similar content we need to find
             // We store path as the _id so no need to do anything extra here
             // We expect Similar impl to send a query where text would have evaluated to
             // node path.
-            mlt.like(l->l
-                    .document(d->d
-                            .doc(JsonData.of(text))));
+            mlt.like(l -> l.document(d -> d.id(id)));
         } else {
-            // This is for native queries if someone send additional fields via
+            // This is for native queries if someone sends additional fields via
             // mlt.fl=field1,field2
-            mlt.like(l->l
-                    .document(d->d
-                            .fields(Arrays.asList(fields.split(",")))
-                            .doc(JsonData.of(text))));
+            mlt.like(l -> l.document(d -> d.fields(Arrays.asList(fields.split(","))).id(id)));
         }
         // include the input doc to align the Lucene behaviour TODO: add configuration
         // parameter
