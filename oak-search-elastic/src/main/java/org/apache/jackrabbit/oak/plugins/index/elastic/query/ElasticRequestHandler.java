@@ -462,25 +462,24 @@ public class ElasticRequestHandler {
         return mlt.build();
     }
 
-    public PhraseSuggester suggestQuery(String spellCheckQuery) {
-        BoolQuery.Builder query = new BoolQuery.Builder()
+    public PhraseSuggester suggestQuery() {
+        BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
                 .must(m->m
                         .matchPhrase(mp->mp
                                 .field(FieldNames.SPELLCHECK)
                                 .query("{{suggestion}}")));
 
-        nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
-
+        nonFullTextConstraints(indexPlan, planResult).forEach(bqBuilder::must);
+        Query query = Query.of(q->q.bool(bqBuilder.build()));
         return PhraseSuggester.of(ps->ps
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
                 .directGenerator(d->d
                         .field(FieldNames.SPELLCHECK)
                         .suggestMode(SuggestMode.Missing))
-                .text(spellCheckQuery)
                 .collate(c->c
                         .query(q->q
-                                .source(query.toString()))));
+                                .source(ElasticIndexUtils.toString(query)))));
     }
 
     public BoolQuery suggestMatchQuery2(String suggestion) {
