@@ -32,7 +32,6 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <pax.exam.version>3.4.0</pax.exam.version>
   </properties>
 
   <build>

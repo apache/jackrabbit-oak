@@ -70,7 +70,7 @@ public class TraverseAndSortTaskTest {
         File store = new File("target/" + this.getClass().getSimpleName() + "-" + System.currentTimeMillis());
         TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, store, true,
                 new LinkedList<>(Collections.singletonList("1")), newTaskQueue, phaser, new NodeStateEntryTraverserFactoryImpl(), mockMemManager,
-                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, new LinkedBlockingQueue<File>());
+                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, new LinkedBlockingQueue<File>(), path -> true);
 
         NodeStateEntry mockEntry = Mockito.mock(NodeStateEntry.class);
         long lastModified = (lmRange.getLastModifiedFrom() + lmRange.getLastModifiedTo())/2;

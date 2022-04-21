@@ -68,7 +68,7 @@
          When upgrading jackson, try to align them to the same version -->
     <jackson.databind.version>2.10.5.1</jackson.databind.version>
     <testcontainers.version>1.16.3</testcontainers.version>
-    <pax-exam.version>4.13.4</pax-exam.version>
+    <pax-exam.version>4.13.1</pax-exam.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
