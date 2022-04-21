@@ -39,6 +39,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
@@ -80,9 +81,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.search.WildcardQuery;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.xcontent.XContentBuilder;
-import org.elasticsearch.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -333,43 +331,27 @@ public class ElasticRequestHandler {
                     continue;
                 }
                 String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
-                try {
-                    XContentBuilder contentBuilder = JsonXContent.contentBuilder();
-                    contentBuilder.startObject();
-                    contentBuilder.field("elastiknn_nearest_neighbors");
-                    contentBuilder.startObject();
-                    {
-                        contentBuilder.field("field", similarityPropFieldName);
-                        contentBuilder.field("vec");
-                        contentBuilder.startObject();
-                        {
-                            contentBuilder.field("values");
-                            contentBuilder.startArray();
-                            for (Double d : toDoubles(bytes)) {
-                                contentBuilder.value(d);
-                            }
-                            contentBuilder.endArray();
-                        }
-                        contentBuilder.endObject();
-                        contentBuilder.field("model", pd.getSimilaritySearchParameters().getQueryModel());
-                        contentBuilder.field("similarity",
-                                pd.getSimilaritySearchParameters().getQueryTimeSimilarityFunction());
-                        contentBuilder.field("candidates", pd.getSimilaritySearchParameters().getCandidates());
-                        contentBuilder.field("probes", pd.getSimilaritySearchParameters().getProbes());
-                    }
-                    contentBuilder.endObject();
-                    contentBuilder.endObject();
 
-                    query.should(s -> s
-                            .wrapper(w -> w
-                                    .query(Base64.getEncoder().encodeToString(
-                                            Strings.toString(contentBuilder).getBytes(StandardCharsets.UTF_8))
-                                    )
-                            )
-                    );
-                } catch (IOException e) {
-                    LOG.error("Could not create similarity query ", e);
-                }
+                String elastiknnQuery = "{" +
+                        "  \"elastiknn_nearest_neighbors\": {" +
+                        "    \"field\": \"" + similarityPropFieldName + "\"," +
+                        "    \"model\": \"" + pd.getSimilaritySearchParameters().getQueryModel() + "\"," +
+                        "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getQueryTimeSimilarityFunction() + "\"," +
+                        "    \"candidates\": " + pd.getSimilaritySearchParameters().getCandidates() + "," +
+                        "    \"probes\": " + pd.getSimilaritySearchParameters().getProbes() + "," +
+                        "    \"vec\": {" +
+                        "      \"values\": [" +
+                        toDoubles(bytes).stream().map(Objects::toString).collect(Collectors.joining(",")) +
+                        "      ]" +
+                        "    }" +
+                        "  }" +
+                        "}";
+
+                query.should(s -> s
+                        .wrapper(w -> w
+                                .query(Base64.getEncoder().encodeToString(elastiknnQuery.getBytes(StandardCharsets.UTF_8)))
+                        )
+                );
             }
         }
         return query.build();
