@@ -32,8 +32,10 @@ import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,7 +104,6 @@ import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.search.InnerHits;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
-import co.elastic.clients.json.JsonData;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -170,37 +171,26 @@ public class ElasticRequestHandler {
                     // mlt?mlt.fl=:path&mlt.mindf=0&stream.body=<path> . We need parse this query
                     // string and turn into a query
                     // elastic can understand.
-                    MoreLikeThisQuery mltq = mltQuery(mltParams);
-                    bqBuilder.must(m->m
-                            .moreLikeThis(mltq));
-                    // add should clause to improve relevance using similarity tags
-                    bqBuilder.should(s->s
-                            .moreLikeThis(m->m
-                                    .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
-                                    .like(mltq.like())
-                                    .minTermFreq(1)
-                                    .minDocFreq(1)));
+                    bqBuilder.must(m -> m.moreLikeThis(mltQuery(mltParams)));
                 } else {
-                    bqBuilder.must(m->m
-                            .bool(similarityQuery(queryNodePath, sp)));
-                    if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
-                        // add should clause to improve relevance using similarity tags
-                        bqBuilder.should(s->s
-                                .moreLikeThis(m->m
-                                        .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
-                                        .like(l->l
-                                                .document(d->d
-                                                        .doc(JsonData.of(ElasticIndexUtils.idFromPath(queryNodePath)))))
-                                        .minTermFreq(1)
-                                        .minDocFreq(1)
-                                        .boost(elasticIndexDefinition.getSimilarityTagsBoost())));
-                        //TODO Angela check the like.document.doc JsonData...
-                    }
+                    bqBuilder.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
                 }
+
+                if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
+                    // add should clause to improve relevance using similarity tags
+                    bqBuilder.should(s -> s
+                            .moreLikeThis(m -> m
+                                    .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
+                                    .like(l -> l.document(d -> d.id(ElasticIndexUtils.idFromPath(queryNodePath))))
+                                    .minTermFreq(1)
+                                    .minDocFreq(1)
+                                    .boost(elasticIndexDefinition.getSimilarityTagsBoost())
+                            )
+                    );
+                }
+
             } else {
-                bqBuilder.must(m->m
-                        .queryString(qs->qs
-                                .query(propertyRestrictionQuery)));
+                bqBuilder.must(m -> m.queryString(qs -> qs.query(propertyRestrictionQuery)));
             }
 
         } else if (planResult.evaluateNonFullTextConstraints()) {
@@ -366,11 +356,14 @@ public class ElasticRequestHandler {
                     }
                     contentBuilder.endObject();
                     contentBuilder.endObject();
-                    
-                    // TODO Angela check 
-                    query.should(s->s
-                            .wrapper(w->w
-                                    .query(Strings.toString(contentBuilder))));
+
+                    query.should(s -> s
+                            .wrapper(w -> w
+                                    .query(Base64.getEncoder().encodeToString(
+                                            Strings.toString(contentBuilder).getBytes(StandardCharsets.UTF_8))
+                                    )
+                            )
+                    );
                 } catch (IOException e) {
                     LOG.error("Could not create similarity query ", e);
                 }
@@ -401,34 +394,29 @@ public class ElasticRequestHandler {
         // creates a shallow copy of mltParams so we can remove the entries to
         // improve validation without changing the original structure
         Map<String, String> shallowMltParams = new HashMap<>(mltParams);
-        String text1 = shallowMltParams.remove(MoreLikeThisHelperUtil.MLT_STREAM_BODY);
+        String text = shallowMltParams.remove(MoreLikeThisHelperUtil.MLT_STREAM_BODY);
 
-        MoreLikeThisQuery.Builder mltBuilder = new MoreLikeThisQuery.Builder();
+        MoreLikeThisQuery.Builder mlt = new MoreLikeThisQuery.Builder();
         String fields = shallowMltParams.remove(MoreLikeThisHelperUtil.MLT_FILED);
         // It's expected the text here to be the path of the doc
         // In case the path of a node is greater than 512 bytes,
         // we hash it before storing it as the _id for the elastic doc
-        String text = ElasticIndexUtils.idFromPath(text1);
+        String id = ElasticIndexUtils.idFromPath(text);
         if (fields == null || FieldNames.PATH.equals(fields)) {
             // Handle the case 1) where default query sent by SimilarImpl (No Custom fields)
             // We just need to specify the doc (Item) whose similar content we need to find
             // We store path as the _id so no need to do anything extra here
             // We expect Similar impl to send a query where text would have evaluated to
             // node path.
-            mltBuilder.like(l->l
-                    .document(d->d
-                            .doc(JsonData.of(text))));
+            mlt.like(l -> l.document(d -> d.id(id)));
         } else {
-            // This is for native queries if someone send additional fields via
+            // This is for native queries if someone sends additional fields via
             // mlt.fl=field1,field2
-            mltBuilder.like(l->l
-                    .document(d->d
-                            .fields(Arrays.asList(fields.split(",")))
-                            .doc(JsonData.of(text))));
+            mlt.like(l -> l.document(d -> d.fields(Arrays.asList(fields.split(","))).id(id)));
         }
         // include the input doc to align the Lucene behaviour TODO: add configuration
         // parameter
-        mltBuilder.include(true);
+        mlt.include(true);
 
         if (!shallowMltParams.isEmpty()) {
             BiConsumer<String, Consumer<String>> mltParamSetter = (key, setter) -> {
@@ -439,23 +427,23 @@ public class ElasticRequestHandler {
             };
 
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MIN_DOC_FREQ,
-                    (val) -> mltBuilder.minDocFreq(Integer.parseInt(val)));
+                    (val) -> mlt.minDocFreq(Integer.parseInt(val)));
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MIN_TERM_FREQ,
-                    (val) -> mltBuilder.minTermFreq(Integer.parseInt(val)));
-            mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_BOOST_FACTOR, (val) -> mltBuilder.boost(Float.parseFloat(val)));
+                    (val) -> mlt.minTermFreq(Integer.parseInt(val)));
+            mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_BOOST_FACTOR, (val) -> mlt.boost(Float.parseFloat(val)));
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MAX_DOC_FREQ,
-                    (val) -> mltBuilder.maxDocFreq(Integer.parseInt(val)));
+                    (val) -> mlt.maxDocFreq(Integer.parseInt(val)));
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MAX_QUERY_TERMS,
-                    (val) -> mltBuilder.maxQueryTerms(Integer.parseInt(val)));
+                    (val) -> mlt.maxQueryTerms(Integer.parseInt(val)));
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MAX_WORD_LENGTH,
-                    (val) -> mltBuilder.maxWordLength(Integer.parseInt(val)));
+                    (val) -> mlt.maxWordLength(Integer.parseInt(val)));
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MIN_WORD_LENGTH,
-                    (val) -> mltBuilder.minWordLength(Integer.parseInt(val)));
-            mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MIN_SHOULD_MATCH, mltBuilder::minimumShouldMatch);
+                    (val) -> mlt.minWordLength(Integer.parseInt(val)));
+            mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_MIN_SHOULD_MATCH, mlt::minimumShouldMatch);
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_STOP_WORDS, (val) -> {
                 // TODO : Read this from a stopwords text file, configured via index defn maybe
                 // ?
-                mltBuilder.stopWords(Arrays.asList(val.split(",")));
+                mlt.stopWords(Arrays.asList(val.split(",")));
             });
 
             if (!shallowMltParams.isEmpty()) {
@@ -463,7 +451,7 @@ public class ElasticRequestHandler {
             }
         }
 
-        return mltBuilder.build();
+        return mlt.build();
     }
 
     public PhraseSuggester suggestQuery() {
