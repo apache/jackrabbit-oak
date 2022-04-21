@@ -41,6 +41,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -299,13 +301,11 @@ public class ElasticRequestHandler {
                 .anyMatch(pr -> QueryConstants.REP_FACET.equals(pr.propertyName));
     }
     
-    public void aggregations(Map<String, Aggregation> aggs) {
-        facetFields().forEach(facetProp->aggs.put(facetProp, Aggregation.of(a->a
-                .terms(t->t
-                    .name(facetProp)
-                    .field(elasticIndexDefinition.getElasticKeyword(facetProp))
-                    .size(elasticIndexDefinition.getNumberOfTopFacets())))));
-            
+    public Map<String, Aggregation> aggregations() {
+        return facetFields().collect(Collectors.toMap(Function.identity(), facetProp -> Aggregation.of(af ->
+                af.terms(tf -> tf.field(elasticIndexDefinition.getElasticKeyword(facetProp))
+                        .size(elasticIndexDefinition.getNumberOfTopFacets()))
+        )));
     }
 
     public Stream<String> facetFields() {
