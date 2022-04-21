@@ -142,65 +142,68 @@ public class ElasticRequestHandler {
         this.rootState = rootState;
     }
 
-    public BoolQuery baseQuery() {
-        final BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
+    public Query baseQuery() {
+        return Query.of(fn -> {
+                    fn.bool(fnb -> {
 
-        FullTextExpression ft = filter.getFullTextConstraint();
+                        FullTextExpression ft = filter.getFullTextConstraint();
 
-        if (ft != null) {
-            bqBuilder.must(fullTextQuery(ft, planResult));
-        }
+                        if (ft != null) {
+                            fnb.must(fullTextQuery(ft, planResult));
+                        }
 
-        if (propertyRestrictionQuery != null) {
-            if (propertyRestrictionQuery.startsWith("mlt?")) {
-                List<PropertyDefinition> sp = elasticIndexDefinition.getSimilarityProperties();
-                String mltQueryString = propertyRestrictionQuery.substring("mlt?".length());
-                Map<String, String> mltParams = MoreLikeThisHelperUtil.getParamMapFromMltQuery(mltQueryString);
-                String queryNodePath = mltParams.get(MoreLikeThisHelperUtil.MLT_STREAM_BODY);
+                        if (propertyRestrictionQuery != null) {
+                            if (propertyRestrictionQuery.startsWith("mlt?")) {
+                                List<PropertyDefinition> sp = elasticIndexDefinition.getSimilarityProperties();
+                                String mltQueryString = propertyRestrictionQuery.substring("mlt?".length());
+                                Map<String, String> mltParams = MoreLikeThisHelperUtil.getParamMapFromMltQuery(mltQueryString);
+                                String queryNodePath = mltParams.get(MoreLikeThisHelperUtil.MLT_STREAM_BODY);
 
-                if (queryNodePath == null) {
-                    // TODO : See if we might want to support like Text here (passed as null in
-                    // above constructors)
-                    // IT is not supported in our lucene implementation.
-                    throw new IllegalArgumentException(
-                            "Missing required field stream.body in MLT query: " + mltQueryString);
+                                if (queryNodePath == null) {
+                                    // TODO : See if we might want to support like Text here (passed as null in
+                                    // above constructors)
+                                    // IT is not supported in our lucene implementation.
+                                    throw new IllegalArgumentException(
+                                            "Missing required field stream.body in MLT query: " + mltQueryString);
+                                }
+                                if (sp.isEmpty()) {
+                                    // SimilarityImpl in oak-core sets property restriction for sim search and the
+                                    // query is something like
+                                    // mlt?mlt.fl=:path&mlt.mindf=0&stream.body=<path> . We need parse this query
+                                    // string and turn into a query
+                                    // elastic can understand.
+                                    fnb.must(m -> m.moreLikeThis(mltQuery(mltParams)));
+                                } else {
+                                    fnb.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
+                                }
+
+                                if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
+                                    // add should clause to improve relevance using similarity tags
+                                    fnb.should(s -> s
+                                            .moreLikeThis(m -> m
+                                                    .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
+                                                    .like(l -> l.document(d -> d.id(ElasticIndexUtils.idFromPath(queryNodePath))))
+                                                    .minTermFreq(1)
+                                                    .minDocFreq(1)
+                                                    .boost(elasticIndexDefinition.getSimilarityTagsBoost())
+                                            )
+                                    );
+                                }
+
+                            } else {
+                                fnb.must(m -> m.queryString(qs -> qs.query(propertyRestrictionQuery)));
+                            }
+
+                        } else if (planResult.evaluateNonFullTextConstraints()) {
+                            for (Query constraint : nonFullTextConstraints(indexPlan, planResult)) {
+                                fnb.filter(constraint);
+                            }
+                        }
+                        return fnb;
+                    });
+                    return fn;
                 }
-                if (sp.isEmpty()) {
-                    // SimilarityImpl in oak-core sets property restriction for sim search and the
-                    // query is something like
-                    // mlt?mlt.fl=:path&mlt.mindf=0&stream.body=<path> . We need parse this query
-                    // string and turn into a query
-                    // elastic can understand.
-                    bqBuilder.must(m -> m.moreLikeThis(mltQuery(mltParams)));
-                } else {
-                    bqBuilder.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
-                }
-
-                if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
-                    // add should clause to improve relevance using similarity tags
-                    bqBuilder.should(s -> s
-                            .moreLikeThis(m -> m
-                                    .fields(ElasticIndexDefinition.SIMILARITY_TAGS)
-                                    .like(l -> l.document(d -> d.id(ElasticIndexUtils.idFromPath(queryNodePath))))
-                                    .minTermFreq(1)
-                                    .minDocFreq(1)
-                                    .boost(elasticIndexDefinition.getSimilarityTagsBoost())
-                            )
-                    );
-                }
-
-            } else {
-                bqBuilder.must(m -> m.queryString(qs -> qs.query(propertyRestrictionQuery)));
-            }
-
-        } else if (planResult.evaluateNonFullTextConstraints()) {
-            for (Query constraint : nonFullTextConstraints(indexPlan, planResult)) {
-                bqBuilder.filter(constraint);
-            }
-        }
-
-        // TODO Angela check here removed two conditionals to decide whether to add a must matchall query which is added anyway by Elasticsearch by default
-        return bqBuilder.build();
+        );
     }
     
     public @NotNull List<SortOptions> baseSorts() {

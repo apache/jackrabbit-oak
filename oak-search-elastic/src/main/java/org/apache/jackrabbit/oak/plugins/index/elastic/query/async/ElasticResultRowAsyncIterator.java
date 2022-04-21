@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
@@ -177,7 +177,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private final List<SearchHitListener> searchHitListeners = new ArrayList<>();
         private final List<AggregationListener> aggregationListeners = new ArrayList<>();
 
-        private final BoolQuery query;
+        private final Query query;
         private final @NotNull List<SortOptions> sorts;
         private final SourceConfig sourceConfig;
 
@@ -224,7 +224,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                                 .index(indexNode.getDefinition().getIndexAlias())
                                 .sort(sorts)
                                 .source(sourceConfig)
-                                .query(q -> q.bool(query))
+                                .query(query)
                                 // use a smaller size when the query contains aggregations. This improves performance
                                 // when the client is only interested in insecure facets
                                 .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests));
@@ -331,7 +331,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .sort(sorts)
                         .source(sourceConfig)
                         .searchAfter(lastHitSortValues)
-                        .query(q -> q.bool(query))
+                        .query(query)
                         .size(getFetchSize(requests++))
                 );
                 LOG.trace("Kicking new search after query {}", searchReq.source());

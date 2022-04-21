@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -43,6 +42,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -581,7 +581,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain /jcr:root/test//*[propa!='bar']";
 
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestInequalityQuery_native()));
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForInequalityQuery_native()));
 
         String query2 = "/jcr:root/test//*[propa!='bar']";
 
@@ -602,7 +602,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
 
-        assertEventually(getAssertionForExplainContains(query, SQL2, getContainsValueFortestNotNullQuery_native()));
+        assertEventually(getAssertionForExplainContains(query, SQL2, getContainsValueForNotNullQuery_native()));
 
         String query2 = "select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
 
@@ -624,7 +624,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain //*[propa!='bar']";
 
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestInequalityQueryWithoutAncestorFilter_native()));
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForInequalityQueryWithoutAncestorFilter_native()));
 
         String query2 = "//*[propa!='bar']";
 
@@ -646,7 +646,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "explain /jcr:root/test//*[propa!='bar' and propb='world']";
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestEqualityInequalityCombined_native()));
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForEqualityInequalityCombined_native()));
 
         String query2 = "/jcr:root/test//*[propa!='bar' and propb='world']";
         // Expected - nodes with both properties defined and propb with value 'world' and propa with value not equal to bar should be returned
@@ -669,7 +669,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain /jcr:root/test//*[propa='bar']";
 
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestEqualityQuery_native()));
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForEqualityQuery_native()));
 
         String query2 = "/jcr:root/test//*[propa='bar']";
 
@@ -776,15 +776,15 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         return t1;
     }
 
-    public abstract String getContainsValueFortestEqualityQuery_native();
+    public abstract String getContainsValueForEqualityQuery_native();
 
-    public abstract String getContainsValueFortestInequalityQuery_native();
+    public abstract String getContainsValueForInequalityQuery_native();
 
-    public abstract String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native();
+    public abstract String getContainsValueForInequalityQueryWithoutAncestorFilter_native();
 
-    public abstract String getContainsValueFortestEqualityInequalityCombined_native();
+    public abstract String getContainsValueForEqualityInequalityCombined_native();
 
-    public abstract String getContainsValueFortestNotNullQuery_native();
+    public abstract String getContainsValueForNotNullQuery_native();
 
     private Runnable getAssertionForExplainContains(String query, String language, String containValue) {
         return () -> {
@@ -792,7 +792,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             try {
                 result = executeQuery(query, language, NO_BINDINGS);
             } catch (ParseException e) {
-                assertTrue(e.getMessage(), false);
+                fail(e.getMessage());
             }
             ResultRow row = result.getRows().iterator().next();
             assertTrue(row.getValue("plan").toString().contains(containValue));
