@@ -113,14 +113,8 @@ public class ElasticRequestHandler {
     private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
     protected final static String SUGGEST_PREFIX = "suggest?term=";
     private static final List<SortOptions> DEFAULT_SORTS = Arrays.asList(
-            SortOptions.of(so->so
-                    .field(f->f
-                            .field("_score")
-                            .order(SortOrder.Desc))),
-            SortOptions.of(so->so
-                    .field(f->f
-                            .field(FieldNames.PATH)
-                            .order(SortOrder.Asc)))
+            SortOptions.of(so -> so.field(f -> f.field("_score").order(SortOrder.Desc))),
+            SortOptions.of(so -> so.field(f -> f.field(FieldNames.PATH).order(SortOrder.Asc)))
     );
 
     private final IndexPlan indexPlan;
@@ -242,18 +236,15 @@ public class ElasticRequestHandler {
                 LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
                 continue;
             }
-            SortOptions order = SortOptions.of(so->so
-                    .field(f->f
+            SortOptions order = SortOptions.of(so -> so
+                    .field(f -> f
                             .field(fieldName)
                             .order(QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder()) ? SortOrder.Asc : SortOrder.Desc)));
             list.add(order);
         }
 
         if (!hasTieBreaker) {
-            list.add(SortOptions.of(so->so
-                    .field(f->f
-                            .field(FieldNames.PATH)
-                            .order(SortOrder.Asc))));
+            list.add(SortOptions.of(so -> so.field(f -> f.field(FieldNames.PATH).order(SortOrder.Asc))));
         }
 
         return list;
@@ -269,7 +260,7 @@ public class ElasticRequestHandler {
      * @return a low level {@link Request} instance
      */
     public Request createLowLevelRequest(SearchRequest searchReq) {
-        String endpoint = "/" + String.join(",",searchReq.index())
+        String endpoint = "/" + String.join(",", searchReq.index())
                 + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
         Request request = new Request("POST", endpoint);
         String jsonString = ElasticIndexUtils.toString(searchReq);
