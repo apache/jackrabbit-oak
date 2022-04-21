@@ -267,7 +267,7 @@ public class ElasticRequestHandler {
      * @return a low level {@link Request} instance
      */
     public Request createLowLevelRequest(SearchRequest searchReq) {
-        String endpoint = "/" + searchReq.index()
+        String endpoint = "/" + String.join(",",searchReq.index())
                 + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
         Request request = new Request("POST", endpoint);
         String jsonString = ElasticIndexUtils.toString(searchReq);
