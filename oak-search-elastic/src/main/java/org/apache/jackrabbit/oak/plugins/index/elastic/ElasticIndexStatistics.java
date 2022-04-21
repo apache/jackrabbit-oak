@@ -26,7 +26,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Ticker;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -35,7 +34,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
 
 import co.elastic.clients.elasticsearch._types.Bytes;
-import co.elastic.clients.elasticsearch.cat.CatRequestBase;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
 import co.elastic.clients.elasticsearch.core.CountRequest;
 
@@ -174,20 +172,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
             CountRequest.Builder cBuilder = new CountRequest.Builder();
             cBuilder.index(crd.index);
             if (crd.field != null) {
-                cBuilder.query(q->q
-                        .exists(e->e
-                                .field(crd.field)));
+                cBuilder.query(q -> q.exists(e -> e.field(crd.field)));
             } else {
-                cBuilder.query(q->q
-                        .matchAll(m->m));
+                cBuilder.query(q -> q.matchAll( m-> m));
             }
             return (int) crd.connection.getClient().count(cBuilder.build()).count();
         }
     }
 
     static class StatsCacheLoader extends CacheLoader<StatsRequestDescriptor, StatsResponse> {
-
-        private static final ObjectMapper MAPPER = new ObjectMapper();
 
         @Override
         public StatsResponse load(StatsRequestDescriptor countRequestDescriptor) throws IOException {
@@ -202,11 +195,10 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {
-            // TODO Angela check
-            IndicesRecord record = crd.connection.getClient().cat().indices(i->i
-                    .index(crd.index)
-                    .bytes(Bytes.Bytes))
-                .valueBody().get(0);
+            IndicesRecord record = crd.connection.getClient().cat().indices(i -> i
+                            .index(crd.index)
+                            .bytes(Bytes.Bytes))
+                    .valueBody().get(0);
             String size = record.storeSize();
             String creationDate = record.creationDateString();
             String luceneDocsCount = record.docsCount();
