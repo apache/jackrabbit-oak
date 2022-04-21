@@ -475,7 +475,7 @@ public class ElasticRequestHandler {
         return mltBuilder.build();
     }
 
-    public PhraseSuggester suggestQuery(String spellCheckQuery) {
+    public PhraseSuggester suggestQuery() {
         BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
                 .must(m->m
                         .matchPhrase(mp->mp
@@ -490,7 +490,6 @@ public class ElasticRequestHandler {
                 .directGenerator(d->d
                         .field(FieldNames.SPELLCHECK)
                         .suggestMode(SuggestMode.Missing))
-                .text(spellCheckQuery)
                 .collate(c->c
                         .query(q->q
                                 .source(ElasticIndexUtils.toString(bqBuilder.build())))));
