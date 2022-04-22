@@ -681,20 +681,14 @@ public class ElasticRequestHandler {
 
     public Query suggestionMatchQuery(String suggestion) {
         BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
-                .must(m -> m
-                        .nested(n -> n
-                                .path(FieldNames.SUGGEST)
-                                .query(qq -> qq
-                                        .matchBoolPrefix(mb -> mb
-                                                .field(FieldNames.SUGGEST + ".value")
-                                                .query(suggestion)
-                                                .operator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)))
-                                .scoreMode(ChildScoreMode.Max)
-                                .innerHits(InnerHits.of(h -> h
-                                        .size(100)))));
-//        nonFullTextConstraints(indexPlan, planResult).forEach(q->bb.must(q));
-        return Query.of(q->q
-                .bool(bqBuilder.build()));
+                .must(m -> m.nested(n -> n.path(FieldNames.SUGGEST).query(qq -> qq
+                                .matchBoolPrefix(mb ->
+                                        mb.field(FieldNames.SUGGEST + ".value").query(suggestion).operator(Operator.And))
+                        )
+                        .scoreMode(ChildScoreMode.Max)
+                        .innerHits(InnerHits.of(h -> h.size(100)))));
+        nonFullTextConstraints(indexPlan, planResult).forEach(bqBuilder::must);
+        return Query.of(q -> q.bool(bqBuilder.build()));
     }
 
     private static Query nodeTypeConstraints(IndexDefinition.IndexingRule defn, Filter filter) {

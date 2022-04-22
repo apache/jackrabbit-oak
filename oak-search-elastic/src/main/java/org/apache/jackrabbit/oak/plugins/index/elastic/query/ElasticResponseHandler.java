@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.elasticsearch.client.Response;
-import org.elasticsearch.search.SearchHit;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,9 +66,8 @@ public class ElasticResponseHandler {
         return transformPath((String) hit.source.get(FieldNames.PATH));
     }
 
-    public String getPath(SearchHit hit) {
-        Map<String, Object> sourceMap = hit.getSourceAsMap();
-        return transformPath((String) sourceMap.get(FieldNames.PATH));
+    public String getPath(Hit<ObjectNode> hit) {
+        return transformPath(hit.source().get(FieldNames.PATH).asText());
     }
 
     private String transformPath(String path) {

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
@@ -26,12 +27,13 @@ import org.slf4j.LoggerFactory;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.stream.Collectors;
 
 /**
  * This class is in charge to extract suggestions for a given query. Suggestion is more like
@@ -79,34 +81,20 @@ class ElasticSuggestIterator implements Iterator<FulltextResultRow> {
     
     private void loadSuggestions() throws IOException {
         Query suggestionQuery = requestHandler.suggestionMatchQuery(suggestQuery);
-        SearchRequest sReq = SearchRequest.of(s->s
+        SearchRequest sReq = SearchRequest.of(s -> s
                 .index(indexNode.getDefinition().getIndexAlias())
                 .query(suggestionQuery)
                 .size(100)
-                .source(ss->ss
-                        .filter(f->f
-                                .includes(FieldNames.PATH))));
-        SearchResponse<ElasticSuggestion> sRes = indexNode.getConnection().getClient().search(sReq,ElasticSuggestion.class);
-        PriorityQueue<ElasticSuggestion> suggestionPriorityQueue = new PriorityQueue<>((a, b) -> Double.compare(b.score, a.score));
-// Original code TODO Angela check it does the same
-//      for (SearchHit doc : res.getHits()) {
-//      if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
-//          for (SearchHit suggestion : doc.getInnerHits().get(FieldNames.SUGGEST).getHits()) {
-//              suggestionPriorityQueue.add(new ElasticSuggestion((String) suggestion.getSourceAsMap().get("value"), suggestion.getScore()));
-//          }
-//      }
-//  }
-//  this.internalIterator = suggestionPriorityQueue.stream().distinct().iterator();
-        
-        for(String key: sRes.suggest().keySet()) {
-            if (responseHandler.isAccessible(key)) { //TODO Angela check that key is a path
-                for (Hit<ElasticSuggestion> hit : sRes.hits().hits()) {
-                    suggestionPriorityQueue.add(new ElasticSuggestion((String) hit.source().suggestion, hit.score()));
-                }
-            }
-        }
-        
-        suggestionPriorityQueue.stream().forEach(Object::toString);
+                .source(ss -> ss.filter(f -> f.includes(FieldNames.PATH))));
+
+        SearchResponse<ObjectNode> sRes = indexNode.getConnection().getClient().search(sReq, ObjectNode.class);
+        this.internalIterator = sRes.hits().hits().stream()
+                .filter(hit -> responseHandler.isAccessible(responseHandler.getPath(hit)))
+                .map(hit -> hit.innerHits().get(FieldNames.SUGGEST).hits().hits())
+                .flatMap(Collection::stream)
+                .map(hit -> new ElasticSuggestion(hit.source().to(ObjectNode.class).get("value").asText(), hit.score()))
+                .collect(Collectors.toCollection(() -> new PriorityQueue<>((a, b) -> Double.compare(b.score, a.score))))
+                .stream().distinct().iterator();
     }
 
     private final static class ElasticSuggestion extends FulltextResultRow {
