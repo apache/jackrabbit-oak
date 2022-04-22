@@ -46,6 +46,20 @@ public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
     }
 
     @Override
+    protected String getIndexProvider() {
+        return "elasticsearch:";
+    }
+
+    @Override
+    protected void postCommitHook() {
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @Override
     protected ContentRepository createRepository() {
         ElasticTestRepositoryBuilder builder = new ElasticTestRepositoryBuilder(elasticRule);
         builder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
