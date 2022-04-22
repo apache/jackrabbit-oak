@@ -37,7 +37,7 @@
         Size History:
         120 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
         -->
-        <max.jar.size>120000000</max.jar.size>
+        <max.jar.size>121000000</max.jar.size>
                       
     </properties>
 

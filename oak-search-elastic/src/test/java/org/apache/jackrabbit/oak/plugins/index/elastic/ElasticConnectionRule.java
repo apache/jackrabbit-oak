@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.transport.Version;
 import com.github.dockerjava.api.DockerClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.elasticsearch.Version;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -53,7 +53,7 @@ public class ElasticConnectionRule extends ExternalResource {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticConnectionRule.class);
 
     private static final String INDEX_PREFIX = "elastic_test";
-    private static final String PLUGIN_DIGEST = "db479aeee452b2a0f6e3c619ecdf27ca5853e54e7bc787e5c56a49899c249240";
+    private static final String PLUGIN_DIGEST = "e1f81417d29afde76fea916df178d619f9245d661d692291f6c2cb48878bd209";
     private static boolean useDocker = false;
 
     private final String elasticConnectionString;
@@ -71,7 +71,7 @@ public class ElasticConnectionRule extends ExternalResource {
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
         // see if docker is to be used or not... initialize docker rule only if that's the case.
-        final String pluginVersion = "7.16.3.0";
+        final String pluginVersion = "7.17.2.0";
         final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
         final String localPluginPath = "target/" + pluginFileName;
         downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
@@ -79,7 +79,7 @@ public class ElasticConnectionRule extends ExternalResource {
             checkIfDockerClientAvailable();
             Network network = Network.newNetwork();
 
-            elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT)
+            elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.VERSION)
                     .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                     .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
                     .withCommand("bash /tmp/elasticstartscript.sh")
