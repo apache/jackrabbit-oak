@@ -330,11 +330,10 @@ public class ElasticRequestHandler {
                     LOG.error("Error reading bytes from property " + pd.name + " on " + text, e);
                     continue;
                 }
-                String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
 
-                String elastiknnQuery = "{" +
+                String knnQuery = "{" +
                         "  \"elastiknn_nearest_neighbors\": {" +
-                        "    \"field\": \"" + similarityPropFieldName + "\"," +
+                        "    \"field\": \"" + FieldNames.createSimilarityFieldName(pd.name) + "\"," +
                         "    \"model\": \"" + pd.getSimilaritySearchParameters().getQueryModel() + "\"," +
                         "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getQueryTimeSimilarityFunction() + "\"," +
                         "    \"candidates\": " + pd.getSimilaritySearchParameters().getCandidates() + "," +
@@ -348,9 +347,7 @@ public class ElasticRequestHandler {
                         "}";
 
                 query.should(s -> s
-                        .wrapper(w -> w
-                                .query(Base64.getEncoder().encodeToString(elastiknnQuery.getBytes(StandardCharsets.UTF_8)))
-                        )
+                        .wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8))))
                 );
             }
         }
