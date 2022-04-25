@@ -424,7 +424,8 @@ public class ElasticRequestHandler {
                                 .query("{{suggestion}}")));
 
         nonFullTextConstraints(indexPlan, planResult).forEach(bqBuilder::must);
-
+        Query query = Query.of(q->q
+                .bool(bqBuilder.build()));
         return PhraseSuggester.of(ps->ps
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
@@ -433,7 +434,7 @@ public class ElasticRequestHandler {
                         .suggestMode(SuggestMode.Missing))
                 .collate(c->c
                         .query(q->q
-                                .source(ElasticIndexUtils.toString(bqBuilder.build())))));
+                                .source(ElasticIndexUtils.toString(query)))));
     }
 
     public BoolQuery suggestMatchQuery2(String suggestion) {
