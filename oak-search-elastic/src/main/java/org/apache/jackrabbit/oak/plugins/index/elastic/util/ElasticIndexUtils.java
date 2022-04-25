@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -97,6 +98,9 @@ public class ElasticIndexUtils {
     /**
      * Provides a string with the serialisation of the object.
      * Typically, used to obtain the DSL representation of Elasticsearch requests or partial requests.
+     *
+     * TODO: remove this when https://github.com/elastic/elasticsearch-java/issues/101 gets implemented
+     *
      * @return Json serialisation as a string.
      */
     public static String toString(JsonpSerializable query) {
@@ -105,6 +109,10 @@ public class ElasticIndexUtils {
         JsonGenerator generator = mapper.jsonProvider().createGenerator(baos);
         query.serialize(generator, mapper);
         generator.close();
-        return baos.toString();
+        try {
+            return baos.toString("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("Error creating request entity", e);
+        }
     }
 }
