@@ -93,6 +93,9 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
                     }
                     if (sizeWithinLimits()) {
                         indexedNodes.put(path, reader.readString());
+                    } else {
+                        // return if max limit reached for builder to avoid overflow exception
+                        return;
                     }
                 }
             } while (reader.matches(','));
