@@ -60,7 +60,7 @@ public class LuceneJournalPropertyBuilderTest {
             a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
             builder.addSerializedProperty(a);
         }
-        assertEquals(createdIndexPathMap((IndexedPaths)builder.build()).size(), 998);
+        assertEquals(998, createdIndexPathMap((IndexedPaths)builder.build()).size());
     }
 
     @Test
@@ -70,7 +70,7 @@ public class LuceneJournalPropertyBuilderTest {
             a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
             builder.addSerializedProperty(a);
         }
-        assertEquals(createdIndexPathMap((IndexedPaths)builder.build()).size(), 1000);
+        assertEquals(1000, createdIndexPathMap((IndexedPaths)builder.build()).size());
     }
     @Test
     public void addMulti() throws Exception{
