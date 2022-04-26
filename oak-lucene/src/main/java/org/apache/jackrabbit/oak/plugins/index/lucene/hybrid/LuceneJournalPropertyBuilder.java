@@ -91,8 +91,9 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
                     if (!first) {
                         reader.read(',');
                     }
+                    String s = reader.readString();
                     if (sizeWithinLimits()) {
-                        indexedNodes.put(path, reader.readString());
+                        indexedNodes.put(path, s);
                     }
                 }
             } while (reader.matches(','));

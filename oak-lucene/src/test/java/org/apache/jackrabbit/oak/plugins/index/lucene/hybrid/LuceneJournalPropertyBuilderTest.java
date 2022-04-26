@@ -53,7 +53,25 @@ public class LuceneJournalPropertyBuilderTest {
 
         assertTrue(Iterables.isEmpty(((IndexedPaths)builder2.build())));
     }
+    @Test
+    public void addJsonLessThanMaxBuilderSize() throws Exception {
+        String a = null;
+        for (int i = 0; i < 499; i++) {
+            a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
+            builder.addSerializedProperty(a);
+        }
+        assertEquals(998, createdIndexPathMap((IndexedPaths)builder.build()).size());
+    }
 
+    @Test
+    public void addJsonBiggerThanMaxBuilderSize() throws Exception {
+        String a = null;
+        for (int i = 0; i < 502; i++) {
+            a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
+            builder.addSerializedProperty(a);
+        }
+        assertEquals(1000, createdIndexPathMap((IndexedPaths)builder.build()).size());
+    }
     @Test
     public void addMulti() throws Exception{
         LuceneDocumentHolder h1 = createHolder();
