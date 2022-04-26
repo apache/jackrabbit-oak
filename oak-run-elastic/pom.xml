@@ -218,11 +218,6 @@
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
-            <version>${tika.version}</version>
-        </dependency>
         <!-- Nullability annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
