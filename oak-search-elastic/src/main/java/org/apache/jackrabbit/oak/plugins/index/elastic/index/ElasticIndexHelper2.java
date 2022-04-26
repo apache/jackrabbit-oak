@@ -18,16 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.apache.lucene.queries.function.FunctionMatchQuery;
 
 import co.elastic.clients.elasticsearch._types.mapping.BinaryProperty;
 import co.elastic.clients.elasticsearch._types.mapping.BooleanProperty;
 import co.elastic.clients.elasticsearch._types.mapping.DateProperty;
 import co.elastic.clients.elasticsearch._types.mapping.DoubleNumberProperty;
-import co.elastic.clients.elasticsearch._types.mapping.FieldNamesField;
 import co.elastic.clients.elasticsearch._types.mapping.KeywordProperty;
 import co.elastic.clients.elasticsearch._types.mapping.LongNumberProperty;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
@@ -37,18 +34,21 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping.Builder;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
-import co.elastic.clients.util.ObjectBuilder;
 
 import java.io.IOException;
-import java.sql.Time;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Provides utility functions around Elasticsearch indexing
+ * Provides utility functions around Elasticsearch indexing.
+ *
+ * TODO: this class has been partially migrated to use the new Elasticsearch Java Client. It cannot be used yet since
+ * the new client does not support custom mappings/settings needed to configure elastiknn.
+ *
+ * See discussion in https://discuss.elastic.co/t/elasticsearch-java-client-support-for-custom-mappings-settings/303172
+ *
+ * The migration will continue when this roadmap item gets fixed https://github.com/elastic/elasticsearch-java/issues/252
  */
 class ElasticIndexHelper2 {
 
@@ -83,10 +83,10 @@ class ElasticIndexHelper2 {
      * @return an {@code UpdateSettingsRequest}
      */
     public static PutIndicesSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
-        return PutIndicesSettingsRequest.of(r->r
+        return PutIndicesSettingsRequest.of(r -> r
                 .index(remoteIndexName)
-                .settings(s->s
-                        .refreshInterval(i->i)// null=reset a setting back to the default value
+                .settings(s -> s
+                        .refreshInterval(i -> i)// null=reset a setting back to the default value
                         .numberOfReplicas(String.valueOf(indexDefinition.numberOfReplicas))));
         // TODO check the refresh interval to null
     }
@@ -95,30 +95,28 @@ class ElasticIndexHelper2 {
         return new IndexSettings.Builder()
                 .numberOfShards(String.valueOf(indexDefinition.numberOfShards))// dynamic settings: see #enableIndexRequest
                 .numberOfReplicas(String.valueOf(INITIAL_NUMBER_OF_REPLICAS))
-                .refreshInterval(t->t
-                        .time(INITIAL_REFRESH_INTERVAL))
-                .analysis(a->a
-                        .filter("oak_word_delimiter_graph_filter", f->f
-                                .definition(d->d
-                                        .wordDelimiterGraph(w->w
+                .refreshInterval(t -> t.time(INITIAL_REFRESH_INTERVAL))
+                .analysis(a -> a.filter("oak_word_delimiter_graph_filter", f -> f
+                                .definition(d -> d
+                                        .wordDelimiterGraph(w -> w
                                                 .generateWordParts(true)
                                                 .stemEnglishPossessive(true)
                                                 .generateNumberParts(true)
                                                 .preserveOriginal(indexDefinition.indexOriginalTerms()))))
-                        .filter("shingle", f->f
-                                .definition(d->d
-                                        .shingle(s->s
+                        .filter("shingle", f -> f
+                                .definition(d -> d
+                                        .shingle(s -> s
                                                 .minShingleSize("2")
                                                 .maxShingleSize("3"))))
-                        .analyzer("oak_analyzer", o->o
-                                .custom(c->c
+                        .analyzer("oak_analyzer", o -> o
+                                .custom(c -> c
                                         .tokenizer("standard")
                                         .filter("lowercase", "oak_word_delimiter_graph_filter")))
-                        .analyzer("ancestor_analyzer", o->o
-                                .custom(c->c
+                        .analyzer("ancestor_analyzer", o -> o
+                                .custom(c -> c
                                         .tokenizer("path_hierarchy")))
-                        .analyzer("trigram", o->o
-                                .custom(c->c
+                        .analyzer("trigram", o -> o
+                                .custom(c -> c
                                         .tokenizer("standard")
                                         .filter("lowercase", "shingle"))))
                 .build();
@@ -126,19 +124,14 @@ class ElasticIndexHelper2 {
 
     private static TypeMapping.Builder mapInternalProperties(ElasticIndexDefinition indexDefinition) {
         return new TypeMapping.Builder()
-                .properties(FieldNames.PATH, f->f
-                        .keyword(k->k))
-                .properties(FieldNames.ANCESTORS, f->f
-                        .text(t->t
+                .properties(FieldNames.PATH, f -> f.keyword(k -> k))
+                .properties(FieldNames.ANCESTORS, f -> f
+                        .text(t -> t
                                 .analyzer("ancestor_analyzer")
                                 .searchAnalyzer("keyword")
                                 .searchQuoteAnalyzer("keyword")))
-                .properties(FieldNames.PATH_DEPTH, f->f
-                        .integer(i->i
-                                .docValues(false)))
-                .properties(FieldNames.FULLTEXT, f->f
-                        .text(t->t
-                                .analyzer("oak_analyzer")))
+                .properties(FieldNames.PATH_DEPTH, f -> f.integer(i -> i.docValues(false)))
+                .properties(FieldNames.FULLTEXT, f -> f.text(t -> t.analyzer("oak_analyzer")))
                 // TODO: the mapping below is for features currently not supported. These need to be reviewed
                 //.properties(FieldNames.NOT_NULL_PROPS, f->f
                 //        .keyword(k->k))
@@ -166,53 +159,46 @@ class ElasticIndexHelper2 {
             {
                 // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
                 if (Type.BINARY.equals(type)) {
-                    property = new Property(BinaryProperty.of(b->b));
+                    property = new Property(BinaryProperty.of(b -> b));
                     property.binary();
                 } else if (Type.LONG.equals(type)) {
-                    property = new Property(LongNumberProperty.of(b->b));
+                    property = new Property(LongNumberProperty.of(b -> b));
                 } else if (Type.DOUBLE.equals(type) || Type.DECIMAL.equals(type)) {
-                    property = new Property(DoubleNumberProperty.of(b->b));
+                    property = new Property(DoubleNumberProperty.of(b -> b));
                 } else if (Type.DATE.equals(type)) {
-                    property = new Property(DateProperty.of(b->b));
+                    property = new Property(DateProperty.of(b -> b));
                 } else if (Type.BOOLEAN.equals(type)) {
-                    property = new Property(BooleanProperty.of(b->b));
+                    property = new Property(BooleanProperty.of(b -> b));
                 } else {
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
-                        property = new Property(TextProperty.of(b->b
+                        property = new Property(TextProperty.of(b -> b
                                 .analyzer("oak_analyzer")
-                                // always add keyword for sorting / faceting as sub-field
-                                .fields("keyword", t->t
-                                        .keyword(k->k
-                                                .ignoreAbove(256)))));
+                                // always add keyword for sorting / faceting as subfield
+                                .fields("keyword", t -> t.keyword(k -> k.ignoreAbove(256)))));
                     } else {
                         // always add keyword for sorting / faceting
-                        property = new Property(KeywordProperty.of(b->b
+                        property = new Property(KeywordProperty.of(b -> b
                                 .ignoreAbove(256)));
                     }
                 }
             }
-            mapInternalProperties.properties(name,property);
+            mapInternalProperties.properties(name, property);
         }
-        mapInternalProperties.properties(FieldNames.SPELLCHECK, f->f
-                .text(t->t
-                        .analyzer("trigram")));
+        mapInternalProperties.properties(FieldNames.SPELLCHECK, f -> f.text(t -> t.analyzer("trigram")));
         if (useInSuggest) {
-            mapInternalProperties.properties(FieldNames.SUGGEST, f->f
-                    .nested(n->n
+            mapInternalProperties.properties(FieldNames.SUGGEST, f -> f
+                    .nested(n -> n
                             // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
-                            .properties("value", v->v
-                                    .text(t->t
-                                            .analyzer("oak_analyzer")))));
+                            .properties("value", v -> v
+                                    .text(t -> t.analyzer("oak_analyzer")))));
         }
 
         for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
-            mapInternalProperties.properties(pd.nodeName, f->f
-                    .nested(n->n
-                            .properties("value", ff->ff
-                                    .text(t->t
-                                            .analyzer("oak_analyzer")))
-                            .properties("boost", ff->ff
-                                    .double_(d->d))));
+            mapInternalProperties.properties(pd.nodeName, f -> f
+                    .nested(n -> n
+                            .properties("value", ff -> ff
+                                    .text(t -> t.analyzer("oak_analyzer")))
+                            .properties("boost", ff -> ff.double_(d -> d))));
         }
 
         // TODO define Property Type for Elastiknn
