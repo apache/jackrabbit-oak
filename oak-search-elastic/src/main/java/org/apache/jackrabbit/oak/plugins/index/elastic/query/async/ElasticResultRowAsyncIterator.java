@@ -19,7 +19,10 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
@@ -30,16 +33,11 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.Fu
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseListener;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -51,7 +49,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Class to iterate over Elastic results of a given {@link IndexPlan}.
@@ -131,7 +128,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     }
 
     @Override
-    public void on(ElasticResponseHandler.SearchResponseHit searchHit) {
+    public void on(Hit<ObjectNode> searchHit) {
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null) {
             if (rowInclusionPredicate != null && !rowInclusionPredicate.test(path)) {
@@ -139,7 +136,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 return;
             }
             try {
-                queue.put(new FulltextResultRow(path, searchHit.score, null, elasticFacetProvider, null));
+                queue.put(new FulltextResultRow(path, searchHit.score() != null ? searchHit.score() : 0.0,
+                        null, elasticFacetProvider, null));
             } catch (InterruptedException e) {
                 throw new IllegalStateException("Error producing results into the iterator queue", e);
             }
@@ -169,7 +167,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     /**
      * Scans Elastic results asynchronously and notify listeners.
      */
-    class ElasticQueryScanner implements ResponseListener {
+    class ElasticQueryScanner {
 
         private static final int SMALL_RESULT_SET_SIZE = 10;
 
@@ -243,8 +241,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             searchStartTime = System.currentTimeMillis();
             requests++;
 
-            Request request = elasticRequestHandler.createLowLevelRequest(searchReq);
-            indexNode.getConnection().getLowClient().performRequestAsync(request, this);
+            indexNode.getConnection().getAsyncClient()
+                    .search(searchReq, ObjectNode.class)
+                    .whenComplete(((searchResponse, throwable) -> {
+                        if (throwable != null) {
+                            onFailure(throwable);
+                        } else onSuccess(searchResponse);
+                    }));
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -255,24 +258,17 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
          * Some code in this method relies on structure that are not thread safe. We need to make sure
          * these data structures are modified before releasing the semaphore.
          */
-        @Override
-        public void onSuccess(Response response) {
+        public void onSuccess(SearchResponse<ObjectNode> searchResponse) {
             long searchTotalTime = System.currentTimeMillis() - searchStartTime;
-            ElasticResponseHandler.SearchResponse searchResponse;
-            try {
-                searchResponse = elasticResponseHandler.parse(response);
-            } catch (IOException e) {
-                throw new IllegalStateException("Unable to parse response", e);
-            }
 
-            ElasticResponseHandler.SearchResponseHit[] searchHits = searchResponse.hits.hits;
-            int hitsSize = searchHits != null ? searchHits.length : 0;
-            metricHandler.measureQuery(indexNode.getDefinition().getIndexPath(), hitsSize, searchResponse.took,
-                    searchTotalTime, searchResponse.timedOut);
+            List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
+            int hitsSize = searchHits != null ? searchHits.size() : 0;
+            metricHandler.measureQuery(indexNode.getDefinition().getIndexPath(), hitsSize, searchResponse.took(),
+                    searchTotalTime, searchResponse.timedOut());
             if (hitsSize > 0) {
-                long totalHits = searchResponse.hits.total.value;
-                LOG.debug("Processing search response that took {} to read {}/{} docs", searchResponse.took, hitsSize, totalHits);
-                lastHitSortValues = Arrays.stream(searchHits[hitsSize - 1].sort).map(Object::toString).collect(Collectors.toList());
+                long totalHits = searchResponse.hits().total().value();
+                LOG.debug("Processing search response that took {} to read {}/{} docs", searchResponse.took(), hitsSize, totalHits);
+                lastHitSortValues = searchHits.get(hitsSize - 1).sort();
                 scannedRows += hitsSize;
                 anyDataLeft.set(totalHits > scannedRows);
                 estimator.update(indexPlan.getFilter(), totalHits);
@@ -286,15 +282,15 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     }
 
                     if (!aggregationListeners.isEmpty()) {
-                        LOG.trace("Emitting aggregations {}", searchResponse.aggregations);
+                        LOG.trace("Emitting aggregations {}", searchResponse.aggregations());
                         for (AggregationListener l : aggregationListeners) {
-                            l.on(searchResponse.aggregations);
+                            l.on(searchResponse.aggregations());
                         }
                     }
                 }
 
-                LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.length, scannedRows);
-                for (ElasticResponseHandler.SearchResponseHit hit : searchHits) {
+                LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.size(), scannedRows);
+                for (Hit<ObjectNode> hit : searchHits) {
                     for (SearchHitListener l : searchHitListeners) {
                         l.on(hit);
                     }
@@ -312,11 +308,10 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             }
         }
 
-        @Override
-        public void onFailure(Exception e) {
+        public void onFailure(Throwable t) {
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
                     System.currentTimeMillis() - searchStartTime);
-            LOG.error("Error retrieving data from Elastic: closing scanner, notifying listeners", e);
+            LOG.error("Error retrieving data from Elastic: closing scanner, notifying listeners", t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }
@@ -337,8 +332,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 LOG.trace("Kicking new search after query {}", searchReq.source());
 
                 searchStartTime = System.currentTimeMillis();
-                Request request = elasticRequestHandler.createLowLevelRequest(searchReq);
-                indexNode.getConnection().getLowClient().performRequestAsync(request, this);
+                indexNode.getConnection().getAsyncClient()
+                        .search(searchReq, ObjectNode.class)
+                        .whenComplete(((searchResponse, throwable) -> {
+                            if (throwable != null) {
+                                onFailure(throwable);
+                            } else onSuccess(searchResponse);
+                        }));
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 
@@ -65,8 +68,9 @@ public interface ElasticResponseListener {
 
         /**
          * This method is called for each {@link ElasticResponseHandler.SearchResponseHit} retrieved
+         * @param searchHit
          */
-        void on(ElasticResponseHandler.SearchResponseHit searchHit);
+        void on(Hit<ObjectNode> searchHit);
     }
 
     /**
@@ -78,6 +82,6 @@ public interface ElasticResponseListener {
          * This method is called once when the aggregations are retrieved
          * @param aggregations the {@link Map} with aggregations or {@code null} if there are no results
          */
-        void on(Map<String, ElasticResponseHandler.AggregationBuckets> aggregations);
+        void on(Map<String, Aggregate> aggregations);
     }
 }

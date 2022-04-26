@@ -218,16 +218,6 @@
       <scope>provided</scope>
     </dependency>
 
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-    </dependency>
-
     <!-- Test Dependencies -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
