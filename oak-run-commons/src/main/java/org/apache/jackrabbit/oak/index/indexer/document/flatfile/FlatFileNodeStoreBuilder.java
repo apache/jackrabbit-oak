@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.google.common.collect.Iterables;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,14 +35,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import com.google.common.collect.Iterables;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.unmodifiableSet;
 
@@ -88,7 +88,8 @@ public class FlatFileNodeStoreBuilder {
      */
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
-    static final long DEFAULT_DUMP_THRESHOLD = FileUtils.ONE_MB;
+    static final String OAK_INDEXER_DUMP_THRESHOLD_IN_MB = "oak.indexer.dumpThresholdInMB";
+    static final int OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT = 16;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private List<Long> lastModifiedBreakPoints;
     private final File workDir;
@@ -101,7 +102,7 @@ public class FlatFileNodeStoreBuilder {
     private long entryCount = 0;
     private File flatFileStoreDir;
     private final MemoryManager memoryManager;
-    private long dumpThreshold = DEFAULT_DUMP_THRESHOLD;
+    private long dumpThreshold = Integer.getInteger(OAK_INDEXER_DUMP_THRESHOLD_IN_MB, OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT) * FileUtils.ONE_MB;
     private Predicate<String> pathPredicate = path -> true;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
