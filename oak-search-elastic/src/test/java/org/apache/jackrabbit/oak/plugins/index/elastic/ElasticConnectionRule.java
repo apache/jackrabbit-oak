@@ -235,6 +235,8 @@ public class ElasticConnectionRule extends ExternalResource {
     }
 
     public ElasticConnection getElasticConnectionForDocker(String containerIpAddress, int port) {
+        elasticConnectionConnectionModel.elasticHost = containerIpAddress;
+        elasticConnectionConnectionModel.elasticPort = port;
         return ElasticConnection.newBuilder()
                 .withIndexPrefix(elasticConnectionConnectionModel.indexPrefix)
                 .withConnectionParameters(elasticConnectionConnectionModel.scheme,
