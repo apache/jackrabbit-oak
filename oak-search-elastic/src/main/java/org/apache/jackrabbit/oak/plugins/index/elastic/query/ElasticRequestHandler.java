@@ -80,7 +80,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.search.WildcardQuery;
-import org.elasticsearch.client.Request;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -99,7 +98,6 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.search.InnerHits;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
 
@@ -239,24 +237,6 @@ public class ElasticRequestHandler {
         }
 
         return list;
-    }
-
-    /**
-     * Receives a {@link SearchRequest} as input and converts it to a low
-     * level {@link Request} reducing the response in order to reduce size and
-     * improve speed.
-     * https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#common-options-response-filtering
-     * 
-     * @param searchReq the search request
-     * @return a low level {@link Request} instance
-     */
-    public Request createLowLevelRequest(SearchRequest searchReq) {
-        String endpoint = "/" + String.join(",", searchReq.index())
-                + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,hits.hits._source,aggregations";
-        Request request = new Request("POST", endpoint);
-        String jsonString = ElasticIndexUtils.toString(searchReq);
-        request.setJsonEntity(jsonString);
-        return request;
     }
 
     public String getPropertyRestrictionQuery() {

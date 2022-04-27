@@ -235,7 +235,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     }
             );
 
-            LOG.trace("Kicking initial search for query {}", ElasticIndexUtils.toString(searchReq));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Kicking initial search for query {}", ElasticIndexUtils.toString(searchReq));
+            }
             semaphore.tryAcquire();
 
             searchStartTime = System.currentTimeMillis();
@@ -329,7 +331,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .query(query)
                         .size(getFetchSize(requests++))
                 );
-                LOG.trace("Kicking new search after query {}", searchReq.source());
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Kicking new search after query {}", ElasticIndexUtils.toString(searchReq));
+                }
 
                 searchStartTime = System.currentTimeMillis();
                 indexNode.getConnection().getAsyncClient()
