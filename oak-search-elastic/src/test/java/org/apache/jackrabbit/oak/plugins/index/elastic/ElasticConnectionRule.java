@@ -85,7 +85,7 @@ public class ElasticConnectionRule extends ExternalResource {
                     .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                     .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
                     .withCommand("bash /tmp/elasticstartscript.sh")
-                    .withNetwork(network);
+                    .withNetwork(network).withStartupAttempts(3);
             elastic.start();
             setUseDocker(true);
             initializeElasticConnectionModel(elastic);
