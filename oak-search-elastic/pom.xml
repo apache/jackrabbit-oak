@@ -135,11 +135,6 @@
       <version>${lucene.version}</version>
     </dependency>
     <dependency>
-    <groupId>org.apache.tika</groupId>
-    <artifactId>tika-core</artifactId>
-    <version>${tika.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-parsers</artifactId>
       <version>${tika.version}</version>
