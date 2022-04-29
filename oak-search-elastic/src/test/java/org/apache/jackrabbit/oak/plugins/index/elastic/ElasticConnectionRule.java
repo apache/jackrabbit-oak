@@ -24,6 +24,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.client.RequestOptions;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -78,6 +80,19 @@ public class ElasticConnectionRule extends ExternalResource {
         return s;
     }
 
+    @Override
+    protected void after() {
+        ElasticConnection esConnection = useDocker() ? getElasticConnectionForDocker() : getElasticConnectionFromString();
+        if (esConnection != null) {
+            try {
+                esConnection.getClient().indices().delete(new DeleteIndexRequest(esConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
+                esConnection.close();
+            } catch (IOException e) {
+                LOG.error("Unable to delete indexes with prefix {}", esConnection.getIndexPrefix());
+            }
+        }
+    }
+
     public ElasticConnection getElasticConnectionFromString() {
         try {
             URI uri = new URI(elasticConnectionString);
@@ -85,7 +100,7 @@ public class ElasticConnectionRule extends ExternalResource {
             String scheme = uri.getScheme();
             int port = uri.getPort();
             String query = uri.getQuery();
-            
+
             String api_key = null;
             String api_secret = null;
             if (query != null) {
