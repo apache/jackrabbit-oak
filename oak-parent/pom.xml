@@ -67,7 +67,7 @@
     <!-- jackson-databind versions prior to 2.10.5.1 are affected by security vulnerability CVE-2020-25649.
          When upgrading jackson, try to align them to the same version -->
     <jackson.databind.version>2.10.5.1</jackson.databind.version>
-    <testcontainers.version>1.16.3</testcontainers.version>
+    <testcontainers.version>1.17.1</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
