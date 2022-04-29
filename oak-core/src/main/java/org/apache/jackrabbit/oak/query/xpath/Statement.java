@@ -371,7 +371,7 @@ public class Statement {
         if (queryOptions.limit != -1) {
             optionValues.add("limit " + queryOptions.limit);
         }
-        buff.append(optionValues.stream().collect(Collectors.joining(", ")));
+        buff.append(String.join(", ", optionValues));
         buff.append(")");
     }
     
