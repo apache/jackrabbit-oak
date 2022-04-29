@@ -160,7 +160,7 @@ This is supported for both XPath and SQL-2, as follows:
 `@since Oak 1.44.0 (OAK-9740)`
 
 By setting the offset / limit of a query you can set the limits and offsets set on the query object.
-Note, this setting will be overriden by any settings made via the `Query#setOffset` or `Query#setLimit` methods.
+Note, this setting will be overridden by any settings made via the `Query#setOffset` or `Query#setLimit` methods.
 
 The syntax is `option(limit {num}, offset {num})` at the very end of the statement, after `order by` 
 and can be used in conjunction with any other option.
