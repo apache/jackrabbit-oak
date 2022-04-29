@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -262,8 +263,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
         ExecutionContext context = getExecutionContext();
         List<Query> queries = parseQuery(statement, language, context, mappings);
 
-        long actualLimit = getLimit(queries, limit);
-        long actualOffset = getOffset(queries, offset);
+        long actualLimit = getValue(queries, limit, Query::getLimit, Long.MAX_VALUE);
+        long actualOffset = getValue(queries, limit, Query::getOffset, 0L);
 
         for (Query q : queries) {
             q.setExecutionContext(context);
@@ -300,27 +301,15 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
     }
 
-    private static long getOffset(List<Query> queries, Optional<Long> passedOffset) {
-        if (!passedOffset.isPresent()) {
-            return queries.stream().map(Query::getOffset).filter(Optional::isPresent).map(Optional::get).findFirst()
-                    .orElse(0L);
+    private static long getValue(List<Query> queries, Optional<Long> value, Function<Query, Optional<Long>> getter, Long defaultValue) {
+        if (!value.isPresent()) {
+            return queries.stream().map(getter::apply).filter(Optional::isPresent).map(Optional::get).findFirst()
+                    .orElse(defaultValue);
         }
-        if (passedOffset.get() < 0) {
-            throw new IllegalArgumentException("Offset may not be negative, is: " + passedOffset.get());
+        if (value.get() < 0) {
+            throw new IllegalArgumentException("Value may not be negative, is: " + value.get());
         }
-        return passedOffset.get();
-    }
-
-    private static long getLimit(List<Query> queries, Optional<Long> passedLimit) {
-        if (!passedLimit.isPresent()) {
-            return queries.stream().map(Query::getLimit).filter(Optional::isPresent).map(Optional::get).findFirst()
-                    .orElse(Long.MAX_VALUE);
-        }
-        long limit = passedLimit.get();
-        if (limit < 0) {
-            throw new IllegalArgumentException("Limit may not be negative, is: " + passedLimit.get());
-        }
-        return limit;
+        return value.get();
     }
 
     /**
