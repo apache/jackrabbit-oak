@@ -19,18 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 import com.google.common.collect.Iterables;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -38,6 +28,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserF
 import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,11 +37,30 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_TASK_BATCH_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_THREAD_POOL_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class FlatFileStoreTest {
@@ -157,7 +167,7 @@ public class FlatFileStoreTest {
     }
 
     private FlatFileStore buildFlatFileStore(FlatFileNodeStoreBuilder spyBuilder, List<Long> lastModifiedBreakpoints,
-                                    TestNodeStateEntryTraverserFactory nsetf, boolean expectException) throws Exception {
+                                    TestNodeStateEntryTraverserFactory nsetf, boolean expectException, Long dumpThreshold) throws Exception {
         boolean exceptionCaught = false;
         FlatFileStore flatFileStore = null;
         try {
@@ -165,7 +175,7 @@ public class FlatFileStoreTest {
                     .withPreferredPathElements(preferred)
                     .withLastModifiedBreakPoints(lastModifiedBreakpoints)
                     .withNodeStateEntryTraverserFactory(nsetf)
-                    .withDumpThreshold(0)
+                    .withDumpThreshold(dumpThreshold)
                     .build();
         } catch (CompositeException e) {
             exceptionCaught = true;
@@ -180,6 +190,7 @@ public class FlatFileStoreTest {
 
     @Test
     public void resumePreviousUnfinishedDownload() throws Exception {
+        Long dumpThreshold = 0L;
         try {
             System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
             List<TestMongoDoc> mongoDocs = getTestData();
@@ -189,17 +200,17 @@ public class FlatFileStoreTest {
             FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot(), memoryManager));
             TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(mongoDocs);
             nsetf.setDeliveryBreakPoint((int)(mongoDocs.size() * 0.25));
-            FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+            FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true, dumpThreshold);
             assertNull(flatStore);
             spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
             nsetf.setDeliveryBreakPoint((int)(mongoDocs.size() * 0.50));
-            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true);
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true, dumpThreshold);
             assertNull(flatStore);
             memoryManager.isMemoryLow = false;
             List<String> entryPaths;
             spyBuilder.addExistingDataDumpDir(spyBuilder.getFlatFileStoreDir());
             nsetf.setDeliveryBreakPoint(Integer.MAX_VALUE);
-            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false);
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false, dumpThreshold);
             entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
                     .map(NodeStateEntry::getPath)
                     .collect(Collectors.toList());
@@ -209,6 +220,184 @@ public class FlatFileStoreTest {
             assertEquals(sortedPaths, entryPaths);
         } finally {
             System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+        }
+    }
+
+    private boolean flatFileStoreMatchCondition(File dir, String filenamePattern, String entry) {
+        Pattern pattern = Pattern.compile(filenamePattern, Pattern.CASE_INSENSITIVE);
+        for (File innerDir : Objects.requireNonNull(dir.listFiles())) {
+            if (innerDir.isDirectory()) {
+                for (File innerFile : Objects.requireNonNull(innerDir.listFiles())) {
+                    if (!pattern.matcher(innerFile.getName()).find()) {
+                        continue;
+                    }
+                    List<String> lines = null;
+                    try {
+                        lines = FileUtils.readLines(innerFile, StandardCharsets.UTF_8);
+                    } catch (Exception e) {
+                        fail("failed to read FlatFileStore");
+                    }
+                    for (String line : lines) {
+                        if (line.contains(entry)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // with larger size of dump threshold (which result in almost never dump),
+    // fail in the middle, check that hidden node progress are saved
+    @Test
+    public void resumePreviousUnfinishedDownloadWithHiddenNode() throws Exception {
+        Long dumpThreshold = FileUtils.ONE_MB;
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
+            System.setProperty(PROP_THREAD_POOL_SIZE, "1");
+            System.setProperty(OAK_INDEXER_USE_ZIP, "false");
+            List<TestMongoDoc> mongoDocs = new ArrayList<TestMongoDoc>() {{
+                add(new TestMongoDoc("/10-0", 10));
+                add(new TestMongoDoc("/10-0/:hidden1", 10));
+                add(new TestMongoDoc("/10-0/:hidden2", 10));
+                add(new TestMongoDoc("/10-0/:hidden3", 10));
+                add(new TestMongoDoc("/10-0/:hidden4", 10));
+                add(new TestMongoDoc("/10-1/end", 10));
+            }};
+            List<Long> lmValues = mongoDocs.stream().map(md -> md.lastModified).distinct().sorted().collect(Collectors.toList());
+            List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lmValues.get(0), lmValues.get(lmValues.size() - 1), 1);
+            TestMemoryManager memoryManager = new TestMemoryManager(true);
+            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot(), memoryManager));
+            TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(mongoDocs);
+            List<String> entryPaths;
+            nsetf.setDeliveryBreakPoint(4);
+            FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true, dumpThreshold);
+            assertNull(flatStore);
+            File existingFlatFileStoreDir1 = spyBuilder.getFlatFileStoreDir();
+            assertTrue("flatFileStore should dump entry even if exception caught",
+                    flatFileStoreMatchCondition(existingFlatFileStoreDir1, "flatfile", "/10-0"));
+            assertTrue("flatFileStore should save hidden node progress on exception caught",
+                    flatFileStoreMatchCondition(existingFlatFileStoreDir1, "last-saved","/10-0/:hidden3"));
+            nsetf.setDeliveryBreakPoint(Integer.MAX_VALUE);
+            spyBuilder.addExistingDataDumpDir(existingFlatFileStoreDir1);
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false, dumpThreshold);
+            entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                    .map(NodeStateEntry::getPath)
+                    .collect(Collectors.toList());
+
+            List<String> sortedPaths = TestUtils.sortPaths(mongoDocs.stream()
+                    .map(md -> md.path)
+                    .filter(path -> !NodeStateUtils.isHiddenPath(path))
+                    .collect(Collectors.toList()));
+            assertEquals(mongoDocs.size(), nsetf.getTotalProvidedDocCount());
+            assertEquals(sortedPaths, entryPaths);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+            System.clearProperty(PROP_THREAD_POOL_SIZE);
+            System.clearProperty(OAK_INDEXER_USE_ZIP);
+        }
+    }
+
+    // with larger size of dump threshold (which result in almost never dump),
+    // fail in the middle, check that there are data being dumped
+    @Test
+    public void resumePreviousUnfinishedDownloadWithGracefulDump() throws Exception {
+        Long dumpThreshold = FileUtils.ONE_MB;
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
+            System.setProperty(PROP_THREAD_POOL_SIZE, "1");
+            System.setProperty(OAK_INDEXER_USE_ZIP, "false");
+            List<TestMongoDoc> mongoDocs = new ArrayList<TestMongoDoc>() {{
+                add(new TestMongoDoc("/10-0", 10));
+                add(new TestMongoDoc("/10-1", 10));
+            }};
+            List<Long> lmValues = mongoDocs.stream().map(md -> md.lastModified).distinct().sorted().collect(Collectors.toList());
+            List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lmValues.get(0), lmValues.get(lmValues.size() - 1), 1);
+            TestMemoryManager memoryManager = new TestMemoryManager(true);
+            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot(), memoryManager));
+            TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(mongoDocs);
+            List<String> entryPaths;
+            nsetf.setDeliveryBreakPoint(1);
+            FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true, dumpThreshold);
+            assertNull(flatStore);
+            File existingFlatFileStoreDir1 = spyBuilder.getFlatFileStoreDir();
+            assertTrue("flatFileStore should dump entry even if exception caught",
+                    flatFileStoreMatchCondition(existingFlatFileStoreDir1, "flatfile", "/10-0"));
+            nsetf.setDeliveryBreakPoint(Integer.MAX_VALUE);
+            spyBuilder.addExistingDataDumpDir(existingFlatFileStoreDir1);
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false, dumpThreshold);
+            entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                    .map(NodeStateEntry::getPath)
+                    .collect(Collectors.toList());
+
+            List<String> sortedPaths = TestUtils.sortPaths(mongoDocs.stream().map(md -> md.path).collect(Collectors.toList()));
+            assertEquals(mongoDocs.size(), nsetf.getTotalProvidedDocCount());
+            assertEquals(sortedPaths, entryPaths);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+            System.clearProperty(PROP_THREAD_POOL_SIZE);
+            System.clearProperty(OAK_INDEXER_USE_ZIP);
+        }
+    }
+
+    private void assertContainsMergeFolder(File dir, Boolean mustBeEmpty) {
+        Boolean mergeFolderExist = false;
+        for (File workDir : dir.listFiles()) {
+            if (workDir.getName().equals("merge") && workDir.isDirectory()) {
+                mergeFolderExist = true;
+                if (mustBeEmpty) {
+                    assertTrue("merge directory should not be empty", workDir.listFiles().length == 0);
+                }
+                break;
+            }
+        }
+        assertTrue("merge directory should exist", mergeFolderExist);
+    }
+
+    @Test
+    public void resumePreviousUnfinishedDownloadAndMerge() throws Exception {
+        Long dumpThreshold = 0L;
+        try {
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
+            System.setProperty(PROP_MERGE_TASK_BATCH_SIZE, "2");
+            List<TestMongoDoc> mongoDocs = getTestData();
+            List<Long> lmValues = mongoDocs.stream().map(md -> md.lastModified).distinct().sorted().collect(Collectors.toList());
+            List<Long> lastModifiedBreakpoints = DocumentStoreSplitter.simpleSplit(lmValues.get(0), lmValues.get(lmValues.size() - 1), 10);
+            TestMemoryManager memoryManager = new TestMemoryManager(true);
+            FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot(), memoryManager));
+            TestNodeStateEntryTraverserFactory nsetf = new TestNodeStateEntryTraverserFactory(mongoDocs);
+            nsetf.setDeliveryBreakPoint((int)(mongoDocs.size() * 0.50));
+            FlatFileStore flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true, dumpThreshold);
+            assertNull(flatStore);
+            File existingFlatFileStoreDir1 = spyBuilder.getFlatFileStoreDir();
+            assertContainsMergeFolder(existingFlatFileStoreDir1, false);
+            spyBuilder.addExistingDataDumpDir(existingFlatFileStoreDir1);
+            nsetf.setDeliveryBreakPoint((int)(mongoDocs.size() * 0.75));
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, true, dumpThreshold);
+            assertNull(flatStore);
+            memoryManager.isMemoryLow = false;
+            List<String> entryPaths;
+            File existingFlatFileStoreDir2 = spyBuilder.getFlatFileStoreDir();
+            assertContainsMergeFolder(existingFlatFileStoreDir2, false);
+            spyBuilder.addExistingDataDumpDir(existingFlatFileStoreDir2);
+            nsetf.setDeliveryBreakPoint(Integer.MAX_VALUE);
+            flatStore = buildFlatFileStore(spyBuilder, lastModifiedBreakpoints, nsetf, false, dumpThreshold);
+            entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
+                    .map(NodeStateEntry::getPath)
+                    .collect(Collectors.toList());
+
+            // Intermediate MergeFiles should be deleted after being merged
+            assertContainsMergeFolder(existingFlatFileStoreDir1, true);
+            assertContainsMergeFolder(existingFlatFileStoreDir2, true);
+            assertContainsMergeFolder(spyBuilder.getFlatFileStoreDir(), true);
+
+            List<String> sortedPaths = TestUtils.sortPaths(mongoDocs.stream().map(md -> md.path).collect(Collectors.toList()));
+            assertEquals(mongoDocs.size(), nsetf.getTotalProvidedDocCount());
+            assertEquals(sortedPaths, entryPaths);
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
+            System.clearProperty(PROP_MERGE_TASK_BATCH_SIZE);
         }
     }
 
@@ -259,16 +448,11 @@ public class FlatFileStoreTest {
          * factory has created till now.
          */
         final AtomicInteger providedDocuments;
-        /**
-         * Keeps count of documents which have already been returned in the past
-         */
-        final AtomicInteger duplicateCount;
 
         public TestNodeStateEntryTraverserFactory(List<TestMongoDoc> mongoDocs) {
             this.mongoDocs = mongoDocs;
             this.breakAfterDelivering = new AtomicInteger(Integer.MAX_VALUE);
             this.providedDocuments = new AtomicInteger(0);
-            this.duplicateCount = new AtomicInteger(0);
         }
 
         void setDeliveryBreakPoint(int value) {
@@ -302,7 +486,6 @@ public class FlatFileStoreTest {
                         public NodeStateEntry next() {
                             if (providedDocuments.get() == breakAfterDelivering.get()) {
                                 logger.debug("{} Breaking after getting docs with id {}", traverserId, lastReturnedDoc.getId());
-                                duplicateCount.incrementAndGet();
                                 throw new IllegalStateException(EXCEPTION_MESSAGE);
                             }
                             providedDocuments.incrementAndGet();
@@ -317,9 +500,8 @@ public class FlatFileStoreTest {
         }
 
         int getTotalProvidedDocCount() {
-            return providedDocuments.get() - duplicateCount.get();
+            return providedDocuments.get();
         }
-
     }
 
     private List<String> createTestPaths() {
@@ -406,5 +588,4 @@ public class FlatFileStoreTest {
 
         }};
     }
-
 }

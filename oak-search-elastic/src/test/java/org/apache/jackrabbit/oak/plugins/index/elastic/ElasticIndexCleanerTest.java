@@ -75,9 +75,9 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         assertTrue(exists(indexId3));
 
         Thread.sleep(5000);
-        cleaner.run();
 
         assertEventually(() -> {
+            cleaner.run();
             assertFalse(exists(indexId1));
             assertFalse(exists(indexId2));
             assertTrue(exists(indexId3));

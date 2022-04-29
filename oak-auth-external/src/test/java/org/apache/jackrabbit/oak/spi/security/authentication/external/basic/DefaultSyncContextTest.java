@@ -1201,6 +1201,39 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         }
     }
 
+    /**
+     * See https://issues.apache.org/jira/browse/OAK-9746
+     */
+    @Test
+    public void testSyncPropertiesSupplier() throws Exception {
+        //given
+        TestIdentityProvider.UserWithSupplierProperties externalUser = new TestIdentityProvider.UserWithSupplierProperties("supplierPropsUser", "idp");
+        Authorizable a = syncCtx.createUser(externalUser);
+
+        // create exact mapping
+        Map<String, String> mapping = new HashMap<>();
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            mapping.put("a/"+propName, propName);
+        }
+        //when
+        syncCtx.syncProperties(externalUser, a, mapping);
+
+        //then
+        assertFalse(a.hasProperty("a/nullSupplier"));
+        assertTrue(a.hasProperty("a/profile/id"));
+        assertTrue(a.hasProperty("a/profile/name"));
+        assertTrue(a.hasProperty("a/stringSuppliedValue"));
+        assertTrue(a.hasProperty("a/bigDecimalSuppliedValue"));
+        assertTrue(a.hasProperty("a/booleanSuppliedValue"));
+
+        assertEquals(externalUser.getProperties().get("profile/id"), a.getProperty("a/profile/id")[0].getString());
+        assertEquals(externalUser.getProperties().get("profile/name"), a.getProperty("a/profile/name")[0].getString());
+        assertEquals(externalUser.stringValue,  a.getProperty("a/stringSuppliedValue")[0].getString());
+        assertEquals(externalUser.bigDecimal, a.getProperty("a/bigDecimalSuppliedValue")[0].getDecimal());
+        assertEquals(externalUser.boolValue, a.getProperty("a/booleanSuppliedValue")[0].getBoolean());
+    }
+
     @Test
     public void testIsExpiredLocalGroup() throws Exception {
         Group gr = createTestGroup();

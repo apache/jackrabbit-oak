@@ -45,6 +45,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.*;
@@ -149,12 +150,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
     private final boolean compressionEnabled;
-    /**        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-     Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, storeDir, comparator, mergePhaser, compressionEnabled);
-     Thread merger = new Thread(mergeRunner, mergerThreadName);
-     merger.setDaemon(true);
-     merger.start();
-     phaser.awaitAdvance(Phases.WAITING_FOR_TASK_SPLITS.value);
+    /**
      * Directory where sorted files will be created.
      */
     private final File storeDir;
@@ -188,6 +184,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private final MemoryManager memoryManager;
 
     private final long dumpThreshold;
+
+    private Predicate<String> pathPredicate = path -> true;
 
     /**
      * Indicates the various phases of {@link #phaser}
@@ -234,13 +232,15 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
-                                          boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold) throws IOException {
+                                          boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold,
+                                          Predicate<String> pathPredicate) throws IOException {
         this.storeDir = storeDir;
         this.mergeDir = new File(storeDir, mergeDirName);
         this.compressionEnabled = compressionEnabled;
         this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        this.pathPredicate = pathPredicate;
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
             @Override
@@ -274,6 +274,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
                         continue;
                     } else if (existingSortWorkDir.getName().equals(mergeDirName)) {
                         log.info("Intermediate Merge Directory {}. Skipping it.", existingSortWorkDir.getAbsolutePath());
+                        DirectoryHelper.getDataFiles(existingSortWorkDir).forEach(file -> {
+                            log.debug("Including existing intermediate merged file {}", file.getPath());
+                            sortedFiles.add(file);
+                        });
                         continue;
                     }
                     boolean downloadCompleted = DirectoryHelper.hasCompleted(existingSortWorkDir);
@@ -315,11 +319,12 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory, memoryManager, dumpThreshold, sortedFiles));
+                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
+                memoryManager, dumpThreshold, sortedFiles, pathPredicate));
     }
 
     @Override
-    public File createSortedStoreFile() throws IOException, CompositeException {
+    public File createSortedStoreFile() throws CompositeException {
         String watcherThreadName = "watcher";
         String mergerThreadName = "merger";
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
@@ -341,6 +346,8 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
             for (Throwable throwable : throwables) {
                 exception.addSuppressed(throwable);
             }
+            sortedFiles.add(MergeRunner.MERGE_FORCE_STOP_POISON_PILL);
+            mergePhaser.awaitAdvance(0);
             throw exception;
         }
         log.debug("Result collection complete. Proceeding to final merge.");
