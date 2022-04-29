@@ -35,11 +35,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Phaser;
 
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.MultithreadedTraverseWithSortStrategy.DirectoryHelper;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -70,7 +70,7 @@ public class TraverseAndSortTaskTest {
         File store = new File("target/" + this.getClass().getSimpleName() + "-" + System.currentTimeMillis());
         TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, store, true,
                 new LinkedList<>(Collections.singletonList("1")), newTaskQueue, phaser, new NodeStateEntryTraverserFactoryImpl(), mockMemManager,
-                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, new LinkedBlockingQueue<File>(), path -> true);
+                FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, new LinkedBlockingQueue<File>(), path -> true);
 
         NodeStateEntry mockEntry = Mockito.mock(NodeStateEntry.class);
         long lastModified = (lmRange.getLastModifiedFrom() + lmRange.getLastModifiedTo())/2;
