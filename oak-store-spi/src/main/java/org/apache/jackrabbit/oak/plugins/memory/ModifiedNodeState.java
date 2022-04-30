@@ -24,6 +24,7 @@ import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
@@ -276,7 +277,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (checkNotNull(nodes).isEmpty()) {
             this.nodes = emptyMap();
         } else {
-            this.nodes = newHashMap();
+            this.nodes = newLinkedHashMap();
             for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
                 this.nodes.put(entry.getKey(), entry.getValue().snapshot());
             }
