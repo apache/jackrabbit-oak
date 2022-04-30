@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.util.Map;
@@ -60,7 +61,7 @@ class MutableNodeState extends AbstractNodeState {
      * Set of added, modified or removed (non-existent value)
      * child nodes.
      */
-    private final Map<String, MutableNodeState> nodes = newHashMap();
+    private final Map<String, MutableNodeState> nodes = newLinkedHashMap();
 
     /**
      * Flag to indicate that this child has been replace in its parent.
