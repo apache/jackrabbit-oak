@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -25,6 +23,11 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import co.elastic.clients.elasticsearch.core.search.Hit;
 
 /**
  * Class to process Elastic response objects.
@@ -42,6 +45,10 @@ public class ElasticResponseHandler {
     }
 
     public String getPath(Hit<ObjectNode> hit) {
+        return transformPath(hit.source().get(FieldNames.PATH).asText());
+    }
+
+    public String getPath2(Hit<JsonNode> hit) {
         return transformPath(hit.source().get(FieldNames.PATH).asText());
     }
 

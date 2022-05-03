@@ -437,7 +437,7 @@ public class ElasticRequestHandler {
                                 .source(ElasticIndexUtils.toString(query)))));
     }
 
-    public BoolQuery suggestMatchQuery2(String suggestion) {
+    public BoolQuery suggestMatchQuery(String suggestion) {
         BoolQuery.Builder query = new BoolQuery.Builder()
                 .must(m -> m
                         .match(mm -> mm
