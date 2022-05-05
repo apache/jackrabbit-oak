@@ -125,7 +125,7 @@ public class MissingLastRevSeeker {
     }
 
     public NodeDocument getRoot() {
-        return store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT));
+        return store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT, store.getMetadata()));
     }
 
     /**

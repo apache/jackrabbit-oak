@@ -37,11 +37,11 @@ public class NodeDocumentIdComparatorTest {
     @Test
     public void sort() {
         List<String> paths = new ArrayList<String>();
-        paths.add(Utils.getIdFromPath("/foo"));
-        paths.add(Utils.getIdFromPath("/foo/bar"));
-        paths.add(Utils.getIdFromPath("/bar/qux"));
-        paths.add(Utils.getIdFromPath("/"));
-        paths.add(Utils.getIdFromPath("/bar"));
+        paths.add(Utils.getIdFromPath("/foo", Collections.emptyMap()));
+        paths.add(Utils.getIdFromPath("/foo/bar", Collections.emptyMap()));
+        paths.add(Utils.getIdFromPath("/bar/qux", Collections.emptyMap()));
+        paths.add(Utils.getIdFromPath("/", Collections.emptyMap()));
+        paths.add(Utils.getIdFromPath("/bar", Collections.emptyMap()));
 
         Collections.sort(paths, NodeDocumentIdComparator.INSTANCE);
 

@@ -257,7 +257,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
     }
 
     private NodeDocument getNodeDocument(DocumentStore ds, String path) {
-        return ds.find(Collection.NODES, Utils.getIdFromPath(path));
+        return ds.find(Collection.NODES, Utils.getIdFromPath(path, ds.getMetadata()));
     }
 
     private static NodeBuilder newNode(String typeName){

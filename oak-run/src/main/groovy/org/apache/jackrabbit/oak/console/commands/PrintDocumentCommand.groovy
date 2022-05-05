@@ -42,7 +42,7 @@ class PrintDocumentCommand extends CommandSupport{
     @Override
     Object execute(List<String> args) {
         assert session.store instanceof DocumentNodeStore
-        String id = Utils.getIdFromPath(session.getWorkingPath());
+        String id = Utils.getIdFromPath(session.getWorkingPath(), store.getDocumentStore().getMetadata());
         NodeDocument doc = store.getDocumentStore().find(NODES, id);
         if (doc == null) {
             io.out.println("[null]");

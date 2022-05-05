@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
@@ -97,8 +96,9 @@ abstract class ExternalChange {
         Clock clock = store.getClock();
         int clusterId = store.getClusterId();
         long time = clock.getTime();
-        String id = Utils.getIdFromPath(Path.ROOT);
-        NodeDocument doc = store.getDocumentStore().find(NODES, id, store.getAsyncDelay());
+        DocumentStore docStore = store.getDocumentStore();
+        String id = Utils.getIdFromPath(Path.ROOT, docStore.getMetadata());
+        NodeDocument doc = docStore.find(NODES, id, store.getAsyncDelay());
         if (doc == null) {
             return stats;
         }
@@ -146,7 +146,7 @@ abstract class ExternalChange {
                         try {
                             fillExternalChanges(externalSort, invalidate,
                                     Path.ROOT, last, r,
-                                    store.getDocumentStore(), journalEntryConsumer,
+                                    docStore, journalEntryConsumer,
                                     changeSetBuilder, journalPropertyHandler);
                         } catch (Exception e1) {
                             LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);

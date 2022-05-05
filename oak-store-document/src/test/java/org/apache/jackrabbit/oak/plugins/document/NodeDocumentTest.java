@@ -332,7 +332,7 @@ public class NodeDocumentTest {
             if (Math.random() < 0.2) {
                 RevisionVector head = ns.getHeadRevision();
                 NodeDocument doc = ns.getDocumentStore().find(
-                        NODES, Utils.getIdFromPath("/test"));
+                        NODES, Utils.getIdFromPath("/test", store.getMetadata()));
                 for (UpdateOp op : SplitOperations.forDocument(
                         doc, ns, head, NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
@@ -340,7 +340,7 @@ public class NodeDocumentTest {
             }
         }
         NodeDocument doc = ns.getDocumentStore().find(
-                NODES, Utils.getIdFromPath("/test"));
+                NODES, Utils.getIdFromPath("/test", store.getMetadata()));
         // get most recent previous doc
         NodeDocument prev = doc.getAllPreviousDocs().next();
         // simulate a change revision within the range of
@@ -371,7 +371,7 @@ public class NodeDocumentTest {
         RevisionVector headCreated = ns1.getHeadRevision();
         Revision created = headCreated.getRevision(ns1.getClusterId());
 
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test", store.getMetadata()));
         Set<Revision> collisions = newHashSet();
         Revision newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(),
                 ns1.newRevision(), null, collisions);
@@ -390,21 +390,21 @@ public class NodeDocumentTest {
         collisions.clear();
 
         // now ns2 sees /test
-        doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        doc = store.find(NODES, Utils.getIdFromPath("/test", store.getMetadata()));
         newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
                 ns2.newRevision(), null, collisions);
         assertEquals(created, newest);
         assertEquals(0, collisions.size());
 
         Revision uncommitted = ns1.newRevision();
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/test"), false);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/test", store.getMetadata()), false);
         NodeDocument.setCommitRoot(op, uncommitted, 0);
         op.setMapEntry("p", uncommitted, "v");
         assertNotNull(store.findAndUpdate(NODES, op));
 
         collisions.clear();
         // ns1 must report uncommitted in collisions
-        doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        doc = store.find(NODES, Utils.getIdFromPath("/test", store.getMetadata()));
         newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(),
                 ns1.newRevision(), null, collisions);
         assertEquals(created, newest);
@@ -428,7 +428,7 @@ public class NodeDocumentTest {
         // ns1 must now report committed revision as newest
         // uncommitted is not considered a collision anymore
         // because it is older than the base revision
-        doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        doc = store.find(NODES, Utils.getIdFromPath("/test", store.getMetadata()));
         newest = doc.getNewestRevision(ns1, headCreated,
                 ns1.newRevision(), null, collisions);
         assertEquals(committed, newest);
@@ -458,7 +458,7 @@ public class NodeDocumentTest {
         merge(ns, builder);
 
         Set<Revision> collisions = newHashSet();
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test", store.getMetadata()));
         RevisionVector branchBase = ns.getHeadRevision().asBranchRevision(ns.getClusterId());
         try {
             doc.getNewestRevision(ns, branchBase, ns.newRevision(), null, collisions);
@@ -504,7 +504,7 @@ public class NodeDocumentTest {
 
         // start fresh
         DocumentNodeStore ns = createTestStore(store, 1, 0, 0);
-        String id = Utils.getIdFromPath(Path.fromString("/bar/test"));
+        String id = Utils.getIdFromPath(Path.fromString("/bar/test"), store.getMetadata());
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
 
@@ -524,7 +524,7 @@ public class NodeDocumentTest {
 
         // start fresh
         DocumentNodeStore ns = createTestStore(store, 1, 0, 0);
-        String id = Utils.getIdFromPath(Path.fromString("/bar/test"));
+        String id = Utils.getIdFromPath(Path.fromString("/bar/test"), store.getMetadata());
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
 
@@ -557,7 +557,7 @@ public class NodeDocumentTest {
             merge(ns, builder);
         }
         ns.runBackgroundOperations();
-        String rootId = Utils.getIdFromPath(Path.ROOT);
+        String rootId = Utils.getIdFromPath(Path.ROOT, store.getMetadata());
         NodeDocument rootDoc = store.find(NODES, rootId);
         assertNotNull(rootDoc);
         assertThat(rootDoc.getPreviousRanges().keySet(), not(empty()));
@@ -636,7 +636,7 @@ public class NodeDocumentTest {
         assertEquals(200, valueMap.size());
         RevisionVector baseRev = new RevisionVector(valueMap.keySet().iterator().next());
         Revision commitRev = ns.newRevision();
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", store.getMetadata()), false);
         op.setMapEntry("p", commitRev, "v");
 
         prevDocCalls.clear();
@@ -677,7 +677,7 @@ public class NodeDocumentTest {
             b2.child("test").setProperty("ns2", i);
             merge(ns2, b2);
         }
-        String testId = Utils.getIdFromPath("/test");
+        String testId = Utils.getIdFromPath("/test", store.getMetadata());
         NodeDocument test = ns2.getDocumentStore().find(NODES, testId);
         assertNotNull(test);
         List<UpdateOp> ops = SplitOperations.forDocument(test, ns2,
@@ -899,7 +899,7 @@ public class NodeDocumentTest {
             if (i % 3 == 0) {
                 // split the document
                 RevisionVector head = ns.getHeadRevision();
-                NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+                NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test", store.getMetadata()));
                 for (UpdateOp op : SplitOperations.forDocument(
                         doc, ns, head, NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
@@ -908,7 +908,7 @@ public class NodeDocumentTest {
         }
         ns.runBackgroundOperations();
 
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test", store.getMetadata()));
         assertNotNull(doc);
         List<Integer> numCalls = Lists.newArrayList();
         // go back in time and check number of find calls
@@ -979,7 +979,7 @@ public class NodeDocumentTest {
         setProperty(ns, "/test/q", 1);
         setProperty(ns, "/test/q", 2);
 
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getMetadata());
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
         List<UpdateOp> splitOps = SplitOperations.forDocument(
@@ -1055,7 +1055,7 @@ public class NodeDocumentTest {
         createTestData(singletonList(ns), new Random(), 200);
         ns.runBackgroundUpdateOperations();
 
-        NodeDocument doc = ds.find(NODES, getIdFromPath("/foo"));
+        NodeDocument doc = ds.find(NODES, getIdFromPath("/foo", ds.getMetadata()));
         assertNotNull(doc);
         findCalls.clear();
         doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
@@ -1067,7 +1067,7 @@ public class NodeDocumentTest {
         ns.runBackgroundSweepOperation();
 
         // now number of find calls must be zero
-        doc = ds.find(NODES, getIdFromPath("/foo"));
+        doc = ds.find(NODES, getIdFromPath("/foo", ds.getMetadata()));
         assertNotNull(doc);
         findCalls.clear();
         doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);

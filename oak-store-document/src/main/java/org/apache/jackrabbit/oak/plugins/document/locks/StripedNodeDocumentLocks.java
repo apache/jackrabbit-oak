@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.locks;
 
+import java.util.Collections;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -25,7 +26,7 @@ import com.google.common.util.concurrent.Striped;
 
 public class StripedNodeDocumentLocks implements NodeDocumentLocks {
 
-    private static final String ROOT = Utils.getIdFromPath(Path.ROOT);
+    private static final String ROOT = Utils.getIdFromPath(Path.ROOT, Collections.emptyMap());
 
     /**
      * Locks to ensure cache consistency on reads, writes and invalidation.

@@ -115,7 +115,7 @@ public class OrphanedBranchTest {
             store.runBackgroundOperations();
             // after background ops we must not see more collisions
             // than active branches
-            String id = Utils.getIdFromPath("/");
+            String id = Utils.getIdFromPath("/", store.getDocumentStore().getMetadata());
             NodeDocument doc = store.getDocumentStore().find(NODES, id);
             assertNotNull(doc);
             Map<Revision, String> collisions = doc.getLocalMap(COLLISIONS);
@@ -125,7 +125,7 @@ public class OrphanedBranchTest {
             // limit to check is number of branches considered active
             // plus NodeDocument.NUM_REVS_THRESHOLD
             int limit = numBranches + NodeDocument.NUM_REVS_THRESHOLD;
-            id = Utils.getIdFromPath("/foo");
+            id = Utils.getIdFromPath("/foo", store.getDocumentStore().getMetadata());
             doc = store.getDocumentStore().find(NODES, id);
             assertNotNull(doc);
             Map<Revision, String> map = doc.getLocalMap("prop");
@@ -158,7 +158,7 @@ public class OrphanedBranchTest {
     // OAK-2442
     @Test
     public void removeUncommittedChange() throws Exception {
-        String id = Utils.getIdFromPath("/foo");
+        String id = Utils.getIdFromPath("/foo", store.getDocumentStore().getMetadata());
         NodeBuilder builder = store.getRoot().builder();
         builder.child("foo");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

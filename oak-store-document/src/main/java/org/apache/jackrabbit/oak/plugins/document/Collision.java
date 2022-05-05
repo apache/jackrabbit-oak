@@ -176,7 +176,7 @@ class Collision {
             }
         }
         // at this point we have a commitRootPath
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath(commitRootPath), false);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath(commitRootPath, store.getMetadata()), false);
         NodeDocument commitRoot = store.find(Collection.NODES, op.getId());
         // check commit status of revision
         if (isCommitted(context.getCommitValue(revision, commitRoot))) {

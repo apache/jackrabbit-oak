@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -34,7 +35,7 @@ public class UpdateUtilsTest {
     @Test
     public void applyChanges() {
         Revision r = Revision.newRevision(1);
-        String id = Utils.getIdFromPath("/foo");
+        String id = Utils.getIdFromPath("/foo", Collections.emptyMap());
         Document d = new Document();
         d.put(Document.ID, id);
 
@@ -78,7 +79,7 @@ public class UpdateUtilsTest {
     @Test
     public void checkConditions() {
         Revision r = Revision.newRevision(1);
-        String id = Utils.getIdFromPath("/foo");
+        String id = Utils.getIdFromPath("/foo", Collections.emptyMap());
         Document d = new Document();
         d.put(Document.ID, id);
 

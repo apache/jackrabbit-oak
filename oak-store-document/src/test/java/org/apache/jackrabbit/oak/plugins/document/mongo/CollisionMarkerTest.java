@@ -87,7 +87,7 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
             // expected
         }
 
-        String rootId = Utils.getIdFromPath("/");
+        String rootId = Utils.getIdFromPath("/", ns2.getDocumentStore().getMetadata());
         NodeDocument root = ns2.getDocumentStore().find(NODES, rootId);
         assertFalse("root document must not have a collision marker for a" +
                 " committed revision", root.getValueMap(COLLISIONS).containsKey(head));
