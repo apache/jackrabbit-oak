@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
+import java.util.Collections;
+
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.junit.Assert.assertEquals;
@@ -29,7 +31,7 @@ import static org.junit.Assert.assertNotNull;
 
 public class SplitOperationsTest extends BaseDocumentMKTest {
 
-    private static final String ROOT_ID = Utils.getIdFromPath("/");
+    private static final String ROOT_ID = Utils.getIdFromPath("/", Collections.emptyMap());
 
     @Override
     public void initDocumentMK() {

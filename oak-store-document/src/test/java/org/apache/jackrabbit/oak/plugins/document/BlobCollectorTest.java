@@ -86,7 +86,7 @@ public class BlobCollectorTest {
         }
 
         NodeDocument doc =
-                store.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/x/y"));
+                store.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/x/y", store.getDocumentStore().getMetadata()));
         List<ReferencedBlob> collectedBlobs = Lists.newArrayList();
         blobCollector.collect(doc, collectedBlobs);
 

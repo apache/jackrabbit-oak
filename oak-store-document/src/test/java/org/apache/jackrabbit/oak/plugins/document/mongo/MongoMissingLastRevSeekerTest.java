@@ -84,7 +84,7 @@ public class MongoMissingLastRevSeekerTest {
         // populate the store
         List<UpdateOp> ops = Lists.newArrayList();
         for (int i = 0; i < NUM_DOCS; i++) {
-            UpdateOp op = new UpdateOp(getIdFromPath("/node-" + i), true);
+            UpdateOp op = new UpdateOp(getIdFromPath("/node-" + i, store.getMetadata()), true);
             NodeDocument.setModified(op, new Revision(i * 5000, 0, 1));
             ops.add(op);
         }
@@ -96,7 +96,7 @@ public class MongoMissingLastRevSeekerTest {
         for (NodeDocument doc : seeker.getCandidates(0)) {
             if (!updated) {
                 // as soon as we have the first document, update /node-0
-                UpdateOp op = new UpdateOp(getIdFromPath("/node-0"), false);
+                UpdateOp op = new UpdateOp(getIdFromPath("/node-0", store.getMetadata()), false);
                 // and push out the _modified timestamp
                 NodeDocument.setModified(op, new Revision(NUM_DOCS * 5000, 0, 1));
                 // even after the update the document matches the query

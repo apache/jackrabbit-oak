@@ -46,17 +46,17 @@ public class ValueMapTest {
 
     @Test
     public void previousDocs1() {
-        String rootId = Utils.getIdFromPath(ROOT);
-        Revision r0 = new Revision(0, 0, 1);
         MemoryDocumentStore store = new MemoryDocumentStore();
+        String rootId = Utils.getIdFromPath(ROOT, store.getMetadata());
+        Revision r0 = new Revision(0, 0, 1);
         // create previous docs
-        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r0, 0), true);
+        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r0, 0, store.getMetadata()), true);
         op.setMapEntry("prop", r0, "0");
         NodeDocument.setRevision(op, r0, "c");
         store.createOrUpdate(NODES, op);
         Revision r1low = new Revision(1, 0, 1);
         Revision r1high = new Revision(1, 10, 1);
-        op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r1high, 0), true);
+        op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r1high, 0, store.getMetadata()), true);
         for (int i = r1low.getCounter(); i <= r1high.getCounter(); i++) {
             Revision r = new Revision(1, i, 1);
             op.setMapEntry("foo", r, String.valueOf(i));
@@ -88,7 +88,7 @@ public class ValueMapTest {
     @Test
     public void previousDocs2() {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        String rootId = Utils.getIdFromPath(ROOT);
+        String rootId = Utils.getIdFromPath(ROOT, store.getMetadata());
         Revision r01 = new Revision(0, 0, 1);
         Revision r12 = new Revision(1, 0, 2);
         Revision r22 = new Revision(2, 0, 2);
@@ -96,14 +96,14 @@ public class ValueMapTest {
         Revision r42 = new Revision(4, 0, 2);
         Revision r51 = new Revision(5, 0, 1);
         // create previous docs
-        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r31, 0), true);
+        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r31, 0, store.getMetadata()), true);
         op.setMapEntry("p0", r01, "0");
         NodeDocument.setRevision(op, r01, "c");
         op.setMapEntry("p1", r31, "1");
         NodeDocument.setRevision(op, r31, "c");
         store.createOrUpdate(NODES, op);
 
-        op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r42, 0), true);
+        op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r42, 0, store.getMetadata()), true);
         op.setMapEntry("p1", r12, "0");
         NodeDocument.setRevision(op, r12, "c");
         op.setMapEntry("p1", r22, "1");
@@ -126,8 +126,8 @@ public class ValueMapTest {
         List<NodeDocument> prevDocs = Lists.newArrayList(
                 doc.getPreviousDocs("p1", null));
         assertEquals(2, prevDocs.size());
-        assertEquals(Utils.getPreviousIdFor(ROOT, r31, 0), prevDocs.get(0).getId());
-        assertEquals(Utils.getPreviousIdFor(ROOT, r42, 0), prevDocs.get(1).getId());
+        assertEquals(Utils.getPreviousIdFor(ROOT, r31, 0, store.getMetadata()), prevDocs.get(0).getId());
+        assertEquals(Utils.getPreviousIdFor(ROOT, r42, 0, store.getMetadata()), prevDocs.get(1).getId());
 
         List<Revision> revs = new ArrayList<Revision>();
         for (Revision r : doc.getValueMap("p1").keySet()) {
@@ -141,7 +141,7 @@ public class ValueMapTest {
     public void mergeSorted() throws Exception {
         DocumentNodeStore store = new DocumentMK.Builder().setAsyncDelay(0).getNodeStore();
         DocumentStore docStore = store.getDocumentStore();
-        String id = Utils.getIdFromPath("/");
+        String id = Utils.getIdFromPath("/", docStore.getMetadata());
         
         List<NodeBuilder> branches = Lists.newArrayList();
         int i = 0;
@@ -188,18 +188,18 @@ public class ValueMapTest {
         Range range1 = new Range(r7, r5, 0);
         Range range2 = new Range(r4, r1, 0);
         
-        String prevId1 = Utils.getPreviousIdFor(ROOT, range1.high, 0);
+        String prevId1 = Utils.getPreviousIdFor(ROOT, range1.high, 0, store.getMetadata());
         UpdateOp prevOp1 = new UpdateOp(prevId1, true);
         NodeDocument.setRevision(prevOp1, r5, "c");
         NodeDocument.setRevision(prevOp1, r7, "c");
 
-        String prevId2 = Utils.getPreviousIdFor(ROOT, range2.high, 0);
+        String prevId2 = Utils.getPreviousIdFor(ROOT, range2.high, 0, store.getMetadata());
         UpdateOp prevOp2 = new UpdateOp(prevId2, true);
         NodeDocument.setRevision(prevOp2, r1, "c");
         NodeDocument.setRevision(prevOp2, r2, "c");
         NodeDocument.setRevision(prevOp2, r4, "c");
 
-        String rootId = Utils.getIdFromPath("/");
+        String rootId = Utils.getIdFromPath("/", store.getMetadata());
         UpdateOp op = new UpdateOp(rootId, true);
         NodeDocument.setRevision(op, r3, "c");
         NodeDocument.setRevision(op, r6, "c");

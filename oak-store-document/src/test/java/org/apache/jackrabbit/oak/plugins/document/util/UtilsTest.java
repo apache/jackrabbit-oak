@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 import org.apache.commons.codec.binary.Hex;
@@ -81,19 +79,19 @@ public class UtilsTest {
     public void getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         assertEquals("2:p/" + r.toString() + "/0",
-                Utils.getPreviousIdFor(Path.ROOT, r, 0));
+                Utils.getPreviousIdFor(Path.ROOT, r, 0, Collections.emptyMap()));
         assertEquals("3:p/test/" + r.toString() + "/1",
-                Utils.getPreviousIdFor(Path.fromString("/test"), r, 1));
+                Utils.getPreviousIdFor(Path.fromString("/test"), r, 1, Collections.emptyMap()));
         assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
-                Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3));
+                Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, Collections.emptyMap()));
     }
 
     @Test
     public void previousDoc() throws Exception{
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
-        assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b")));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0, Collections.emptyMap())));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, Collections.emptyMap())));
+        assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b", Collections.emptyMap())));
         assertFalse(Utils.isPreviousDocId("foo"));
         assertFalse(Utils.isPreviousDocId("0:"));
     }
@@ -101,10 +99,10 @@ public class UtilsTest {
     @Test
     public void leafPreviousDoc() throws Exception {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0)));
-        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
-        assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b")));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0, Collections.emptyMap())));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0, Collections.emptyMap())));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, Collections.emptyMap())));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b", Collections.emptyMap())));
         assertFalse(Utils.isLeafPreviousDocId("foo"));
         assertFalse(Utils.isLeafPreviousDocId("0:"));
         assertFalse(Utils.isLeafPreviousDocId(":/0"));
@@ -112,19 +110,56 @@ public class UtilsTest {
 
     @Test
     public void getParentIdFromLowerLimit() throws Exception{
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"))));
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar"));
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"), Collections.emptyMap()), Collections.emptyMap()));
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar", Collections.emptyMap()));
     }
 
     @Test
     public void getParentId() throws Exception{
         Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
-        assertTrue(Utils.isLongPath(longPath));
+        assertTrue(Utils.isLongPath(longPath, Collections.emptyMap()));
 
-        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath, Collections.emptyMap()), Collections.emptyMap()));
 
-        assertNull(Utils.getParentId(Utils.getIdFromPath(Path.ROOT)));
-        assertEquals("1:/foo", Utils.getParentId("2:/foo/bar"));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(Path.ROOT, Collections.emptyMap()), Collections.emptyMap()));
+        assertEquals("1:/foo", Utils.getParentId("2:/foo/bar", Collections.emptyMap()));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getParentIdForLongPathWithNodeNameLimit() {
+        Path longPath = Path.fromString(LONG_PATH);
+        assertTrue(Utils.isLongPath(longPath, Collections.emptyMap()));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getParentIdForLongPathWithInvalidNodeNameLimit() {
+        Path longPath = Path.fromString(LONG_PATH);
+        assertTrue(Utils.isLongPath(longPath, ImmutableMap.of(SIZE_LIMIT, "103we")));
+    }
+
+    @Test
+    public void getParentIdForLongPathWithoutNodeNameLimit() {
+        Path longPath = Path.fromString(LONG_PATH);
+        final Map<String, String> metadata = ImmutableMap.of(SIZE_LIMIT, String.valueOf(Integer.MAX_VALUE));
+        assertTrue(Utils.isLongPath(longPath, metadata));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath, metadata), metadata));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getIdFromLongPathWithNodeNameLimit() {
+        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, Collections.emptyMap()), Collections.emptyMap()));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getIdFromLongPathWithInvalidNodeNameLimit() {
+        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, ImmutableMap.of(SIZE_LIMIT, "103we")), ImmutableMap.of(SIZE_LIMIT, "103we")));
+    }
+
+    @Test
+    public void getParentIdForLongStringPathWithoutNodeNameLimit() {
+        final Map<String, String> metadata = ImmutableMap.of(SIZE_LIMIT, String.valueOf(Integer.MAX_VALUE));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, metadata), metadata));
+
     }
 
     @Test
@@ -154,11 +189,11 @@ public class UtilsTest {
         Path path = Path.fromString("/some/test/path/foo");
         // warm up
         for (int i = 0; i < 1 * 1000 * 1000; i++) {
-            Utils.getPreviousIdFor(path, r, 0);
+            Utils.getPreviousIdFor(path, r, 0, Collections.emptyMap());
         }
         long time = System.currentTimeMillis();
         for (int i = 0; i < 10 * 1000 * 1000; i++) {
-            Utils.getPreviousIdFor(path, r, 0);
+            Utils.getPreviousIdFor(path, r, 0, Collections.emptyMap());
         }
         time = System.currentTimeMillis() - time;
         System.out.println(time);
@@ -307,7 +342,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
         NodeDocument.setLastRev(op, lastRev1);
         NodeDocument.setLastRev(op, lastRev2);
         UpdateUtils.applyChanges(doc, op);
@@ -332,7 +367,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
         NodeDocument.setLastRev(op, lastRev1);
         NodeDocument.setLastRev(op, lastRev2);
         UpdateUtils.applyChanges(doc, op);
@@ -362,7 +397,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
         NodeDocument.setLastRev(op, lastRev1);
         NodeDocument.setLastRev(op, lastRev2);
         UpdateUtils.applyChanges(doc, op);
@@ -389,7 +424,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
         NodeDocument.setLastRev(op, lastRev1);
         UpdateUtils.applyChanges(doc, op);
 
@@ -407,10 +442,10 @@ public class UtilsTest {
     @Test
     public void isIdFromLongPath() {
         Path path = Path.fromString("/test");
-        while (!Utils.isLongPath(path)) {
+        while (!Utils.isLongPath(path, Collections.emptyMap())) {
             path = new Path(path, path.getName());
         }
-        String idFromLongPath = Utils.getIdFromPath(path);
+        String idFromLongPath = Utils.getIdFromPath(path, Collections.emptyMap());
         assertTrue(Utils.isIdFromLongPath(idFromLongPath));
         assertFalse(Utils.isIdFromLongPath("foo"));
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MIN_ID_VALUE));
@@ -482,7 +517,7 @@ public class UtilsTest {
         // store is empty -> fine
         Utils.checkRevisionAge(store, info, clock);
 
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
         NodeDocument.setLastRev(op, new Revision(clock.getTime(), 0, 1));
         assertTrue(store.create(Collection.NODES, Collections.singletonList(op)));
 
@@ -490,7 +525,7 @@ public class UtilsTest {
         Utils.checkRevisionAge(store, info, clock);
 
         long lastRevTime = clock.getTime();
-        op = new UpdateOp(Utils.getIdFromPath("/"), false);
+        op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), false);
         NodeDocument.setLastRev(op, new Revision(lastRevTime, 0, 2));
         assertNotNull(store.findAndUpdate(Collection.NODES, op));
 

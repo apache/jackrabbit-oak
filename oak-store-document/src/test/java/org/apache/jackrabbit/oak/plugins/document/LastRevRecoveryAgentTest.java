@@ -254,7 +254,7 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
 
     private static NodeDocument getDocument(DocumentNodeStore nodeStore,
                                             String path) {
-        return nodeStore.getDocumentStore().find(NODES, getIdFromPath(path));
+        return nodeStore.getDocumentStore().find(NODES, getIdFromPath(path, nodeStore.getDocumentStore().getMetadata()));
     }
 
     private static void merge(DocumentNodeStore store, NodeBuilder builder)

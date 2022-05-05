@@ -317,7 +317,7 @@ public class VersionGarbageCollectorIT {
         }
         // trigger another split, now that we have 10 previous docs
         // this will create an intermediate previous doc
-        store.addSplitCandidate(Utils.getIdFromPath("/test"));
+        store.addSplitCandidate(Utils.getIdFromPath("/test", store.getDocumentStore().getMetadata()));
         store.runBackgroundOperations();
 
         Map<Revision, Range> prevRanges = getDoc("/test").getPreviousRanges();
@@ -426,7 +426,7 @@ public class VersionGarbageCollectorIT {
         builder.child("test").setProperty("prop", -1);
         merge(store, builder);
 
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getDocumentStore().getMetadata());
         long start = Revision.getCurrentTimestamp();
         // simulate continuous writes once a second for one day
         // collect garbage older than one hour
@@ -533,7 +533,7 @@ public class VersionGarbageCollectorIT {
         }
         assertEquals(1, names.size());
 
-        doc = ds.find(NODES, Utils.getIdFromPath("/" + names.get(0)));
+        doc = ds.find(NODES, Utils.getIdFromPath("/" + names.get(0), store.getDocumentStore().getMetadata()));
         assertNotNull(doc);
         assertEquals(0, Iterators.size(doc.getAllPreviousDocs()));
 
@@ -588,14 +588,14 @@ public class VersionGarbageCollectorIT {
             merge(store, builder);
             RevisionVector head = store.getHeadRevision();
             for (UpdateOp op : SplitOperations.forDocument(
-                    ds.find(NODES, Utils.getIdFromPath("/foo")), store, head,
+                    ds.find(NODES, Utils.getIdFromPath("/foo", ds.getMetadata())), store, head,
                     NO_BINARY, 2)) {
                 ds.createOrUpdate(NODES, op);
             }
             clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
         }
         store.runBackgroundOperations();
-        NodeDocument foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
+        NodeDocument foo = ds.find(NODES, Utils.getIdFromPath("/foo", ds.getMetadata()));
         assertNotNull(foo);
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
@@ -625,12 +625,12 @@ public class VersionGarbageCollectorIT {
             ds.invalidateCache(NODES, id);
         }
 
-        foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
+        foo = ds.find(NODES, Utils.getIdFromPath("/foo", ds.getMetadata()));
         assertNotNull(foo);
         Iterators.size(foo.getAllPreviousDocs());
 
         // foo must now reflect state after GC
-        foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
+        foo = ds.find(NODES, Utils.getIdFromPath("/foo", ds.getMetadata()));
         assertNotEquals(modCount, foo.getModCount());
     }
 
@@ -875,7 +875,7 @@ public class VersionGarbageCollectorIT {
 
         String nodeName = "foo";
         Path path = new Path(Path.ROOT, nodeName);
-        String docId = Utils.getIdFromPath(path);
+        String docId = Utils.getIdFromPath(path, store.getDocumentStore().getMetadata());
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child(nodeName).setProperty("p", -1);
@@ -963,7 +963,7 @@ public class VersionGarbageCollectorIT {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(name);
         merge(store, builder);
-        String id = Utils.getIdFromPath("/" + name);
+        String id = Utils.getIdFromPath("/" + name, ds.getMetadata());
         int i = 0;
         while (ds.find(NODES, id).getPreviousRanges().isEmpty()) {
             builder = store.getRoot().builder();
@@ -983,6 +983,6 @@ public class VersionGarbageCollectorIT {
     }
 
     private NodeDocument getDoc(Path path) {
-        return store.getDocumentStore().find(NODES, Utils.getIdFromPath(path), 0);
+        return store.getDocumentStore().find(NODES, Utils.getIdFromPath(path, store.getDocumentStore().getMetadata()), 0);
     }
 }

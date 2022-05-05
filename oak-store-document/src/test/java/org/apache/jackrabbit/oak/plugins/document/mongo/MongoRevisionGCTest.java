@@ -134,7 +134,7 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
             b.child("child").remove();
             merge(ns, b);
             ns.runBackgroundOperations();
-            NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath("/child"));
+            NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath("/child", ns.getDocumentStore().getMetadata()));
             assertNotNull(doc);
             for (Iterator<NodeDocument> it = getAllPreviousDocs(doc); it.hasNext(); ) {
                 prev = it.next();

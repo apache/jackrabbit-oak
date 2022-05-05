@@ -101,6 +101,8 @@ public class Utils {
 
     private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
 
+    private static final String SIMPLE_INTEGER_REG_EX = "\\d+";
+
     /**
      * A predicate for property and _deleted names.
      */
@@ -276,9 +278,9 @@ public class Utils {
         return !key.startsWith("_") || key.startsWith("__") || key.startsWith("_$");
     }
 
-    public static String getIdFromPath(@NotNull String path) {
+    public static String getIdFromPath(@NotNull String path, @NotNull Map<String, String> metadata) {
         int depth = Utils.pathDepth(path);
-        if (isLongPath(path)) {
+        if (isLongPath(path, metadata)) {
             String parent = PathUtils.getParentPath(path);
             byte[] hash = createSHA256Digest(parent);
             return createHashedId(depth, hash, PathUtils.getName(path));
@@ -286,11 +288,11 @@ public class Utils {
         return depth + ":" + path;
     }
 
-    public static String getIdFromPath(@NotNull Path path) {
+    public static String getIdFromPath(@NotNull Path path, @NotNull Map<String, String> metadata) {
         checkNotNull(path);
         int depth = getIdDepth(path);
         Path parent = path.getParent();
-        if (parent != null && isLongPath(path)) {
+        if (parent != null && isLongPath(path, metadata)) {
             byte[] hash = createSHA256Digest(parent.toString());
             return createHashedId(depth, hash, path.getName());
         }
@@ -338,11 +340,13 @@ public class Utils {
      *     <li>If id is for root path</li>
      *     <li>If id is for an invalid path</li>
      * </ul>
-     * @param id id for which parent id needs to be determined
+     *
+     * @param id       id for which parent id needs to be determined
+     * @param metadata
      * @return parent id. null if parent id cannot be determined
      */
     @Nullable
-    public static String getParentId(String id){
+    public static String getParentId(String id, Map<String, String> metadata){
         if(Utils.isIdFromLongPath(id)){
             return null;
         }
@@ -354,10 +358,10 @@ public class Utils {
             return null;
         }
         String parentPath = PathUtils.getParentPath(path);
-        return Utils.getIdFromPath(parentPath);
+        return Utils.getIdFromPath(parentPath, metadata);
     }
 
-    private static boolean isLongPath(String path) {
+    private static boolean isLongPath(String path, Map<String, String> metadata) {
         // the most common case: a short path
         // avoid calculating the parent path
         if (path.length() < PATH_SHORT) {
@@ -378,7 +382,7 @@ public class Utils {
         return isLongPath(path) && path.getName().getBytes(UTF_8).length > sizeLimit;
     }
 
-    public static boolean isLongPath(Path path) {
+    public static boolean isLongPath(Path path, Map<String, String> metadata) {
         // the most common case: a short path
         // avoid calculating the parent path
         if (path.length() < PATH_SHORT) {
@@ -430,8 +434,8 @@ public class Utils {
         return new Path(prev, String.valueOf(height));
     }
 
-    public static String getPreviousIdFor(Path path, Revision r, int height) {
-        return getIdFromPath(getPreviousPathFor(path, r, height));
+    public static String getPreviousIdFor(Path path, Revision r, int height, Map<String, String> metadata) {
+        return getIdFromPath(getPreviousPathFor(path, r, height), metadata);
     }
 
     /**
@@ -489,11 +493,12 @@ public class Utils {
      * Returns the lower key limit to retrieve the children of the given
      * <code>path</code>.
      *
-     * @param path a path.
+     * @param path     a path.
+     * @param metadata
      * @return the lower key limit.
      */
-    public static String getKeyLowerLimit(Path path) {
-        String from = getIdFromPath(new Path(path, "a"));
+    public static String getKeyLowerLimit(Path path, Map<String, String> metadata) {
+        String from = getIdFromPath(new Path(path, "a"), metadata);
         from = from.substring(0, from.length() - 1);
         return from;
     }
@@ -502,11 +507,12 @@ public class Utils {
      * Returns the upper key limit to retrieve the children of the given
      * <code>path</code>.
      *
-     * @param path a path.
+     * @param path     a path.
+     * @param metadata
      * @return the upper key limit.
      */
-    public static String getKeyUpperLimit(Path path) {
-        String to = getIdFromPath(new Path(path, "z"));
+    public static String getKeyUpperLimit(Path path, Map<String, String> metadata) {
+        String to = getIdFromPath(new Path(path, "z"), metadata);
         to = to.substring(0, to.length() - 2) + "0";
         return to;
     }
@@ -515,17 +521,18 @@ public class Utils {
      * Returns parentId extracted from the fromKey. fromKey is usually constructed
      * using Utils#getKeyLowerLimit
      *
-     * @param fromKey key used as start key in queries
+     * @param fromKey  key used as start key in queries
+     * @param metadata
      * @return parentId if possible.
      */
     @Nullable
-    public static String getParentIdFromLowerLimit(String fromKey){
+    public static String getParentIdFromLowerLimit(String fromKey, Map<String, String> metadata){
         //If key just ends with slash 2:/foo/ then append a fake
         //name to create a proper id
         if(fromKey.endsWith("/")){
             fromKey = fromKey + "a";
         }
-        return getParentId(fromKey);
+        return getParentId(fromKey, metadata);
     }
 
     /**
@@ -682,7 +689,7 @@ public class Utils {
      */
     @NotNull
     public static NodeDocument getRootDocument(@NotNull DocumentStore store) {
-        String rootId = Utils.getIdFromPath(Path.ROOT);
+        String rootId = Utils.getIdFromPath(Path.ROOT, store.getMetadata());
         NodeDocument root = store.find(Collection.NODES, rootId);
         if (root == null) {
             throw new IllegalStateException("missing root document");
@@ -788,7 +795,7 @@ public class Utils {
     }
 
     /**
-     * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
+     * Transforms the given paths into ids using {@link #getIdFromPath(String, Map)}.
      */
     public static Iterable<String> pathToId(@NotNull Iterable<String> paths) {
         return transform(paths, input -> getIdFromPath(input));
@@ -1045,7 +1052,7 @@ public class Utils {
                                         ClusterNodeInfo info,
                                         Clock clock)
             throws DocumentStoreException {
-        NodeDocument root = store.find(Collection.NODES, getIdFromPath(Path.ROOT));
+        NodeDocument root = store.find(Collection.NODES, getIdFromPath(Path.ROOT, store.getMetadata()));
         if (root == null) {
             return;
         }

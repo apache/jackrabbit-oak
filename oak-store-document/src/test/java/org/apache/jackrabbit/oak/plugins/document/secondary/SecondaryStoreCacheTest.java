@@ -275,7 +275,7 @@ public class SecondaryStoreCacheTest {
     }
 
     private NodeDocument getNodeDocument(String path) {
-        return primary.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
+        return primary.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path, primary.getDocumentStore().getMetadata()));
     }
 
     private SecondaryStoreBuilder createBuilder(PathFilter pathFilter) {

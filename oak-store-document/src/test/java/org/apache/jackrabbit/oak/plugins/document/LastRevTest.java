@@ -61,7 +61,7 @@ public class LastRevTest {
 
     private static void assertLastRevSize(DocumentStore store,
                                           String path, int size) {
-        NodeDocument doc = store.find(NODES, getIdFromPath(path));
+        NodeDocument doc = store.find(NODES, getIdFromPath(path, store.getMetadata()));
         assertNotNull(doc);
         assertEquals("_lastRev: " + doc.getLastRev(), size, doc.getLastRev().size());
     }
