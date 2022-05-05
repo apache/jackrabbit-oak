@@ -54,7 +54,7 @@ public class ElasticTestServer implements AutoCloseable {
         // Setup a new ES container if elasticsearchContainer is null or not running
         if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
             LOG.info("Starting ES test server");
-            setup();
+            esTestServer.setup();
             // Check if the ES container started, if not then cleanup and throw an execption
             // No need to run the tests further since they will anyhow fail.
             if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
@@ -69,7 +69,7 @@ public class ElasticTestServer implements AutoCloseable {
         return elasticsearchContainer;
     }
 
-    private static synchronized void setup() {
+    private synchronized void setup() {
         final String pluginVersion = "7.16.3.0";
         final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
         final String localPluginPath = "target/" + pluginFileName;
@@ -98,7 +98,7 @@ public class ElasticTestServer implements AutoCloseable {
         elasticsearchContainer = null;
     }
 
-    private static void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
+    private void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
         File pluginFile = new File(localPluginPath);
         if (!pluginFile.exists()) {
             LOG.info("Plugin file {} doesn't exist. Trying to download.", localPluginPath);
@@ -130,7 +130,7 @@ public class ElasticTestServer implements AutoCloseable {
         }
     }
 
-    private static void checkIfDockerClientAvailable() {
+    private void checkIfDockerClientAvailable() {
         DockerClient client = null;
         try {
             client = DockerClientFactory.instance().client();
