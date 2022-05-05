@@ -44,23 +44,32 @@ public class ElasticTestServer implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
     private static final String PLUGIN_DIGEST = "db479aeee452b2a0f6e3c619ecdf27ca5853e54e7bc787e5c56a49899c249240";
-    private static ElasticTestServer esTestServer;
-    private volatile ElasticsearchContainer elasticsearchContainer;
+    private static ElasticTestServer esTestServer = new ElasticTestServer();
+    private static volatile ElasticsearchContainer elasticsearchContainer;
 
-    public static synchronized ElasticTestServer getESTestServer() {
-            if (esTestServer == null) {
-                LOG.info("Starting ES test server");
-                esTestServer = new ElasticTestServer();
-                esTestServer.setup();
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    LOG.info("Stopping global ES test server.");
-                    esTestServer.close();
-                }));
-            }
-            return esTestServer;
+    private ElasticTestServer() {
     }
 
-    private synchronized  void setup() {
+    public static synchronized ElasticsearchContainer getESTestServer() {
+        // Setup a new ES container if elasticsearchContainer is null or not running
+        if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
+            LOG.info("Starting ES test server");
+            setup();
+            // Check if the ES container started, if not then cleanup and throw an execption
+            // No need to run the tests further since they will anyhow fail.
+            if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
+                esTestServer.close();
+                throw new RuntimeException("Unable to start ES container after retries. Any further tests will fail");
+            }
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                LOG.info("Stopping global ES test server.");
+                esTestServer.close();
+            }));
+        }
+        return elasticsearchContainer;
+    }
+
+    private static synchronized void setup() {
         final String pluginVersion = "7.16.3.0";
         final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
         final String localPluginPath = "target/" + pluginFileName;
@@ -71,7 +80,8 @@ public class ElasticTestServer implements AutoCloseable {
                 .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                 .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
                 .withCommand("bash /tmp/elasticstartscript.sh")
-                .withNetwork(network);
+                .withNetwork(network)
+                .withStartupAttempts(3);
         elasticsearchContainer.start();
     }
 
@@ -88,7 +98,7 @@ public class ElasticTestServer implements AutoCloseable {
         elasticsearchContainer = null;
     }
 
-    private void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
+    private static void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
         File pluginFile = new File(localPluginPath);
         if (!pluginFile.exists()) {
             LOG.info("Plugin file {} doesn't exist. Trying to download.", localPluginPath);
@@ -120,7 +130,7 @@ public class ElasticTestServer implements AutoCloseable {
         }
     }
 
-    private void checkIfDockerClientAvailable() {
+    private static void checkIfDockerClientAvailable() {
         DockerClient client = null;
         try {
             client = DockerClientFactory.instance().client();
@@ -129,10 +139,6 @@ public class ElasticTestServer implements AutoCloseable {
                     ", Elastic tests will be skipped");
         }
         assumeNotNull(client);
-    }
-
-    public ElasticsearchContainer container() {
-        return elasticsearchContainer;
     }
 
 }
