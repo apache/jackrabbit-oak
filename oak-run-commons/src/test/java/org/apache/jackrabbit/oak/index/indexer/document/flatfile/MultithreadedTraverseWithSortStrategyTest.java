@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Test;
@@ -32,8 +32,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.MultithreadedTraverseWithSortStrategy.DirectoryHelper;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.junit.Assert.assertEquals;
 
 public class MultithreadedTraverseWithSortStrategyTest {
@@ -44,7 +44,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
                 lastModifiedBreakpoints, null, null, null, null, true, null,
-                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, path -> true) {
+                FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
 
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore, ConcurrentLinkedQueue<String> completedTasks) throws IOException {
@@ -104,7 +104,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
                 null, null, null, null, workDirs, true, null,
-                FlatFileNodeStoreBuilder.DEFAULT_DUMP_THRESHOLD, path -> true) {
+                FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                          BlobStore blobStore, ConcurrentLinkedQueue<String> completedTasks) throws IOException {
