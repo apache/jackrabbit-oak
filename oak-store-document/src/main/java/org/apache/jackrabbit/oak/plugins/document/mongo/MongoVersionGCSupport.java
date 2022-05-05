@@ -216,7 +216,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // only remove those older than sweep rev
         List<Bson> orClauses = Lists.newArrayList();
         for (Revision r : sweepRevs) {
-            String idSuffix = Utils.getPreviousIdFor(Path.ROOT, r, 0);
+            String idSuffix = Utils.getPreviousIdFor(Path.ROOT, r, 0, store.getMetadata());
             idSuffix = idSuffix.substring(idSuffix.lastIndexOf('-'));
 
             // id/path constraint for previous documents

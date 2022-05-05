@@ -114,10 +114,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.*;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -255,6 +252,7 @@ public class MongoDocumentStore implements DocumentStore {
         metadata = ImmutableMap.<String,String>builder()
                 .put("type", "mongo")
                 .put("version", status.getVersion())
+                .put("sizeLimit", String.valueOf(getSizeLimit(status.getVersion())))
                 .build();
 
         this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
@@ -690,7 +688,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
         Bson query = Filters.and(clauses);
-        String parentId = Utils.getParentIdFromLowerLimit(fromKey);
+        String parentId = Utils.getParentIdFromLowerLimit(fromKey, metadata);
         long lockTime = -1;
         final Stopwatch watch = startWatch();
 

@@ -47,8 +47,8 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
     public void concurrent() throws Exception {
         final long time = System.currentTimeMillis();
         mk.commit("/", "+\"test\":{}", null, null);
-        final String id = Utils.getIdFromPath("/test");
         final DocumentStore docStore = mk.getDocumentStore();
+        final String id = Utils.getIdFromPath("/test", docStore.getMetadata());
         List<Thread> threads = new ArrayList<Thread>();
         for (int i = 0; i < NUM_THREADS; i++) {
             final int tId = i;
@@ -131,8 +131,8 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
 
     @Test
     public void negativeCache() throws Exception {
-        String id = Utils.getIdFromPath("/test");
         DocumentStore docStore = mk.getDocumentStore();
+        String id = Utils.getIdFromPath("/test", docStore.getMetadata());
         assertNull(docStore.find(NODES, id));
         mk.commit("/", "+\"test\":{}", null, null);
         assertNotNull(docStore.find(NODES, id));
@@ -146,7 +146,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         // make sure _lastRev is persisted and _modCount updated accordingly
         mk.runBackgroundOperations();
 
-        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test", docStore.getMetadata()));
         assertNotNull(doc);
         Long mc1 = doc.getModCount();
         assertNotNull(mc1);
@@ -156,7 +156,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         } catch (DocumentStoreException e) {
             // expected
         }
-        doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
+        doc = docStore.find(NODES, Utils.getIdFromPath("/test", docStore.getMetadata()));
         assertNotNull(doc);
         Long mc2 = doc.getModCount();
         assertNotNull(mc2);
@@ -167,7 +167,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
     @Test
     public void create() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getMetadata());
         UpdateOp updateOp = new UpdateOp(id, true);
         Revision r1 = Revision.newRevision(1);
         updateOp.setMapEntry("p", r1, "a");
@@ -188,7 +188,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
     @Test
     public void createWithNull() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getMetadata());
         UpdateOp updateOp = new UpdateOp(id, true);
         Revision r1 = Revision.newRevision(1);
         updateOp.setMapEntry("p", r1, "a");

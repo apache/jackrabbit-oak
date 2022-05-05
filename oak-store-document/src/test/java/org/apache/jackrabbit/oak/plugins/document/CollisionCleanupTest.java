@@ -84,7 +84,7 @@ public class CollisionCleanupTest {
         tasks.add(new Updater(ns2));
         executor.invokeAll(tasks);
 
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getMetadata());
         ns1.addSplitCandidate(id);
         ns1.runBackgroundOperations();
         ns2.addSplitCandidate(id);
@@ -103,7 +103,7 @@ public class CollisionCleanupTest {
         b1.child("test");
         merge(ns1, b1);
 
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getMetadata());
         Revision other = new Revision(r.getTimestamp(), r.getCounter(), r.getClusterId() + 1);
         // add lots of old collisions
         UpdateOp op = new UpdateOp(id, false);
@@ -143,7 +143,7 @@ public class CollisionCleanupTest {
         assertThat(doc.getLocalMap(COLLISIONS).keySet(), hasSize(1));
 
         // must not clean up marker
-        ns1.addSplitCandidate(Utils.getIdFromPath("/"));
+        ns1.addSplitCandidate(Utils.getIdFromPath("/", store.getMetadata()));
         ns1.runBackgroundOperations();
 
         doc = Utils.getRootDocument(ns1.getDocumentStore());

@@ -109,7 +109,7 @@ public class VisibleChangesTest {
     }
 
     private static int getRevisionsSize(DocumentStore store, String path) {
-        NodeDocument doc = store.find(Collection.NODES, getIdFromPath(path));
+        NodeDocument doc = store.find(Collection.NODES, getIdFromPath(path, store.getMetadata()));
         assertNotNull(doc);
         return doc.getLocalRevisions().size();
     }

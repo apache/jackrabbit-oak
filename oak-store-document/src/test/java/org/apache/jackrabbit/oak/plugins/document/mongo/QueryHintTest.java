@@ -76,8 +76,8 @@ public class QueryHintTest extends AbstractMongoConnectionTest {
         assertTrue(mongoDS.canUseModifiedTimeIdx(10));
 
         mongoDS.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT),
-                Utils.getKeyUpperLimit(Path.ROOT),
+                Utils.getKeyLowerLimit(Path.ROOT, mongoDS.getMetadata()),
+                Utils.getKeyUpperLimit(Path.ROOT, mongoDS.getMetadata()),
                 NodeDocument.MODIFIED_IN_SECS,
                 50,
                 10);

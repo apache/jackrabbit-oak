@@ -91,7 +91,7 @@ public class CollisionTest {
         createCollision(mk1);
         createCollision(mk2);
 
-        String id = getIdFromPath("/");
+        String id = getIdFromPath("/", store.getMetadata());
         assertEquals(2, getDocument(store, id).getLocalMap(COLLISIONS).size());
 
         // restart node store
@@ -120,7 +120,7 @@ public class CollisionTest {
         DocumentNodeStore ns = newBuilder()
                 .setAsyncDelay(0).getNodeStore();
         DocumentStore store = ns.getDocumentStore();
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getMetadata());
 
         NodeBuilder b = ns.getRoot().builder();
         b.child("test").setProperty("p", "a");
@@ -211,7 +211,7 @@ public class CollisionTest {
         retainBranches(ns);
         ns.dispose();
         
-        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         assertThat(root.getLocalBranchCommits(), not(empty()));
 
@@ -225,7 +225,7 @@ public class CollisionTest {
                 .setUpdateLimit(10).build();
         ns.updateClusterState();
 
-        root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         // on init the DocumentNodeStore removes orphaned
         // branch commit entries on the root document
@@ -233,7 +233,7 @@ public class CollisionTest {
 
         // but some changes are still there
         Path p = Path.fromString("/n-0");
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p, store.getMetadata()));
         assertNotNull(doc);
         assertThat(doc.getLocalBranchCommits(), not(empty()));
 
@@ -265,13 +265,13 @@ public class CollisionTest {
         ns1.dispose();
         ns2.updateClusterState();
 
-        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         assertThat(root.getLocalBranchCommits(), not(empty()));
 
         // but some changes are still there
         Path p = Path.fromString("/n-0");
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p, store.getMetadata()));
         assertNotNull(doc);
         assertThat(doc.getLocalBranchCommits(), not(empty()));
 
@@ -281,7 +281,7 @@ public class CollisionTest {
 
         // must create a collision marker for a branch commit because
         // it is not known when ns1 was stopped
-        root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         assertThat(root.getLocalMap(COLLISIONS).keySet(), not(empty()));
     }
@@ -304,7 +304,7 @@ public class CollisionTest {
         retainBranches(ns1);
         ns1.dispose();
 
-        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         assertThat(root.getLocalBranchCommits(), not(empty()));
 
@@ -317,7 +317,7 @@ public class CollisionTest {
                 .setDocumentStore(store).setAsyncDelay(0)
                 .setUpdateLimit(10).setClusterId(1).build();
 
-        root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         // on init the DocumentNodeStore removes orphaned
         // branch commit entries on the root document
@@ -325,7 +325,7 @@ public class CollisionTest {
 
         // but some changes are still there
         Path p = Path.fromString("/n-0");
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p, store.getMetadata()));
         assertNotNull(doc);
         assertThat(doc.getLocalBranchCommits(), not(empty()));
 
@@ -359,7 +359,7 @@ public class CollisionTest {
         retainBranches(ns1);
         ns1.dispose();
 
-        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         assertThat(root.getLocalBranchCommits(), not(empty()));
 
@@ -372,7 +372,7 @@ public class CollisionTest {
                 .setDocumentStore(store).setAsyncDelay(0)
                 .setUpdateLimit(updateLimit).setClusterId(1).build();
 
-        root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        root = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         assertNotNull(root);
         // on init the DocumentNodeStore removes orphaned
         // branch commit entries on the root document
@@ -380,7 +380,7 @@ public class CollisionTest {
 
         // but some changes are still there
         Path p = Path.fromString("/n-0");
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p, store.getMetadata()));
         assertNotNull(doc);
         assertThat(doc.getLocalBranchCommits(), not(empty()));
 
@@ -400,7 +400,7 @@ public class CollisionTest {
     }
 
     private static void assertNoCollisions(DocumentStore store, Path p) {
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p, store.getMetadata()));
         assertNotNull(doc);
         assertThat(doc.getLocalMap(COLLISIONS).keySet(), empty());
     }

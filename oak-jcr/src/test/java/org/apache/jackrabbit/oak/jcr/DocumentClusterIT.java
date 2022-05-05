@@ -125,7 +125,7 @@ public abstract class DocumentClusterIT {
         for (DocumentMK mk : mks) {
             mk.getNodeStore().runBackgroundOperations();
         }
-        String id = Utils.getIdFromPath("/");
+        String id = Utils.getIdFromPath("/", Collections.emptyMap());
         // in the second round each MK will pick up changes from the others
         for (DocumentMK mk : mks) {
             // invalidate root document to make sure background read

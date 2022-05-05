@@ -216,7 +216,7 @@ public class DocumentNodeStoreSweepTest {
         crashDocumentNodeStore();
         // and remove the sweep revision for clusterId
         // this will look like an upgraded and crashed pre 1.8 node store
-        UpdateOp op = new UpdateOp(getIdFromPath(Path.ROOT), false);
+        UpdateOp op = new UpdateOp(getIdFromPath(Path.ROOT, store.getMetadata()), false);
         op.removeMapEntry("_sweepRev", new Revision(0, 0, clusterId));
         assertNotNull(store.findAndUpdate(Collection.NODES, op));
         NodeDocument rootDoc = getRootDocument(store);

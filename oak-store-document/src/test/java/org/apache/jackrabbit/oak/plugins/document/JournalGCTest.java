@@ -129,7 +129,7 @@ public class JournalGCTest {
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
-        String testId = Utils.getIdFromPath("/test");
+        String testId = Utils.getIdFromPath("/test", docStore.getMetadata());
         for (int i = 0; ; i++) {
             NodeBuilder child = test.child("child-" + i);
             for (int j = 0; j < 10; j++) {

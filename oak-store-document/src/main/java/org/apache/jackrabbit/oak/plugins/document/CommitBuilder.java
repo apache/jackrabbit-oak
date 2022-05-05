@@ -285,7 +285,7 @@ class CommitBuilder {
     private UpdateOp getUpdateOperationForNode(Path path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
-            op = createUpdateOp(path, revision, isBranchCommit());
+            op = createUpdateOp(path, revision, isBranchCommit(), nodeStore.getDocumentStore().getMetadata());
             operations.put(path, op);
         }
         return op;
@@ -293,8 +293,9 @@ class CommitBuilder {
 
     private static UpdateOp createUpdateOp(Path path,
                                            Revision revision,
-                                           boolean isBranch) {
-        String id = Utils.getIdFromPath(path);
+                                           boolean isBranch,
+                                           Map<String, String> metadata) {
+        String id = Utils.getIdFromPath(path, metadata);
         UpdateOp op = new UpdateOp(id, false);
         NodeDocument.setModified(op, revision);
         if (isBranch) {

@@ -200,6 +200,24 @@ public class MongoUtilsTest {
         }
     }
 
+    @Test
+    public void getSizeLimitForMongo4() {
+        int sizeLimit = MongoUtils.getSizeLimit("4.0.0");
+        assertEquals(150, sizeLimit);
+    }
+
+    @Test
+    public void getSizeLimitForMongo3() {
+        int sizeLimit = MongoUtils.getSizeLimit("3.5.0");
+        assertEquals(150, sizeLimit);
+    }
+
+    @Test
+    public void getSizeLimitForMongo4_2() {
+        int sizeLimit = MongoUtils.getSizeLimit("4.2.0");
+        assertEquals(Integer.MAX_VALUE, sizeLimit);
+    }
+
     private static MongoCommandException newMongoCommandException(int code) {
         return new MongoCommandException(response(code), new ServerAddress());
     }

@@ -640,7 +640,7 @@ public final class DocumentNodeStore
         diffCache = builder.getDiffCache(this.clusterId);
 
         // check if root node exists
-        NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
         if (rootDoc == null) {
             if (readOnlyMode) {
                 throw new DocumentStoreException("Unable to initialize a " +
@@ -664,7 +664,7 @@ public final class DocumentNodeStore
             setRoot(head);
             // make sure _lastRev is written back to store
             backgroundWrite();
-            rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+            rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT, store.getMetadata()));
             // at this point the root document must exist
             if (rootDoc == null) {
                 throw new IllegalStateException("Root document does not exist");
@@ -1410,12 +1410,12 @@ public final class DocumentNodeStore
     private Iterable<NodeDocument> readChildDocs(@NotNull final Path path,
                                                  @NotNull String name,
                                                  final int limit) {
-        final String to = Utils.getKeyUpperLimit(checkNotNull(path));
+        final String to = Utils.getKeyUpperLimit(checkNotNull(path), store.getMetadata());
         final String from;
         if (name.isEmpty()) {
-            from = Utils.getKeyLowerLimit(path);
+            from = Utils.getKeyLowerLimit(path, store.getMetadata());
         } else {
-            from = Utils.getIdFromPath(new Path(path, name));
+            from = Utils.getIdFromPath(new Path(path, name), store.getMetadata());
         }
         return store.query(Collection.NODES, from, to, limit);
     }
@@ -1452,7 +1452,7 @@ public final class DocumentNodeStore
                     // declares the child to exist, while its node state is
                     // null. Let's put some extra effort to do some logging
                     // and invalidate the affected cache entries.
-                    String id = Utils.getIdFromPath(p);
+                    String id = Utils.getIdFromPath(p, store.getMetadata());
                     String cachedDocStr = docAsString(id, true);
                     String uncachedDocStr = docAsString(id, false);
                     nodeCache.invalidate(new PathRev(p, readRevision));
@@ -1491,7 +1491,7 @@ public final class DocumentNodeStore
     @Nullable
     private DocumentNodeState readNode(Path path, RevisionVector readRevision) {
         final long start = PERFLOG.start();
-        String id = Utils.getIdFromPath(path);
+        String id = Utils.getIdFromPath(path, store.getMetadata());
         Revision lastRevision = getPendingModifications().get(path);
         NodeDocument doc = store.find(Collection.NODES, id);
         if (doc == null) {
@@ -1530,7 +1530,7 @@ public final class DocumentNodeStore
             // determine the revision for the nodeChildrenCache entry when
             // the node is new. Fallback to after revision in case document
             // is not in the cache. (OAK-4715)
-            NodeDocument doc = store.getIfCached(NODES, getIdFromPath(path));
+            NodeDocument doc = store.getIfCached(NODES, getIdFromPath(path, store.getMetadata()));
             RevisionVector afterLastRev = after;
             if (doc != null) {
                 afterLastRev = new RevisionVector(doc.getLastRev().values());
@@ -1571,7 +1571,7 @@ public final class DocumentNodeStore
                     // Invalidate the relevant cache entries. (OAK-6294)
                     LOG.warn("Before state is missing {}. Invalidating " +
                             "affected cache entries.", key);
-                    store.invalidateCache(NODES, Utils.getIdFromPath(p));
+                    store.invalidateCache(NODES, Utils.getIdFromPath(p, store.getMetadata()));
                     nodeCache.invalidate(key);
                     nodeChildrenCache.invalidate(childNodeCacheKey(path, lastRev, ""));
                     beforeState = null;
@@ -1804,7 +1804,7 @@ public final class DocumentNodeStore
             revs.add(ancestorRev);
         }
         revs.addAll(b.getCommits().tailSet(ancestorRev));
-        UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath(ROOT), false);
+        UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath(ROOT, store.getMetadata()), false);
         // reset each branch commit in reverse order
         Map<Path, UpdateOp> operations = Maps.newHashMap();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
@@ -1826,7 +1826,7 @@ public final class DocumentNodeStore
             LOG.debug("reset: comparing branch {} with base {}",
                     branchState.getRootRevision(), baseState.getRootRevision());
             branchState.compareAgainstBaseState(baseState,
-                    new ResetDiff(previous.asTrunkRevision(), operations));
+                    new ResetDiff(previous.asTrunkRevision(), operations, store.getMetadata()));
             LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
             for (List<UpdateOp> ops : partition(operations.values(), getCreateOrUpdateBatchSize())) {
@@ -1858,7 +1858,7 @@ public final class DocumentNodeStore
         MergeCommit commit = newMergeCommit(base, numBranchCommits);
         try {
             // make branch commits visible
-            UpdateOp op = new UpdateOp(Utils.getIdFromPath(ROOT), false);
+            UpdateOp op = new UpdateOp(Utils.getIdFromPath(ROOT, store.getMetadata()), false);
             NodeDocument.setModified(op, commit.getRevision());
             if (b != null) {
                 // check the branch age and fail the commit
@@ -2363,7 +2363,7 @@ public final class DocumentNodeStore
         return new ExternalChange(this) {
             @Override
             void invalidateCache(@NotNull Iterable<String> paths) {
-                stats.cacheStats = store.invalidateCache(pathToId(paths));
+                stats.cacheStats = store.invalidateCache(pathToId(paths, store.getMetadata()));
             }
 
             @Override
@@ -2442,7 +2442,7 @@ public final class DocumentNodeStore
         while ((b = branches.pollOrphanedBranch()) != null) {
             LOG.debug("Cleaning up orphaned branch with base revision: {}, " + 
                     "commits: {}", b.getBase(), b.getCommits());
-            UpdateOp op = new UpdateOp(Utils.getIdFromPath(ROOT), false);
+            UpdateOp op = new UpdateOp(Utils.getIdFromPath(ROOT, store.getMetadata()), false);
             for (Revision r : b.getCommits()) {
                 r = r.asTrunkRevision();
                 NodeDocument.removeRevision(op, r);
@@ -2453,7 +2453,7 @@ public final class DocumentNodeStore
     }
 
     private void cleanRootCollisions() {
-        String id = Utils.getIdFromPath(ROOT);
+        String id = Utils.getIdFromPath(ROOT, store.getMetadata());
         NodeDocument root = store.find(NODES, id);
         if (root != null) {
             cleanCollisions(root, Integer.MAX_VALUE);
@@ -3332,8 +3332,8 @@ public final class DocumentNodeStore
             }
         }
         long minValue = NodeDocument.getModifiedInSecs(minTimestamp);
-        String fromKey = Utils.getKeyLowerLimit(path);
-        String toKey = Utils.getKeyUpperLimit(path);
+        String fromKey = Utils.getKeyLowerLimit(path, store.getMetadata());
+        String toKey = Utils.getKeyUpperLimit(path, store.getMetadata());
         Set<Path> paths = Sets.newHashSet();
 
         LOG.debug("diffManyChildren: path: {}, fromRev: {}, toRev: {}", path, fromRev, toRev);

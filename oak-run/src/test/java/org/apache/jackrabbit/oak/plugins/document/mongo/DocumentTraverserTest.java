@@ -24,12 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
-import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.Path;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.*;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
@@ -52,9 +47,9 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
     public void getAllDocuments() throws Exception{
         assumeTrue(ds instanceof MongoDocumentStore);
         ds.create(Collection.NODES, asList(
-                newDocument("/a/b", 1),
-                newDocument("/a/c", 1),
-                newDocument("/d", 1)
+                newDocument("/a/b", 1, ds),
+                newDocument("/a/c", 1, ds),
+                newDocument("/d", 1, ds)
         ));
 
         ds.invalidateCache();
@@ -73,15 +68,15 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
         assertThat(paths, containsInAnyOrder("/a/b", "/a/c"));
 
 
-        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/b")));
-        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/c")));
+        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/b", ds.getMetadata())));
+        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/c", ds.getMetadata())));
 
         // Excluded id should not be cached
-        assertNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/d")));
+        assertNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/d", ds.getMetadata())));
     }
 
-    private static UpdateOp newDocument(String path, long modified) {
-        String id = Utils.getIdFromPath(path);
+    private static UpdateOp newDocument(String path, long modified, DocumentStore ds) {
+        String id = Utils.getIdFromPath(path, ds.getMetadata());
         UpdateOp op = new UpdateOp(id, true);
         op.set(NodeDocument.MODIFIED_IN_SECS, modified);
         return op;
