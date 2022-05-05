@@ -16,16 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
+import co.elastic.clients.transport.ElasticsearchTransport;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.RestHighLevelClientBuilder;
+import org.elasticsearch.core.Tuple;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -62,7 +69,9 @@ public class ElasticConnection implements Closeable {
     private final String apiKeyId;
     private final String apiKeySecret;
 
-    private volatile RestHighLevelClient client;
+    private volatile RestHighLevelClient hlClient;
+    private volatile ElasticsearchClient esClient;
+    private volatile ElasticsearchAsyncClient esAsyncClient;
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
@@ -90,15 +99,21 @@ public class ElasticConnection implements Closeable {
         this.apiKeySecret = apiKeySecret;
     }
 
-    public RestHighLevelClient getClient() {
+    /**
+     * Instantiates both RHL client (old) and the Java client by sharing the REST High Level Client transport layer
+     * to follow the proposed migration strategy:
+     * https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/7.16/migrate-hlrc.html
+     * It double-checks locking to get good performance and avoid double initialization
+     */
+    public Tuple<Tuple<ElasticsearchClient, ElasticsearchAsyncClient>, RestHighLevelClient> getClients() {
         if (isClosed.get()) {
             throw new IllegalStateException("Already closed");
         }
-
+        
         // double-checked locking to get good performance and avoid double initialization
-        if (client == null) {
+        if (esClient == null) {
             synchronized (this) {
-                if (client == null) {
+                if (esClient == null) {
                     RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme));
                     if (apiKeyId != null && !apiKeyId.isEmpty() &&
                             apiKeySecret != null && !apiKeySecret.isEmpty()) {
@@ -108,11 +123,41 @@ public class ElasticConnection implements Closeable {
                         Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
                         builder.setDefaultHeaders(headers);
                     }
-                    client = new RestHighLevelClient(builder);
+                    RestClient httpClient = builder.build();
+                    hlClient = new RestHighLevelClientBuilder(httpClient).setApiCompatibilityMode(true).build();
+
+                    ElasticsearchTransport transport = new RestClientTransport(
+                            httpClient, new JacksonJsonpMapper());
+                    esClient = new ElasticsearchClient(transport);
+                    esAsyncClient = new ElasticsearchAsyncClient(transport);
                 }
             }
         }
-        return client;
+        return Tuple.tuple(Tuple.tuple(esClient, esAsyncClient), hlClient);
+    }
+
+    /**
+     * Gets the Elasticsearch Client
+     * @return the Elasticsearch client
+     */
+    public ElasticsearchClient getClient() {
+        return getClients().v1().v1();
+    }
+
+    /**
+     * Gets the Elasticsearch Asynchronous Client
+     * @return the Elasticsearch client
+     */
+    public ElasticsearchAsyncClient getAsyncClient() {
+        return getClients().v1().v2();
+    }
+
+    /**
+     * @deprecated
+     * @return the old Elasticsearch client
+     */
+    public RestHighLevelClient getOldClient() {
+        return getClients().v2();
     }
 
     public String getIndexPrefix() {
@@ -125,7 +170,7 @@ public class ElasticConnection implements Closeable {
      */
     public boolean isAvailable() {
         try {
-            return this.getClient().ping(RequestOptions.DEFAULT);
+            return this.getClient().ping().value();
         } catch (Exception e) {
             LOG.warn("Error checking connection for {}, message: {}", this, e.getMessage());
             LOG.debug("", e);
@@ -135,8 +180,11 @@ public class ElasticConnection implements Closeable {
 
     @Override
     public synchronized void close() throws IOException {
-        if (client != null) {
-            client.close();
+        if (esClient != null) {
+        	esClient._transport().close();
+        }
+        if (hlClient != null) {
+            hlClient.close();
         }
         isClosed.set(true);
     }

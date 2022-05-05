@@ -33,8 +33,9 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.version>7.16.3</elasticsearch.version>
-    <lucene.version>8.10.1</lucene.version>
+    <elasticsearch.version>7.17.2</elasticsearch.version>
+    <lucene.version>8.11.1</lucene.version>
+	<jackson.version>2.12.3</jackson.version>
   </properties>
 
   <build>
@@ -118,6 +119,16 @@
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-client</artifactId>
       <version>${elasticsearch.version}</version>
+    </dependency>
+	<dependency>
+      <groupId>co.elastic.clients</groupId>
+      <artifactId>elasticsearch-java</artifactId>
+      <version>${elasticsearch.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch</groupId>
@@ -205,16 +216,6 @@
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
       <scope>provided</scope>
-    </dependency>
-
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
     </dependency>
 
     <!-- Test Dependencies -->

@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,19 +72,19 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     }
 
     @Override
-    public void on(ElasticResponseHandler.SearchResponseHit searchHit) {
+    public void on(Hit<ObjectNode> searchHit) {
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
             for (String field: facetFields) {
-                Object value = searchHit.source.get(field);
+                String value = searchHit.source().get(field).asText();
                 if (value != null) {
                     facetsMap.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
                             Map<String, Integer> values = new HashMap<>();
-                            values.put(value.toString(), 1);
+                            values.put(value, 1);
                             return values;
                         } else {
-                            facetValues.merge(value.toString(), 1, Integer::sum);
+                            facetValues.merge(value, 1, Integer::sum);
                             return facetValues;
                         }
                     });

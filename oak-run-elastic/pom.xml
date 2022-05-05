@@ -35,9 +35,9 @@
         <groovy.version>2.4.17</groovy.version>
         <!--
         Size History:
-        105 MB : Seeting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
+        120 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
         -->
-        <max.jar.size>105000000</max.jar.size>
+        <max.jar.size>121000000</max.jar.size>
                       
     </properties>
 

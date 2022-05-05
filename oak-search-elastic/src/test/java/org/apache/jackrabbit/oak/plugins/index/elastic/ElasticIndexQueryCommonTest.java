@@ -48,40 +48,39 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
     }
 
     @Test
-    public void descendantTestWithIndexTagExplain() throws Exception {
+    public void descendantTestWithIndexTagExplain() {
         List<String> result = executeQuery(
                     "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)", Query.JCR_SQL2);
         assertEquals("[[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) "
-                + "{\"bool\":{\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}}],"
-                + "\"adjust_pure_negative\":true,\"boost\":1.0}}\n"
+                + "{\"bool\":{\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}}]}}\n"
                 + "  where isdescendantnode([nt:base], [/test]) */]", result.toString());
     }
 
     @Override
-    public String getContainsValueFortestEqualityQuery_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    public String getContainsValueForEqualityQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
-    public String getContainsValueFortestInequalityQuery_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"exists\":{\"field\":\"propa\",\"boost\":1.0}}," +
-                "{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    public String getContainsValueForInequalityQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa\"}}," +
+                "{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
-    public String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native() {
-        return "\"filter\":[{\"exists\":{\"field\":\"propa\",\"boost\":1.0}},{\"bool\":" +
-                "{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    public String getContainsValueForInequalityQueryWithoutAncestorFilter_native() {
+        return "\"filter\":[{\"exists\":{\"field\":\"propa\"}},{\"bool\":" +
+                "{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
-    public String getContainsValueFortestEqualityInequalityCombined_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"term\":{\"propb.keyword\":{\"value\":\"world\",\"boost\":1.0}}}," +
-                "{\"exists\":{\"field\":\"propa\",\"boost\":1.0}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\",\"boost\":1.0}}}]";
+    public String getContainsValueForEqualityInequalityCombined_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"term\":{\"propb.keyword\":{\"value\":\"world\"}}}," +
+                "{\"exists\":{\"field\":\"propa\"}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
-    public String getContainsValueFortestNotNullQuery_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\",\"boost\":1.0}}},{\"exists\":{\"field\":\"propa\",\"boost\":1.0}}]";
+    public String getContainsValueForNotNullQuery_native() {
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa\"}}]";
     }
 }

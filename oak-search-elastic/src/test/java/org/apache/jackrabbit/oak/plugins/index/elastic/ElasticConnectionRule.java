@@ -76,7 +76,7 @@ public class ElasticConnectionRule extends ExternalResource {
         ElasticConnection esConnection = getElasticConnection();
         if (esConnection != null) {
             try {
-                esConnection.getClient().indices().delete(new DeleteIndexRequest(esConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
+                esConnection.getClient().indices().delete(d->d.index(esConnection.getIndexPrefix() + "*"));
                 esConnection.close();
             } catch (IOException e) {
                 LOG.error("Unable to delete indexes with prefix {}", esConnection.getIndexPrefix());

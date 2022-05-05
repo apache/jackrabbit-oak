@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -161,7 +160,7 @@ class ElasticBulkProcessorHandler {
     }
 
     protected BiConsumer<BulkRequest, ActionListener<BulkResponse>> requestConsumer() {
-        return (request, bulkListener) -> elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+        return (request, bulkListener) -> elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
     }
 
     public void add(DocWriteRequest<?> request) {
@@ -308,7 +307,7 @@ class ElasticBulkProcessorHandler {
                     request.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
                     isDataSearchable.set(true);
                 }
-                elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+                elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
             };
         }
 
@@ -322,9 +321,7 @@ class ElasticBulkProcessorHandler {
             if (totalOperations > 0 && !isDataSearchable.get()) {
                 LOG.debug("Forcing refresh");
                 try {
-                    this.elasticConnection.getClient()
-                            .indices()
-                            .refresh(new RefreshRequest(indexName), RequestOptions.DEFAULT);
+                	this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
                     LOG.warn("Error refreshing index " + indexName, e);
                 }
