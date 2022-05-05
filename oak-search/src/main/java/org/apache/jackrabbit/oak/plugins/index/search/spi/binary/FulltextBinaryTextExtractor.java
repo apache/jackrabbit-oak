@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
-
 import com.google.common.collect.Lists;
 import com.google.common.io.CountingInputStream;
 import org.apache.commons.io.IOUtils;
@@ -56,6 +47,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor.TEXT_EXTRACTION_ERROR;
 
@@ -74,6 +74,8 @@ public class FulltextBinaryTextExtractor {
   private final boolean reindex;
   private Parser parser;
   private TikaConfigHolder tikaConfig;
+  private boolean linkageErrorFound;
+  private boolean throwableErrorFound;
   /**
    * The media types supported by the parser used.
    */
@@ -175,12 +177,13 @@ public class FulltextBinaryTextExtractor {
       // not being present. This is equivalent to disabling
       // selected media types in configuration, so we can simply
       // ignore these errors.
-      log.debug(
-          "[{}] Failed to extract text from a binary property: {}."
+      String format = "[{}] Failed to extract text from a binary property: {}."
               + " This often happens when some media types are disabled by configuration."
-              + " The stack trace is included to flag some 'unintended' failures",
-          getIndexName(), path, e);
+              + " The stack trace is included to flag some 'unintended' failures";
+      String indexName = getIndexName();
+      log.warn(format, linkageErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, e});
       extractedTextCache.put(v, ExtractedText.ERROR);
+      linkageErrorFound = true;
       return TEXT_EXTRACTION_ERROR;
     } catch (TimeoutException t) {
       log.warn(
@@ -193,13 +196,14 @@ public class FulltextBinaryTextExtractor {
       // Capture and report any other full text extraction problems.
       // The special STOP exception is used for normal termination.
       if (!handler.isWriteLimitReached(t)) {
-        log.debug(
-            "[{}] Failed to extract text from a binary property: {}."
+        String format = "[{}] Failed to extract text from a binary property: {}."
                 + " This is a fairly common case, and nothing to"
                 + " worry about. The stack trace is included to"
-                + " help improve the text extraction feature.",
-            getIndexName(), path, t);
+                + " help improve the text extraction feature.";
+        String indexName = getIndexName();
+        log.warn(format, throwableErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, t});
         extractedTextCache.put(v, ExtractedText.ERROR);
+        throwableErrorFound = true;
         return TEXT_EXTRACTION_ERROR;
       } else {
         log.debug("Extracted text size exceeded configured limit({})", definition.getMaxExtractLength());

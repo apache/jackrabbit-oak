@@ -19,6 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import com.google.common.io.ByteSource;
+import com.google.common.io.CountingInputStream;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.sax.WriteOutContentHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -33,17 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
-import com.google.common.io.ByteSource;
-import com.google.common.io.CountingInputStream;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.sax.WriteOutContentHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class TextExtractor implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(TextExtractor.class);
@@ -79,6 +79,8 @@ class TextExtractor implements Closeable {
     private boolean initialized;
     private BinaryStats stats;
     private boolean closed;
+    private boolean linkageErrorFound;
+    private boolean throwableErrorFound;
 
     public TextExtractor(TextWriter textWriter) {
         this.textWriter = textWriter;
@@ -270,10 +272,11 @@ class TextExtractor implements Closeable {
             // not being present. This is equivalent to disabling
             // selected media types in configuration, so we can simply
             // ignore these errors.
-            log.debug("Failed to extract text from a binary property: {}."
+            String format = "Failed to extract text from a binary property: {}."
                             + " This often happens when some media types are disabled by configuration."
-                            + " The stack trace is included to flag some 'unintended' failures",
-                    path, e);
+                            + " The stack trace is included to flag some 'unintended' failures";
+            log.warn(format, linkageErrorFound ? path : new Object[]{path, e});
+            linkageErrorFound = true;
             parserErrorCount.incrementAndGet();
             return ERROR_TEXT;
         } catch (Throwable t) {
@@ -281,11 +284,12 @@ class TextExtractor implements Closeable {
             // The special STOP exception is used for normal termination.
             if (!handler.isWriteLimitReached(t)) {
                 parserErrorCount.incrementAndGet();
-                parserError.debug("Failed to extract text from a binary property: "
-                        + path
+                String format = "Failed to extract text from a binary property: {}"
                         + " This is a fairly common case, and nothing to"
                         + " worry about. The stack trace is included to"
-                        + " help improve the text extraction feature.", t);
+                        + " help improve the text extraction feature.";
+                parserError.warn(format, throwableErrorFound ? path : new Object[]{path, t});
+                throwableErrorFound = true;
                 return ERROR_TEXT;
             } else {
                 parserError.debug("Extracted text size exceeded configured limit({})", maxExtractedLength);
