@@ -264,7 +264,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         List<Query> queries = parseQuery(statement, language, context, mappings);
 
         long actualLimit = getValue(queries, limit, Query::getLimit, Long.MAX_VALUE);
-        long actualOffset = getValue(queries, limit, Query::getOffset, 0L);
+        long actualOffset = getValue(queries, offset, Query::getOffset, 0L);
 
         for (Query q : queries) {
             q.setExecutionContext(context);
