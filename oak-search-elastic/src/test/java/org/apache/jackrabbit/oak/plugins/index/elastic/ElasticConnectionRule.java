@@ -56,7 +56,7 @@ public class ElasticConnectionRule extends ExternalResource {
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
         if (elasticConnectionString == null || getElasticConnectionFromString() == null) {
-            elastic = ElasticTestServer.getESTestServer().container();
+            elastic = ElasticTestServer.getESTestServer();
             setUseDocker(true);
         }
         return s;
