@@ -55,7 +55,7 @@ public class ElasticTestServer implements AutoCloseable {
         if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
             LOG.info("Starting ES test server");
             esTestServer.setup();
-            // Check if the ES container started, if not then cleanup and throw an execption
+            // Check if the ES container started, if not then cleanup and throw an exception
             // No need to run the tests further since they will anyhow fail.
             if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
                 esTestServer.close();
