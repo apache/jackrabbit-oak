@@ -71,7 +71,7 @@ class UnmergedBranches {
         if (!initialized.compareAndSet(false, true)) {
             throw new IllegalStateException("already initialized");
         }
-        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT));
+        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT, store.getMetadata()));
         if (doc == null) {
             return;
         }

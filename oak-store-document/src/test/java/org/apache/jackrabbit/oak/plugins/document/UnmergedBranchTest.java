@@ -92,7 +92,8 @@ public class UnmergedBranchTest {
     }
 
     private NodeDocument getRootDoc(DocumentMK mk){
-        return mk.getNodeStore().getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/"));
+        return mk.getNodeStore().getDocumentStore().find(Collection.NODES,
+                Utils.getIdFromPath("/", mk.getDocumentStore().getMetadata()));
     }
 
     private DocumentMK create(DocumentStore ds, int clusterId){

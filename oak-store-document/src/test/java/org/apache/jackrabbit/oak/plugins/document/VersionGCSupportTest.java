@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Iterables;
@@ -97,7 +98,7 @@ public class VersionGCSupportTest {
         long offset = SECONDS.toMillis(42);
         for (int i = 0; i < 5; i++) {
             Revision r = new Revision(offset + SECONDS.toMillis(i), 0, 1);
-            String id = Utils.getIdFromPath("/doc-" + i);
+            String id = Utils.getIdFromPath("/doc-" + i, store.getMetadata());
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             NodeDocument.setModified(op, r);
@@ -132,7 +133,7 @@ public class VersionGCSupportTest {
         long secs = 123456;
         long offset = SECONDS.toMillis(secs);
         Revision r = new Revision(offset, 0, 1);
-        String id = Utils.getIdFromPath("/doc-del");
+        String id = Utils.getIdFromPath("/doc-del", store.getMetadata());
         ids.add(id);
         UpdateOp op = new UpdateOp(id, true);
         NodeDocument.setModified(op, r);

@@ -190,4 +190,15 @@ class MongoUtils {
         }
         return type;
     }
+
+    /**
+     * Util method to get node size limit for current mongo version
+     *
+     * @param version version of current mongo db
+     * @return size limit based on mongo db version
+     */
+    static int getSizeLimit(String version) {
+        final MongoVersion mv = MongoVersion.of(version);
+        return mv.compareTo(MongoVersion.MONGO_4_0_0) > 0 ? Integer.MAX_VALUE : 150;
+    }
 }

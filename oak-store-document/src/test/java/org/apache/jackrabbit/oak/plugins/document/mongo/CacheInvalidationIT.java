@@ -149,7 +149,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     }
 
     private static void refreshHead(DocumentNodeStore store) {
-        ds(store).find(Collection.NODES, Utils.getIdFromPath("/"), 0);
+        ds(store).find(Collection.NODES, Utils.getIdFromPath("/", store.getDocumentStore().getMetadata()), 0);
     }
 
 

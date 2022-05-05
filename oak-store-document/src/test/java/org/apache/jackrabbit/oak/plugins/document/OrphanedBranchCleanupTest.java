@@ -100,7 +100,7 @@ public class OrphanedBranchCleanupTest {
 
     private void createOrphanedBranch(DocumentNodeStore ns) {
         DocumentStore store = ns.getDocumentStore();
-        String id = Utils.getIdFromPath("/test");
+        String id = Utils.getIdFromPath("/test", store.getMetadata());
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
         for (int i = 0; store.find(NODES, id) == null; i++) {
