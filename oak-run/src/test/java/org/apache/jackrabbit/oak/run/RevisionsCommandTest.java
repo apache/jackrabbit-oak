@@ -127,7 +127,7 @@ public class RevisionsCommandTest {
         DocumentNodeStoreBuilder<?> builder = builderProvider.newBuilder()
                 .setMongoDB(c.getMongoClient(), c.getDBName());
         DocumentStore store = builder.getDocumentStore();
-        UpdateOp op = new UpdateOp(getIdFromPath("/", store.getMetadata()), false);
+        UpdateOp op = new UpdateOp(getIdFromPath("/", store.getSizeLimit()), false);
         op.removeMapEntry("_sweepRev", new Revision(0, 0, clusterId));
         assertNotNull(store.findAndUpdate(Collection.NODES, op));
 

@@ -63,7 +63,7 @@ public class ManyClusterNodesTest {
     @Test
     public void manyMultiValuedPropertyChanges() throws Exception {
         String value = "some-long-value-that-will-bloat-the-document";
-        String id = Utils.getIdFromPath("/test", ds.getMetadata());
+        String id = Utils.getIdFromPath("/test", ds.getSizeLimit());
         for (int i = 0; i < 1000; i++) {
             DocumentNodeStore ns = stores.get(i % NUM_CLUSTER_NODES);
             ns.runBackgroundOperations();

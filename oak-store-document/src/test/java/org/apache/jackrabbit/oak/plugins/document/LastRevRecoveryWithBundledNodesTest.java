@@ -103,7 +103,7 @@ public class LastRevRecoveryWithBundledNodesTest {
         merge(ns, builder);
         ns.runBackgroundOperations();
 
-        String id = Utils.getIdFromPath(Path.fromString("/file/" + JCR_CONTENT), store.getMetadata());
+        String id = Utils.getIdFromPath(Path.fromString("/file/" + JCR_CONTENT), store.getSizeLimit());
         store.remove(Collection.NODES, id);
 
         log.starting();

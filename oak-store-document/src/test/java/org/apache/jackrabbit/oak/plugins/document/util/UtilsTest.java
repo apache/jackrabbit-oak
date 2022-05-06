@@ -66,6 +66,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
 
 /**
  * Tests for {@link Utils}.
@@ -79,19 +80,19 @@ public class UtilsTest {
     public void getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         assertEquals("2:p/" + r.toString() + "/0",
-                Utils.getPreviousIdFor(Path.ROOT, r, 0, Collections.emptyMap()));
+                Utils.getPreviousIdFor(Path.ROOT, r, 0, NODE_NAME_LIMIT));
         assertEquals("3:p/test/" + r.toString() + "/1",
-                Utils.getPreviousIdFor(Path.fromString("/test"), r, 1, Collections.emptyMap()));
+                Utils.getPreviousIdFor(Path.fromString("/test"), r, 1, NODE_NAME_LIMIT));
         assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
-                Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, Collections.emptyMap()));
+                Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, NODE_NAME_LIMIT));
     }
 
     @Test
     public void previousDoc() throws Exception{
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0, Collections.emptyMap())));
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, Collections.emptyMap())));
-        assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b", Collections.emptyMap())));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0, NODE_NAME_LIMIT)));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, NODE_NAME_LIMIT)));
+        assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b", NODE_NAME_LIMIT)));
         assertFalse(Utils.isPreviousDocId("foo"));
         assertFalse(Utils.isPreviousDocId("0:"));
     }
@@ -99,10 +100,10 @@ public class UtilsTest {
     @Test
     public void leafPreviousDoc() throws Exception {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0, Collections.emptyMap())));
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0, Collections.emptyMap())));
-        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, Collections.emptyMap())));
-        assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b", Collections.emptyMap())));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0, NODE_NAME_LIMIT)));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0, NODE_NAME_LIMIT)));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3, NODE_NAME_LIMIT)));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b", NODE_NAME_LIMIT)));
         assertFalse(Utils.isLeafPreviousDocId("foo"));
         assertFalse(Utils.isLeafPreviousDocId("0:"));
         assertFalse(Utils.isLeafPreviousDocId(":/0"));
@@ -110,56 +111,42 @@ public class UtilsTest {
 
     @Test
     public void getParentIdFromLowerLimit() throws Exception{
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"), Collections.emptyMap()), Collections.emptyMap()));
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar", Collections.emptyMap()));
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"), NODE_NAME_LIMIT), NODE_NAME_LIMIT));
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar", NODE_NAME_LIMIT));
     }
 
     @Test
     public void getParentId() throws Exception{
         Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
-        assertTrue(Utils.isLongPath(longPath, Collections.emptyMap()));
+        assertTrue(Utils.isLongPath(longPath, NODE_NAME_LIMIT));
 
-        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath, Collections.emptyMap()), Collections.emptyMap()));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath, NODE_NAME_LIMIT), NODE_NAME_LIMIT));
 
-        assertNull(Utils.getParentId(Utils.getIdFromPath(Path.ROOT, Collections.emptyMap()), Collections.emptyMap()));
-        assertEquals("1:/foo", Utils.getParentId("2:/foo/bar", Collections.emptyMap()));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(Path.ROOT, NODE_NAME_LIMIT), NODE_NAME_LIMIT));
+        assertEquals("1:/foo", Utils.getParentId("2:/foo/bar", NODE_NAME_LIMIT));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void getParentIdForLongPathWithNodeNameLimit() {
         Path longPath = Path.fromString(LONG_PATH);
-        assertTrue(Utils.isLongPath(longPath, Collections.emptyMap()));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void getParentIdForLongPathWithInvalidNodeNameLimit() {
-        Path longPath = Path.fromString(LONG_PATH);
-        assertTrue(Utils.isLongPath(longPath, ImmutableMap.of(SIZE_LIMIT, "103we")));
+        assertTrue(Utils.isLongPath(longPath, NODE_NAME_LIMIT));
     }
 
     @Test
     public void getParentIdForLongPathWithoutNodeNameLimit() {
         Path longPath = Path.fromString(LONG_PATH);
-        final Map<String, String> metadata = ImmutableMap.of(SIZE_LIMIT, String.valueOf(Integer.MAX_VALUE));
-        assertTrue(Utils.isLongPath(longPath, metadata));
-        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath, metadata), metadata));
+        assertTrue(Utils.isLongPath(longPath, Integer.MAX_VALUE));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath, Integer.MAX_VALUE), Integer.MAX_VALUE));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void getIdFromLongPathWithNodeNameLimit() {
-        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, Collections.emptyMap()), Collections.emptyMap()));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void getIdFromLongPathWithInvalidNodeNameLimit() {
-        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, ImmutableMap.of(SIZE_LIMIT, "103we")), ImmutableMap.of(SIZE_LIMIT, "103we")));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, NODE_NAME_LIMIT), NODE_NAME_LIMIT));
     }
 
     @Test
     public void getParentIdForLongStringPathWithoutNodeNameLimit() {
-        final Map<String, String> metadata = ImmutableMap.of(SIZE_LIMIT, String.valueOf(Integer.MAX_VALUE));
-        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, metadata), metadata));
-
+        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH, Integer.MAX_VALUE), Integer.MAX_VALUE));
     }
 
     @Test
@@ -189,11 +176,11 @@ public class UtilsTest {
         Path path = Path.fromString("/some/test/path/foo");
         // warm up
         for (int i = 0; i < 1 * 1000 * 1000; i++) {
-            Utils.getPreviousIdFor(path, r, 0, Collections.emptyMap());
+            Utils.getPreviousIdFor(path, r, 0, NODE_NAME_LIMIT);
         }
         long time = System.currentTimeMillis();
         for (int i = 0; i < 10 * 1000 * 1000; i++) {
-            Utils.getPreviousIdFor(path, r, 0, Collections.emptyMap());
+            Utils.getPreviousIdFor(path, r, 0, NODE_NAME_LIMIT);
         }
         time = System.currentTimeMillis() - time;
         System.out.println(time);
@@ -342,7 +329,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", NODE_NAME_LIMIT), true);
         NodeDocument.setLastRev(op, lastRev1);
         NodeDocument.setLastRev(op, lastRev2);
         UpdateUtils.applyChanges(doc, op);
@@ -367,7 +354,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", NODE_NAME_LIMIT), true);
         NodeDocument.setLastRev(op, lastRev1);
         NodeDocument.setLastRev(op, lastRev2);
         UpdateUtils.applyChanges(doc, op);
@@ -397,7 +384,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", NODE_NAME_LIMIT), true);
         NodeDocument.setLastRev(op, lastRev1);
         NodeDocument.setLastRev(op, lastRev2);
         UpdateUtils.applyChanges(doc, op);
@@ -424,7 +411,7 @@ public class UtilsTest {
 
         // create a root document
         NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", NODE_NAME_LIMIT), true);
         NodeDocument.setLastRev(op, lastRev1);
         UpdateUtils.applyChanges(doc, op);
 
@@ -442,10 +429,10 @@ public class UtilsTest {
     @Test
     public void isIdFromLongPath() {
         Path path = Path.fromString("/test");
-        while (!Utils.isLongPath(path, Collections.emptyMap())) {
+        while (!Utils.isLongPath(path, NODE_NAME_LIMIT)) {
             path = new Path(path, path.getName());
         }
-        String idFromLongPath = Utils.getIdFromPath(path, Collections.emptyMap());
+        String idFromLongPath = Utils.getIdFromPath(path, NODE_NAME_LIMIT);
         assertTrue(Utils.isIdFromLongPath(idFromLongPath));
         assertFalse(Utils.isIdFromLongPath("foo"));
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MIN_ID_VALUE));
@@ -517,7 +504,7 @@ public class UtilsTest {
         // store is empty -> fine
         Utils.checkRevisionAge(store, info, clock);
 
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", NODE_NAME_LIMIT), true);
         NodeDocument.setLastRev(op, new Revision(clock.getTime(), 0, 1));
         assertTrue(store.create(Collection.NODES, Collections.singletonList(op)));
 
@@ -525,7 +512,7 @@ public class UtilsTest {
         Utils.checkRevisionAge(store, info, clock);
 
         long lastRevTime = clock.getTime();
-        op = new UpdateOp(Utils.getIdFromPath("/", Collections.emptyMap()), false);
+        op = new UpdateOp(Utils.getIdFromPath("/", NODE_NAME_LIMIT), false);
         NodeDocument.setLastRev(op, new Revision(lastRevTime, 0, 2));
         assertNotNull(store.findAndUpdate(Collection.NODES, op));
 

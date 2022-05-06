@@ -17,13 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
+import org.apache.jackrabbit.oak.plugins.document.*;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -87,8 +82,9 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
             // expected
         }
 
-        String rootId = Utils.getIdFromPath("/", ns2.getDocumentStore().getMetadata());
-        NodeDocument root = ns2.getDocumentStore().find(NODES, rootId);
+        DocumentStore store = ns2.getDocumentStore();
+        String rootId = Utils.getIdFromPath("/", store.getSizeLimit());
+        NodeDocument root = store.find(NODES, rootId);
         assertFalse("root document must not have a collision marker for a" +
                 " committed revision", root.getValueMap(COLLISIONS).containsKey(head));
     }

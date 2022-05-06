@@ -202,12 +202,12 @@ public class BranchTest {
         merge(ns, builder);
 
         // step 3 : verify that "_bc" are set correctly : on all except /a/b (where nothing was changed)
-        assertNotNull(store.find(NODES, Utils.getIdFromPath("/", store.getMetadata())).get("_bc"));
-        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a", store.getMetadata())).get("_bc"));
-        assertNull(store.find(NODES, Utils.getIdFromPath("/a/b", store.getMetadata())).get("_bc"));
-        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c", store.getMetadata())).get("_bc"));
-        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c/d", store.getMetadata())).get("_bc"));
-        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c/d/e", store.getMetadata())).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/", store.getSizeLimit())).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a", store.getSizeLimit())).get("_bc"));
+        assertNull(store.find(NODES, Utils.getIdFromPath("/a/b", store.getSizeLimit())).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c", store.getSizeLimit())).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c/d", store.getSizeLimit())).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c/d/e", store.getSizeLimit())).get("_bc"));
 
         // step 4 : verify the "_bc" are set correctly by backgroundSweep()/forceBackgroundSweep()
 

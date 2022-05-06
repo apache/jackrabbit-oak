@@ -42,8 +42,8 @@ class LsdDocumentCommand extends CommandSupport{
         assert session.store instanceof DocumentNodeStore
         PrintWriter writer = io.out
         Path path = Path.fromString(session.getWorkingPath());
-        String fromKey = Utils.getKeyLowerLimit(path, store.getDocumentStore().getMetadata());
-        String toKey = Utils.getKeyUpperLimit(path, store.getDocumentStore().getMetadata());
+        String fromKey = Utils.getKeyLowerLimit(path, store.getDocumentStore().getSizeLimit());
+        String toKey = Utils.getKeyUpperLimit(path, store.getDocumentStore().getSizeLimit());
         int num = 0;
         for (NodeDocument doc : store.getDocumentStore().query(
                 NODES, fromKey, toKey, Integer.MAX_VALUE)) {

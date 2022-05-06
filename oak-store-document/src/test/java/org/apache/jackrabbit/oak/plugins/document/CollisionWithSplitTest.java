@@ -103,7 +103,7 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
         }
 
         // attempt to set a property on a removed node
-        String id = Utils.getIdFromPath("/node-0", store.getMetadata());
+        String id = Utils.getIdFromPath("/node-0", store.getSizeLimit());
         UpdateOp op = new UpdateOp(id, false);
         Revision ourRev = ns2.newRevision();
         op.setMapEntry("p", ourRev, "v");

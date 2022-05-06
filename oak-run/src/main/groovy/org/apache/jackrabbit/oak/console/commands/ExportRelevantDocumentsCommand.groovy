@@ -105,7 +105,7 @@ class ExportRelevantDocumentsCommand extends CommandSupport {
     }
 
     private void writeOutDocAndSplits(String currPath, File file) {
-        NodeDocument doc = docStore.find(Collection.NODES, Utils.getIdFromPath(currPath, docStore.getMetadata()))
+        NodeDocument doc = docStore.find(Collection.NODES, Utils.getIdFromPath(currPath, docStore.getSizeLimit()))
 
         if (doc != null) {
             writeOutDoc(doc, file)

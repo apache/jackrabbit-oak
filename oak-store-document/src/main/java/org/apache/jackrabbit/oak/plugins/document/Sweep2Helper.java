@@ -31,7 +31,7 @@ public class Sweep2Helper {
     private static final Logger LOG = LoggerFactory.getLogger(Sweep2Helper.class);
 
     static boolean isSweep2Necessary(DocumentStore store) {
-        NodeDocument rootNodeDoc = store.find(Collection.NODES, Utils.getIdFromPath("/", store.getMetadata()));
+        NodeDocument rootNodeDoc = store.find(Collection.NODES, Utils.getIdFromPath("/", store.getSizeLimit()));
         if (rootNodeDoc == null) {
             // that'd be very weird
             LOG.warn("isSweep2Necessary : cannot get root node - assuming no sweep2 needed");

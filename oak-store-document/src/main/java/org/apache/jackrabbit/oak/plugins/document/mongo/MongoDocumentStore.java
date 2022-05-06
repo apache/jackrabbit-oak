@@ -268,7 +268,6 @@ public class MongoDocumentStore implements DocumentStore {
         metadata = ImmutableMap.<String,String>builder()
                 .put("type", "mongo")
                 .put("version", status.getVersion())
-                .put("sizeLimit", String.valueOf(getSizeLimit(status.getVersion())))
                 .build();
 
         this.nodeNameLimit = MongoUtils.getNodeNameLimit(status);
@@ -705,7 +704,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
         Bson query = Filters.and(clauses);
-        String parentId = Utils.getParentIdFromLowerLimit(fromKey, metadata);
+        String parentId = Utils.getParentIdFromLowerLimit(fromKey, sizeLimit);
         long lockTime = -1;
         final Stopwatch watch = startWatch();
 

@@ -69,7 +69,7 @@ public class DocumentNodeStoreBackgroundUpdateTest {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                         UpdateOp update) {
-                if (!update.getId().equals(Utils.getIdFromPath(Path.ROOT, Collections.emptyMap()))) {
+                if (!update.getId().equals(Utils.getIdFromPath(Path.ROOT, DocumentStore.NODE_NAME_LIMIT))) {
                     return super.findAndUpdate(collection, update);
                 }
                 Lock lock = locks.getOrDefault(Thread.currentThread(), defaultLock);
@@ -138,7 +138,7 @@ public class DocumentNodeStoreBackgroundUpdateTest {
 
         t.join();
 
-        NodeDocument root = failingStore.find(NODES, Utils.getIdFromPath(Path.ROOT, store.getMetadata()));
+        NodeDocument root = failingStore.find(NODES, Utils.getIdFromPath(Path.ROOT, store.getSizeLimit()));
         assertNotNull(root);
         ClusterNodeInfoDocument infoDoc = ClusterNodeInfoDocument.all(failingStore).get(0);
         Revision lastRev = root.getLastRev().get(clusterId);

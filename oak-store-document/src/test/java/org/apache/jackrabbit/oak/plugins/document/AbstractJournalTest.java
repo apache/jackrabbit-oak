@@ -90,7 +90,7 @@ public abstract class AbstractJournalTest {
     }
 
     protected void assertDocCache(DocumentNodeStore ns, boolean expected, String path) {
-        String id = Utils.getIdFromPath(path, ns.getDocumentStore().getMetadata());
+        String id = Utils.getIdFromPath(path, ns.getDocumentStore().getSizeLimit());
         boolean exists = ns.getDocumentStore().getIfCached(Collection.NODES, id)!=null;
         if (exists!=expected) {
             if (expected) {
@@ -170,7 +170,8 @@ public abstract class AbstractJournalTest {
     }
 
     protected NodeDocument getDocument(DocumentNodeStore nodeStore, String path) {
-        return nodeStore.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path, nodeStore.getDocumentStore().getMetadata()));
+        DocumentStore store = nodeStore.getDocumentStore();
+        return store.find(Collection.NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
     }
 
     protected TestBuilder newDocumentMKBuilder() {

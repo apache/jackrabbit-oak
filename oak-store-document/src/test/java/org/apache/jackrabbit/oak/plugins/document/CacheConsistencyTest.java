@@ -65,14 +65,14 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
         mk.commit("/node", "+\"child\":{}", null, null);
 
         // make sure the document is not cached
-        store.invalidateCache(NODES, Utils.getIdFromPath("/node", store.getMetadata()));
+        store.invalidateCache(NODES, Utils.getIdFromPath("/node", store.getSizeLimit()));
 
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 store.query(NODES,
-                        Utils.getKeyLowerLimit(Path.ROOT, store.getMetadata()),
-                        Utils.getKeyUpperLimit(Path.ROOT, store.getMetadata()), 10);
+                        Utils.getKeyLowerLimit(Path.ROOT, store.getSizeLimit()),
+                        Utils.getKeyUpperLimit(Path.ROOT, store.getSizeLimit()), 10);
             }
         });
         // block thread when it tries to convert db objects
