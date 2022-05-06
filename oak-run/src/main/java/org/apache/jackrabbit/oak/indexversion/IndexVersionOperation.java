@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,13 +64,18 @@ public class IndexVersionOperation {
     }
 
     /**
-     * @param indexDefParentNode   NodeState of parent of baseIndex
+     * Generate list of index version operation over a list of indexes have same index base.
+     *
+     * @param rootNode             NodeState of root
+     * @param parentPath           parent path of baseIndex
      * @param indexNameObjectList  This is a list of IndexName Objects with same baseIndexName on which operations will be applied.
      * @param purgeThresholdMillis after which a fully functional index is eligible for purge operations
+     *
      * @return This method returns an IndexVersionOperation list i.e indexNameObjectList marked with operations
      */
-    public static List<IndexVersionOperation> generateIndexVersionOperationList(NodeState indexDefParentNode,
-                                                                                List<IndexName> indexNameObjectList, long purgeThresholdMillis) {
+    public static List<IndexVersionOperation> generateIndexVersionOperationList(NodeState rootNode, String parentPath,
+            List<IndexName> indexNameObjectList, long purgeThresholdMillis) {
+        NodeState indexDefParentNode = NodeStateUtils.getNode(rootNode, parentPath);
         List<IndexName> reverseSortedIndexNameList = getReverseSortedIndexNameList(indexNameObjectList);
         List<IndexVersionOperation> indexVersionOperationList = new LinkedList<>();
 
@@ -86,40 +92,63 @@ public class IndexVersionOperation {
         }
 
         if (!reverseSortedIndexNameList.isEmpty()) {
-            IndexName activeIndexNameObject = reverseSortedIndexNameList.remove(0);
-            NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
-            boolean isActiveIndexLongEnough = isIndexPurgeReady(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
-            int activeProductVersion = activeIndexNameObject.getProductVersion();
-            indexVersionOperationList.add(new IndexVersionOperation(activeIndexNameObject));
+            IndexName activeIndexNameObject = getActiveIndex(reverseSortedIndexNameList, parentPath, rootNode);
+            if (activeIndexNameObject == null) {
+                LOG.warn("Cannot find any active index from the list: {}", reverseSortedIndexNameList);
+            } else {
+                NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
+                boolean isActiveIndexLongEnough = isIndexPurgeReady(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
+                int activeProductVersion = activeIndexNameObject.getProductVersion();
+                indexVersionOperationList.add(new IndexVersionOperation(activeIndexNameObject));
 
             // for rest indexes except active index
-            for (IndexName indexNameObject : reverseSortedIndexNameList) {
-                String indexName = indexNameObject.getNodeName();
-                NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
-                IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
-                // if active index not long enough, NOOP for all indexes
-                if (isActiveIndexLongEnough) {
-                    if (indexNameObject.getProductVersion() == activeProductVersion && indexNameObject.getCustomerVersion() == 0) {
-                        indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
-                    } else {
-                        // the check hidden oak mount logic only works when passing through the proper composite store
-                        if (isHiddenOakMountExists(indexNode)) {
-                            LOG.info("Found hidden oak mount node for: '{}', disable it but no index definition deletion", indexName);
+                for (IndexName indexNameObject : reverseSortedIndexNameList) {
+                    String indexName = indexNameObject.getNodeName();
+                    NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
+                    IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
+                    // if active index not long enough, NOOP for all indexes
+                    if (isActiveIndexLongEnough) {
+                        if (indexNameObject.getProductVersion() == activeProductVersion && indexNameObject.getCustomerVersion() == 0) {
                             indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
-                        } else {
-                            indexVersionOperation.setOperation(Operation.DELETE);
+                        } else if (indexNameObject.getProductVersion() <= activeProductVersion ) {
+                            // the check hidden oak mount logic only works when passing through the proper composite store
+                            if (isHiddenOakMountExists(indexNode)) {
+                                LOG.info("Found hidden oak mount node for: '{}', disable it but no index definition deletion", indexName);
+                                indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
+                            } else {
+                                indexVersionOperation.setOperation(Operation.DELETE);
+                            }
                         }
+                        // if the index product version is larger than active index, leave it as is
+                        // for instance: if there is active damAssetLucene-7, the inactive damAssetLucene-8 will be leave there as is
                     }
+                    LOG.info("The operation for index '{}' will be: '{}'", indexName, indexVersionOperation.getOperation());
+                    indexVersionOperationList.add(indexVersionOperation);
                 }
-                LOG.info("The operation for index '{}' will be: '{}'", indexName, indexVersionOperation.getOperation());
-                indexVersionOperationList.add(indexVersionOperation);
             }
         }
-        if (!isValidIndexVersionOperationList(indexVersionOperationList)) {
+        if (indexVersionOperationList.isEmpty() || !isValidIndexVersionOperationList(indexVersionOperationList)) {
             LOG.info("Not valid version operation list: '{}', skip all", indexNameObjectList);
             indexVersionOperationList = Collections.emptyList();
         }
         return indexVersionOperationList;
+    }
+
+    // iterate all indexes from high version to lower version to find the active index, then remove it from the reverseSortedIndexNameList
+    private static IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList, String parentPath, NodeState rootNode) {
+        for (int i = 0; i < reverseSortedIndexNameList.size(); i++) {
+            IndexName indexNameObject = reverseSortedIndexNameList.get(i);
+            String indexName = indexNameObject.getNodeName();
+            String indexPath = PathUtils.concat(parentPath, PathUtils.getName(indexName));
+            if (IndexName.isIndexActive(indexPath, rootNode)) {
+                LOG.info("Found active index '{}'", indexPath);
+                reverseSortedIndexNameList.remove(i);
+                return indexNameObject;
+            } else {
+                LOG.info("The index '{}' isn't active", indexPath);
+            }
+        }
+        return null;
     }
 
     // do index purge ready based on the active index's last reindexing time is longer enough, we do this for prevent rollback

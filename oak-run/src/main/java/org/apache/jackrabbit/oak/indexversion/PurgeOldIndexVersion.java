@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,10 +83,9 @@ public class PurgeOldIndexVersion {
             String baseIndexPath = entry.getKey();
             String parentPath = PathUtils.getParentPath(baseIndexPath);
             List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
-            LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath,indexNameObjectList);
-            NodeState indexDefParentNode = NodeStateUtils.getNode(nodeStore.getRoot(), parentPath);
+            LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath, indexNameObjectList);
             List<IndexVersionOperation> toDeleteIndexNameObjectList = IndexVersionOperation.generateIndexVersionOperationList(
-                    indexDefParentNode, indexNameObjectList, purgeThresholdMillis);
+                    nodeStore.getRoot(), parentPath, indexNameObjectList, purgeThresholdMillis);
             toDeleteIndexNameObjectList.removeIf(item -> (item.getOperation() == IndexVersionOperation.Operation.NOOP));
             if (!toDeleteIndexNameObjectList.isEmpty()) {
                 LOG.info("Found some index need to be purged over base'{}': '{}'", baseIndexPath, toDeleteIndexNameObjectList);

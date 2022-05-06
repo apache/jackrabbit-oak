@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,9 +55,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
 
 public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";
@@ -86,6 +87,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
+        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-2"));
+
         runIndexPurgeCommand(true, 1, "");
 
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
@@ -117,11 +120,44 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
+            addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-2"));
+
             runIndexPurgeCommand(true, TimeUnit.DAYS.toMillis(1), "");
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
                     containsString("The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't long enough"));
+
+            NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+            Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        } finally {
+            custom.finished();
+        }
+    }
+    @Test
+    public void noDeleteIfNoActiveIndex() throws Exception {
+        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                .enable(Level.INFO)
+                .create();
+        try {
+            custom.starting();
+            createTestData(false);
+            createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
+
+            runIndexPurgeCommand(true, TimeUnit.DAYS.toMillis(1), "");
+
+            List<String> logs = custom.getLogs();
+            assertThat(logs.toString(), containsString("Cannot find any active index from the list: [/oak:index/fooIndex-4-custom-2"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
@@ -160,6 +196,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
                     .removeProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
             store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
+            addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-2"));
+
             runIndexPurgeCommand(true, 1, "");
 
             List<String> logs = custom.getLogs();
@@ -194,6 +232,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
+            addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-2"));
+
             runIndexPurgeCommand(true, 1, "");
 
             List<String> logs = custom.getLogs();
@@ -222,7 +262,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1"));
+        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1", "fooIndex-4-custom-2"));
 
         runIndexPurgeCommand(true, 1, "/oak:index/fooIndex,/oak:index");
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
@@ -253,6 +293,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         createCustomIndex(FOO1_INDEX_PATH, 3, 0, false);
         createCustomIndex(FOO1_INDEX_PATH, 3, 1, false);
         createCustomIndex(FOO1_INDEX_PATH, 3, 2, false);
+
+        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-2"));
 
         runIndexPurgeCommand(true, 1, "/oak:index/fooIndex");
 
@@ -288,6 +330,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
+            addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-2"));
+
             runIndexPurgeCommand(false, 1, "");
 
             List<String> logs = custom.getLogs();
@@ -309,7 +353,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
-        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-3", "fooIndex-3-custom-1"));
+        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-3", "fooIndex-3-custom-1", "fooIndex-4-custom-2"));
 
         runIndexPurgeCommand(true, 1, "");
 
