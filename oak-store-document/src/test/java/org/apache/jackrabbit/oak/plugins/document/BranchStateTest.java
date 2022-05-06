@@ -44,7 +44,7 @@ public class BranchStateTest {
     public void before() {
         ns = builderProvider.newBuilder().getNodeStore();
         store = ns.getDocumentStore();
-        testId = Utils.getIdFromPath("/test", store.getMetadata());
+        testId = Utils.getIdFromPath("/test", store.getSizeLimit());
     }
 
     // OAK-4536

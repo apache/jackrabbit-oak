@@ -57,8 +57,9 @@ public class MongoDocumentStoreLimitsTest extends AbstractMongoConnectionTest {
 
         // check that the document was created
         // when no exception was thrown
-        String id = Utils.getIdFromPath(longPath, ns.getDocumentStore().getMetadata());
-        NodeDocument doc = ns.getDocumentStore().find(Collection.NODES, id, 0);
+        DocumentStore store = ns.getDocumentStore();
+        String id = Utils.getIdFromPath(longPath, store.getSizeLimit());
+        NodeDocument doc = store.find(Collection.NODES, id, 0);
         assertNotNull(doc);
     }
 }

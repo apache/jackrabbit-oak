@@ -147,6 +147,6 @@ public class VersionedDocumentBundlingTest {
     }
 
     private NodeDocument getNodeDocument(String path) {
-        return ds.find(Collection.NODES, Utils.getIdFromPath(path, ds.getMetadata()));
+        return ds.find(Collection.NODES, Utils.getIdFromPath(path, ds.getSizeLimit()));
     }
 }

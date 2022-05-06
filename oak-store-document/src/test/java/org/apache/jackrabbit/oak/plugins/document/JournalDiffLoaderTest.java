@@ -329,7 +329,7 @@ public class JournalDiffLoaderTest {
                 .clock(clock).setAsyncDelay(0).disableBranches().getNodeStore();
         DocumentStore store = ns.getDocumentStore();
         DocumentNodeState before = ns.getRoot();
-        String id = Utils.getIdFromPath("/node-0", store.getMetadata());
+        String id = Utils.getIdFromPath("/node-0", store.getSizeLimit());
         NodeBuilder builder = ns.getRoot().builder();
         int i = 0;
         while (store.find(Collection.NODES, id) == null) {

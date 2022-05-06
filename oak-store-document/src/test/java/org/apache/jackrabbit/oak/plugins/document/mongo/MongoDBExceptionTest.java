@@ -65,7 +65,7 @@ public class MongoDBExceptionTest {
 
     @Test
     public void idInExceptionMessage() {
-        String id = Utils.getIdFromPath("/foo", store.getMetadata());
+        String id = Utils.getIdFromPath("/foo", store.getSizeLimit());
         UpdateOp insert = new UpdateOp(id, true);
         assertTrue(store.create(Collection.NODES, singletonList(insert)));
 
@@ -116,8 +116,8 @@ public class MongoDBExceptionTest {
         }
 
         Path foo = Path.fromString("/foo");
-        String fromKey = Utils.getKeyLowerLimit(foo, store.getMetadata());
-        String toKey = Utils.getKeyUpperLimit(foo, store.getMetadata());
+        String fromKey = Utils.getKeyLowerLimit(foo, store.getSizeLimit());
+        String toKey = Utils.getKeyUpperLimit(foo, store.getSizeLimit());
         exceptionMsg = "query failed";
         setExceptionMsg();
         try {

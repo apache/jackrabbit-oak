@@ -68,15 +68,15 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
         assertThat(paths, containsInAnyOrder("/a/b", "/a/c"));
 
 
-        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/b", ds.getMetadata())));
-        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/c", ds.getMetadata())));
+        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/b", ds.getSizeLimit())));
+        assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/c", ds.getSizeLimit())));
 
         // Excluded id should not be cached
-        assertNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/d", ds.getMetadata())));
+        assertNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/d", ds.getSizeLimit())));
     }
 
     private static UpdateOp newDocument(String path, long modified, DocumentStore ds) {
-        String id = Utils.getIdFromPath(path, ds.getMetadata());
+        String id = Utils.getIdFromPath(path, ds.getSizeLimit());
         UpdateOp op = new UpdateOp(id, true);
         op.set(NodeDocument.MODIFIED_IN_SECS, modified);
         return op;
