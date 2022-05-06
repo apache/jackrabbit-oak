@@ -77,7 +77,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
         List<UpdateOp> ops = Lists.newArrayList();
         List<String> ids = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            String id = Utils.getIdFromPath("/node-" + i, ds1.getMetadata());
+            String id = Utils.getIdFromPath("/node-" + i, ds1.getSizeLimit());
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             NodeDocument.setLastRev(op, r);
@@ -109,7 +109,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
             q.join();
             u.join();
             for (int j = 0; j < NUM_NODES; j++) {
-                NodeDocument doc = ds1.find(NODES, Utils.getIdFromPath("/node-" + j, ds1.getMetadata()));
+                NodeDocument doc = ds1.find(NODES, Utils.getIdFromPath("/node-" + j, ds1.getSizeLimit()));
                 assertNotNull(doc);
                 assertEquals("Unexpected revision timestamp for " + doc.getId(),
                         counter, doc.getLastRev().get(1).getTimestamp());
@@ -122,7 +122,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
     }
 
     private void queryDocuments() {
-        ds1.query(NODES, getKeyLowerLimit(Path.ROOT, ds1.getMetadata()), getKeyUpperLimit(Path.ROOT, ds1.getMetadata()), 100);
+        ds1.query(NODES, getKeyLowerLimit(Path.ROOT, ds1.getSizeLimit()), getKeyUpperLimit(Path.ROOT, ds1.getSizeLimit()), 100);
     }
 
     private Iterable<String> updateDocuments() {
@@ -131,7 +131,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
         List<UpdateOp> ops = Lists.newArrayList();
         List<String> ids = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            String id = getIdFromPath("/node-" + i, ds2.getMetadata());
+            String id = getIdFromPath("/node-" + i, ds2.getSizeLimit());
             ids.add(id);
             ops.add(op.shallowCopy(id));
         }

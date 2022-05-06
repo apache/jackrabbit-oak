@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperL
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -47,7 +46,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
         List<UpdateOp> ops = Lists.newArrayList();
         List<String> ids = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            String id = Utils.getIdFromPath("/node-" + i, ds.getMetadata());
+            String id = Utils.getIdFromPath("/node-" + i, ds.getSizeLimit());
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             NodeDocument.setLastRev(op, r);
@@ -75,7 +74,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
             q.join();
             u.join();
             for (int j = 0; j < NUM_NODES; j++) {
-                NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/node-" + j, ds.getMetadata()));
+                NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/node-" + j, ds.getSizeLimit()));
                 assertNotNull(doc);
                 assertEquals("Unexpected revision timestamp for " + doc.getId(),
                         counter, doc.getLastRev().get(1).getTimestamp());
@@ -88,7 +87,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
     }
 
     private void queryDocuments() {
-        ds.query(NODES, getKeyLowerLimit(Path.ROOT, ds.getMetadata()), getKeyUpperLimit(Path.ROOT, ds.getMetadata()), 100);
+        ds.query(NODES, getKeyLowerLimit(Path.ROOT, ds.getSizeLimit()), getKeyUpperLimit(Path.ROOT, ds.getSizeLimit()), 100);
     }
 
     private void updateDocuments() {
@@ -96,7 +95,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
         NodeDocument.setLastRev(op, newRevision());
         List<UpdateOp> ops = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            ops.add(op.shallowCopy(getIdFromPath("/node-" + i, ds.getMetadata())));
+            ops.add(op.shallowCopy(getIdFromPath("/node-" + i, ds.getSizeLimit())));
         }
         ds.createOrUpdate(NODES, ops);
     }

@@ -315,7 +315,7 @@ public class LastRevRecoveryTest {
         sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info1)));
 
         // remove the sweep revision as well
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", sharedStore.getMetadata()), false);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", sharedStore.getSizeLimit()), false);
         op.removeMapEntry("_sweepRev", new Revision(0, 0, c1Id));
         assertNotNull(sharedStore.findAndUpdate(NODES, op));
         NodeDocument doc = getRootDocument(sharedStore);
@@ -404,7 +404,8 @@ public class LastRevRecoveryTest {
     }
 
     private NodeDocument getDocument(DocumentNodeStore nodeStore, String path) {
-        return nodeStore.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path, nodeStore.getDocumentStore().getMetadata()));
+        DocumentStore store = nodeStore.getDocumentStore();
+        return store.find(Collection.NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)

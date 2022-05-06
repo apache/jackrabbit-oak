@@ -120,22 +120,22 @@ public class JournalGCTest {
         Clock c = new Clock.Virtual();
         c.waitUntil(System.currentTimeMillis());
         Revision.setClock(c);
-        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setUpdateLimit(100)
+                .setDocumentStore(store).setUpdateLimit(100)
                 .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
                 .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .clock(c).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
-        String testId = Utils.getIdFromPath("/test", docStore.getMetadata());
+        String testId = Utils.getIdFromPath("/test", store.getSizeLimit());
         for (int i = 0; ; i++) {
             NodeBuilder child = test.child("child-" + i);
             for (int j = 0; j < 10; j++) {
                 child.setProperty("p-" + j, "value");
             }
-            if (docStore.find(NODES, testId) != null) {
+            if (store.find(NODES, testId) != null) {
                 // branch was created
                 break;
             }

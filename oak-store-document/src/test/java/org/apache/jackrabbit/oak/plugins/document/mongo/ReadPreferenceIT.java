@@ -129,7 +129,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
     @Test
     public void getMongoReadPreference() {
-        String id = getIdFromPath("/does/not/exist", mongoDS.getMetadata());
+        String id = getIdFromPath("/does/not/exist", mongoDS.getSizeLimit());
         mongoDS.setReadWriteMode(rwMode(ReadPreference.secondaryPreferred()));
         mongoDS.find(NODES, id);
         ReadPreference readPref = mongoDS.getMongoReadPreference(NODES, id,

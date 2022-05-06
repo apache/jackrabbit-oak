@@ -22,6 +22,7 @@ import com.google.common.collect.Sets
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument
 import org.apache.jackrabbit.oak.plugins.document.util.Utils
 import org.codehaus.groovy.tools.shell.CommandSupport
@@ -42,7 +43,7 @@ class PrintDocumentCommand extends CommandSupport{
     @Override
     Object execute(List<String> args) {
         assert session.store instanceof DocumentNodeStore
-        String id = Utils.getIdFromPath(session.getWorkingPath(), store.getDocumentStore().getMetadata());
+         String id = Utils.getIdFromPath(session.getWorkingPath(), store.getDocumentStore().getSizeLimit());
         NodeDocument doc = store.getDocumentStore().find(NODES, id);
         if (doc == null) {
             io.out.println("[null]");

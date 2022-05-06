@@ -142,7 +142,7 @@ public class BlobReferenceIteratorTest {
     public void recreateNodeAfterRevisionGC() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
 
-        String id = Utils.getIdFromPath("/test", store.getDocumentStore().getMetadata());
+        String id = Utils.getIdFromPath("/test", store.getDocumentStore().getSizeLimit());
 
         NodeBuilder builder = store.getRoot().builder();
         Blob b = builder.createBlob(new RandomStream(100, 42));

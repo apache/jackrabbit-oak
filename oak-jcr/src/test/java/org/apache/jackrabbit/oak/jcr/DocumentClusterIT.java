@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -125,7 +127,7 @@ public abstract class DocumentClusterIT {
         for (DocumentMK mk : mks) {
             mk.getNodeStore().runBackgroundOperations();
         }
-        String id = Utils.getIdFromPath("/", Collections.emptyMap());
+        String id = Utils.getIdFromPath("/", NODE_NAME_LIMIT);
         // in the second round each MK will pick up changes from the others
         for (DocumentMK mk : mks) {
             // invalidate root document to make sure background read

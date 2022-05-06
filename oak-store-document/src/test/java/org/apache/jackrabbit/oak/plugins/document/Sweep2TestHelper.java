@@ -83,7 +83,7 @@ public class Sweep2TestHelper {
      * <li>if simulatePreFixUpgrade then simulate an upgrade to a version post 1.8 but without a fix for the branch commit problem</li>
      * <li>upgrade to a fixed version</li>
      * </ol>
-     * @param ns
+     * @param memStore
      * @param newBuilder
      * @param simulatePreFixUpgrade if true, simulate step 2 as well, if false, leave out that step
      */
@@ -197,7 +197,7 @@ public class Sweep2TestHelper {
             assertNotNull(store.findAndUpdate(Collection.NODES, removeBc));
         }
         // B : remove "_sweepRev"
-        UpdateOp removeSweepRev = new UpdateOp(Utils.getIdFromPath("/", store.getMetadata()), false);
+        UpdateOp removeSweepRev = new UpdateOp(Utils.getIdFromPath("/", store.getSizeLimit()), false);
         removeSweepRev.remove("_sweepRev");
         assertNotNull(store.findAndUpdate(Collection.NODES, removeSweepRev));
         // C : remove the "sweep2Status" from the settings
@@ -228,7 +228,7 @@ public class Sweep2TestHelper {
     static void removeSweep2Status(DocumentStore store, boolean emptySweepRev) {
         store.remove(Collection.SETTINGS, "sweep2Status");
         if (emptySweepRev) {
-            String rootId = Utils.getIdFromPath("/", store.getMetadata());
+            String rootId = Utils.getIdFromPath("/", store.getSizeLimit());
             NodeDocument rootDoc = store.find(Collection.NODES, rootId);
             SortedMap<Revision, String> sweepRevs = rootDoc.getLocalMap(NodeDocument.SWEEP_REV);
             if (!sweepRevs.isEmpty()) {

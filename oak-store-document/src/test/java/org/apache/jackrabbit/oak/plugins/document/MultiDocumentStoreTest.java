@@ -114,7 +114,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         final CountDownLatch go = new CountDownLatch(1);
         final List<String> ids = Lists.newArrayList();
         for (int i = 0; i < 100; i++) {
-            ids.add(Utils.getIdFromPath("/node-" + i,ds1.getMetadata() ));
+            ids.add(Utils.getIdFromPath("/node-" + i, ds1.getSizeLimit()));
         }
         removeMe.addAll(ids);
 
@@ -194,7 +194,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void batchUpdateCachedDocument() throws Exception {
-        String id = Utils.getIdFromPath("/foo", ds1.getMetadata());
+        String id = Utils.getIdFromPath("/foo", ds1.getSizeLimit());
         removeMe.add(id);
 
         UpdateOp op = new UpdateOp(id, true);
@@ -217,7 +217,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         for (int i = 0; i < 10; i++) {
             // add more ops to make sure a batch
             // update call is triggered
-            String docId = Utils.getIdFromPath("/node-" + i, ds1.getMetadata());
+            String docId = Utils.getIdFromPath("/node-" + i, ds1.getSizeLimit());
             UpdateOp update = new UpdateOp(docId, true);
             update.set("_ds2", 1);
             removeMe.add(docId);
@@ -236,7 +236,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void testUpdateRemovedNode() {
-        String id = Utils.getIdFromPath("testUpdateRemovedNode", ds1.getMetadata());
+        String id = Utils.getIdFromPath("testUpdateRemovedNode", ds1.getSizeLimit());
         removeMe.add(id);
 
         UpdateOp op = new UpdateOp(id, true);
@@ -267,7 +267,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
     @Test
     public void testUpdateOrCreateDeletedDocument() {
 
-        String id = Utils.getIdFromPath("/foo", ds1.getMetadata());
+        String id = Utils.getIdFromPath("/foo", ds1.getSizeLimit());
         removeMe.add(id);
 
         UpdateOp op1 = new UpdateOp(id, true);
@@ -292,7 +292,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void testUpdateNoCreateDeletedDocument() {
-        String id = Utils.getIdFromPath("/foo", ds1.getMetadata());
+        String id = Utils.getIdFromPath("/foo", ds1.getSizeLimit());
         removeMe.add(id);
 
         UpdateOp op1 = new UpdateOp(id, true);
@@ -381,7 +381,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
             List<UpdateOp> ops = new ArrayList<>();
             for (int i = 0; i < count; i++) {
-                UpdateOp op = new UpdateOp(getIdFromPath("/bulktracelog-" + i, ds.getMetadata()), true);
+                UpdateOp op = new UpdateOp(getIdFromPath("/bulktracelog-" + i, ds.getSizeLimit()), true);
                 ops.add(op);
                 removeMe.add(op.getId());
             }
@@ -398,17 +398,17 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                 ops.clear();
 
                 // modify first entry through secondary store
-                String modifiedRow = getIdFromPath("/bulktracelog-" + 0, ds2.getMetadata());
+                String modifiedRow = getIdFromPath("/bulktracelog-" + 0, ds2.getSizeLimit());
                 UpdateOp op2 = new UpdateOp(modifiedRow, false);
                 op2.set("foo", "bar");
                 ds2.createOrUpdate(NODES, op2);
 
                 // delete second entry through secondary store
-                String deletedRow = getIdFromPath("/bulktracelog-" + 1, ds2.getMetadata());
+                String deletedRow = getIdFromPath("/bulktracelog-" + 1, ds2.getSizeLimit());
                 ds2.remove(NODES, deletedRow);
 
                 for (int i = 0; i < count; i++) {
-                    UpdateOp op = new UpdateOp(getIdFromPath("/bulktracelog-" + i, ds.getMetadata()), false);
+                    UpdateOp op = new UpdateOp(getIdFromPath("/bulktracelog-" + i, ds.getSizeLimit()), false);
                     op.set("foo", "qux");
                     ops.add(op);
                     removeMe.add(op.getId());
