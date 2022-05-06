@@ -235,7 +235,7 @@ public class MongoDocumentStoreTest {
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT, docStore.getMetadata()),  Utils.getKeyUpperLimit(Path.ROOT, docStore.getMetadata()),
+                Utils.getKeyLowerLimit(Path.ROOT, docStore.getSizeLimit()),  Utils.getKeyUpperLimit(Path.ROOT, docStore.getSizeLimit()),
                 DocumentMK.MANY_CHILDREN_THRESHOLD);
         assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
         store.dispose();

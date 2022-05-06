@@ -26,14 +26,7 @@ import java.util.List;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.Path;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.*;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
@@ -275,7 +268,8 @@ public class SecondaryStoreCacheTest {
     }
 
     private NodeDocument getNodeDocument(String path) {
-        return primary.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path, primary.getDocumentStore().getMetadata()));
+        DocumentStore store = primary.getDocumentStore();
+        return store.find(Collection.NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
     }
 
     private SecondaryStoreBuilder createBuilder(PathFilter pathFilter) {

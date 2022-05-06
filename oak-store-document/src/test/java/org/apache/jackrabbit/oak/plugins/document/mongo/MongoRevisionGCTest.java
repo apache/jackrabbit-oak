@@ -23,14 +23,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.MongoQueryException;
 import com.mongodb.client.MongoCollection;
 
-import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.TestUtils;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.document.*;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -134,7 +127,8 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
             b.child("child").remove();
             merge(ns, b);
             ns.runBackgroundOperations();
-            NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath("/child", ns.getDocumentStore().getMetadata()));
+            DocumentStore store = ns.getDocumentStore();
+            NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/child", store.getSizeLimit()));
             assertNotNull(doc);
             for (Iterator<NodeDocument> it = getAllPreviousDocs(doc); it.hasNext(); ) {
                 prev = it.next();

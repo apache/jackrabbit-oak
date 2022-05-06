@@ -140,6 +140,7 @@ public class V18BranchCommitTest {
     }
 
     private NodeDocument docForPath(String path) {
-        return ns.getDocumentStore().find(NODES, Utils.getIdFromPath(path, ns.getDocumentStore().getMetadata()));
+        DocumentStore store = ns.getDocumentStore();
+        return store.find(NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
     }
 }

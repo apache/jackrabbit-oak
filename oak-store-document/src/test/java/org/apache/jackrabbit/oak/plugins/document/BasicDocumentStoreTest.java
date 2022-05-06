@@ -675,7 +675,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (String t : tests) {
             int pos = t.indexOf(":");
             String test = t.substring(pos + 1);
-            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingValidIds-" + test, ds.getMetadata());
+            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingValidIds-" + test, ds.getSizeLimit());
             super.ds.remove(Collection.NODES, id);
             UpdateOp up = new UpdateOp(id, true);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -698,7 +698,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (String t : tests) {
             int pos = t.indexOf(":");
             String test = t.substring(pos + 1);
-            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingInvalidIds-" + test, ds.getMetadata());
+            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingInvalidIds-" + test, ds.getSizeLimit());
 
             try {
                 super.ds.remove(Collection.NODES, id);
@@ -1111,11 +1111,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         List<UpdateOp> docs = Lists.newArrayList();
         docs.add(newDocument("/foo", 100));
-        removeMe.add(Utils.getIdFromPath("/foo", ds.getMetadata()));
+        removeMe.add(Utils.getIdFromPath("/foo", ds.getSizeLimit()));
         docs.add(newDocument("/bar", 200));
-        removeMe.add(Utils.getIdFromPath("/bar", ds.getMetadata()));
+        removeMe.add(Utils.getIdFromPath("/bar", ds.getSizeLimit()));
         docs.add(newDocument("/baz", 300));
-        removeMe.add(Utils.getIdFromPath("/baz", ds.getMetadata()));
+        removeMe.add(Utils.getIdFromPath("/baz", ds.getSizeLimit()));
         ds.create(Collection.NODES, docs);
 
         for (UpdateOp op : docs) {
@@ -1123,15 +1123,15 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         Map<String, Long> toRemove = Maps.newHashMap();
-        toRemove.put(Utils.getIdFromPath("/foo", ds.getMetadata()), 100L); // matches
-        toRemove.put(Utils.getIdFromPath("/bar", ds.getMetadata()), 300L); // modified differs
-        toRemove.put(Utils.getIdFromPath("/qux", ds.getMetadata()), 100L); // does not exist
-        toRemove.put(Utils.getIdFromPath("/baz", ds.getMetadata()), 300L); // matches
+        toRemove.put(Utils.getIdFromPath("/foo", ds.getSizeLimit()), 100L); // matches
+        toRemove.put(Utils.getIdFromPath("/bar", ds.getSizeLimit()), 300L); // modified differs
+        toRemove.put(Utils.getIdFromPath("/qux", ds.getSizeLimit()), 100L); // does not exist
+        toRemove.put(Utils.getIdFromPath("/baz", ds.getSizeLimit()), 300L); // matches
 
         int removed = ds.remove(Collection.NODES, toRemove);
 
         assertEquals(2, removed);
-        assertNotNull(ds.find(Collection.NODES, Utils.getIdFromPath("/bar", ds.getMetadata())));
+        assertNotNull(ds.find(Collection.NODES, Utils.getIdFromPath("/bar", ds.getSizeLimit())));
         Path bar = Path.fromString("/bar");
         for (NodeDocument doc : Utils.getAllDocuments(ds)) {
             if (!doc.getPath().equals(bar) && !existingDocs.contains(doc.getPath())) {
@@ -1143,7 +1143,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void removeInvalidatesCache() throws Exception {
         String path = "/foo";
-        String id = Utils.getIdFromPath(path, ds.getMetadata());
+        String id = Utils.getIdFromPath(path, ds.getSizeLimit());
         long modified = 1;
         removeMe.add(id);
         ds.create(Collection.NODES, Collections.singletonList(newDocument(path, modified)));
@@ -1155,13 +1155,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     // OAK-3932
     @Test
     public void getIfCachedNonExistingDocument() throws Exception {
-        String id = Utils.getIdFromPath("/foo", ds.getMetadata());
+        String id = Utils.getIdFromPath("/foo", ds.getSizeLimit());
         assertNull(ds.find(Collection.NODES, id));
         assertNull(ds.getIfCached(Collection.NODES, id));
     }
 
     private UpdateOp newDocument(String path, long modified) {
-        String id = Utils.getIdFromPath(path, ds.getMetadata());
+        String id = Utils.getIdFromPath(path, ds.getSizeLimit());
         UpdateOp op = new UpdateOp(id, true);
         op.set(NodeDocument.MODIFIED_IN_SECS, modified);
         return op;

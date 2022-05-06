@@ -65,7 +65,7 @@ public class BackgroundSplitFailureTest {
                 .setDocumentStore(failingStore).setAsyncDelay(0).clock(clock).build();
         int clusterId = ns.getClusterId();
         Path fooPath = new Path(Path.ROOT, "foo");
-        String fooId = Utils.getIdFromPath(fooPath, store.getMetadata());
+        String fooId = Utils.getIdFromPath(fooPath, store.getSizeLimit());
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child(fooPath.getName()).setProperty("p", -1);
@@ -105,7 +105,7 @@ public class BackgroundSplitFailureTest {
         };
         ns = builderProvider.newBuilder().setClusterId(clusterId)
                 .setDocumentStore(testStore).setAsyncDelay(0).clock(clock).build();
-        ns.addSplitCandidate(Utils.getIdFromPath(new Path(Path.ROOT, "foo"), store.getMetadata()));
+        ns.addSplitCandidate(Utils.getIdFromPath(new Path(Path.ROOT, "foo"), store.getSizeLimit()));
         falseOnJournalEntryCreate.set(true);
         try {
             ns.runBackgroundOperations();

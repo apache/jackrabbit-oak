@@ -116,7 +116,7 @@ public class VersionGCWithSplitTest {
         builder.child("test").setProperty("prop", -1);
         merge(store, builder);
 
-        final String id = Utils.getIdFromPath("/test", store.getDocumentStore().getMetadata());
+        final String id = Utils.getIdFromPath("/test", store.getDocumentStore().getSizeLimit());
 
         DocumentStore docStore = store.getDocumentStore();
         int count = 0;

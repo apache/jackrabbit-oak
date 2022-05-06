@@ -84,7 +84,7 @@ public class CacheChangesTrackerTest {
     public void testRegisterChildrenTracker() {
         NodeDocumentCache cache = createCache();
         Path parent = Path.fromString("/parent");
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent, ds.getMetadata()), getKeyUpperLimit(parent, ds.getMetadata()));
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent, ds.getSizeLimit()), getKeyUpperLimit(parent, ds.getSizeLimit()));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
         assertFalse(tracker.mightBeenAffected("2:/parent/abc"));
@@ -108,7 +108,7 @@ public class CacheChangesTrackerTest {
     public void testGetLoaderAffectsTracker() throws ExecutionException {
         NodeDocumentCache cache = createCache();
         Path parent = Path.fromString("/parent");
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent, ds.getMetadata()), getKeyUpperLimit(parent, ds.getMetadata()));
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent, ds.getSizeLimit()), getKeyUpperLimit(parent, ds.getSizeLimit()));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
 
@@ -153,7 +153,7 @@ public class CacheChangesTrackerTest {
     public void testOnlyExternalChanges() {
         NodeDocumentCache cache = createCache();
         Path parent = Path.fromString("/parent");
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent, ds.getMetadata()), getKeyUpperLimit(parent, ds.getMetadata()));
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent, ds.getSizeLimit()), getKeyUpperLimit(parent, ds.getSizeLimit()));
 
         cache.putNonConflictingDocs(tracker, ImmutableSet.of(createDoc("2:/parent/local")));
         assertFalse(tracker.mightBeenAffected("2:/parent/local"));

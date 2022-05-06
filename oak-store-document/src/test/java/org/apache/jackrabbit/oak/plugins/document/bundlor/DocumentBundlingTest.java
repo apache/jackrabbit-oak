@@ -1032,7 +1032,7 @@ public class DocumentBundlingTest {
     }
 
     private NodeDocument getNodeDocument(String path) {
-        return ds.find(Collection.NODES, Utils.getIdFromPath(path, ds.getMetadata()));
+        return ds.find(Collection.NODES, Utils.getIdFromPath(path, ds.getSizeLimit()));
     }
 
     private NodeState merge(NodeBuilder builder) throws CommitFailedException {
@@ -1090,7 +1090,7 @@ public class DocumentBundlingTest {
         public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
                                                   String indexedProperty, long startValue, int limit) {
             if (collection == Collection.NODES){
-                queryPaths.add(Utils.getPathFromId(Utils.getParentIdFromLowerLimit(fromKey, getMetadata())));
+                queryPaths.add(Utils.getPathFromId(Utils.getParentIdFromLowerLimit(fromKey, getSizeLimit())));
             }
             return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
         }

@@ -456,4 +456,18 @@ public interface DocumentStore {
      */
     long determineServerTimeDifferenceMillis()
             throws UnsupportedOperationException, DocumentStoreException;
+
+    /**
+     * The maximum size a node name, in bytes. This is only a problem for long path.
+     */
+    int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
+
+    /**
+     * Return the size limit for node name based on the document store implementation
+     *
+     * @return node name size limit
+     */
+    default int getSizeLimit() {
+        return NODE_NAME_LIMIT;
+    }
 }

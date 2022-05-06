@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -37,11 +38,11 @@ public class NodeDocumentIdComparatorTest {
     @Test
     public void sort() {
         List<String> paths = new ArrayList<String>();
-        paths.add(Utils.getIdFromPath("/foo", Collections.emptyMap()));
-        paths.add(Utils.getIdFromPath("/foo/bar", Collections.emptyMap()));
-        paths.add(Utils.getIdFromPath("/bar/qux", Collections.emptyMap()));
-        paths.add(Utils.getIdFromPath("/", Collections.emptyMap()));
-        paths.add(Utils.getIdFromPath("/bar", Collections.emptyMap()));
+        paths.add(Utils.getIdFromPath("/foo", NODE_NAME_LIMIT));
+        paths.add(Utils.getIdFromPath("/foo/bar", NODE_NAME_LIMIT));
+        paths.add(Utils.getIdFromPath("/bar/qux", NODE_NAME_LIMIT));
+        paths.add(Utils.getIdFromPath("/", NODE_NAME_LIMIT));
+        paths.add(Utils.getIdFromPath("/bar", NODE_NAME_LIMIT));
 
         Collections.sort(paths, NodeDocumentIdComparator.INSTANCE);
 

@@ -128,6 +128,11 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static final Bson BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
+    /**
+     * sizeLimit for node name based on Mongo Version
+     */
+    private final int sizeLimit;
+
     enum DocumentReadPreference {
         PRIMARY,
         PREFER_PRIMARY,
@@ -241,6 +246,11 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
+    @Override
+    public int getSizeLimit() {
+        return sizeLimit;
+    }
+
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
@@ -252,9 +262,9 @@ public class MongoDocumentStore implements DocumentStore {
         metadata = ImmutableMap.<String,String>builder()
                 .put("type", "mongo")
                 .put("version", status.getVersion())
-                .put("sizeLimit", String.valueOf(getSizeLimit(status.getVersion())))
                 .build();
 
+        this.sizeLimit = MongoUtils.getSizeLimit(status.getVersion());
         this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
         this.clusterNodesConnection = getOrCreateClusterNodesConnection(builder);
         stats = builder.getDocumentStoreStatsCollector();
@@ -688,7 +698,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
         Bson query = Filters.and(clauses);
-        String parentId = Utils.getParentIdFromLowerLimit(fromKey, metadata);
+        String parentId = Utils.getParentIdFromLowerLimit(fromKey, sizeLimit);
         long lockTime = -1;
         final Stopwatch watch = startWatch();
 

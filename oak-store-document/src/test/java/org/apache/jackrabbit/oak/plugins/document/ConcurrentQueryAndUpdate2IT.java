@@ -60,7 +60,7 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
         List<UpdateOp> ops = Lists.newArrayList();
         List<String> ids = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            String id = Utils.getIdFromPath("/node-" + i, ds.getMetadata());
+            String id = Utils.getIdFromPath("/node-" + i, ds.getSizeLimit());
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             NodeDocument.setLastRev(op, r);
@@ -87,7 +87,7 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
             q.join();
             u.join();
             for (int j = 0; j < NUM_NODES; j++) {
-                NodeDocument doc = ds.getIfCached(NODES, Utils.getIdFromPath("/node-" + j, ds.getMetadata()));
+                NodeDocument doc = ds.getIfCached(NODES, Utils.getIdFromPath("/node-" + j, ds.getSizeLimit()));
                 if (doc != null) {
                     assertEquals("Unexpected revision timestamp for " + doc.getId(),
                             counter.get(), doc.getLastRev().get(1).getTimestamp());
@@ -105,7 +105,8 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
             Thread.sleep(0, ThreadLocalRandom.current().nextInt(1000, 10000));
         } catch (InterruptedException ignore) {
         }
-        ds.query(NODES, getKeyLowerLimit(Path.ROOT, ds.getMetadata()), getKeyUpperLimit(Path.ROOT, ds.getMetadata()), 100);
+        ds.query(NODES, getKeyLowerLimit(Path.ROOT, ds.getSizeLimit()),
+                getKeyUpperLimit(Path.ROOT, ds.getSizeLimit()), 100);
     }
 
     private void updateDocuments() {
@@ -114,7 +115,7 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
         NodeDocument.setLastRev(op, r);
         List<UpdateOp> ops = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            ops.add(op.shallowCopy(getIdFromPath("/node-" + i, ds.getMetadata())));
+            ops.add(op.shallowCopy(getIdFromPath("/node-" + i, ds.getSizeLimit())));
         }
         ds.createOrUpdate(NODES, ops);
     }

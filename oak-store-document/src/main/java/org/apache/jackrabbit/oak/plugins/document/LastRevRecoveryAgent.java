@@ -448,7 +448,7 @@ public class LastRevRecoveryAgent {
                         // there are missing document and the returned document
                         // does not have bundled nodes
                         for (Path p : missingDocuments) {
-                            log.warn("Unable to find document: {}", Utils.getIdFromPath(p, store.getMetadata()));
+                            log.warn("Unable to find document: {}", Utils.getIdFromPath(p, store.getSizeLimit()));
                         }
                     }
                 }
@@ -584,7 +584,7 @@ public class LastRevRecoveryAgent {
                                                    @NotNull List<Path> missingDocuments) {
         NodeDocument ancestor;
         for (;;) {
-            ancestor = store.find(NODES, Utils.getIdFromPath(path, store.getMetadata()));
+            ancestor = store.find(NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
             if (ancestor != null) {
                 break;
             }

@@ -383,7 +383,7 @@ public class Sweep2Test {
         // aging, and keep instance 2 running thereafter - it holds a fake sweep2 lock
         DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, withAsyncDelay(builderProvider, 0), 2);
         // add clusterId 1 to the _sweepRev to make sure it gets included in any subsequent sweep2
-        UpdateOp addSweepRev1 = new UpdateOp(Utils.getIdFromPath("/", store.getMetadata()), false);
+        UpdateOp addSweepRev1 = new UpdateOp(Utils.getIdFromPath("/", store.getSizeLimit()), false);
         addSweepRev1.setMapEntry("_sweepRev", new Revision(0, 0, 1), new Revision(0, 0, 1).toString());
         assertNotNull(store.findAndUpdate(Collection.NODES, addSweepRev1));
         Sweep2TestHelper.removeSweep2Status(store, false);
@@ -669,7 +669,7 @@ public class Sweep2Test {
     }
 
     private boolean hasBcProperty(MemoryDocumentStore store, String path) {
-        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(path, store.getMetadata()));
+        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
         if (doc == null) {
             fail("could not find " + path);
         }
