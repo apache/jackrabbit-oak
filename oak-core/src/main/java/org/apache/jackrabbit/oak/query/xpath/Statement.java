@@ -365,11 +365,11 @@ public class Statement {
         if (queryOptions.indexTag != null) {
             optionValues.add("index tag [" + queryOptions.indexTag + "]");
         }
-        if (queryOptions.offset != -1) {
-            optionValues.add("offset " + queryOptions.offset);
+        if (queryOptions.offset.isPresent()) {
+            optionValues.add("offset " + queryOptions.offset.get());
         }
-        if (queryOptions.limit != -1) {
-            optionValues.add("limit " + queryOptions.limit);
+        if (queryOptions.limit.isPresent()) {
+            optionValues.add("limit " + queryOptions.limit.get());
         }
         buff.append(String.join(", ", optionValues));
         buff.append(")");

@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.query.xpath;
 
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Optional;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
@@ -23,11 +29,6 @@ import org.apache.jackrabbit.oak.query.xpath.Statement.UnionStatement;
 import org.apache.jackrabbit.util.ISO9075;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Locale;
 
 /**
  * This class can can convert a XPATH query to a SQL2 query.
@@ -398,9 +399,9 @@ public class XPathToSQL2Converter {
                         options.indexTag = readIdentifier();
                     }
                 } else if (readIf("offset")) {
-                    options.offset = readNumber();
+                    options.offset = Optional.of(readNumber());
                 } else if (readIf("limit")) {
-                    options.limit = readNumber();
+                    options.limit = Optional.of(readNumber());
                 }else { 
                     break;
                 }
