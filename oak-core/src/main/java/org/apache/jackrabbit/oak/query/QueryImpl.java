@@ -1089,6 +1089,8 @@ public class QueryImpl implements Query {
         double almostBestCost = Double.POSITIVE_INFINITY;
         IndexPlan almostBestPlan = null;
 
+        long maxEntryCount = saturatedAdd(offset.orElse(0L), limit.orElse(Long.MAX_VALUE));
+
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
         List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
@@ -1114,17 +1116,6 @@ public class QueryImpl implements Query {
             if (index instanceof AdvancedQueryIndex) {
                 AdvancedQueryIndex advIndex = (AdvancedQueryIndex) index;
 
-                long localLimit = limit.orElse(Long.MAX_VALUE);
-                long localOffset = offset.orElse(0L);
-                long maxEntryCount = localLimit;
-                if (localOffset > 0) {
-                    if (localOffset + localLimit < 0) {
-                        // long overflow
-                        maxEntryCount = Long.MAX_VALUE;
-                    } else {
-                        maxEntryCount = localOffset + localLimit;
-                    }
-                }
                 List<IndexPlan> ipList = advIndex.getPlans(
                         filter, sortOrder, rootState);
                 cost = Double.POSITIVE_INFINITY;
