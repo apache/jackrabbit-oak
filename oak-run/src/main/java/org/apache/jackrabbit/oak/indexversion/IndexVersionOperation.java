@@ -101,7 +101,8 @@ public class IndexVersionOperation {
                 int activeProductVersion = activeIndexNameObject.getProductVersion();
                 indexVersionOperationList.add(new IndexVersionOperation(activeIndexNameObject));
 
-            // for rest indexes except active index
+                // the reverseSortedIndexNameList will now contain the remaining indexes,
+                // the active index and disabled index was removed from that list already
                 for (IndexName indexNameObject : reverseSortedIndexNameList) {
                     String indexName = indexNameObject.getNodeName();
                     NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
@@ -118,9 +119,12 @@ public class IndexVersionOperation {
                             } else {
                                 indexVersionOperation.setOperation(Operation.DELETE);
                             }
+                        } else {
+                            // if the index product version is larger than active index, leave it as is
+                            // for instance: if there is active damAssetLucene-7, the inactive damAssetLucene-8 will be leave there as is
+                            LOG.info("The index '{}' leave as is since the version is larger than current active index", indexName);
+                            indexVersionOperation.setOperation(Operation.NOOP);
                         }
-                        // if the index product version is larger than active index, leave it as is
-                        // for instance: if there is active damAssetLucene-7, the inactive damAssetLucene-8 will be leave there as is
                     }
                     LOG.info("The operation for index '{}' will be: '{}'", indexName, indexVersionOperation.getOperation());
                     indexVersionOperationList.add(indexVersionOperation);

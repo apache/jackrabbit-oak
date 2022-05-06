@@ -75,7 +75,7 @@ public class PurgeOldIndexVersion {
 
     public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths) throws IOException, CommitFailedException {
         List<IndexVersionOperation> purgeIndexList = new ArrayList<>();
-        LOG.info("Getting indexes to purge over node type '{}' and index paths '{}'", nodeStore.getClass().getSimpleName(), indexPaths);
+        LOG.info("Getting indexes to purge over index paths '{}'", indexPaths);
         List<String> sanitisedIndexPaths = sanitiseUserIndexPaths(indexPaths);
         Set<String> indexPathSet = filterIndexPaths(getRepositoryIndexPaths(nodeStore), sanitisedIndexPaths);
         Map<String, Set<String>> segregateIndexes = segregateIndexes(indexPathSet);
