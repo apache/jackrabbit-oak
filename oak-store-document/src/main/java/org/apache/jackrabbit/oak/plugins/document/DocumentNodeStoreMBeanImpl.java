@@ -218,7 +218,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         }
 
         String p = path;
-        NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p, docStore.getSizeLimit()));
+        NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p));
         if(nodeDocument == null) {
             throw new DocumentStoreException("Document node with given path = " + p + " does not exist");
         }
@@ -239,10 +239,9 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     private List<NodeDocument> getChildDocs(String path) { 
         Path pathRef = Path.fromString(path);
-        DocumentStore store = nodeStore.getDocumentStore();
-        final String to = Utils.getKeyUpperLimit(pathRef, store.getSizeLimit());
-        final String from = Utils.getKeyLowerLimit(pathRef, store.getSizeLimit());
-        return store.query(Collection.NODES, from, to, 10000);
+        final String to = Utils.getKeyUpperLimit(pathRef);
+        final String from = Utils.getKeyLowerLimit(pathRef);
+        return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
     }
 
     @Override

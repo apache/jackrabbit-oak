@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -57,11 +56,11 @@ public class SimpleTest {
 
     @Test
     public void pathToId() {
-        assertEquals("0:/", Utils.getIdFromPath("/", NODE_NAME_LIMIT));
+        assertEquals("0:/", Utils.getIdFromPath("/"));
         assertEquals("/", Utils.getPathFromId("0:/"));
-        assertEquals("1:/test", Utils.getIdFromPath("/test", NODE_NAME_LIMIT));
+        assertEquals("1:/test", Utils.getIdFromPath("/test"));
         assertEquals("/test", Utils.getPathFromId("1:/test"));
-        assertEquals("10:/1/2/3/3/4/6/7/8/9/a", Utils.getIdFromPath("/1/2/3/3/4/6/7/8/9/a", NODE_NAME_LIMIT));
+        assertEquals("10:/1/2/3/3/4/6/7/8/9/a", Utils.getIdFromPath("/1/2/3/3/4/6/7/8/9/a"));
         assertEquals("/1/2/3/3/4/6/7/8/9/a", Utils.getPathFromId("10:/1/2/3/3/4/6/7/8/9/a"));
     }
 

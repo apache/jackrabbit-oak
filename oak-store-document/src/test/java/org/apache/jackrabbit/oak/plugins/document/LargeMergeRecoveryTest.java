@@ -47,8 +47,7 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
     private static NodeDocument getDocument(DocumentNodeStore nodeStore,
                                             String path) {
-        DocumentStore store = nodeStore.getDocumentStore();
-        return store.find(NODES, getIdFromPath(path, store.getSizeLimit()));
+        return nodeStore.getDocumentStore().find(NODES, getIdFromPath(path));
     }
 
     @Parameterized.Parameters(name = "{0}")

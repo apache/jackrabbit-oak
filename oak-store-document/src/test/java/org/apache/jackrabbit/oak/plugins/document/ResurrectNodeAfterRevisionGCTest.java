@@ -52,10 +52,10 @@ public class ResurrectNodeAfterRevisionGCTest
 
     @Before
     public void prepare() throws Exception {
-        removeMe.add(getIdFromPath("/", ds.getSizeLimit()));
-        removeMe.add(getIdFromPath("/foo", ds.getSizeLimit()));
-        removeMe.add(getIdFromPath("/baz", ds.getSizeLimit()));
-        removeMe.add(getIdFromPath("/foo/bar", ds.getSizeLimit()));
+        removeMe.add(getIdFromPath("/"));
+        removeMe.add(getIdFromPath("/foo"));
+        removeMe.add(getIdFromPath("/baz"));
+        removeMe.add(getIdFromPath("/foo/bar"));
         for (String id : removeMe) {
             ds.remove(Collection.NODES, id);
         }
@@ -105,7 +105,7 @@ public class ResurrectNodeAfterRevisionGCTest
 
         ns2.runBackgroundOperations();
         assertFalse(ns2.getRoot().getChildNode("foo").exists());
-        NodeDocument doc = ds2.find(Collection.NODES, getIdFromPath("/foo/bar", ds2.getSizeLimit()));
+        NodeDocument doc = ds2.find(Collection.NODES, getIdFromPath("/foo/bar"));
         assertNotNull(doc);
         NodeState state = doc.getNodeAtRevision(ns2, ns2.getHeadRevision(), null);
         assertNull(state);
@@ -200,7 +200,7 @@ public class ResurrectNodeAfterRevisionGCTest
 
     private void resurrectInvalidateWithModified(Invalidate inv)
             throws Exception {
-        UpdateOp op = new UpdateOp(getIdFromPath("/foo", ds.getSizeLimit()), true);
+        UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
         op.set("p", 0);
         op.set(NodeDocument.MODIFIED_IN_SECS, 50);
         assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
@@ -223,7 +223,7 @@ public class ResurrectNodeAfterRevisionGCTest
     }
 
     private void resurrectInvalidate(Invalidate inv) throws Exception {
-        UpdateOp op = new UpdateOp(getIdFromPath("/foo", ds.getSizeLimit()), true);
+        UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
         op.set("p", 0);
         assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
         NodeDocument doc = ds2.find(Collection.NODES, op.getId());

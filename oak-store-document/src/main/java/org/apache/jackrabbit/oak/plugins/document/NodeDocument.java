@@ -1275,7 +1275,7 @@ public final class NodeDocument extends Document {
             if (entry != null) {
                 Revision r = entry.getKey();
                 int h = entry.getValue().height;
-                String prevId = Utils.getPreviousIdFor(mainPath, r, h, store.getSizeLimit());
+                String prevId = Utils.getPreviousIdFor(mainPath, r, h);
                 NodeDocument prev = getPreviousDocument(prevId);
                 if (prev != null) {
                     if (prev.getValueMap(property).containsKey(revision)) {
@@ -1394,7 +1394,7 @@ public final class NodeDocument extends Document {
     @Nullable
     private NodeDocument getPreviousDoc(Revision rev, Range range){
         int h = range.height;
-        String prevId = Utils.getPreviousIdFor(getMainPath(), rev, h, store.getSizeLimit());
+        String prevId = Utils.getPreviousIdFor(getMainPath(), rev, h);
         NodeDocument prev = getPreviousDocument(prevId);
         if (prev != null) {
             return prev;
@@ -1421,11 +1421,11 @@ public final class NodeDocument extends Document {
                 return this;
             } else if (range.includes(revision)) {
                 String prevId = Utils.getPreviousIdFor(
-                        getMainPath(), range.high, range.height, store.getSizeLimit());
+                        getMainPath(), range.high, range.height);
                 NodeDocument prev = store.find(NODES, prevId);
                 if (prev == null) {
                     LOG.warn("Split document {} does not exist anymore. Main document is {}",
-                            prevId, Utils.getIdFromPath(getMainPath(), store.getSizeLimit()));
+                            prevId, Utils.getIdFromPath(getMainPath()));
                     continue;
                 }
                 // recurse into the split hierarchy
@@ -1891,7 +1891,7 @@ public final class NodeDocument extends Document {
         // older than one minute. We don't want to invalidate a document
         // too frequently if the document structure is really broken.
         Path path = getMainPath();
-        String id = Utils.getIdFromPath(path, store.getSizeLimit());
+        String id = Utils.getIdFromPath(path);
         NodeDocument doc = store.getIfCached(NODES, id);
         long now = Revision.getCurrentTimestamp();
         while (doc != null
@@ -1907,7 +1907,7 @@ public final class NodeDocument extends Document {
             doc = null;
             for (Range range : ranges) {
                 if (range.includes(rev)) {
-                    id = Utils.getPreviousIdFor(path, range.high, range.height, store.getSizeLimit());
+                    id = Utils.getPreviousIdFor(path, range.high, range.height);
                     doc = store.getIfCached(NODES, id);
                     break;
                 }
@@ -2022,7 +2022,7 @@ public final class NodeDocument extends Document {
             }
         }
         // get root of commit
-        return store.find(Collection.NODES, Utils.getIdFromPath(commitRootPath, store.getSizeLimit()));
+        return store.find(Collection.NODES, Utils.getIdFromPath(commitRootPath));
     }
 
     /**

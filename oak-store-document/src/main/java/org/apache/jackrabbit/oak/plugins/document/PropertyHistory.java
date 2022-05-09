@@ -65,7 +65,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
             public Map.Entry<Revision, NodeDocument> apply(Map.Entry<Revision, Range> input) {
                 Revision r = input.getKey();
                 int h = input.getValue().height;
-                String prevId = Utils.getPreviousIdFor(mainPath, r, h, doc.store.getSizeLimit());
+                String prevId = Utils.getPreviousIdFor(mainPath, r, h);
                 NodeDocument prev = doc.getPreviousDocument(prevId);
                 if (prev == null) {
                     LOG.debug("Document with previous revisions not found: " + prevId);

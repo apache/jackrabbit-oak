@@ -88,10 +88,10 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         removeMeClusterNodes.add("1");
         NodeBuilder builder1 = ns1.getRoot().builder();
         builder1.child("node");
-        removeMe.add(getIdFromPath("/node", docStore.getSizeLimit()));
+        removeMe.add(getIdFromPath("/node"));
         for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD; i++) {
             builder1.child("node-" + i);
-            removeMe.add(getIdFromPath("/node/node-" + i, docStore.getSizeLimit()));
+            removeMe.add(getIdFromPath("/node/node-" + i));
         }
         ns1.merge(builder1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         // make sure commit is visible to other node store instance
@@ -104,7 +104,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
 
         NodeBuilder builder2 = ns2.getRoot().builder();
         builder2.child("node").child("child-a");
-        removeMe.add(getIdFromPath("/node/child-a", docStore.getSizeLimit()));
+        removeMe.add(getIdFromPath("/node/child-a"));
         ns2.merge(builder2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // wait at least _modified resolution. in reality the wait may
@@ -115,14 +115,14 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
 
         builder1 = ns1.getRoot().builder();
         builder1.child("node").child("child-b");
-        removeMe.add(getIdFromPath("/node/child-b", docStore.getSizeLimit()));
+        removeMe.add(getIdFromPath("/node/child-b"));
         ns1.merge(builder1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         // remember root for diff
         DocumentNodeState root1 = ns1.getRoot();
 
         builder1 = root1.builder();
         builder1.child("node").child("child-c");
-        removeMe.add(getIdFromPath("/node/child-c", docStore.getSizeLimit()));
+        removeMe.add(getIdFromPath("/node/child-c"));
         ns1.merge(builder1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         // remember root for diff
         DocumentNodeState root2 = ns1.getRoot();

@@ -62,15 +62,15 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
     public void retry() {
         // must survive two consecutive failures. -> 2 retries
         store.failRead = 2;
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo", store.getSizeLimit()));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNull(doc);
         // previous result is cached and will not fail
         store.failRead = 3;
-        doc = store.find(NODES, Utils.getIdFromPath("/foo", store.getSizeLimit()));
+        doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNull(doc);
         // must fail with three consecutive failures on unknown path
         try {
-            store.find(NODES, Utils.getIdFromPath("/bar", store.getSizeLimit()));
+            store.find(NODES, Utils.getIdFromPath("/bar"));
             fail("must fail with DocumentStoreException");
         } catch (DocumentStoreException e) {
             // expected
@@ -80,16 +80,16 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
     @Test
     public void retryQuery() {
         Path foo = Path.fromString("/foo");
-        String fromKey = Utils.getKeyLowerLimit(foo, store.getSizeLimit());
-        String toKey = Utils.getKeyUpperLimit(foo, store.getSizeLimit());
+        String fromKey = Utils.getKeyLowerLimit(foo);
+        String toKey = Utils.getKeyUpperLimit(foo);
         // must survive two consecutive failures. -> 2 retries
         store.failRead = 2;
         List<NodeDocument> docs = store.query(NODES, fromKey, toKey, 100);
         assertThat(docs, is(empty()));
 
         Path bar = Path.fromString("/bar");
-        fromKey = Utils.getKeyLowerLimit(bar, store.getSizeLimit());
-        toKey = Utils.getKeyUpperLimit(bar, store.getSizeLimit());
+        fromKey = Utils.getKeyLowerLimit(bar);
+        toKey = Utils.getKeyUpperLimit(bar);
         // must fail with three consecutive failures
         store.failRead = 3;
         try {

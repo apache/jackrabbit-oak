@@ -48,7 +48,7 @@ public class MongoDocumentStoreHelper {
 
     public static void repair(MongoDocumentStore store, String path) {
         MongoCollection<BasicDBObject> col = store.getDBCollection(NODES);
-        String id = Utils.getIdFromPath(path, store.getSizeLimit());
+        String id = Utils.getIdFromPath(path);
 
         NodeDocument doc = store.find(NODES, id);
         if (doc == null) {

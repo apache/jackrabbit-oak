@@ -332,23 +332,23 @@ public class DocumentNodeStoreTest {
         writer.join();
         assertEquals("expected exception", 1, exceptions.size());
 
-        String id = Utils.getIdFromPath("/newConflictingNode", docStore.getSizeLimit());
+        String id = Utils.getIdFromPath("/newConflictingNode");
         NodeDocument doc = docStore.find(NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
         assertTrue("document with id " + id + " should get _deletedOnce marked due to rollback",
                 doc.wasDeletedOnce());
 
-        id = Utils.getIdFromPath("/newNonConflictingNode", docStore.getSizeLimit());
+        id = Utils.getIdFromPath("/newNonConflictingNode");
         doc = docStore.find(NODES, id);
         assertNull("document with id " + id + " must not have _deletedOnce",
                 doc.get(NodeDocument.DELETED_ONCE));
 
-        id = Utils.getIdFromPath("/deletedNode", docStore.getSizeLimit());
+        id = Utils.getIdFromPath("/deletedNode");
         doc = docStore.find(NODES, id);
         assertTrue("document with id " + id + " should get _deletedOnce marked due to rollback",
                 doc.wasDeletedOnce());
 
-        id = Utils.getIdFromPath("/updateNode", docStore.getSizeLimit());
+        id = Utils.getIdFromPath("/updateNode");
         doc = docStore.find(NODES, id);
         assertNull("document with id " + id + " must not have _deletedOnce despite rollback",
                 doc.get(NodeDocument.DELETED_ONCE));
@@ -402,7 +402,7 @@ public class DocumentNodeStoreTest {
         }
         ns1.runBackgroundOperations();
 
-        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/", docStore.getSizeLimit()));
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
         Revision newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
                 Revision.newRevision(ns2.getClusterId()),
@@ -501,13 +501,13 @@ public class DocumentNodeStoreTest {
         ns1.runBackgroundOperations();
 
         // get current _modified timestamp on /node
-        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/node", docStore.getSizeLimit()));
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/node"));
         Long mod1 = (Long) doc.get(MODIFIED_IN_SECS);
         assertNotNull(mod1);
 
         ns2.runBackgroundOperations();
 
-        doc = docStore.find(NODES, Utils.getIdFromPath("/node", docStore.getSizeLimit()));
+        doc = docStore.find(NODES, Utils.getIdFromPath("/node"));
         Long mod2 = (Long) doc.get(MODIFIED_IN_SECS);
         assertTrue("" + mod2 + " < " + mod1, mod2 >= mod1);
     }
@@ -571,7 +571,7 @@ public class DocumentNodeStoreTest {
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         RevisionVector rev = ns.getHeadRevision();
-        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test", docStore.getSizeLimit()));
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         DocumentNodeState state = doc.getNodeAtRevision(ns, rev, null);
         assertNotNull(state);
@@ -586,7 +586,7 @@ public class DocumentNodeStoreTest {
         ns.runBackgroundOperations();
 
         // must still return the same value as before the split
-        doc = docStore.find(NODES, Utils.getIdFromPath("/test", docStore.getSizeLimit()));
+        doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         state = doc.getNodeAtRevision(ns, rev, null);
         assertNotNull(state);
@@ -735,7 +735,7 @@ public class DocumentNodeStoreTest {
         merge(ns1, builder);
         ns1.dispose();
 
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/foo", docStore.getSizeLimit()), false);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/foo"), false);
         op.removeMapEntry("_lastRev", new Revision(0, 0, cId1));
         assertNotNull(docStore.findAndUpdate(Collection.NODES, op));
 
@@ -770,7 +770,7 @@ public class DocumentNodeStoreTest {
                 .getNodeStore();
         dns1.dispose();
 
-        NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT, store.getSizeLimit()));
+        NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(beforeRootDoc);
         Revision beforeLastRev = beforeRootDoc.getLastRev().get(clusterId);
 
@@ -788,7 +788,7 @@ public class DocumentNodeStoreTest {
                 .setAsyncDelay(0).setClusterId(clusterId)
                 .getNodeStore();
 
-        NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT, store.getSizeLimit()));
+        NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(afterRootDoc);
         Revision afterLastRev = afterRootDoc.getLastRev().get(clusterId);
 
@@ -812,7 +812,7 @@ public class DocumentNodeStoreTest {
 
         builder1 = store.getRoot().builder();
         NodeBuilder node = builder1.getChildNode("test").child("node");
-        String id = Utils.getIdFromPath("/test/node", docStore.getSizeLimit());
+        String id = Utils.getIdFromPath("/test/node");
         int i = 0;
         // force creation of a branch
         while (docStore.find(NODES, id) == null) {
@@ -853,7 +853,7 @@ public class DocumentNodeStoreTest {
 
         builder = store1.getRoot().builder();
         NodeBuilder node = builder.getChildNode("test").child("node");
-        String id = Utils.getIdFromPath("/test/node", docStore.getSizeLimit());
+        String id = Utils.getIdFromPath("/test/node");
         int i = 0;
         // force creation of a branch
         while (docStore.find(NODES, id) == null) {
@@ -927,7 +927,7 @@ public class DocumentNodeStoreTest {
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
-        String testId = Utils.getIdFromPath("/test", store.getSizeLimit());
+        String testId = Utils.getIdFromPath("/test");
         NodeBuilder test = builder.child("test");
         test.setProperty("p", "value");
         test.setProperty("q", 0);
@@ -946,7 +946,7 @@ public class DocumentNodeStoreTest {
         // trigger split
         ns.runBackgroundOperations();
 
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test", store.getSizeLimit()));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
 
         readSet.clear();
@@ -1056,7 +1056,7 @@ public class DocumentNodeStoreTest {
 
         RevisionVector removedAt = store.getHeadRevision();
 
-        String id = Utils.getIdFromPath("/test", docStore.getSizeLimit());
+        String id = Utils.getIdFromPath("/test");
         int count = 0;
         // update node until we have at least two levels of split documents
         while (docStore.find(NODES, id).getPreviousRanges().size() <= PREV_SPLIT_FACTOR) {
@@ -1342,7 +1342,7 @@ public class DocumentNodeStoreTest {
         }
 
         String parentPath = "/:hidden/parent";
-        NodeDocument parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath, docStore.getSizeLimit()));
+        NodeDocument parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
                 isDocDeleted(parentDoc, store1));
 
@@ -1360,7 +1360,7 @@ public class DocumentNodeStoreTest {
             //this merge should fail -- but our real check is done by asserting that parent remains intact
         }
 
-        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath, docStore.getSizeLimit()));
+        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
                 isDocDeleted(parentDoc, store1));
 
@@ -1394,7 +1394,7 @@ public class DocumentNodeStoreTest {
         }
 
         parentPath = "/:hidden/parent1";
-        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath, docStore.getSizeLimit()));
+        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
                 isDocDeleted(parentDoc, store1));
 
@@ -1411,7 +1411,7 @@ public class DocumentNodeStoreTest {
             //this merge should fail -- but our real check is done by asserting that parent remains intact
         }
 
-        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath, docStore.getSizeLimit()));
+        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
                 isDocDeleted(parentDoc, store1));
     }
@@ -2685,7 +2685,7 @@ public class DocumentNodeStoreTest {
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
 
-        String id = Utils.getIdFromPath("/test", store.getSizeLimit());
+        String id = Utils.getIdFromPath("/test");
         NodeBuilder b = ns.getRoot().builder();
         b.child("test").setProperty("p", "a");
         merge(ns, b);
@@ -3016,7 +3016,7 @@ public class DocumentNodeStoreTest {
         builder = ns1.getRoot().builder();
         builder.child("node-1").child("bar");
         merge(ns1, builder);
-        assertFalse(finds.contains(Utils.getIdFromPath("/node-1/bar", store.getSizeLimit())));
+        assertFalse(finds.contains(Utils.getIdFromPath("/node-1/bar")));
     }
 
     // OAK-5149
@@ -3202,7 +3202,7 @@ public class DocumentNodeStoreTest {
         }
 
         // check updates are consecutive
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/a/b", store.getSizeLimit()));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/a/b"));
         assertNotNull(doc);
         long previousValue = -1;
         List<String> values = Lists.newArrayList(doc.getLocalMap("p").values());
@@ -3249,7 +3249,7 @@ public class DocumentNodeStoreTest {
             builder.child("foo").setProperty("p-" + i, "value");
         }
         // must have created a branch commit
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo", store.getSizeLimit()));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
     }
 
@@ -3271,7 +3271,7 @@ public class DocumentNodeStoreTest {
         FormatVersion.V1_0.writeTo(store);
         // initialize store with root node
         Revision r = Revision.newRevision(1);
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", store.getSizeLimit()), true);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
         NodeDocument.setModified(op, r);
         NodeDocument.setDeleted(op, r, false);
         NodeDocument.setRevision(op, r, "c");
@@ -3641,7 +3641,7 @@ public class DocumentNodeStoreTest {
 
         builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
-        String firstChildId = Utils.getIdFromPath("/test/child-0", docStore.getSizeLimit());
+        String firstChildId = Utils.getIdFromPath("/test/child-0");
         for (int i = 0; ; i++) {
             NodeBuilder child = test.child("child-" + i);
             for (int j = 0; j < 10; j++) {
@@ -3692,7 +3692,7 @@ public class DocumentNodeStoreTest {
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
-        String testId = Utils.getIdFromPath("/test", docStore.getSizeLimit());
+        String testId = Utils.getIdFromPath("/test");
         for (int i = 0; ; i++) {
             NodeBuilder child = test.child("child-" + i);
             for (int j = 0; j < 10; j++) {
@@ -3737,7 +3737,7 @@ public class DocumentNodeStoreTest {
 
         builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
-        String firstChildId = Utils.getIdFromPath("/test/child-0", docStore.getSizeLimit());
+        String firstChildId = Utils.getIdFromPath("/test/child-0");
         for (int i = 0; ; i++) {
             NodeBuilder child = test.child("child-" + i);
             for (int j = 0; j < 10; j++) {

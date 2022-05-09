@@ -36,9 +36,11 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -48,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -147,6 +150,6 @@ public class VersionedDocumentBundlingTest {
     }
 
     private NodeDocument getNodeDocument(String path) {
-        return ds.find(Collection.NODES, Utils.getIdFromPath(path, ds.getSizeLimit()));
+        return ds.find(Collection.NODES, Utils.getIdFromPath(path));
     }
 }
