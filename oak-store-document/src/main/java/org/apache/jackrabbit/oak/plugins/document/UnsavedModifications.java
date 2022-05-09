@@ -182,7 +182,7 @@ class UnsavedModifications {
                     // update root individually at the end
                     continue;
                 }
-                updates.add(newUpdateOp(p, r, store.getSizeLimit()));
+                updates.add(newUpdateOp(p, r));
                 pathToRevision.put(entry.getKey(), r);
             }
             if (!updates.isEmpty()) {
@@ -200,7 +200,7 @@ class UnsavedModifications {
         // finally update remaining root document
         Revision rootRev = pending.get(Path.ROOT);
         if (rootRev != null) {
-            UpdateOp rootUpdate = newUpdateOp(Path.ROOT, rootRev, store.getSizeLimit());
+            UpdateOp rootUpdate = newUpdateOp(Path.ROOT, rootRev);
             // also update to most recent sweep revision
             if (sweepRev != null) {
                 NodeDocument.setSweepRevision(rootUpdate, sweepRev);
@@ -234,8 +234,8 @@ class UnsavedModifications {
         return map.toString();
     }
 
-    private static UpdateOp newUpdateOp(Path path, Revision r, int sizeLimit) {
-        UpdateOp updateOp = createUpdateOp(path, r, false, sizeLimit);
+    private static UpdateOp newUpdateOp(Path path, Revision r) {
+        UpdateOp updateOp = createUpdateOp(path, r, false);
         NodeDocument.setLastRev(updateOp, r);
         return updateOp;
     }

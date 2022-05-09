@@ -215,7 +215,7 @@ public class CommitValueResolverTest {
         TestUtils.merge(ns, builder);
         Revision commitRev = ns.getHeadRevision().getRevision(ns.getClusterId());
         assertNotNull(commitRev);
-        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/", store.getSizeLimit()), false);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
         NodeDocument.removeRevision(op, commitRev);
         assertNotNull(store.findAndUpdate(NODES, op));
 
@@ -281,7 +281,7 @@ public class CommitValueResolverTest {
     }
 
     private NodeDocument getDocument(String path) {
-        return ns.getDocumentStore().find(NODES, getIdFromPath(path, store.getSizeLimit()));
+        return ns.getDocumentStore().find(NODES, getIdFromPath(path));
     }
 
     private void someChange(String path) throws Exception {

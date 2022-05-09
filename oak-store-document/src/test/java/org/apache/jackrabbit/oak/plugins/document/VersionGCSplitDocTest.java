@@ -133,7 +133,7 @@ public class VersionGCSplitDocTest {
             merge(ns, builder);
         }
         ns.runBackgroundOperations();
-        String id = Utils.getIdFromPath("/" + "createNoBranchSplitDocument" + longpath + "/" + parent, store.getSizeLimit());
+        String id = Utils.getIdFromPath("/" + "createNoBranchSplitDocument" + longpath + "/" + parent);
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
         for (UpdateOp op : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 5)) {

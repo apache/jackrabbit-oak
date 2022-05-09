@@ -46,7 +46,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
         List<UpdateOp> ops = Lists.newArrayList();
         List<String> ids = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            String id = Utils.getIdFromPath("/node-" + i, ds.getSizeLimit());
+            String id = Utils.getIdFromPath("/node-" + i);
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             NodeDocument.setLastRev(op, r);
@@ -74,7 +74,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
             q.join();
             u.join();
             for (int j = 0; j < NUM_NODES; j++) {
-                NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/node-" + j, ds.getSizeLimit()));
+                NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/node-" + j));
                 assertNotNull(doc);
                 assertEquals("Unexpected revision timestamp for " + doc.getId(),
                         counter, doc.getLastRev().get(1).getTimestamp());
@@ -87,7 +87,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
     }
 
     private void queryDocuments() {
-        ds.query(NODES, getKeyLowerLimit(Path.ROOT, ds.getSizeLimit()), getKeyUpperLimit(Path.ROOT, ds.getSizeLimit()), 100);
+        ds.query(NODES, getKeyLowerLimit(Path.ROOT), getKeyUpperLimit(Path.ROOT), 100);
     }
 
     private void updateDocuments() {
@@ -95,7 +95,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
         NodeDocument.setLastRev(op, newRevision());
         List<UpdateOp> ops = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
-            ops.add(op.shallowCopy(getIdFromPath("/node-" + i, ds.getSizeLimit())));
+            ops.add(op.shallowCopy(getIdFromPath("/node-" + i)));
         }
         ds.createOrUpdate(NODES, ops);
     }

@@ -39,23 +39,21 @@ class ResetDiff implements NodeStateDiff {
     private final Revision revision;
     private final Path path;
     private final Map<Path, UpdateOp> operations;
-    private final int sizeLimit;
     private UpdateOp update;
 
     ResetDiff(@NotNull Revision revision,
-              @NotNull Map<Path, UpdateOp> operations, int sizeLimit) {
-        this(null, revision, Path.ROOT, operations, sizeLimit);
+              @NotNull Map<Path, UpdateOp> operations) {
+        this(null, revision, Path.ROOT, operations);
     }
 
     private ResetDiff(@Nullable ResetDiff parent,
                       @NotNull Revision revision,
                       @NotNull Path path,
-                      @NotNull Map<Path, UpdateOp> operations, int sizeLimit) {
+                      @NotNull Map<Path, UpdateOp> operations) {
         this.parent = parent;
         this.revision = checkNotNull(revision);
         this.path = checkNotNull(path);
         this.operations = checkNotNull(operations);
-        this.sizeLimit = sizeLimit;
     }
 
     @Override
@@ -80,7 +78,7 @@ class ResetDiff implements NodeStateDiff {
     public boolean childNodeAdded(String name, NodeState after) {
         NodeDocument.removeCommitRoot(getUpdateOp(), revision);
         Path p = new Path(path, name);
-        ResetDiff diff = new ResetDiff(this, revision, p, operations, sizeLimit);
+        ResetDiff diff = new ResetDiff(this, revision, p, operations);
         UpdateOp op = diff.getUpdateOp();
         NodeDocument.removeDeleted(op, revision);
         NodeDocument.setDeletedOnce(op);
@@ -97,13 +95,13 @@ class ResetDiff implements NodeStateDiff {
                                     NodeState after) {
         Path p = new Path(path, name);
         return after.compareAgainstBaseState(before,
-                new ResetDiff(this, revision, p, operations, sizeLimit));
+                new ResetDiff(this, revision, p, operations));
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
         Path p = new Path(path, name);
-        ResetDiff diff = new ResetDiff(this, revision, p, operations, sizeLimit);
+        ResetDiff diff = new ResetDiff(this, revision, p, operations);
         NodeDocument.removeDeleted(diff.getUpdateOp(), revision);
         return MISSING_NODE.compareAgainstBaseState(before, diff);
     }
@@ -116,7 +114,7 @@ class ResetDiff implements NodeStateDiff {
         if (update == null) {
             update = operations.get(path);
             if (update == null) {
-                String id = Utils.getIdFromPath(path, sizeLimit);
+                String id = Utils.getIdFromPath(path);
                 update = new UpdateOp(id, false);
                 operations.put(path, update);
             }

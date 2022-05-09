@@ -315,7 +315,7 @@ class SplitOperations {
                     throw new IllegalStateException();
                 }
                 Path prevPath = Utils.getPreviousPathFor(path, h, entry.getKey() + 1);
-                String prevId = Utils.getIdFromPath(prevPath, doc.store.getSizeLimit());
+                String prevId = Utils.getIdFromPath(prevPath);
                 UpdateOp intermediate = new UpdateOp(prevId, true);
                 if (Utils.isIdFromLongPath(prevId)) {
                     intermediate.set(NodeDocument.PATH, prevPath.toString());
@@ -352,7 +352,7 @@ class SplitOperations {
             main = new UpdateOp(id, false);
             setPrevious(main, new Range(high, low, 0));
             Path oldPath = Utils.getPreviousPathFor(path, high, 0);
-            String oldId = Utils.getIdFromPath(oldPath, doc.store.getSizeLimit());
+            String oldId = Utils.getIdFromPath(oldPath);
             UpdateOp old = new UpdateOp(oldId, true);
             if (Utils.isIdFromLongPath(oldId)) {
                 old.set(NodeDocument.PATH, oldPath.toString());
@@ -501,7 +501,7 @@ class SplitOperations {
                 NodeDocument intermediate = doc.findPrevReferencingDoc(r, height);
                 if (intermediate == null) {
                     LOG.warn("Split document {} not referenced anymore. Main document is {}",
-                            getPreviousIdFor(doc.getPath(), r, height, doc.store.getSizeLimit()), id);
+                            getPreviousIdFor(doc.getPath(), r, height), id);
                 } else {
                     UpdateOp op = new UpdateOp(intermediate.getId(), false);
                     NodeDocument.removePrevious(op, r);

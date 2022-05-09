@@ -21,7 +21,6 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -35,7 +34,7 @@ public class UpdateUtilsTest {
     @Test
     public void applyChanges() {
         Revision r = Revision.newRevision(1);
-        String id = Utils.getIdFromPath("/foo", NODE_NAME_LIMIT);
+        String id = Utils.getIdFromPath("/foo");
         Document d = new Document();
         d.put(Document.ID, id);
 
@@ -79,7 +78,7 @@ public class UpdateUtilsTest {
     @Test
     public void checkConditions() {
         Revision r = Revision.newRevision(1);
-        String id = Utils.getIdFromPath("/foo", NODE_NAME_LIMIT);
+        String id = Utils.getIdFromPath("/foo");
         Document d = new Document();
         d.put(Document.ID, id);
 

@@ -271,9 +271,9 @@ public class Utils {
         return !key.startsWith("_") || key.startsWith("__") || key.startsWith("_$");
     }
 
-    public static String getIdFromPath(@NotNull String path, int sizeLimit) {
+    public static String getIdFromPath(@NotNull String path) {
         int depth = Utils.pathDepth(path);
-        if (isLongPath(path, sizeLimit)) {
+        if (isLongPath(path)) {
             String parent = PathUtils.getParentPath(path);
             byte[] hash = createSHA256Digest(parent);
             return createHashedId(depth, hash, PathUtils.getName(path));
@@ -281,11 +281,11 @@ public class Utils {
         return depth + ":" + path;
     }
 
-    public static String getIdFromPath(@NotNull Path path, int sizeLimit) {
+    public static String getIdFromPath(@NotNull Path path) {
         checkNotNull(path);
         int depth = getIdDepth(path);
         Path parent = path.getParent();
-        if (parent != null && isLongPath(path, sizeLimit)) {
+        if (parent != null && isLongPath(path)) {
             byte[] hash = createSHA256Digest(parent.toString());
             return createHashedId(depth, hash, path.getName());
         }
@@ -334,12 +334,11 @@ public class Utils {
      *     <li>If id is for an invalid path</li>
      * </ul>
      *
-     * @param id        id for which parent id needs to be determined
-     * @param sizeLimit
+     * @param id id for which parent id needs to be determined
      * @return parent id. null if parent id cannot be determined
      */
     @Nullable
-    public static String getParentId(String id, int sizeLimit){
+    public static String getParentId(String id){
         if(Utils.isIdFromLongPath(id)){
             return null;
         }
@@ -351,10 +350,10 @@ public class Utils {
             return null;
         }
         String parentPath = PathUtils.getParentPath(path);
-        return Utils.getIdFromPath(parentPath, sizeLimit);
+        return Utils.getIdFromPath(parentPath);
     }
 
-    private static boolean isLongPath(String path, int sizeLimit) {
+    private static boolean isLongPath(String path) {
         // the most common case: a short path
         // avoid calculating the parent path
         if (path.length() < PATH_SHORT) {
@@ -362,17 +361,32 @@ public class Utils {
         }
         // check if the parent path is long
         byte[] parent = PathUtils.getParentPath(path).getBytes(UTF_8);
-        if (parent.length < PATH_LONG) {
-            return false;
-        }
-        String name = PathUtils.getName(path);
-        if (name.getBytes(UTF_8).length > sizeLimit) {
-            throw new IllegalArgumentException("Node name is too long: " + path);
-        }
-        return true;
+        return parent.length >= PATH_LONG;
     }
 
-    public static boolean isLongPath(Path path, int sizeLimit) {
+    /**
+     * Checks whether Node name is too long or not based on underlining document store
+     * @param path node path
+     * @param sizeLimit sizeLimit for node name
+     * @return true if node name is long else false
+     */
+
+    public static boolean isNodeNameLong(String path, int sizeLimit) {
+        final String name = PathUtils.getName(path);
+        return isLongPath(path) && name.getBytes(UTF_8).length > sizeLimit;
+    }
+
+    /**
+     * Checks whether Node name is too long or not based on underlining document store
+     * @param path node path
+     * @param sizeLimit sizeLimit for node name
+     * @return true if node name is long else false
+     */
+    public static boolean isNodeNameLong(Path path, int sizeLimit) {
+        return isLongPath(path) && path.getName().getBytes(UTF_8).length > sizeLimit;
+    }
+
+    public static boolean isLongPath(Path path) {
         // the most common case: a short path
         // avoid calculating the parent path
         if (path.length() < PATH_SHORT) {
@@ -383,13 +397,7 @@ public class Utils {
         if (parent == null) {
             return false;
         }
-        if (parent.toString().getBytes(UTF_8).length < PATH_LONG) {
-            return false;
-        }
-        if (path.getName().getBytes(UTF_8).length > sizeLimit) {
-            throw new IllegalArgumentException("Node name is too long: " + path);
-        }
-        return true;
+        return parent.toString().getBytes(UTF_8).length >= PATH_LONG;
     }
 
     public static boolean isIdFromLongPath(String id) {
@@ -430,8 +438,8 @@ public class Utils {
         return new Path(prev, String.valueOf(height));
     }
 
-    public static String getPreviousIdFor(Path path, Revision r, int height, int sizeLimit) {
-        return getIdFromPath(getPreviousPathFor(path, r, height), sizeLimit);
+    public static String getPreviousIdFor(Path path, Revision r, int height) {
+        return getIdFromPath(getPreviousPathFor(path, r, height));
     }
 
     /**
@@ -489,12 +497,11 @@ public class Utils {
      * Returns the lower key limit to retrieve the children of the given
      * <code>path</code>.
      *
-     * @param path      a path.
-     * @param sizeLimit
+     * @param path a path.
      * @return the lower key limit.
      */
-    public static String getKeyLowerLimit(Path path, int sizeLimit) {
-        String from = getIdFromPath(new Path(path, "a"), sizeLimit);
+    public static String getKeyLowerLimit(Path path) {
+        String from = getIdFromPath(new Path(path, "a"));
         from = from.substring(0, from.length() - 1);
         return from;
     }
@@ -503,12 +510,11 @@ public class Utils {
      * Returns the upper key limit to retrieve the children of the given
      * <code>path</code>.
      *
-     * @param path      a path.
-     * @param sizeLimit
+     * @param path a path.
      * @return the upper key limit.
      */
-    public static String getKeyUpperLimit(Path path, int sizeLimit) {
-        String to = getIdFromPath(new Path(path, "z"), sizeLimit);
+    public static String getKeyUpperLimit(Path path) {
+        String to = getIdFromPath(new Path(path, "z"));
         to = to.substring(0, to.length() - 2) + "0";
         return to;
     }
@@ -517,18 +523,17 @@ public class Utils {
      * Returns parentId extracted from the fromKey. fromKey is usually constructed
      * using Utils#getKeyLowerLimit
      *
-     * @param fromKey   key used as start key in queries
-     * @param sizeLimit
+     * @param fromKey key used as start key in queries
      * @return parentId if possible.
      */
     @Nullable
-    public static String getParentIdFromLowerLimit(String fromKey, int sizeLimit){
+    public static String getParentIdFromLowerLimit(String fromKey){
         //If key just ends with slash 2:/foo/ then append a fake
         //name to create a proper id
         if(fromKey.endsWith("/")){
             fromKey = fromKey + "a";
         }
-        return getParentId(fromKey, sizeLimit);
+        return getParentId(fromKey);
     }
 
     /**
@@ -685,7 +690,7 @@ public class Utils {
      */
     @NotNull
     public static NodeDocument getRootDocument(@NotNull DocumentStore store) {
-        String rootId = Utils.getIdFromPath(Path.ROOT, store.getSizeLimit());
+        String rootId = Utils.getIdFromPath(Path.ROOT);
         NodeDocument root = store.find(Collection.NODES, rootId);
         if (root == null) {
             throw new IllegalStateException("missing root document");
@@ -791,10 +796,10 @@ public class Utils {
     }
 
     /**
-     * Transforms the given paths into ids using {@link #getIdFromPath(String, int)}.
+     * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
      */
-    public static Iterable<String> pathToId(@NotNull Iterable<String> paths, int sizeLimit) {
-        return transform(paths, input -> getIdFromPath(input, sizeLimit));
+    public static Iterable<String> pathToId(@NotNull Iterable<String> paths) {
+        return transform(paths, input -> getIdFromPath(input));
     }
 
     /**
@@ -1048,7 +1053,7 @@ public class Utils {
                                         ClusterNodeInfo info,
                                         Clock clock)
             throws DocumentStoreException {
-        NodeDocument root = store.find(Collection.NODES, getIdFromPath(Path.ROOT, store.getSizeLimit()));
+        NodeDocument root = store.find(Collection.NODES, getIdFromPath(Path.ROOT));
         if (root == null) {
             return;
         }

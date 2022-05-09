@@ -414,7 +414,12 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      * @param revision the revision this node is created.
      */
     UpdateOp asOperation(@NotNull Revision revision) {
-        String id = Utils.getIdFromPath(path, store.getDocumentStore().getSizeLimit());
+
+        if (Utils.isNodeNameLong(path, store.getDocumentStore().getSizeLimit())) {
+            throw new IllegalArgumentException("Node name is too long: " + path);
+        }
+
+        String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, true);
         if (Utils.isIdFromLongPath(id)) {
             op.set(NodeDocument.PATH, path.toString());
