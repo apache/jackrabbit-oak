@@ -402,7 +402,7 @@ public class XPathToSQL2Converter {
                     options.offset = Optional.of(readNumber());
                 } else if (readIf("limit")) {
                     options.limit = Optional.of(readNumber());
-                }else { 
+                } else { 
                     break;
                 }
                 readIf(",");
