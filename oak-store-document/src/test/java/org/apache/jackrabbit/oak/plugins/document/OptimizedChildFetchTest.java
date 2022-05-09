@@ -96,8 +96,7 @@ public class OptimizedChildFetchTest extends BaseDocumentMKTest {
     }
 
     private boolean hasChildren(String path) {
-        DocumentStore store = mk.getDocumentStore();
-        NodeDocument nd = store.find(Collection.NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
+        NodeDocument nd = mk.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
         return nd.hasChildren();
     }
 

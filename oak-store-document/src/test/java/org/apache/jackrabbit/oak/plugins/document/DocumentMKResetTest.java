@@ -180,7 +180,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         String b0 = mk.branch(null);
         String b1 = addNodes(b0, "/foo/bar");
 
-        NodeDocument foo = store.find(NODES, getIdFromPath("/foo", store.getSizeLimit()));
+        NodeDocument foo = store.find(NODES, getIdFromPath("/foo"));
         assertNotNull(foo);
         assertTrue(foo.getLocalCommitRoot().containsKey(
                 Revision.fromString(b1).asTrunkRevision()));
@@ -190,7 +190,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         mk.reset(b1, b0);
 
         // reset must also remove _commitRoot entry on parent document
-        foo = store.find(NODES, getIdFromPath("/foo", store.getSizeLimit()));
+        foo = store.find(NODES, getIdFromPath("/foo"));
         assertNotNull(foo);
         assertFalse(foo.getLocalCommitRoot().containsKey(
                 Revision.fromString(b1).asTrunkRevision()));
@@ -204,7 +204,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         String b0 = mk.branch(null);
         String b1 = addNodes(b0, "/foo/bar");
 
-        NodeDocument foo = store.find(NODES, getIdFromPath("/foo", store.getSizeLimit()));
+        NodeDocument foo = store.find(NODES, getIdFromPath("/foo"));
         assertNotNull(foo);
         assertTrue(foo.getLocalCommitRoot().containsKey(
                 Revision.fromString(b1).asTrunkRevision()));
@@ -233,7 +233,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         mk.commit("", "^\"/foo/p2\":1^\"/foo/p3\":1", null, null);
 
         // check collision markers
-        NodeDocument rootDoc = store.find(NODES, getIdFromPath("/", store.getSizeLimit()));
+        NodeDocument rootDoc = store.find(NODES, getIdFromPath("/"));
         assertNotNull(rootDoc);
         Map<Revision, String> collisions = rootDoc.getValueMap(COLLISIONS);
         assertEquals(2, collisions.size());
@@ -249,7 +249,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         String b4 = mk.reset(b3, b1);
         String b5 = mk.commit("", "^\"/foo/p4\":1", b4, null);
 
-        rootDoc = store.find(NODES, getIdFromPath("/", store.getSizeLimit()));
+        rootDoc = store.find(NODES, getIdFromPath("/"));
         assertNotNull(rootDoc);
         collisions = rootDoc.getValueMap(COLLISIONS);
         assertEquals(0, collisions.size());

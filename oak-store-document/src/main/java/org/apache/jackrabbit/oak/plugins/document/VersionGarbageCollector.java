@@ -772,7 +772,7 @@ public class VersionGarbageCollector {
                     @Override
                     public String apply(Map.Entry<Revision, Range> input) {
                         int h = input.getValue().getHeight();
-                        return Utils.getPreviousIdFor(path, input.getKey(), h, doc.store.getSizeLimit());
+                        return Utils.getPreviousIdFor(path, input.getKey(), h);
                     }
                 });
             } else {

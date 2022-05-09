@@ -108,8 +108,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
 
     static boolean isClean(DocumentNodeStore ns, String path) {
         // use find that also reads from the cache
-        DocumentStore store = ns.getDocumentStore();
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(path, store.getSizeLimit()));
+        NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath(path));
         for (Revision c : doc.getAllChanges()) {
             String commitValue = ns.getCommitValue(c, doc);
             if (!Utils.isCommitted(commitValue)) {

@@ -150,6 +150,20 @@ public class CommitBuilderTest {
         assertNotNull(op);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void addLongNameNodeState() {
+        Path path = Path.fromString(DocumentMK.LONG_PATH);
+        DocumentNodeState foo = addNode(DocumentMK.LONG_PATH);
+
+        CommitBuilder builder = new CommitBuilder(ns, null);
+        builder.addNode(foo);
+        Commit c = builder.build(ns.newRevision());
+        UpdateOp up = c.getUpdateOperationForNode(path);
+        UpdateOp.Operation op = up.getChanges().get(
+                new UpdateOp.Key("_deleted", c.getRevision()));
+        assertNotNull(op);
+    }
+
     @Test
     public void branchCommit() {
         RevisionVector baseRev = ns.getHeadRevision()

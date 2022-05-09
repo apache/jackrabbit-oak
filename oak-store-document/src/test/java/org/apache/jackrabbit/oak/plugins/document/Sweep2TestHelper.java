@@ -197,7 +197,7 @@ public class Sweep2TestHelper {
             assertNotNull(store.findAndUpdate(Collection.NODES, removeBc));
         }
         // B : remove "_sweepRev"
-        UpdateOp removeSweepRev = new UpdateOp(Utils.getIdFromPath("/", store.getSizeLimit()), false);
+        UpdateOp removeSweepRev = new UpdateOp(Utils.getIdFromPath("/"), false);
         removeSweepRev.remove("_sweepRev");
         assertNotNull(store.findAndUpdate(Collection.NODES, removeSweepRev));
         // C : remove the "sweep2Status" from the settings
@@ -228,7 +228,7 @@ public class Sweep2TestHelper {
     static void removeSweep2Status(DocumentStore store, boolean emptySweepRev) {
         store.remove(Collection.SETTINGS, "sweep2Status");
         if (emptySweepRev) {
-            String rootId = Utils.getIdFromPath("/", store.getSizeLimit());
+            String rootId = Utils.getIdFromPath("/");
             NodeDocument rootDoc = store.find(Collection.NODES, rootId);
             SortedMap<Revision, String> sweepRevs = rootDoc.getLocalMap(NodeDocument.SWEEP_REV);
             if (!sweepRevs.isEmpty()) {

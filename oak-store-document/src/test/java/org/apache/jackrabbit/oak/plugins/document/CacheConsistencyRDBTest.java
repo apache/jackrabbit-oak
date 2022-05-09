@@ -60,13 +60,12 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
         // of _lastRev on /node
         mk.commit("/node", "+\"child\":{}", null, null);
         // make sure the document is not cached
-        store.invalidateNodeDocument(Utils.getIdFromPath("/node", store.getSizeLimit()));
+        store.invalidateNodeDocument(Utils.getIdFromPath("/node"));
 
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                store.query(NODES, Utils.getKeyLowerLimit(Path.ROOT, store.getSizeLimit()),
-                        Utils.getKeyUpperLimit(Path.ROOT, store.getSizeLimit()), 10);
+                store.query(NODES, Utils.getKeyLowerLimit(Path.ROOT), Utils.getKeyUpperLimit(Path.ROOT), 10);
             }
         }, "query");
         // block thread when it tries to convert db objects
@@ -89,7 +88,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
 
         // wait at most one second for background thread
         done.tryAcquire(1, TimeUnit.SECONDS);
-        store.invalidateNodeDocument(Utils.getIdFromPath("/node", store.getSizeLimit()));
+        store.invalidateNodeDocument(Utils.getIdFromPath("/node"));
 
         // release thread
         store.semaphores.get(t).release();
