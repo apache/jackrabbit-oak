@@ -85,9 +85,8 @@ public class BlobCollectorTest {
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        DocumentStore docStore = store.getDocumentStore();
         NodeDocument doc =
-                docStore.find(Collection.NODES, Utils.getIdFromPath("/x/y", docStore.getSizeLimit()));
+                store.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/x/y"));
         List<ReferencedBlob> collectedBlobs = Lists.newArrayList();
         blobCollector.collect(doc, collectedBlobs);
 

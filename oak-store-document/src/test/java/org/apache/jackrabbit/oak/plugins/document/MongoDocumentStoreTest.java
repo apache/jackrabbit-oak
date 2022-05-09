@@ -235,7 +235,27 @@ public class MongoDocumentStoreTest {
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT, docStore.getSizeLimit()),  Utils.getKeyUpperLimit(Path.ROOT, docStore.getSizeLimit()),
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT),
+                DocumentMK.MANY_CHILDREN_THRESHOLD);
+        assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
+        store.dispose();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void queryWithNodeNameTooLong() throws Exception {
+        DocumentStore docStore = openDocumentStore();
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < 2; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString(DocumentMK.LONG_PATH + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT),
                 DocumentMK.MANY_CHILDREN_THRESHOLD);
         assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
         store.dispose();

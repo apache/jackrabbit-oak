@@ -104,7 +104,7 @@ public class VersionGCSweepTest extends AbstractTwoNodeTest {
 
     private static int getNumSplitDocuments(DocumentStore store, String path)
             throws Exception {
-        NodeDocument doc = store.find(NODES, getIdFromPath(path, store.getSizeLimit()));
+        NodeDocument doc = store.find(NODES, getIdFromPath(path));
         assertNotNull(doc);
         return Iterators.size(doc.getAllPreviousDocs());
     }

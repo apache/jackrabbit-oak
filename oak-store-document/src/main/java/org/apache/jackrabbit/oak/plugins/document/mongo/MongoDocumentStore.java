@@ -704,7 +704,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
         Bson query = Filters.and(clauses);
-        String parentId = Utils.getParentIdFromLowerLimit(fromKey, sizeLimit);
+        String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         long lockTime = -1;
         final Stopwatch watch = startWatch();
 

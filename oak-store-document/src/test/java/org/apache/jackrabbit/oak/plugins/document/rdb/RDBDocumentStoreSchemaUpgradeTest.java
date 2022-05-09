@@ -55,7 +55,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() {
         java.util.Collection<Object[]> result = new ArrayList<Object[]>();
-        DocumentStoreFixture[] candidates = new DocumentStoreFixture[] { DocumentStoreFixture.RDB_H2,
+        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.RDB_H2,
                 DocumentStoreFixture.RDB_DERBY, DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2,
                 DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE, DocumentStoreFixture.RDB_MSSQL };
 
@@ -141,7 +141,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), new RDBOptions().tablePrefix("T0T1").initialSchema(0).upgradeToSchema(1));
             RDBTableMetaData meta1 = rdb1.getTable(Collection.NODES);
             assertTrue(meta1.hasVersion());
-            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo", rdb1.getSizeLimit()), true);
+            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
             assertTrue(rdb1.create(Collection.NODES, Collections.singletonList(testInsert)));
         } finally {
             if (rdb1 != null) {
@@ -165,11 +165,11 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), new RDBOptions().tablePrefix("T0T2").initialSchema(0).upgradeToSchema(2));
             RDBTableMetaData meta1 = rdb1.getTable(Collection.NODES);
             assertTrue(meta1.hasVersion());
-            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo", rdb1.getSizeLimit()), true);
+            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
             testInsert.set(NodeDocument.SD_TYPE, 123L);
             assertTrue(rdb1.create(Collection.NODES, Collections.singletonList(testInsert)));
             // check that old instance can read a new entry
-            NodeDocument check = rdb0.find(Collection.NODES, Utils.getIdFromPath("/foo", rdb1.getSizeLimit()));
+            NodeDocument check = rdb0.find(Collection.NODES, Utils.getIdFromPath("/foo"));
             assertNotNull(check);
             assertEquals(123L, check.get(NodeDocument.SD_TYPE));
         } finally {
@@ -225,7 +225,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             assertFalse(meta.hasVersion());
             assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size(),
                     logCustomizer.getLogs().size());
-            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo", rdb.getSizeLimit()), true);
+            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
             assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
         } finally {
             wds.setFailAlterTableAddColumnStatements(false);
@@ -300,7 +300,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             assertTrue(meta.hasVersion());
             assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size() * 4,
                     logCustomizer.getLogs().size());
-            String id = Utils.getIdFromPath("/foo", rdb.getSizeLimit());
+            String id = Utils.getIdFromPath("/foo");
             UpdateOp testInsert = new UpdateOp(id, true);
             assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
             UpdateOp testUpdate = new UpdateOp(id, false);
@@ -329,7 +329,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasVersion());
-            String id = Utils.getIdFromPath("/foo", rdb.getSizeLimit());
+            String id = Utils.getIdFromPath("/foo");
             UpdateOp testInsert = new UpdateOp(id, true);
             assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
             UpdateOp testUpdate = new UpdateOp(id, false);
@@ -402,7 +402,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
                 op01.set(NodeDocument.SD_TYPE, SplitDocType.DEFAULT_LEAF.typeCode());
                 op01.set(NodeDocument.SD_MAX_REV_TIME_IN_SECS, sdmaxrev);
 
-                UpdateOp op02 = new UpdateOp(Utils.getIdFromPath("/regular", rdb0.getSizeLimit()), true);
+                UpdateOp op02 = new UpdateOp(Utils.getIdFromPath("/regular"), true);
 
                 ops.add(op01);
                 ops.add(op02);

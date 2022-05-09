@@ -97,7 +97,7 @@ public class VersionGCSupportTest {
         long offset = SECONDS.toMillis(42);
         for (int i = 0; i < 5; i++) {
             Revision r = new Revision(offset + SECONDS.toMillis(i), 0, 1);
-            String id = Utils.getIdFromPath("/doc-" + i, store.getSizeLimit());
+            String id = Utils.getIdFromPath("/doc-" + i);
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             NodeDocument.setModified(op, r);
@@ -132,7 +132,7 @@ public class VersionGCSupportTest {
         long secs = 123456;
         long offset = SECONDS.toMillis(secs);
         Revision r = new Revision(offset, 0, 1);
-        String id = Utils.getIdFromPath("/doc-del", store.getSizeLimit());
+        String id = Utils.getIdFromPath("/doc-del");
         ids.add(id);
         UpdateOp op = new UpdateOp(id, true);
         NodeDocument.setModified(op, r);

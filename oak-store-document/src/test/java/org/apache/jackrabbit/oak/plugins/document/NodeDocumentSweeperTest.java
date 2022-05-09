@@ -78,7 +78,7 @@ public class NodeDocumentSweeperTest {
         merge(ns, b);
         ns.runBackgroundUpdateOperations();
 
-        UpdateOp op = new UpdateOp(getIdFromPath("/test", store.getSizeLimit()), false);
+        UpdateOp op = new UpdateOp(getIdFromPath("/test"), false);
         op.setMapEntry("foo", uncommitted, "value");
         setCommitRoot(op, uncommitted, 0);
         setModified(op, uncommitted);
@@ -108,7 +108,7 @@ public class NodeDocumentSweeperTest {
         ns.runBackgroundUpdateOperations();
 
         Revision uncommitted = ns.newRevision();
-        UpdateOp op = new UpdateOp(getIdFromPath("/test", store.getSizeLimit()), false);
+        UpdateOp op = new UpdateOp(getIdFromPath("/test"), false);
         op.setMapEntry("foo", uncommitted, "value");
         setCommitRoot(op, uncommitted, 0);
         setModified(op, uncommitted);
@@ -169,7 +169,7 @@ public class NodeDocumentSweeperTest {
         ns.runBackgroundUpdateOperations();
 
         // simulate a pre 1.8 branch commit by removing the branch commit entry
-        NodeDocument doc = store.find(NODES, getIdFromPath("/foo", store.getSizeLimit()));
+        NodeDocument doc = store.find(NODES, getIdFromPath("/foo"));
         assertNotNull(doc);
         assertEquals(1, doc.getLocalBranchCommits().size());
         UpdateOp op = new UpdateOp(doc.getId(), false);

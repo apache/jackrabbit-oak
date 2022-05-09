@@ -162,8 +162,8 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             logCustomizerQuery.starting();
 
             try {
-                String id1 = Utils.getIdFromPath("/testRDBJDBCPerfLog", ds.getSizeLimit());
-                String id2 = Utils.getIdFromPath("/testRDBJDBCPerfLog/foo", ds.getSizeLimit());
+                String id1 = Utils.getIdFromPath("/testRDBJDBCPerfLog");
+                String id2 = Utils.getIdFromPath("/testRDBJDBCPerfLog/foo");
                 UpdateOp up1 = new UpdateOp(id1, true);
                 up1.set(NodeDocument.MODIFIED_IN_SECS, 12345L);
                 super.removeMe.add(id1);
@@ -185,8 +185,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
                 // query
                 Path p = Path.fromString("/testRDBJDBCPerfLog");
-                List<NodeDocument> results = super.ds.query(Collection.NODES,
-                        Utils.getKeyLowerLimit(p, ds.getSizeLimit()), Utils.getKeyUpperLimit(p, ds.getSizeLimit()), 10);
+                List<NodeDocument> results = super.ds.query(Collection.NODES, Utils.getKeyLowerLimit(p), Utils.getKeyUpperLimit(p), 10);
                 assertEquals(1, results.size());
                 assertEquals(2, logCustomizerQuery.getLogs().size());
             } finally {
@@ -204,7 +203,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             // populate the store
             List<UpdateOp> ops = Lists.newArrayList();
             for (int i = 0; i < NUM_DOCS; i++) {
-                UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-" + i, ds.getSizeLimit()), true);
+                UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-" + i), true);
                 NodeDocument.setModified(op, new Revision(i * 5000, 0, 1));
                 ops.add(op);
                 removeMe.add(op.getId());
@@ -218,7 +217,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
                 if (!updated) {
                     // as soon as we have the first document, update
                     // /lastRevnode-0
-                    UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-0", ds.getSizeLimit()), false);
+                    UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-0"), false);
                     // and push out the _modified timestamp
                     NodeDocument.setModified(op, new Revision(NUM_DOCS * 5000, 0, 1));
                     // even after the update the document matches the query

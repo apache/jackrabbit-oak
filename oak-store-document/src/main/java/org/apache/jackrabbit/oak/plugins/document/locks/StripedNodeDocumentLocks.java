@@ -23,11 +23,9 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import com.google.common.util.concurrent.Striped;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
-
 public class StripedNodeDocumentLocks implements NodeDocumentLocks {
 
-    private static final String ROOT = Utils.getIdFromPath(Path.ROOT, NODE_NAME_LIMIT);
+    private static final String ROOT = Utils.getIdFromPath(Path.ROOT);
 
     /**
      * Locks to ensure cache consistency on reads, writes and invalidation.

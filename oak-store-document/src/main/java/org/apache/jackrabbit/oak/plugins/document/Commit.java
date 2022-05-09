@@ -119,7 +119,7 @@ public class Commit {
     UpdateOp getUpdateOperationForNode(Path path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
-            op = createUpdateOp(path, revision, isBranchCommit(), nodeStore.getDocumentStore().getSizeLimit());
+            op = createUpdateOp(path, revision, isBranchCommit());
             operations.put(path, op);
         }
         return op;
@@ -127,8 +127,8 @@ public class Commit {
 
     static UpdateOp createUpdateOp(Path path,
                                    Revision revision,
-                                   boolean isBranch, int sizeLimit) {
-        String id = Utils.getIdFromPath(path, sizeLimit);
+                                   boolean isBranch) {
+        String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, false);
         NodeDocument.setModified(op, revision);
         if (isBranch) {
@@ -333,7 +333,7 @@ public class Commit {
         commitRootPath = bundledNodes.getOrDefault(commitRootPath, commitRootPath);
 
         rollback = new Rollback(revision, opLog,
-                Utils.getIdFromPath(commitRootPath, store.getSizeLimit()),
+                Utils.getIdFromPath(commitRootPath),
                 nodeStore.getCreateOrUpdateBatchSize());
 
         for (Path p : bundledNodes.keySet()){

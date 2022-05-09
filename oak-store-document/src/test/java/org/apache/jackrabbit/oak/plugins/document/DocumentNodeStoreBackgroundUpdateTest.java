@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -69,7 +72,7 @@ public class DocumentNodeStoreBackgroundUpdateTest {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                         UpdateOp update) {
-                if (!update.getId().equals(Utils.getIdFromPath(Path.ROOT, DocumentStore.NODE_NAME_LIMIT))) {
+                if (!update.getId().equals(Utils.getIdFromPath(Path.ROOT))) {
                     return super.findAndUpdate(collection, update);
                 }
                 Lock lock = locks.getOrDefault(Thread.currentThread(), defaultLock);
@@ -138,7 +141,7 @@ public class DocumentNodeStoreBackgroundUpdateTest {
 
         t.join();
 
-        NodeDocument root = failingStore.find(NODES, Utils.getIdFromPath(Path.ROOT, store.getSizeLimit()));
+        NodeDocument root = failingStore.find(NODES, Utils.getIdFromPath(Path.ROOT));
         assertNotNull(root);
         ClusterNodeInfoDocument infoDoc = ClusterNodeInfoDocument.all(failingStore).get(0);
         Revision lastRev = root.getLastRev().get(clusterId);

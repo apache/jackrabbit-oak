@@ -132,7 +132,7 @@ public class VersionGCDeletionTest {
                 .setAsyncDelay(0)
                 .getNodeStore();
 
-        String id = Utils.getIdFromPath("/x", ts.getSizeLimit());
+        String id = Utils.getIdFromPath("/x");
 
         NodeBuilder b1 = store.getRoot().builder();
         b1.child("x");
