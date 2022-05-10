@@ -126,7 +126,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
-                    containsString("The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't long enough"));
+                    containsString("The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't old enough"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());

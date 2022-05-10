@@ -97,7 +97,7 @@ public class IndexVersionOperation {
                 LOG.warn("Cannot find any active index from the list: {}", reverseSortedIndexNameList);
             } else {
                 NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
-                boolean isActiveIndexLongEnough = isIndexPurgeReady(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
+                boolean isActiveIndexOldEnough = isActiveIndexOldEnough(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
                 int activeProductVersion = activeIndexNameObject.getProductVersion();
                 indexVersionOperationList.add(new IndexVersionOperation(activeIndexNameObject));
 
@@ -108,7 +108,7 @@ public class IndexVersionOperation {
                     NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
                     IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
                     // if active index not long enough, NOOP for all indexes
-                    if (isActiveIndexLongEnough) {
+                    if (isActiveIndexOldEnough) {
                         if (indexNameObject.getProductVersion() == activeProductVersion && indexNameObject.getCustomerVersion() == 0) {
                             indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
                         } else if (indexNameObject.getProductVersion() <= activeProductVersion ) {
@@ -156,7 +156,7 @@ public class IndexVersionOperation {
     }
 
     // do index purge ready based on the active index's last reindexing time is longer enough, we do this for prevent rollback
-    private static boolean isIndexPurgeReady(IndexName activeIndexName, NodeState activeIndexNode, long purgeThresholdMillis) {
+    private static boolean isActiveIndexOldEnough(IndexName activeIndexName, NodeState activeIndexNode, long purgeThresholdMillis) {
         // the 1st index must be active
         String indexName = activeIndexName.getNodeName();
         if (activeIndexNode.hasChildNode(IndexDefinition.STATUS_NODE)) {
@@ -168,16 +168,16 @@ public class IndexVersionOperation {
                 long reindexCompletionTimeInMillis = PurgeOldVersionUtils.getMillisFromString(reindexCompletionTime);
                 long currentTimeInMillis = System.currentTimeMillis();
                 if (currentTimeInMillis - reindexCompletionTimeInMillis > purgeThresholdMillis) {
-                    LOG.info("Found active index {} is longer enough", indexName);
+                    LOG.info("Found active index {} is old enough", indexName);
                     return true;
                 } else {
-                    LOG.info("The last index time '{}' isn't longer enough for: {}", reindexCompletionTime, indexName);
+                    LOG.info("The last index time '{}' isn't old enough for: {}", reindexCompletionTime, indexName);
                 }
             } else {
                 LOG.warn("{} property is not set for index {}", IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, indexName);
             }
         }
-        LOG.info("The active index '{}' indexing time isn't long enough", indexName);
+        LOG.info("The active index '{}' indexing time isn't old enough", indexName);
         return false;
     }
 
