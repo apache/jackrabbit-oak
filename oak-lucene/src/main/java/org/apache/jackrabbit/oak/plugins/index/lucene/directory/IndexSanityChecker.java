@@ -130,14 +130,14 @@ public class IndexSanityChecker {
      */
     public static class IndexSanityStatistics {
         
-        long totalDurationInMs = 0;
-        long totalIndexSize = 0;
+        long totalDurationInMs;
+        long totalIndexSize;
         
         /**
          * Record the time spend to check the sanity of indexes
          * @param milis the time in miliseconds
          */
-        public void addDuration (long milis) {
+        public void addDuration(long milis) {
             totalDurationInMs += milis;
         }
         
