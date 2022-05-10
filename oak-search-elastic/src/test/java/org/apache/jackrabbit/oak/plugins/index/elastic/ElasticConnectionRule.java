@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.client.RequestOptions;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -124,15 +122,14 @@ public class ElasticConnectionRule extends ExternalResource {
     private Map<String, String> getUriQueryParams(URI uri) {
         String query = uri.getQuery();
         if (query != null) {
-            Map<String, String> result = Arrays.stream(query.split(","))
+            return Arrays.stream(query.split(","))
                     .map(s -> s.split("="))
                     .collect(Collectors.toMap(
                             a -> a[0],  //key
                             a -> a[1]   //value
                     ));
-            return result;
         }
-        return Collections.EMPTY_MAP;
+        return Collections.emptyMap();
     }
 
     public ElasticConnection getElasticConnectionFromString() {
@@ -141,7 +138,6 @@ public class ElasticConnectionRule extends ExternalResource {
             String host = uri.getHost();
             String scheme = uri.getScheme();
             int port = uri.getPort();
-            String query = uri.getQuery();
             Map<String, String> queryParams = getUriQueryParams(uri);
             String apiKey = queryParams.get("key_id");
             String apiSecret = queryParams.get("key_secret");
@@ -207,7 +203,7 @@ public class ElasticConnectionRule extends ExternalResource {
         return useDocker;
     }
 
-    public class ElasticConnectionModel {
+    public static class ElasticConnectionModel {
         private String elasticApiSecret;
         private String elasticApiKey;
         private String scheme;
