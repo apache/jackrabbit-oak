@@ -48,8 +48,9 @@ public class IndexSanityChecker {
         this.indexPath = indexPath;
     }
 
-    public boolean check() throws IOException {
+    public boolean check(IndexSanityStatistics stats) throws IOException {
         boolean allFine = true;
+        long start = System.currentTimeMillis();
         //TODO Add support for checksum based checks
         if (isThereASizeMismatch()){
             //In case of any mismatch just purge all local files
@@ -63,15 +64,18 @@ public class IndexSanityChecker {
                 }
             }
         }
+        stats.addDuration(System.currentTimeMillis() - start);
+        stats.addIndexSize(localDirSize);
 
         if (allFine) {
             log.info("Local index directory content found to be valid for index [{}]. " +
-                    "Stats Local: {} files ({}), Remote: {} files ({})", indexPath,
+                    "Stats Local: {} files ({}), Remote: {} files ({}), accumulated statistics on checking index sanity: {}", indexPath,
                     localFileCount, IOUtils.humanReadableByteCount(localDirSize),
-                    remoteFileCount, IOUtils.humanReadableByteCount(remoteDirSize));
+                    remoteFileCount, IOUtils.humanReadableByteCount(remoteDirSize),
+                    stats.toString());
         } else {
             log.warn("Local index directory content were not found to be in sync with remote for index [{}]. " +
-                    "Local directory content has been purged and would be synced again from remote", indexPath);
+                    "Local directory content has been purged and would be synced again from remote.", indexPath);
         }
         return allFine;
     }
@@ -116,6 +120,56 @@ public class IndexSanityChecker {
     private static void deleteAllFiles(Directory dir) throws IOException {
         for (String fileName : dir.listAll()){
             dir.deleteFile(fileName);
+        }
+    }
+    
+    
+    /**
+     * Accumulated statistics across multiple invocations of the IndexSanityChecker
+     *
+     */
+    public static class IndexSanityStatistics {
+        
+        long totalDurationInMs = 0;
+        long totalIndexSize = 0;
+        
+        /**
+         * Record the time spend to check the sanity of indexes
+         * @param milis the time in miliseconds
+         */
+        public void addDuration (long milis) {
+            totalDurationInMs += milis;
+        }
+        
+        /**
+         * Return the accumulated time for checking the sanity of indexes
+         * @return the total duration in miliseconds
+         */
+        public long getAccumulatedDuration() {
+            return totalDurationInMs;
+        }
+        
+        /**
+         * Record the size of an index considered
+         * @param bytes
+         */
+        public void addIndexSize (long bytes) {
+            totalIndexSize += bytes;
+        }
+        
+        /**
+         * Return the accumulated index size 
+         * @return index size in bytes
+         */
+        public long getAccumulatedIndexSize() {
+            return totalIndexSize;
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("[duration: %d ms, "
+                    + "checked index size: %d bytes (%s)]", totalDurationInMs,
+                    totalIndexSize,IOUtils.humanReadableByteCount(totalIndexSize));
         }
     }
 }
