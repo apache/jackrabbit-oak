@@ -169,7 +169,7 @@ public class IndexSanityChecker {
         public String toString() {
             return String.format("[duration: %d ms, "
                     + "checked index size: %d bytes (%s)]", totalDurationInMs,
-                    totalIndexSize,IOUtils.humanReadableByteCount(totalIndexSize));
+                    totalIndexSize, IOUtils.humanReadableByteCount(totalIndexSize));
         }
     }
 }
