@@ -288,7 +288,7 @@ class TextExtractor implements Closeable {
                         + " This is a fairly common case, and nothing to"
                         + " worry about. The stack trace is included to"
                         + " help improve the text extraction feature.";
-                parserError.warn(format, throwableErrorFound ? path : new Object[]{path, t});
+                parserError.info(format, throwableErrorFound ? path : new Object[]{path, t});
                 throwableErrorFound = true;
                 return ERROR_TEXT;
             } else {

@@ -201,7 +201,7 @@ public class FulltextBinaryTextExtractor {
                 + " worry about. The stack trace is included to"
                 + " help improve the text extraction feature.";
         String indexName = getIndexName();
-        log.warn(format, throwableErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, t});
+        log.info(format, throwableErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, t});
         extractedTextCache.put(v, ExtractedText.ERROR);
         throwableErrorFound = true;
         return TEXT_EXTRACTION_ERROR;
