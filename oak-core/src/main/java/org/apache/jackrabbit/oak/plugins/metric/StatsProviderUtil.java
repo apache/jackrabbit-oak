@@ -40,29 +40,28 @@ import java.util.function.BiFunction;
 public class StatsProviderUtil {
 
     private final StatisticsProvider statisticsProvider;
-    private final BiFunction<String, Map<String, String>, String> metricName;
+    private final BiFunction<String, Map<String, String>, String> METRIC = (name, labels) -> labels.entrySet().stream().reduce(name,
+            (n, e) -> n + ";" + e.getKey() + "=" + e.getValue(),
+            (n1, n2) -> n1 + n2);
 
     public StatsProviderUtil(@NotNull StatisticsProvider statisticsProvider) {
-        metricName = (name, labels) -> labels.entrySet().stream().reduce(name,
-                (n, e) -> n + ";" + e.getKey() + "=" + e.getValue(),
-                (n1, n2) -> n1 + n2);
         this.statisticsProvider = statisticsProvider;
     }
 
     public BiFunction<String, Map<String, String>, HistogramStats> getHistoStats() {
-        return (name, labels) -> statisticsProvider.getHistogram(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getHistogram(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
     }
 
     public BiFunction<String, Map<String, String>, CounterStats> getCounterStats() {
-        return (name, labels) -> statisticsProvider.getCounterStats(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getCounterStats(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
     }
 
     public BiFunction<String, Map<String, String>, TimerStats> getTimerStats() {
-        return (name, labels) -> statisticsProvider.getTimer(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getTimer(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
     }
 
     public BiFunction<String, Map<String, String>, MeterStats> getMeterStats() {
-        return (name, labels) -> statisticsProvider.getMeter(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
+        return (name, labels) -> statisticsProvider.getMeter(METRIC.apply(name, labels), StatsOptions.METRICS_ONLY);
     }
 
 }
