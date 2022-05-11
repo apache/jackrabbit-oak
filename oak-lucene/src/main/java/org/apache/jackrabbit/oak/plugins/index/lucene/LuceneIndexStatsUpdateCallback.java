@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
-import org.apache.jackrabbit.oak.plugins.index.search.util.StatsProviderUtil;
+import org.apache.jackrabbit.oak.plugins.metric.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;

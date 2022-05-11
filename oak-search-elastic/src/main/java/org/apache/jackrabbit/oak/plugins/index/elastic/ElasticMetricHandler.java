@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.search.util.StatsProviderUtil;
+import org.apache.jackrabbit.oak.plugins.metric.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -50,7 +50,7 @@ public class ElasticMetricHandler {
     private final BiFunction<String, Map<String, String>, MeterStats> meter;
     private final BiFunction<String, Map<String, String>, HistogramStats> histogram;
     private final BiFunction<String, Map<String, String>, TimerStats> timer;
-    private  final StatsProviderUtil statsProviderUtil;
+    private final StatsProviderUtil statsProviderUtil;
 
     public ElasticMetricHandler(StatisticsProvider sp) {
         statsProviderUtil = new StatsProviderUtil(sp);
