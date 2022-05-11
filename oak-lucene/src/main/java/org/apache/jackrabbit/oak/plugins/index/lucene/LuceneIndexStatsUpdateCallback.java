@@ -58,10 +58,6 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
                                    @NotNull StatisticsProvider statisticsProvider,
                                    AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate,
                                    IndexingContext indexingContext) {
-        BiFunction<String, Map<String, String>, String> metricName = (name, labels) -> labels.entrySet().stream().reduce(name,
-                (n, e) -> n + ";" + e.getKey() + "=" + e.getValue(),
-                (n1, n2) -> n1 + n2);
-
         this.indexPath = indexPath;
         this.luceneIndexMBean = luceneIndexMBean;
         this.statisticsProvider = statisticsProvider;
