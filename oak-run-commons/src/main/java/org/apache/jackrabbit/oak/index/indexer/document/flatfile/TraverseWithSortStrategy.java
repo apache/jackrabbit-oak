@@ -19,6 +19,22 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.google.common.base.Stopwatch;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.management.Notification;
+import javax.management.NotificationEmitter;
+import javax.management.NotificationListener;
+import javax.management.openmbean.CompositeData;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -31,22 +47,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-
-import javax.management.Notification;
-import javax.management.NotificationEmitter;
-import javax.management.NotificationListener;
-import javax.management.openmbean.CompositeData;
-
-import com.google.common.base.Stopwatch;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
-import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Predicate;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
@@ -90,15 +91,17 @@ class TraverseWithSortStrategy implements SortStrategy {
     private File sortWorkDir;
     private List<File> sortedFiles = new ArrayList<>();
     private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
+    private Predicate<String> pathPredicate;
 
 
     TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
+                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled, Predicate<String> pathPredicate) {
         this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        this.pathPredicate = pathPredicate;
     }
 
     @Override
@@ -164,13 +167,15 @@ class TraverseWithSortStrategy implements SortStrategy {
             reset();
         }
 
-        String jsonText = entryWriter.asJson(e.getNodeState());
-        //Here logic differs from NodeStateEntrySorter in sense that
-        //Holder line consist only of json and not 'path|json'
-        NodeStateHolder h = new StateInBytesHolder(e.getPath(), jsonText);
-        entryBatch.add(h);
-        updateMemoryUsed(h);
-
+        String path = e.getPath();
+        if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
+            String jsonText = entryWriter.asJson(e.getNodeState());
+            //Here logic differs from NodeStateEntrySorter in sense that
+            //Holder line consist only of json and not 'path|json'
+            NodeStateHolder h = new StateInBytesHolder(path, jsonText);
+            entryBatch.add(h);
+            updateMemoryUsed(h);
+        }
     }
 
     private void reset() {

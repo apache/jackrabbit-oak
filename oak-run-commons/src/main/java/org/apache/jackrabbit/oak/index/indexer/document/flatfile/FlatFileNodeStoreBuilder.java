@@ -210,10 +210,10 @@ public class FlatFileNodeStoreBuilder {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy");
-                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip);
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
-                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip);
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,

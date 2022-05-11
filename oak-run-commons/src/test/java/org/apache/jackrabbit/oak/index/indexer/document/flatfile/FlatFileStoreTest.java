@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -73,6 +74,7 @@ public class FlatFileStoreTest {
     public TemporaryFolder folder = new TemporaryFolder(new File(BUILD_TARGET_FOLDER));
 
     private Set<String> preferred = singleton("jcr:content");
+    private Predicate<String> pathPredicate = path -> !path.equals("/remove");
 
     private static final String EXCEPTION_MESSAGE = "Framed exception.";
 
@@ -82,6 +84,7 @@ public class FlatFileStoreTest {
         FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .withLastModifiedBreakPoints(Collections.singletonList(0L))
+                .withPathPredicate(pathPredicate)
                 .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {
                     @Override
                     public NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange range) {
@@ -101,6 +104,7 @@ public class FlatFileStoreTest {
                 .collect(Collectors.toList());
 
         List<String> sortedPaths = TestUtils.sortPaths(paths, preferred);
+        sortedPaths = TestUtils.extractPredicatePaths(sortedPaths, pathPredicate);
 
         assertEquals(sortedPaths, entryPaths);
     }
@@ -505,7 +509,7 @@ public class FlatFileStoreTest {
     }
 
     private List<String> createTestPaths() {
-        return asList("/a", "/b", "/c", "/a/b w", "/a/jcr:content", "/a/b", "/", "/b/l");
+        return asList("/a", "/b", "/c", "/a/b w", "/a/jcr:content", "/a/b", "/", "/b/l", "/remove");
     }
 
     static Iterable<NodeStateEntry> createEntriesFromMongoDocs(List<TestMongoDoc> mongoDocs) {
