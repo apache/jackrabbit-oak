@@ -75,6 +75,23 @@ public interface LuceneIndexMBean extends IndexMBean {
                     int max
     ) throws IOException;
 
+    @Description("Retrieves the terms, and number of documents for each term, for an index. " +
+            "This allows to closely investigate what is stored in the index.")
+    String[] getFieldTermsInfo(
+            @Name("indexPath")
+            @Description("The index path (empty for all indexes)")
+                    String indexPath,
+            @Name("field")
+            @Description("The field name (empty for all fields)")
+                    String field,
+            @Name("fieldType")
+            @Description("The type of the field (empty for string)")
+                    String fieldType,
+            @Name("max")
+            @Description("The maximum number of entries to return (e.g. 100)")
+                    int max
+    ) throws IOException;
+
     @Description("Retrieves the number of documents for a specific term, for an index. " +
             "This allows to closely investigate what is stored in the index.")
     String[] getFieldTermInfo(

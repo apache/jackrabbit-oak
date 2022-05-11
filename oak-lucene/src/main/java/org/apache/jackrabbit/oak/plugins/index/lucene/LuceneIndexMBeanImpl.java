@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -46,6 +47,7 @@ import javax.management.openmbean.TabularType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -85,6 +87,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -261,29 +264,34 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     @Override
     public String[] getFieldTermsInfo(String indexPath, String field, int max) throws IOException {
-        return getFieldTermPrefixInfo(indexPath, field, max, null);
+        return getFieldTermPrefixInfo(indexPath, field, max, null, null);
     }
 
     @Override
     public String[] getFieldTermInfo(String indexPath, String field, String term) throws IOException {
-        return getFieldTermPrefixInfo(indexPath, field, Integer.MAX_VALUE, term);
+        return getFieldTermPrefixInfo(indexPath, field, Integer.MAX_VALUE, term, null);
     }
 
-    private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term) throws IOException {
-        TreeSet<String> indexes = new TreeSet<String>();
+    @Override
+    public String[] getFieldTermsInfo(String indexPath, String field, String fieldType, int max) throws IOException {
+        return getFieldTermPrefixInfo(indexPath, field, max, null, fieldType);
+    }
+
+    private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term, String type) throws IOException {
+        TreeSet<String> indexes = new TreeSet<>();
         if (indexPath == null || indexPath.isEmpty()) {
             indexes.addAll(indexTracker.getIndexNodePaths());
         } else {
             indexes.add(indexPath);
         }
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (String path : indexes) {
             LuceneIndexNode indexNode = null;
             try {
                 indexNode = indexTracker.acquireIndexNode(path);
                 if (indexNode != null) {
                     IndexSearcher searcher = indexNode.getSearcher();
-                    list.addAll(getFieldTerms(path, field, max, term, searcher));
+                    list.addAll(getFieldTerms(path, field, max, term, searcher, type));
                 }
             } finally {
                 if (indexNode != null) {
@@ -458,19 +466,32 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return list;
     }
 
+    private static Function<BytesRef, String> getTypeHandler(String type) {
+        if (type != null) {
+            if (long.class.getName().equals(type) || Long.class.getName().equals(type)) {
+                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToLong(bytesRef));
+            } else if (int.class.getName().equals(type) || Integer.class.getName().equals(type)) {
+                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToInt(bytesRef));
+            }
+        }
+        return BytesRef::utf8ToString;
+    }
+
     private static ArrayList<String> getFieldTerms(String path,
-            String field, int max, String term, IndexSearcher searcher) throws IOException {
+            String field, int max, String term, IndexSearcher searcher, String type) throws IOException {
         if (field == null || field.isEmpty()) {
-            ArrayList<String> list = new ArrayList<String>();
+            ArrayList<String> list = new ArrayList<>();
             IndexReader reader = searcher.getIndexReader();
             Fields fields = MultiFields.getFields(reader);
             if (fields != null) {
                 for(String f : fields) {
-                    list.addAll(getFieldTerms(path, f, max, term, searcher));
+                    list.addAll(getFieldTerms(path, f, max, term, searcher, null));
                 }
             }
             return list;
         }
+
+        Function<BytesRef,String> handler = getTypeHandler(type);
         IndexReader reader = searcher.getIndexReader();
         Terms terms = MultiFields.getTerms(reader, field);
         ArrayList<String> result = new ArrayList<>();
@@ -495,7 +516,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         long totalCount = 0;
         while((byteRef = iterator.next()) != null) {
             Entry e = new Entry();
-            e.term = byteRef.utf8ToString();
+            e.term = handler.apply(byteRef);
             if (term != null) {
                 if (e.term != null && !e.term.equals(term)) {
                     continue;
