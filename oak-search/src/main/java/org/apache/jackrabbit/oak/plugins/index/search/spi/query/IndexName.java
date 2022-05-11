@@ -230,7 +230,7 @@ public class IndexName implements Comparable<IndexName> {
         return baseName + "-" + productVersion + "-custom-" + (customerVersion + 1);
     }
 
-    private static boolean isIndexActive(String indexPath, NodeState rootState) {
+    public static boolean isIndexActive(String indexPath, NodeState rootState) {
         // An index is active if it has a hidden child node that starts with ":oak:mount-",
         // OR if it is an active merged index
         try {
