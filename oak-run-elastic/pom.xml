@@ -35,7 +35,8 @@
         <groovy.version>2.4.17</groovy.version>
         <!--
         Size History:
-        120 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
+        105 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
+        121 MB : add Elasticsearch Java client along with RHLC: the latter can be removed when the code can be fully migrated to use the new client
         -->
         <max.jar.size>121000000</max.jar.size>
                       
