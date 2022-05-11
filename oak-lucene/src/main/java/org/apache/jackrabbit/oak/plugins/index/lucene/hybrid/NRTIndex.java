@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.ImmutableList;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.update.IndexUpdateListener;
 import org.apache.jackrabbit.oak.plugins.index.search.update.ReaderRefreshPolicy;
+import org.apache.jackrabbit.oak.plugins.index.search.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -94,6 +96,8 @@ public class NRTIndex implements Closeable {
     private List<LuceneIndexReader> readers;
     private final List<IndexReader> openedReaders;
     private final boolean assertAllReadersClosed;
+    private final StatsProviderUtil statsProviderUtil;
+    private Map<String, String> labels;
 
 
     public NRTIndex(LuceneIndexDefinition definition, IndexCopier indexCopier,
@@ -108,10 +112,12 @@ public class NRTIndex implements Closeable {
         this.directoryFactory = directoryFactory;
         this.assertAllReadersClosed = assertAllReadersClosed;
         this.openedReaders = assertAllReadersClosed ? new LinkedList<>() : Collections.emptyList();
+        statsProviderUtil = new StatsProviderUtil(statisticsProvider);
+        labels = Collections.singletonMap("index", definition.getIndexPath());
 
-        this.refreshTimer = statisticsProvider.getTimer(metricName("REFRESH_TIME"), StatsOptions.METRICS_ONLY);
-        this.sizeHisto = statisticsProvider.getHistogram(metricName("SIZE"), StatsOptions.METRICS_ONLY);
-        this.openTime = statisticsProvider.getTimer(metricName("OPEN_TIME"), StatsOptions.METRICS_ONLY).time();
+        this.refreshTimer = statsProviderUtil.getTimerStats().apply(metricName("REFRESH_TIME"), labels);
+        this.sizeHisto = statsProviderUtil.getHistoStats().apply(metricName("SIZE"), labels);
+        this.openTime = statsProviderUtil.getTimerStats().apply(metricName("OPEN_TIME"), labels).time();
     }
 
     /**
@@ -394,7 +400,7 @@ public class NRTIndex implements Closeable {
 
         public NRTIndexWriter(IndexWriter indexWriter) {
             this.indexWriter = indexWriter;
-            this.updateMeter = statisticsProvider.getMeter(metricName("UPDATES"), StatsOptions.METRICS_ONLY);
+            this.updateMeter = statsProviderUtil.getMeterStats().apply(metricName("UPDATES"), labels);
         }
 
         @Override
@@ -419,6 +425,6 @@ public class NRTIndex implements Closeable {
     }
 
     private String metricName(String suffix){
-        return String.format("%s_NRT_%s", definition.getIndexPath(), suffix);
+        return String.format("NRT_%s", suffix);
     }
 }
