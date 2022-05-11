@@ -158,7 +158,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                         .withBlobStore(indexHelper.getGCBlobStore())
                         .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
-                        .withPathPredicate((pathPredicate != null) ? pathPredicate : indexer::shouldInclude)
+                        .withPathPredicate(pathPredicate)
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog, indexer));
                 for (File dir : previousDownloadDirs) {
