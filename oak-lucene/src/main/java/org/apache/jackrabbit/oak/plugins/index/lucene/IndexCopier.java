@@ -109,6 +109,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private volatile boolean closed;
     private final IndexRootDirectory indexRootDirectory;
     private final Set<String> validatedIndexPaths = Sets.newConcurrentHashSet();
+    private final IndexSanityChecker.IndexSanityStatistics indexSanityStatistics = new IndexSanityChecker.IndexSanityStatistics();
 
     public IndexCopier(Executor executor, File indexRootDir) throws IOException {
         this(executor, indexRootDir, false);
@@ -233,7 +234,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         //Also at this time its required that state in local dir should exactly same as
         //one in remote dir
         synchronized (validatedIndexPaths){
-            new IndexSanityChecker(indexPath, local, remote).check();
+            new IndexSanityChecker(indexPath, local, remote).check(indexSanityStatistics);
             validatedIndexPaths.add(indexPath);
         }
     }
