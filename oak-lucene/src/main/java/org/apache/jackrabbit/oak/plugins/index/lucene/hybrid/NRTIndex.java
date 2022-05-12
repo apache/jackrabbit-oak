@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.update.IndexUpdateListener;
 import org.apache.jackrabbit.oak.plugins.index.search.update.ReaderRefreshPolicy;
-import org.apache.jackrabbit.oak.plugins.metric.StatsProviderUtil;
+import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.metric.StatsProviderUtil;
+import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;

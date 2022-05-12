@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.metric.StatsProviderUtil;
+import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
