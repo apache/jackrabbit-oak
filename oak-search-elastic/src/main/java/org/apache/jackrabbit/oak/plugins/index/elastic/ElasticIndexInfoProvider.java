@@ -80,11 +80,10 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
         ElasticIndexNode node = indexTracker.acquireIndexNode(indexPath);
         try {
             HealthResponse response = node.getConnection().getClient().cluster()
-                    .health(HealthRequest.of(rr->rr
+                    .health(HealthRequest.of(hrb -> hrb
                             .index(node.getDefinition().getIndexAlias())
                             .level(Level.Indices)));
-            return response.indices().values().stream().map(i -> i.status() == HealthStatus.Green)
-                    .findFirst().orElse(false);
+            return response.indices().values().stream().map(i -> i.status() == HealthStatus.Green).findFirst().orElse(false);
         } finally {
             node.release();
         }

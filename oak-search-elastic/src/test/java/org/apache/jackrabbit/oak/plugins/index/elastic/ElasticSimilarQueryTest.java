@@ -241,6 +241,8 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
         setIndex(indexName, builder);
         root.commit();
+
+        // TODO: migrate when https://github.com/elastic/elasticsearch-java/issues/249 gets fixed
         String alias =  ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), "/oak:index/" + indexName);
         GetFieldMappingsRequest fieldMappingsRequest = new GetFieldMappingsRequest();
         fieldMappingsRequest.indices(alias).fields(similarityFieldName1);

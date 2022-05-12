@@ -118,8 +118,8 @@ class ElasticBulkProcessorHandler {
             // Check if this indexing call is a part of async cycle or a commit hook or called from oak-run for offline reindex
             // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
             // Otherwise, it's part of commit hook based indexing due to async property having a value nrt
-            // If the IndexDefintion has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
-            // we need to set waitForESAcknowledgement = false only in the second case i.e
+            // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
+            // we need to set waitForESAcknowledgement = false only in the second case i.e.
             // when this is a part of commit hook due to async property having a value nrt
             if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
                 waitForESAcknowledgement = false;

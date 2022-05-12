@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 
 import java.util.Collections;
@@ -67,8 +66,8 @@ public interface ElasticResponseListener {
         default void startData(long totalHits) { /*empty*/ }
 
         /**
-         * This method is called for each {@link ElasticResponseHandler.SearchResponseHit} retrieved
-         * @param searchHit
+         * This method is called for each {@link Hit} retrieved
+         * @param searchHit a search result
          */
         void on(Hit<ObjectNode> searchHit);
     }

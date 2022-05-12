@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 
 import java.util.HashMap;
@@ -41,8 +40,7 @@ import java.util.stream.Collectors;
  * SearchHit events are sampled and then used to adjust facets coming from Aggregations in order to minimize
  * access checks. This provider could improve facets performance but only when the result set is quite big.
  */
-public class ElasticStatisticalFacetAsyncProvider
-        extends ElasticSecureFacetAsyncProvider
+public class ElasticStatisticalFacetAsyncProvider extends ElasticSecureFacetAsyncProvider
         implements ElasticResponseListener.AggregationListener {
 
     private final int sampleSize;
@@ -96,10 +94,9 @@ public class ElasticStatisticalFacetAsyncProvider
     public void on(Map<String, Aggregate> aggregations) {
         for (String field : facetFields) {
             List<StringTermsBucket> buckets = aggregations.get(field).sterms().buckets().array();
-            facetMap.put(field,
-                    buckets.stream()
-                            .map(b -> new FulltextIndex.Facet(b.key(), (int) b.docCount()))
-                            .collect(Collectors.toList())
+            facetMap.put(field, buckets.stream()
+                    .map(b -> new FulltextIndex.Facet(b.key(), (int) b.docCount()))
+                    .collect(Collectors.toList())
             );
         }
     }

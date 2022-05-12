@@ -45,8 +45,7 @@ public class ElasticIndexUtils {
      *
      * @param path the document path
      * @return the Elasticsearch compatible path
-     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">
-     * Mapping _id field</a>
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">Mapping _id field</a>
      */
     public static String idFromPath(@NotNull String path) {
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
@@ -99,7 +98,7 @@ public class ElasticIndexUtils {
      * Provides a string with the serialisation of the object.
      * Typically, used to obtain the DSL representation of Elasticsearch requests or partial requests.
      *
-     * TODO: remove this when https://github.com/elastic/elasticsearch-java/issues/101 gets implemented
+     * TODO: remove this when <a href="https://github.com/elastic/elasticsearch-java/issues/101">#101</a> gets implemented
      *
      * @return Json serialisation as a string.
      */

@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH_DEPTH;
 
@@ -45,72 +43,33 @@ public class TermQueryBuilderFactory {
     }
 
     public static Query newPrefixQuery(String field, @NotNull String value) {
-        return Query.of(q -> q
-                .prefix(p -> p
-                        .field(field)
-                        .value(value)));
+        return Query.of(q -> q.prefix(p -> p.field(field).value(value)));
     }
 
     public static Query newWildcardQuery(String field, @NotNull String value) {
-        return Query.of(q -> q
-                .wildcard(w -> w
-                        .field(field)
-                        .value(value)));
+        return Query.of(q -> q.wildcard(w -> w.field(field).value(value)));
     }
 
     public static Query newPathQuery(String path) {
-        return Query.of(q -> q
-                .term(t -> t
-                        .field(PATH)
-                        .value(v->v
-                                .stringValue(preparePath(path)))));
+        return Query.of(q -> q.term(t -> t.field(PATH).value(v->v.stringValue(preparePath(path)))));
     }
 
     public static Query newPrefixPathQuery(String path) {
-        return Query.of(q -> q
-                .prefix(p -> p
-                        .field(PATH)
-                        .value(path)));
+        return Query.of(q -> q.prefix(p -> p.field(PATH).value(path)));
     }
 
     public static Query newWildcardPathQuery(@NotNull String value) {
-        return Query.of(q -> q
-                .wildcard(w -> w
-                        .field(PATH)
-                        .value(value)));
+        return Query.of(q -> q.wildcard(w -> w.field(PATH).value(value)));
     }
 
     public static Query newAncestorQuery(String path) {
-        return Query.of(q -> q
-                .term(t -> t
-                        .field(FieldNames.ANCESTORS)
-                        .value(v->v
-                                .stringValue(preparePath(path)))));
+        return Query.of(q -> q.term(t -> t.field(FieldNames.ANCESTORS)
+                .value(v -> v.stringValue(preparePath(path)))));
     }
 
     public static Query newDepthQuery(String path, FulltextIndexPlanner.PlanResult planResult) {
         int depth = PathUtils.getDepth(path) + planResult.getParentDepth() + 1;
-        return Query.of(q -> q
-                .term(t -> t
-                        .field(PATH_DEPTH)
-                        .value(v->v
-                                .longValue(depth))));
-    }
-
-    public static Query newNodeTypeQuery(String type) {
-        return Query.of(q -> q
-                .term(t -> t
-                        .field(JCR_PRIMARYTYPE)
-                        .value(v->v
-                                .stringValue(type))));
-    }
-    
-    public static Query newMixinTypeQuery(String type) {
-        return Query.of(q -> q
-                .term(t -> t
-                        .field(JCR_MIXINTYPES)
-                        .value(v->v
-                                .stringValue(type))));
+        return Query.of(q -> q.term(t -> t.field(PATH_DEPTH).value(v->v.longValue(depth))));
     }
     
     private static <R> Query newRangeQuery(String field, R first, R last, boolean firstIncluding,
@@ -140,8 +99,7 @@ public class TermQueryBuilderFactory {
         for (R value : values) {
             bqBuilder.should(newRangeQuery(field, value, value, true, true));
         }
-        return Query.of(q->q
-                .bool(bqBuilder.build()));
+        return Query.of(q -> q.bool(bqBuilder.build()));
     }
 
     public static <R> Query newPropertyRestrictionQuery(String propertyName, Filter.PropertyRestriction pr,

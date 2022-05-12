@@ -102,8 +102,7 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
     private void loadSuggestions() {
         try {
             final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
-            MsearchRequest.Builder multiSearch = suggestions()
-                    .map(s -> {
+            MsearchRequest.Builder multiSearch = suggestions().map(s -> {
                         suggestionTexts.offer(s);
                         return requestHandler.suggestMatchQuery(s);
                     })
@@ -144,7 +143,6 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                 .index(String.join(",", indexNode.getDefinition().getIndexAlias()))
                 .suggest(sb -> sb.text(spellCheckQuery)
                         .suggesters("oak:suggestion", fs -> fs.phrase(requestHandler.suggestQuery()))));
-
 
         String endpoint = "/" + String.join(",", searchReq.index()) + "/_search?filter_path=suggest";
         Request request = new Request("POST", endpoint);

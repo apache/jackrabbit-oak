@@ -417,35 +417,29 @@ public class ElasticRequestHandler {
     }
 
     public PhraseSuggester suggestQuery() {
-        BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
-                .must(m->m
-                        .matchPhrase(mp->mp
-                                .field(FieldNames.SPELLCHECK)
-                                .query("{{suggestion}}")));
+        BoolQuery.Builder bqBuilder = new BoolQuery.Builder().must(m -> m.matchPhrase(mp -> mp
+                .field(FieldNames.SPELLCHECK)
+                .query("{{suggestion}}"))
+        );
 
         nonFullTextConstraints(indexPlan, planResult).forEach(bqBuilder::must);
-        Query query = Query.of(q->q
-                .bool(bqBuilder.build()));
-        return PhraseSuggester.of(ps->ps
+        Query query = Query.of(q -> q.bool(bqBuilder.build()));
+        return PhraseSuggester.of(ps -> ps
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
-                .directGenerator(d->d
-                        .field(FieldNames.SPELLCHECK)
-                        .suggestMode(SuggestMode.Missing))
-                .collate(c->c
-                        .query(q->q
-                                .source(ElasticIndexUtils.toString(query)))));
+                .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing))
+                .collate(c -> c.query(q -> q.source(ElasticIndexUtils.toString(query))))
+        );
     }
 
     public BoolQuery suggestMatchQuery(String suggestion) {
-        BoolQuery.Builder query = new BoolQuery.Builder()
-                .must(m -> m
-                        .match(mm -> mm
-                                .field(FieldNames.SPELLCHECK)
-                                .query(FieldValue.of(suggestion))
-                                .operator(Operator.And)
-                                .fuzzyTranspositions(false)
-                                .autoGenerateSynonymsPhraseQuery(false)));
+        BoolQuery.Builder query = new BoolQuery.Builder().must(m -> m
+                .match(mm -> mm
+                        .field(FieldNames.SPELLCHECK)
+                        .query(FieldValue.of(suggestion))
+                        .operator(Operator.And)
+                        .fuzzyTranspositions(false)
+                        .autoGenerateSynonymsPhraseQuery(false)));
         nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
         return query.build();
     }
@@ -540,19 +534,13 @@ public class ElasticRequestHandler {
     }
 
     private Stream<NestedQuery> dynamicScoreQueries(String text) {
-        return elasticIndexDefinition.getDynamicBoostProperties().stream()
-                .map(pd -> NestedQuery.of(n->n
-                        .path(pd.nodeName)
-                        .query(q->q
-                                .functionScore(s->s
-                                        .query(fq->fq
-                                                .match(m->m
-                                                        .field(pd.nodeName + ".value")
-                                                        .query(FieldValue.of(text))))
-                                        .functions(f->f
-                                                .fieldValueFactor(fv->fv
-                                                        .field(pd.nodeName + ".boost")))))
-                        .scoreMode(ChildScoreMode.Avg)));
+        return elasticIndexDefinition.getDynamicBoostProperties().stream().map(pd -> NestedQuery.of(n -> n
+                .path(pd.nodeName)
+                .query(q -> q.functionScore(s -> s
+                        .query(fq -> fq.match(m -> m.field(pd.nodeName + ".value").query(FieldValue.of(text))))
+                        .functions(f -> f.fieldValueFactor(fv -> fv.field(pd.nodeName + ".boost")))))
+                .scoreMode(ChildScoreMode.Avg))
+        );
     }
 
     private List<Query> nonFullTextConstraints(IndexPlan plan, PlanResult planResult) {
@@ -574,11 +562,7 @@ public class ElasticRequestHandler {
             }
             break;
         case DIRECT_CHILDREN:
-            queries.add(
-                    Query.of(q -> q
-                            .bool(b -> b
-                                    .must(newAncestorQuery(path))
-                                    .must(newDepthQuery(path, planResult)))));
+            queries.add(Query.of(q -> q.bool(b -> b.must(newAncestorQuery(path)).must(newDepthQuery(path, planResult)))));
             break;
         case EXACT:
             // For transformed paths, we can only add path restriction if absolute path to
@@ -735,9 +719,7 @@ public class ElasticRequestHandler {
         // TODO: this seems very bad as a query - do we really want to support it. In
         // fact, is it even used?
         // reference query
-        return Query.of(q -> q
-                .multiMatch(m -> m
-                        .fields(uuid)));
+        return Query.of(q -> q.multiMatch(m -> m.fields(uuid)));
     }
 
     private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {

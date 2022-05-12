@@ -29,9 +29,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.elasticsearch.common.Strings;
-
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 
 import java.util.Iterator;
 import java.util.List;

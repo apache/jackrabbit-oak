@@ -157,12 +157,12 @@ public class ElasticIndexStatistics implements IndexStatistics {
     static class CountCacheLoader extends CacheLoader<StatsRequestDescriptor, Integer> {
 
         @Override
-        public Integer load(StatsRequestDescriptor countRequestDescriptor) throws IOException {
+        public Integer load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
             return count(countRequestDescriptor);
         }
 
         @Override
-        public ListenableFuture<Integer> reload(StatsRequestDescriptor crd, Integer oldValue) {
+        public ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
             ListenableFutureTask<Integer> task = ListenableFutureTask.create(() -> count(crd));
             Executors.newSingleThreadExecutor().execute(task);
             return task;
@@ -183,12 +183,12 @@ public class ElasticIndexStatistics implements IndexStatistics {
     static class StatsCacheLoader extends CacheLoader<StatsRequestDescriptor, StatsResponse> {
 
         @Override
-        public StatsResponse load(StatsRequestDescriptor countRequestDescriptor) throws IOException {
+        public StatsResponse load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
             return stats(countRequestDescriptor);
         }
 
         @Override
-        public ListenableFuture<StatsResponse> reload(StatsRequestDescriptor crd, StatsResponse oldValue) {
+        public ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
             ListenableFutureTask<StatsResponse> task = ListenableFutureTask.create(() -> stats(crd));
             Executors.newSingleThreadExecutor().execute(task);
             return task;

@@ -105,7 +105,7 @@ public class ElasticConnection implements Closeable {
      * https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/7.16/migrate-hlrc.html
      * It double-checks locking to get good performance and avoid double initialization
      */
-    public Tuple<Tuple<ElasticsearchClient, ElasticsearchAsyncClient>, RestHighLevelClient> getClients() {
+    private Tuple<Tuple<ElasticsearchClient, ElasticsearchAsyncClient>, RestHighLevelClient> getClients() {
         if (isClosed.get()) {
             throw new IllegalStateException("Already closed");
         }
