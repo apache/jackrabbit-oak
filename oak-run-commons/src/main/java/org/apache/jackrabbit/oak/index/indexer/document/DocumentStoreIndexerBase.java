@@ -105,24 +105,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         private final MongoDocumentStore documentStore;
         private final Logger traversalLogger;
         private final CompositeIndexer indexer;
-        private final Predicate<String> pathPredicate;
-
 
         private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                                   MongoDocumentStore documentStore, Logger traversalLogger,
-                                                   CompositeIndexer indexer) {
-            this(rootRevision, documentNodeStore, documentStore, traversalLogger, indexer, null);
-        }
-
-        private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                                    MongoDocumentStore documentStore, Logger traversalLogger, CompositeIndexer indexer,
-                                                    Predicate<String> pathPredicate) {
+                                                    MongoDocumentStore documentStore, Logger traversalLogger, CompositeIndexer indexer) {
             this.rootRevision = rootRevision;
             this.documentNodeStore = documentNodeStore;
             this.documentStore = documentStore;
             this.traversalLogger = traversalLogger;
             this.indexer = indexer;
-            this.pathPredicate = pathPredicate;
         }
 
         @Override
@@ -143,10 +133,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                                 traversalLogger.trace(id);
                             });
         }
-    }
-
-    private FlatFileStore buildFlatFileStore(NodeState checkpointedState, CompositeIndexer indexer) throws IOException {
-        return buildFlatFileStore(checkpointedState, indexer, null, null);
     }
 
     private FlatFileStore buildFlatFileStore(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements) throws IOException {
@@ -172,8 +158,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                         .withBlobStore(indexHelper.getGCBlobStore())
                         .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
+                        .withPathPredicate(pathPredicate)
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
-                                nodeStore, getMongoDocumentStore(), traversalLog, indexer, pathPredicate));
+                                nodeStore, getMongoDocumentStore(), traversalLog, indexer));
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
                 }
@@ -251,7 +238,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         closer.register(indexer);
 
-        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer);
+        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer, indexer::shouldInclude, null);
 
         progressReporter.reset();
         if (flatFileStore.getEntryCount() > 0){
