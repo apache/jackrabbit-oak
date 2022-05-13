@@ -57,6 +57,14 @@
               !org.locationtech.jts.geom.*,
               !org.locationtech.spatial4j.*,
               !sun.misc.*,
+              !org.apache.lucene.search.similarity.*,
+              !org.apache.lucene.analysis.*,
+              !org.glassfish.json.*,
+              !com.sun.management.*,
+              !joptsimple.*,
+              !org.apache.lucene.search.suggest.document.*,
+              !jakarta.json.bind.*,
+              !com.carrotsearch.randomizedtesting.*,
               *
             </Import-Package>
             <Embed-Dependency>
