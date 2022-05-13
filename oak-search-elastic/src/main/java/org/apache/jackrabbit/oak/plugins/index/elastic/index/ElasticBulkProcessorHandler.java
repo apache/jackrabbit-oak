@@ -160,6 +160,7 @@ class ElasticBulkProcessorHandler {
     }
 
     protected BiConsumer<BulkRequest, ActionListener<BulkResponse>> requestConsumer() {
+        // TODO: migrate to ES Java client https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/indexing-bulk.html
         return (request, bulkListener) -> elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
     }
 
