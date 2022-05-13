@@ -22,12 +22,14 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Closer;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreSplitter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -227,7 +229,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         configureEstimators(progressReporter);
 
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        System.out.println("===x after retrieveNodeStateForCheckpoint");
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        System.out.println("===x after MemoryNodeStore");
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
 
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
@@ -240,11 +244,29 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer, indexer::shouldInclude, null);
 
+//        boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+//        File flatFile = new File("/Users/yualin/Desktop/Adobe/workspace/indexing/oak-run-intellij/solution-store-sorted.json");
+//        FlatFileStore flatFileStore = new FlatFileStore(
+//                indexHelper.getGCBlobStore(),
+//                flatFile,
+//                new NodeStateEntryReader(indexHelper.getGCBlobStore()),
+//                indexer.getRelativeIndexedNodeNames(),
+//                useZip);
+
         progressReporter.reset();
         if (flatFileStore.getEntryCount() > 0){
             FlatFileStore finalFlatFileStore = flatFileStore;
             progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> finalFlatFileStore.getEntryCount());
         }
+
+        FlatFileStoreSplitter splitter = new FlatFileStoreSplitter(flatFileStore, indexHelper, indexerSupport, 0);
+        List<FlatFileStore> flatFileStores = splitter.split();
+
+        flatFileStores.forEach(ffs -> {
+            File f = new File(ffs.getFlatFileStorePath());
+            System.out.println(ffs.getFlatFileStorePath() + " size: " + FileUtils.byteCountToDisplaySize(f.length()));
+        });
+        System.exit(0);
 
         progressReporter.reindexingTraversalStart("/");
 

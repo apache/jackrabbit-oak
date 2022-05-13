@@ -84,6 +84,15 @@ public class FlatFileNodeStoreBuilder {
     static final String PROP_MERGE_TASK_BATCH_SIZE = "oak.indexer.mergeTaskBatchSize";
 
     /**
+     * Default value for {@link #PROP_SPLIT_STORE_SIZE}
+     */
+    static final int DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE = 4;
+    /**
+     * System property for specifying number of FlatFileStore to be split into.
+     */
+    static final String PROP_SPLIT_STORE_SIZE = "oak.indexer.splitStoreSize";
+
+    /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
