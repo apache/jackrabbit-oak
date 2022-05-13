@@ -49,9 +49,6 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
-              !com.carrotsearch.randomizedtesting.*,
-              !com.google.common.geometry.*,
-              !com.sun.management.*,
               !jdk.net.*,
               !org.apache.avalon.framework.logger.*,
               !org.apache.log.*,
