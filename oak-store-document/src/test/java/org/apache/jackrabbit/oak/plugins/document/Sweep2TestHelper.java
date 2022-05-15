@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import junitx.util.PrivateAccessor;
 
@@ -83,7 +85,7 @@ public class Sweep2TestHelper {
      * <li>if simulatePreFixUpgrade then simulate an upgrade to a version post 1.8 but without a fix for the branch commit problem</li>
      * <li>upgrade to a fixed version</li>
      * </ol>
-     * @param memStore
+     * @param ns
      * @param newBuilder
      * @param simulatePreFixUpgrade if true, simulate step 2 as well, if false, leave out that step
      */

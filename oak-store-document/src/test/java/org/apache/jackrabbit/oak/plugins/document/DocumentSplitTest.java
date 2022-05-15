@@ -732,21 +732,21 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         ns.dispose();
     }
-
+    
     // OAK-2528
     @Test
     public void commitRootForChildrenFlag() throws Exception {
         DocumentStore store = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
-
+        
         for (int i = 0; i < NUM_REVS_THRESHOLD * 2; i++) {
             NodeBuilder builder = ns.getRoot().builder();
             builder.child("test").child("child-" + i);
             merge(ns, builder);
         }
-
+        
         ns.runBackgroundOperations();
-
+        
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         assertTrue(doc.getLocalCommitRoot().size() < NUM_REVS_THRESHOLD);
@@ -1155,7 +1155,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             throws CommitFailedException {
         return store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
-
+    
     private void syncMKs(List<DocumentMK> mks, int idx) {
         mks.get(idx).runBackgroundOperations();
         for (int i = 0; i < mks.size(); i++) {
