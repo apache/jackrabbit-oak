@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Strings;
@@ -50,7 +53,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -128,7 +130,7 @@ public class UtilsTest {
     @Test
     public void getParentIdForLongPathWithNodeNameLimit() {
         Path longPath = Path.fromString(LONG_PATH);
-        assertTrue(Utils.isNodeNameLong(longPath, NODE_NAME_LIMIT));
+        assertTrue(Utils.isNodeNameLong(longPath, Utils.NODE_NAME_LIMIT));
     }
 
     @Test
@@ -136,17 +138,6 @@ public class UtilsTest {
         Path longPath = Path.fromString(LONG_PATH);
         assertFalse(Utils.isNodeNameLong(longPath, Integer.MAX_VALUE));
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
-    }
-
-    @Test()
-    public void getIdFromLongPathWithNodeNameLimit() {
-        assertTrue(Utils.isNodeNameLong(LONG_PATH, NODE_NAME_LIMIT));
-    }
-
-    @Test
-    public void getParentIdForLongStringPathWithoutNodeNameLimit() {
-        assertFalse(Utils.isNodeNameLong(LONG_PATH, Integer.MAX_VALUE));
-        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH)));
     }
 
     @Test

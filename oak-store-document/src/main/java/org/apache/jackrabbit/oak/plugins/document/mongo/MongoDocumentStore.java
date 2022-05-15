@@ -114,7 +114,10 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.*;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
 /**
  * A document store that uses MongoDB as the backend.

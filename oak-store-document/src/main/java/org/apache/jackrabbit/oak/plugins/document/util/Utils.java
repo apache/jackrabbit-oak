@@ -92,6 +92,11 @@ public class Utils {
      */
     public static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
 
+    /**
+     * The maximum size a node name, in bytes. This is only a problem for long path.
+     */
+    public static final int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
+
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
@@ -333,7 +338,6 @@ public class Utils {
      *     <li>If id is for root path</li>
      *     <li>If id is for an invalid path</li>
      * </ul>
-     *
      * @param id id for which parent id needs to be determined
      * @return parent id. null if parent id cannot be determined
      */
