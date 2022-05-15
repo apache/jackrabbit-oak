@@ -415,8 +415,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      */
     UpdateOp asOperation(@NotNull Revision revision) {
 
-        if (Utils.isNodeNameLong(path, store.getDocumentStore().getSizeLimit())) {
-            throw new IllegalArgumentException("Node name is too long: " + path);
+        if (Utils.isNodeNameLong(path, store.getDocumentStore().getNodeNameLimit())) {
+            throw new DocumentStoreException("Node name is too long: " + path);
         }
 
         String id = Utils.getIdFromPath(path);

@@ -114,7 +114,10 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.*;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -129,9 +132,9 @@ public class MongoDocumentStore implements DocumentStore {
     private static final Bson BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
     /**
-     * sizeLimit for node name based on Mongo Version
+     * nodeNameLimit for node name based on Mongo Version
      */
-    private final int sizeLimit;
+    private final int nodeNameLimit;
 
     enum DocumentReadPreference {
         PRIMARY,
@@ -247,8 +250,8 @@ public class MongoDocumentStore implements DocumentStore {
     private final boolean readOnly;
 
     @Override
-    public int getSizeLimit() {
-        return sizeLimit;
+    public int getNodeNameLimit() {
+        return nodeNameLimit;
     }
 
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
@@ -264,7 +267,7 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", status.getVersion())
                 .build();
 
-        this.sizeLimit = MongoUtils.getSizeLimit(status.getVersion());
+        this.nodeNameLimit = MongoUtils.getNodeNameLimit(status.getVersion());
         this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
         this.clusterNodesConnection = getOrCreateClusterNodesConnection(builder);
         stats = builder.getDocumentStoreStatsCollector();

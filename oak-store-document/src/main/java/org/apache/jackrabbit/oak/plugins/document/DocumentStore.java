@@ -22,6 +22,7 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -458,16 +459,11 @@ public interface DocumentStore {
             throws UnsupportedOperationException, DocumentStoreException;
 
     /**
-     * The maximum size a node name, in bytes. This is only a problem for long path.
-     */
-    int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
-
-    /**
      * Return the size limit for node name based on the document store implementation
      *
      * @return node name size limit
      */
-    default int getSizeLimit() {
-        return NODE_NAME_LIMIT;
+    default int getNodeNameLimit() {
+        return Utils.NODE_NAME_LIMIT;
     }
 }

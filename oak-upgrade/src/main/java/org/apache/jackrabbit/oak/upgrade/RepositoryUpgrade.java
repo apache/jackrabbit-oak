@@ -83,7 +83,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -1023,10 +1022,10 @@ public class RepositoryUpgrade {
     }
 
     private boolean nameMayBeTooLong(String name) {
-        if (name.length() <= DocumentStore.NODE_NAME_LIMIT / 3) {
+        if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
-        if (name.getBytes(Charsets.UTF_8).length <= DocumentStore.NODE_NAME_LIMIT) {
+        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
             return false;
         }
         return true;

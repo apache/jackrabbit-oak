@@ -53,7 +53,7 @@ public class DocumentMK {
      */
     static final int MANY_CHILDREN_THRESHOLD = DocumentNodeStoreBuilder.MANY_CHILDREN_THRESHOLD;
 
-    static final String LONG_PATH = "/tmp/commerce/qwerty/asdfgh/BU~PCSDB2C_CM~2020 IdeaPad IdeaCentre Holiday Campaign _CV~All The Right Answers IdeaCentre AIO AMD Caro      usel_CT~FB_CS~1x1_LG~EN_PR~IdeaCentre AIO 5_FS~AMD_OT~_CR~The Woo_5_jpg/BU~PCSDB2C_CM~2020 IdeaPad IdeaCentre Holiday Campaign _CV~All The Right Answers IdeaCentre AIO AMD Carousel_CT~FB_CS~1x1_LG~EN_PR      ~IdeaCentre AIO 5_FS~AMD_OT~_CR~The Woo_5_jpg1/BU~PCSDB2C_CM~2020 IdeaPad IdeaCentre Holiday Campaign _CV~All The Right Answers IdeaCentre AIO AMD Carousel_CT~FB_CS~1x1_LG~EN_PR~IdeaCentre AIO 5_FS~AMD_      OT~_CR~The Woo_5_jpg2";
+    static final String LONG_PATH = "/foo/barbar/qwerty/asdfgh/zxcvbnm/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka";
 
     /**
      * Number of content updates that need to happen before the updates
