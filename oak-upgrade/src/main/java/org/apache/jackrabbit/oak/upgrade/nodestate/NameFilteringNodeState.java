@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.upgrade.nodestate;
 import com.google.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.migration.AbstractDecoratedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -78,10 +77,10 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
     private boolean isNameTooLong(@NotNull String name) {
         // OAK-1589: maximum supported length of name for DocumentNodeStore
         // is 150 bytes. Skip the sub tree if the the name is too long
-        if (name.length() <= DocumentStore.NODE_NAME_LIMIT / 3) {
+        if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
-        if (name.getBytes(Charsets.UTF_8).length <= DocumentStore.NODE_NAME_LIMIT) {
+        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
             return false;
         }
         String path = getPath();

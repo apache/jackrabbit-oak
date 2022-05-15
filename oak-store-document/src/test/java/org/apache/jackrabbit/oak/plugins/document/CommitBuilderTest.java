@@ -150,13 +150,11 @@ public class CommitBuilderTest {
         assertNotNull(op);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DocumentStoreException.class)
     public void addLongNameNodeState() {
         Path path = Path.fromString(DocumentMK.LONG_PATH);
-        DocumentNodeState foo = addNode(DocumentMK.LONG_PATH);
-
         CommitBuilder builder = new CommitBuilder(ns, null);
-        builder.addNode(foo);
+        builder.addNode(path);
         Commit c = builder.build(ns.newRevision());
         UpdateOp up = c.getUpdateOperationForNode(path);
         UpdateOp.Operation op = up.getChanges().get(

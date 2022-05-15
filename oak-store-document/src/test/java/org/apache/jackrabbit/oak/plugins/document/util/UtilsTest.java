@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Strings;
@@ -50,7 +53,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStore.NODE_NAME_LIMIT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -73,7 +75,7 @@ import static org.mockito.Mockito.when;
 public class UtilsTest {
 
     private static final long TIME_DIFF_WARN_THRESHOLD_MILLIS = 2000L;
-    private static final String LONG_PATH = "/tmp/commerce/qwerty/asdfgh/BU~PCSDB2C_CM~2020 IdeaPad IdeaCentre Holiday Campaign _CV~All The Right Answers IdeaCentre AIO AMD Caro      usel_CT~FB_CS~1x1_LG~EN_PR~IdeaCentre AIO 5_FS~AMD_OT~_CR~The Woo_5_jpg/BU~PCSDB2C_CM~2020 IdeaPad IdeaCentre Holiday Campaign _CV~All The Right Answers IdeaCentre AIO AMD Carousel_CT~FB_CS~1x1_LG~EN_PR      ~IdeaCentre AIO 5_FS~AMD_OT~_CR~The Woo_5_jpg1/BU~PCSDB2C_CM~2020 IdeaPad IdeaCentre Holiday Campaign _CV~All The Right Answers IdeaCentre AIO AMD Carousel_CT~FB_CS~1x1_LG~EN_PR~IdeaCentre AIO 5_FS~AMD_      OT~_CR~The Woo_5_jpg2";
+    private static final String LONG_PATH = "/foo/barbar/qwerty/asdfgh/zxcvbnm/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka";
 
     @Test
     public void getPreviousIdFor() {
@@ -128,7 +130,7 @@ public class UtilsTest {
     @Test
     public void getParentIdForLongPathWithNodeNameLimit() {
         Path longPath = Path.fromString(LONG_PATH);
-        assertTrue(Utils.isNodeNameLong(longPath, NODE_NAME_LIMIT));
+        assertTrue(Utils.isNodeNameLong(longPath, Utils.NODE_NAME_LIMIT));
     }
 
     @Test
@@ -136,17 +138,6 @@ public class UtilsTest {
         Path longPath = Path.fromString(LONG_PATH);
         assertFalse(Utils.isNodeNameLong(longPath, Integer.MAX_VALUE));
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
-    }
-
-    @Test()
-    public void getIdFromLongPathWithNodeNameLimit() {
-        assertTrue(Utils.isNodeNameLong(LONG_PATH, NODE_NAME_LIMIT));
-    }
-
-    @Test
-    public void getParentIdForLongStringPathWithoutNodeNameLimit() {
-        assertFalse(Utils.isNodeNameLong(LONG_PATH, Integer.MAX_VALUE));
-        assertNull(Utils.getParentId(Utils.getIdFromPath(LONG_PATH)));
     }
 
     @Test

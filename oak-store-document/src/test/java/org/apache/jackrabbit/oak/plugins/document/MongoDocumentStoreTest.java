@@ -55,6 +55,9 @@ public class MongoDocumentStoreTest {
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
 //    private static final boolean MONGO_DB = true;
 //    private static final int NODE_COUNT = 2000;
 
@@ -241,24 +244,17 @@ public class MongoDocumentStoreTest {
         store.dispose();
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void queryWithNodeNameTooLong() throws Exception {
+    @Test(expected = DocumentStoreException.class)
+    public void queryWithNodeNameTooLong() {
         DocumentStore docStore = openDocumentStore();
-        DocumentNodeStore store = new DocumentMK.Builder()
-                .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore store = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
         Revision rev = Revision.newRevision(0);
-        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        List<UpdateOp> inserts = Lists.newArrayList();
         for (int i = 0; i < 2; i++) {
             DocumentNodeState n = new DocumentNodeState(store, Path.fromString(DocumentMK.LONG_PATH + i),
                     new RevisionVector(rev));
             inserts.add(n.asOperation(rev));
         }
-        docStore.create(Collection.NODES, inserts);
-        List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT),
-                DocumentMK.MANY_CHILDREN_THRESHOLD);
-        assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
-        store.dispose();
     }
 
     @Test
