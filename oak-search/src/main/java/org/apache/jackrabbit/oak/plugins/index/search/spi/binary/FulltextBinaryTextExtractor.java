@@ -177,11 +177,11 @@ public class FulltextBinaryTextExtractor {
       // not being present. This is equivalent to disabling
       // selected media types in configuration, so we can simply
       // ignore these errors.
-      String format = "[{}] Failed to extract text from a binary property: {}."
-              + " This often happens when some media types are disabled by configuration."
-              + " The stack trace is included to flag some 'unintended' failures";
-      String indexName = getIndexName();
-      log.warn(format, linkageErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, e});
+      String infoMsgFmt = "Did not extract text from a binary property: {}.";
+      String debugMsgFmt = "This often happens when some media types are disabled by configuration."
+              + " The stack trace is included to flag some 'unintended' failures. {}";
+      log.info(infoMsgFmt, getIndexName(), path);
+      log.debug(debugMsgFmt, linkageErrorFound ? "Stacktrace suppressed due to multiple occurrence of same error." : e);
       extractedTextCache.put(v, ExtractedText.ERROR);
       linkageErrorFound = true;
       return TEXT_EXTRACTION_ERROR;
@@ -196,12 +196,12 @@ public class FulltextBinaryTextExtractor {
       // Capture and report any other full text extraction problems.
       // The special STOP exception is used for normal termination.
       if (!handler.isWriteLimitReached(t)) {
-        String format = "[{}] Failed to extract text from a binary property: {}."
-                + " This is a fairly common case, and nothing to"
+        String infoMsgFmt = "[{}] Failed to extract text from a binary property: {}.";
+        String debugMsgFmt = "This is a fairly common case, and nothing to"
                 + " worry about. The stack trace is included to"
                 + " help improve the text extraction feature.";
-        String indexName = getIndexName();
-        log.info(format, throwableErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, t});
+        log.info(infoMsgFmt, getIndexName(), path);
+        log.debug(debugMsgFmt, throwableErrorFound ? "Stacktrace suppressed due to multiple occurrence of same error." : t);
         extractedTextCache.put(v, ExtractedText.ERROR);
         throwableErrorFound = true;
         return TEXT_EXTRACTION_ERROR;

@@ -272,10 +272,11 @@ class TextExtractor implements Closeable {
             // not being present. This is equivalent to disabling
             // selected media types in configuration, so we can simply
             // ignore these errors.
-            String format = "Failed to extract text from a binary property: {}."
-                            + " This often happens when some media types are disabled by configuration."
-                            + " The stack trace is included to flag some 'unintended' failures";
-            log.warn(format, linkageErrorFound ? path : new Object[]{path, e});
+            String infoMsgFmt = "Did not extract text from a binary property: {}.";
+            String debugMsgFmt = "This often happens when some media types are disabled by configuration."
+                    + " The stack trace is included to flag some 'unintended' failures. {}";
+            log.info(infoMsgFmt, path);
+            log.debug(debugMsgFmt, linkageErrorFound ? "Stacktrace suppressed due to multiple occurrence of same error." : e);
             linkageErrorFound = true;
             parserErrorCount.incrementAndGet();
             return ERROR_TEXT;
@@ -284,11 +285,13 @@ class TextExtractor implements Closeable {
             // The special STOP exception is used for normal termination.
             if (!handler.isWriteLimitReached(t)) {
                 parserErrorCount.incrementAndGet();
-                String format = "Failed to extract text from a binary property: {}"
-                        + " This is a fairly common case, and nothing to"
+                String infoMsgFmt = "Did not extract text from a binary property: {}.";
+                String debugMsgFmt = "This is a fairly common case, and nothing to"
                         + " worry about. The stack trace is included to"
-                        + " help improve the text extraction feature.";
-                parserError.info(format, throwableErrorFound ? path : new Object[]{path, t});
+                        + " help improve the text extraction feature. {}";
+                parserError.info(infoMsgFmt, path);
+                parserError.debug(debugMsgFmt,
+                        throwableErrorFound ? "Stacktrace suppressed due to more than single occurrences of same error." : t);
                 throwableErrorFound = true;
                 return ERROR_TEXT;
             } else {
