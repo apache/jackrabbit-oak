@@ -19,14 +19,6 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -36,6 +28,14 @@ import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.run.cli.OptionsBean;
 import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class IndexOptions implements OptionsBean {
 
@@ -50,6 +50,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Void> reindex;
+    private final OptionSpec<Void> ignoreMissingTikaDep;
     private final OptionSpec<Void> asyncIndex;
     private final OptionSpec<Void> importIndex;
     private final OptionSpec<Void> docTraversal;
@@ -99,6 +100,7 @@ public class IndexOptions implements OptionsBean {
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
+        ignoreMissingTikaDep = parser.accepts("ignore-missing-tika-dep", "Ignore when there are missing tika dependencies and continue to run");
         asyncIndex = parser.accepts("async-index", "Runs async index cycle");
 
         asyncIndexLanes = parser.accepts("async-index-lanes", "Comma separated list of async index lanes for which the " +
@@ -205,6 +207,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean isReindex() {
         return options.has(reindex);
+    }
+
+    public boolean isIgnoreMissingTikaDep() {
+        return options.has(ignoreMissingTikaDep);
     }
 
     public boolean isAsyncIndex() {

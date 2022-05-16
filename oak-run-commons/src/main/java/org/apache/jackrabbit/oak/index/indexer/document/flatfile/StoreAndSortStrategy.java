@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
@@ -30,8 +26,14 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.function.Predicate;
 
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -53,15 +55,17 @@ class StoreAndSortStrategy implements SortStrategy {
     private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
     private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private long textSize;
+    private Predicate<String> pathPredicate;
 
 
     public StoreAndSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator comparator,
-                                NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled) {
+                                NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled, Predicate<String> pathPredicate) {
         this.nodeStatesFactory = nodeStatesFactory;
         this.comparator = comparator;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
+        this.pathPredicate = pathPredicate;
     }
 
     @Override
@@ -101,11 +105,14 @@ class StoreAndSortStrategy implements SortStrategy {
         Stopwatch sw = Stopwatch.createStarted();
         try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, compressionEnabled)) {
             for (NodeStateEntry e : nodeStates) {
-                String line = entryWriter.toString(e);
-                w.append(line);
-                w.newLine();
-                textSize += line.length() + LINE_SEP_LENGTH;
-                entryCount++;
+                String path = e.getPath();
+                if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
+                    String line = entryWriter.toString(e);
+                    w.append(line);
+                    w.newLine();
+                    textSize += line.length() + LINE_SEP_LENGTH;
+                    entryCount++;
+                }
             }
         }
         String sizeStr = compressionEnabled ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";

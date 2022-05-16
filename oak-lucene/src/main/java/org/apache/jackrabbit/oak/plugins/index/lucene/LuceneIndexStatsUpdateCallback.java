@@ -22,23 +22,26 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.BiFunction;
 
 /**
  * {@link PropertyUpdateCallback} that records statistics about a certain index size (on disk) and number of documents.
  */
 public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
 
-    private static final String NO_DOCS = "_NO_DOCS";
-    private static final String INDEX_SIZE = "_INDEX_SIZE";
+    private static final String NO_DOCS = "NO_DOCS";
+    private static final String INDEX_SIZE = "INDEX_SIZE";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -47,6 +50,9 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     private final StatisticsProvider statisticsProvider;
     private final AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
     private final IndexingContext indexingContext;
+
+    private final BiFunction<String, Map<String, String>, HistogramStats> histogram;
+    private final StatsProviderUtil statsProviderUtil;
 
     LuceneIndexStatsUpdateCallback(String indexPath, @NotNull LuceneIndexMBean luceneIndexMBean,
                                    @NotNull StatisticsProvider statisticsProvider,
@@ -57,6 +63,8 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
         this.statisticsProvider = statisticsProvider;
         this.asyncIndexesSizeStatsUpdate = asyncIndexesSizeStatsUpdate;
         this.indexingContext = indexingContext;
+        statsProviderUtil = new StatsProviderUtil(this.statisticsProvider);
+        this.histogram = statsProviderUtil.getHistoStats();
     }
 
     @Override
@@ -68,13 +76,14 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     public void done() {
         if (shouldUpdateStats()) {
             try {
+                Map<String, String> labels = Collections.singletonMap("index", indexPath);
                 long startTime = System.currentTimeMillis();
                 int docCount = Integer.parseInt(luceneIndexMBean.getDocCount(indexPath));
-                HistogramStats docCountHistogram = statisticsProvider.getHistogram(indexPath + NO_DOCS, StatsOptions.METRICS_ONLY);
+                HistogramStats docCountHistogram = histogram.apply(NO_DOCS, labels);
                 docCountHistogram.update(docCount);
                 log.trace("{} stats updated, docCount {}, timeToUpdate {}", indexPath, docCount, System.currentTimeMillis() - startTime);
                 long indexSize = Long.parseLong(luceneIndexMBean.getSize(indexPath));
-                HistogramStats indexSizeHistogram = statisticsProvider.getHistogram(indexPath + INDEX_SIZE, StatsOptions.METRICS_ONLY);
+                HistogramStats indexSizeHistogram = histogram.apply(INDEX_SIZE, labels);
                 indexSizeHistogram.update(indexSize);
                 long endTime = System.currentTimeMillis();
                 asyncIndexesSizeStatsUpdate.setLastStatsUpdateTime(indexPath, endTime);
