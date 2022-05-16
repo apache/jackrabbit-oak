@@ -19,15 +19,18 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.util.List;
-
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class IndexOptionsTest {
 
