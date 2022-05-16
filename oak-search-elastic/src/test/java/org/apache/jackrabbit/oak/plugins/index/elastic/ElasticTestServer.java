@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.Network;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
+import org.testcontainers.shaded.org.bouncycastle.asn1.x509.qualified.ETSIQCObjectIdentifiers;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
@@ -139,6 +140,22 @@ public class ElasticTestServer implements AutoCloseable {
                     ", Elastic tests will be skipped");
         }
         assumeNotNull(client);
+    }
+
+    /**
+     * Launches an Elasticsearch Test Server to re-use among several tests.
+     * @param args
+     */
+    public static void main(String[] args){
+        ElasticsearchContainer esContainer = ElasticTestServer.getESTestServer();
+        try {
+            System.out.println("Docker container with Elasticsearch launched at \""+esContainer.getHttpHostAddress()+
+                "\". Please PRESS ENTER to stop it...");
+            System.in.read();
+            esContainer.stop();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
