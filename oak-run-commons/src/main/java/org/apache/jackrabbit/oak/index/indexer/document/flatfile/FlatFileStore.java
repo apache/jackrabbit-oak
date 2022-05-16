@@ -19,11 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.io.Closer;
-import org.apache.commons.io.LineIterator;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 
 import java.io.Closeable;
 import java.io.File;
@@ -31,7 +27,12 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+
+import com.google.common.collect.AbstractIterator;
+import com.google.common.io.Closer;
 
 public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     private final Closer closer = Closer.create();
@@ -69,7 +70,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
-        String fileName = new File(storeFile.getParent(), "linkedList").getAbsolutePath();
+        String fileName = new File(storeFile.getParent(), storeFile.getName() + ".linkedList").getAbsolutePath();
         FlatFileStoreIterator it = new FlatFileStoreIterator(blobStore, fileName, createBaseIterator(), preferredPathElements);
         closer.register(it::close);
         return it;

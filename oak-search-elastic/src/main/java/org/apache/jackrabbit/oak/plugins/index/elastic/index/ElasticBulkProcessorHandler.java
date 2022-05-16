@@ -16,6 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
+
+import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -41,20 +55,6 @@ import org.elasticsearch.core.TimeValue;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Phaser;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
-import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
 
 class ElasticBulkProcessorHandler {
 
@@ -152,6 +152,7 @@ class ElasticBulkProcessorHandler {
         return BulkProcessor.builder(requestConsumer(),
                 new OakBulkProcessorListener(), this.indexName + "-bulk-processor")
                 .setBulkActions(indexDefinition.bulkActions)
+                .setConcurrentRequests(4)
                 .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
                 .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
                 .setBackoffPolicy(BackoffPolicy.exponentialBackoff(
@@ -209,6 +210,8 @@ class ElasticBulkProcessorHandler {
 
             // init update status
             updatesMap.put(executionId, Boolean.FALSE);
+
+            bulkRequest.timeout(TimeValue.timeValueMinutes(2));
 
             LOG.debug("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {

@@ -19,12 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
+
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -47,9 +50,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
+import com.google.common.io.Closer;
 
 class DefaultIndexWriter implements LuceneIndexWriter {
     private static final Logger log = LoggerFactory.getLogger(DefaultIndexWriter.class);
@@ -162,14 +163,16 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     IndexWriter getWriter() throws IOException {
         if (writer == null) {
-            final long start = PERF_LOGGER.start();
-            directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
-            IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
-            config.setMergePolicy(definition.getMergePolicy());
-            writer = new IndexWriter(directory, config);
-            genAtStart = getLatestGeneration(directory);
-            log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
-            PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
+            synchronized (this) {
+                final long start = PERF_LOGGER.start();
+                directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
+                IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
+                config.setMergePolicy(definition.getMergePolicy());
+                writer = new IndexWriter(directory, config);
+                genAtStart = getLatestGeneration(directory);
+                log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
+                PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
+            }
         }
         return writer;
     }

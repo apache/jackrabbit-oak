@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
@@ -26,13 +33,6 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * This class represents an Elasticsearch Connection with the related <code>RestHighLevelClient</code>.
@@ -108,6 +108,9 @@ public class ElasticConnection implements Closeable {
                         Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
                         builder.setDefaultHeaders(headers);
                     }
+                    builder.setRequestConfigCallback(
+                            requestConfigBuilder -> requestConfigBuilder.setConnectTimeout(120000).setSocketTimeout(120000));
+
                     client = new RestHighLevelClient(builder);
                 }
             }

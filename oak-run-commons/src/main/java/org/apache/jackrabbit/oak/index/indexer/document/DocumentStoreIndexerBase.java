@@ -19,10 +19,25 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Stopwatch;
-import com.google.common.io.Closer;
-import org.apache.commons.io.FileUtils;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
@@ -58,19 +73,9 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Stopwatch;
+import com.google.common.io.Closer;
 
 public abstract class DocumentStoreIndexerBase implements Closeable{
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -81,6 +86,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     protected final IndexerSupport indexerSupport;
     private final Set<String> indexerPaths = new HashSet<>();
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
+    private static final int INDEX_THREAD_POOL_SIZE = 4;
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;
@@ -229,9 +235,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         configureEstimators(progressReporter);
 
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-        System.out.println("===x after retrieveNodeStateForCheckpoint");
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        System.out.println("===x after MemoryNodeStore");
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
 
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
@@ -244,38 +248,24 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer, indexer::shouldInclude, null);
 
-//        boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-//        File flatFile = new File("/Users/yualin/Desktop/Adobe/workspace/indexing/oak-run-intellij/solution-store-sorted.json");
-//        FlatFileStore flatFileStore = new FlatFileStore(
-//                indexHelper.getGCBlobStore(),
-//                flatFile,
-//                new NodeStateEntryReader(indexHelper.getGCBlobStore()),
-//                indexer.getRelativeIndexedNodeNames(),
-//                useZip);
-
         progressReporter.reset();
-        if (flatFileStore.getEntryCount() > 0){
-            FlatFileStore finalFlatFileStore = flatFileStore;
-            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> finalFlatFileStore.getEntryCount());
-        }
-
-        FlatFileStoreSplitter splitter = new FlatFileStoreSplitter(flatFileStore, indexHelper, indexerSupport, 0);
-        List<FlatFileStore> flatFileStores = splitter.split();
-
-        flatFileStores.forEach(ffs -> {
-            File f = new File(ffs.getFlatFileStorePath());
-            System.out.println(ffs.getFlatFileStorePath() + " size: " + FileUtils.byteCountToDisplaySize(f.length()));
-        });
-        System.exit(0);
 
         progressReporter.reindexingTraversalStart("/");
 
         preIndexOpertaions(indexer.getIndexers());
 
         Stopwatch indexerWatch = Stopwatch.createStarted();
-        for (NodeStateEntry entry : flatFileStore) {
-            reportDocumentRead(entry.getPath(), progressReporter);
-            indexer.index(entry);
+
+        FlatFileStoreSplitter splitter = new FlatFileStoreSplitter(flatFileStore, indexHelper, indexerSupport, 0);
+        List<FlatFileStore> flatFileStores = splitter.split();
+        if (flatFileStores.size() > 1) {
+            indexParallel(flatFileStores, indexer, progressReporter);
+        } else if (flatFileStores.size() == 1) {
+            flatFileStore = flatFileStores.get(0);
+            for (NodeStateEntry entry : flatFileStore) {
+                reportDocumentRead(entry.getPath(), progressReporter);
+                indexer.index(entry);
+            }
         }
 
         progressReporter.reindexingTraversalEnd();
@@ -285,6 +275,35 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         indexerSupport.postIndexWork(copyOnWriteStore);
+    }
+
+    private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter) {
+        ExecutorService service = Executors.newFixedThreadPool(INDEX_THREAD_POOL_SIZE);
+        List<Future> futureList = new ArrayList<>();
+
+        for (FlatFileStore item : storeList) {
+            Future future = service.submit(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws IOException, CommitFailedException {
+                    for (NodeStateEntry entry : item) {
+                        reportDocumentRead(entry.getPath(), progressReporter);
+                        indexer.index(entry);
+                    }
+                    return true;
+                }
+            });
+            futureList.add(future);
+        }
+
+        try {
+            for (Future future : futureList) {
+                future.get();
+            }
+            log.info("All {} indexing jobs are done", storeList.size());
+            service.shutdown();
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Failure getting indexing job result", e);
+        }
     }
 
     private MongoDocumentStore getMongoDocumentStore() {

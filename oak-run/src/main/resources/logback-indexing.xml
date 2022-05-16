@@ -22,14 +22,14 @@
   <appender name="index" class="ch.qos.logback.core.FileAppender">
     <file>${oak.workDir}/indexing.log</file>
     <encoder>
-      <pattern>%d %-5level [%thread] %logger{30} %marker- %msg %n</pattern>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %class:%method:%L) - %msg%n</pattern>
     </encoder>
   </appender>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <target>System.out</target>
     <encoder>
-      <pattern>%d{HH:mm:ss} - %msg%n</pattern>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %class:%method:%L) - %msg%n</pattern>
     </encoder>
   </appender>
 
@@ -44,6 +44,9 @@
     <appender-ref ref="STDOUT" />
   </logger>
   <logger name="org.apache.jackrabbit.oak.plugins.index.progress" level="INFO">
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor" level="DEBUG">
     <appender-ref ref="STDOUT" />
   </logger>
 

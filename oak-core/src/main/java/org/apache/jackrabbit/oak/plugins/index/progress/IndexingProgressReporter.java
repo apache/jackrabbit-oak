@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -37,6 +36,8 @@ import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
 
 public class IndexingProgressReporter implements NodeTraversalCallback {
     private static final String REINDEX_MSG = "Reindexing";
@@ -229,7 +230,9 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         }
 
         public void indexUpdate() throws CommitFailedException {
-            updateCount++;
+            synchronized (this) {
+                updateCount++;
+            }
             if (updateCount % 10000 == 0) {
                 log.info("{} => Indexed {} nodes in {} ...", indexPath, updateCount, watch);
                 watch.reset().start();
