@@ -34,7 +34,6 @@
 
   <properties>
     <elasticsearch.version>7.17.3</elasticsearch.version>
-    <jackson.version>2.12.3</jackson.version>
   </properties>
 
   <build>
@@ -132,7 +131,7 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>${jackson.version}</version>
+      <version>${jackson.databind.version}</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch</groupId>
