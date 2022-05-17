@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,9 +54,6 @@ public class MongoDocumentStoreTest {
 
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
-
-    @Rule
-    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
 //    private static final boolean MONGO_DB = true;
 //    private static final int NODE_COUNT = 2000;
@@ -243,16 +239,6 @@ public class MongoDocumentStoreTest {
                 DocumentMK.MANY_CHILDREN_THRESHOLD);
         assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
         store.dispose();
-    }
-
-    @Test(expected = DocumentStoreException.class)
-    public void queryWithNodeNameTooLong() {
-        DocumentStore docStore = openDocumentStore();
-        DocumentNodeStore store = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
-        Revision rev = Revision.newRevision(0);
-        DocumentNodeState n = new DocumentNodeState(store, Path.fromString(DocumentMK.LONG_PATH), new RevisionVector(rev));
-        n.asOperation(rev);
-        fail("should not reach this point");
     }
 
     @Test
