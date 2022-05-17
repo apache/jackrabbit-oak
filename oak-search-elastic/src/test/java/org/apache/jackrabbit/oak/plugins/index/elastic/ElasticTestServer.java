@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.Network;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.testcontainers.shaded.org.bouncycastle.asn1.x509.qualified.ETSIQCObjectIdentifiers;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
