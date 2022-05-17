@@ -155,11 +155,7 @@ public class CommitBuilderTest {
         Path path = Path.fromString(DocumentMK.LONG_PATH);
         CommitBuilder builder = new CommitBuilder(ns, null);
         builder.addNode(path);
-        Commit c = builder.build(ns.newRevision());
-        UpdateOp up = c.getUpdateOperationForNode(path);
-        UpdateOp.Operation op = up.getChanges().get(
-                new UpdateOp.Key("_deleted", c.getRevision()));
-        assertNotNull(op);
+        fail("should not reach this point");
     }
 
     @Test
