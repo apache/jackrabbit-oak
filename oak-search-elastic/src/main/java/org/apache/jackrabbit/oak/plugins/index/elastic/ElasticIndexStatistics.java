@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -195,10 +196,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {
-            IndicesRecord record = crd.connection.getClient().cat().indices(i -> i
+            List<IndicesRecord> records = crd.connection.getClient().cat().indices(i -> i
                             .index(crd.index)
                             .bytes(Bytes.Bytes))
-                    .valueBody().get(0);
+                    .valueBody();
+            if(records.isEmpty()){
+                return null;
+            }
+            // Assuming a single index matches crd.index
+            IndicesRecord record = records.get(0);
             String size = record.storeSize();
             String creationDate = record.creationDateString();
             String luceneDocsCount = record.docsCount();
