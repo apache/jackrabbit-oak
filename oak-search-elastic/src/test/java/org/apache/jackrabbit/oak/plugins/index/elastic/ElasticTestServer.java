@@ -144,16 +144,12 @@ public class ElasticTestServer implements AutoCloseable {
     /**
      * Launches an Elasticsearch Test Server to re-use among several tests.
      */
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
         ElasticsearchContainer esContainer = ElasticTestServer.getESTestServer();
-        try {
-            System.out.println("Docker container with Elasticsearch launched at \""+esContainer.getHttpHostAddress()+
-                "\". Please PRESS ENTER to stop it...");
-            System.in.read();
-            esContainer.stop();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        System.out.println("Docker container with Elasticsearch launched at \""+esContainer.getHttpHostAddress()+
+            "\". Please PRESS ENTER to stop it...");
+        System.in.read();
+        esContainer.stop();
     }
 
 }
