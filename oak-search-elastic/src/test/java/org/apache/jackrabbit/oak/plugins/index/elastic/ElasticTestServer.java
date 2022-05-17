@@ -147,7 +147,7 @@ public class ElasticTestServer implements AutoCloseable {
     public static void main(String[] args){
         ElasticsearchContainer esContainer = ElasticTestServer.getESTestServer();
         try {
-            System.out.println("Docker container with Elasticsearch launched at \""+esContainer.getHttpHostAddress()+
+            System.out.println("Docker container with Elasticsearch launched at \"" + esContainer.getHttpHostAddress() +
                 "\". Please PRESS ENTER to stop it...");
             System.in.read();
             esContainer.stop();
