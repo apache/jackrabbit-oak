@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -249,12 +250,9 @@ public class MongoDocumentStoreTest {
         DocumentStore docStore = openDocumentStore();
         DocumentNodeStore store = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
         Revision rev = Revision.newRevision(0);
-        List<UpdateOp> inserts = Lists.newArrayList();
-        for (int i = 0; i < 2; i++) {
-            DocumentNodeState n = new DocumentNodeState(store, Path.fromString(DocumentMK.LONG_PATH + i),
-                    new RevisionVector(rev));
-            inserts.add(n.asOperation(rev));
-        }
+        DocumentNodeState n = new DocumentNodeState(store, Path.fromString(DocumentMK.LONG_PATH), new RevisionVector(rev));
+        n.asOperation(rev);
+        fail("should not reach this point");
     }
 
     @Test
