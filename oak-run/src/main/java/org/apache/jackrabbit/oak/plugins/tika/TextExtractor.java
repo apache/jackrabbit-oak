@@ -79,8 +79,6 @@ class TextExtractor implements Closeable {
     private boolean initialized;
     private BinaryStats stats;
     private boolean closed;
-    private boolean linkageErrorFound;
-    private boolean throwableErrorFound;
 
     public TextExtractor(TextWriter textWriter) {
         this.textWriter = textWriter;
@@ -272,11 +270,10 @@ class TextExtractor implements Closeable {
             // not being present. This is equivalent to disabling
             // selected media types in configuration, so we can simply
             // ignore these errors.
-            String format = "Failed to extract text from a binary property: {}."
-                            + " This often happens when some media types are disabled by configuration."
-                            + " The stack trace is included to flag some 'unintended' failures";
-            log.warn(format, linkageErrorFound ? path : new Object[]{path, e});
-            linkageErrorFound = true;
+            String format = "Failed to extract text from a binary property: {}. "
+                            + "This often happens when the media types is disabled by configuration.";
+            log.info(format, path);
+            log.debug(format, path, e);
             parserErrorCount.incrementAndGet();
             return ERROR_TEXT;
         } catch (Throwable t) {
@@ -284,12 +281,10 @@ class TextExtractor implements Closeable {
             // The special STOP exception is used for normal termination.
             if (!handler.isWriteLimitReached(t)) {
                 parserErrorCount.incrementAndGet();
-                String format = "Failed to extract text from a binary property: {}"
-                        + " This is a fairly common case, and nothing to"
-                        + " worry about. The stack trace is included to"
-                        + " help improve the text extraction feature.";
-                parserError.info(format, throwableErrorFound ? path : new Object[]{path, t});
-                throwableErrorFound = true;
+                String format = "Failed to extract text from a binary property: {}. "
+                        + "This is quite common, and usually nothing to worry about.";
+                parserError.info(format, path);
+                parserError.debug(format, path, t);
                 return ERROR_TEXT;
             } else {
                 parserError.debug("Extracted text size exceeded configured limit({})", maxExtractedLength);
