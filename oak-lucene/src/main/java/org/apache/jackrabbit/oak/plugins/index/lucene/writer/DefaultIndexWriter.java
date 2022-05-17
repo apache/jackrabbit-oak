@@ -161,18 +161,16 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     //~----------------------------------------< internal >
 
-    IndexWriter getWriter() throws IOException {
+    synchronized IndexWriter getWriter() throws IOException {
         if (writer == null) {
-            synchronized (this) {
-                final long start = PERF_LOGGER.start();
-                directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
-                IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
-                config.setMergePolicy(definition.getMergePolicy());
-                writer = new IndexWriter(directory, config);
-                genAtStart = getLatestGeneration(directory);
-                log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
-                PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
-            }
+            final long start = PERF_LOGGER.start();
+            directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
+            IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
+            config.setMergePolicy(definition.getMergePolicy());
+            writer = new IndexWriter(directory, config);
+            genAtStart = getLatestGeneration(directory);
+            log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
+            PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
         }
         return writer;
     }
