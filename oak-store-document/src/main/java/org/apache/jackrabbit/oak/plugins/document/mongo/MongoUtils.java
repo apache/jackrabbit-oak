@@ -203,6 +203,6 @@ class MongoUtils {
      */
     static int getNodeNameLimit(final String version) {
         final ServerVersion sv = new ServerVersion(Arrays.stream(version.split("\\.")).map(Integer::new).collect(Collectors.toList()));
-        return sv.compareTo(new ServerVersion(4,0)) > 0 ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
+        return sv.compareTo(new ServerVersion(4,2)) >= 0 ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
     }
 }
