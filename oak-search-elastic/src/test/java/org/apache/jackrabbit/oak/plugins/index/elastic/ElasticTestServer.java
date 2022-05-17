@@ -143,7 +143,6 @@ public class ElasticTestServer implements AutoCloseable {
 
     /**
      * Launches an Elasticsearch Test Server to re-use among several tests.
-     * @param args
      */
     public static void main(String[] args){
         ElasticsearchContainer esContainer = ElasticTestServer.getESTestServer();
