@@ -238,6 +238,12 @@ public class MongoUtilsTest {
         assertEquals(Integer.MAX_VALUE, sizeLimit);
     }
 
+    @Test
+    public void getSizeLimitForMongo4_2_1() {
+        int sizeLimit = MongoUtils.getNodeNameLimit("4.2.1");
+        assertEquals(Integer.MAX_VALUE, sizeLimit);
+    }
+
     private static MongoCommandException newMongoCommandException(int code) {
         return new MongoCommandException(response(code), new ServerAddress());
     }
