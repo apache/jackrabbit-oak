@@ -14,8 +14,14 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+  
+Best Practices when Using Jackrabbit Oak
+--------------------------------------------------------------------------------
 
-## Session refresh behavior
+<!-- MACRO{toc} -->
+
+## Session Management
+### Session refresh behavior
 
 Oak is based on the MVCC model where each session starts with a snapshot
 view of the repository. Concurrent changes from other sessions *are not
@@ -51,6 +57,7 @@ In this case the stack trace of the other session involved will also be
 logged. For efficiency reasons the stack trace will not be logged if 
 `DEBUG` level is not enabled.
 
+## Content Modelling
 ### Large number of direct child node
 
 Oak scales to large number of direct child nodes of a node as long as those
@@ -88,13 +95,7 @@ If the file has no need to be referenceable it is recommended to use the
 node type `oak:Resource` instead and add the mixin type `mix:referenceble`
 only upon demand (see [OAK-4567](https://issues.apache.org/jira/browse/OAK-4567))
 
-### Don't use Thread.interrupt()
-
-`Thread.interrupt()` can severely impact or even stop the repository. The reason for 
-this is that Oak internally uses various classes from the `nio` package that implement 
-`InterruptibleChannel`, which are [asynchronously closed](http://docs.oracle.com/javase/7/docs/api/java/nio/channels/InterruptibleChannel.html) 
-when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).  
-
+## Hierarchy Operations
 ### Tree traversal
 
 As explained in [Understanding the node state model](https://jackrabbit.apache.org/oak/docs/architecture/nodestate.html), Oak stores content in a tree hierarchy. 
@@ -116,3 +117,13 @@ d = c.getNode("d");                             // preferred way to fetch the ch
 c = session.getNode("/a/b/c");
 c = d.getParent();                              // preferred way to fetch the parent node
 ```
+## Security
+- [Best Practices for Authorization](https://jackrabbit.apache.org/oak/docs/security/authorization/bestpractices.html)
+
+## Misc
+### Don't use Thread.interrupt()
+
+`Thread.interrupt()` can severely impact or even stop the repository. The reason for 
+this is that Oak internally uses various classes from the `nio` package that implement 
+`InterruptibleChannel`, which are [asynchronously closed](http://docs.oracle.com/javase/7/docs/api/java/nio/channels/InterruptibleChannel.html) 
+when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).  
