@@ -1,29 +1,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.google.common.base.Joiner;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -43,6 +20,31 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Stack;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Charsets.UTF_8;
+import static java.util.Collections.unmodifiableSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
+
 public class FlatFileStoreSplitter {
     private static final Logger log = LoggerFactory.getLogger(FlatFileStoreSplitter.class);
     private final File workDir;
@@ -56,7 +58,9 @@ public class FlatFileStoreSplitter {
     private final NodeStore store;
     public final String splitDirName = "split";
     private final NodeStateEntryReader entryReader;
+    private final Joiner pathJoiner = Joiner.on('/');
     private long minimumSplitThreshold = 10 * FileUtils.ONE_MB;
+    private Set<IndexDefinition> indexDefinitions;
 
     public FlatFileStoreSplitter(FlatFileStore ffs, IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.ffs = ffs;
@@ -72,51 +76,6 @@ public class FlatFileStoreSplitter {
     public FlatFileStoreSplitter(FlatFileStore ffs, IndexHelper indexHelper, IndexerSupport indexerSupport, long minimumSplitThreshold) {
         this(ffs, indexHelper, indexerSupport);
         this.minimumSplitThreshold = minimumSplitThreshold;
-    }
-
-    public Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
-        NodeState root = store.getRoot();
-        NodeBuilder builder = root.builder();
-
-        indexerSupport.updateIndexDefinitions(builder);
-        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
-
-        Set<IndexDefinition> indexDefinitions = new HashSet<>();
-        for (String indexPath : indexHelper.getIndexPaths()) {
-            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
-            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
-            indexDefinitions.add(indexDf);
-        }
-
-        return indexDefinitions;
-    }
-
-    public Set<NodeTypeInfo> getSplitNodeType(Set<IndexDefinition> indexDefinitions) throws IOException, CommitFailedException {
-        HashSet<String> nodeTypeNameSet = new HashSet<>();
-        Set<NodeTypeInfo> setOfNodeType = new HashSet<>();
-
-        for (IndexDefinition indexDf : indexDefinitions) {
-            Map<String, Aggregate> aggregateMap = indexDf.getAggregates();
-            nodeTypeNameSet.addAll(Objects.requireNonNull(aggregateMap).keySet());
-            nodeTypeNameSet.addAll(indexDf.getDefinedRules().stream().map(IndexDefinition.IndexingRule::getBaseNodeType).collect(Collectors.toList()));
-        }
-
-        for (String nodeTypeName : nodeTypeNameSet) {
-            setOfNodeType.add(infoProvider.getNodeTypeInfo(nodeTypeName));
-            setOfNodeType.addAll(getSubTypes(nodeTypeName));
-        }
-
-        log.debug("split node types: {}", setOfNodeType);
-        return setOfNodeType;
-    }
-
-    public Set<String> getPreferredPathElements(Set<IndexDefinition> indexDefinitions) {
-        Set<String> preferredPathElements = new HashSet<>();
-
-        for (IndexDefinition indexDf : indexDefinitions) {
-            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
-        }
-        return preferredPathElements;
     }
 
     public List<FlatFileStore> split() throws IOException, CommitFailedException {
@@ -144,9 +103,7 @@ public class FlatFileStoreSplitter {
             return splitFlatFileStores;
         }
 
-        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
-        Set<NodeTypeInfo> splitNodeTypes = getSplitNodeType(indexDefinitions);
-        Set<String>splitNodeTypesName = splitNodeTypes.stream().map(NodeTypeInfo::getNodeTypeName).collect(Collectors.toSet());
+        Set<String>splitNodeTypesName = getSplitNodeTypeNames();
         log.info("split allowed types: {}", splitNodeTypesName);
 
         try (BufferedReader reader = createReader(originalFlatFile, useZip)) {
@@ -158,13 +115,11 @@ public class FlatFileStoreSplitter {
 
             String line;
             int lineCount = 0;
+            Stack<String> parentNodeTypeNames = new Stack<>();
             while ((line = reader.readLine()) != null) {
-                NodeStateEntry nse = entryReader.read(line);
-//                if (readPos > splitThreshold) {
-//                    log.info("readPos {}, type {}", FileUtils.byteCountToDisplaySize(readPos), nse.getNodeState().getProperty(JCR_PRIMARYTYPE));
-//                }
+                updateParentNodeTypes(parentNodeTypeNames, line);
                 boolean shouldSplit = (readPos > splitThreshold) && (outFileIndex < splitSize);
-                if (shouldSplit && canSplit(splitNodeTypesName, line)) {
+                if (shouldSplit && canSplit(splitNodeTypesName, parentNodeTypeNames)) {
                     writer.close();
                     readPos = 0;
                     outFileIndex++;
@@ -183,78 +138,55 @@ public class FlatFileStoreSplitter {
             log.info("split total line count: {}", lineCount);
         }
 
-        Set<String> preferredPathElements = getPreferredPathElements(indexDefinitions);
+        Set<String> preferredPathElements = getPreferredPathElements(getIndexDefinitions());
 
         for (File flatFile : splitFlatFiles) {
             splitFlatFileStores.add(new FlatFileStore(indexHelper.getGCBlobStore(), flatFile, new NodeStateEntryReader(indexHelper.getGCBlobStore()), unmodifiableSet(preferredPathElements), useZip));
         }
-
-
-//        try (InputStream in = new FileInputStream(originalFlatFile)) {
-//            final int bufferSize = 2048;
-//            Reader decoder;
-//            if (useZip) {
-//                decoder = new InputStreamReader(new GZIPInputStream(in, bufferSize), charset);
-//            } else {
-//                decoder = new InputStreamReader(in, charset);
-//            }
-//            BufferedReader reader = new BufferedReader(decoder);
-//
-//            // logic to update file
-//            int outFileIndex = 0;
-//            File outFile = new File(workDir, "split-" + outFileIndex);
-//            BufferedWriter writer = createWriter(outFile, useZip);
-//            splitFlatFiles.add(outFile);
-//            String newLine = System.lineSeparator();
-//            String line;
-//            int lastDepth = 0;
-////            NodeStateHolder lastNodeState = new SimpleNodeStateHolder("");
-////            Stack<NodeTypeInfo> parentNodeStack = new Stack<>();
-//            while ((line = reader.readLine()) != null) {
-//                // analyze the line to see if need to update parent stack
-//                NodeStateHolder ns = new SimpleNodeStateHolder(line);
-//                int depth = ns.getPathElements().size();
-//                if (depth > lastDepth) {
-//                    // getNodeTypeFromNodeState()
-//                    // parentNodeStack.add();
-//                }
-//                System.out.println(depth + " : " + line);
-//                // want split = check threshold
-//                // can split = check parent
-////                if (wantSplit && canSplit) { // can split
-//                      // update writer
-////                    outFileIndex++;
-////                    outFile = new File(workDir, "split-" + outFileIndex);
-////                    writer = createWriter(outFile, useZip);
-////                    splitFlatFiles.add(outFile);
-////                }
-//
-//                // check if new parent, append stack
-//                writer.append(line);
-//                writer.append(newLine);
-//                lastDepth = depth;
-//            }
-//        }
-
-
-
         return splitFlatFileStores;
     }
 
-    // Utils ----
+    private void updateParentNodeTypes(Stack<String> parentNodeTypeNames, String line) {
+        NodeStateHolder ns = new SimpleNodeStateHolder(line);
+        List<String> pathElements = ns.getPathElements();
+        int currentLineDepth = pathElements.size();
+        int parentTypesDepth = parentNodeTypeNames.size();
+        if (currentLineDepth > parentTypesDepth) {
+            parentNodeTypeNames.add(getJCRPrimaryType(line));
+        } else {
+            int popSize = parentTypesDepth - currentLineDepth + 1;
+            if (parentTypesDepth > 0) {
+                for (int i = 0; i < popSize; i++) {
+                    parentNodeTypeNames.pop();
+                }
+            }
+            parentNodeTypeNames.add(getJCRPrimaryType(line));
+        }
+//        log.info("===x size {}={}", currentLineDepth, parentNodeTypeNames.size());
+//        log.info("line {}", line);
+//        log.info("parentNodeTypeNames {}", parentNodeTypeNames);
+    }
 
-    private boolean canSplit(Set<String> nodeTypes, String line) {
+    private String getJCRPrimaryType(String line) {
         NodeStateEntry nse = entryReader.read(line);
         PropertyState property = nse.getNodeState().getProperty(JCR_PRIMARYTYPE);
         if (property == null) {
-            return false;
+            return "";
         }
         Type<?> type = property.getType();
         if (type == Type.NAME) {
-            String propertyValue = property.getValue(Type.NAME);
-            return nodeTypes.contains(propertyValue);
+            return property.getValue(Type.NAME);
         }
-        return false;
+        return "";
+    }
+
+    private boolean canSplit(Set<String> nodeTypes, List<String> parentNodeTypeNames) {
+        for (String parentNodeTypeName : parentNodeTypeNames) {
+            if (nodeTypes.contains(parentNodeTypeName)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Source http://www.abeel.be/content/determine-uncompressed-size-gzip-file
@@ -287,5 +219,60 @@ public class FlatFileStoreSplitter {
         }
 
         return initialSet;
+    }
+
+    private Set<String> getSplitNodeTypeNames() throws IOException, CommitFailedException {
+        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
+        Set<NodeTypeInfo> splitNodeTypes = getSplitNodeType(indexDefinitions);
+        return splitNodeTypes.stream().map(NodeTypeInfo::getNodeTypeName).collect(Collectors.toSet());
+    }
+
+    private Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
+        if (indexDefinitions != null) {
+            return indexDefinitions;
+        }
+
+        NodeState root = store.getRoot();
+        NodeBuilder builder = root.builder();
+
+        indexerSupport.updateIndexDefinitions(builder);
+        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
+
+        indexDefinitions = new HashSet<>();
+        for (String indexPath : indexHelper.getIndexPaths()) {
+            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
+            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
+            indexDefinitions.add(indexDf);
+        }
+
+        return indexDefinitions;
+    }
+
+    private Set<NodeTypeInfo> getSplitNodeType(Set<IndexDefinition> indexDefinitions) throws IOException, CommitFailedException {
+        HashSet<String> nodeTypeNameSet = new HashSet<>();
+        Set<NodeTypeInfo> setOfNodeType = new HashSet<>();
+
+        for (IndexDefinition indexDf : indexDefinitions) {
+            Map<String, Aggregate> aggregateMap = indexDf.getAggregates();
+            nodeTypeNameSet.addAll(Objects.requireNonNull(aggregateMap).keySet());
+            nodeTypeNameSet.addAll(indexDf.getDefinedRules().stream().map(IndexDefinition.IndexingRule::getBaseNodeType).collect(Collectors.toList()));
+        }
+
+        for (String nodeTypeName : nodeTypeNameSet) {
+            setOfNodeType.add(infoProvider.getNodeTypeInfo(nodeTypeName));
+            setOfNodeType.addAll(getSubTypes(nodeTypeName));
+        }
+
+        log.debug("split node types: {}", setOfNodeType);
+        return setOfNodeType;
+    }
+
+    private Set<String> getPreferredPathElements(Set<IndexDefinition> indexDefinitions) {
+        Set<String> preferredPathElements = new HashSet<>();
+
+        for (IndexDefinition indexDf : indexDefinitions) {
+            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
+        }
+        return preferredPathElements;
     }
 }
