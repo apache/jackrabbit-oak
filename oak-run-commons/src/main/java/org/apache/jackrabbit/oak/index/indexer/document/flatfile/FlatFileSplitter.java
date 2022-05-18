@@ -1,6 +1,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.base.Joiner;
+import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -25,7 +25,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -35,8 +34,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static java.util.Collections.unmodifiableSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
@@ -45,25 +42,37 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
-public class FlatFileStoreSplitter {
-    private static final Logger log = LoggerFactory.getLogger(FlatFileStoreSplitter.class);
+public class FlatFileSplitter {
+    private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
     private final File workDir;
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
     private final IndexerSupport indexerSupport;
     private final IndexHelper indexHelper;
-    private final Charset charset = UTF_8;
     private final NodeTypeInfoProvider infoProvider;
-    private final FlatFileStore ffs;
+    private final File flatFile;
     private final NodeStore store;
     public final String splitDirName = "split";
     private final NodeStateEntryReader entryReader;
-    private final Joiner pathJoiner = Joiner.on('/');
     private long minimumSplitThreshold = 10 * FileUtils.ONE_MB;
     private Set<IndexDefinition> indexDefinitions;
 
-    public FlatFileStoreSplitter(FlatFileStore ffs, IndexHelper indexHelper, IndexerSupport indexerSupport) {
-        this.ffs = ffs;
+    public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport) {
+        Stopwatch w = Stopwatch.createStarted();
+        this.flatFile = flatFile;
+        this.indexerSupport = indexerSupport;
+        this.indexHelper = indexHelper;
+        this.workDir = new File(indexHelper.getWorkDir(), splitDirName);
+
+        this.store = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
+        this.infoProvider = new NodeStateNodeTypeInfoProvider(store.getRoot());
+        this.entryReader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
+        w.stop();
+        log.info("===x FlatFileSplitter {}", w);
+    }
+
+    public FlatFileSplitter(FlatFileStore ffs, IndexHelper indexHelper, IndexerSupport indexerSupport) {
+        this.flatFile = new File(ffs.getFlatFileStorePath());
         this.indexerSupport = indexerSupport;
         this.indexHelper = indexHelper;
         this.workDir = new File(indexHelper.getWorkDir(), splitDirName);
@@ -73,24 +82,23 @@ public class FlatFileStoreSplitter {
         this.entryReader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
     }
 
-    public FlatFileStoreSplitter(FlatFileStore ffs, IndexHelper indexHelper, IndexerSupport indexerSupport, long minimumSplitThreshold) {
+    public FlatFileSplitter(FlatFileStore ffs, IndexHelper indexHelper, IndexerSupport indexerSupport, long minimumSplitThreshold) {
         this(ffs, indexHelper, indexerSupport);
         this.minimumSplitThreshold = minimumSplitThreshold;
     }
 
-    public List<FlatFileStore> split() throws IOException, CommitFailedException {
+    public List<File> split() throws IOException, CommitFailedException {
+        Stopwatch w = Stopwatch.createStarted();
         List<File> splitFlatFiles = new ArrayList<>();
-        List<FlatFileStore> splitFlatFileStores = new ArrayList<>();
         try {
             FileUtils.forceMkdir(workDir);
         } catch (IOException e) {
             log.error("failed to create split directory {}", workDir.getAbsolutePath());
-            splitFlatFileStores.add(ffs);
-            return splitFlatFileStores;
+            splitFlatFiles.add(flatFile);
+            return splitFlatFiles;
         }
 
-        File originalFlatFile = new File(ffs.getFlatFileStorePath());
-        long fileSizeInBytes = useZip ? getGzipUncompressedSizeInBytes(ffs.getFlatFileStorePath()) : originalFlatFile.length();
+        long fileSizeInBytes = useZip ? getGzipUncompressedSizeInBytes(flatFile.getAbsolutePath()) : flatFile.length();
         log.info("original flatfile size: {}",  FileUtils.byteCountToDisplaySize(fileSizeInBytes));
         long splitThreshold = Math.round((double) (fileSizeInBytes / splitSize));
         log.info("split threshold: {} bytes, split size: {}",  FileUtils.byteCountToDisplaySize(splitThreshold), splitSize);
@@ -99,14 +107,17 @@ public class FlatFileStoreSplitter {
         // return original if file too small or split size equals 1
         if (splitThreshold < minimumSplitThreshold || splitSize <= 1) {
             log.info("split is not necessary, skip splitting");
-            splitFlatFileStores.add(ffs);
-            return splitFlatFileStores;
+            splitFlatFiles.add(flatFile);
+            return splitFlatFiles;
         }
 
         Set<String>splitNodeTypesName = getSplitNodeTypeNames();
         log.info("split allowed types: {}", splitNodeTypesName);
+        w.stop();
+        log.info("===x FlatFileSplitter split prep {}", w);
 
-        try (BufferedReader reader = createReader(originalFlatFile, useZip)) {
+        Stopwatch w1 = Stopwatch.createStarted();
+        try (BufferedReader reader = createReader(flatFile, useZip)) {
             long readPos = 0;
             int outFileIndex = 1;
             File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useZip));
@@ -137,13 +148,37 @@ public class FlatFileStoreSplitter {
 
             log.info("split total line count: {}", lineCount);
         }
+        w1.stop();
+        log.info("===x FlatFileSplitter split {}", w1);
 
-        Set<String> preferredPathElements = getPreferredPathElements(getIndexDefinitions());
+        return splitFlatFiles;
+    }
+
+    private List<FlatFileStore> convertFlatFilesToStore(List<File> splitFlatFiles) {
+        Stopwatch w = Stopwatch.createStarted();
+        List<FlatFileStore> splitFlatFileStores = new ArrayList<>();
+        Set<String> preferredPathElements = getPreferredPathElements(indexDefinitions);
 
         for (File flatFile : splitFlatFiles) {
-            splitFlatFileStores.add(new FlatFileStore(indexHelper.getGCBlobStore(), flatFile, new NodeStateEntryReader(indexHelper.getGCBlobStore()), unmodifiableSet(preferredPathElements), useZip));
+            splitFlatFileStores.add(new FlatFileStore(indexHelper.getGCBlobStore(), flatFile, entryReader, preferredPathElements, useZip));
         }
+        w.stop();
+        log.info("===x FlatFileSplitter convertFlatFilesToStore {}", w);
+
+        splitFlatFileStores.forEach(ffs -> {
+            File f = new File(ffs.getFlatFileStorePath());
+            System.out.println(ffs.getFlatFileStorePath() + " size: " + FileUtils.byteCountToDisplaySize(f.length()));
+        });
         return splitFlatFileStores;
+    }
+
+    private Set<String> getPreferredPathElements(Set<IndexDefinition> indexDefinitions) {
+        Set<String> preferredPathElements = new HashSet<>();
+
+        for (IndexDefinition indexDf : indexDefinitions) {
+            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
+        }
+        return preferredPathElements;
     }
 
     private void updateParentNodeTypes(Stack<String> parentNodeTypeNames, String line) {
@@ -265,14 +300,5 @@ public class FlatFileStoreSplitter {
 
         log.debug("split node types: {}", setOfNodeType);
         return setOfNodeType;
-    }
-
-    private Set<String> getPreferredPathElements(Set<IndexDefinition> indexDefinitions) {
-        Set<String> preferredPathElements = new HashSet<>();
-
-        for (IndexDefinition indexDf : indexDefinitions) {
-            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
-        }
-        return preferredPathElements;
     }
 }
