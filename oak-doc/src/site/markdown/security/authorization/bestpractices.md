@@ -42,16 +42,17 @@ Make sure the content design allows for a readable and manageable access control
 Excessive complexity is often a strong indicator for problems with your content model, making its security error prone 
 and difficult to reason about (and might ultimately might lead to issues with scaling).
 
-Here is an example of a access control setup (in Sling RepoInit language) illustrating why content with 
-different access requirements should be kept in separate trees and how complexity may yield undesired
+Here is an example of a access control setup (with [Sling RepoInit](https://sling.apache.org/documentation/bundles/repository-initialization.html)) 
+illustrating why content with different access requirements should be kept in separate trees and how complexity may yield undesired
 effects (see also section 'Remember inheritance' below):
 
-      # TO BE AVOIDED
+      # Content design that results in complex in ac-setup and a vulnerability
+      # ----------------------------------------------------------------------
       
       create path /content
       create path /content/public
-      create path /content/content2/also_public
-      create path /content/sensitive_info
+      create path /content/content2/also_public   # extra folder with public information
+      create path /content/sensitive_info         # sensitive data mixed with regular non-sentive content
 
       set ACL on /content 
          deny  everyone   jcr:all    # most likely redundant
@@ -62,6 +63,24 @@ effects (see also section 'Remember inheritance' below):
          
          # ... and what happens with a new node /content/public/abc/sensitive_info?
       end 
+      
+      # Improved content design
+      # ------------------------------------------------------------------------------
+      
+      create path /content
+      create path /content/public
+      create path /sensitive_info
+      
+      set ACL on /content 
+          allow readers    jcr:read
+          allow editors    jcr:read, jcr:write
+      end
+      
+      set ACL on /content/public     
+          allow everyone   jcr:read
+      end
+      
+      # NOTE: no ac setup for sensitive info as neither of the roles must have access
 
 ### Define Roles and Tasks
 
@@ -110,6 +129,18 @@ your application (if it doesn't you didn't follow the principle of least privile
 
 This may also include assertions that no permissions are granted at resources that are outside the scope of a given role/task.
 
+#### Example: Pseud-code for a permission validator
+
+      PermissionTestRule ptr = ...
+      ptr.newPermissionValidator(EveryonePrincipal.NAME)
+            .hasNoPermission("/")
+            .hasNoPermission("/content")
+            .hasNoPermission("/content/protected", READ)
+            .hasOnlyPermission("/content/public", READ)
+            .hasOnlyPermission("/content/public/child-item, READ)
+            .hasNoPermission("/sensitive_info")
+            .validate(); 
+
 ## Oak Specific Best Practices
 
 ### Avoid deny
@@ -145,7 +176,7 @@ one potential source of principals.
 
 ##### Example : everyone
 
-     # everyone always exists even if there is no such group in the user management
+     // everyone always exists even if there is no such group in the user management
      
      PrincipalManager principalMgr = ((JackrabbitSession) session).getPrincipalManagere();
      Principal everyone = principalManager.getEveryone()
@@ -204,39 +235,39 @@ Thus the following subtle difference apply when evaluation effective permissions
 also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) and exercises at 
 [L4_PrivilegesAndPermissionsTest.java](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/permission/L4_PrivilegesAndPermissionsTest.java)):
 
-        String parentPath = /content/parent
-        String toRemove = /content/parent/child
-        String toAdd = /content/parent/newchild
+        String parentPath = "/content/parent";
+        String toRemove = "/content/parent/child";
+        String toAdd = "/content/parent/newchild";
         
         Session session = ...
                 
-        # Testing Privileges
-        # ----------------------------------------------------------------------------------------
+        // Testing Privileges
+        // ----------------------------------------------------------------------------------------
         
         AccessControlManager acMgr = session.getAccessControlManager();
-        Privilege jcrAddChildNodes = acMgr.privilegeFromName(Privilege.JCR_ADD_CHILD_NODES)
-        Privilege jcrRemoveChildNodes = acMgr.privilegeFromName(Privilege.JCR_REMOVE_CHILD_NODES)
-        Privilege jcrRemoveNode = acMgr.privilegeFromName(JCR_REMOVE_NODE)
+        Privilege jcrAddChildNodes = acMgr.privilegeFromName(Privilege.JCR_ADD_CHILD_NODES);
+        Privilege jcrRemoveChildNodes = acMgr.privilegeFromName(Privilege.JCR_REMOVE_CHILD_NODES);
+        Privilege jcrRemoveNode = acMgr.privilegeFromName(JCR_REMOVE_NODE);
         
-        # test if (unspecified) child nodes can be added/removed from the parent
-        boolean canModifyChildCollection = acMgr.hasPrivileges(parentPath, new Privilege[]{jcrAddChildNodes, jcrRemoveChildNodes}
+        // test if (unspecified) child nodes can be added/removed from the parent
+        boolean canModifyChildCollection = acMgr.hasPrivileges(parentPath, new Privilege[]{jcrAddChildNodes, jcrRemoveChildNodes});
         
-        # test if existing child node can be removed
-        boolean canRemoveNode = acMgr.hasPrivileges(toRemove, new Privilege[]{jcrRemoveNode}
+        // test if existing child node can be removed
+        boolean canRemoveNode = acMgr.hasPrivileges(toRemove, new Privilege[]{jcrRemoveNode});
         
         
-        # Testing Permissions (on the target node NOT on the parent)
-        # ----------------------------------------------------------------------------------------
+        // Testing Permissions (on the target node NOT on the parent)
+        // ----------------------------------------------------------------------------------------
 
-        # test if not-yet existing node could be added at /content/parent/newchild
-        boolean canAddNode = session.hasPermission(toAdd, Session.ACTION_ADD_NODE)
+        // test if not-yet existing node could be added at /content/parent/newchild
+        boolean canAddNode = session.hasPermission(toAdd, Session.ACTION_ADD_NODE);
         
-        # test if the existing child node can be removed 
-        boolean canRemoveItem = session.hasPermission(toRemove, Session.ACTION_REMOVE)
-        boolean canRemoveNode = session.hasPermission(toRemove, JackrabbitSession.ACTION_REMOVE_NODE)
+        // test if the existing child node can be removed 
+        boolean canRemoveItem = session.hasPermission(toRemove, Session.ACTION_REMOVE);
+        boolean canRemoveNode = session.hasPermission(toRemove, JackrabbitSession.ACTION_REMOVE_NODE);
         
-        # test if a non-existing node could be removed (not possible with privilege evaluation)
-        boolean canRemoveNode = session.hasPermission(/content/parent/newchild, JackrabbitSession.ACTION_REMOVE_NODE)
+        // test if a non-existing node could be removed (not possible with privilege evaluation);
+        boolean canRemoveNode = session.hasPermission(toAdd, JackrabbitSession.ACTION_REMOVE_NODE);
   
 #### Leverage `PrivilegeCollection`
 
@@ -245,8 +276,8 @@ testing effective privileges (see also [OAK-9494](https://issues.apache.org/jira
 allows avoiding repeated calls to `AccessControlManager.hasPrivileges` and manual resolution of aggregated privileges when 
 dealing with the privilege array returned by `AccessControlManager.getPrivileges`.
 
-        # Using PrivilegeCollection
-        # ----------------------------------------------------------------------------------------
+        // Using PrivilegeCollection
+        // ----------------------------------------------------------------------------------------
         
         JackrabbitAccessControlManager acMgr = ...
 
@@ -255,8 +286,8 @@ dealing with the privilege array returned by `AccessControlManager.getPrivileges
         boolean canRemoveChildNodes = pc.includes(Privilege.JCR_REMOVE_CHILD_NODES);
         boolean canModifyChildCollection = pc.includes(Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_ADD_CHILD_NODES);
         
-        boolean hasAllPrivileges = pc.includes(Privilege.JCR_ALL)
-        assertFalse(hasAllPrivileges)
+        boolean hasAllPrivileges = pc.includes(Privilege.JCR_ALL);
+        assertFalse(hasAllPrivileges);
         
         Privilege[] privilegesOnParentNode = pc.getPrivileges();  
 
