@@ -1,27 +1,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Stack;
-import java.util.stream.Collectors;
-
+import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -41,7 +20,27 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Stack;
+import java.util.stream.Collectors;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 public class FlatFileSplitter {
     private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
@@ -112,12 +111,13 @@ public class FlatFileSplitter {
 
             String line;
             int lineCount = 0;
-            Stack<String> parentNodeTypeNames = new Stack<>();
+            Stack<String> nodeTypeNameStack = new Stack<>();
             while ((line = reader.readLine()) != null) {
-                updateParentNodeTypes(parentNodeTypeNames, line);
+                updateNodeTypeStack(nodeTypeNameStack, line);
                 boolean shouldSplit = (readPos > splitThreshold) && (outFileIndex < splitSize);
-                if (shouldSplit && canSplit(splitNodeTypesName, parentNodeTypeNames)) {
+                if (shouldSplit && canSplit(splitNodeTypesName, nodeTypeNameStack)) {
                     writer.close();
+                    log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
                     readPos = 0;
                     outFileIndex++;
                     currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useZip));
@@ -167,7 +167,7 @@ public class FlatFileSplitter {
         return preferredPathElements;
     }
 
-    private void updateParentNodeTypes(Stack<String> parentNodeTypeNames, String line) {
+    private void updateNodeTypeStack(Stack<String> parentNodeTypeNames, String line) {
         NodeStateHolder ns = new SimpleNodeStateHolder(line);
         List<String> pathElements = ns.getPathElements();
         int currentLineDepth = pathElements.size();
@@ -201,8 +201,8 @@ public class FlatFileSplitter {
         return "";
     }
 
-    private boolean canSplit(Set<String> nodeTypes, List<String> parentNodeTypeNames) {
-        for (String parentNodeTypeName : parentNodeTypeNames) {
+    private boolean canSplit(Set<String> nodeTypes, Stack<String> nodeTypeNameStack) {
+        for (String parentNodeTypeName : nodeTypeNameStack.subList(0, nodeTypeNameStack.size()-1)) {
             if (nodeTypes.contains(parentNodeTypeName)) {
                 return false;
             }
