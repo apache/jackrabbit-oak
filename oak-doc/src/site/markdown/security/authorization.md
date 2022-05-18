@@ -101,7 +101,7 @@ items matching a given, defined behavior. Details can be found in section
 
 <a name="best_practices"></a>
 ### Best Proctices
-See section [Best Practices](authorization/bestpractices.html).
+See section [Best Practices for authorization](authorization/bestpractices.html).
 
 <a name="further_reading"></a>
 ### Further Reading
