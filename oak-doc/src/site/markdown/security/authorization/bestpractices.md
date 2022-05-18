@@ -100,7 +100,7 @@ deny access control entries. In particular in combination with subsequent allows
 understand as soon as multiple principals are contained in a given subject.
 
 Be wary if you find yourself adding combinations of denies and allows as it might highlight problematic patterns in 
-your content model that will be hard to secure over time.
+your content model that will be hard to understand an secure over time.
 
 ### Avoid redundancy
 
