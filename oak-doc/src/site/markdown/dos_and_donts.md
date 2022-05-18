@@ -125,5 +125,5 @@ c = d.getParent();                              // preferred way to fetch the pa
 
 `Thread.interrupt()` can severely impact or even stop the repository. The reason for 
 this is that Oak internally uses various classes from the `nio` package that implement 
-`InterruptibleChannel`, which are [asynchronously closed](http://docs.oracle.com/javase/7/docs/api/java/nio/channels/InterruptibleChannel.html) 
+`InterruptibleChannel`, which are [asynchronously closed](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/InterruptibleChannel.html) 
 when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).  
