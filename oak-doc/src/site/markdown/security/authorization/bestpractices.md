@@ -222,7 +222,7 @@ also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) a
         boolean canModifyChildCollection = acMgr.hasPrivileges(parentPath, new Privilege[]{jcrAddChildNodes, jcrRemoveChildNodes}
         
         # test if existing child node can be removed
-        boolean canRemoveNode = acMgr.hasPrivileges(toRemove, new Privilege[]{jcrRemoveNode}
+        boolean canRemoveNode = acMgr.hasPrivileges(toRemove, new Privilege[]{jcrRemoveNode});
         
         
         # Testing Permissions (on the target node NOT on the parent)
