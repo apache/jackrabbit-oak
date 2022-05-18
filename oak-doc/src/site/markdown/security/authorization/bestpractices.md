@@ -237,7 +237,7 @@ also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) a
         boolean canRemoveNode = session.hasPermission(toRemove, JackrabbitSession.ACTION_REMOVE_NODE)
         
         # test if a non-existing node could be removed (not possible with privilege evaluation)
-        boolean canRemoveNode = session.hasPermission(nonExisting, JackrabbitSession.ACTION_REMOVE_NODE)
+        boolean canRemoveNode = session.hasPermission(/content/parent/newchild, JackrabbitSession.ACTION_REMOVE_NODE)
   
 #### Leverage `PrivilegeCollection`
 
