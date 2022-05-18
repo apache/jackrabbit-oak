@@ -290,7 +290,7 @@ the authorization configuration of the repository.
 
 #### Leverage custom privileges
 
-If you identify application specific operations that cannot be reflected using the built in privileges, Oak allows to 
+If you identify application specific operations that cannot be reflected using the built-in privileges, Oak allows to 
 register custom privileges (see section [Privilege Management](../privilege.html#jackrabbit_api)). 
 
 Note however, that the built-in permission evaluation will not enforce those 
