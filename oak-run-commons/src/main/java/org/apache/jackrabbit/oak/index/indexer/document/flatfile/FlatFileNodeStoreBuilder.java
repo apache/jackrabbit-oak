@@ -19,13 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.collect.Iterables;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Collections.unmodifiableSet;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,7 +30,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import static java.util.Collections.unmodifiableSet;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.index.IndexHelper;
+import org.apache.jackrabbit.oak.index.IndexerSupport;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 public class FlatFileNodeStoreBuilder {
 
@@ -192,6 +196,34 @@ public class FlatFileNodeStoreBuilder {
             store.setEntryCount(entryCount);
         }
         return store;
+    }
+
+    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException, CompositeException{
+        List<FlatFileStore> storeList = new ArrayList<>();
+        logFlags();
+        comparator = new PathElementComparator(preferredPathElements);
+        entryWriter = new NodeStateEntryWriter(blobStore);
+
+        File flatStoreFile = createdSortedStoreFile();
+
+        long start = System.currentTimeMillis();
+
+        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper, indexerSupport, 0);
+        List<File> fileList = null;
+        try {
+            fileList = splitter.split();
+        } catch (CommitFailedException e) {
+            e.printStackTrace();
+        }
+
+        log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
+
+        for (File flatFileItem : fileList) {
+            FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, new NodeStateEntryReader(blobStore),
+                    unmodifiableSet(preferredPathElements), useZip);
+            storeList.add(store);
+        }
+        return storeList;
     }
 
     private File createdSortedStoreFile() throws IOException, CompositeException {

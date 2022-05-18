@@ -19,15 +19,30 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Stopwatch;
-import com.google.common.io.Closer;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileSplitter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -57,24 +72,9 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Stopwatch;
+import com.google.common.io.Closer;
 
 public abstract class DocumentStoreIndexerBase implements Closeable{
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -142,13 +142,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         }
     }
 
-    private FlatFileStore buildFlatFileStore(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements) throws IOException {
+    private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements,
+            boolean splitFlatFile) throws IOException {
+        List<FlatFileStore> storeList = new ArrayList<>();
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
         int executionCount = 1;
         CompositeException lastException = null;
         List<File> previousDownloadDirs = new ArrayList<>();
-        FlatFileStore flatFileStore = null;
         //TODO How to ensure we can safely read from secondary
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
@@ -158,7 +159,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         FlatFileNodeStoreBuilder builder = null;
         int backOffTimeInMillis = 5000;
         MemoryManager memoryManager = new DefaultMemoryManager();
-        while (flatFileStore == null && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
+        while (storeList.isEmpty() && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
             try {
                 builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir(), memoryManager)
                         .withLastModifiedBreakPoints(lastModifiedBreakPoints)
@@ -171,8 +172,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
                 }
-                flatFileStore = builder.build();
-                closer.register(flatFileStore);
+                if (splitFlatFile) {
+                    storeList = builder.buildList(indexHelper, indexerSupport);
+                } else {
+                    storeList.add(builder.build());
+                }
+                for (FlatFileStore item: storeList) {
+                    closer.register(item);
+                }
             } catch (CompositeException e) {
                 e.logAllExceptions("Underlying throwable caught during download", log);
                 log.info("Could not build flat file store. Execution count {}. Retries left {}. Time elapsed {}",
@@ -191,11 +198,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             }
             executionCount++;
         }
-        if (flatFileStore == null) {
+        if (storeList.isEmpty()) {
             throw new IOException("Could not build flat file store", lastException);
         }
         log.info("Completed the flat file store build in {}", flatFileStoreWatch);
-        return flatFileStore;
+        return storeList;
     }
 
     /**
@@ -222,7 +229,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             indexDefinitions.add(indexDf);
         }
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
-        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, null, predicate, preferredPathElements);
+        FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate, preferredPathElements, false).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
                 flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
         return flatFileStore;
@@ -245,7 +252,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         closer.register(indexer);
 
-        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer, indexer::shouldInclude, null);
+        List<FlatFileStore> flatFileStores = buildFlatFileStoreList(checkpointedState, indexer, indexer::shouldInclude, null, true);
 
         progressReporter.reset();
 
@@ -255,12 +262,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         Stopwatch indexerWatch = Stopwatch.createStarted();
 
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFileStore, indexHelper, indexerSupport, 0);
-        List<FlatFileStore> flatFileStores = splitter.split();
         if (flatFileStores.size() > 1) {
             indexParallel(flatFileStores, indexer, progressReporter);
         } else if (flatFileStores.size() == 1) {
-            flatFileStore = flatFileStores.get(0);
+            FlatFileStore flatFileStore = flatFileStores.get(0);
             for (NodeStateEntry entry : flatFileStore) {
                 reportDocumentRead(entry.getPath(), progressReporter);
                 indexer.index(entry);
