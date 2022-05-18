@@ -96,7 +96,7 @@ given role/task
 
 All authorization models present with Apache Jackrabbbit Oak start without any access granted by default i.e. 
 implicit deny everywhere. It is therefore recommended to only grant access where needed and avoid adding explicit 
-deny access control entries. In particular in combination with subsequent allows the overall effect will be hard to 
+deny access control entries. In particular in combination with subsequent ```allow```  rules  the overall effect will be hard to 
 understand as soon as multiple principals are contained in a given subject.
 
 Be wary if you find yourself adding combinations of denies and allows as it might highlight problematic patterns in 
