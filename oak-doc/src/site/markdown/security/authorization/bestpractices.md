@@ -36,7 +36,7 @@ The following references provide a good overview as well as guidance on how to b
 ### Content Modelling
 
 As suggested in [Jackrabbbit Wiki](https://jackrabbit.apache.org/archive/wiki/JCR/DavidsModel_115513389.html#DavidsModel-Rule#2:Drivethecontenthierarchy,don'tletithappen)
-the content hierarchy in your JCR repository should be designed and access control requirements tend to be a good driver.
+the content hierarchy in your JCR repository should be designed and not just happen. Access control requirements tend to be a good driver.
 
 Make sure the content design allows for a readable and manageable access control setup later on to secure your data. 
 Excessive complexity is often a strong indicator for problems with your content model, making its security error prone 
