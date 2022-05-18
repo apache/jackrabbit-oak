@@ -75,6 +75,8 @@ public class IndexWriterUtils {
                 config.setCodec(definition.getCodec());
             }
             config.setRAMBufferSizeMB(writerConfig.getRamBufferSizeMB());
+            config.setMaxBufferedDeleteTerms(writerConfig.getMaxBufferedDeleteTerms());
+            config.setRAMPerThreadHardLimitMB(writerConfig.getRamPerThreadHardLimitMB());
             return config;
         } finally {
             thread.setContextClassLoader(loader);
