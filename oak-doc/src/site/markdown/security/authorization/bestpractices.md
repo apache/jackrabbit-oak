@@ -39,8 +39,29 @@ As suggested in [Jackrabbbit Wiki](https://jackrabbit.apache.org/archive/wiki/JC
 the content hierarchy in your JCR repository should be designed and access control requirements tend to be a good driver.
 
 Make sure the content design allows for readable and manageable access control setup later on to secure your data. 
-If extra complexity is required, it might indicate problems with your content model. Properly securing your content 
-secured might subsequently become increasingly hard and prone to mistakes.
+A complicated access control setup might indicate problems with your content model. Maintaining a complicated setup may become 
+increasingly hard over time, and your permission setup will be prone to mistakes.
+
+Here is an example of a access control setup (in Sling RepoInit language) illustrating why content with 
+different access requirements should be kept in separate trees and how complexity may yield undesired
+effects (see also section 'Remember inheritance' below):
+
+      # TO BE AVOIDED
+      
+      create path /content
+      create path /content/public
+      create path /content/content2/also_public
+      create path /content/sensitive_info
+
+      set ACL on /content 
+         deny  everyone   jcr:all    # most likely redundant
+         allow readers    jcr:read
+         allow editors    jcr:read, jcr:write
+         deny  readers    jcr:read restriction(rep:subtrees, /sensitive_info)        # what about editors or a subject being both reader and editor?
+         allow everyone   jcr:read restriction(rep:subtrees, /public, /also_public) # different public folders??
+         
+         # ... and what happens with a new node /content/public/abc/sensitive_info?
+      end 
 
 ### Define Roles and Tasks
 
@@ -100,7 +121,7 @@ deny access control entries. In particular in combination with subsequent ```all
 understand as soon as multiple principals are contained in a given subject.
 
 Be wary if you find yourself adding combinations of denies and allows as it might highlight problematic patterns in 
-your content model that will be hard to understand an secure over time.
+your content model that will be hard to understand and secure over time.
 
 ### Avoid redundancy
 
@@ -112,7 +133,7 @@ Don't specify redundant access control setup just to be on the safe side:
 ### Principal by principle
 
 Oak authorization is designed to work with `java.security.Principal` which is an abstract representation of any kind of 
-entity like e.g. individual, a role, a corporation, a login id or even an service.
+entity like e.g. individual, a role, a corporation, a login id or even a service.
 
 While JCR specification does not define how the repository knows about principals, Jackrabbit API defines a
 [Principal Management](../principal.html) extension.
@@ -138,8 +159,10 @@ implementation detail of the authorization setup.
 
 ##### Example : administrative access
 
-In the default authorization model full administrative access can be configured for arbitrary principals.
-So, don't assume that there is a group 'administrators' and that its members have full access.
+In the default authorization model full access to the repository can be configured for selected user or group principals.
+(see [Configuration Parameters](../permission/default.html#configuration) for the default permission evaluation).
+If you wish to determine if a given subject has full access, don't assume that there is a group 'administrators' and that 
+its members have full access.
 
 #### Stick with group principals
 
@@ -169,7 +192,7 @@ JSR 382 defines a set of built-in privileges and how they apply to repository op
 The default set has been extended by Oak to cover additional features outside of the scope defined by JCR (like e.g. index 
 or user management). The complete list can be found in [Privilege Management : The Default Implementation](../privilege/default.html). 
 
-The minimal set of privileges required for each repository operation can be looked up in [Mapping API Calls to Privileges](../privilege/mappingtoprivileges.html) 
+The minimal set of privileges required for each operation are outlined in [Mapping API Calls to Privileges](../privilege/mappingtoprivileges.html) 
 and [Mapping Privileges to Items](../privilege/mappingtoitems.html). 
 
 ##### Privileges affecting the parent node
@@ -197,25 +220,46 @@ also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) a
         Privilege jcrRemoveNode = acMgr.privilegeFromName(JCR_REMOVE_NODE)
         
         # test if (unspecified) child nodes can be added/removed from the parent
-        acMgr.hasPrivileges(parentPath, new Privilege[]{jcrAddChildNodes, jcrRemoveChildNodes}
+        boolean canModifyChildCollection = acMgr.hasPrivileges(parentPath, new Privilege[]{jcrAddChildNodes, jcrRemoveChildNodes}
         
         # test if existing child node can be removed
-        acMgr.hasPrivileges(toRemove, new Privilege[]{jcrRemoveNode}
+        boolean canRemoveNode = acMgr.hasPrivileges(toRemove, new Privilege[]{jcrRemoveNode}
         
         
         # Testing Permissions (on the target node NOT on the parent)
         # ----------------------------------------------------------------------------------------
 
         # test if not-yet existing node could be added at /content/parent/newchild
-        session.hasPermission(toAdd, Session.ACTION_ADD_NODE)
+        boolean canAddNode = session.hasPermission(toAdd, Session.ACTION_ADD_NODE)
         
         # test if the existing child node can be removed 
-        session.hasPermission(toRemove, Session.ACTION_REMOVE)
-        session.hasPermission(toRemove, JackrabbitSession.ACTION_REMOVE_NODE)
+        boolean canRemoveItem = session.hasPermission(toRemove, Session.ACTION_REMOVE)
+        boolean canRemoveNode = session.hasPermission(toRemove, JackrabbitSession.ACTION_REMOVE_NODE)
         
         # test if a non-existing node could be removed (not possible with privilege evaluation)
-        session.hasPermission(nonExisting, JackrabbitSession.ACTION_REMOVE_NODE
-                
+        boolean canRemoveNode = session.hasPermission(nonExisting, JackrabbitSession.ACTION_REMOVE_NODE)
+  
+#### Leverage `PrivilegeCollection`
+
+Since Oak 1.42.0 the Jackrabbit API defines a new interface `PrivilegeCollection` the offers improved support for 
+testing effective privileges (see also [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494)). It 
+allows avoiding repeated calls to `AccessControlManager.hasPrivileges` and manual resolution of aggregated privileges when 
+dealing with the privilege array returned by `AccessControlManager.getPrivileges`.
+
+        # Using PrivilegeCollection
+        # ----------------------------------------------------------------------------------------
+        
+        JackrabbitAccessControlManager acMgr = ...
+
+        PrivilegeCollection pc = acMgr.getPrivilegeCollection(parentPath);
+        
+        boolean canRemoveChildNodes = pc.includes(Privilege.JCR_REMOVE_CHILD_NODES);
+        boolean canModifyChildCollection = pc.includes(Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_ADD_CHILD_NODES);
+        
+        boolean hasAllPrivileges = pc.includes(Privilege.JCR_ALL)
+        assertFalse(hasAllPrivileges)
+        
+        Privilege[] privilegesOnParentNode = pc.getPrivileges();  
 
 #### Use restrictions to limit effect
 
