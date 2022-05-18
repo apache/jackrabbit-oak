@@ -48,6 +48,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProvid
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 public class ElasticIndexProviderServiceTest {
@@ -95,6 +96,8 @@ public class ElasticIndexProviderServiceTest {
 
     @Test
     public void withElasticSetup() throws Exception {
+        // Skips this test when a single Elasticsearch cluster is re-used among tests, see the ElasticTestServer main.
+        assumeTrue(elasticRule.useDocker());
         Map<String, Object> props = new HashMap<>();
         props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         props.put(PROP_INDEX_PREFIX, "elastic");
@@ -112,6 +115,8 @@ public class ElasticIndexProviderServiceTest {
 
     @Test
     public void withIndexCleanerSetup() throws Exception {
+        // Skips this test when a single Elasticsearch cluster is re-used among tests, see the ElasticTestServer main.
+        assumeTrue(elasticRule.useDocker());
         Map<String, Object> props = new HashMap<>();
         props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         props.put(PROP_INDEX_PREFIX, "elastic");
