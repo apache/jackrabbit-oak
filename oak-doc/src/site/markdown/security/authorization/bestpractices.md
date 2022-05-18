@@ -148,7 +148,7 @@ one potential source of principals.
      # everyone always exists even if there is no such group in the user management
      
      PrincipalManager principalMgr = ((JackrabbitSession) session).getPrincipalManager();
-     Principal everyone = principalManager.getEveryone()
+     Principal everyone = principalManager.getEveryone();
 
 #### Membership is no guarantee
 
