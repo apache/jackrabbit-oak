@@ -142,7 +142,7 @@ public class ElasticTestServer implements AutoCloseable {
     }
 
     /**
-     * Launches an Elasticsearch Test Server to re-use among several tests.
+     * Launches an Elasticsearch Test Server to re-use among several test executions.
      */
     public static void main(String[] args) throws IOException {
         ElasticsearchContainer esContainer = ElasticTestServer.getESTestServer();
