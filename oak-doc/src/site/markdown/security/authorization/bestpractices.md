@@ -38,9 +38,9 @@ The following references provide a good overview as well as guidance on how to b
 As suggested in [Jackrabbbit Wiki](https://jackrabbit.apache.org/archive/wiki/JCR/DavidsModel_115513389.html#DavidsModel-Rule#2:Drivethecontenthierarchy,don'tletithappen)
 the content hierarchy in your JCR repository should be designed and access control requirements tend to be a good driver.
 
-Make sure the content design allows for readable and manageable access control setup later on to secure your data. 
-A complicated access control setup might indicate problems with your content model. Maintaining a complicated setup may become 
-increasingly hard over time, and your permission setup will be prone to mistakes.
+Make sure the content design allows for a readable and manageable access control setup later on to secure your data. 
+Excessive complexity is often a strong indicator for problems with your content model, making its security error prone 
+and difficult to reason about (and might ultimately might lead to issues with scaling).
 
 Here is an example of a access control setup (in Sling RepoInit language) illustrating why content with 
 different access requirements should be kept in separate trees and how complexity may yield undesired
@@ -73,10 +73,10 @@ or making any assumptions on how your needs will reflected in the repository:
 - define if you have services accessing the repository and what kind of tasks they need to complete 
 
 Note, that this document should be human readable not go into implementation details:
-Instead of writing principal 'content-authors' needs jcr:write on /content, defined that you have an asset 'content',
-defined what kind of data it contains and how sensitive the data are (similar to the threat model).
-Then identify what roles are going to interact with these data and how they interact: for example you may identify 
-a role that is just reading data, a second role that is expected to read and write and a third one that is will only 
+Instead of writing principal 'content-authors' needs jcr:write on /content, define that you have an asset 'content',
+define what kind of data it contains and how sensitive the data is (similar to the threat model).
+Then identify what roles are going to interact with this data and how they interact: for example you may identify 
+a role that just reading data, a second role that is expected to read and write and a third one that is will only 
 approve new content and publish it).
 
 ## General Best Practices
@@ -85,7 +85,7 @@ approve new content and publish it).
 
 Familiarize yourself with JCR access control management and Oak authorization design and extensions before starting 
 to edit the permission setup of your Oak installation. This will help you avoid common pitfalls. If you find yourself 
-granting your _content-writers_ role full access to just get it work, you probably left your application vulnerable.
+granting your _content-writers_ role full access to just make it work, you probably left your application vulnerable.
 
 - JCR Specification sections [Access Control Management](https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html) 
 and [Permissions and Capabilities](https://s.apache.org/jcr-2.0-spec/9_Permissions_and_Capabilities.html)
@@ -101,15 +101,14 @@ In other words: only grant the minimal set of privileges required to perform a p
 
 ### Verification
 
-Write tests upfront that verify for each role and task the expected effective permissions (see definition of roles) are 
+Write tests upfront and verify that for each role and task the expected effective permissions (see definition of roles) are 
 granted. Neither less nor more.
 
 Ideally, your tests will fail as soon as someone is attempting to make any change to the permission setup.
 Granting additional permissions may open up the door for a privilege escalation and revoking permissions will break
 your application (if it doesn't you didn't follow the principle of least privilege).
 
-This may also include tests verify that really no permissions are granted at resources that are outside the scope of a 
-given role/task
+This may also include assertions that no permissions are granted at resources that are outside the scope of a given role/task.
 
 ## Oak Specific Best Practices
 
@@ -153,8 +152,8 @@ one potential source of principals.
 
 #### Membership is no guarantee
 
-Similarly, make sure you evaluate permissions to verify if a subject has access granted instead of checking if a user 
-is member of a group. How access control defined for a particular group principal affects its members is an 
+Similarly, make sure you always evaluate permissions to verify if a subject has access granted instead of checking if 
+a user is member of a group. How access control defined for a particular group principal affects its members is an 
 implementation detail of the authorization setup.
 
 ##### Example : administrative access
@@ -267,6 +266,9 @@ Apart from picking the minimal set of privileges you can further minimize the ri
 narrowing the effect of a given access control setup on certain items in the subtree. This is achieved by creating 
 access control entries that come with an additional restriction.
 
+Note though, that restrictions can affect readability. So, you may want to find a balance between enhanced security 
+and simplicity. Revisiting your content design early on will likely be the better choice.
+
 See section [Restriction Management](restriction.html) for additional details as well as lessons [L7_RestrictionsTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L7_RestrictionsTest.java)
 and [L8_GlobRestrictionTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L8_GlobRestrictionTest.java) 
 in the Oak exercise module.
@@ -302,7 +304,7 @@ up registering a custom _myapp:publish_ privilege.
 
 Default authorization in Oak allows to limit the effect of invidual JCR access control entries by means of restrictions.
 See section [Restriction Management](restriction.html) for the built-in restrictions and instructions on how to plug 
-custom restrictions into the security setup.
+custom restrictions into the security setup. But be aware of the potential performance impact of any additional evaluation.
 
 #### Leverage a custom authorization model
 
