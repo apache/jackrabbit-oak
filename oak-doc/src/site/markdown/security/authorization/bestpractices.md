@@ -293,7 +293,7 @@ the authorization configuration of the repository.
 If you identify application specific operations that cannot be reflected using the built-in privileges, Oak allows to 
 register custom privileges (see section [Privilege Management](../privilege.html#jackrabbit_api)). 
 
-Note however, that the built-in permission evaluation will not enforce those 
+However, note that the built-in permission evaluation will not enforce those 
 custom privileges. Instead you have to enforce it in your application or write a custom authorization model 
 (see section [Combining Multiple Authorization Models](composite.html))
 
