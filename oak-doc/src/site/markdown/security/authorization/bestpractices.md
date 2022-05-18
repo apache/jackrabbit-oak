@@ -36,7 +36,7 @@ The following references provide a good overview as well as guidance on how to b
 ### Content Modelling
 
 As suggested in [Jackrabbbit Wiki](https://jackrabbit.apache.org/archive/wiki/JCR/DavidsModel_115513389.html#DavidsModel-Rule#2:Drivethecontenthierarchy,don'tletithappen)
-the content hierarchy in your JCR repository should be designed and access control requirements tend to be a good driver.
+the content hierarchy in your JCR repository should be designed and not just happen. Access control requirements tend to be a good driver.
 
 Make sure the content design allows for a readable and manageable access control setup later on to secure your data. 
 Excessive complexity is often a strong indicator for problems with your content model, making its security error prone 
@@ -178,8 +178,8 @@ one potential source of principals.
 
      // everyone always exists even if there is no such group in the user management
      
-     PrincipalManager principalMgr = ((JackrabbitSession) session).getPrincipalManagere();
-     Principal everyone = principalManager.getEveryone()
+     PrincipalManager principalMgr = ((JackrabbitSession) session).getPrincipalManager();
+     Principal everyone = principalManager.getEveryone();
 
 #### Membership is no guarantee
 
@@ -252,7 +252,7 @@ also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) a
         // test if (unspecified) child nodes can be added/removed from the parent
         boolean canModifyChildCollection = acMgr.hasPrivileges(parentPath, new Privilege[]{jcrAddChildNodes, jcrRemoveChildNodes});
         
-        // test if existing child node can be removed
+        # test if existing child node can be removed
         boolean canRemoveNode = acMgr.hasPrivileges(toRemove, new Privilege[]{jcrRemoveNode});
         
         
@@ -321,11 +321,11 @@ the authorization configuration of the repository.
 
 #### Leverage custom privileges
 
-If you identify application specific operations that cannot be reflected using the built in privileges, Oak allows to 
+If you identify application specific operations that cannot be reflected using the built-in privileges, Oak allows to 
 register custom privileges (see section [Privilege Management](../privilege.html#jackrabbit_api)). 
 
-Note however, that the built-in permission evaluation will not enforce those 
-custom privileges. Instead you have to enforce it in your application or by writing a custom authorization model 
+However, note that the built-in permission evaluation will not enforce those 
+custom privileges. Instead you have to enforce it in your application or write a custom authorization model 
 (see section [Combining Multiple Authorization Models](composite.html))
 
 In the example above you might find that publishing content cannot easily be secured using built-in privileges and end 
