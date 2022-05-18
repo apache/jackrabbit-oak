@@ -74,8 +74,6 @@ public class FulltextBinaryTextExtractor {
   private final boolean reindex;
   private Parser parser;
   private TikaConfigHolder tikaConfig;
-  private boolean linkageErrorFound;
-  private boolean throwableErrorFound;
   /**
    * The media types supported by the parser used.
    */
@@ -177,13 +175,12 @@ public class FulltextBinaryTextExtractor {
       // not being present. This is equivalent to disabling
       // selected media types in configuration, so we can simply
       // ignore these errors.
-      String format = "[{}] Failed to extract text from a binary property: {}."
-              + " This often happens when some media types are disabled by configuration."
-              + " The stack trace is included to flag some 'unintended' failures";
+      String format = "[{}] Failed to extract text from a binary property: {}. "
+                + "This often happens when the media types is disabled by configuration.";
       String indexName = getIndexName();
-      log.warn(format, linkageErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, e});
+      log.info(format, indexName, path);
+      log.debug(format, indexName, path, e);
       extractedTextCache.put(v, ExtractedText.ERROR);
-      linkageErrorFound = true;
       return TEXT_EXTRACTION_ERROR;
     } catch (TimeoutException t) {
       log.warn(
@@ -196,14 +193,12 @@ public class FulltextBinaryTextExtractor {
       // Capture and report any other full text extraction problems.
       // The special STOP exception is used for normal termination.
       if (!handler.isWriteLimitReached(t)) {
-        String format = "[{}] Failed to extract text from a binary property: {}."
-                + " This is a fairly common case, and nothing to"
-                + " worry about. The stack trace is included to"
-                + " help improve the text extraction feature.";
+        String format = "[{}] Failed to extract text from a binary property: {}. "
+                  + "This is quite common, and usually nothing to worry about.";
         String indexName = getIndexName();
-        log.info(format, throwableErrorFound ? new Object[]{indexName, path} : new Object[]{indexName, path, t});
+        log.info(format, indexName, path);
+        log.debug(format, indexName, path, t);
         extractedTextCache.put(v, ExtractedText.ERROR);
-        throwableErrorFound = true;
         return TEXT_EXTRACTION_ERROR;
       } else {
         log.debug("Extracted text size exceeded configured limit({})", definition.getMaxExtractLength());
