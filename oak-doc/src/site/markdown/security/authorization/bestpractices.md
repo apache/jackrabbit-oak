@@ -294,7 +294,7 @@ If you identify application specific operations that cannot be reflected using t
 register custom privileges (see section [Privilege Management](../privilege.html#jackrabbit_api)). 
 
 Note however, that the built-in permission evaluation will not enforce those 
-custom privileges. Instead you have to enforce it in your application or by writing a custom authorization model 
+custom privileges. Instead you have to enforce it in your application or write a custom authorization model 
 (see section [Combining Multiple Authorization Models](composite.html))
 
 In the example above you might find that publishing content cannot easily be secured using built-in privileges and end 
