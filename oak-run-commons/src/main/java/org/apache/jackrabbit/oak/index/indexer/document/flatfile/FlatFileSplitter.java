@@ -35,6 +35,7 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
@@ -74,6 +75,10 @@ public class FlatFileSplitter {
     }
 
     public List<File> split() throws IOException, CommitFailedException {
+        return split(true);
+    }
+
+    public List<File> split(boolean deleteOriginal) throws IOException, CommitFailedException {
         Stopwatch w = Stopwatch.createStarted();
         List<File> splitFlatFiles = new ArrayList<>();
         try {
@@ -100,6 +105,12 @@ public class FlatFileSplitter {
         log.info("split allowed types: {}", splitNodeTypesName);
         w.stop();
         log.info("===x FlatFileSplitter split prep {}", w);
+
+        if (splitNodeTypesName.contains(NT_BASE)) {
+            log.info("Skipping split because split node types set contains {}", NT_BASE);
+            splitFlatFiles.add(flatFile);
+            return splitFlatFiles;
+        }
 
         Stopwatch w1 = Stopwatch.createStarted();
         try (BufferedReader reader = createReader(flatFile, useZip)) {
@@ -133,9 +144,13 @@ public class FlatFileSplitter {
             writer.close();
 
             log.info("split total line count: {}", lineCount);
+            w1.stop();
+            log.info("===x FlatFileSplitter split {}", w1);
         }
-        w1.stop();
-        log.info("===x FlatFileSplitter split {}", w1);
+
+        if (deleteOriginal) {
+            flatFile.delete();
+        }
 
         return splitFlatFiles;
     }
