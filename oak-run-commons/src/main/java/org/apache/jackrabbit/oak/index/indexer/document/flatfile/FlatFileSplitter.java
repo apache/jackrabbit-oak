@@ -89,10 +89,10 @@ public class FlatFileSplitter {
             return splitFlatFiles;
         }
 
-        long fileSizeInBytes = useZip ? getGzipUncompressedSizeInBytes(flatFile.getAbsolutePath()) : flatFile.length();
-        log.info("original flatfile size: {}",  FileUtils.byteCountToDisplaySize(fileSizeInBytes));
+        long fileSizeInBytes = flatFile.length();
+        log.info("flatfile size: {}",  FileUtils.byteCountToDisplaySize(fileSizeInBytes));
         long splitThreshold = Math.round((double) (fileSizeInBytes / splitSize));
-        log.info("split threshold: {} bytes, split size: {}",  FileUtils.byteCountToDisplaySize(splitThreshold), splitSize);
+        log.info("split threshold is {} bytes, estimate split size >={} files",  FileUtils.byteCountToDisplaySize(splitThreshold), splitSize);
 
         // return original if file too small or split size equals 1
         if (splitThreshold < minimumSplitThreshold || splitSize <= 1) {
@@ -125,7 +125,7 @@ public class FlatFileSplitter {
             Stack<String> nodeTypeNameStack = new Stack<>();
             while ((line = reader.readLine()) != null) {
                 updateNodeTypeStack(nodeTypeNameStack, line);
-                boolean shouldSplit = (readPos > splitThreshold) && (outFileIndex < splitSize);
+                boolean shouldSplit = (readPos > splitThreshold);
                 if (shouldSplit && canSplit(splitNodeTypesName, nodeTypeNameStack)) {
                     writer.close();
                     log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));

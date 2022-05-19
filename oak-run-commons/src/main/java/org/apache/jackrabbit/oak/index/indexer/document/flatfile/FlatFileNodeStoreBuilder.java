@@ -89,7 +89,7 @@ public class FlatFileNodeStoreBuilder {
     /**
      * Default value for {@link #PROP_SPLIT_STORE_SIZE}
      */
-    static final int DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE = 4;
+    static final int DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE = 8;
     /**
      * System property for specifying number of FlatFileStore to be split into.
      */
