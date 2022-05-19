@@ -122,7 +122,9 @@ class ElasticIndexHelper {
                         settingsBuilder.field("generate_word_parts", true);
                         settingsBuilder.field("stem_english_possessive", true);
                         settingsBuilder.field("generate_number_parts", true);
-                        settingsBuilder.field("preserve_original", indexDefinition.indexOriginalTerms());
+                        settingsBuilder.field("split_on_numerics", indexDefinition.analyzerConfigSplitOnNumerics());
+                        settingsBuilder.field("split_on_case_change", indexDefinition.analyzerConfigSplitOnCaseChange());
+                        settingsBuilder.field("preserve_original", indexDefinition.analyzerConfigIndexOriginalTerms());
                     }
                     settingsBuilder.endObject();
 

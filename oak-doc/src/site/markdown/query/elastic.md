@@ -40,7 +40,7 @@ however there are differences:
 * `functionName` is ignored.
 * `name` is ignored.
 * `indexPath` is ignored.
-* `analyzers` is ignored.
+* `analyzers` is ignored, except for `indexOriginalTerm`.
 * For property definitions, `sync` and `unique` are ignored.
 * The behavior for `dynamicBoost` is slightly different: 
   For Lucene indexes, boosting is done in indexing, while for Elastic it is done at query time.
