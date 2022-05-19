@@ -221,33 +221,6 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void defaultAnalyzer() throws Exception {
-        IndexDefinitionBuilder builder = createIndex("analyzed_field");
-        builder.async("async");
-        builder.indexRule("nt:base")
-                .property("analyzed_field")
-                .analyzed().nodeScopeIndex();
-
-        setIndex(UUID.randomUUID().toString(), builder);
-        root.commit();
-
-        //add content
-        Tree test = root.getTree("/").addChild("test");
-
-        test.addChild("a").setProperty("analyzed_field", "sun.jpg");
-        root.commit();
-
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'SUN.jpg')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'sun')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
-        });
-    }
-
-    @Test
     public void fulltextWithModifiedNodeScopeIndex() throws Exception {
         IndexDefinitionBuilder builder = createIndex("analyzed_field");
         builder.async("async");
