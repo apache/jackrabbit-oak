@@ -65,7 +65,7 @@ The build consists of the following main components:
     - oak-it/osgi     - integration tests for OSGi
   - [oak-exercise][2] - Oak training material
 
-  [1]: oak-core/README.md
+  [1]: oak-api/README.md
   [2]: oak-exercise/README.md
 
 Archive
