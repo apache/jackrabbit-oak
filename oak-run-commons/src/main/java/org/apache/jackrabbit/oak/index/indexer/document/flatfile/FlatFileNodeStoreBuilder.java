@@ -19,17 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static java.util.Collections.unmodifiableSet;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
-
+import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
@@ -40,7 +30,16 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+
+import static java.util.Collections.unmodifiableSet;
 
 public class FlatFileNodeStoreBuilder {
 

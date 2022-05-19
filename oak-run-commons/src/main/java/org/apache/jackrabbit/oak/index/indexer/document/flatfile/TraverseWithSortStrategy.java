@@ -128,7 +128,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-            ExternalSort.mergeSortedFiles(sortedFiles,
+            MergeRunner.mergeSortedFiles(sortedFiles,
                     writer,
                     comparator,
                     charset,

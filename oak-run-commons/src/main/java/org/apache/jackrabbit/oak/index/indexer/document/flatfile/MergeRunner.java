@@ -19,16 +19,22 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.collect.Lists;
+import net.jpountz.lz4.LZ4BlockInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.comparator.SizeFileComparator;
+import org.apache.jackrabbit.oak.commons.sort.BinaryFileBuffer;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -185,12 +191,44 @@ public class MergeRunner implements Runnable {
         this.mergeCancelled = new AtomicBoolean(false);
     }
 
+    public static <T> int mergeSortedFiles(List<File> files,
+                                           BufferedWriter fbw, final Comparator<T> cmp, Charset cs, boolean distinct,
+                                           boolean useLz4, Function<T, String> typeToString,
+                                           Function<String, T> stringToType) throws IOException {
+        ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
+        try {
+            for (File f : files) {
+                InputStream in = new FileInputStream(f);
+                BufferedReader br;
+                if (useLz4) {
+                    br = new BufferedReader(new InputStreamReader(new LZ4BlockInputStream(in), cs));
+                } else {
+                    br = new BufferedReader(new InputStreamReader(in, cs));
+                }
+
+                BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
+                bfbs.add(bfb);
+            }
+            int rowcounter = ExternalSort.merge(fbw, cmp, distinct, bfbs, typeToString);
+            return rowcounter;
+        } finally {
+            for (BinaryFileBuffer buffer : bfbs) {
+                try {
+                    buffer.close();
+                } catch (Exception e) {}
+            }
+            for (File f : files) {
+                f.delete();
+            }
+        }
+    }
+
     private boolean merge(List<File> files, File outputFile) {
         log.debug("performing merge for {} with size {} {}", outputFile.getName(), files.size(), files);
         try (BufferedWriter writer = createWriter(outputFile, compressionEnabled)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-            ExternalSort.mergeSortedFiles(files,
+            mergeSortedFiles(files,
                     writer,
                     comparator,
                     charset,

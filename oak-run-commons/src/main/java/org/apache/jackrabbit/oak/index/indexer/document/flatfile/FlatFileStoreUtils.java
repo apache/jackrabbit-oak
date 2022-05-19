@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import net.jpountz.lz4.LZ4BlockInputStream;
+import net.jpountz.lz4.LZ4BlockOutputStream;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -30,9 +33,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.List;
-import java.util.zip.Deflater;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import static com.google.common.base.Charsets.UTF_8;
 
@@ -43,7 +43,7 @@ class FlatFileStoreUtils {
             BufferedReader br;
             InputStream in = new FileInputStream(file);
             if (compressionEnabled) {
-                br = new BufferedReader(new InputStreamReader(new GZIPInputStream(in, 2048), UTF_8));
+                br = new BufferedReader(new InputStreamReader(new LZ4BlockInputStream(in), UTF_8));
             } else {
                 br = new BufferedReader(new InputStreamReader(in, UTF_8));
             }
@@ -56,11 +56,7 @@ class FlatFileStoreUtils {
     public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
         OutputStream out = new FileOutputStream(file);
         if (compressionEnabled) {
-            out = new GZIPOutputStream(out, 2048) {
-                {
-                    def.setLevel(Deflater.BEST_SPEED);
-                }
-            };
+            out = new LZ4BlockOutputStream(out, 2048);
         }
         return new BufferedWriter(new OutputStreamWriter(out, UTF_8));
     }
@@ -70,6 +66,6 @@ class FlatFileStoreUtils {
     }
 
     public static String getSortedStoreFileName(boolean compressionEnabled){
-        return compressionEnabled ? "store-sorted.json.gz" : "store-sorted.json";
+        return compressionEnabled ? "store-sorted.json.lz4" : "store-sorted.json";
     }
 }
