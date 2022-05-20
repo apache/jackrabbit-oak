@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.collect.Lists;
-import net.jpountz.lz4.LZ4BlockInputStream;
+import net.jpountz.lz4.LZ4FrameInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.comparator.SizeFileComparator;
 import org.apache.jackrabbit.oak.commons.sort.BinaryFileBuffer;
@@ -201,7 +201,7 @@ public class MergeRunner implements Runnable {
                 InputStream in = new FileInputStream(f);
                 BufferedReader br;
                 if (useLz4) {
-                    br = new BufferedReader(new InputStreamReader(new LZ4BlockInputStream(in), cs));
+                    br = new BufferedReader(new InputStreamReader(new LZ4FrameInputStream(in), cs));
                 } else {
                     br = new BufferedReader(new InputStreamReader(in, cs));
                 }

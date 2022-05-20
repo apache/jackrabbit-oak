@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import net.jpountz.lz4.LZ4BlockInputStream;
-import net.jpountz.lz4.LZ4BlockOutputStream;
+import net.jpountz.lz4.LZ4FrameInputStream;
+import net.jpountz.lz4.LZ4FrameOutputStream;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -43,7 +43,7 @@ class FlatFileStoreUtils {
             BufferedReader br;
             InputStream in = new FileInputStream(file);
             if (compressionEnabled) {
-                br = new BufferedReader(new InputStreamReader(new LZ4BlockInputStream(in), UTF_8));
+                br = new BufferedReader(new InputStreamReader(new LZ4FrameInputStream(in), UTF_8));
             } else {
                 br = new BufferedReader(new InputStreamReader(in, UTF_8));
             }
@@ -56,7 +56,7 @@ class FlatFileStoreUtils {
     public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
         OutputStream out = new FileOutputStream(file);
         if (compressionEnabled) {
-            out = new LZ4BlockOutputStream(out, 2048);
+            out = new LZ4FrameOutputStream(out);
         }
         return new BufferedWriter(new OutputStreamWriter(out, UTF_8));
     }
