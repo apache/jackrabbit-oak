@@ -40,8 +40,12 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractRestrictionProvider implements RestrictionProvider, AccessControlConstants {
+
+    private static final Logger log = LoggerFactory.getLogger(AbstractRestrictionProvider.class);
 
     private final Map<String, RestrictionDefinition> supported;
 
@@ -110,10 +114,14 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
             Set<Restriction> restrictions = new HashSet<>();
             for (PropertyState propertyState : getRestrictionsTree(aceTree).getProperties()) {
                 String propName = propertyState.getName();
-                if (isRestrictionProperty(propName) && supported.containsKey(propName)) {
-                    RestrictionDefinition def = supported.get(propName);
-                    if (def.getRequiredType() == propertyState.getType()) {
-                        restrictions.add(createRestriction(propertyState, def));
+                if (isRestrictionProperty(propName)) {
+                    if (supported.containsKey(propName)) {
+                        RestrictionDefinition def = supported.get(propName);
+                        if (def.getRequiredType() == propertyState.getType()) {
+                            restrictions.add(createRestriction(propertyState, def));
+                        }
+                    } else {
+                        log.warn("Unsupported restriction '{}' detected at {}. It will be ignored.", propName, oakPath);
                     }
                 }
             }

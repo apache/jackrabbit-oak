@@ -24,10 +24,15 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
+import java.util.Set;
+
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.MIX_REP_PRINCIPAL_BASED_MIXIN;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_PRINCIPAL_ENTRY;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_PRINCIPAL_POLICY;
@@ -37,6 +42,12 @@ import static org.apache.jackrabbit.oak.spi.security.authorization.principalbase
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class EntryCacheTest extends AbstractPrincipalBasedTest {
 
@@ -48,11 +59,20 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
     public void before() throws Exception {
         super.before();
 
-        restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
+        restrictionProvider = spy(getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
         accessControlledPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
         Tree accessControlledTree = root.getTree(accessControlledPath);
         TreeUtil.addMixin(accessControlledTree, MIX_REP_PRINCIPAL_BASED_MIXIN, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
         policyTree = TreeUtil.addChild(accessControlledTree, REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY);
+    }
+    
+    @After
+    public void after() throws Exception {
+        try {
+            reset(restrictionProvider);
+        } finally {
+            super.after();
+        }
     }
 
     @Test
@@ -86,5 +106,21 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
 
         EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath), restrictionProvider);
         assertTrue(cache.getEntries(TEST_OAK_PATH).hasNext());
+        verifyNoInteractions(restrictionProvider);
+    }
+
+    @Test
+    public void testEntriesWithRestrictionsForTestPath() throws Exception {
+        Tree entry = TreeUtil.addChild(policyTree, "entry1", NT_REP_PRINCIPAL_ENTRY);
+        entry.setProperty(REP_EFFECTIVE_PATH, TEST_OAK_PATH, Type.PATH);
+        entry.setProperty(REP_PRIVILEGES, ImmutableSet.of(JCR_READ), Type.NAMES);
+        restrictionProvider.writeRestrictions(TEST_OAK_PATH, entry, 
+                Collections.singleton(restrictionProvider.createRestriction(TEST_OAK_PATH, REP_GLOB, getValueFactory(root).createValue("test"))));
+
+        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath), restrictionProvider);
+        assertTrue(cache.getEntries(TEST_OAK_PATH).hasNext());
+        
+        verify(restrictionProvider).readRestrictions(eq(TEST_OAK_PATH), any(Tree.class));
+        verify(restrictionProvider).getPattern(eq(TEST_OAK_PATH), any(Set.class));
     }
 }
