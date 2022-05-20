@@ -16,49 +16,34 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
-import java.io.File;
-import java.util.Properties;
-import java.util.Set;
-
-import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
 import static org.junit.Assert.assertEquals;
 
 public class LuceneIndexConfigTest {
 
-    private NodeState root;// = INITIAL_CONTENT;
+    private NodeState root;
 
-    private Set<File> dirs = newHashSet();
+    @Rule
+    public final ProvideSystemProperty updateSystemProperties
+            = new ProvideSystemProperty("oak.index.lucene.maxBufferedDeleteTerms", "1000")
+            .and("oak.index.lucene.ramPerThreadHardLimitMB", "100");
 
-    private Properties properties;
-
-    @Before
-    public void before() {
-        properties = (Properties) System.getProperties().clone();
-        root = INITIAL_CONTENT;
-        System.setProperty("oak.index.lucene.maxBufferedDeleteTerms", "1000");
-        System.setProperty("oak.index.lucene.ramPerThreadHardLimitMB", "100");
-    }
-
-    @After
-    public void after() {
-        System.setProperties(properties);
-        for (File d : dirs) {
-            FileUtils.deleteQuietly(d);
-        }
-    }
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties
+            = new RestoreSystemProperties();
 
     @Test
-    public void testIndexWriterConfig() throws Exception {
+    public void testIndexWriterConfig() {
+        root = INITIAL_CONTENT;
         NodeBuilder idx = root.builder();
         LuceneIndexDefinition definition = new LuceneIndexDefinition(root, idx.getNodeState(), "/foo");
         IndexWriterConfig config = getIndexWriterConfig(definition, true);
