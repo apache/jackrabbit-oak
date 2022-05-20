@@ -24,7 +24,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -46,7 +45,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 public class FlatFileSplitter {
     private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
     private final File workDir;
-    private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
     private final IndexerSupport indexerSupport;
     private final IndexHelper indexHelper;
@@ -74,50 +73,51 @@ public class FlatFileSplitter {
         this.minimumSplitThreshold = minimumSplitThreshold;
     }
 
+    public List<File> returnOriginalFlatFile() {
+        return (new ArrayList<File>(1){
+            {
+                add(flatFile);
+            }
+        });
+    }
+
     public List<File> split() throws IOException, CommitFailedException {
         return split(true);
     }
 
     public List<File> split(boolean deleteOriginal) throws IOException, CommitFailedException {
-        Stopwatch w = Stopwatch.createStarted();
         List<File> splitFlatFiles = new ArrayList<>();
         try {
             FileUtils.forceMkdir(workDir);
         } catch (IOException e) {
             log.error("failed to create split directory {}", workDir.getAbsolutePath());
-            splitFlatFiles.add(flatFile);
-            return splitFlatFiles;
+            return returnOriginalFlatFile();
         }
 
         long fileSizeInBytes = flatFile.length();
-        log.info("flatfile size: {}",  FileUtils.byteCountToDisplaySize(fileSizeInBytes));
         long splitThreshold = Math.round((double) (fileSizeInBytes / splitSize));
-        log.info("split threshold is {} bytes, estimate split size >={} files",  FileUtils.byteCountToDisplaySize(splitThreshold), splitSize);
+        log.info("original flat file size: ~{}",  FileUtils.byteCountToDisplaySize(fileSizeInBytes));
+        log.info("split threshold is ~{} bytes, estimate split size >={} files",  FileUtils.byteCountToDisplaySize(splitThreshold), splitSize);
 
         // return original if file too small or split size equals 1
         if (splitThreshold < minimumSplitThreshold || splitSize <= 1) {
             log.info("split is not necessary, skip splitting");
-            splitFlatFiles.add(flatFile);
-            return splitFlatFiles;
+            return returnOriginalFlatFile();
         }
 
         Set<String>splitNodeTypesName = getSplitNodeTypeNames();
         log.info("split allowed types: {}", splitNodeTypesName);
-        w.stop();
-        log.info("===x FlatFileSplitter split prep {}", w);
-
         if (splitNodeTypesName.contains(NT_BASE)) {
             log.info("Skipping split because split node types set contains {}", NT_BASE);
-            splitFlatFiles.add(flatFile);
-            return splitFlatFiles;
+            return returnOriginalFlatFile();
         }
 
         Stopwatch w1 = Stopwatch.createStarted();
-        try (BufferedReader reader = createReader(flatFile, useZip)) {
+        try (BufferedReader reader = createReader(flatFile, useCompression)) {
             long readPos = 0;
             int outFileIndex = 1;
-            File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useZip));
-            BufferedWriter writer = createWriter(currentFile, useZip);
+            File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useCompression));
+            BufferedWriter writer = createWriter(currentFile, useCompression);
             splitFlatFiles.add(currentFile);
 
             String line;
@@ -131,8 +131,8 @@ public class FlatFileSplitter {
                     log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
                     readPos = 0;
                     outFileIndex++;
-                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useZip));
-                    writer = createWriter(currentFile, useZip);
+                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useCompression));
+                    writer = createWriter(currentFile, useCompression);
                     splitFlatFiles.add(currentFile);
                     log.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
                 }
@@ -142,44 +142,17 @@ public class FlatFileSplitter {
                 lineCount++;
             }
             writer.close();
+            log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
 
             log.info("split total line count: {}", lineCount);
-            w1.stop();
-            log.info("===x FlatFileSplitter split {}", w1);
         }
 
         if (deleteOriginal) {
+            log.info("removing original flat file {} after splitting into {} files", flatFile.getAbsolutePath(), splitFlatFiles);
             flatFile.delete();
         }
 
         return splitFlatFiles;
-    }
-
-    private List<FlatFileStore> convertFlatFilesToStore(List<File> splitFlatFiles) {
-        Stopwatch w = Stopwatch.createStarted();
-        List<FlatFileStore> splitFlatFileStores = new ArrayList<>();
-        Set<String> preferredPathElements = getPreferredPathElements(indexDefinitions);
-
-        for (File flatFile : splitFlatFiles) {
-            splitFlatFileStores.add(new FlatFileStore(indexHelper.getGCBlobStore(), flatFile, entryReader, preferredPathElements, useZip));
-        }
-        w.stop();
-        log.info("===x FlatFileSplitter convertFlatFilesToStore {}", w);
-
-        splitFlatFileStores.forEach(ffs -> {
-            File f = new File(ffs.getFlatFileStorePath());
-            System.out.println(ffs.getFlatFileStorePath() + " size: " + FileUtils.byteCountToDisplaySize(f.length()));
-        });
-        return splitFlatFileStores;
-    }
-
-    private Set<String> getPreferredPathElements(Set<IndexDefinition> indexDefinitions) {
-        Set<String> preferredPathElements = new HashSet<>();
-
-        for (IndexDefinition indexDf : indexDefinitions) {
-            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
-        }
-        return preferredPathElements;
     }
 
     private void updateNodeTypeStack(Stack<String> parentNodeTypeNames, String line) {
@@ -198,9 +171,6 @@ public class FlatFileSplitter {
             }
             parentNodeTypeNames.add(getJCRPrimaryType(line));
         }
-//        log.info("===x size {}={}", currentLineDepth, parentNodeTypeNames.size());
-//        log.info("line {}", line);
-//        log.info("parentNodeTypeNames {}", parentNodeTypeNames);
     }
 
     private String getJCRPrimaryType(String line) {
@@ -225,29 +195,12 @@ public class FlatFileSplitter {
         return true;
     }
 
-    // Source http://www.abeel.be/content/determine-uncompressed-size-gzip-file
-    private int getGzipUncompressedSizeInBytes(String filepath) throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(filepath, "r");
-        raf.seek(raf.length() - 4);
-        int b4 = raf.read();
-        int b3 = raf.read();
-        int b2 = raf.read();
-        int b1 = raf.read();
-        int val = (b1 << 24) | (b2 << 16) + (b3 << 8) + b4;
-        raf.close();
-
-        return val;
-    }
-
     private Set<NodeTypeInfo> getSubTypes(String nodeTypeName) {
         Set<NodeTypeInfo> initialSet = new HashSet<>();
         NodeTypeInfo nodeType = infoProvider.getNodeTypeInfo(nodeTypeName);
 
         Set<String> subTypes = new HashSet<>(nodeType.getMixinSubTypes());
         subTypes.addAll(nodeType.getPrimarySubTypes());
-//        System.out.println("- " + nodeTypeName);
-//        System.out.println("  - PrimarySubTypes" + nodeType.getPrimarySubTypes());
-//        System.out.println("  - MixinSubTypes" + nodeType.getMixinSubTypes());
 
         for (String subTypeName: subTypes) {
             initialSet.add(infoProvider.getNodeTypeInfo(subTypeName));
@@ -299,7 +252,6 @@ public class FlatFileSplitter {
             setOfNodeType.addAll(getSubTypes(nodeTypeName));
         }
 
-        log.debug("split node types: {}", setOfNodeType);
         return setOfNodeType;
     }
 }
