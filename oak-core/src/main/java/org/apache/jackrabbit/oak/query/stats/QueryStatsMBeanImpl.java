@@ -41,11 +41,13 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final int SLOW_QUERY_LIMIT_SCANNED = 
-            Integer.getInteger("oak.query.slowScanLimit", 100000);
-    private final int MAX_STATS_DATA = 
+            Integer.getInteger("oak.query.slowScanLimit", 5000);
+    private final int MAX_STATS_DATA =
             Integer.getInteger("oak.query.stats", 5000);
     private final int MAX_POPULAR_QUERIES = 
             Integer.getInteger("oak.query.slowLimit", 100);
+    private final int MAX_QUERY_SIZE =
+            Integer.getInteger("oak.query.maxQuerySize", 2048);
     private final ConcurrentSkipListMap<String, QueryStatsData> statistics = 
             new ConcurrentSkipListMap<String, QueryStatsData>();
     private final QueryEngineSettings settings;
@@ -133,6 +135,13 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         }
         if (statistics.size() > 2 * MAX_STATS_DATA) {
             evict();
+        }
+        if (statement.length() > MAX_QUERY_SIZE) {
+            statement = new StringBuilder().append("Truncated query: ")
+                    .append(statement.substring(0, MAX_QUERY_SIZE >> 1))
+                    .append(" ...... ")
+                    .append(statement.substring(statement.length() - (MAX_QUERY_SIZE >> 1)))
+                    .toString();
         }
         QueryStatsData stats = new QueryStatsData(statement, language);
         QueryStatsData s2 = statistics.putIfAbsent(stats.getKey(), stats);

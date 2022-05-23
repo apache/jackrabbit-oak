@@ -217,12 +217,12 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         // dynamic membership didn't cover all members -> extract from group-tree
-        Iterator<String> oakPaths = getMembershipProvider().getMembers(getTree(), includeInherited);
-        if (!oakPaths.hasNext()) {
+        Iterator<Tree> trees = getMembershipProvider().getMembers(getTree(), includeInherited);
+        if (!trees.hasNext()) {
             return dynamicMembers;
         }
         
-        AuthorizableIterator members = AuthorizableIterator.create(oakPaths, userMgr, AuthorizableType.AUTHORIZABLE);
+        AuthorizableIterator members = AuthorizableIterator.create(trees, userMgr, AuthorizableType.AUTHORIZABLE);
         AuthorizableIterator allMembers = AuthorizableIterator.create(true, dynamicMembers, members);
         return new RangeIteratorAdapter(allMembers, allMembers.getSize()); 
     }

@@ -22,8 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -57,8 +59,13 @@ public class IndexImporter {
      * Symbolic name use to indicate sync indexes
      */
     static final String ASYNC_LANE_SYNC = "sync";
+    /*
+    * System property name for flag for preserve checkpoint. If this is set to true, then checkpoint cleanup will be skipped.
+    * Default is set to false.
+     */
+    public static final String OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT = "oak.index.importer.preserveCheckpoint";
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger LOG = LoggerFactory.getLogger(IndexImporter.class);
     private final NodeStore nodeStore;
     private final File indexDir;
     private final Map<String, IndexImporterProvider> importers = new HashMap<>();
@@ -69,6 +76,11 @@ public class IndexImporter {
     private final IndexEditorProvider indexEditorProvider;
     private final AsyncIndexerLock indexerLock;
     private final IndexDefinitionUpdater indexDefinitionUpdater;
+    private final boolean preserveCheckpoint = Boolean.getBoolean(OAK_INDEX_IMPORTER_PRESERVE_CHECKPOINT);
+
+    static final int RETRIES = Integer.getInteger("oak.index.import.retries", 5);
+    public static final String INDEX_IMPORT_STATE_KEY = "indexImportState";
+    private final Set<String> indexPathsToUpdate;
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
@@ -84,72 +96,136 @@ public class IndexImporter {
                 "checkpointed state [%s]", indexerInfo.checkpoint);
         this.indexDefinitionUpdater = new IndexDefinitionUpdater(new File(indexDir, INDEX_DEFINITIONS_JSON));
         this.asyncLaneToIndexMapping = mapIndexesToLanes(indexes);
+        this.indexPathsToUpdate = new HashSet<>();
+    }
+
+    enum IndexImportState {
+        NULL, SWITCH_LANE, IMPORT_INDEX_DATA, BRING_INDEX_UPTODATE, RELEASE_CHECKPOINT
     }
 
     public void importIndex() throws IOException, CommitFailedException {
-        if (indexes.keySet().isEmpty()) {
-            log.warn("No indexes to import (possibly index definitions outside of a oak:index node?)");
+        try {
+            if (indexes.keySet().isEmpty()) {
+                LOG.warn("No indexes to import (possibly index definitions outside of a oak:index node?)");
+            }
+            LOG.info("Proceeding to import {} indexes from {}", indexes.keySet(), indexDir.getAbsolutePath());
+
+            //TODO Need to review it for idempotent design. A failure in any step should not
+            //leave setup in in consistent state and provide option for recovery
+
+            //Step 1 - Switch the index lanes so that async indexer does not touch them
+            //while we are importing the index data
+            runWithRetry(RETRIES, IndexImportState.SWITCH_LANE, this::switchLanes);
+            LOG.info("Done with switching of index lanes before import");
+
+            //Step 2 - Import the existing index data.
+            // In this step we are:
+            //      switching lane for new index
+            //      incrementing reindex count.
+            //      marking index as disabled in case of superseded index
+            // after this step new index is available in repository
+            runWithRetry(RETRIES, IndexImportState.IMPORT_INDEX_DATA, this::importIndexData);
+            LOG.info("Done with importing of index data");
+
+            //Step 3 - Bring index upto date.
+            // In this step we are:
+            //      interrupting current indexing.
+            //      reverting lane back to async
+            //      resuming current indexing;
+            runWithRetry(RETRIES, IndexImportState.BRING_INDEX_UPTODATE, this::bringIndexUpToDate);
+            LOG.info("Done with bringing index up-to-date");
+            //Step 4 - Release the checkpoint
+            // this is again an idempotent function
+            runWithRetry(RETRIES, IndexImportState.RELEASE_CHECKPOINT, this::releaseCheckpoint);
+            LOG.info("Done with releasing checkpoint");
+
+            // Remove indexImportState property on successful import. In case of preserveCheckpoint is enabled,
+            // we assume that index import is done without releaseCheckpoint. In that case this method below will be NOOP
+            // as currentIndexImportState is null and doesn't match RELEASE_CHECKPOINT state
+            updateIndexImporterState(IndexImportState.RELEASE_CHECKPOINT, null, true);
+            LOG.info("Done with removing index import state");
+
+        } catch (CommitFailedException | IOException e) {
+
+            LOG.error("Failure while index import", e);
+            try {
+                runWithRetry(RETRIES, null, () -> {
+                    NodeState root = nodeStore.getRoot();
+                    NodeBuilder builder = root.builder();
+                    revertLaneChange(builder, indexPathsToUpdate);
+                    mergeWithConcurrentCheck(nodeStore, builder);
+                });
+            } catch (CommitFailedException commitFailedException) {
+                LOG.error("Unable to revert back index lanes for: "
+                        + indexPathsToUpdate.stream().collect(StringBuilder::new, StringBuilder::append,
+                        (a, b) -> a.append(",").append(b)).toString(), commitFailedException);
+                throw e;
+            }
         }
-        log.info("Proceeding to import {} indexes from {}", indexes.keySet(), indexDir.getAbsolutePath());
-
-        //TODO Need to review it for idempotent design. A failure in any step should not
-        //leave setup in in consistent state and provide option for recovery
-
-        //Step 1 - Switch the index lanes so that async indexer does not touch them
-        //while we are importing the index data
-        switchLanes();
-        log.info("Done with switching of index lanes before import");
-
-        //Step 2 - Import the existing index data
-        importIndexData();
-        log.info("Done with importing of index data");
-
-        //Step 3 - Bring index upto date
-        bringIndexUpToDate();
-
-        //Step 4 - Release the checkpoint
-        releaseCheckpoint();
     }
 
     public void addImporterProvider(IndexImporterProvider importerProvider) {
         importers.put(importerProvider.getType(), importerProvider);
     }
 
-    void switchLanes() throws CommitFailedException, IOException {
-        NodeState root = nodeStore.getRoot();
-        NodeBuilder builder = root.builder();
+    void switchLanes() throws CommitFailedException {
+        try {
+            NodeState root = nodeStore.getRoot();
+            NodeBuilder builder = root.builder();
 
-        for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()){
-            if (!indexInfo.newIndex) {
-                NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexInfo.indexPath);
-                AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
+            for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()) {
+                if (!indexInfo.newIndex) {
+                    NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexInfo.indexPath);
+                    indexPathsToUpdate.add(indexInfo.indexPath);
+                    AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
+                }
             }
+            updateIndexImporterState(builder, IndexImportState.NULL, IndexImportState.SWITCH_LANE, false);
+            mergeWithConcurrentCheck(nodeStore, builder);
+        } catch (CommitFailedException e) {
+            LOG.error("Failed while performing switchLanes and updating indexImportState from  [{}] to  [{}]",
+                    IndexImportState.NULL, IndexImportState.SWITCH_LANE);
+            throw e;
         }
-        mergeWithConcurrentCheck(nodeStore, builder);
     }
 
     void importIndexData() throws CommitFailedException, IOException {
-        NodeState root = nodeStore.getRoot();
-        NodeBuilder rootBuilder = root.builder();
-        IndexDisabler indexDisabler = new IndexDisabler(rootBuilder);
-        for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()) {
-            log.info("Importing index data for {}", indexInfo.indexPath);
-            NodeBuilder idxBuilder = indexDefinitionUpdater.apply(rootBuilder, indexInfo.indexPath);
+        try {
+            NodeState root = nodeStore.getRoot();
+            NodeBuilder rootBuilder = root.builder();
+            IndexDisabler indexDisabler = new IndexDisabler(rootBuilder);
+            for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()) {
+                LOG.info("Importing index data for {}", indexInfo.indexPath);
+                // current index node contains : temp-async and async-previous.
+                // old state is indexdefinition with async=async
+                // indexDefinitionUpdater contains base index-def i.e. without async-previous and temp-async
+                // this apply method take current state and return Nodebuilder with old indexdefinitions i.e. without async-temp.
+                // rootbuilder also get updated in the process
+                NodeBuilder idxBuilder = indexDefinitionUpdater.apply(rootBuilder, indexInfo.indexPath);
 
-            if (indexInfo.newIndex) {
-                AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
-            } else {
-                //For existing ind
-                NodeState existing = NodeStateUtils.getNode(root, indexInfo.indexPath);
-                copyLaneProps(existing, idxBuilder);
+                if (indexInfo.newIndex) {
+                    AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
+                    indexPathsToUpdate.add(indexInfo.indexPath);
+                } else {
+                    //For existing index
+                    NodeState existing = NodeStateUtils.getNode(root, indexInfo.indexPath);
+                    // copyLaneProps copies property values for async and previous-async property that we set in method
+                    // "switchLanes" to idxBuilder from indexDefinitionUpdater i.e. nodestate before index import started
+                    copyLaneProps(existing, idxBuilder);
+                }
+                //TODO How to support CompositeNodeStore where some of the child nodes would be hidden
+                incrementReIndexCount(idxBuilder);
+                // importIndex copies data from current folder to new older. Updates idxbuilder with new uid.
+                getImporter(indexInfo.type).importIndex(root, idxBuilder, indexInfo.indexDir);
+                indexDisabler.markDisableFlagIfRequired(indexInfo.indexPath, idxBuilder);
             }
-            //TODO How to support CompositeNodeStore where some of the child nodes would be hidden
-            incrementReIndexCount(idxBuilder);
-            getImporter(indexInfo.type).importIndex(root, idxBuilder, indexInfo.indexDir);
-
-            indexDisabler.markDisableFlagIfRequired(indexInfo.indexPath, idxBuilder);
+            updateIndexImporterState(root.builder(), IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA, false);
+            mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider);
+        } catch (CommitFailedException e) {
+            LOG.error("Failed while performing importIndexData and updating indexImportState from  [{}] to  [{}]",
+                    IndexImportState.SWITCH_LANE, IndexImportState.IMPORT_INDEX_DATA);
+            throw e;
         }
-        mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider);
     }
 
     private void bringIndexUpToDate() throws CommitFailedException {
@@ -172,7 +248,7 @@ public class IndexImporter {
 
             NodeState after = nodeStore.retrieve(checkpoint);
             checkNotNull(after, "No state found for checkpoint [%s] for lane [%s]",checkpoint, laneName);
-            log.info("Proceeding to update imported indexes {} to checkpoint [{}] for lane [{}]",
+            LOG.info("Proceeding to update imported indexes {} to checkpoint [{}] for lane [{}]",
                     indexInfos, checkpoint, laneName);
 
             NodeState before = indexedState;
@@ -195,29 +271,74 @@ public class IndexImporter {
             }
 
             revertLaneChange(builder, indexInfos);
-
+            updateIndexImporterState(builder, IndexImportState.IMPORT_INDEX_DATA, IndexImportState.BRING_INDEX_UPTODATE, false);
             mergeWithConcurrentCheck(nodeStore, builder);
             success = true;
-            log.info("Imported index is updated to repository state at checkpoint [{}] for " +
+            LOG.info("Imported index is updated to repository state at checkpoint [{}] for " +
                     "indexing lane [{}]", checkpoint, laneName);
+        } catch (CommitFailedException e) {
+            LOG.error("Failed while performing bringIndexUpToDate and updating indexImportState from  [{}] to  [{}]",
+                    IndexImportState.IMPORT_INDEX_DATA, IndexImportState.BRING_INDEX_UPTODATE);
+            throw e;
         } finally {
             try {
                 resumeCurrentIndexing(lockToken);
             } catch (CommitFailedException | RuntimeException e) {
-                log.warn("Error occurred while releasing indexer lock", e);
+                LOG.warn("Error occurred while releasing indexer lock", e);
                 if (success) {
                     throw e;
                 }
             }
         }
 
-        log.info("Import done for indexes {}", indexInfos);
+        LOG.info("Import done for indexes {}", indexInfos);
     }
 
     private void revertLaneChange(NodeBuilder builder, List<IndexInfo> indexInfos) {
         for (IndexInfo info : indexInfos) {
             NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, info.indexPath);
             AsyncLaneSwitcher.revertSwitch(idxBuilder, info.indexPath);
+        }
+    }
+
+    private void revertLaneChange(NodeBuilder builder, Set<String> indexPaths) {
+        for (String indexPath : indexPaths) {
+            NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexPath);
+            AsyncLaneSwitcher.revertSwitch(idxBuilder, indexPath);
+        }
+    }
+
+    private IndexImportState getIndexImportState(NodeBuilder nodeBuilder) {
+        if (nodeBuilder.getProperty(INDEX_IMPORT_STATE_KEY) == null || nodeBuilder.getProperty(INDEX_IMPORT_STATE_KEY).getValue(Type.STRING) == null) {
+            return IndexImportState.NULL;
+        } else {
+            return IndexImportState.valueOf(nodeBuilder.getProperty(INDEX_IMPORT_STATE_KEY).getValue(Type.STRING));
+        }
+    }
+
+    // updateIndexImporterState is an idempotent process and only updates state if currentImportState matches.
+    private void updateIndexImporterState(IndexImportState currentImportState, IndexImportState nextImportState, boolean shouldCommit) throws CommitFailedException {
+        NodeState root = nodeStore.getRoot();
+        NodeBuilder builder = root.builder();
+        updateIndexImporterState(builder, currentImportState, nextImportState, shouldCommit);
+    }
+
+    // updateIndexImporterState is an idempotent process and only updates state if currentImportState matches nodeStoreIndexImportState.
+    private void updateIndexImporterState(NodeBuilder builder, IndexImportState currentImportState, IndexImportState nextImportState, boolean shouldCommit) throws CommitFailedException {
+        for (String indexPath : indexPathsToUpdate) {
+            NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexPath);
+            IndexImportState nodeStoreIndexImportState = getIndexImportState(idxBuilder);
+
+            if (nodeStoreIndexImportState == currentImportState) {
+                if (nextImportState == IndexImportState.NULL) {
+                    idxBuilder.removeProperty(INDEX_IMPORT_STATE_KEY);
+                } else {
+                    idxBuilder.setProperty(INDEX_IMPORT_STATE_KEY, nextImportState.toString(), Type.STRING);
+                }
+            }
+        }
+        if (shouldCommit) {
+            mergeWithConcurrentCheck(nodeStore, builder);
         }
     }
 
@@ -276,7 +397,7 @@ public class IndexImporter {
      * Determines the async lane name. This method also check if lane was previously switched
      * then it uses the actual lane name prior to switch was done
      *
-     * @param indexPath path of index. Mostly used in reporting exception
+     * @param indexPath  path of index. Mostly used in reporting exception
      * @param indexState nodeState for index at given path
      *
      * @return async lane name or null which would be the case for sync indexes
@@ -289,9 +410,18 @@ public class IndexImporter {
         return IndexUtils.getAsyncLaneName(indexState, indexPath);
     }
 
-    private void releaseCheckpoint() {
-        nodeStore.release(indexerInfo.checkpoint);
-        log.info("Released the referred checkpoint [{}]", indexerInfo.checkpoint);
+    private void releaseCheckpoint() throws CommitFailedException {
+        if (preserveCheckpoint) {
+            LOG.info("Preserving the referred checkpoint [{}]. This could have been done in case this checkpoint is needed by a process later on." +
+                    " Please make sure to remove the checkpoint once it's no longer needed.", indexerInfo.checkpoint);
+            // We are assuming that indexImport is complete from our end as checkpoint need to be preserved
+            updateIndexImporterState(IndexImportState.BRING_INDEX_UPTODATE, null, true);
+        } else {
+            if (nodeStore.release(indexerInfo.checkpoint)) {
+                LOG.info("Released the referred checkpoint [{}]", indexerInfo.checkpoint);
+                updateIndexImporterState(IndexImportState.BRING_INDEX_UPTODATE, IndexImportState.RELEASE_CHECKPOINT, true);
+            }
+        }
     }
 
     private void incrementReIndexCount(NodeBuilder definition) {
@@ -324,6 +454,27 @@ public class IndexImporter {
         @Override
         public String toString() {
             return indexPath;
+        }
+    }
+
+    interface IndexImporterStepExecutor {
+        void execute() throws CommitFailedException, IOException;
+    }
+
+    void runWithRetry(int maxRetries, IndexImportState indexImportState, IndexImporterStepExecutor step) throws CommitFailedException, IOException {
+        int count = 1;
+        while (count <= maxRetries) {
+            LOG.info("IndexImporterStepExecutor:{} ,count:{}", indexImportState, count);
+            try {
+                step.execute();
+                break;
+            } catch (CommitFailedException | IOException e) {
+                LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
+                if (count++ >= maxRetries) {
+                    LOG.warn("IndexImporterStepExecutor:{} failed after {} retries", indexImportState, maxRetries, e);
+                    throw e;
+                }
+            }
         }
     }
 

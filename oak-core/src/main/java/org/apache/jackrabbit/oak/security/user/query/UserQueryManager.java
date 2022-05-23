@@ -273,7 +273,7 @@ public class UserQueryManager {
                     statement, javax.jcr.query.Query.XPATH, limit, offset,
                     NO_BINDINGS, namePathMapper.getSessionLocalMappings());
             Iterable<? extends ResultRow> resultRows = query.getRows();
-            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager, root, type));
+            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager, root, type, query.getSelectorNames()));
             return Iterators.filter(authorizables, new UniqueResultPredicate());
         } catch (ParseException e) {
             throw new RepositoryException("Invalid user query "+statement, e);

@@ -108,6 +108,7 @@ public class TermQueryBuilderFactory {
 
         R first = pr.first != null ? propToObj.apply(pr.first) : null;
         R last = pr.last != null ? propToObj.apply(pr.last) : null;
+        R not = pr.not != null ? propToObj.apply(pr.not) : null;
         if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                 && pr.lastIncluding) {
             // [property]=[value]
@@ -125,7 +126,12 @@ public class TermQueryBuilderFactory {
             return newInQuery(propertyName, pr.list.stream()
                     .map(propToObj)
                     .collect(Collectors.toList()));
-        }  else {
+        }  else if (pr.isNot && pr.not!= null){
+            // MUST_NOT [property]=[value]
+            return boolQuery()
+                    // This helps with the NOT equal to condition for given property
+                    .mustNot(termQuery(propertyName, not));
+        } else {
             return null;
         }
     }

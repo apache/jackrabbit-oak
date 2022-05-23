@@ -240,8 +240,7 @@ class UserProvider extends AuthorizableBaseProvider {
 
             Iterator<? extends ResultRow> rows = result.getRows().iterator();
             if (rows.hasNext()) {
-                String path = rows.next().getPath();
-                return root.getTree(path);
+                return rows.next().getTree(null);
             }
         } catch (ParseException ex) {
             log.error("Failed to retrieve authorizable by principal", ex);

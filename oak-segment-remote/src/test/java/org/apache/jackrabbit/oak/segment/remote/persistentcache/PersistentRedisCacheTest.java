@@ -64,7 +64,7 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
                 port,
                 -1,
                 10000,
-                50,
+                1000,
                 10,
                 2000,
                 200000,

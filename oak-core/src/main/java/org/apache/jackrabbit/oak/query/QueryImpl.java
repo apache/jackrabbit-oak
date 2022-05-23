@@ -1201,7 +1201,13 @@ public class QueryImpl implements Query {
         }
 
         if (potentiallySlowTraversalQuery || bestIndex == null) {
-            LOG.debug("no proper index was found for filter {}", filter);
+            // Log warning for fulltext queries without index, since these cannot return results
+            if(!filter.getFulltextConditions().isEmpty()) { 
+                LOG.warn("Fulltext query without index for filter {}; no results will be returned", filter);
+            } else {
+                LOG.debug("no proper index was found for filter {}", filter);      
+            }
+            
             StatisticsProvider statisticsProvider = getSettings().getStatisticsProvider();
             if (statisticsProvider != null) {
                 HistogramStats histogram = statisticsProvider.getHistogram(INDEX_UNAVAILABLE, StatsOptions.METRICS_ONLY);

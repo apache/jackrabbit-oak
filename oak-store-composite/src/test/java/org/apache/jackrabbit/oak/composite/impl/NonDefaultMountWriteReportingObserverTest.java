@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.composite.MountInfoPropsBuilder;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.composite.impl.NonDefaultMountWriteReportingObserver.ChangeReporter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -47,8 +48,7 @@ public class NonDefaultMountWriteReportingObserverTest {
     
     @Before
     public void prepare() {
-
-        context.registerInjectActivateService(new MountInfoProviderService(), "mountedPaths", new String[] { "/foo/bar"});
+        registerMountInfoProviderService();
         observer = context.registerInjectActivateService(new NonDefaultMountWriteReportingObserver(), "ignoredClassNameFragments", "MarkerToBeIgnored");
         reporter = new SpyChangeReporter();
         observer.setReporter(reporter);
@@ -196,6 +196,14 @@ public class NonDefaultMountWriteReportingObserverTest {
         nodeStore.merge(builder2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
         assertThat(reporter.changes, equalTo(Arrays.asList("Changed|/foo/bar", "Deleted|/foo/bar/baz")));        
+    }
+
+    private void registerMountInfoProviderService() {
+        MountInfoProviderService mountInfoProviderService = new MountInfoProviderService();
+        context.registerService(mountInfoProviderService);
+        mountInfoProviderService.activate(context.bundleContext(), new MountInfoPropsBuilder()
+            .withMountPaths("/foo/bar")
+            .buildProviderServiceProps());
     }
     
     static class SpyChangeReporter extends ChangeReporter {

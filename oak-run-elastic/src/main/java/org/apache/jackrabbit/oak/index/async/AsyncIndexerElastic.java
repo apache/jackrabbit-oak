@@ -24,8 +24,12 @@ import org.apache.jackrabbit.oak.index.ElasticIndexOptions;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+
 import java.util.List;
 
 public class AsyncIndexerElastic extends AsyncIndexerBase {
@@ -46,15 +50,16 @@ public class AsyncIndexerElastic extends AsyncIndexerBase {
                         indexOpts.getElasticHost(),
                         indexOpts.getElasticPort()
                 );
-        final ElasticConnection coordinate;
+        final ElasticConnection connection;
         if (indexOpts.getApiKeyId() != null && indexOpts.getApiKeySecret() != null) {
-            coordinate = buildStep.withApiKeys(indexOpts.getApiKeyId(), indexOpts.getApiKeySecret()).build();
+            connection = buildStep.withApiKeys(indexOpts.getApiKeyId(), indexOpts.getApiKeySecret()).build();
         } else {
-            coordinate = buildStep.build();
+            connection = buildStep.build();
         }
-        closer.register(coordinate);
+        closer.register(connection);
 
-        return new ElasticIndexEditorProvider(coordinate,
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        return new ElasticIndexEditorProvider(indexTracker, connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
     }
 }

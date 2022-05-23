@@ -31,6 +31,7 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
+import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 import org.bson.Document;
@@ -178,7 +179,8 @@ class MongoUtils {
                 || t instanceof MongoNotPrimaryException) {
             type = Type.TRANSIENT;
         } else if (t instanceof MongoCommandException
-                || t instanceof WriteConcernException) {
+                || t instanceof WriteConcernException
+                || t instanceof MongoWriteConcernWithResponseException) {
             int code = ((MongoException) t).getCode();
             if (code == 11600               // InterruptedAtShutdown
                     || code == 11601        // Interrupted

@@ -22,8 +22,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,6 +113,18 @@ public class ElasticDocument {
             builder.startObject();
             {
                 builder.field(FieldNames.PATH, path);
+                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
+                    builder.startArray(f.getKey());
+                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
+                        builder.startObject();
+                        builder.field("value", v.getKey());
+                        builder.field("boost", v.getValue());
+                        builder.endObject();
+                        // also add into fulltext field
+                        addFulltext(v.getKey());
+                    }
+                    builder.endArray();
+                }
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
@@ -131,16 +143,6 @@ public class ElasticDocument {
                 }
                 for (Map.Entry<String, List<Object>> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue().size() == 1 ? prop.getValue().get(0) : prop.getValue());
-                }
-                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
-                    builder.startArray(f.getKey());
-                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
-                        builder.startObject();
-                        builder.field("value", v.getKey());
-                        builder.field("boost", v.getValue());
-                        builder.endObject();
-                    }
-                    builder.endArray();
                 }
                 if (!similarityTags.isEmpty()) {
                     builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);

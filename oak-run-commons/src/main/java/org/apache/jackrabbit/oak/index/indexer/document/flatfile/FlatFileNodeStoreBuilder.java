@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.google.common.collect.Iterables;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,13 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Predicate;
 
 import static java.util.Collections.unmodifiableSet;
 
@@ -51,24 +53,43 @@ public class FlatFileNodeStoreBuilder {
      * System property name for sort strategy. This takes precedence over {@link #OAK_INDEXER_TRAVERSE_WITH_SORT}.
      * Allowed values are the values from enum {@link SortStrategyType}
      */
-    static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
-    private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
-
+    public static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
+    public static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
 
     /**
      * Default value for {@link #PROP_THREAD_POOL_SIZE}
      */
-    static final String DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = "4";
+    static final int DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = 8;
     /**
      * System property for specifying number of threads for parallel download when using {@link MultithreadedTraverseWithSortStrategy}
      */
     static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
 
     /**
+     * Default value for {@link #PROP_MERGE_THREAD_POOL_SIZE}
+     */
+    static final int DEFAULT_NUMBER_OF_MERGE_TASK_THREADS = 1;
+    /**
+     * System property for specifying number of threads for parallel merge when using {@link MultithreadedTraverseWithSortStrategy}
+     */
+    static final String PROP_MERGE_THREAD_POOL_SIZE = "oak.indexer.mergeTaskThreadPoolSize";
+
+    /**
+     * Default value for {@link #PROP_MERGE_TASK_BATCH_SIZE}
+     */
+    static final int DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK = 64;
+    /**
+     * System property for specifying number of files for batch merge task when using {@link MultithreadedTraverseWithSortStrategy}
+     */
+    static final String PROP_MERGE_TASK_BATCH_SIZE = "oak.indexer.mergeTaskBatchSize";
+
+    /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
+    static final String OAK_INDEXER_DUMP_THRESHOLD_IN_MB = "oak.indexer.dumpThresholdInMB";
+    static final int OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT = 16;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private List<Long> lastModifiedBreakPoints;
     private final File workDir;
@@ -81,6 +102,8 @@ public class FlatFileNodeStoreBuilder {
     private long entryCount = 0;
     private File flatFileStoreDir;
     private final MemoryManager memoryManager;
+    private long dumpThreshold = Integer.getInteger(OAK_INDEXER_DUMP_THRESHOLD_IN_MB, OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT) * FileUtils.ONE_MB;
+    private Predicate<String> pathPredicate = path -> true;
 
     private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
@@ -123,6 +146,11 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    public FlatFileNodeStoreBuilder withDumpThreshold(long dumpThreshold) {
+        this.dumpThreshold = dumpThreshold;
+        return this;
+    }
+
     public FlatFileNodeStoreBuilder withPreferredPathElements(Set<String> preferredPathElements) {
         this.preferredPathElements = preferredPathElements;
         return this;
@@ -137,6 +165,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withNodeStateEntryTraverserFactory(NodeStateEntryTraverserFactory factory) {
         this.nodeStateEntryTraverserFactory = factory;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withPathPredicate(Predicate<String> pathPredicate) {
+        this.pathPredicate = pathPredicate;
         return this;
     }
 
@@ -178,14 +211,14 @@ public class FlatFileNodeStoreBuilder {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy");
-                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip);
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
-                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip);
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager);
+                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager, dumpThreshold, pathPredicate);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

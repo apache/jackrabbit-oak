@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
@@ -624,6 +625,9 @@ public class DefaultSyncContext implements SyncContext {
             String relPath = entry.getKey();
             String name = entry.getValue();
             Object obj = properties.get(name);
+            if (obj instanceof Supplier) {
+                obj = ((Supplier) obj).get();
+            }
             if (obj == null) {
                 int nameLen = name.length();
                 if (nameLen > 1 && name.charAt(0) == '"' && name.charAt(nameLen-1) == '"') {

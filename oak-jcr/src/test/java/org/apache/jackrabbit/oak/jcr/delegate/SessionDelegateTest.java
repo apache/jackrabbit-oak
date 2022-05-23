@@ -17,14 +17,21 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.state.ReadyOnlyBuilderException;
 import org.junit.Test;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 public class SessionDelegateTest extends AbstractDelegatorTest {
 
@@ -68,4 +75,38 @@ public class SessionDelegateTest extends AbstractDelegatorTest {
         delegate.refresh(false);
         verify(pp, times(6)).refresh();
     }
+    
+    @Test(expected = ConstraintViolationException.class)
+    public void testModificationOnReadonlyBuilder() throws RepositoryException {
+        PermissionProvider pp = mock(PermissionProvider.class);
+        Root r = mockRoot(pp, false);
+        SessionDelegate delegate = mockSessionDelegate(r, pp);
+        @SuppressWarnings("unchecked")
+        SessionOperation<Long> op = (SessionOperation<Long>) mock(SessionOperation.class);
+        when(op.perform()).thenThrow(new ReadyOnlyBuilderException("readonly builder"));
+        delegate.perform(op);
+    }
+    
+    @Test(expected = ConstraintViolationException.class)
+    public void testModificationOnReadonlyBuilder_nullable() throws RepositoryException {
+        PermissionProvider pp = mock(PermissionProvider.class);
+        Root r = mockRoot(pp, false);
+        SessionDelegate delegate = mockSessionDelegate(r, pp);
+        @SuppressWarnings("unchecked")
+        SessionOperation<Long> op = (SessionOperation<Long>) mock(SessionOperation.class);
+        when(op.performNullable()).thenThrow(new ReadyOnlyBuilderException("readonly builder"));
+        delegate.performNullable(op);
+    }
+    
+    @Test(expected = ConstraintViolationException.class)
+    public void testModificationOnReadonlyBuilder_void() throws RepositoryException {
+        PermissionProvider pp = mock(PermissionProvider.class);
+        Root r = mockRoot(pp, false);
+        SessionDelegate delegate = mockSessionDelegate(r, pp);
+        @SuppressWarnings("unchecked")
+        SessionOperation<Void> op = (SessionOperation<Void>) mock(SessionOperation.class);
+        doThrow(new ReadyOnlyBuilderException("readonly builder")).when(op).performVoid();
+        delegate.performVoid(op);
+    }
+    
 }

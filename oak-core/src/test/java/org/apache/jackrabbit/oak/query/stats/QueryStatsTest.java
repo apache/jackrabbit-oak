@@ -17,12 +17,32 @@
 package org.apache.jackrabbit.oak.query.stats;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Properties;
+
 public class QueryStatsTest {
+
+    private Properties systemProperties;
+    private int maxQuerySize = 2000;
+
+    @Before
+    public void setup() {
+        systemProperties =(Properties) System.getProperties().clone();
+        System.setProperty("oak.query.maxQuerySize", "" + maxQuerySize);
+    }
+
+    @After
+    public void teardown() {
+        System.setProperties(systemProperties);
+    }
 
     @Test
     public void testEviction() throws InterruptedException {
@@ -55,5 +75,23 @@ public class QueryStatsTest {
             assertTrue(json.indexOf("slow" + i) >= 0);
         }
         assertTrue(json.indexOf("old") < 0);
+    }
+
+    @Test
+    public void testTruncation() throws InterruptedException {
+        QueryEngineSettings qes = new QueryEngineSettings();
+        QueryStatsMBeanImpl bean = new QueryStatsMBeanImpl(qes);
+        String generatedString = RandomStringUtils.random(5000, true, false);
+        bean.getQueryExecution(generatedString, "");
+
+        String data = bean.getPopularQueries().values().iterator().next().toString();
+        assertFalse(data.contains(generatedString));
+        String statLog = new StringBuilder()
+                .append("Truncated query: ")
+                .append(generatedString.substring(0, maxQuerySize >> 1))
+                .append(" ...... ")
+                .append(generatedString.substring(generatedString.length() - (maxQuerySize >> 1)))
+                .toString();
+        assertTrue(data.contains(statLog));
     }
 }

@@ -19,21 +19,17 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 import static java.util.Collections.emptySet;
@@ -51,6 +47,10 @@ public class TestUtils {
         return sortPaths(paths, new PathElementComparator(preferredElements));
     }
 
+    static List<String> extractPredicatePaths(List<String> paths, Predicate<String> pathPredicate) {
+        return paths.stream().filter(pathPredicate).collect(toList());
+    }
+
     static List<String> sortPaths(List<String> paths, Comparator<Iterable<String>> comparator) {
         List<Iterable<String>> copy = paths.stream()
                 .map(p -> copyOf(elements(p)))
@@ -65,14 +65,18 @@ public class TestUtils {
     }
 
     static Iterable<NodeStateEntry> createEntries(List<String> paths) {
-        return Iterables.transform(paths, p -> new NodeStateEntryBuilder(createNodeState(p), p).build());
+        return Iterables.transform(paths, p -> new NodeStateEntryBuilder(createNodeState(p), p).withID(getID(p)).build());
     }
 
-    static Iterable<NodeStateEntry> createEntriesWithLastModified(Map<String, Long> paths) {
-        return Iterables.transform(paths.keySet(), p -> new NodeStateEntryBuilder(createNodeState(p), p).withLastModified(paths.get(p)).build());
+    static String getID(String path) {
+        int slashCount = 0, fromIndex = 0;
+        while ( (fromIndex = path.indexOf("/", fromIndex) + 1) != 0) {
+            slashCount++;
+        }
+        return slashCount + ":" + path;
     }
 
-    private static NodeState createNodeState(String p) {
+    static NodeState createNodeState(String p) {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("path", p);
         return builder.getNodeState();

@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -115,7 +115,9 @@ class ElasticIndexHelper {
                         settingsBuilder.field("generate_word_parts", true);
                         settingsBuilder.field("stem_english_possessive", true);
                         settingsBuilder.field("generate_number_parts", true);
-                        settingsBuilder.field("preserve_original", indexDefinition.indexOriginalTerms());
+                        settingsBuilder.field("split_on_numerics", indexDefinition.analyzerConfigSplitOnNumerics());
+                        settingsBuilder.field("split_on_case_change", indexDefinition.analyzerConfigSplitOnCaseChange());
+                        settingsBuilder.field("preserve_original", indexDefinition.analyzerConfigIndexOriginalTerms());
                     }
                     settingsBuilder.endObject();
 

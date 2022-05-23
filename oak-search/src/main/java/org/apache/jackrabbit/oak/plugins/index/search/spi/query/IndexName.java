@@ -230,19 +230,24 @@ public class IndexName implements Comparable<IndexName> {
         return baseName + "-" + productVersion + "-custom-" + (customerVersion + 1);
     }
 
-    private static boolean isIndexActive(String indexPath, NodeState rootState) {
+    public static boolean isIndexActive(String indexPath, NodeState rootState) {
         // An index is active if it has a hidden child node that starts with ":oak:mount-",
         // OR if it is an active merged index
-        NodeState indexNode = rootState;
-        for(String e : PathUtils.elements(indexPath)) {
-            indexNode = indexNode.getChildNode(e);
-        }
-        for(String c : indexNode.getChildNodeNames()) {
-            if (c.startsWith(":oak:mount-")) {
-                return true;
+        try {
+            NodeState indexNode = rootState;
+            for (String e : PathUtils.elements(indexPath)) {
+                indexNode = indexNode.getChildNode(e);
             }
+            for (String c : indexNode.getChildNodeNames()) {
+                if (c.startsWith(":oak:mount-")) {
+                    return true;
+                }
+            }
+            return isIndexActiveMerged(indexNode, rootState);
+        } catch (StackOverflowError e) {
+            LOG.error("Fail to check index activeness for {} due to StackOverflowError", indexPath, e);
+            return true;
         }
-        return isIndexActiveMerged(indexNode, rootState);
     }
 
     private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState) {

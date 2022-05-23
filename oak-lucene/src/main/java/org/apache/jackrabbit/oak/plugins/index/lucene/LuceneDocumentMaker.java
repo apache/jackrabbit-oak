@@ -53,12 +53,20 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPat
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 
 public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
+    // Lucene doesn't support indexing data larger than 32766 (OAK-9707)
+    public static final int STRING_PROPERTY_MAX_LENGTH = 32766;
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
 
     private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
+    
+    // warn once every 10 seconds at most
+    private static final long DUPLICATE_WARNING_INTERVAL_MS = 10 * 1000;
 
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
+    
+    // when did we warn (static, as we construct new objects quite often)
+    private static long lastDuplicateWarning;
 
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
@@ -278,13 +286,25 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 f = new SortedDocValuesField(name,
                         new BytesRef(property.getValue(Type.BOOLEAN).toString()));
             } else if (tag == Type.STRING.tag()) {
-                f = new SortedDocValuesField(name,
-                        new BytesRef(property.getValue(Type.STRING)));
+                String stringValue = property.getValue(Type.STRING);
+                if (stringValue.length() > STRING_PROPERTY_MAX_LENGTH){
+                    log.warn("Truncating property {} having length {} at path:[{}] as it is > {}", name, stringValue.length(), this.path, STRING_PROPERTY_MAX_LENGTH);
+                    stringValue = stringValue.substring(0, STRING_PROPERTY_MAX_LENGTH);
+                }
+                f = new SortedDocValuesField(name, new BytesRef(stringValue));
             }
 
             if (f != null && includePropertyValue(property, 0, pd)) {
-                doc.add(f);
-                fieldAdded = true;
+                if (doc.getField(f.name()) == null) {
+                    doc.add(f);
+                    fieldAdded = true;
+                } else {
+                    long now = System.currentTimeMillis();
+                    if (now > lastDuplicateWarning + DUPLICATE_WARNING_INTERVAL_MS) {
+                        log.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
+                        lastDuplicateWarning = now;
+                    }
+                }
             }
         } catch (Exception e) {
             log.warn(

@@ -14,30 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.query;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class ElasticIndexNode implements IndexNode {
 
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
     private final ElasticIndexStatistics indexStatistics;
-    private final ElasticMetricHandler elasticMetricHandler;
 
     public ElasticIndexNode(@NotNull NodeState root, @NotNull String indexPath,
-                            @NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
+                            @NotNull ElasticConnection elasticConnection) {
         final NodeState indexNS = NodeStateUtils.getNode(root, indexPath);
         this.elasticConnection = elasticConnection;
-        this.elasticMetricHandler = elasticMetricHandler;
         this.indexDefinition = new ElasticIndexDefinition(root, indexNS, indexPath, elasticConnection.getIndexPrefix());
         this.indexStatistics = new ElasticIndexStatistics(elasticConnection, indexDefinition);
     }
@@ -64,11 +57,7 @@ public class ElasticIndexNode implements IndexNode {
     }
 
     @Override
-    public @Nullable IndexStatistics getIndexStatistics() {
+    public @NotNull ElasticIndexStatistics getIndexStatistics() {
         return indexStatistics;
-    }
-
-    public ElasticMetricHandler getElasticMetricHandler() {
-        return elasticMetricHandler;
     }
 }

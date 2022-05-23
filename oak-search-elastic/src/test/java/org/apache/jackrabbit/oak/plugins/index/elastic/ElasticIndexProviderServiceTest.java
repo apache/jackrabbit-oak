@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -47,6 +48,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProvid
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 public class ElasticIndexProviderServiceTest {
 
@@ -71,6 +73,7 @@ public class ElasticIndexProviderServiceTest {
         context.registerService(MountInfoProvider.class, mip);
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        context.registerService(AsyncIndexInfoService.class, mock(AsyncIndexInfoService.class));
 
         wb = new OsgiWhiteboard(context.bundleContext());
         MockOsgi.injectServices(service, context.bundleContext());

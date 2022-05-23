@@ -19,16 +19,13 @@ package org.apache.jackrabbit.oak.security.user.query;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.user.AbstractUserTest;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -61,12 +58,11 @@ public class ResultRowToAuthorizableTest extends AbstractUserTest {
     @NotNull
     private ResultRowToAuthorizable createResultRowToAuthorizable(@NotNull Root r, @Nullable AuthorizableType targetType) {
         UserManagerImpl umgr = createUserManagerImpl(r);
-        return new ResultRowToAuthorizable(umgr, r, targetType);
+        return new ResultRowToAuthorizable(umgr, r, targetType, new String[0]);
     }
 
-    private static ResultRow createResultRow(@NotNull String path) {
-        PropertyValue propValue = PropertyValues.newPath(path);
-        return when(mock(ResultRow.class).getValue(QueryConstants.JCR_PATH)).thenReturn(propValue).getMock();
+    private static ResultRow createResultRow(@NotNull Tree tree) {
+        return when(mock(ResultRow.class).getTree(null)).thenReturn(tree).getMock();
     }
 
     @Test
@@ -76,20 +72,18 @@ public class ResultRowToAuthorizableTest extends AbstractUserTest {
 
     @Test
     public void testRowToNonExistingTree() {
-        PropertyValue propValue = PropertyValues.newPath("/path/to/nonExisting/tree");
-        ResultRow row = when(mock(ResultRow.class).getValue(QueryConstants.JCR_PATH)).thenReturn(propValue).getMock();
-        assertNull(groupRrta.apply(row));
+        assertNull(groupRrta.apply(createResultRow(root.getTree("/path/to/nonExisting/tree"))));
     }
 
     @Test
     public void testRowToRootTree() {
-        assertNull(groupRrta.apply(createResultRow(PathUtils.ROOT_PATH)));
+        assertNull(groupRrta.apply(createResultRow(root.getTree(PathUtils.ROOT_PATH))));
     }
 
     @Test
     public void testRowToUserTree() throws Exception {
         User user = getTestUser();
-        ResultRow row = createResultRow(user.getPath());
+        ResultRow row = createResultRow(root.getTree(user.getPath()));
 
         assertNull(groupRrta.apply(row));
 
@@ -103,7 +97,7 @@ public class ResultRowToAuthorizableTest extends AbstractUserTest {
         User user = getTestUser();
         Tree t = root.getTree(user.getPath());
         t = TreeUtil.addChild(t, "child", NT_OAK_UNSTRUCTURED);
-        ResultRow row = createResultRow(t.getPath());
+        ResultRow row = createResultRow(t);
 
         assertNull(groupRrta.apply(row));
 
@@ -115,7 +109,8 @@ public class ResultRowToAuthorizableTest extends AbstractUserTest {
     @Test
     public void testRowToNonExistingUserSubTree() throws Exception {
         User user = getTestUser();
-        ResultRow row = createResultRow(PathUtils.concat(user.getPath(), "child"));
+        Tree tree = root.getTree(user.getPath()).getChild("child");
+        ResultRow row = createResultRow(tree);
 
         assertNull(userRrta.apply(row));
     }
@@ -128,7 +123,7 @@ public class ResultRowToAuthorizableTest extends AbstractUserTest {
         try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
             Root r = cs.getLatestRoot();
             ResultRowToAuthorizable rrta = createResultRowToAuthorizable(r, null);
-            assertNull(rrta.apply(createResultRow(userPath)));
+            assertNull(rrta.apply(createResultRow(r.getTree(userPath))));
         }
     }
 }

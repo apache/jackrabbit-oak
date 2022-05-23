@@ -1117,6 +1117,56 @@ public class FunctionIndexTest extends AbstractQueryTest {
 
     }
 
+    @Test
+    public void duplicateFunctionInIndex() throws Exception {
+        // Index def with same property - ordered - one with function and one without
+        Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+        Tree prop = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE);
+        Tree upper1 = prop.addChild("upper1");
+        upper1.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        upper1.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+        Tree upper2 = prop.addChild("upper2");
+        upper2.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        upper2.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+        Tree upper3 = prop.addChild("upper3");
+        upper3.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+        Tree upper4 = prop.addChild("upper4");
+        upper4.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+
+        root.commit();
+
+        int i = 1;
+        // Create nodes that will be served by the index definition that follows
+        for (String node : asList("a", "c", "b", "e", "d")) {
+
+            Tree test = root.getTree("/").addChild(node);
+            test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+            Tree a = test.addChild("jcr:content");
+            a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+            Tree b = a.addChild("n");
+
+            b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            b.setProperty("foo", "bar"+i);
+            i++;
+        }
+
+        root.commit();
+
+        // Check ordering works for func and non func properties
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo])",
+                "lucene:upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
+                "lucene:upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+    }
+
     /*
     Given an index def with 2 orderable property definitions(non-relative) for same property - one with function and one without
     Indexer should index any changes properly and ordering should work as expected.

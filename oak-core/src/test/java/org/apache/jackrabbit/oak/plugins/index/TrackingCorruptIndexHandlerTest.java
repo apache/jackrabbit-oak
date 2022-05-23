@@ -21,9 +21,16 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -32,6 +39,12 @@ public class TrackingCorruptIndexHandlerTest {
 
     private TrackingCorruptIndexHandler handler = new TrackingCorruptIndexHandler();
     private Clock clock = new Clock.Virtual();
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+
+    @After
+    public void cleanup() {
+        scheduledExecutorService.shutdown();
+    }
 
     @Test
     public void basics() throws Exception{
@@ -49,6 +62,25 @@ public class TrackingCorruptIndexHandlerTest {
 
         handler.markWorkingIndexes(Collections.singleton("/oak:index/foo"));
         assertFalse(handler.getCorruptIndexData("async").containsKey("/oak:index/foo"));
+    }
+
+    @Test
+    public void testCorruptCounter() {
+        MeterStats meter = new DefaultStatisticsProvider(scheduledExecutorService).
+                getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME, StatsOptions.METRICS_ONLY);
+
+        handler.setMeterStats(meter);
+        handler.setClock(clock);
+        handler.indexUpdateFailed("async", "/oak:index/foo", new Exception());
+        assertEquals(1, meter.getCount());
+        handler.indexUpdateFailed("async", "/oak:index/bar", new Exception());
+        assertEquals(2, meter.getCount());
+
+        HashSet<String> set = new HashSet<>();
+        set.add("/oak:index/foo");
+        handler.markWorkingIndexes(set);
+
+        assertEquals(1, meter.getCount());
     }
 
     @Test

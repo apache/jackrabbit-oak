@@ -18,16 +18,17 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-
-import static java.util.Arrays.asList;
+import java.util.Collections;
 
 /*
 Out of band indexer for Elasticsearch. Provides support to index segment store for  given index definitions or reindex existing indexes
@@ -56,7 +57,7 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
     @Override
     protected IndexEditorProvider createIndexEditorProvider() {
         IndexEditorProvider elastic = createElasticEditorProvider();
-        return CompositeIndexEditorProvider.compose(asList(elastic));
+        return CompositeIndexEditorProvider.compose(Collections.singletonList(elastic));
     }
 
     private IndexEditorProvider createElasticEditorProvider() {
@@ -67,15 +68,16 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
                         host,
                         port
                 );
-        final ElasticConnection coordinate;
+        final ElasticConnection connection;
         if (apiKeyId != null && apiSecretId != null) {
-            coordinate = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
+            connection = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
         } else {
-            coordinate = buildStep.build();
+            connection = buildStep.build();
         }
-        closer.register(coordinate);
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
+        closer.register(connection);
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+                new ElasticMetricHandler(StatisticsProvider.NOOP));
+        return new ElasticIndexEditorProvider(indexTracker, connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        return editorProvider;
     }
 }

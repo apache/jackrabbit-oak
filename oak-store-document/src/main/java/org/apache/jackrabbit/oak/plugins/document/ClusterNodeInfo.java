@@ -20,12 +20,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.ACTIVE;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.NONE;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState.ACQUIRED;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asISO8601;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 
 import java.lang.management.ManagementFactory;
 import java.net.NetworkInterface;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -176,6 +176,11 @@ public class ClusterNodeInfo {
     public static final String INVISIBLE = "invisible";
 
     /**
+     * Runtime UUID (generated unique ID for this instance)
+     */
+    public static final String RUNTIME_ID_KEY = "runtime_id";
+
+    /**
      * The unique machine id (the MAC address if available).
      */
     private static final String MACHINE_ID = getHardwareMachineId();
@@ -292,20 +297,6 @@ public class ClusterNodeInfo {
     private volatile long leaseEndTime;
 
     /**
-     * The value of leaseEnd last updated towards DocumentStore -
-     * this one is used to compare against (for OAK-3398) when checking
-     * if any other instance updated the lease or if the lease is unchanged.
-     * (This is kind of a duplication of the leaseEndTime field, yes - but the semantics
-     * are that previousLeaseEndTime exactly only serves the purpose of
-     * keeping the value of what was stored in the previous lease update.
-     * leaseEndTime on the other hand serves the purpose of *defining the lease end*,
-     * these are two different concerns, thus justify two different fields.
-     * the leaseEndTime for example can be manipulated during tests therefore,
-     * without interfering with previousLeaseEndTime)
-     */
-    private long previousLeaseEndTime;
-
-    /**
      * The read/write mode.
      */
     private String readWriteMode;
@@ -348,18 +339,22 @@ public class ClusterNodeInfo {
      */
     private boolean invisible;
 
+    /**
+     * Unique ID generated at Runtime.
+     */
+    private final String runtimeId;
 
     private ClusterNodeInfo(int id, DocumentStore store, String machineId,
                             String instanceId, boolean newEntry, boolean invisible) {
         this.id = id;
         this.startTime = getCurrentTime();
         this.leaseEndTime = this.startTime +leaseTime;
-        this.previousLeaseEndTime = this.leaseEndTime;
         this.store = store;
         this.machineId = machineId;
         this.instanceId = instanceId;
         this.newEntry = newEntry;
         this.invisible = invisible;
+        this.runtimeId = UUIDUtils.generateUUID();
     }
 
     void setLeaseCheckMode(@NotNull LeaseCheckMode mode) {
@@ -380,6 +375,10 @@ public class ClusterNodeInfo {
 
     String getInstanceId() {
         return instanceId;
+    }
+
+    String getRuntimeId() {
+        return runtimeId;
     }
 
     boolean isInvisible() {
@@ -483,6 +482,7 @@ public class ClusterNodeInfo {
             update.set(STATE, ACTIVE.name());
             update.set(OAK_VERSION_KEY, OAK_VERSION);
             update.set(INVISIBLE, invisible);
+            update.set(RUNTIME_ID_KEY, clusterNode.runtimeId);
 
             ClusterNodeInfoDocument before = null;
             final boolean success;
@@ -651,19 +651,24 @@ public class ClusterNodeInfo {
 
         String machineInfo = clusterNode.machineId;
         String instanceInfo = clusterNode.instanceId;
+        String runtimeInfo = clusterNode.runtimeId;
         if (before != null) {
             // machineId or instanceId may have changed
             String beforeMachineId = String.valueOf(before.get(MACHINE_ID_KEY));
             String beforeInstanceId = String.valueOf(before.get(INSTANCE_ID_KEY));
+            String beforeRuntimeId = String.valueOf(before.get(RUNTIME_ID_KEY));
             if (!clusterNode.machineId.equals(beforeMachineId)) {
                 machineInfo = "(changed) " + beforeMachineId + " -> " + machineInfo;
             }
             if (!clusterNode.instanceId.equals(beforeInstanceId)) {
                 instanceInfo = "(changed) " + beforeInstanceId + " -> " + instanceInfo;
             }
+            if (!clusterNode.runtimeId.equals(beforeRuntimeId)) {
+                runtimeInfo = "(changed) " + beforeRuntimeId + " -> " + runtimeInfo;
+            }
         }
-        LOG.info("Acquired ({}) clusterId {}. MachineId {}, InstanceId {}",
-                type, clusterNode.getId(), machineInfo, instanceInfo);
+        LOG.info("Acquired ({}) clusterId {}. MachineId {}, InstanceId {}, RuntimeId {}",
+                type, clusterNode.getId(), machineInfo, instanceInfo, runtimeInfo);
 
     }
 
@@ -940,7 +945,8 @@ public class ClusterNodeInfo {
         }
 
         UpdateOp update = new UpdateOp("" + id, false);
-        update.set(LEASE_END_KEY, updatedLeaseEndTime);
+        // Update the field only if the newer value is higher (or doesn't exist)
+        update.max(LEASE_END_KEY, updatedLeaseEndTime);
 
         if (leaseCheckMode != LeaseCheckMode.DISABLED) {
             // if leaseCheckDisabled, then we just update the lease without
@@ -951,16 +957,13 @@ public class ClusterNodeInfo {
             // then we can now make an assertion that the lease is unchanged
             // and the incremental update must only succeed if no-one else
             // did a recover/inactivation in the meantime
-            // make three assertions: the leaseEnd must match ..
-            update.equals(LEASE_END_KEY, null, previousLeaseEndTime);
-            // plus it must still be active ..
+            // make three assertions: it must still be active
             update.equals(STATE, null, ACTIVE.name());
             // plus it must not have a recovery lock on it
             update.notEquals(REV_RECOVERY_LOCK, ACQUIRED.name());
-            // @TODO: to make it 100% failure proof we could introduce
-            // yet another field to clusterNodes: a runtimeId that we
-            // create (UUID) at startup each time - and against that
-            // we could also check here - but that goes a bit far IMO
+            // and the runtimeId that we create at startup each time
+            // should be the same
+            update.equals(RUNTIME_ID_KEY, null, runtimeId);
         }
 
         if (LOG.isDebugEnabled()) {
@@ -1016,7 +1019,6 @@ public class ClusterNodeInfo {
                 return false;
             }
             leaseEndTime = updatedLeaseEndTime;
-            previousLeaseEndTime = leaseEndTime; // store previousLeaseEndTime for reference for next time
             String mode = (String) doc.get(READ_WRITE_MODE_KEY);
             if (mode != null && !mode.equals(readWriteMode)) {
                 readWriteMode = mode;
@@ -1038,8 +1040,8 @@ public class ClusterNodeInfo {
             }
         }
         // if we get here, the update failed with an exception, try to read the
-        // current cluster node info document and update leaseEndTime &
-        // previousLeaseEndTime accordingly until leaseEndTime is reached
+        // current cluster node info document and update leaseEndTime
+        // accordingly until leaseEndTime is reached
         while (getCurrentTime() < updatedLeaseEndTime) {
             synchronized (this) {
                 if (leaseCheckFailed) {
@@ -1067,10 +1069,9 @@ public class ClusterNodeInfo {
                             "anymore. {}", id, doc);
                     // break here and let the next lease update attempt fail
                     break;
-                } else if (doc.getLeaseEndTime() == previousLeaseEndTime
-                        || doc.getLeaseEndTime() == updatedLeaseEndTime) {
-                    // set lease end times to current values
-                    previousLeaseEndTime = doc.getLeaseEndTime();
+                } else if (runtimeId.equals(doc.getRuntimeId())) {
+                    // set lease end time to current value, as they belong
+                    // to this same cluster node
                     leaseEndTime = doc.getLeaseEndTime();
                     break;
                 } else {
@@ -1140,6 +1141,7 @@ public class ClusterNodeInfo {
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);
         update.set(INVISIBLE, false);
+        update.set(RUNTIME_ID_KEY, null);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
         state = NONE;
     }
@@ -1150,6 +1152,7 @@ public class ClusterNodeInfo {
                 "startTime: " + startTime + ",\n" +
                 "machineId: " + machineId + ",\n" +
                 "instanceId: " + instanceId + ",\n" +
+                "runtimeId: " + runtimeId + ",\n" +
                 "pid: " + PROCESS_ID + ",\n" +
                 "uuid: " + uuid + ",\n" +
                 "readWriteMode: " + readWriteMode + ",\n" +
@@ -1291,8 +1294,4 @@ public class ClusterNodeInfo {
         }
         return new DocumentStoreException(msg);
     }
-
-    private static String asISO8601(long ms) {
-        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
-   }
 }

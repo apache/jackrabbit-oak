@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Function;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -33,6 +31,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
+
 /**
  * Function to convert query result rows {@link Authorizable}s of a given
  * target type.
@@ -44,12 +44,14 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
     private final UserManagerImpl userManager;
     private final Root root;
     private final AuthorizableType targetType;
+    private final String selectorName;
 
     ResultRowToAuthorizable(@NotNull UserManagerImpl userManager, @NotNull Root root,
-                            @Nullable AuthorizableType targetType) {
+                            @Nullable AuthorizableType targetType, @NotNull String[] selectorNames) {
         this.userManager = userManager;
         this.root = root;
         this.targetType = (targetType == null || AuthorizableType.AUTHORIZABLE == targetType) ? null : targetType;
+        this.selectorName = (selectorNames.length == 0) ? null : selectorNames[0];
     }
 
     @Nullable
@@ -63,9 +65,11 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
     private Authorizable getAuthorizable(@Nullable ResultRow row) {
         Authorizable authorizable = null;
         if (row != null) {
-            String resultPath = row.getValue(QueryConstants.JCR_PATH).getValue(Type.STRING);
+            Tree tree = row.getTree(selectorName);
+            if (!tree.exists()) {
+                return null;
+            }
             try {
-                Tree tree = root.getTree(resultPath);
                 AuthorizableType type = UserUtil.getType(tree);
                 while (tree.exists() && !tree.isRoot() && type == null) {
                     tree = tree.getParent();
@@ -75,7 +79,7 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
                     authorizable = userManager.getAuthorizable(tree);
                 }
             } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable {}", resultPath);
+                log.debug("Failed to access authorizable {}", row.getPath());
             }
         }
         return authorizable;

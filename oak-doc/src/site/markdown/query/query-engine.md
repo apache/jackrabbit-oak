@@ -28,6 +28,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
     * [Query Options](#Query_Options)
         * [Query Option Traversal](#Query_Option_Traversal)
         * [Query Option Index Tag](#Query_Option_Index_Tag)
+        * [Index Selection Policy](#Index_Selection_Policy)
     * [Compatibility](#Compatibility)
         * [Result Size](#Result_Size)
         * [Quoting](#Quoting)
@@ -199,8 +200,29 @@ Limitations:
 * The nodetype index only partially supports this feature: if a tag is specified in the query, then the nodetype index
   is not used. However, tags in the nodetype index itself are ignored currently.
 * There is currently no way to disable traversal that way.
-  So if the expected cost of traversal is very low, the query will traverse.
-  Note that traversal is never used for fulltext queries.
+  So if the expected cost of traversal is very low (lower than the cost of any index),
+  the query will traverse.
+  To avoid traversal, note that indexes support cost overrides,
+  and traversal is never used for fulltext queries.
+
+#### Index Selection Policy
+
+`@since Oak 1.42.0 (OAK-9587)`
+
+To ensure an index is only used if the `option(index tag <tagName>)` is specified,
+certain index types support the `selectionPolicy`.
+If set to the value `tag`, an index is only used for queries
+that specify `option(index tag x)`, where `x` is one of the tags of this index.
+
+This feature allows to safely add an index, without risking that existing queries
+that don't specify the index tag will switch to this new index.
+
+Limitations:
+
+* This is currently supported in indexes of type `lucene` compatVersion 2, and type `property`.
+* For indexes of type `lucene`, when adding or changing the property `selectionPolicy`,
+  you need to also set the property `refresh` to `true` (Boolean),
+  so that the change is applied. No indexing is required.
 
 ### Compatibility
 
@@ -514,7 +536,7 @@ Clients wanting to obtain spellchecks could use the following JCR code:
     RowIterator it = result.getRows();
     String spellchecks = "";
     if (it.hasNext()) {
-        spellchecks = row.getValue("rep:spellcheck()").getString()
+        spellchecks = it.getValue("rep:spellcheck()").getString()
     }
 
 The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
@@ -529,7 +551,7 @@ The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w
     RowIterator it = result.getRows();
     List<String> spellchecks = new LinkedList<String>();
     while (it.hasNext()) {
-        spellchecks.add(row.getValue("rep:spellcheck()").getString());
+        spellchecks.add(it.getValue("rep:spellcheck()").getString());
     }
 
 If either Lucene or Solr were configured to provide the spellcheck feature, see
@@ -565,7 +587,7 @@ Clients wanting to obtain suggestions could use the following JCR code:
     RowIterator it = result.getRows();
     String suggestions = "";
     if (it.hasNext()) {
-        suggestions = row.getValue("rep:suggest()").getString()
+        suggestions = it.getValue("rep:suggest()").getString()
     }
 
 The `suggestions` String would be have the following pattern
@@ -583,7 +605,7 @@ The `suggestions` String would be have the following pattern
     RowIterator it = result.getRows();
     List<String> suggestions = new LinkedList<String>();
     while (it.hasNext()) {
-        suggestions.add(row.getValue("rep:suggest()").getString());
+        suggestions.add(it.getValue("rep:suggest()").getString());
     }
 
 If either Lucene or Solr were configured to provide the suggestions feature,

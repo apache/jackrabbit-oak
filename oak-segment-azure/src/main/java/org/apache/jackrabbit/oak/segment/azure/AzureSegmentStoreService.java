@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.segment.azure;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
@@ -37,8 +39,8 @@ import java.security.InvalidKeyException;
 import java.util.Properties;
 
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        configurationPid = {Configuration.PID})
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    configurationPid = {Configuration.PID})
 public class AzureSegmentStoreService {
 
     private static final Logger log = LoggerFactory.getLogger(AzureSegmentStoreService.class);
@@ -49,12 +51,11 @@ public class AzureSegmentStoreService {
 
     private ServiceRegistration registration;
 
-    private SegmentNodeStorePersistence persistence;
-
     @Activate
     public void activate(ComponentContext context, Configuration config) throws IOException {
-        persistence = createAzurePersistence(config);
-        registration = context.getBundleContext().registerService(SegmentNodeStorePersistence.class.getName(), persistence, new Properties());
+        AzurePersistence persistence = createAzurePersistenceFrom(config);
+        registration = context.getBundleContext()
+            .registerService(SegmentNodeStorePersistence.class.getName(), persistence, new Properties());
     }
 
     @Deactivate
@@ -63,34 +64,71 @@ public class AzureSegmentStoreService {
             registration.unregister();
             registration = null;
         }
-        persistence = null;
     }
 
-    private static SegmentNodeStorePersistence createAzurePersistence(Configuration configuration) throws IOException {
+    private static AzurePersistence createAzurePersistenceFrom(Configuration configuration) throws IOException {
+        if (!StringUtils.isBlank(configuration.connectionURL())) {
+            return createPersistenceFromConnectionURL(configuration);
+        }
+        if (!StringUtils.isBlank(configuration.sharedAccessSignature())) {
+            return createPersistenceFromSasUri(configuration);
+        }
+        return createPersistenceFromAccessKey(configuration);
+    }
+
+    private static AzurePersistence createPersistenceFromAccessKey(Configuration configuration) throws IOException {
+        StringBuilder connectionString = new StringBuilder();
+        connectionString.append("DefaultEndpointsProtocol=https;");
+        connectionString.append("AccountName=").append(configuration.accountName()).append(';');
+        connectionString.append("AccountKey=").append(configuration.accessKey()).append(';');
+        if (!StringUtils.isBlank(configuration.blobEndpoint())) {
+            connectionString.append("BlobEndpoint=").append(configuration.blobEndpoint()).append(';');
+        }
+        return createAzurePersistence(connectionString.toString(), configuration, true);
+    }
+
+    private static AzurePersistence createPersistenceFromSasUri(Configuration configuration) throws IOException {
+        StringBuilder connectionString = new StringBuilder();
+        connectionString.append("DefaultEndpointsProtocol=https;");
+        connectionString.append("AccountName=").append(configuration.accountName()).append(';');
+        connectionString.append("SharedAccessSignature=").append(configuration.sharedAccessSignature()).append(';');
+        if (!StringUtils.isBlank(configuration.blobEndpoint())) {
+            connectionString.append("BlobEndpoint=").append(configuration.blobEndpoint()).append(';');
+        }
+        return createAzurePersistence(connectionString.toString(), configuration, false); 
+    }
+
+    @NotNull
+    private static AzurePersistence createPersistenceFromConnectionURL(Configuration configuration) throws IOException {
+        return createAzurePersistence(configuration.connectionURL(), configuration, true);
+    }
+
+    @NotNull
+    private static AzurePersistence createAzurePersistence(
+        String connectionString,
+        Configuration configuration,
+        boolean createContainer
+    ) throws IOException {
         try {
-            StringBuilder connectionString = new StringBuilder();
-            if (configuration.connectionURL() == null || configuration.connectionURL().trim().isEmpty()) {
-                connectionString.append("DefaultEndpointsProtocol=https;");
-                connectionString.append("AccountName=").append(configuration.accountName()).append(';');
-                connectionString.append("AccountKey=").append(configuration.accessKey()).append(';');
-            } else {
-                connectionString.append(configuration.connectionURL());
-            }
-            CloudStorageAccount cloud = CloudStorageAccount.parse(connectionString.toString());
-            log.info("Connection string: '{}'", cloud.toString());
+            CloudStorageAccount cloud = CloudStorageAccount.parse(connectionString);
+            log.info("Connection string: '{}'", cloud);
             CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(configuration.containerName());
-            container.createIfNotExists();
-
-            String path = configuration.rootPath();
-            if (path != null && path.length() > 0 && path.charAt(0) == '/') {
-                path = path.substring(1);
+            if (createContainer) {
+                container.createIfNotExists();
             }
-
-            AzurePersistence persistence = new AzurePersistence(container.getDirectoryReference(path));
-            return persistence;
+            String path = normalizePath(configuration.rootPath());
+            return new AzurePersistence(container.getDirectoryReference(path));
         } catch (StorageException | URISyntaxException | InvalidKeyException e) {
             throw new IOException(e);
         }
+    }
+
+    @NotNull
+    private static String normalizePath(@NotNull String rootPath) {
+        if (rootPath.length() > 0 && rootPath.charAt(0) == '/') {
+            return rootPath.substring(1);
+        }
+        return rootPath;
     }
 
 }

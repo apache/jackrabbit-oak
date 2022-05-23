@@ -283,13 +283,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         Iterator<Group> dynamicGroups = dmp.getMembership(this, includeInherited);
         
         MembershipProvider mMgr = getMembershipProvider();
-        Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
+        Iterator<Tree> trees = mMgr.getMembership(getTree(), includeInherited);
         
-        if (!oakPaths.hasNext()) {
+        if (!trees.hasNext()) {
             return dynamicGroups;
         }
         
-        AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
+        AuthorizableIterator groups = AuthorizableIterator.create(trees, userManager, AuthorizableType.GROUP);
         AuthorizableIterator allGroups = AuthorizableIterator.create(true, dynamicGroups, groups);
         return new RangeIteratorAdapter(allGroups);
     }

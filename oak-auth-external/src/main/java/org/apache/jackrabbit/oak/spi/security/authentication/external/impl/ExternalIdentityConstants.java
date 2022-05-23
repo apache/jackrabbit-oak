@@ -78,4 +78,12 @@ public interface ExternalIdentityConstants {
      * Default value for {@link #PARAM_PROTECT_EXTERNAL_IDS}.
      */
     boolean DEFAULT_PROTECT_EXTERNAL_IDS = true;
+
+    /**
+     * Configuration parameter to define names of {@code SystemUserPrincipal}s that should be excluded from the 
+     * protection verification for any of the {@code RESERVED_PROPERTY_NAMES} in addition to the built in system principal.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-9663">OAK-9663</a>
+     */
+    String PARAM_SYSTEM_PRINCIPAL_NAMES = "systemPrincipalNames";
 }

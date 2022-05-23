@@ -19,17 +19,6 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
@@ -41,6 +30,7 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -54,9 +44,21 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 
 public class IndexCommand implements Command {
     private static final Logger log = LoggerFactory.getLogger(IndexCommand.class);
@@ -76,6 +78,10 @@ public class IndexCommand implements Command {
     private IndexOptions indexOpts;
     private static boolean disableExitOnError;
 
+    public void checkTikaDependency() throws ClassNotFoundException {
+        Class.forName("org.apache.tika.parser.pdf.PDFParser");
+    }
+
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
@@ -88,6 +94,15 @@ public class IndexCommand implements Command {
         opts.parseAndConfigure(parser, args);
 
         indexOpts = opts.getOptionBean(IndexOptions.class);
+
+        if (indexOpts.isReindex() && !opts.getCommonOpts().isHelpRequested() && !indexOpts.isIgnoreMissingTikaDep()) {
+            try {
+                checkTikaDependency();
+            } catch (Throwable e) {
+                System.err.println("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue");
+                System.exit(1);
+            }
+        }
 
         //Clean up before setting up NodeStore as the temp
         //directory might be used by NodeStore for cache stuff like persistentCache
@@ -228,6 +243,11 @@ public class IndexCommand implements Command {
         if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
+                if (idxOpts.buildFlatFileStoreSeparately()) {
+                    FlatFileStore ffs = indexer.buildFlatFileStore();
+                    String pathToFFS = ffs.getFlatFileStorePath();
+                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
+                }
                 indexer.reindex();
             }
         } else {

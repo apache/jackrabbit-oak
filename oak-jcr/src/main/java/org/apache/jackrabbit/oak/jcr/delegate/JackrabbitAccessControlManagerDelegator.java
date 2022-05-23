@@ -129,6 +129,17 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
             }
         });
     }
+    
+    @Override
+    public @NotNull PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
+        return delegate.perform(new SessionOperation<PrivilegeCollection>("privilegeCollectionFromNames") {
+            @NotNull
+            @Override
+            public PrivilegeCollection perform() throws RepositoryException {
+                return jackrabbitACManager.privilegeCollectionFromNames(privilegeNames);
+            }
+        });
+    }
 
     @Override
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {

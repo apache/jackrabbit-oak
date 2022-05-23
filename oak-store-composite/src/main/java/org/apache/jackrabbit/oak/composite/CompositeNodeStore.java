@@ -405,7 +405,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
             checkNotNull(store, "store");
             checkNotNull(mountName, "mountName");
 
-            Mount mount = checkNotNull(mip.getMountByName(mountName), "No mount with name %s found in %s", mountName, mip);
+            Mount mount = checkNotNull(mip.getMountByName(mountName), "No mount with name '%s' found in %s", mountName, mip.getNonDefaultMounts());
             nonDefaultStores.add(new MountedNodeStore(mount, store));
             return this;
         }

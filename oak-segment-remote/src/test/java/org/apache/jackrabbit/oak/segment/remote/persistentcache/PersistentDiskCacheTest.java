@@ -55,7 +55,7 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
     @Test
     public void cleanupTest() throws Exception {
         persistentCache.close();
-        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 0, new IOMonitorAdapter());
+        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 0, new IOMonitorAdapter(), 500);
         final List<TestSegment> testSegments = new ArrayList<>(SEGMENTS);
         final List<Map<String, Buffer>> segmentsRead = new ArrayList<>(THREADS);
 
@@ -68,7 +68,7 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
             segmentsRead.add(segmentsReadThisThread);
         }
 
-        runConcurrently.accept((nThread, nSegment) -> {
+        runConcurrently((nThread, nSegment) -> {
             TestSegment segment = testSegments.get(nSegment);
             long[] id = segment.getSegmentId();
             try {
@@ -80,18 +80,18 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
             }
         });
 
-        waitWhile.accept(() -> done.get() < SEGMENTS);
-        waitWhile.accept(() -> persistentCache.getWritesPending() > 0);
+        waitWhile(() -> done.get() < SEGMENTS);
+        waitWhile(() -> persistentCache.getWritesPending() > 0);
 
         assertEquals("Errors have occurred while writing", 0, errors.get());
         assertNoTimeout();
 
         done.set(0);
-        waitWhile.accept(() -> ((PersistentDiskCache) persistentCache).cleanupInProgress.get());
+        waitWhile(() -> ((PersistentDiskCache) persistentCache).cleanupInProgress.get());
 
         persistentCache.cleanUp();
 
-        runConcurrently.accept((nThread, nSegment) -> {
+        runConcurrently((nThread, nSegment) -> {
             final TestSegment segment = testSegments.get(nSegment);
             final long[] id = segment.getSegmentId();
             try {
@@ -105,7 +105,7 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
             }
         });
 
-        waitWhile.accept(() -> done.get() < SEGMENTS);
+        waitWhile(() -> done.get() < SEGMENTS);
 
         assertNoTimeout();
         assertEquals("Errors have occurred while reading", 0, errors.get());
@@ -114,7 +114,6 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
         for (int i = 0; i < THREADS; ++i) {
             for (int j = i * SEGMENTS_PER_THREAD; j < (i + 1) * SEGMENTS_PER_THREAD; ++j) {
                 TestSegment testSegment = testSegments.get(j);
-                byte[] testSegmentBytes = testSegment.getSegmentBytes();
                 Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(i);
                 long[] segmentReadId = testSegment.getSegmentId();
                 Buffer segmentRead = segmentsReadThisThread.get(new UUID(segmentReadId[0], segmentReadId[1]).toString());

@@ -45,13 +45,16 @@ public class IndexDiffCommand implements Command {
                 .defaultsTo("");
         OptionSpec<String> compareDirectoryOption = parser
                 .accepts("compare", "Path to index definition files (.json). " +
-                        "Compare index1 and index2").withOptionalArg()
+                        "Compare index1 and index2, or all indexes there to the indexBase file").withOptionalArg()
                 .defaultsTo("");
         OptionSpec<String> index1Option = parser
                 .accepts("index1", "Index 1").withOptionalArg()
                 .defaultsTo("");
         OptionSpec<String> index2Option = parser
                 .accepts("index2", "Index 2").withOptionalArg()
+                .defaultsTo("");
+        OptionSpec<String> indexBaseOption = parser
+                .accepts("indexBase", "Index base file").withOptionalArg()
                 .defaultsTo("");
         OptionSpec<String> extractFileOption = parser
                 .accepts("extract", "File from where to extract (an) index definition(s) (.json). " +
@@ -106,14 +109,22 @@ public class IndexDiffCommand implements Command {
         if (!compareDirectory.isEmpty()) {
             String index1 = index1Option.value(options);
             String index2 = index2Option.value(options);
-            if (index1.isEmpty() || index2.isEmpty()) {
-                parser.printHelpOn(System.out);
-                return;
+            String indexBaseFile = indexBaseOption.value(options);
+            if (!indexBaseFile.isEmpty()) {
+                System.out.println("Comparing indexes in " + indexBaseFile + " against all indexes in " +
+                        " directory \"" +
+                        compareDirectory + "\"");
+                System.out.println(IndexDiff.compareIndexesAgainstBase(compareDirectory, indexBaseFile));
+            } else {
+                if (index1.isEmpty() || index2.isEmpty()) {
+                    parser.printHelpOn(System.out);
+                    return;
+                }
+                System.out.println("Comparing indexes " + index1 + " and " + index2 +
+                        " for directory \"" +
+                        compareDirectory + "\"");
+                System.out.println(IndexDiff.compareIndexes(compareDirectory, index1, index2));
             }
-            System.out.println("Comparing indexes " + index1 + " and " + index2 +
-                    " for directory \"" +
-                    compareDirectory + "\"");
-            System.out.println(IndexDiff.compareIndexes(compareDirectory, index1, index2));
         }
         if (!extractFile.isEmpty()) {
             String index1 = index1Option.value(options);

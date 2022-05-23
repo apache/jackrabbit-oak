@@ -65,6 +65,7 @@ under the License.
         <item href="query/indexing.html" name="Indexing" />
         <item href="query/oak-run-indexing.html" name="Indexing with Oak-Run" />
         <item href="query/lucene.html" name="Lucene Index" />
+        <item href="query/elastic.html" name="Elastic Index" />
         <item href="query/property-index.html" name="Property Index" />
         <item href="query/solr.html" name="Solr Index" />
       </item>
@@ -158,6 +159,31 @@ under the License.
       <item href="http://jackrabbit.apache.org/oak" name="Apache Jackrabbit Oak" />
       <item href="http://jackrabbit.apache.org/" name="Apache Jackrabbit" />
     </menu>
+    
+    <head><![CDATA[
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  /* We explicitly disable cookie tracking to avoid privacy issues */
+  _paq.push(['disableCookies']);  
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://matomo.privacy.apache.org/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '4']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+       ]]></head>
+       <footer><![CDATA[
+<p>&#169; 2012-$date.get('yyyy')
+<a href="https://www.apache.org/">The Apache Software Foundation</a> &vert; <a href="https://privacy.apache.org/policies/privacy-policy-public.html">Privacy Policy</a>
+</p>
+       ]]></footer>
   </body>
 
   <skin>

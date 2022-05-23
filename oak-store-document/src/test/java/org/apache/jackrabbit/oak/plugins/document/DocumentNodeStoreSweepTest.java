@@ -191,11 +191,12 @@ public class DocumentNodeStoreSweepTest {
         // simulate a crashed node store
         crashDocumentNodeStore();
 
+        // wait for lease to expire
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+
         // start a new node store with a different clusterId
         ns = createDocumentNodeStore(clusterId + 1);
 
-        // wait for lease to expire
-        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
         // then run recovery for the other cluster node
         assertTrue(ns.getLastRevRecoveryAgent().recover(clusterId) > 0);
         // now the store must be clean

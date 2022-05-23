@@ -196,6 +196,7 @@ The `ExternalPrincipalConfiguration` defines the following configuration options
 | Name                         | Property                      | Description                              |
 |------------------------------|-------------------------------|------------------------------------------|
 | External Identity Protection | `protectExternalId`           | Enables protection of the system maintained `rep:externalId` properties |
+| System Principal Names       | `systemPrincipalNames`        | Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check (since Oak 1.44.0) |
 | | | |
 
 <!-- references -->

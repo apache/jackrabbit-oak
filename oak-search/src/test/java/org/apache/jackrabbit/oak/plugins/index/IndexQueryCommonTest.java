@@ -16,20 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Ignore;
 import org.junit.Test;
-
+import java.text.ParseException;
 import java.util.*;
+
+import javax.jcr.query.Query;
 
 import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -55,6 +61,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
         TestUtil.useV2(indexDefn);
         indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        indexDefn.setProperty("tags", "x");
 
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
         props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
@@ -66,6 +73,10 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         TestUtil.enableFunctionIndex(props, "lower([name])");
         TestUtil.enableFunctionIndex(props, "upper([name])");
         TestUtil.enableForFullText(props, "propa", false);
+        TestUtil.enableForFullText(props, "propb", false);
+
+        Tree dateProp = TestUtil.enableForOrdered(props, "propDate");
+        dateProp.setProperty(FulltextIndexConstants.PROP_TYPE, "Date");
 
         root.commit();
     }
@@ -103,7 +114,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         final String query = "select [jcr:path] from [nt:base] where isdescendantnode('/test') and contains(*, 'hello')";
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
             List<String> paths = new ArrayList<>();
             result.forEachRemaining(paths::add);
             assertEquals(2, paths.size());
@@ -116,7 +127,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
             List<String> paths = new ArrayList<>();
             result.forEachRemaining(paths::add);
             assertEquals(1, paths.size());
@@ -134,7 +145,25 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             Iterator<String> result = executeQuery(
                     "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
-                    "JCR-SQL2").iterator();
+                    Query.JCR_SQL2).iterator();
+            assertTrue(result.hasNext());
+            assertEquals("/test/a", result.next());
+            assertEquals("/test/b", result.next());
+            assertFalse(result.hasNext());
+        });
+    }
+
+    @Test
+    public void descendantTestWithIndexTag() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a");
+        test.addChild("b");
+        root.commit();
+
+        assertEventually(() -> {
+            Iterator<String> result = executeQuery(
+                    "select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)",
+                    Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertEquals("/test/b", result.next());
@@ -152,7 +181,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             Iterator<String> result = executeQuery(
                     "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
-                    "JCR-SQL2").iterator();
+                    Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertFalse(result.hasNext());
@@ -178,7 +207,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             Iterator<String> result = executeQuery(
                     "select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
-                    "JCR-SQL2").iterator();
+                    Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/, /children", result.next());
             assertEquals("/, /jcr:system", result.next());
@@ -308,7 +337,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertFalse(result.hasNext());
@@ -325,7 +354,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("c").setProperty("text", "He said Hi.");
         root.commit();
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
@@ -348,7 +377,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("h").setProperty("text", "Hello");
         root.commit();
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
@@ -498,10 +527,276 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void fullTextQueryGeneric() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+
+        Tree testNodeA = test.addChild("nodea");
+        testNodeA.setProperty("a", "hello");
+        testNodeA.setProperty("b", "ocean");
+
+        Tree testNodeB = test.addChild("nodeb");
+        testNodeB.setProperty("a", "hello world");
+        testNodeB.setProperty("b", "soccer-shoe");
+
+        Tree testNodeC = test.addChild("nodec");
+        testNodeC.setProperty("a", "hello");
+        testNodeC.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            // case insensitive
+            assertQuery("//*[jcr:contains(., 'WORLD')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // wild card
+            assertQuery("//*[jcr:contains(., 'Hell*')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'He*o')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., '*llo')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., '?orld')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'wo?ld')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'worl?')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // space explained as AND
+            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, Arrays.asList("/test/nodeb", "/test/nodec"));
+
+            // exclude
+            assertQuery("//*[jcr:contains(., 'hello -world')] ", XPATH, Arrays.asList("/test/nodea"));
+
+            // explicit OR
+            assertQuery("//*[jcr:contains(., 'ocean OR world')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodeb", "/test/nodec"));
+        });
+    }
+
+    @Test
+    public void testInequalityQuery_native() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "hello");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        test.addChild("test5").setProperty("propa", "bar");
+        test.addChild("test6");
+        root.commit();
+
+        String query = "explain /jcr:root/test//*[propa!='bar']";
+
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestInequalityQuery_native()));
+
+        String query2 = "/jcr:root/test//*[propa!='bar']";
+
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2", "/test/test3"));
+        });
+    }
+
+    @Test
+    public void testNotNullQuery_native() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "hello");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4");
+        root.commit();
+
+        String query = "explain select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
+
+        assertEventually(getAssertionForExplainContains(query, SQL2, getContainsValueFortestNotNullQuery_native()));
+
+        String query2 = "select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
+
+        assertEventually(() -> {
+            assertQuery(query2, SQL2, Arrays.asList("/test/test1", "/test/test2", "/test/test3"));
+        });
+    }
+
+    @Test
+    public void testInequalityQueryWithoutAncestorFilter_native() throws Exception {
+        Tree test = root.getTree("/");
+        test.addChild("test1").setProperty("propa", "hello");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        test.addChild("test5").setProperty("propa", "bar");
+        test.addChild("test6");
+        root.commit();
+
+        String query = "explain //*[propa!='bar']";
+
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestInequalityQueryWithoutAncestorFilter_native()));
+
+        String query2 = "//*[propa!='bar']";
+
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test1", "/test2", "/test3"));
+        });
+    }
+
+    @Test
+    public void testEqualityInequalityCombined_native() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "hello");
+        test.getChild("test1").setProperty("propb", "world");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        test.addChild("test5").setProperty("propa", "bar");
+        test.addChild("test6").setProperty("propb", "world");
+        root.commit();
+
+        String query = "explain /jcr:root/test//*[propa!='bar' and propb='world']";
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestEqualityInequalityCombined_native()));
+
+        String query2 = "/jcr:root/test//*[propa!='bar' and propb='world']";
+        // Expected - nodes with both properties defined and propb with value 'world' and propa with value not equal to bar should be returned
+        // /test/test6 should NOT be returned because for it propa = null
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test1"));
+        });
+    }
+
+
+    @Test
+    public void testEqualityQuery_native() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test4").setProperty("propa", "bar");
+        root.commit();
+
+        String query = "explain /jcr:root/test//*[propa='bar']";
+
+        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueFortestEqualityQuery_native()));
+
+        String query2 = "/jcr:root/test//*[propa='bar']";
+
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
+        });
+    }
+
+    @Test
+    public void testDateQueryWithIncorrectData() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propDate", "foo");
+        test.getChild("test1").setProperty("propa", "bar");
+        test.addChild("test2").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "bar");
+        test.addChild("test3").setProperty("propDate", "2022-01-22T01:02:03.000Z", Type.DATE);
+        root.commit();
+
+        // Query on propa should work fine even if the data on propDate is of incorrect type (i.e String instead of Date)
+        // It should return both /test/test1 -> where content for propDate is of incorrect data type
+        // and /test/test2 -> where content for propDate is of correct data type.
+        String query = "/jcr:root/test//*[propa='bar']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test2", "/test/test1"));
+        });
+
+        // Check inequality query on propDate - this should not return /test/test1 -> since that node should not have been indexed for propDate
+        // due to incorrect data type in the content for this property.
+        String query2 = "/jcr:root/test//*[propDate!='2021-01-22T01:02:03.000Z']";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test3"));
+        });
+    }
+
+    @Test
+    public void testQueryWithDifferentDataTypesForSameProperty() throws Exception {
+        // propa doesn't have any type defined in index - so by default it's a String type property
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "bar");
+        test.addChild("test2").setProperty("propa", 10);
+        test.addChild("test3").setProperty("propa", 10L);
+        test.addChild("test4").setProperty("propa", true);
+        root.commit();
+
+        // Below queries will ensure propa is searchable with different data types as content and behaviour is similar for lucene and elastic.
+        String query = "/jcr:root/test//*[propa='bar']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
+        });
+
+        String query2 = "/jcr:root/test//*[propa=true]";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
+        });
+
+        String query3 = "/jcr:root/test//*[propa=10]";
+        assertEventually(() -> {
+            assertQuery(query3, XPATH, Arrays.asList("/test/test2", "/test/test3"));
+        });
+    }
+
+    @Test
+    public void testDateQueryWithCorrectData() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.getChild("test1").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "foo");
+        root.commit();
+
+        // Test query returns correct node on querying on dateProp
+        String query = "/jcr:root/test//*[propDate='2021-01-22T01:02:03.000Z']";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
+        });
+
+        // Test query returns correct node on querying on String type property
+        String query2 = "/jcr:root/test//*[propa='foo']";
+        assertEventually(() -> {
+            assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2"));
+        });
+    }
+
+    @Test
+    public void testDateQueryWithCorrectData_Ordered() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("test1").setProperty("propa", "foo");
+        test.getChild("test1").setProperty("propDate", "2021-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test2").setProperty("propa", "foo");
+        test.addChild("test2").setProperty("propDate", "2019-01-22T01:02:03.000Z", Type.DATE);
+        test.addChild("test3").setProperty("propa", "foo");
+        test.addChild("test3").setProperty("propDate", "2020-01-22T01:02:03.000Z", Type.DATE);
+        root.commit();
+
+        // Test query returns correct node on querying on dateProp
+        String query = "/jcr:root/test//*[propa='foo'] order by @propDate descending";
+        assertEventually(() -> {
+            assertQuery(query, XPATH, Arrays.asList("/test/test1", "/test/test3", "/test/test2"), true, true);
+        });
+    }
+
     private static Tree child(Tree t, String n, String type) {
         Tree t1 = t.addChild(n);
         t1.setProperty(JCR_PRIMARYTYPE, type, Type.NAME);
         return t1;
+    }
+
+    public abstract String getContainsValueFortestEqualityQuery_native();
+
+    public abstract String getContainsValueFortestInequalityQuery_native();
+
+    public abstract String getContainsValueFortestInequalityQueryWithoutAncestorFilter_native();
+
+    public abstract String getContainsValueFortestEqualityInequalityCombined_native();
+
+    public abstract String getContainsValueFortestNotNullQuery_native();
+
+    private Runnable getAssertionForExplainContains(String query, String language, String containValue) {
+        return () -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, language, NO_BINDINGS);
+            } catch (ParseException e) {
+                assertTrue(e.getMessage(), false);
+            }
+            ResultRow row = result.getRows().iterator().next();
+            assertTrue(row.getValue("plan").toString().contains(containValue));
+        };
     }
 
     private static void assertEventually(Runnable r) {

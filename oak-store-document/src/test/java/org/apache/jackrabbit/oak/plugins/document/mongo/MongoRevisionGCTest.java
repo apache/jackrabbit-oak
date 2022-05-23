@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 import com.mongodb.BasicDBObject;
@@ -27,21 +28,28 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.TestUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.getAllPreviousDocs;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.getMaxRangeHeight;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -113,4 +121,47 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
 
     }
 
+    @Test // OAK-9700
+    public void malformedPreviousDocument() throws Exception {
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeDocument prev = null;
+        NodeBuilder b;
+        for (;;) {
+            b = ns.getRoot().builder();
+            b.child("child");
+            merge(ns, b);
+            b = ns.getRoot().builder();
+            b.child("child").remove();
+            merge(ns, b);
+            ns.runBackgroundOperations();
+            NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath("/child"));
+            assertNotNull(doc);
+            for (Iterator<NodeDocument> it = getAllPreviousDocs(doc); it.hasNext(); ) {
+                prev = it.next();
+            }
+            if (getMaxRangeHeight(doc) > 0) {
+                break;
+            }
+        }
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+
+        // fiddle with prev document in cache and replace it with an invalid one
+        MongoDocumentStore store = (MongoDocumentStore) ns.getDocumentStore();
+        NodeDocumentCache cache = store.getNodeDocumentCache();
+        assertNotNull(prev);
+        String prevId = prev.getId();
+        assertNotNull(prevId);
+        cache.invalidate(prevId);
+        cache.get(prevId, () -> new NodeDocument(store, clock.getTime()));
+
+        // must succeed without exception
+        try {
+            ns.getVersionGarbageCollector().gc(1, HOURS);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.toString());
+        }
+    }
 }

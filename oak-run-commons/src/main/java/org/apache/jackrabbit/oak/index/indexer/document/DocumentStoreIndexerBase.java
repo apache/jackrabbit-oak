@@ -19,15 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Closer;
@@ -44,16 +35,19 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -62,7 +56,18 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 public abstract class DocumentStoreIndexerBase implements Closeable{
@@ -102,8 +107,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         private final CompositeIndexer indexer;
 
         private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                                   MongoDocumentStore documentStore, Logger traversalLogger,
-                                                   CompositeIndexer indexer) {
+                                                    MongoDocumentStore documentStore, Logger traversalLogger, CompositeIndexer indexer) {
             this.rootRevision = rootRevision;
             this.documentNodeStore = documentNodeStore;
             this.documentStore = documentStore;
@@ -112,14 +116,14 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         }
 
         @Override
-        public NodeStateEntryTraverser create(LastModifiedRange lastModifiedRange) {
+        public NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange traversingRange) {
             IndexingProgressReporter progressReporterPerTask =
                     new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
             String entryTraverserID = TRAVERSER_ID_PREFIX + traverserInstanceCounter.incrementAndGet();
             //As first traversal is for dumping change the message prefix
             progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
             return new NodeStateEntryTraverser(entryTraverserID, rootRevision,
-                            documentNodeStore, documentStore, lastModifiedRange)
+                            documentNodeStore, documentStore, traversingRange)
                             .withProgressCallback((id) -> {
                                 try {
                                     progressReporterPerTask.traversedNode(() -> id);
@@ -127,12 +131,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                                     throw new RuntimeException(e);
                                 }
                                 traversalLogger.trace(id);
-                            })
-                            .withPathPredicate(indexer::shouldInclude);
+                            });
         }
     }
 
-    private FlatFileStore buildFlatFileStore(NodeState checkpointedState, CompositeIndexer indexer) throws IOException {
+    private FlatFileStore buildFlatFileStore(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements) throws IOException {
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
         int executionCount = 1;
@@ -153,8 +156,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                 builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir(), memoryManager)
                         .withLastModifiedBreakPoints(lastModifiedBreakPoints)
                         .withBlobStore(indexHelper.getGCBlobStore())
-                        .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
+                        .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
+                        .withPathPredicate(pathPredicate)
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog, indexer));
                 for (File dir : previousDownloadDirs) {
@@ -187,6 +191,36 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         return flatFileStore;
     }
 
+    /**
+     *
+     * @return an Instance of FlatFileStore, whose getFlatFileStorePath() method can be used to get the absolute path to this store.
+     * @throws IOException
+     * @throws CommitFailedException
+     */
+    public FlatFileStore buildFlatFileStore() throws IOException, CommitFailedException {
+        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+        NodeState root = builder.getNodeState();
+        indexerSupport.updateIndexDefinitions(builder);
+        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
+
+        Set<String> preferredPathElements = new HashSet<>();
+        Set<IndexDefinition> indexDefinitions = new HashSet<>();
+
+        for (String indexPath : indexHelper.getIndexPaths()) {
+            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
+            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
+            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
+            indexDefinitions.add(indexDf);
+        }
+        Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
+        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, null, predicate, preferredPathElements);
+        log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
+                flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
+        return flatFileStore;
+    }
+
     public void reindex() throws CommitFailedException, IOException {
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
@@ -204,7 +238,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         closer.register(indexer);
 
-        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer);
+        FlatFileStore flatFileStore = buildFlatFileStore(checkpointedState, indexer, indexer::shouldInclude, null);
 
         progressReporter.reset();
         if (flatFileStore.getEntryCount() > 0){

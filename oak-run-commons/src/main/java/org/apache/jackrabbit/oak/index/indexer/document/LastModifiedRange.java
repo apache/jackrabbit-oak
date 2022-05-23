@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import java.util.Objects;
+
 public class LastModifiedRange {
 
     private final long lastModifiedFrom;
@@ -64,5 +66,18 @@ public class LastModifiedRange {
     @Override
     public String toString() {
         return "LastModifiedRange [" + lastModifiedFrom + ", " + lastModifiedTo + ")";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LastModifiedRange that = (LastModifiedRange) o;
+        return lastModifiedFrom == that.lastModifiedFrom && lastModifiedTo == that.lastModifiedTo;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lastModifiedFrom, lastModifiedTo);
     }
 }

@@ -23,6 +23,8 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -1088,4 +1090,14 @@ public class Utils {
         result = result.min(BigInteger.valueOf(Long.MAX_VALUE));
         return result.longValue();
     }
+
+    /**
+     * Formats the epoch time in milliseconds as ISO-8601 in UTC.
+     *
+     * @param ms the time in milliseconds.
+     * @return date format for the time in milliseconds.
+     */
+    public static String asISO8601(long ms) {
+        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
+   }
 }
