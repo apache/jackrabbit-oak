@@ -1285,6 +1285,19 @@ index content e.g. size of index, number of documents present in index etc
 
 ![Lucene Index MBean](lucene-index-mbean.png)
 
+This MBean supports retriving index fields and terms using the `getFieldTermsInfo(java.lang.String indexPath, java.lang.String field, int max)`
+and the `getFieldTermsInfo(java.lang.String indexPath, java.lang.String field, java.lang.String fieldType, int max)` methods. 
+
+The first method always assumes the return type is a String, the second method allows you to specify the return type as either:
+
+ - String (value: String, java.lang.String)
+ - Long (value: long, java.lang.Long)
+ - Integer (value: int, java.lang.Integer)
+
+ For example:
+
+![Lucene Index MBean - getFieldTermsInfo](lucene-index-mbean-getfieldtermsinfo.png)
+
 ### <a name="active-blob-collection"></a>Active Index Files Collection
 
 `@since Oak 1.7.12`
