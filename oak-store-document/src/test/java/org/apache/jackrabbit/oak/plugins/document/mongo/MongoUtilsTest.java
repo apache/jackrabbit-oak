@@ -200,36 +200,6 @@ public class MongoUtilsTest {
         }
     }
 
-    @Test
-    public void getSizeLimitForMongo4() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.0.0");
-        assertEquals(150, sizeLimit);
-    }
-
-    @Test
-    public void getSizeLimitForMongo4_1_27() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.1.27");
-        assertEquals(150, sizeLimit);
-    }
-
-    @Test
-    public void getSizeLimitForMongo3_5() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("3.5.0");
-        assertEquals(150, sizeLimit);
-    }
-
-    @Test
-    public void getSizeLimitForMongo4_2() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.2.0");
-        assertEquals(Integer.MAX_VALUE, sizeLimit);
-    }
-
-    @Test
-    public void getSizeLimitForMongo4_2_1() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.2.1");
-        assertEquals(Integer.MAX_VALUE, sizeLimit);
-    }
-
     private static MongoCommandException newMongoCommandException(int code) {
         return new MongoCommandException(response(code), new ServerAddress());
     }

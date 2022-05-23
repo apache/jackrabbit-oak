@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.Arrays;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
@@ -33,11 +31,9 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
-import com.mongodb.connection.ServerVersion;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -193,16 +189,5 @@ class MongoUtils {
             }
         }
         return type;
-    }
-
-    /**
-     * Util method to get node size limit for current mongo version
-     *
-     * @param version version of current mongo db
-     * @return size limit based on mongo db version
-     */
-    static int getNodeNameLimit(final String version) {
-        final ServerVersion sv = new ServerVersion(Arrays.stream(version.split("\\.")).map(Integer::new).collect(Collectors.toList()));
-        return sv.compareTo(new ServerVersion(4,2)) >= 0 ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
     }
 }
