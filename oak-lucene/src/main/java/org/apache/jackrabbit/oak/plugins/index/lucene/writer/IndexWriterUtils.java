@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +36,8 @@ import org.apache.lucene.analysis.shingle.ShingleAnalyzerWrapper;
 import org.apache.lucene.index.ConcurrentMergeScheduler;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
+
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 
 public class IndexWriterUtils {
 
