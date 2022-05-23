@@ -76,13 +76,10 @@ public class IndexWriterUtils {
                 concurrentMergeScheduler.setMaxMergesAndThreads(8,8);
                 config.setMergeScheduler(concurrentMergeScheduler);
             }
-
             if (definition.getCodec() != null) {
                 config.setCodec(definition.getCodec());
             }
-
             config.setRAMBufferSizeMB(writerConfig.getRamBufferSizeMB());
-
             return config;
         } finally {
             thread.setContextClassLoader(loader);
