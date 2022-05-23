@@ -57,6 +57,19 @@ public class FlatFileSplitter {
     private long minimumSplitThreshold = 10 * FileUtils.ONE_MB;
     private Set<IndexDefinition> indexDefinitions;
 
+    // This constructor is created for testing purpose
+    public FlatFileSplitter(File flatFile, String workdir, NodeStore store, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader, Set<IndexDefinition> indexDefinitions) {
+        this.flatFile = flatFile;
+        this.workDir = new File(workdir, splitDirName);
+
+        this.store = store;
+        this.infoProvider = infoProvider;
+        this.entryReader = entryReader;
+        this.indexDefinitions = indexDefinitions;
+        this.indexerSupport = null;
+        this.indexHelper = null;
+    }
+
     public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.flatFile = flatFile;
         this.indexerSupport = indexerSupport;
@@ -73,7 +86,7 @@ public class FlatFileSplitter {
         this.minimumSplitThreshold = minimumSplitThreshold;
     }
 
-    public List<File> returnOriginalFlatFile() {
+    private List<File> returnOriginalFlatFile() {
         return (new ArrayList<File>(1){
             {
                 add(flatFile);
@@ -199,7 +212,7 @@ public class FlatFileSplitter {
         Set<NodeTypeInfo> initialSet = new HashSet<>();
         NodeTypeInfo nodeType = infoProvider.getNodeTypeInfo(nodeTypeName);
 
-        Set<String> subTypes = new HashSet<>(nodeType.getMixinSubTypes());
+        Set<String> subTypes = nodeType.getMixinSubTypes();
         subTypes.addAll(nodeType.getPrimarySubTypes());
 
         for (String subTypeName: subTypes) {
@@ -210,7 +223,7 @@ public class FlatFileSplitter {
         return initialSet;
     }
 
-    private Set<String> getSplitNodeTypeNames() throws IOException, CommitFailedException {
+    public Set<String> getSplitNodeTypeNames() throws IOException, CommitFailedException {
         Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
         Set<NodeTypeInfo> splitNodeTypes = getSplitNodeType(indexDefinitions);
         return splitNodeTypes.stream().map(NodeTypeInfo::getNodeTypeName).collect(Collectors.toSet());
