@@ -273,7 +273,7 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", status.getVersion())
                 .build();
 
-        this.nodeNameLimit = MongoUtils.getNodeNameLimit(status.getVersion());
+        this.nodeNameLimit = MongoUtils.getNodeNameLimit(status);
         this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
         this.clusterNodesConnection = getOrCreateClusterNodesConnection(builder);
         stats = builder.getDocumentStoreStatsCollector();

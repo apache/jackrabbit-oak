@@ -22,6 +22,7 @@ import java.util.List;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DuplicateKeyException;
+import com.mongodb.MongoClient;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoSocketException;
@@ -50,6 +51,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
 
 public class MongoUtilsTest {
 
@@ -202,31 +204,37 @@ public class MongoUtilsTest {
 
     @Test
     public void getSizeLimitForMongo4() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.0.0");
+        int sizeLimit = MongoUtils.getNodeNameLimit(serverVersion("4.0.0"));
         assertEquals(150, sizeLimit);
     }
 
     @Test
     public void getSizeLimitForMongo4_1_27() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.1.27");
+        int sizeLimit = MongoUtils.getNodeNameLimit(serverVersion("4.1.27"));
         assertEquals(150, sizeLimit);
     }
 
     @Test
     public void getSizeLimitForMongo3_5() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("3.5.0");
+        int sizeLimit = MongoUtils.getNodeNameLimit(serverVersion("3.5.0"));
         assertEquals(150, sizeLimit);
     }
 
     @Test
     public void getSizeLimitForMongo4_2() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.2.0");
+        int sizeLimit = MongoUtils.getNodeNameLimit(serverVersion("4.2.0"));
         assertEquals(Integer.MAX_VALUE, sizeLimit);
     }
 
     @Test
     public void getSizeLimitForMongo4_2_1() {
-        int sizeLimit = MongoUtils.getNodeNameLimit("4.2.1");
+        int sizeLimit = MongoUtils.getNodeNameLimit(serverVersion("4.2.1"));
+        assertEquals(Integer.MAX_VALUE, sizeLimit);
+    }
+
+    @Test
+    public void getSizeLimitForMongo5_0_0rc() {
+        int sizeLimit = MongoUtils.getNodeNameLimit(serverVersion("5.0.0-rc0"));
         assertEquals(Integer.MAX_VALUE, sizeLimit);
     }
 
@@ -243,5 +251,12 @@ public class MongoUtilsTest {
         response.put("code", new BsonInt32(code));
         response.put("errmsg", new BsonString("message"));
         return response;
+    }
+
+    private static MongoStatus serverVersion(String version) {
+        MongoClient client = mock(MongoClient.class);
+        MongoStatus status = new MongoStatus(client, "db");
+        status.setVersion(version);
+        return status;
     }
 }
