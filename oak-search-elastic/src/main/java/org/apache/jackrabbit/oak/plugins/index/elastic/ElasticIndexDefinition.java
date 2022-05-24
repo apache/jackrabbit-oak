@@ -83,6 +83,9 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     private static final String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
 
+    private static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
+    private static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
+
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
     private static final boolean SIMILARITY_TAGS_ENABLED_DEFAULT = true;
 
@@ -228,9 +231,19 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * Returns {@code true} if original terms need to be preserved at indexing analysis phase
      */
-    public boolean indexOriginalTerms() {
+    public boolean analyzerConfigIndexOriginalTerms() {
         NodeState analyzersTree = definition.getChildNode(ANALYZERS);
         return getOptionalValue(analyzersTree, INDEX_ORIGINAL_TERM, false);
+    }
+
+    public boolean analyzerConfigSplitOnCaseChange() {
+        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
+        return getOptionalValue(analyzersTree, SPLIT_ON_CASE_CHANGE, false);
+    }
+
+    public boolean analyzerConfigSplitOnNumerics() {
+        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
+        return getOptionalValue(analyzersTree, SPLIT_ON_NUMERICS, false);
     }
 
     @Override

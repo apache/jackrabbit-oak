@@ -15,13 +15,13 @@
    limitations under the License.
 -->
 
-Permission Evaluation in Detail
+Default Permission Evaluation in Detail
 --------------------------------------------------------------------------------
 
 <a name="permissionentries"></a>
 ### Order and Evaluation of Permission Entries
 
-In order to evaluate the permissions for a given item, the `PermissionProvider`
+In order to evaluate the permissions for a given item, the default `PermissionProvider`
 lazily builds an iterator of `PermissionsEntry` representing the rep:Permission
 present in the permission store that take effect for the given set of principals
 at the given node (or property).
