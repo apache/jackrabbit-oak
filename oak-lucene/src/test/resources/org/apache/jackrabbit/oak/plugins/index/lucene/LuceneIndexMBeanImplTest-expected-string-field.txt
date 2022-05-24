@@ -1,11 +1,11 @@
-10 (total for field string)
-1 value-9
-1 value-8
-1 value-7
-1 value-6
-1 value-5
-1 value-4
-1 value-3
-1 value-2
-1 value-1
-1 value-0
+20 (total for field string)
+2 value-9
+2 value-8
+2 value-7
+2 value-6
+2 value-5
+2 value-4
+2 value-3
+2 value-2
+2 value-1
+2 value-0
