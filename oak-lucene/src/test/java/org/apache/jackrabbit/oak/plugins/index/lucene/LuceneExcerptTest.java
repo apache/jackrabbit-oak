@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import org.apache.jackrabbit.oak.plugins.index.ExcerptTest;
+
 public class LuceneExcerptTest extends ExcerptTest {
     protected String getIndexType() {
         return LuceneIndexConstants.TYPE_LUCENE;
