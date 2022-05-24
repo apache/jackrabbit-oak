@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
@@ -206,8 +207,11 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         Set<ValidationEntry> aceSet = Sets.newHashSet();
         for (Tree child : policyTree.getChildren()) {
             if (isAccessControlEntry(child)) {
-                if (!aceSet.add(createAceEntry(parent.getPath(), child))) {
-                    throw accessViolation(13, "Duplicate ACE '" + child.getPath() + "' found in policy");
+                ValidationEntry entry = createAceEntry(parent.getPath(), child);
+                if (!aceSet.add(entry)) { 
+                    String restrs = String.join(", ", entry.restrictions.stream().map(restriction -> restriction.getProperty().toString()).collect(Collectors.toSet()));
+                    String msg = String.format("Duplicate ACE '%s' found in policy. (principal = %s, isallow = %b, privileges = %s, restrictions = [%s])", child.getPath(), entry.principalName, entry.isAllow, privilegeBitsProvider.getPrivilegeNames(entry.privilegeBits), restrs);
+                    throw accessViolation(13, msg);
                 }
             }
         }
@@ -237,7 +241,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     @NotNull
-    private String checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
+    private static String checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
         String principalName = TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME);
         if (Strings.isNullOrEmpty(principalName)) {
             throw accessViolation(8, "Missing principal name at " + aceNode.getPath());
@@ -264,7 +268,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     @NotNull
-    private Iterable<String> getPrivilegeNames(@NotNull Tree aceNode) throws CommitFailedException {
+    private static Iterable<String> getPrivilegeNames(@NotNull Tree aceNode) throws CommitFailedException {
         Iterable<String> privilegeNames = TreeUtil.getNames(aceNode, REP_PRIVILEGES);
         if (Iterables.isEmpty(privilegeNames)) {
             throw accessViolation(9, "Missing privileges at " + aceNode.getPath());
