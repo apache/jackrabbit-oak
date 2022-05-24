@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.elasticsearch.client.RestHighLevelClient;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 
 public class ElasticConnectionTest {
 
@@ -31,10 +32,10 @@ public class ElasticConnectionTest {
                 .withIndexPrefix("my+test")
                 .withDefaultConnectionParameters()
                 .build();
-
-        RestHighLevelClient client1 = connection.getClient();
-        RestHighLevelClient client2 = connection.getClient();
-
+        
+        ElasticsearchClient client1 = connection.getClient();
+        ElasticsearchClient client2 = connection.getClient();
+        
         assertEquals(client1, client2);
 
         connection.close();
