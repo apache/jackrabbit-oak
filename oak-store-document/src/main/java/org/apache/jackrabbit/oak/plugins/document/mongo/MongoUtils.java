@@ -196,13 +196,13 @@ class MongoUtils {
     }
 
     /**
-     * Util method to get node size limit for current mongo version
+     * Util method to get node size limit for MongoDB server version from the
+     * MongoDB status.
      *
-     * @param version version of current mongo db
-     * @return size limit based on mongo db version
+     * @param status the MongoDB status
+     * @return size limit based on MongoDB version.
      */
-    static int getNodeNameLimit(final String version) {
-        final ServerVersion sv = new ServerVersion(Arrays.stream(version.split("\\.")).map(Integer::new).collect(Collectors.toList()));
-        return sv.compareTo(new ServerVersion(4,2)) >= 0 ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
+    static int getNodeNameLimit(final @NotNull MongoStatus status) {
+        return status.isVersion(4, 2) ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
     }
 }
