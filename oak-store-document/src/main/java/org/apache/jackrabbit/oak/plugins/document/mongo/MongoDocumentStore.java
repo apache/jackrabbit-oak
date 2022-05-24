@@ -1958,4 +1958,13 @@ public class MongoDocumentStore implements DocumentStore {
             return toString();
         }
     }
+
+    @Override
+    public <T extends Document> void prefetch(Collection<T> collection,
+            Iterable<String> keys) {
+        // dummy impl
+        for (String key : keys) {
+            find(collection, key);
+        }
+    }
 }

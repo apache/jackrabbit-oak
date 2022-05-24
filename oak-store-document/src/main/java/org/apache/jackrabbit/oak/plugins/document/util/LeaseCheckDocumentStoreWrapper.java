@@ -210,4 +210,10 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         performLeaseCheck();
         return delegate.determineServerTimeDifferenceMillis();
     }
+
+    @Override
+    public <T extends Document> void prefetch(Collection<T> collection,
+            Iterable<String> keys) {
+        delegate.prefetch(collection, keys);;
+    }
 }

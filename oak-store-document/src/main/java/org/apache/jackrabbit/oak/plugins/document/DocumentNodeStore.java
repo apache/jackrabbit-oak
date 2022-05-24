@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -91,6 +92,7 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
+import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -537,6 +539,8 @@ public final class DocumentNodeStore
 
     private final Predicate<Path> nodeCachePredicate;
 
+    private CacheWarming cacheWarming;
+
     public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
         this.nodeCachePredicate = builder.getNodeCachePathPredicate();
         this.updateLimit = builder.getUpdateLimit();
@@ -602,6 +606,8 @@ public final class DocumentNodeStore
             leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
             leaseUpdateThread.start();
         }
+
+        this.cacheWarming = new CacheWarming(this);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
         this.store = s;
@@ -3860,5 +3866,10 @@ public final class DocumentNodeStore
     
     boolean isReadOnlyMode() {
         return readOnlyMode;
+    }
+
+    @Override
+    public void prefetch(java.util.Collection<String> paths) {
+        cacheWarming.prefetch(paths);
     }
 }
