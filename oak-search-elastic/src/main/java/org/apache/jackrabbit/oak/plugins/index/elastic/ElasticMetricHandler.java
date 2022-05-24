@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 import java.util.Collections;
@@ -50,15 +50,13 @@ public class ElasticMetricHandler {
     private final BiFunction<String, Map<String, String>, MeterStats> meter;
     private final BiFunction<String, Map<String, String>, HistogramStats> histogram;
     private final BiFunction<String, Map<String, String>, TimerStats> timer;
+    private final StatsProviderUtil statsProviderUtil;
 
     public ElasticMetricHandler(StatisticsProvider sp) {
-        BiFunction<String, Map<String, String>, String> metricName = (name, labels) -> labels.entrySet().stream().reduce(name,
-                (n, e) -> n + ";" + e.getKey() + "=" + e.getValue(),
-                (n1, n2) -> n1 + n2);
-
-        meter = (name, labels) -> sp.getMeter(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
-        histogram = (name, labels) -> sp.getHistogram(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
-        timer = (name, labels) -> sp.getTimer(metricName.apply(name, labels), StatsOptions.METRICS_ONLY);
+        statsProviderUtil = new StatsProviderUtil(sp);
+        meter = statsProviderUtil.getMeterStats();
+        histogram = statsProviderUtil.getHistoStats();
+        timer = statsProviderUtil.getTimerStats();
     }
 
     /**

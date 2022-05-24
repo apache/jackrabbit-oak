@@ -32,7 +32,7 @@ public class OakAnalyzer extends Analyzer {
 
     private final Version matchVersion;
 
-    private final int INDEX_ORIGINAL_TERM;
+    private final int preserveOriginal;
 
     /**
      * Creates a new {@link OakAnalyzer}
@@ -55,7 +55,7 @@ public class OakAnalyzer extends Analyzer {
      */
     public OakAnalyzer(Version matchVersion, boolean indexOriginalTerm) {
         this.matchVersion = matchVersion;
-        INDEX_ORIGINAL_TERM = indexOriginalTerm?WordDelimiterFilter.PRESERVE_ORIGINAL:0;
+        preserveOriginal = indexOriginalTerm ? WordDelimiterFilter.PRESERVE_ORIGINAL : 0;
     }
 
     @Override
@@ -66,7 +66,7 @@ public class OakAnalyzer extends Analyzer {
         tok = new WordDelimiterFilter(tok,
                 WordDelimiterFilter.GENERATE_WORD_PARTS
                         | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE
-                        | this.INDEX_ORIGINAL_TERM
+                        | preserveOriginal
                         | WordDelimiterFilter.GENERATE_NUMBER_PARTS, null);
         return new TokenStreamComponents(src, tok);
     }
