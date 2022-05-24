@@ -52,6 +52,10 @@ class ElasticIndexHelper {
      * @param indexDefinition the definition used to read settings/mappings
      * @return a {@code CreateIndexRequest}
      * @throws IOException if an error happens while creating the request
+     *
+     * TODO: index create cannot be migrated to the ES Java client: it does not support custom mappings/settings needed to configure elastiknn.
+     * See discussion in https://discuss.elastic.co/t/elasticsearch-java-client-support-for-custom-mappings-settings/303172
+     * The migration will continue when this roadmap item gets fixed https://github.com/elastic/elasticsearch-java/issues/252
      */
     public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
         final CreateIndexRequest request = new CreateIndexRequest(remoteIndexName);
@@ -81,6 +85,9 @@ class ElasticIndexHelper {
      * @param remoteIndexName the final index name (no alias)
      * @param indexDefinition the definition used to read settings/mappings
      * @return an {@code UpdateSettingsRequest}
+     *
+     * TODO: migrate to Elasticsearch Java client when the following issue will be fixed
+     * <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
      */
     public static UpdateSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
         UpdateSettingsRequest request = new UpdateSettingsRequest(remoteIndexName);

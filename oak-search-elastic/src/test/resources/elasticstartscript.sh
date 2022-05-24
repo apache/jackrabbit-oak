@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-pluginZip=`ls /tmp/plugins | grep elastiknn-7.16 | head -n 1`
+pluginZip=`ls /tmp/plugins | grep elastiknn-7.17 | head -n 1`
 echo "Installing plugin /tmp/plugins/$pluginZip"
 bin/elasticsearch-plugin install --batch file:///tmp/plugins/$pluginZip
 su -c "bin/elasticsearch" elasticsearch
