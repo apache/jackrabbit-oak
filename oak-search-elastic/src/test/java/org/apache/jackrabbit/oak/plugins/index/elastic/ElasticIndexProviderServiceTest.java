@@ -96,8 +96,6 @@ public class ElasticIndexProviderServiceTest {
 
     @Test
     public void withElasticSetup() throws Exception {
-        // Skips this test when a single Elasticsearch cluster is re-used among test executionsgit , see the ElasticTestServer main.
-        assumeTrue(elasticRule.useDocker());
         Map<String, Object> props = new HashMap<>();
         props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         props.put(PROP_INDEX_PREFIX, "elastic");
@@ -115,8 +113,6 @@ public class ElasticIndexProviderServiceTest {
 
     @Test
     public void withIndexCleanerSetup() throws Exception {
-        // Skips this test when a single Elasticsearch cluster is re-used among test executions, see the ElasticTestServer main.
-        assumeTrue(elasticRule.useDocker());
         Map<String, Object> props = new HashMap<>();
         props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         props.put(PROP_INDEX_PREFIX, "elastic");
