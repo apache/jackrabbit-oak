@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -91,7 +92,6 @@ public class LuceneIndexMBeanImplTest {
             doc.add(new LongField("long", (long) i, Store.NO));
             doc.add(new IntField("int", i, Store.NO));
             indexWriter.addDocument(doc);
-            indexWriter.addDocument(doc);
         }
         indexWriter.close();
         String[] stringValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "string",
@@ -111,6 +111,48 @@ public class LuceneIndexMBeanImplTest {
         longValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "long",
                 "java.lang.Long", 10);
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-long-field.txt", longValues);
+    }
+
+    @Test
+    public void testGetUniqueTerm() throws IOException {
+        String INDEX_PATH = "/oak:index/test-index";
+        IndexWriter indexWriter = addNodeIndex(INDEX_PATH);
+        for (int i = 0; i < 100; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("unique", "value-" + i, Store.NO));
+            doc.add(new StringField("notunique", String.valueOf(i / 10), Store.NO));
+            indexWriter.addDocument(doc);
+        }
+        indexWriter.close();
+        String[] uniqueValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "unique",
+                "java.lang.String", 100);
+        assertTermsMatch("LuceneIndexMBeanImplTest-expected-unique.txt", uniqueValues);
+
+        String[] notUniqueValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "notunique",
+                "java.lang.String", 100);
+        assertTermsMatch("LuceneIndexMBeanImplTest-expected-notunique.txt", notUniqueValues);
+    }
+
+    @Test
+    public void testSortsWithSingleTerms() throws IOException {
+        String INDEX_PATH = "/oak:index/test-index";
+        IndexWriter indexWriter = addNodeIndex(INDEX_PATH);
+        for (int i = 0; i < 100000; i++) {
+            Document doc = new Document();
+            if (i % 2 == 0) {
+                doc.add(new StringField("term", "value-" + i, Store.NO));
+            } else {
+                doc.add(new StringField("term", String.valueOf(i / 10), Store.NO));
+            }
+
+            indexWriter.addDocument(doc);
+        }
+        indexWriter.close();
+        String[] topValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "term",
+                "java.lang.String", 100);
+        assertTermsMatch("LuceneIndexMBeanImplTest-expected-top-terms.txt", topValues);
+        assertEquals(60001, luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "term",
+                "java.lang.String", 1000000).length);
     }
 
 }
