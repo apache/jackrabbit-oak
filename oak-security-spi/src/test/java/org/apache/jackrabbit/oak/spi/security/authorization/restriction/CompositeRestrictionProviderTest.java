@@ -43,16 +43,20 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class CompositeRestrictionProviderTest implements AccessControlConstants {
@@ -374,18 +378,61 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testGetRestrictionPattern() {
         RestrictionPattern pattern = mock(RestrictionPattern.class);
-        RestrictionProvider cp = CompositeRestrictionProvider.newInstance(
-                createRestrictionProvider(pattern, null, LONGS_RESTRICTION.getDefinition()),
-                createRestrictionProvider(RestrictionPattern.EMPTY, null, GLOB_RESTRICTION.getDefinition()));
+        RestrictionProvider rp1 = spy(createRestrictionProvider(pattern, null, LONGS_RESTRICTION.getDefinition()));
+        RestrictionProvider rp2 = spy(createRestrictionProvider(RestrictionPattern.EMPTY, null, GLOB_RESTRICTION.getDefinition()));
+        RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp2);
+        
         assertSame(pattern, cp.getPattern("/test", getAceTree(LONGS_RESTRICTION)));
         assertSame(pattern, cp.getPattern("/test", getAceTree(GLOB_RESTRICTION)));
+        
+        verify(rp1, never()).readRestrictions(anyString(), any(Tree.class));
+        verify(rp2, never()).readRestrictions(anyString(), any(Tree.class));
     }
 
     @Test
     public void testGetCompositeRestrictionPattern() {
-        RestrictionProvider cp = CompositeRestrictionProvider.newInstance(
-                createRestrictionProvider(mock(RestrictionPattern.class), null, NT_PREFIXES_RESTRICTION.getDefinition()),
-                createRestrictionProvider(mock(RestrictionPattern.class), null, MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
+        RestrictionProvider rp1 = spy(createRestrictionProvider(mock(RestrictionPattern.class), null, NT_PREFIXES_RESTRICTION.getDefinition()));
+        RestrictionProvider rp2 = spy(createRestrictionProvider(mock(RestrictionPattern.class), null, MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
+
+        RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp2);
         assertTrue(cp.getPattern("/test", getAceTree(LONGS_RESTRICTION)) instanceof CompositePattern);
+        
+        verify(rp1, never()).readRestrictions(anyString(), any(Tree.class));
+        verify(rp2, never()).readRestrictions(anyString(), any(Tree.class));
+    }
+    
+    @Test
+    public void testGetRestrictionPatternFromSet() {
+        Restriction r = mock(Restriction.class);
+        RestrictionProvider rp1 = spy(createRestrictionProvider(mock(RestrictionPattern.class), r, NT_PREFIXES_RESTRICTION.getDefinition()));
+        RestrictionProvider rp2 = spy(createRestrictionProvider(mock(RestrictionPattern.class), r, MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
+
+        RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp2);
+        RestrictionPattern pattern = cp.getPattern("/test", Collections.singleton(r));
+
+        assertTrue(pattern instanceof CompositePattern);
+        verify(rp1).getPattern(anyString(), any(Set.class));
+        verify(rp2).getPattern(anyString(), any(Set.class));
+        verifyNoMoreInteractions(rp1, rp2);
+        reset(rp1, rp2);
+
+    }
+
+    @Test
+    public void testGetRestrictionPatternFromSetWithEmptyPattern() {
+        Restriction r = mock(Restriction.class);
+        RestrictionPattern p = mock(RestrictionPattern.class);
+        
+        RestrictionProvider rp1 = spy(createRestrictionProvider(p, r, NT_PREFIXES_RESTRICTION.getDefinition()));
+        RestrictionProvider rp3 = spy(createRestrictionProvider(RestrictionPattern.EMPTY, r, MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
+
+        RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp3);
+        RestrictionPattern pattern = cp.getPattern("/test", Collections.singleton(r));
+
+        assertFalse(pattern instanceof CompositePattern);
+        assertSame(p, pattern);
+        verify(rp1).getPattern(anyString(), any(Set.class));
+        verify(rp3).getPattern(anyString(), any(Set.class));
+        verifyNoMoreInteractions(rp1, rp3);
     }
 }
