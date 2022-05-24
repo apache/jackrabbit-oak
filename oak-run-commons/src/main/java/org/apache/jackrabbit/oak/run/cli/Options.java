@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.Set;
-
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MutableClassToInstanceMap;
@@ -31,6 +27,10 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;

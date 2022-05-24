@@ -29,6 +29,10 @@ import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /*
 To be used as a @ClassRule
@@ -41,6 +45,8 @@ public class ElasticConnectionRule extends ExternalResource {
     private static boolean useDocker = false;
 
     private final String elasticConnectionString;
+
+    private ElasticConnectionModel elasticConnectionModel;
 
     public ElasticConnectionRule(String elasticConnectionString) {
         this.elasticConnectionString = elasticConnectionString;
@@ -55,16 +61,19 @@ public class ElasticConnectionRule extends ExternalResource {
     @Override
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
-        if (elasticConnectionString == null || getElasticConnectionFromString() == null) {
+        if (!isValidUri(elasticConnectionString)) {
             elastic = ElasticTestServer.getESTestServer();
             setUseDocker(true);
+            initializeElasticConnectionModel(elastic);
+        } else {
+            initializeElasticConnectionModel(elasticConnectionString);
         }
         return s;
     }
 
     @Override
     protected void after() {
-        ElasticConnection esConnection = useDocker() ? getElasticConnectionForDocker() : getElasticConnectionFromString();
+        ElasticConnection esConnection = getElasticConnection();
         if (esConnection != null) {
             try {
                 esConnection.getClient().indices().delete(new DeleteIndexRequest(esConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
@@ -75,6 +84,57 @@ public class ElasticConnectionRule extends ExternalResource {
         }
     }
 
+    public ElasticConnectionModel getElasticConnectionModel() {
+        return elasticConnectionModel;
+    }
+
+    private void initializeElasticConnectionModel(String elasticConnectionString) {
+        try {
+            URI uri = new URI(elasticConnectionString);
+            String host = uri.getHost();
+            String scheme = uri.getScheme();
+            int port = uri.getPort();
+
+            Map<String, String> queryParams = getUriQueryParams(uri);
+            String apiKey = queryParams.get("key_id");
+            String apiSecret = queryParams.get("key_secret");
+
+            this.elasticConnectionModel = new ElasticConnectionModel();
+            elasticConnectionModel.scheme = scheme;
+            elasticConnectionModel.elasticHost = host;
+            elasticConnectionModel.elasticPort = port;
+            elasticConnectionModel.elasticApiKey = apiKey;
+            elasticConnectionModel.elasticApiSecret = apiSecret;
+            elasticConnectionModel.indexPrefix = indexPrefix + System.currentTimeMillis();
+        } catch (URISyntaxException e) {
+            LOG.error("Provided elastic connection string is not valid ", e);
+        }
+    }
+
+    private void initializeElasticConnectionModel(ElasticsearchContainer elastic) {
+        this.elasticConnectionModel = new ElasticConnectionModel();
+        elasticConnectionModel.scheme = ElasticConnection.DEFAULT_SCHEME;
+        elasticConnectionModel.elasticHost = elastic.getHost();
+        elasticConnectionModel.elasticPort = elastic.getMappedPort(ElasticConnection.DEFAULT_PORT);
+        elasticConnectionModel.elasticApiKey = null;
+        elasticConnectionModel.elasticApiSecret = null;
+        elasticConnectionModel.indexPrefix = indexPrefix + System.currentTimeMillis();
+    }
+
+    private Map<String, String> getUriQueryParams(URI uri) {
+        String query = uri.getQuery();
+        if (query != null) {
+            Map<String, String> result = Arrays.stream(query.split(","))
+                    .map(s -> s.split("="))
+                    .collect(Collectors.toMap(
+                            a -> a[0],  //key
+                            a -> a[1]   //value
+                    ));
+            return result;
+        }
+        return Collections.EMPTY_MAP;
+    }
+
     public ElasticConnection getElasticConnectionFromString() {
         try {
             URI uri = new URI(elasticConnectionString);
@@ -82,34 +142,60 @@ public class ElasticConnectionRule extends ExternalResource {
             String scheme = uri.getScheme();
             int port = uri.getPort();
             String query = uri.getQuery();
+            Map<String, String> queryParams = getUriQueryParams(uri);
+            String apiKey = queryParams.get("key_id");
+            String apiSecret = queryParams.get("key_secret");
 
-            String api_key = null;
-            String api_secret = null;
-            if (query != null) {
-                api_key = query.split(",")[0].split("=")[1];
-                api_secret = query.split(",")[1].split("=")[1];
-            }
             return ElasticConnection.newBuilder()
                     .withIndexPrefix(indexPrefix + System.currentTimeMillis())
                     .withConnectionParameters(scheme, host, port)
-                    .withApiKeys(api_key, api_secret)
+                    .withApiKeys(apiKey, apiSecret)
                     .build();
         } catch (URISyntaxException e) {
+            LOG.error("Provided elastic connection string is not valid ", e);
             return null;
         }
     }
 
+    private boolean isValidUri(String connectionString) {
+        if (connectionString == null) {
+            return false;
+        }
+        try {
+            new URI(connectionString);
+            return true;
+        } catch (URISyntaxException e) {
+            LOG.debug("Provided elastic connection string is not valid ", e);
+            return false;
+        }
+    }
+
+    /**
+     * We initialise elasticConnectionModel in apply method. So use this method only
+     * if apply had been called once.
+     *
+     * @return
+     */
+    public ElasticConnection getElasticConnection() {
+        return ElasticConnection.newBuilder()
+                .withIndexPrefix(elasticConnectionModel.indexPrefix)
+                .withConnectionParameters(elasticConnectionModel.scheme,
+                        elasticConnectionModel.elasticHost, elasticConnectionModel.elasticPort)
+                .withApiKeys(elasticConnectionModel.elasticApiKey, elasticConnectionModel.elasticApiSecret)
+                .build();
+    }
+
     public ElasticConnection getElasticConnectionForDocker() {
-        return getElasticConnectionForDocker(elastic.getContainerIpAddress(),
-                elastic.getMappedPort(ElasticConnection.DEFAULT_PORT));
+        return getElasticConnectionForDocker(elasticConnectionModel.elasticHost,
+                elasticConnectionModel.elasticPort);
     }
 
     public ElasticConnection getElasticConnectionForDocker(String containerIpAddress, int port) {
         return ElasticConnection.newBuilder()
-                .withIndexPrefix(indexPrefix + System.currentTimeMillis())
-                .withConnectionParameters(ElasticConnection.DEFAULT_SCHEME,
+                .withIndexPrefix(elasticConnectionModel.indexPrefix)
+                .withConnectionParameters(elasticConnectionModel.scheme,
                         containerIpAddress, port)
-                .withApiKeys(null, null)
+                .withApiKeys(elasticConnectionModel.elasticApiKey, elasticConnectionModel.elasticApiSecret)
                 .build();
     }
 
@@ -119,5 +205,38 @@ public class ElasticConnectionRule extends ExternalResource {
 
     public boolean useDocker() {
         return useDocker;
+    }
+
+    public class ElasticConnectionModel {
+        private String elasticApiSecret;
+        private String elasticApiKey;
+        private String scheme;
+        private String elasticHost;
+        private int elasticPort;
+        private String indexPrefix;
+
+        public String getElasticApiSecret() {
+            return elasticApiSecret;
+        }
+
+        public String getElasticApiKey() {
+            return elasticApiKey;
+        }
+
+        public String getScheme() {
+            return scheme;
+        }
+
+        public String getElasticHost() {
+            return elasticHost;
+        }
+
+        public int getElasticPort() {
+            return elasticPort;
+        }
+
+        public String getIndexPrefix() {
+            return indexPrefix;
+        }
     }
 }

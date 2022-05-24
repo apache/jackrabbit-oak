@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -392,8 +394,10 @@ public class SelectorImpl extends SourceImpl {
         TimerStats t = timerDuration;
         if (t == null) {
             // reuse the timer (in the normal case)
-            t = timerDuration = query.getSettings().getStatisticsProvider().
-                getTimer("QUERY_DURATION_" + planIndexName, StatsOptions.METRICS_ONLY);
+            // QUERY_DURATION;index=<planIndexName> will be translated as metric name = QUERY_DURATION
+            // and index=<planIndexName> as a label by a downstream consumer like prometheus.
+            StatsProviderUtil statsProviderUtil = new StatsProviderUtil(query.getSettings().getStatisticsProvider());
+            t = timerDuration = statsProviderUtil.getTimerStats().apply("QUERY_DURATION", Collections.singletonMap("index", planIndexName));
         }
         t.update(timeNanos, TimeUnit.NANOSECONDS);
     }
