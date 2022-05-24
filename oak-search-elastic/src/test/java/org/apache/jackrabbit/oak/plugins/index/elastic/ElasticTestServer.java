@@ -43,7 +43,7 @@ import static org.junit.Assume.assumeNotNull;
 public class ElasticTestServer implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
-    private static final String PLUGIN_DIGEST = "db479aeee452b2a0f6e3c619ecdf27ca5853e54e7bc787e5c56a49899c249240";
+    private static final String PLUGIN_DIGEST = "5e3b40bb72b2813f927be9bf6ecdf88668d89d2ef20c7ebafaa51ab8407fd179";
     private static ElasticTestServer esTestServer = new ElasticTestServer();
     private static volatile ElasticsearchContainer elasticsearchContainer;
 
@@ -70,13 +70,14 @@ public class ElasticTestServer implements AutoCloseable {
     }
 
     private synchronized void setup() {
-        final String pluginVersion = "7.16.3.0";
+        final String pluginVersion = "7.17.3.0";
         final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
         final String localPluginPath = "target/" + pluginFileName;
         downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
         checkIfDockerClientAvailable();
         Network network = Network.newNetwork();
         elasticsearchContainer = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT)
+                .withCopyFileToContainer(MountableFile.forClasspathResource("elasticsearch.yml"), "/usr/share/elasticsearch/config/")
                 .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                 .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
                 .withCommand("bash /tmp/elasticstartscript.sh")
