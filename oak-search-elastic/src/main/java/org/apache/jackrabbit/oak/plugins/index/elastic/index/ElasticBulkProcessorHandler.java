@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -119,8 +118,8 @@ class ElasticBulkProcessorHandler {
             // Check if this indexing call is a part of async cycle or a commit hook or called from oak-run for offline reindex
             // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
             // Otherwise, it's part of commit hook based indexing due to async property having a value nrt
-            // If the IndexDefintion has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
-            // we need to set waitForESAcknowledgement = false only in the second case i.e
+            // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
+            // we need to set waitForESAcknowledgement = false only in the second case i.e.
             // when this is a part of commit hook due to async property having a value nrt
             if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
                 waitForESAcknowledgement = false;
@@ -161,7 +160,8 @@ class ElasticBulkProcessorHandler {
     }
 
     protected BiConsumer<BulkRequest, ActionListener<BulkResponse>> requestConsumer() {
-        return (request, bulkListener) -> elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+        // TODO: migrate to ES Java client https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/indexing-bulk.html
+        return (request, bulkListener) -> elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
     }
 
     public void add(DocWriteRequest<?> request) {
@@ -308,7 +308,7 @@ class ElasticBulkProcessorHandler {
                     request.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
                     isDataSearchable.set(true);
                 }
-                elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+                elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
             };
         }
 
@@ -322,9 +322,7 @@ class ElasticBulkProcessorHandler {
             if (totalOperations > 0 && !isDataSearchable.get()) {
                 LOG.debug("Forcing refresh");
                 try {
-                    this.elasticConnection.getClient()
-                            .indices()
-                            .refresh(new RefreshRequest(indexName), RequestOptions.DEFAULT);
+                	this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
                     LOG.warn("Error refreshing index " + indexName, e);
                 }

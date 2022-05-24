@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -26,16 +28,13 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.health.ClusterIndexHealth;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.Collection;
+import co.elastic.clients.elasticsearch._types.HealthStatus;
+import co.elastic.clients.elasticsearch._types.Level;
+import co.elastic.clients.elasticsearch.cluster.HealthRequest;
+import co.elastic.clients.elasticsearch.cluster.HealthResponse;
 
 class ElasticIndexInfoProvider implements IndexInfoProvider {
 
@@ -80,13 +79,11 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
     public boolean isValid(String indexPath) throws IOException {
         ElasticIndexNode node = indexTracker.acquireIndexNode(indexPath);
         try {
-            ClusterHealthRequest request = new ClusterHealthRequest(node.getDefinition().getIndexAlias());
-            request.level(ClusterHealthRequest.Level.INDICES);
-            ClusterHealthResponse response = node.getConnection().getClient().cluster().health(
-                    request, RequestOptions.DEFAULT
-            );
-            Collection<ClusterIndexHealth> indices = response.getIndices().values();
-            return indices.stream().map(i -> i.getStatus() == ClusterHealthStatus.GREEN).findFirst().orElse(false);
+            HealthResponse response = node.getConnection().getClient().cluster()
+                    .health(HealthRequest.of(hrb -> hrb
+                            .index(node.getDefinition().getIndexAlias())
+                            .level(Level.Indices)));
+            return response.indices().values().stream().map(i -> i.status() == HealthStatus.Green).findFirst().orElse(false);
         } finally {
             node.release();
         }
