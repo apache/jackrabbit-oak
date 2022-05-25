@@ -214,6 +214,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     @Override
     public <T extends Document> void prefetch(Collection<T> collection,
             Iterable<String> keys) {
+        performLeaseCheck();
         delegate.prefetch(collection, keys);;
     }
 }
