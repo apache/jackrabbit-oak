@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -198,7 +198,7 @@ public class FlatFileNodeStoreBuilder {
         return store;
     }
 
-    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException, CompositeException{
+    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport, Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException{
         List<FlatFileStore> storeList = new ArrayList<>();
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
@@ -208,11 +208,11 @@ public class FlatFileNodeStoreBuilder {
 
         long start = System.currentTimeMillis();
 
-        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper, indexerSupport, 0);
+        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper, indexerSupport, indexDefinitions, 0);
         List<File> fileList = null;
         try {
             fileList = splitter.split();
-        } catch (CommitFailedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 

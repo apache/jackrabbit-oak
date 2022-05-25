@@ -19,25 +19,9 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Stopwatch;
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
@@ -72,9 +56,24 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Stopwatch;
-import com.google.common.io.Closer;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 public abstract class DocumentStoreIndexerBase implements Closeable{
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -144,7 +143,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     }
 
     private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements,
-            boolean splitFlatFile) throws IOException {
+            boolean splitFlatFile, Set<IndexDefinition> indexDefinitions) throws IOException {
         List<FlatFileStore> storeList = new ArrayList<>();
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
@@ -174,7 +173,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                     builder.addExistingDataDumpDir(dir);
                 }
                 if (splitFlatFile) {
-                    storeList = builder.buildList(indexHelper, indexerSupport);
+                    storeList = builder.buildList(indexHelper, indexerSupport, indexDefinitions);
                 } else {
                     storeList.add(builder.build());
                 }
@@ -214,23 +213,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
      */
     public FlatFileStore buildFlatFileStore() throws IOException, CommitFailedException {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-        NodeState root = builder.getNodeState();
-        indexerSupport.updateIndexDefinitions(builder);
-        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
-
         Set<String> preferredPathElements = new HashSet<>();
-        Set<IndexDefinition> indexDefinitions = new HashSet<>();
-
-        for (String indexPath : indexHelper.getIndexPaths()) {
-            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
-            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
+        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
+        for (IndexDefinition indexDf : indexDefinitions) {
             preferredPathElements.addAll(indexDf.getRelativeNodeNames());
-            indexDefinitions.add(indexDf);
         }
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
-        FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate, preferredPathElements, false).get(0);
+        FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate, preferredPathElements, false, indexDefinitions).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
                 flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
         return flatFileStore;
@@ -253,7 +242,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
 
         closer.register(indexer);
 
-        List<FlatFileStore> flatFileStores = buildFlatFileStoreList(checkpointedState, indexer, indexer::shouldInclude, null, parallelIndex);
+        List<FlatFileStore> flatFileStores = buildFlatFileStoreList(checkpointedState, indexer, indexer::shouldInclude, null, parallelIndex, getIndexDefinitions());
 
         progressReporter.reset();
 
@@ -309,6 +298,24 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failure getting indexing job result", e);
         }
+    }
+
+    private Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
+        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+        NodeState root = builder.getNodeState();
+        indexerSupport.updateIndexDefinitions(builder);
+        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
+
+        Set<IndexDefinition> indexDefinitions = new HashSet<>();
+
+        for (String indexPath : indexHelper.getIndexPaths()) {
+            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
+            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
+            indexDefinitions.add(indexDf);
+        }
+        return indexDefinitions;
     }
 
     private MongoDocumentStore getMongoDocumentStore() {

@@ -2,7 +2,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.IndexHelper;
@@ -14,8 +13,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +42,6 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 public class FlatFileSplitter {
     private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
     private final File workDir;
-    private final boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private final int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
     private final IndexerSupport indexerSupport;
     private final IndexHelper indexHelper;
     private final NodeTypeInfoProvider infoProvider;
@@ -55,10 +50,15 @@ public class FlatFileSplitter {
     public final String splitDirName = "split";
     private final NodeStateEntryReader entryReader;
     private long minimumSplitThreshold = 10 * FileUtils.ONE_MB;
+    private int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
+    private boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private Set<IndexDefinition> indexDefinitions;
+    private Set<String> splitNodeTypeNames;
 
     // This constructor is created for testing purpose
-    public FlatFileSplitter(File flatFile, String workdir, NodeStore store, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader, Set<IndexDefinition> indexDefinitions) {
+    public FlatFileSplitter(File flatFile, String workdir, NodeStore store, NodeTypeInfoProvider infoProvider,
+                            NodeStateEntryReader entryReader, Set<IndexDefinition> indexDefinitions, Set<String> splitNodeTypeNames,
+                            long minimumSplitThreshold, int splitSize, boolean useCompression) {
         this.flatFile = flatFile;
         this.workDir = new File(workdir, splitDirName);
 
@@ -66,14 +66,19 @@ public class FlatFileSplitter {
         this.infoProvider = infoProvider;
         this.entryReader = entryReader;
         this.indexDefinitions = indexDefinitions;
+        this.splitNodeTypeNames = splitNodeTypeNames;
         this.indexerSupport = null;
         this.indexHelper = null;
+        this.minimumSplitThreshold = minimumSplitThreshold;
+        this.splitSize = splitSize;
+        this.useCompression = useCompression;
     }
 
-    public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport) {
+    public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport, Set<IndexDefinition> indexDefinitions) {
         this.flatFile = flatFile;
         this.indexerSupport = indexerSupport;
         this.indexHelper = indexHelper;
+        this.indexDefinitions = indexDefinitions;
         this.workDir = new File(indexHelper.getWorkDir(), splitDirName);
 
         this.store = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
@@ -81,8 +86,9 @@ public class FlatFileSplitter {
         this.entryReader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
     }
 
-    public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport, long minimumSplitThreshold) {
-        this(flatFile, indexHelper, indexerSupport);
+    public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport, Set<IndexDefinition> indexDefinitions, long minimumSplitThreshold) {
+        this(flatFile, indexHelper, indexerSupport, indexDefinitions);
+        this.indexDefinitions = indexDefinitions;
         this.minimumSplitThreshold = minimumSplitThreshold;
     }
 
@@ -94,11 +100,11 @@ public class FlatFileSplitter {
         });
     }
 
-    public List<File> split() throws IOException, CommitFailedException {
+    public List<File> split() throws IOException {
         return split(true);
     }
 
-    public List<File> split(boolean deleteOriginal) throws IOException, CommitFailedException {
+    public List<File> split(boolean deleteOriginal) throws IOException {
         List<File> splitFlatFiles = new ArrayList<>();
         try {
             FileUtils.forceMkdir(workDir);
@@ -195,11 +201,16 @@ public class FlatFileSplitter {
         Type<?> type = property.getType();
         if (type == Type.NAME) {
             return property.getValue(Type.NAME);
+        } else if (type == Type.STRING) {
+            return property.getValue(Type.STRING);
         }
         return "";
     }
 
     private boolean canSplit(Set<String> nodeTypes, Stack<String> nodeTypeNameStack) {
+        if (nodeTypeNameStack.contains("")) {
+            return false;
+        }
         for (String parentNodeTypeName : nodeTypeNameStack.subList(0, nodeTypeNameStack.size()-1)) {
             if (nodeTypes.contains(parentNodeTypeName)) {
                 return false;
@@ -223,34 +234,15 @@ public class FlatFileSplitter {
         return initialSet;
     }
 
-    public Set<String> getSplitNodeTypeNames() throws IOException, CommitFailedException {
-        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
-        Set<NodeTypeInfo> splitNodeTypes = getSplitNodeType(indexDefinitions);
-        return splitNodeTypes.stream().map(NodeTypeInfo::getNodeTypeName).collect(Collectors.toSet());
+    public Set<String> getSplitNodeTypeNames() {
+        if (splitNodeTypeNames == null) {
+            Set<NodeTypeInfo> splitNodeTypes = getSplitNodeType();
+            splitNodeTypeNames = splitNodeTypes.stream().map(NodeTypeInfo::getNodeTypeName).collect(Collectors.toSet());
+        }
+        return splitNodeTypeNames;
     }
 
-    private Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
-        if (indexDefinitions != null) {
-            return indexDefinitions;
-        }
-
-        NodeState root = store.getRoot();
-        NodeBuilder builder = root.builder();
-
-        indexerSupport.updateIndexDefinitions(builder);
-        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
-
-        indexDefinitions = new HashSet<>();
-        for (String indexPath : indexHelper.getIndexPaths()) {
-            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
-            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
-            indexDefinitions.add(indexDf);
-        }
-
-        return indexDefinitions;
-    }
-
-    private Set<NodeTypeInfo> getSplitNodeType(Set<IndexDefinition> indexDefinitions) throws IOException, CommitFailedException {
+    private Set<NodeTypeInfo> getSplitNodeType(){
         HashSet<String> nodeTypeNameSet = new HashSet<>();
         Set<NodeTypeInfo> setOfNodeType = new HashSet<>();
 
