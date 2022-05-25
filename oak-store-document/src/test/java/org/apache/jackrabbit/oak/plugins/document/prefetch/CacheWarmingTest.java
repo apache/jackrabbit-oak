@@ -137,8 +137,10 @@ public class CacheWarmingTest {
             logAndReset("after invalidate", cds);
         }
         if (prefetch) {
-            List<String> paths = new ArrayList<>(children);
-            store.prefetch(withParents(paths));
+            final List<String> paths = new ArrayList<>(children);
+            final java.util.Collection<String> withParents = withParents(paths);
+            withParents.remove("/");
+            store.prefetch(withParents);
             logAndReset("after prefetch  ", cds);
         }
         // read the children again

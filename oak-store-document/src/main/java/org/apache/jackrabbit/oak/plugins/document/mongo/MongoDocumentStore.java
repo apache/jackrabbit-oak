@@ -1962,9 +1962,66 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> void prefetch(Collection<T> collection,
             Iterable<String> keys) {
+        final DocumentReadPreference docReadPref = DocumentReadPreference.PRIMARY;
         // dummy impl
-        for (String key : keys) {
-            find(collection, key);
+//        for (String key : keys) {
+//            find(collection, key);
+//        }
+        // poc impl
+        log("prefetch", keys, docReadPref);
+        final Stopwatch watch = startWatch();
+        boolean isSlaveOk = false;
+        boolean docFound = true;
+        try {
+            ReadPreference readPreference = getMongoReadPreference(collection, null, docReadPref);
+            MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
+
+            if(readPreference.isSlaveOk()){
+                LOG.trace("Routing call to secondary for fetching [{}]", keys);
+                isSlaveOk = true;
+            }
+
+            List<BasicDBObject> result = new ArrayList<>(1);
+            execute(session -> {
+                final Bson query = Filters.in(Document.ID, keys);;
+                if (session != null) {
+                    dbCollection.find(session, query).into(result);
+                } else {
+                    dbCollection.find(query).into(result);
+                }
+                return null;
+            }, collection);
+
+            if(result.isEmpty()) {
+                docFound = false;
+                return;
+            }
+            for (BasicDBObject basicDBObject : result) {
+//                final NodeDocument d = (NodeDocument) findUncachedWithRetry(
+//                        collection, key,
+//                        getReadPreference(maxCacheAge));
+                final NodeDocument d = (NodeDocument) convertFromDBObject(collection, basicDBObject);
+                if (d == null) {
+                    continue;
+                }
+                String key = String.valueOf(d.get(Document.ID));
+                d.seal();
+                try {
+                    // load into cache
+                    invalidateCache(collection, key);
+                    nodesCache.get(key, new Callable<NodeDocument>() {
+                        @Override
+                        public NodeDocument call() throws Exception {
+                            return d == null ? NodeDocument.NULL : d;
+                        }
+                    });
+                } catch (ExecutionException e) {
+                    LOG.error("prefetch: error prefetching id {}", key, e);
+                }
+            }
+//            return doc;
+        } finally {
+//            stats.doneFindUncached(watch.elapsed(TimeUnit.NANOSECONDS), collection, key, docFound, isSlaveOk);
         }
     }
 }
