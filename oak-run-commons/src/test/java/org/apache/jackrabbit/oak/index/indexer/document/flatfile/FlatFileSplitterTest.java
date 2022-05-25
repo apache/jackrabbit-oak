@@ -137,6 +137,51 @@ public class FlatFileSplitterTest {
     }
 
     @Test
+    public void multipleNodeTypeSplitWithParent() throws IOException {
+        Set<String> splitNodeTypeNames = new HashSet<>();
+        splitNodeTypeNames.add("no-split-1");
+        splitNodeTypeNames.add("no-split-2");
+        File flatFile = new File(classLoader.getResource("multiple-node-type-simple-split-with-parent.json").getFile());
+        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames, 0, maxSplitSize, false);
+        List<File> flatFileList = splitter.split(false);
+
+        assertEquals(4, flatFileList.size());
+        assertEquals(2, countLines(flatFileList.get(0)));
+        assertEquals("no-split-1", startLineType(flatFileList.get(0)));
+        assertEquals(2, countLines(flatFileList.get(1)));
+        assertEquals("no-split-2", startLineType(flatFileList.get(1)));
+        assertEquals(1, countLines(flatFileList.get(2)));
+        assertEquals(1, countLines(flatFileList.get(3)));
+        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+    }
+
+    @Test
+    public void multipleNodeTypeSplitWithNestedParent() throws IOException {
+        Set<String> splitNodeTypeNames = new HashSet<>();
+        splitNodeTypeNames.add("no-split-1");
+        splitNodeTypeNames.add("no-split-2");
+        splitNodeTypeNames.add("no-split-3");
+        splitNodeTypeNames.add("no-split-4");
+        File flatFile = new File(classLoader.getResource("multiple-node-type-simple-split-with-nested-parent.json").getFile());
+        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames, 0, maxSplitSize, false);
+        List<File> flatFileList = splitter.split(false);
+
+        assertEquals(4, flatFileList.size());
+        assertEquals(2, countLines(flatFileList.get(0)));
+        assertEquals("no-split-1", startLineType(flatFileList.get(0)));
+        assertEquals(4, countLines(flatFileList.get(1)));
+        assertEquals("no-split-2", startLineType(flatFileList.get(1)));
+        assertEquals(1, countLines(flatFileList.get(2)));
+        assertEquals("split", startLineType(flatFileList.get(2)));
+        assertEquals(2, countLines(flatFileList.get(3)));
+        assertEquals("no-split-4", startLineType(flatFileList.get(3)));
+        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+    }
+
+
+    @Test
     public void getSplitNodeTypeNames() {
         NodeStore store = new MemoryNodeStore();
         EditorHook hook = new EditorHook(
