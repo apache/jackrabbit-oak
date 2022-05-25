@@ -332,7 +332,7 @@ public class ElasticFacetTest {
     }
 
     @Test
-    public void secureFacets_withAdminSession() throws Exception {
+    public void insecureFacets_withAdminSession() throws Exception {
         Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);

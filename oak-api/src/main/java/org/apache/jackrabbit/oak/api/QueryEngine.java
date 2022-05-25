@@ -21,6 +21,7 @@ import static java.util.Collections.emptyMap;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.osgi.annotation.versioning.ProviderType;
@@ -89,6 +90,24 @@ public interface QueryEngine {
      */
     Result executeQuery(
             String statement, String language, long limit, long offset,
+            Map<String, ? extends PropertyValue> bindings,
+            Map<String, String> mappings) throws ParseException;
+
+    /**
+     * Execute a query and get the result.
+     *
+     * @param statement the query statement
+     * @param language the language
+     * @param limit the maximum result set size (may not be negative but may be empty)
+     * @param offset the number of rows to skip (may not be negative but may be empty)
+     * @param bindings the bind variable value bindings
+     * @param mappings namespace prefix mappings
+     * @return the result
+     * @throws ParseException if the statement could not be parsed
+     * @throws IllegalArgumentException if there was an error executing the query
+     */
+    Result executeQuery(
+            String statement, String language, Optional<Long> limit, Optional<Long> offset,
             Map<String, ? extends PropertyValue> bindings,
             Map<String, String> mappings) throws ParseException;
     

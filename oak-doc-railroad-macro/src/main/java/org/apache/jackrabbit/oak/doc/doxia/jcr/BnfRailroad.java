@@ -70,6 +70,8 @@ public class BnfRailroad implements BnfVisitor {
         XPATH_KEYWORD_TO_ESCAPE.put("order by", "@ORDER_BY@");
         XPATH_KEYWORD_TO_ESCAPE.put("option", "@OPTION@");
         XPATH_KEYWORD_TO_ESCAPE.put("traversal", "@TRAVERSAL@");
+        XPATH_KEYWORD_TO_ESCAPE.put("offset", "@OFFSET@");
+        XPATH_KEYWORD_TO_ESCAPE.put("limit", "@LIMIT@");
         XPATH_KEYWORD_TO_ESCAPE.put("ok", "@OK@");
         XPATH_KEYWORD_TO_ESCAPE.put("warn", "@WARN@");
         XPATH_KEYWORD_TO_ESCAPE.put("fail", "@FAIL@");

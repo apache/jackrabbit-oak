@@ -48,6 +48,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProvid
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 public class ElasticIndexProviderServiceTest {
@@ -99,7 +100,7 @@ public class ElasticIndexProviderServiceTest {
         props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         props.put(PROP_INDEX_PREFIX, "elastic");
         props.put(PROP_ELASTIC_HOST, "localhost");
-        props.put(PROP_ELASTIC_PORT, elasticRule.elastic.getFirstMappedPort());
+        props.put(PROP_ELASTIC_PORT, elasticRule.getElasticConnectionModel().getElasticPort());
         MockOsgi.activate(service, context.bundleContext(), props);
 
         assertNotNull(context.getService(QueryIndexProvider.class));
@@ -116,7 +117,7 @@ public class ElasticIndexProviderServiceTest {
         props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         props.put(PROP_INDEX_PREFIX, "elastic");
         props.put(PROP_ELASTIC_HOST, "localhost");
-        props.put(PROP_ELASTIC_PORT, elasticRule.elastic.getFirstMappedPort());
+        props.put(PROP_ELASTIC_PORT, elasticRule.getElasticConnectionModel().getElasticPort());
         props.put("remoteIndexCleanupFrequency", 600);
         MockOsgi.activate(service, context.bundleContext(), props);
 
