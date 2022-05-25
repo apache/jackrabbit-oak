@@ -125,7 +125,7 @@ public class FlatFileSplitter {
         }
 
         Set<String>splitNodeTypesName = getSplitNodeTypeNames();
-        log.info("split allowed types: {}", splitNodeTypesName);
+        log.info("unsafe split types: {}", splitNodeTypesName);
         if (splitNodeTypesName.contains(NT_BASE)) {
             log.info("Skipping split because split node types set contains {}", NT_BASE);
             return returnOriginalFlatFile();
@@ -201,8 +201,6 @@ public class FlatFileSplitter {
         Type<?> type = property.getType();
         if (type == Type.NAME) {
             return property.getValue(Type.NAME);
-        } else if (type == Type.STRING) {
-            return property.getValue(Type.STRING);
         }
         return "";
     }

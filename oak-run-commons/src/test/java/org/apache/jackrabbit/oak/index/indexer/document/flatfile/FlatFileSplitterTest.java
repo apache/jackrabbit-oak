@@ -1,5 +1,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.OakInitializer;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -22,6 +23,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -37,6 +39,8 @@ import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -80,6 +84,23 @@ public class FlatFileSplitterTest {
 
         assertEquals(1, flatFileList.size());
         assertEquals(flatFile.length(), flatFileList.get(0).length());
+    }
+
+    @Test
+    public void deleteAfterSplit() throws IOException {
+        Set<String> splitNodeTypeNames = new HashSet<>();
+        File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
+        File copied = new File(temporaryFolder.newFile().getAbsolutePath());
+        FileUtils.copyFile(flatFile, copied);
+        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
+        FlatFileSplitter splitter = new FlatFileSplitter(copied, workDirPath, null, null, entryReader, null, splitNodeTypeNames, 0, maxSplitSize, false);
+
+        long originalSize = flatFile.length();
+        List<File> flatFileList = splitter.split();
+
+        assertEquals(originalSize, getTotalSize(flatFileList));
+        assertTrue(flatFile.exists());
+        assertTrue(!copied.exists());
     }
 
     @Test
@@ -180,6 +201,86 @@ public class FlatFileSplitterTest {
         assertEquals(flatFile.length(), getTotalSize(flatFileList));
     }
 
+    @Test
+    public void splitAsset() throws IOException {
+        Set<String> splitNodeTypeNames = new HashSet<>();
+        String assetNodeType = "dam:Asset";
+        splitNodeTypeNames.add(assetNodeType);
+        File flatFile = new File(classLoader.getResource("complex-split.json").getFile());
+        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
+        int expectedSplitSize = 10;
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames, 0, expectedSplitSize, false);
+        List<File> flatFileList = splitter.split(false);
+
+        assertEquals(expectedSplitSize, flatFileList.size());
+        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(startLine(flatFile), startLine(flatFileList.get(0)));
+        for (int i = 1; i < flatFileList.size(); i++) {
+            assertEquals(assetNodeType, startLineType(flatFileList.get(i)));
+        }
+    }
+
+    @Test
+    public void splitFolder() throws IOException {
+        Set<String> splitNodeTypeNames = new HashSet<>(Arrays.asList(
+                "nt:file",
+                "cq:VirtualComponent",
+                "nt:folder",
+                "cq:PollConfigFolder",
+                "cq:ExporterConfigFolder",
+                "cq:ClientLibraryFolder",
+                "cq:ComponentMixin",
+                "cq:ContentSyncConfig",
+                "cq:Component",
+                "sling:OrderedFolder",
+                "sling:Folder",
+                "granite:Component"));
+        File flatFile = new File(classLoader.getResource("complex-split.json").getFile());
+        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
+        int expectedSplitSize = 2;
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames, 0, expectedSplitSize, false);
+        List<File> flatFileList = splitter.split(false);
+
+        assertEquals(expectedSplitSize, flatFileList.size());
+        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(startLineType(flatFile), startLineType(flatFileList.get(0)));
+        String expectedSplitPoint = "/etc|{\"jcr:created\":\"dat:2021-05-27T19:04:57.948Z\",\"jcr:mixinTypes\":[\"nam:rep:AccessControllable\"],\"jcr:createdBy\":\"admin\",\"jcr:primaryType\":\"nam:sling:Folder\"}";
+        assertEquals(expectedSplitPoint, startLine(flatFileList.get(1)));
+    }
+
+    @Test
+    public void splitFolderWithCompression() throws IOException {
+        Set<String> splitNodeTypeNames = new HashSet<>(Arrays.asList(
+                "nt:file",
+                "cq:VirtualComponent",
+                "nt:folder",
+                "cq:PollConfigFolder",
+                "cq:ExporterConfigFolder",
+                "cq:ClientLibraryFolder",
+                "cq:ComponentMixin",
+                "cq:ContentSyncConfig",
+                "cq:Component",
+                "sling:OrderedFolder",
+                "sling:Folder",
+                "granite:Component"));
+        File rawFlatFile = new File(classLoader.getResource("complex-split.json").getFile());;
+        File flatFile = temporaryFolder.newFile();
+        compress(rawFlatFile, flatFile);
+        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
+        int expectedSplitSize = 2;
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames, 0, expectedSplitSize, true);
+        List<File> flatFileList = splitter.split(false);
+        List<File> rawFlatFileList = new ArrayList<>();
+
+        for (File f: flatFileList) {
+            File uf = temporaryFolder.newFile();
+            uncompress(f, uf);
+            rawFlatFileList.add(uf);
+        }
+
+        assertEquals(expectedSplitSize, flatFileList.size());
+        assertEquals(rawFlatFile.length(), getTotalSize(rawFlatFileList));
+    }
 
     @Test
     public void getSplitNodeTypeNames() {
@@ -254,19 +355,33 @@ public class FlatFileSplitterTest {
         assertTrue(nodeTypes.containsAll(resultNodeTypes));
     }
 
+    @Test
+    public void failCreatWorkDir() throws IOException {
+        String workDirPath = temporaryFolder.newFile().getAbsolutePath();
+        File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, null, null, null, 0, maxSplitSize, false);
+        List<File> flatFileList;
+        flatFileList = splitter.split(false);
+
+        assertEquals(flatFile, flatFileList.get(0));
+    }
+
     public int countLines(File file) throws IOException {
         try (Stream<String> stream = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
             return (int) stream.count();
         }
     }
 
-    public String startLineType(File file) throws IOException {
+    public String startLine(File file) throws IOException {
         try (Scanner scanner = new Scanner(file)) {
-            String line = scanner.nextLine();
-            NodeStateEntry nse = entryReader.read(line);
-            PropertyState property = nse.getNodeState().getProperty(JCR_PRIMARYTYPE);
-            return property.getValue(Type.STRING);
+            return scanner.nextLine();
         }
+    }
+
+    public String startLineType(File file) throws IOException {
+        NodeStateEntry nse = entryReader.read(startLine(file));
+        PropertyState property = nse.getNodeState().getProperty(JCR_PRIMARYTYPE);
+        return property.getValue(Type.STRING);
     }
 
     public void printFile(File file) throws IOException {
@@ -284,5 +399,27 @@ public class FlatFileSplitterTest {
             totalFileSize += f.length();
         }
         return totalFileSize;
+    }
+
+    public void compress(File src, File dest) throws IOException {
+        try (BufferedReader r = new BufferedReader(createReader(src, false));
+             BufferedWriter w = new BufferedWriter(createWriter(dest, true))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                w.write(line);
+                w.newLine();
+            }
+        }
+    }
+
+    public void uncompress(File src, File dest) throws IOException {
+        try (BufferedReader r = new BufferedReader(createReader(src, true));
+             BufferedWriter w = new BufferedWriter(createWriter(dest, false))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                w.write(line);
+                w.newLine();
+            }
+        }
     }
 }
