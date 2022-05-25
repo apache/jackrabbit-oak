@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Node;
@@ -129,7 +130,7 @@ public class QueryManagerImpl implements QueryManager {
     }
 
     public QueryResult executeQuery(String statement, String language,
-            long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
+        Optional<Long> limit, Optional<Long> offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
             TimerStats.Context context = queryDuration.time();

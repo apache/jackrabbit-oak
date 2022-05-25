@@ -13,6 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.util.Optional;
+
 /**
  * A query options (or "hints") that are used to customize the way the query is processed.
  */
@@ -21,6 +23,8 @@ public class QueryOptions {
     public Traversal traversal = Traversal.DEFAULT;
     public String indexName;
     public String indexTag;
+    public Optional<Long> limit = Optional.empty();
+    public Optional<Long> offset = Optional.empty();
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning

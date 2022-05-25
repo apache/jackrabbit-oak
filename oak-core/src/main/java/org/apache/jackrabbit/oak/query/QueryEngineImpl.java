@@ -24,14 +24,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
@@ -243,18 +245,12 @@ public abstract class QueryEngineImpl implements QueryEngine {
             Map<String, String> mappings) throws ParseException {
         return executeQuery(statement, language, Long.MAX_VALUE, 0, bindings, mappings);
     }
-    
+
     @Override
     public Result executeQuery(
-            String statement, String language, long limit, long offset,
+            String statement, String language, Optional<Long> limit, Optional<Long> offset,
             Map<String, ? extends PropertyValue> bindings,
             Map<String, String> mappings) throws ParseException {
-        if (limit < 0) {
-            throw new IllegalArgumentException("Limit may not be negative, is: " + limit);
-        }
-        if (offset < 0) {
-            throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
-        }
 
         // avoid having to deal with null arguments
         if (bindings == null) {
@@ -266,23 +262,26 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         ExecutionContext context = getExecutionContext();
         List<Query> queries = parseQuery(statement, language, context, mappings);
-        
+
+        long actualLimit = getValue(queries, limit, Query::getLimit, Long.MAX_VALUE);
+        long actualOffset = getValue(queries, offset, Query::getOffset, 0L);
+
         for (Query q : queries) {
             q.setExecutionContext(context);
-            q.setLimit(limit);
-            q.setOffset(offset);
+            q.setLimit(actualLimit);
+            q.setOffset(actualOffset);
             if (bindings != null) {
                 for (Entry<String, ? extends PropertyValue> e : bindings.entrySet()) {
                     q.bindValue(e.getKey(), e.getValue());
                 }
             }
-            q.setTraversalEnabled(traversalEnabled);            
+            q.setTraversalEnabled(traversalEnabled);
         }
 
         boolean mdc = false;
         try {
             long start = System.nanoTime();
-            Query query = prepareAndSelect(queries); 
+            Query query = prepareAndSelect(queries);
             query.getQueryExecutionStats().execute(System.nanoTime() - start);
             mdc = setupMDC(query);
             return query.executeQuery();
@@ -292,7 +291,27 @@ public abstract class QueryEngineImpl implements QueryEngine {
             }
         }
     }
-    
+
+    @Override
+    public Result executeQuery(
+            String statement, String language, long limit, long offset,
+            Map<String, ? extends PropertyValue> bindings,
+            Map<String, String> mappings) throws ParseException {
+        return executeQuery(statement, language, Optional.of(limit), Optional.of(offset), bindings, mappings);
+
+    }
+
+    private static long getValue(List<Query> queries, Optional<Long> value, Function<Query, Optional<Long>> getter, Long defaultValue) {
+        if (!value.isPresent()) {
+            return queries.stream().map(getter::apply).filter(Optional::isPresent).map(Optional::get).findFirst()
+                    .orElse(defaultValue);
+        }
+        if (value.get() < 0) {
+            throw new IllegalArgumentException("Value may not be negative, is: " + value.get());
+        }
+        return value.get();
+    }
+
     /**
      * Prepare all the available queries and by based on the {@link QuerySelectionMode} flag return
      * the appropriate.

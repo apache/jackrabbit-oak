@@ -335,6 +335,9 @@ To only consider some of the indexes, add tags (a multi-valued String property) 
 and specify this tag in the query.
 See <a href="query-engine.html#Query_Option_Index_Tag">Query Option Index Tag</a>.
 
+"offset" / "limit": sets the offset / limit at the time of parsing the query
+See <a href="query-engine.html#Query_Option_Offset__Limit">Query Option Offset / Limit</a>.
+
 Examples:
 
     option(traversal fail)
