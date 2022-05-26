@@ -26,9 +26,7 @@ import org.mockito.Mockito;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -50,7 +48,6 @@ public class FlatFileSplitterTest {
     private ClassLoader classLoader = getClass().getClassLoader();
     private MemoryBlobStore store = new MemoryBlobStore();
     private NodeStateEntryReader entryReader = new NodeStateEntryReader(store);
-    private final int maxSplitSize = Integer.MAX_VALUE;
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -59,9 +56,7 @@ public class FlatFileSplitterTest {
         Set<String> splitNodeTypeNames = new HashSet<>();
         splitNodeTypeNames.add(NT_BASE);
         File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, null, null, null, entryReader, null, splitNodeTypeNames, maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
-
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(1, flatFileList.size());
@@ -71,8 +66,7 @@ public class FlatFileSplitterTest {
     @Test
     public void belowThresholdSkipSplit() throws IOException, IllegalAccessException {
         File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, null, null, null, entryReader, null, new HashSet<>(), maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", Integer.MAX_VALUE, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, Integer.MAX_VALUE, Integer.MAX_VALUE, false, null);
 
         List<File> flatFileList = splitter.split(false);
 
@@ -84,10 +78,8 @@ public class FlatFileSplitterTest {
     public void unknownTypeNoSplit() throws IOException, IllegalAccessException {
         Set<String> splitNodeTypeNames = new HashSet<>();
         File flatFile = new File(classLoader.getResource("unknown-no-split.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(1, flatFileList.size());
@@ -100,10 +92,7 @@ public class FlatFileSplitterTest {
         File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
         File copied = new File(temporaryFolder.newFile().getAbsolutePath());
         FileUtils.copyFile(flatFile, copied);
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
-        FlatFileSplitter splitter = new FlatFileSplitter(copied, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(copied, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
 
         long originalSize = flatFile.length();
         List<File> flatFileList = splitter.split();
@@ -117,10 +106,9 @@ public class FlatFileSplitterTest {
     public void simpleSplit() throws IOException, IllegalAccessException {
         Set<String> splitNodeTypeNames = new HashSet<>();
         File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        File workDir = temporaryFolder.newFolder();
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(3, flatFileList.size());
@@ -135,10 +123,8 @@ public class FlatFileSplitterTest {
         Set<String> splitNodeTypeNames = new HashSet<>();
         splitNodeTypeNames.add("no-split");
         File flatFile = new File(classLoader.getResource("simple-split-with-parent.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(2, flatFileList.size());
@@ -154,10 +140,8 @@ public class FlatFileSplitterTest {
         Set<String> splitNodeTypeNames = new HashSet<>();
         splitNodeTypeNames.add("no-split");
         File flatFile = new File(classLoader.getResource("simple-split-with-nested-parent.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
-        int splitSize = Integer.MAX_VALUE; // split whenever possible
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames, splitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(4, flatFileList.size());
@@ -178,10 +162,8 @@ public class FlatFileSplitterTest {
         splitNodeTypeNames.add("no-split-1");
         splitNodeTypeNames.add("no-split-2");
         File flatFile = new File(classLoader.getResource("multiple-node-type-simple-split-with-parent.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(4, flatFileList.size());
@@ -202,10 +184,8 @@ public class FlatFileSplitterTest {
         splitNodeTypeNames.add("no-split-3");
         splitNodeTypeNames.add("no-split-4");
         File flatFile = new File(classLoader.getResource("multiple-node-type-simple-split-with-nested-parent.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                maxSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(4, flatFileList.size());
@@ -226,11 +206,10 @@ public class FlatFileSplitterTest {
         String assetNodeType = "dam:Asset";
         splitNodeTypeNames.add(assetNodeType);
         File flatFile = new File(classLoader.getResource("complex-split.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
         int expectedSplitSize = 10;
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                expectedSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, expectedSplitSize, false, splitNodeTypeNames);
+
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(expectedSplitSize, flatFileList.size());
@@ -257,11 +236,9 @@ public class FlatFileSplitterTest {
                 "sling:Folder",
                 "granite:Component"));
         File flatFile = new File(classLoader.getResource("complex-split.json").getFile());
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
         int expectedSplitSize = 2;
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                expectedSplitSize, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, expectedSplitSize, false, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(expectedSplitSize, flatFileList.size());
@@ -289,11 +266,9 @@ public class FlatFileSplitterTest {
         File rawFlatFile = new File(classLoader.getResource("complex-split.json").getFile());;
         File flatFile = temporaryFolder.newFile();
         compress(rawFlatFile, flatFile);
-        String workDirPath = temporaryFolder.newFolder().getAbsolutePath();
         int expectedSplitSize = 2;
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, entryReader, null, splitNodeTypeNames,
-                expectedSplitSize, true);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = createTestSplitter(flatFile, 0, expectedSplitSize, true, splitNodeTypeNames);
+
         List<File> flatFileList = splitter.split(false);
         List<File> rawFlatFileList = new ArrayList<>();
 
@@ -373,8 +348,7 @@ public class FlatFileSplitterTest {
         }
         assertEquals("test setup incorrectly", resultNodeTypes.size(), 20);
 
-        FlatFileSplitter splitter = new FlatFileSplitter(null, null, null, mockNodeTypeInfoProvider, null, defns, null, 0, false);
-        FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
+        FlatFileSplitter splitter = new FlatFileSplitter(null, null, null, mockNodeTypeInfoProvider, null, defns);
         Set<String> nodeTypes = splitter.getSplitNodeTypeNames();
 
         assertEquals(resultNodeTypes.size(), nodeTypes.size()); // exclude unknown node type
@@ -383,14 +357,24 @@ public class FlatFileSplitterTest {
 
     @Test
     public void failCreatWorkDir() throws IOException, IllegalAccessException {
-        String workDirPath = temporaryFolder.newFile().getAbsolutePath();
+        File workDir = temporaryFolder.newFile();
         File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDirPath, null, null, null, null, null, maxSplitSize, false);
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, null, null, null);
         FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
         List<File> flatFileList;
         flatFileList = splitter.split(false);
 
         assertEquals(flatFile, flatFileList.get(0));
+    }
+
+    public FlatFileSplitter createTestSplitter(File flatFile, int minimumSplitThreshold, int splitSize, boolean useCompression, Set<String> splitNodeTypeNames) throws IOException, IllegalAccessException {
+        File workDir = temporaryFolder.newFolder();
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, null, entryReader, null);
+        FieldUtils.writeField(splitter, "minimumSplitThreshold", minimumSplitThreshold, true);
+        FieldUtils.writeField(splitter, "splitSize", splitSize, true);
+        FieldUtils.writeField(splitter, "useCompression", useCompression, true);
+        FieldUtils.writeField(splitter, "splitNodeTypeNames", splitNodeTypeNames, true);
+        return splitter;
     }
 
     public int countLines(File file) throws IOException {
@@ -409,15 +393,6 @@ public class FlatFileSplitterTest {
         NodeStateEntry nse = entryReader.read(startLine(file));
         PropertyState property = nse.getNodeState().getProperty(JCR_PRIMARYTYPE);
         return property.getValue(Type.STRING);
-    }
-
-    public void printFile(File file) throws IOException {
-        try (BufferedReader br = new BufferedReader(new FileReader(file.getAbsolutePath()))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                System.out.println(line);
-            }
-        }
     }
 
     public long getTotalSize(List<File> flatFileList) {

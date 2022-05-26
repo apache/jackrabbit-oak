@@ -26,7 +26,10 @@ import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -208,7 +211,14 @@ public class FlatFileNodeStoreBuilder {
 
         long start = System.currentTimeMillis();
 
-        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper, indexerSupport, indexDefinitions);
+        NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
+        FlatFileSplitter splitter = new FlatFileSplitter(
+                flatStoreFile,
+                indexHelper.getWorkDir(),
+                nodeStore,
+                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()),
+                new NodeStateEntryReader(indexHelper.getGCBlobStore()),
+                indexDefinitions);
         List<File> fileList = null;
         try {
             fileList = splitter.split();
