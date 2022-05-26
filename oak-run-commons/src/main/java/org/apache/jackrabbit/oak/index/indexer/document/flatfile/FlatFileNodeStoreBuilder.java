@@ -208,7 +208,7 @@ public class FlatFileNodeStoreBuilder {
 
         long start = System.currentTimeMillis();
 
-        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper, indexerSupport, indexDefinitions, 0);
+        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper, indexerSupport, indexDefinitions);
         List<File> fileList = null;
         try {
             fileList = splitter.split();

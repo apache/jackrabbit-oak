@@ -85,7 +85,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
     private final Set<String> indexerPaths = new HashSet<>();
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
     private final boolean parallelIndex = Boolean.parseBoolean(System.getProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_PARALLEL_INDEX, "false"));
-    private static final int INDEX_THREAD_POOL_SIZE = 4;
+    private static final int INDEX_THREAD_POOL_SIZE = 8;
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = indexHelper;

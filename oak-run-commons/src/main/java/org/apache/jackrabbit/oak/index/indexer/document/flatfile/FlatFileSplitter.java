@@ -1,6 +1,27 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.base.Stopwatch;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Stack;
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -17,79 +38,49 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Stack;
-import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
+import com.google.common.base.Stopwatch;
 
 public class FlatFileSplitter {
     private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
+
+    private static final String SPLIT_DIR_NAME = "split";
+    private static final long MINIMUM_SPLIT_THRESHOLD = 10 * FileUtils.ONE_MB;
+
     private final File workDir;
-    private final IndexerSupport indexerSupport;
-    private final IndexHelper indexHelper;
     private final NodeTypeInfoProvider infoProvider;
     private final File flatFile;
     private final NodeStore store;
-    public final String splitDirName = "split";
     private final NodeStateEntryReader entryReader;
-    private long minimumSplitThreshold = 10 * FileUtils.ONE_MB;
-    private int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
-    private boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private Set<IndexDefinition> indexDefinitions;
     private Set<String> splitNodeTypeNames;
+    private long minimumSplitThreshold = MINIMUM_SPLIT_THRESHOLD;
+    private int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
+    private boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
 
     // This constructor is created for testing purpose
-    public FlatFileSplitter(File flatFile, String workdir, NodeStore store, NodeTypeInfoProvider infoProvider,
-                            NodeStateEntryReader entryReader, Set<IndexDefinition> indexDefinitions, Set<String> splitNodeTypeNames,
-                            long minimumSplitThreshold, int splitSize, boolean useCompression) {
+    public FlatFileSplitter(File flatFile, String workdir, NodeStore store, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader, Set<IndexDefinition> indexDefinitions, Set<String> splitNodeTypeNames,
+            int splitSize, boolean useCompression) {
         this.flatFile = flatFile;
-        this.workDir = new File(workdir, splitDirName);
+        this.indexDefinitions = indexDefinitions;
+        this.workDir = new File(workdir, SPLIT_DIR_NAME);
 
         this.store = store;
         this.infoProvider = infoProvider;
         this.entryReader = entryReader;
-        this.indexDefinitions = indexDefinitions;
+
         this.splitNodeTypeNames = splitNodeTypeNames;
-        this.indexerSupport = null;
-        this.indexHelper = null;
-        this.minimumSplitThreshold = minimumSplitThreshold;
         this.splitSize = splitSize;
         this.useCompression = useCompression;
     }
 
     public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport, Set<IndexDefinition> indexDefinitions) {
         this.flatFile = flatFile;
-        this.indexerSupport = indexerSupport;
-        this.indexHelper = indexHelper;
         this.indexDefinitions = indexDefinitions;
-        this.workDir = new File(indexHelper.getWorkDir(), splitDirName);
+        this.workDir = new File(indexHelper.getWorkDir(), SPLIT_DIR_NAME);
 
         this.store = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
         this.infoProvider = new NodeStateNodeTypeInfoProvider(store.getRoot());
         this.entryReader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
-    }
-
-    public FlatFileSplitter(File flatFile, IndexHelper indexHelper, IndexerSupport indexerSupport, Set<IndexDefinition> indexDefinitions, long minimumSplitThreshold) {
-        this(flatFile, indexHelper, indexerSupport, indexDefinitions);
-        this.indexDefinitions = indexDefinitions;
-        this.minimumSplitThreshold = minimumSplitThreshold;
     }
 
     private List<File> returnOriginalFlatFile() {
