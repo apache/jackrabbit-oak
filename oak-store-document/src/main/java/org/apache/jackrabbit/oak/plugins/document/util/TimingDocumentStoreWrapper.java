@@ -426,6 +426,23 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
+    /**
+     * Return the size limit for node name based on the document store implementation
+     *
+     * @return node name size limit
+     */
+    @Override
+    public int getNodeNameLimit() {
+        try {
+            long start = now();
+            final int result = base.getNodeNameLimit();
+            updateAndLogTimes("getNodeNameLimit", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
     private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);
         if (time <= 0) {
