@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.commons.sort;
 // filename: ExternalSort.java
 
 import net.jpountz.lz4.LZ4FrameInputStream;
+import net.jpountz.lz4.LZ4FrameOutputStream;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -383,6 +384,30 @@ public class ExternalSort {
 
     /**
      * Sort a list and save it to a temporary file
+     *
+     * @return the file containing the sorted data
+     * @param tmplist
+     *            data to be sorted
+     * @param cmp
+     *            string comparator
+     * @param cs
+     *            charset to use for output (can use Charset.defaultCharset())
+     * @param tmpdirectory
+     *            location of the temporary files (set to null for default location)
+     * @param distinct
+     * @param usegzip
+     * @param typeToString
+     *        function to map string to custom type. User for coverting line to custom type for the
+     *        purpose of sorting
+     */
+    public static <T> File sortAndSave(List<T> tmplist,
+                                       Comparator<T> cmp, Charset cs, File tmpdirectory,
+                                       boolean distinct, boolean usegzip, Function<T, String> typeToString) throws IOException {
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip, compressionType.GZIP, typeToString);
+    }
+
+    /**
+     * Sort a list and save it to a temporary file
      * 
      * @return the file containing the sorted data
      * @param tmplist
@@ -394,20 +419,28 @@ public class ExternalSort {
      * @param tmpdirectory
 *            location of the temporary files (set to null for default location)
      * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
+     * @param useCompression
+     *            enable compression for temporary files
+     * @param type
+     *            use gzip or lz4 as compression algorithm
      * @param typeToString
      *        function to map string to custom type. User for coverting line to custom type for the
      *        purpose of sorting
      */
     public static <T> File sortAndSave(List<T> tmplist,
                                    Comparator<T> cmp, Charset cs, File tmpdirectory,
-                                   boolean distinct, boolean usegzip, Function<T, String> typeToString) throws IOException {
+                                   boolean distinct, boolean useCompression, compressionType type,
+                                   Function<T, String> typeToString) throws IOException {
         Collections.sort(tmplist, cmp);
         File newtmpfile = File.createTempFile("sortInBatch",
                 "flatfile", tmpdirectory);
         newtmpfile.deleteOnExit();
         OutputStream out = new FileOutputStream(newtmpfile);
         int zipBufferSize = 2048;
-        if (usegzip) {
+        if (useCompression && type == compressionType.LZ4) {
+            out = new LZ4FrameOutputStream(out);
+        } else if (useCompression && type == compressionType.GZIP) {
             out = new GZIPOutputStream(out, zipBufferSize) {
                 {
                     def.setLevel(Deflater.BEST_SPEED);
@@ -609,7 +642,7 @@ public class ExternalSort {
      *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
      * @param useCompression
      *            enable compression for temporary files
-     * @param compressionType
+     * @param type
      *            use gzip or lz4 as compression algorithm
      * @param typeToString
      *            function to map string to custom type. User for coverting line to custom type for the
@@ -620,7 +653,7 @@ public class ExternalSort {
      */
     public static <T> int mergeSortedFiles(List<File> files,
                                            BufferedWriter fbw, final Comparator<T> cmp, Charset cs, boolean distinct,
-                                           boolean useCompression, compressionType compressionType, Function<T, String> typeToString,
+                                           boolean useCompression, compressionType type, Function<T, String> typeToString,
                                            Function<String, T> stringToType) throws IOException {
         ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
         try {
@@ -628,20 +661,12 @@ public class ExternalSort {
                 final int bufferSize = 2048;
                 InputStream in = new FileInputStream(f);
                 BufferedReader br;
-
-                if (useCompression) {
-                    InputStream inStream;
-                    switch (compressionType) {
-                        case LZ4:
-                            inStream = new LZ4FrameInputStream(in);
-                            break;
-                        default:
-                            inStream = new GZIPInputStream(in, bufferSize);
-                    }
-                    br = new BufferedReader(new InputStreamReader(inStream, cs));
-                } else {
-                    br = new BufferedReader(new InputStreamReader(in, cs));
+                if (useCompression && type == compressionType.LZ4) {
+                    in = new LZ4FrameInputStream(in);
+                } else if (useCompression && type == compressionType.GZIP) {
+                    in = new GZIPInputStream(in, bufferSize);
                 }
+                br = new BufferedReader(new InputStreamReader(in, cs));
 
                 BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
                 bfbs.add(bfb);
