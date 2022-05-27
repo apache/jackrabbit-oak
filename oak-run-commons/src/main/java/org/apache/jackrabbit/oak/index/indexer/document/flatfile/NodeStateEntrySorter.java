@@ -54,6 +54,7 @@ public class NodeStateEntrySorter {
     private boolean deleteOriginal;
     private long maxMemory = ONE_GB * 5;
     private long actualFileSize;
+    private final ExternalSort.compressionType compressionType = ExternalSort.compressionType.LZ4;
 
     public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile, File workDir) {
         this(pathComparator, nodeStateFile, workDir, getSortedFileName(nodeStateFile));
@@ -120,6 +121,7 @@ public class NodeStateEntrySorter {
                     charset,
                     true, //distinct
                     useZip, //useZip
+                    compressionType,
                     func2,
                     func1
 
@@ -142,6 +144,7 @@ public class NodeStateEntrySorter {
                         true, //distinct
                         0,
                         useZip, //useZip
+                        compressionType,
                         func2,
                         func1
                 );
@@ -156,6 +159,7 @@ public class NodeStateEntrySorter {
                     true,
                     0,
                     useZip,
+                    compressionType,
                     func2,
                     func1
             );

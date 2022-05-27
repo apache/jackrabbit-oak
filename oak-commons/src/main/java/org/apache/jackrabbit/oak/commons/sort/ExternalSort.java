@@ -239,11 +239,19 @@ public class ExternalSort {
                                              boolean distinct, int numHeader, boolean usegzip,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader, usegzip, compressionType.GZIP, typeToString,  stringToType);
+    }
+
+    public static <T> List<File> sortInBatch(File file, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean usegzip, compressionType type,
+                                             Function<T, String> typeToString, Function<String, T> stringToType)
+            throws IOException {
         // in bytes
         long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles, maxMemory);
         try (BufferedReader fbr = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), cs))) {
-            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, typeToString, stringToType);
+            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, type, typeToString, stringToType);
         }
     }
 
@@ -252,10 +260,18 @@ public class ExternalSort {
                                              boolean distinct, int numHeader, boolean usegzip,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
+        return sortInBatch(fbr, actualFileSize, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader, usegzip, compressionType.GZIP, typeToString, stringToType);
+    }
+
+    public static <T> List<File> sortInBatch(BufferedReader fbr, long actualFileSize, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean usegzip, compressionType type,
+                                             Function<T, String> typeToString, Function<String, T> stringToType)
+            throws IOException {
         // in bytes
         long blocksize = estimateBestSizeOfBlocks(actualFileSize, maxtmpfiles, maxMemory);
         try {
-            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, typeToString, stringToType);
+            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, type, typeToString, stringToType);
         } finally {
             fbr.close();
         }
@@ -291,7 +307,7 @@ public class ExternalSort {
      */
     private static <T> List<File> sortInBatch(BufferedReader fbr, long blocksize, Comparator<T> cmp,
                                              Charset cs, File tmpdirectory,
-                                             boolean distinct, int numHeader, boolean usegzip,
+                                             boolean distinct, int numHeader, boolean usegzip, compressionType type,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
         List<File> files = new ArrayList<File>();
@@ -319,13 +335,13 @@ public class ExternalSort {
                                 .estimatedSizeOf(line);
                     }
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, usegzip, typeToString));
+                            tmpdirectory, distinct, usegzip, type, typeToString));
                     tmplist.clear();
                 }
             } catch (EOFException oef) {
                 if (tmplist.size() > 0) {
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, usegzip, typeToString));
+                            tmpdirectory, distinct, usegzip, type, typeToString));
                     tmplist.clear();
                 }
             }

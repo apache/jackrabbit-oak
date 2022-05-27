@@ -75,6 +75,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
+    private final ExternalSort.compressionType compressionType = ExternalSort.compressionType.LZ4;
     /**
      * Max memory to be used if jmx based memory monitoring is not available. This value is not considered if jmx based
      * monitoring is available.
@@ -134,6 +135,7 @@ class TraverseWithSortStrategy implements SortStrategy {
                     charset,
                     true, //distinct
                     compressionEnabled, //useZip
+                    compressionType,
                     func2,
                     func1
             );
