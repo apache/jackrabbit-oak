@@ -19,6 +19,13 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.google.common.base.Stopwatch;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -27,13 +34,6 @@ import java.nio.charset.Charset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
-
-import com.google.common.base.Stopwatch;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.commons.io.FileUtils.ONE_GB;
@@ -114,7 +114,7 @@ public class NodeStateEntrySorter {
     private void mergeSortedFiles(Comparator<NodeStateHolder> comparator, Function<String, NodeStateHolder> func1,
                                   Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
         try(BufferedWriter writer = createWriter(sortedFile, useZip)) {
-            MergeRunner.mergeSortedFiles(sortedFiles,
+            ExternalSort.mergeSortedFiles(sortedFiles,
                     writer,
                     comparator,
                     charset,

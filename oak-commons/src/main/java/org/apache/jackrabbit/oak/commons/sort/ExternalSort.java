@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.commons.sort;
 
 // filename: ExternalSort.java
+
+import net.jpountz.lz4.LZ4FrameInputStream;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
@@ -88,6 +91,10 @@ public class ExternalSort {
     * Defines the default maximum memory to be used while sorting (8 MB)
     */
     static final long DEFAULT_MAX_MEM_BYTES = 8388608L;
+
+    public enum compressionType {
+        LZ4, GZIP
+    }
     
     // we divide the file into small blocks. If the blocks
     // are too small, we shall create too many temporary files.
@@ -584,14 +591,54 @@ public class ExternalSort {
                                            BufferedWriter fbw, final Comparator<T> cmp, Charset cs, boolean distinct,
                                            boolean usegzip, Function<T, String> typeToString,
                                            Function<String, T> stringToType) throws IOException {
+        return mergeSortedFiles(files, fbw, cmp, cs, distinct, usegzip, compressionType.GZIP, typeToString, stringToType);
+    }
+
+    /**
+     * This merges a bunch of temporary flat files and deletes them on success or error.
+     *
+     * @param files
+     *            The {@link List} of sorted {@link File}s to be merged.
+     * @param fbw
+     *            Buffered writer used to store the sorted content
+     * @param cmp
+     *            The {@link Comparator} to use to compare {@link String}s.
+     * @param cs
+     *            The {@link Charset} to be used for the byte to character conversion.
+     * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
+     * @param useCompression
+     *            enable compression for temporary files
+     * @param compressionType
+     *            use gzip or lz4 as compression algorithm
+     * @param typeToString
+     *            function to map string to custom type. User for coverting line to custom type for the
+     *            purpose of sorting
+     * @param stringToType
+     *          function to map custom type to string. Used for storing sorted content back to file
+     * @since v0.1.4
+     */
+    public static <T> int mergeSortedFiles(List<File> files,
+                                           BufferedWriter fbw, final Comparator<T> cmp, Charset cs, boolean distinct,
+                                           boolean useCompression, compressionType compressionType, Function<T, String> typeToString,
+                                           Function<String, T> stringToType) throws IOException {
         ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
         try {
             for (File f : files) {
                 final int bufferSize = 2048;
                 InputStream in = new FileInputStream(f);
                 BufferedReader br;
-                if (usegzip) {
-                    br = new BufferedReader(new InputStreamReader(new GZIPInputStream(in, bufferSize), cs));
+
+                if (useCompression) {
+                    InputStream inStream;
+                    switch (compressionType) {
+                        case LZ4:
+                            inStream = new LZ4FrameInputStream(in);
+                            break;
+                        default:
+                            inStream = new GZIPInputStream(in, bufferSize);
+                    }
+                    br = new BufferedReader(new InputStreamReader(inStream, cs));
                 } else {
                     br = new BufferedReader(new InputStreamReader(in, cs));
                 }
@@ -829,3 +876,52 @@ public class ExternalSort {
     };
 }
 
+class BinaryFileBuffer<T> {
+    public final BufferedReader fbr;
+    private final Function<String, T> stringToType;
+    private T cache;
+    private boolean empty;
+
+    public BinaryFileBuffer(BufferedReader r, Function<String, T> stringToType)
+            throws IOException {
+        this.fbr = r;
+        this.stringToType = stringToType;
+        reload();
+    }
+
+    public boolean empty() {
+        return this.empty;
+    }
+
+    private void reload() throws IOException {
+        try {
+            if ((this.cache = stringToType.apply(fbr.readLine())) == null) {
+                this.empty = true;
+                this.cache = null;
+            } else {
+                this.empty = false;
+            }
+        } catch (EOFException oef) {
+            this.empty = true;
+            this.cache = null;
+        }
+    }
+
+    public void close() throws IOException {
+        this.fbr.close();
+    }
+
+    public T peek() {
+        if (empty()) {
+            return null;
+        }
+        return this.cache;
+    }
+
+    public T pop() throws IOException {
+        T answer = peek();
+        reload();
+        return answer;
+    }
+
+}
