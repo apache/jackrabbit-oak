@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-import static com.google.common.collect.Iterables.transform;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.io.Files;
+import com.google.common.primitives.Ints;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,16 +42,11 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
-import com.google.common.primitives.Ints;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static com.google.common.collect.Iterables.transform;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for simple App.
@@ -358,8 +357,9 @@ public class ExternalSortTest {
      */
     @Test
     public void testCSVSorting() throws Exception {
-        testCSVSortingWithParams(false);
-        testCSVSortingWithParams(true);
+        testCSVSortingWithParams(false, null);
+        testCSVSortingWithParams(true, ExternalSort.compressionType.LZ4);
+        testCSVSortingWithParams(true, ExternalSort.compressionType.GZIP);
     }
 
     @Test
@@ -410,11 +410,12 @@ public class ExternalSortTest {
     /**
      * Sample case to sort csv file.
      * 
-     * @param usegzip use compression for temporary files
+     * @param useCompression use compression for temporary files
+     * @param type use lz4 or gzip as compression algorithm
      * @throws Exception
      * 
      */
-    public void testCSVSortingWithParams(boolean usegzip) throws Exception {
+    public void testCSVSortingWithParams(boolean useCompression, ExternalSort.compressionType type) throws Exception {
 
         File out = folder.newFile();
 
@@ -433,16 +434,16 @@ public class ExternalSortTest {
         // write to the file
         writeStringToFile(out, head + "\n");
 
-        // omit the first line, which is the header..
+        // omit the first line, which is the header
         List<File> listOfFiles = ExternalSort.sortInBatch(this.csvFile, cmp,
                 ExternalSort.DEFAULTMAXTEMPFILES, 
                 ExternalSort.DEFAULT_MAX_MEM_BYTES,
                 Charset.defaultCharset(),
-                null, false, 1, usegzip);
+                null, false, 1, useCompression, type);
 
         // now merge with append
         ExternalSort.mergeSortedFiles(listOfFiles, out, cmp,
-                Charset.defaultCharset(), false, true, usegzip);
+                Charset.defaultCharset(), false, true, useCompression, type);
 
         ArrayList<String> result = readLines(out);
 
