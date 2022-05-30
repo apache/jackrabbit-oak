@@ -468,7 +468,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         List<ACE> entries = new ArrayList<>();
         Map<String, Principal> principalMap = new HashMap<>();
         for (Tree child : aclTree.getChildren()) {
-            if (Util.isACE(child, ntMgr) && predicate.test(child)) {
+            if (Util.isACE(child, ntMgr) && predicate.test(child) && hasValidRestrictions(oakPath, child)) {
                 ACE ace = createEntryWithPrincipalMap(oakPath, child, restrictionProvider, principalMap);
                 entries.add(ace);
             }
@@ -477,6 +477,25 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             return new NodeACL(oakPath, entries);
         } else {
             return (entries.isEmpty()) ? null : new ImmutableACL(oakPath, entries, restrictionProvider, getNamePathMapper());
+        }
+    }
+
+
+    /**
+     * Returns true if the restrictions present with the specified ACE tree are valid; false otherwise.
+     *
+     * @param oakPath The path of the access controlled tree or {@code null} if
+     * the target policies applies to the repository level.
+     * @param aceTree The tree corresponding to an ACE.
+     * @return true if the given ACE tree at the given path doesn't contain any invalid restrictions; false otherwise
+     */
+    private boolean hasValidRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
+        try {
+            restrictionProvider.validateRestrictions(oakPath, aceTree);
+            return true;
+        } catch (RepositoryException e) {
+            log.warn("Access control entry at {} contains unsupported restrictions: {}", oakPath, e.getMessage());
+            return false;
         }
     }
 
