@@ -77,6 +77,7 @@ public class ElasticTestServer implements AutoCloseable {
         checkIfDockerClientAvailable();
         Network network = Network.newNetwork();
         CONTAINER = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.VERSION)
+                .withCopyFileToContainer(MountableFile.forClasspathResource("elasticsearch.yml"), "/usr/share/elasticsearch/config/")
                 .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                 .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
                 .withCommand("bash /tmp/elasticstartscript.sh")

@@ -86,7 +86,11 @@ class EntryCache implements Constants {
         private PermissionEntryImpl(@NotNull Tree entryTree) {
             effectivePath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
             privilegeBits = bitsProvider.getBits(entryTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
-            pattern = restrictionProvider.getPattern(effectivePath, restrictionProvider.readRestrictions(effectivePath, entryTree));
+            if (Utils.hasRestrictions(entryTree)) {
+                pattern = restrictionProvider.getPattern(effectivePath, restrictionProvider.readRestrictions(effectivePath, entryTree));
+            } else {
+                pattern = RestrictionPattern.EMPTY;
+            }
         }
 
         @NotNull

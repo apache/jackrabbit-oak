@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
@@ -50,8 +51,8 @@ public class QueryImpl implements Query {
     private final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
     private final String language;
     private final String statement;
-    private long limit = Long.MAX_VALUE;
-    private long offset;
+    private Optional<Long> limit = Optional.empty();
+    private Optional<Long> offset = Optional.empty();
     private boolean parsed;
     private String storedQueryPath;
 
@@ -138,7 +139,7 @@ public class QueryImpl implements Query {
         if (limit < 0) {
             throw new IllegalArgumentException("Limit may not be negative, is: " + limit);
         }
-        this.limit = limit;
+        this.limit = Optional.of(limit);
     }
 
     @Override
@@ -146,7 +147,7 @@ public class QueryImpl implements Query {
         if (offset < 0) {
             throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
         }
-        this.offset = offset;
+        this.offset = Optional.of(offset);
     }
 
     @Override

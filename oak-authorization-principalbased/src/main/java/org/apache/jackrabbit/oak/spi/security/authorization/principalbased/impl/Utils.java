@@ -26,8 +26,10 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,6 +121,34 @@ final class Utils implements Constants {
             return permissionProvider.getRepositoryPermission().isGranted(Permissions.MODIFY_ACCESS_CONTROL);
         } else {
             return permissionProvider.isGranted(effectivePath, Permissions.getString(Permissions.MODIFY_ACCESS_CONTROL));
+        }
+    }
+
+    /**
+     * Tests if the given ACE tree comes with any restrictions. Since node type {@code rep:PrincipalEntry} requires 
+     * restrictions to be stored in a separate {@code rep:restrictions} child node, this can be determined by checking if
+     * a restriction child-node exists.
+     * 
+     * @param aceTree The tree defining the principal-based access control entry
+     * @return {@code true} if the given ACE defines restrictions, {@code false} otherwise.
+     */
+    public static boolean hasRestrictions(@NotNull Tree aceTree) {
+        return aceTree.hasChild(REP_RESTRICTIONS);
+    }
+    
+    public static boolean hasValidRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull RestrictionProvider restrictionProvider) {
+        if (hasRestrictions(aceTree)) {
+            try {
+                restrictionProvider.validateRestrictions(oakPath, aceTree);
+                return true;
+            } catch (RepositoryException e) {
+                log.warn("Access control entry at {} contains unsupported restrictions: {}", oakPath, e.getMessage());
+                return false;
+            } 
+        } else {
+            // no restriction tree present -> skip validation as principal-acl does not allow for restriction properties 
+            // on the ACE-node itself as the regular rep:policy in the default access control management. 
+            return true;
         }
     }
 }
