@@ -21,26 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.api.*;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,19 +36,12 @@ import java.util.stream.Collectors;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.*;
+import static org.junit.Assert.*;
 
 public abstract class ExcerptTest extends AbstractQueryTest {
-    protected IndexEditorProvider editorProvider;
-    protected QueryIndexProvider provider;
+
+    protected IndexOptions indexOptions;
 
     @Before
     public void setup() throws Exception { //named so that it gets called after super.before :-/
@@ -71,7 +49,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         Tree def = rootTree.addChild(INDEX_DEFINITIONS_NAME).addChild("testExcerpt");
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        def.setProperty(TYPE_PROPERTY_NAME, getIndexType());
+        def.setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType());
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
@@ -97,26 +75,6 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         root.commit();
     }
-
-    protected abstract String getIndexType();
-
-    @Override
-    protected ContentRepository createRepository() {
-        setIndexProvider();
-        NodeStore nodeStore = new MemoryNodeStore();
-        return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((Observer) provider)
-                .with(editorProvider)
-                .with(provider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .createContentRepository();
-    }
-
-    protected abstract void setIndexProvider();
-
     @Test
     public void getAllSelectedColumns() throws Exception {
         Tree contentRoot = root.getTree("/").addChild("testRoot");

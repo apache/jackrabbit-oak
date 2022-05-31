@@ -19,15 +19,39 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.*;
 import org.apache.jackrabbit.oak.plugins.index.ExcerptTest;
+import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class LuceneExcerptTest extends ExcerptTest {
-    protected String getIndexType() {
-        return LuceneIndexConstants.TYPE_LUCENE;
+
+    public LuceneExcerptTest() {
+        indexOptions = new LuceneIndexOptions();
     }
 
-    protected void setIndexProvider() {
-        editorProvider = new LuceneIndexEditorProvider();
-        provider = new LuceneIndexProvider();
+    @Override
+    protected ContentRepository createRepository() {
+        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider();
+        LuceneIndexProvider provider = new LuceneIndexProvider();
+
+        NodeStore nodeStore = new MemoryNodeStore();
+        return new Oak(nodeStore)
+                .with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with((Observer) provider)
+                .with(editorProvider)
+                .with((QueryIndexProvider)provider)
+                .with(new PropertyIndexEditorProvider())
+                .with(new NodeTypeIndexProvider())
+                .createContentRepository();
     }
 }
