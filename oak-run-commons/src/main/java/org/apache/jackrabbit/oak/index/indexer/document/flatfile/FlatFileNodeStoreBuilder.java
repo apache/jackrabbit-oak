@@ -201,33 +201,22 @@ public class FlatFileNodeStoreBuilder {
         return store;
     }
 
-    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport, Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException{
-        List<FlatFileStore> storeList = new ArrayList<>();
+    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
+            Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
 
         File flatStoreFile = createdSortedStoreFile();
-
         long start = System.currentTimeMillis();
-
         NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
-        FlatFileSplitter splitter = new FlatFileSplitter(
-                flatStoreFile,
-                indexHelper.getWorkDir(),
-                nodeStore,
-                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()),
-                new NodeStateEntryReader(indexHelper.getGCBlobStore()),
+        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper.getWorkDir(), nodeStore,
+                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
                 indexDefinitions);
-        List<File> fileList = null;
-        try {
-            fileList = splitter.split();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        List<File> fileList = splitter.split();
         log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
 
+        List<FlatFileStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
             FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, new NodeStateEntryReader(blobStore),
                     unmodifiableSet(preferredPathElements), useZip);
