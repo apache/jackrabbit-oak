@@ -161,51 +161,51 @@ public abstract class AbstractTree implements Tree {
      * @param depth tree depth to represent. Use -1 for an unlimited depth.
      * @return json object representation of the tree as a string
      */
-    public String toJsonString(int depth){
-        if(depth == 0){
+    public String toJsonString(int depth) {
+        if (depth == 0) {
             return quote("...");
         }
         StringBuilder str = new StringBuilder();
         str.append("{");
-        str.append(quote("_properties_")+":{ ");
-        for (PropertyState ps : this.getProperties()){
-            str.append(quote(ps.getName())+":");
+        str.append(quote("_properties_") + ":{ ");
+        for (PropertyState ps : this.getProperties()) {
+            str.append(quote(ps.getName()) + ":");
 
-            if(ps.getType().isArray()){
+            if (ps.getType().isArray()) {
                 str.append("[ ");
-                for(int i=0; i<ps.count(); i++){
+                for (int i = 0; i < ps.count(); i++) {
                     try {
-                        str.append(quote(jsonStringEscaper(ps.getValue(Type.STRING, i)))+",");
-                    }catch (Exception e){
-                        str.append(quote("ERROR:" + jsonStringEscaper(e.getMessage()))+",");
+                        str.append(quote(escapeJsonString(ps.getValue(Type.STRING, i))) + ",");
+                    } catch (Exception e) {
+                        str.append(quote("ERROR:" + escapeJsonString(e.getMessage())) + ",");
                     }
                 }
-                str.deleteCharAt(str.length()-1); //removing the space or the ,
+                str.deleteCharAt(str.length() - 1); //removing the space or the ,
                 str.append("],");
-            }else {
-                try{
-                    str.append(quote(jsonStringEscaper(ps.getValue(Type.STRING))) + ",");
-                }catch (Exception e){
-                    str.append(quote("ERROR:" + jsonStringEscaper(e.getMessage())) + ",");
+            } else {
+                try {
+                    str.append(quote(escapeJsonString(ps.getValue(Type.STRING))) + ",");
+                } catch (Exception e) {
+                    str.append(quote("ERROR:" + escapeJsonString(e.getMessage())) + ",");
                 }
             }
         }
-        str.deleteCharAt(str.length()-1);  //removing the space or the ,
+        str.deleteCharAt(str.length() - 1);  //removing the space or the ,
         str.append("},");
-        for (Tree child : this.getChildren()){
-            str.append(quote(child.getName())+":");
-            str.append(((AbstractTree)child).toJsonString(depth-1)+",");
+        for (Tree child : this.getChildren()) {
+            str.append(quote(child.getName()) + ":");
+            str.append(((AbstractTree) child).toJsonString(depth - 1) + ",");
         }
-        str.deleteCharAt(str.length()-1); //removing the ,
+        str.deleteCharAt(str.length() - 1); //removing the ,
         str.append("}");
         return str.toString();
     }
 
-    private String jsonStringEscaper(String value){
+    private String escapeJsonString(String value) {
         return value.replaceAll("\"","\\/");
     }
 
-    private String quote (String toQuote) {
+    private String quote(String toQuote) {
         return "\"" + toQuote + "\"";
     }
 
