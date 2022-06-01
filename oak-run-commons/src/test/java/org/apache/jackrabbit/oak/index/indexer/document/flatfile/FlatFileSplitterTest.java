@@ -348,7 +348,7 @@ public class FlatFileSplitterTest {
         }
         assertEquals("test setup incorrectly", resultNodeTypes.size(), 20);
 
-        FlatFileSplitter splitter = new FlatFileSplitter(null, null, null, mockNodeTypeInfoProvider, null, defns);
+        FlatFileSplitter splitter = new FlatFileSplitter(null, null, mockNodeTypeInfoProvider, null, defns);
         Set<String> nodeTypes = splitter.getSplitNodeTypeNames();
 
         assertEquals(resultNodeTypes.size(), nodeTypes.size()); // exclude unknown node type
@@ -359,7 +359,7 @@ public class FlatFileSplitterTest {
     public void failCreatWorkDir() throws IOException, IllegalAccessException {
         File workDir = temporaryFolder.newFile();
         File flatFile = new File(classLoader.getResource("simple-split.json").getFile());
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, null, null, null);
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, null, null);
         FieldUtils.writeField(splitter, "minimumSplitThreshold", 0, true);
         List<File> flatFileList;
         flatFileList = splitter.split(false);
@@ -369,7 +369,7 @@ public class FlatFileSplitterTest {
 
     public FlatFileSplitter createTestSplitter(File flatFile, int minimumSplitThreshold, int splitSize, boolean useCompression, Set<String> splitNodeTypeNames) throws IOException, IllegalAccessException {
         File workDir = temporaryFolder.newFolder();
-        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, null, entryReader, null);
+        FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, entryReader, null);
         FieldUtils.writeField(splitter, "minimumSplitThreshold", minimumSplitThreshold, true);
         FieldUtils.writeField(splitter, "splitSize", splitSize, true);
         FieldUtils.writeField(splitter, "useCompression", useCompression, true);

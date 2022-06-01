@@ -210,8 +210,7 @@ public class FlatFileNodeStoreBuilder {
         File flatStoreFile = createdSortedStoreFile();
         long start = System.currentTimeMillis();
         NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
-        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper.getWorkDir(), nodeStore,
-                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
+        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper.getWorkDir(), new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
                 indexDefinitions);
         List<File> fileList = splitter.split();
         log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
