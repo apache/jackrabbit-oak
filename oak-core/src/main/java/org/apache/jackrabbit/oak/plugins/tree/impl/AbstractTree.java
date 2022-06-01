@@ -202,7 +202,7 @@ public abstract class AbstractTree implements Tree {
     }
 
     private String escapeJsonString(String value) {
-        return value.replaceAll("\"","\\/");
+        return value.replaceAll("\"", "\\/");
     }
 
     private String quote(String toQuote) {
