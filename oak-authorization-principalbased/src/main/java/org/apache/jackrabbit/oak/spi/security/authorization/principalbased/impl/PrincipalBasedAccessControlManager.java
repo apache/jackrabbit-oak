@@ -395,7 +395,13 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         }
         String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
-        Set<Restriction> restrictions = mgrProvider.getRestrictionProvider().readRestrictions(oakPath, entryTree);
+        
+        RestrictionProvider rp = mgrProvider.getRestrictionProvider();
+        if (!Utils.hasValidRestrictions(oakPath, entryTree, rp)) {
+            return null;
+        }
+        
+        Set<Restriction> restrictions = rp.readRestrictions(oakPath, entryTree);
         NamePathMapper npMapper = getNamePathMapper();
         return new AbstractEntry(oakPath, principal, bits, restrictions, npMapper) {
             @Override
