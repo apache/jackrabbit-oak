@@ -55,7 +55,7 @@ public class FlatFileNodeStoreBuilder {
      * {@link StoreAndSortStrategy} strategy is used.
      * NOTE - System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} takes precedence over this one.
      */
-    static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
+    public static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
     /**
      * System property name for sort strategy. This takes precedence over {@link #OAK_INDEXER_TRAVERSE_WITH_SORT}.
      * Allowed values are the values from enum {@link SortStrategyType}

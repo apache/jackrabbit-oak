@@ -214,6 +214,12 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
     }
 
+    @Test
+    public void testParallelIndexing() throws Exception{
+        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_PARALLEL_INDEX, "true");
+        bundling();
+    }
+
     private void configureIndex(DocumentNodeStore store) throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder idxb = childBuilder(builder, TEST_INDEX_PATH);
