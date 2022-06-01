@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
@@ -175,18 +176,18 @@ public abstract class AbstractTree implements Tree {
                 str.append("[ ");
                 for (int i = 0; i < ps.count(); i++) {
                     try {
-                        str.append(quote(escapeJsonString(ps.getValue(Type.STRING, i))) + ",");
+                        str.append(JsopBuilder.encode(ps.getValue(Type.STRING, i)) + ",");
                     } catch (Exception e) {
-                        str.append(quote("ERROR:" + escapeJsonString(e.getMessage())) + ",");
+                        str.append(quote("ERROR:" + JsopBuilder.encode(e.getMessage())) + ",");
                     }
                 }
                 str.deleteCharAt(str.length() - 1); //removing the space or the ,
                 str.append("],");
             } else {
                 try {
-                    str.append(quote(escapeJsonString(ps.getValue(Type.STRING))) + ",");
+                    str.append(JsopBuilder.encode(ps.getValue(Type.STRING)) + ",");
                 } catch (Exception e) {
-                    str.append(quote("ERROR:" + escapeJsonString(e.getMessage())) + ",");
+                    str.append(quote("ERROR:" + JsopBuilder.encode(e.getMessage())) + ",");
                 }
             }
         }
@@ -199,10 +200,6 @@ public abstract class AbstractTree implements Tree {
         str.deleteCharAt(str.length() - 1); //removing the ,
         str.append("}");
         return str.toString();
-    }
-
-    private String escapeJsonString(String value) {
-        return value.replaceAll("\"", "\\/");
     }
 
     private String quote(String toQuote) {
