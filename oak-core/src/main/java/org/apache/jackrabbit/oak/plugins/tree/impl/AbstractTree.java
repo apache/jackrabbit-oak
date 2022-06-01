@@ -202,7 +202,7 @@ public abstract class AbstractTree implements Tree {
         return str.toString();
     }
 
-    private String quote(String toQuote) {
+    private static String quote(String toQuote) {
         return "\"" + toQuote + "\"";
     }
 
