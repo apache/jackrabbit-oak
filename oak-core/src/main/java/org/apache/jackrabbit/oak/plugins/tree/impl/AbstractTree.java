@@ -164,36 +164,36 @@ public abstract class AbstractTree implements Tree {
      */
     public String toJsonString(int depth){
         if(depth == 0){
-            return "\"...\"";
+            return quote("...");
         }
         String str = "{";
-        str += "\"_properties_\":{ ";
+        str += quote("_properties_")+":{ ";
         for (PropertyState ps : this.getProperties()){
-            str+="\""+ps.getName()+"\":";
+            str+=quote(ps.getName())+":";
 
             if(ps.getType().isArray()){
                 str += "[ ";
                 for(int i=0; i<ps.count(); i++){
                     try {
-                        str += "\"" + jsonStringEscaper(ps.getValue(Type.STRING, i)) + "\",";
+                        str += quote(jsonStringEscaper(ps.getValue(Type.STRING, i)))+",";
                     }catch (Exception e){
-                        str += "\"ERROR:" + jsonStringEscaper(e.getMessage()) + "\",";
+                        str += quote("ERROR:" + jsonStringEscaper(e.getMessage()))+",";
                     }
                 }
                 str = str.substring(0,str.length()-1); //removing the space or the ,
                 str += "],";
             }else {
                 try{
-                    str += "\"" + jsonStringEscaper(ps.getValue(Type.STRING)) + "\",";
+                    str += quote(jsonStringEscaper(ps.getValue(Type.STRING))) + ",";
                 }catch (Exception e){
-                    str += "\"ERROR:" + jsonStringEscaper(e.getMessage()) + "\",";
+                    str += quote("ERROR:" + jsonStringEscaper(e.getMessage())) + ",";
                 }
             }
         }
         str = str.substring(0,str.length()-1); //removing the space or the ,
         str+="},";
         for (Tree child : this.getChildren()){
-            str+="\""+child.getName()+"\":";
+            str+=quote(child.getName())+":";
             str+=((AbstractTree)child).toJsonString(depth-1)+",";
         }
         str = str.substring(0,str.length()-1); //removing the ,
@@ -203,6 +203,10 @@ public abstract class AbstractTree implements Tree {
 
     private String jsonStringEscaper(String value){
         return value.replaceAll("\"","\\/");
+    }
+
+    private String quote (String toQuote) {
+        return "\"" + toQuote + "\"";
     }
 
     //---------------------------------------------------------------< Tree >---
