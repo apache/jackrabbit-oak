@@ -177,7 +177,6 @@ public abstract class AbstractTree implements Tree {
                     try {
                         str += "\"" + jsonStringEscaper(ps.getValue(Type.STRING, i)) + "\",";
                     }catch (Exception e){
-                        e.printStackTrace();
                         str += "\"ERROR:" + jsonStringEscaper(e.getMessage()) + "\",";
                     }
                 }
@@ -187,7 +186,6 @@ public abstract class AbstractTree implements Tree {
                 try{
                     str += "\"" + jsonStringEscaper(ps.getValue(Type.STRING)) + "\",";
                 }catch (Exception e){
-                    e.printStackTrace();
                     str += "\"ERROR:" + jsonStringEscaper(e.getMessage()) + "\",";
                 }
             }
