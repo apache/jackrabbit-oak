@@ -31,7 +31,6 @@ import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -166,39 +165,40 @@ public abstract class AbstractTree implements Tree {
         if(depth == 0){
             return quote("...");
         }
-        String str = "{";
-        str += quote("_properties_")+":{ ";
+        StringBuilder str = new StringBuilder();
+        str.append("{");
+        str.append(quote("_properties_")+":{ ");
         for (PropertyState ps : this.getProperties()){
-            str+=quote(ps.getName())+":";
+            str.append(quote(ps.getName())+":");
 
             if(ps.getType().isArray()){
-                str += "[ ";
+                str.append("[ ");
                 for(int i=0; i<ps.count(); i++){
                     try {
-                        str += quote(jsonStringEscaper(ps.getValue(Type.STRING, i)))+",";
+                        str.append(quote(jsonStringEscaper(ps.getValue(Type.STRING, i)))+",");
                     }catch (Exception e){
-                        str += quote("ERROR:" + jsonStringEscaper(e.getMessage()))+",";
+                        str.append(quote("ERROR:" + jsonStringEscaper(e.getMessage()))+",");
                     }
                 }
-                str = str.substring(0,str.length()-1); //removing the space or the ,
-                str += "],";
+                str.deleteCharAt(str.length()-1); //removing the space or the ,
+                str.append("],");
             }else {
                 try{
-                    str += quote(jsonStringEscaper(ps.getValue(Type.STRING))) + ",";
+                    str.append(quote(jsonStringEscaper(ps.getValue(Type.STRING))) + ",");
                 }catch (Exception e){
-                    str += quote("ERROR:" + jsonStringEscaper(e.getMessage())) + ",";
+                    str.append(quote("ERROR:" + jsonStringEscaper(e.getMessage())) + ",");
                 }
             }
         }
-        str = str.substring(0,str.length()-1); //removing the space or the ,
-        str+="},";
+        str.deleteCharAt(str.length()-1);  //removing the space or the ,
+        str.append("},");
         for (Tree child : this.getChildren()){
-            str+=quote(child.getName())+":";
-            str+=((AbstractTree)child).toJsonString(depth-1)+",";
+            str.append(quote(child.getName())+":");
+            str.append(((AbstractTree)child).toJsonString(depth-1)+",");
         }
-        str = str.substring(0,str.length()-1); //removing the ,
-        str+="}";
-        return str;
+        str.deleteCharAt(str.length()-1); //removing the ,
+        str.append("}");
+        return str.toString();
     }
 
     private String jsonStringEscaper(String value){
