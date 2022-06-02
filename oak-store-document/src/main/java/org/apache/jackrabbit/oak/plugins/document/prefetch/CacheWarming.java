@@ -63,7 +63,6 @@ public class CacheWarming {
      *
      *  MongoDocumentStore:
      *      private final NodeDocumentCache nodesCache;
-
      */
 
     /*
