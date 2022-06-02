@@ -252,4 +252,10 @@ public class CountingDocumentStore implements DocumentStore {
         }
         return docList;
     }
+
+    @Override
+    public <T extends Document> void prefetch(Collection<T> collection,
+            Iterable<String> keys) {
+        delegate.prefetch(collection, keys);
+    }
 }
