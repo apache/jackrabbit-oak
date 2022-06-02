@@ -111,5 +111,6 @@ public class FlatFileNodeStoreBuilderTest {
         when(indexerSupport.retrieveNodeStateForCheckpoint()).thenReturn(rootState);
         List<FlatFileStore> storeList = builder.buildList(indexHelper, indexerSupport, null);
         assertEquals(1, storeList.size());
+        System.clearProperty(OAK_INDEXER_SORTED_FILE_PATH);
     }
 }
