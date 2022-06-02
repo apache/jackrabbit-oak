@@ -58,7 +58,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final int NUMBER_OF_SHARDS_DEFAULT = 1;
 
     public static final String NUMBER_OF_REPLICAS = "numberOfReplicas";
+
+    public static final String MAX_RESULT_WINDOW = "maxResultWindow";
     public static final int NUMBER_OF_REPLICAS_DEFAULT = 1;
+
+    public static final int AEM_QUERY_MAX = 100000;
 
     public static final String QUERY_FETCH_SIZES = "queryFetchSizes";
     public static final Long[] QUERY_FETCH_SIZES_DEFAULT = new Long[]{100L, 1000L};
@@ -113,6 +117,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private final float similarityTagsBoost;
     public final int numberOfShards;
     public final int numberOfReplicas;
+
+    public final int maxResultWindow;
     public final int[] queryFetchSizes;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
@@ -130,6 +136,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.bulkRetriesBackoff = getOptionalValue(defn, BULK_RETRIES_BACKOFF, BULK_RETRIES_BACKOFF_DEFAULT);
         this.numberOfShards = getOptionalValue(defn, NUMBER_OF_SHARDS, NUMBER_OF_SHARDS_DEFAULT);
         this.numberOfReplicas = getOptionalValue(defn, NUMBER_OF_REPLICAS, NUMBER_OF_REPLICAS_DEFAULT);
+        this.maxResultWindow = getOptionalValue(defn, MAX_RESULT_WINDOW, AEM_QUERY_MAX);
         this.similarityTagsEnabled = getOptionalValue(defn, SIMILARITY_TAGS_ENABLED, SIMILARITY_TAGS_ENABLED_DEFAULT);
         this.similarityTagsBoost = getOptionalValue(defn, SIMILARITY_TAGS_BOOST, SIMILARITY_TAGS_BOOST_DEFAULT);
         this.queryFetchSizes = Arrays.stream(getOptionalValues(defn, QUERY_FETCH_SIZES, Type.LONGS, Long.class, QUERY_FETCH_SIZES_DEFAULT))

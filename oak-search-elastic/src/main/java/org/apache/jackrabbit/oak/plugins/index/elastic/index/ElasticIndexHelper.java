@@ -111,6 +111,9 @@ class ElasticIndexHelper {
         // dynamic settings: see #enableIndexRequest
         settingsBuilder.field("index.refresh_interval", INITIAL_REFRESH_INTERVAL);
         settingsBuilder.field("index.number_of_replicas", INITIAL_NUMBER_OF_REPLICAS);
+
+        // static setting: cannot be changed after the index gets created
+        settingsBuilder.field("index.max_result_window", indexDefinition.maxResultWindow);
         {
             settingsBuilder.startObject("analysis");
             {
