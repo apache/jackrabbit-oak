@@ -135,7 +135,7 @@ simpleType
     'traversal' { 'ok' | 'warn' | 'fail' | 'default' } |
     'index' 'tag' tagName |
     'offset' number |
-    'limit' number 
+    'limit' number
     } [ , ... ] )
 ","
 "
