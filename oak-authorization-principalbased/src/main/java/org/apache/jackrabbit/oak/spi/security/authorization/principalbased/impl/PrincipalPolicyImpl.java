@@ -75,7 +75,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         if (Utils.hasValidRestrictions(oakPath, entryTree, restrictionProvider)) {
             PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
-            Set<Restriction> restrictions = restrictionProvider.readRestrictions(oakPath, entryTree);
+            Set<Restriction> restrictions = Utils.readRestrictions(restrictionProvider, oakPath, entryTree);
             return addEntry(new EntryImpl(oakPath, bits, restrictions));
         } else {
             return false;

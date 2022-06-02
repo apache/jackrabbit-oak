@@ -21,12 +21,13 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import javax.jcr.RepositoryException;
@@ -39,8 +40,13 @@ import java.util.Set;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class UtilsTest implements Constants {
@@ -53,15 +59,15 @@ public class UtilsTest implements Constants {
     }
 
     private static Filter mockFilter(boolean canHandle) {
-        Filter filter = Mockito.mock(Filter.class);
+        Filter filter = mock(Filter.class);
         when(filter.canHandle(any(Set.class))).thenReturn(canHandle);
         return filter;
     }
 
     private static PrivilegeManager mockPrivilegeManager() throws RepositoryException {
-        PrivilegeManager privilegeManager = Mockito.mock(PrivilegeManager.class);
+        PrivilegeManager privilegeManager = mock(PrivilegeManager.class);
         when(privilegeManager.getPrivilege(any(String.class))).then((Answer<Privilege>) invocationOnMock -> {
-            Privilege p = Mockito.mock(Privilege.class);
+            Privilege p = mock(Privilege.class);
             when(p.getName()).thenReturn(invocationOnMock.getArgument(0));
             return p;
         });
@@ -100,7 +106,7 @@ public class UtilsTest implements Constants {
 
     @Test(expected = AccessControlException.class)
     public void testCanHandleNullName() throws Exception {
-        Utils.canHandle(Mockito.mock(Principal.class), mockFilter(true), ImportBehavior.ABORT);
+        Utils.canHandle(mock(Principal.class), mockFilter(true), ImportBehavior.ABORT);
     }
 
     @Test(expected = AccessControlException.class)
@@ -137,7 +143,7 @@ public class UtilsTest implements Constants {
 
     @Test
     public void testPrivilegesFromNamesEmptyNames() {
-        assertArrayEquals(new Privilege[0], Utils.privilegesFromOakNames(Collections.emptySet(), Mockito.mock(PrivilegeManager.class), NamePathMapper.DEFAULT));
+        assertArrayEquals(new Privilege[0], Utils.privilegesFromOakNames(Collections.emptySet(), mock(PrivilegeManager.class), NamePathMapper.DEFAULT));
     }
 
     @Test
@@ -147,7 +153,7 @@ public class UtilsTest implements Constants {
 
     @Test
     public void testPrivilegesFromNamesRemapped() throws Exception {
-        NamePathMapper mapper = Mockito.mock(NamePathMapper.class);
+        NamePathMapper mapper = mock(NamePathMapper.class);
         when(mapper.getJcrName(any())).thenReturn("c");
 
         Privilege[] privs = Utils.privilegesFromOakNames(Sets.newHashSet("a", "b"), mockPrivilegeManager(), mapper);
@@ -155,5 +161,32 @@ public class UtilsTest implements Constants {
         for (Privilege p : privs) {
             assertEquals("c", p.getName());
         }
+    }
+    
+    @Test
+    public void testReadRestrictionsNoRestrictionTree() {
+        Tree entryTree = mock(Tree.class);
+
+        RestrictionProvider rp = mock(AbstractRestrictionProvider.class);
+
+        when(entryTree.hasChild(REP_RESTRICTIONS)).thenReturn(false);
+        assertSame(Collections.emptySet(), Utils.readRestrictions(rp, "/test/path", entryTree));
+        verifyNoInteractions(rp);
+    }
+
+    @Test
+    public void testReadRestrictions() {
+        Tree restTree = mock(Tree.class);
+        Tree entryTree = mock(Tree.class);
+
+        RestrictionProvider rp = mock(AbstractRestrictionProvider.class);
+
+        when(entryTree.hasChild(REP_RESTRICTIONS)).thenReturn(true);
+        when(entryTree.getChild(REP_RESTRICTIONS)).thenReturn(restTree);
+        when(restTree.getProperties()).thenReturn(Collections.emptyList());
+
+        Utils.readRestrictions(rp, "/test/path", entryTree);
+        verify(rp).readRestrictions("/test/path", entryTree);
+        verifyNoMoreInteractions(rp);
     }
 }
