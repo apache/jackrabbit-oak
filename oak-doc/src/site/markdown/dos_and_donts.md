@@ -15,8 +15,7 @@
    limitations under the License.
   -->
   
-Best Practices when Using Jackrabbit Oak
---------------------------------------------------------------------------------
+# Best Practices when Using Jackrabbit Oak
 
 <!-- MACRO{toc} -->
 
@@ -80,7 +79,7 @@ node property itself. For example `FileDataStore` supports `minRecordLength` pro
 If that is set to say 4096 then any binary with size less than 4kb would be stored
 as part of node data itself and not in BlobStore.
 
-Its recommended to not set very high value for this as depending on implementation it
+It is recommended to not set very high value for this as depending on implementation it
 might hit some limit causing the commit to fail. For e.g. the SegmentNodeStore enforces a limit of
 8k for any inlined binary value. Further this would also lead to repository growth as
 by default when binaries are stored in BlobStore then they are deduplicated.
@@ -118,7 +117,7 @@ c = session.getNode("/a/b/c");
 c = d.getParent();                              // preferred way to fetch the parent node
 ```
 ## Security
-- [Best Practices for Authorization](https://jackrabbit.apache.org/oak/docs/security/authorization/bestpractices.html)
+- [Best Practices for Authorization](security/authorization/bestpractices.html)
 
 ## Misc
 ### Don't use Thread.interrupt()

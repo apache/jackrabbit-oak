@@ -79,13 +79,14 @@ repository internal permission evaluation:
 - [Restriction]: the restriction object as created using Jackrabbit access control API
 - [RestrictionDefinition]: the static definition of a supported restriction
 - [RestrictionPattern]: the processed restriction ready for permission evaluation
+- [AggregationAware]: optional extension to make a [RestrictionProvider] aware of being used in an composite setup, since Oak 1.44.0 (see [OAK-9782])
 
 <a name="default_implementation"></a>
 ### Default Implementation
 
 Oak 1.0 provides the following base implementations:
 
-- `AbstractRestrictionProvider`: abstract base implementation of the provider interface.
+- `AbstractRestrictionProvider`: abstract base implementation of the provider interface. Since 1.44.0 also implements [AggregationAware] (see [OAK-9782])
 - `RestrictionDefinitionImpl`: default implementation of the `RestrictionDefinition` interface.
 - `RestrictionImpl`: default implementation of the `Restriction` interface.
 - `CompositeRestrictionProvider`: Allows aggregating multiple provider implementations (see [Pluggability](#pluggability) below).
@@ -374,4 +375,6 @@ The time-based `RestrictionPattern` used by the example provider above.
 [RestrictionDefinition]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionDefinition.html
 [RestrictionPattern]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionPattern.html
 [RestrictionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionProvider.html
+[AggregationAware]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/AggregationAware.html
 [OAK-5784]: https://issues.apache.org/jira/browse/OAK-5784
+[OAK-9782]: https://issues.apache.org/jira/browse/OAK-9782

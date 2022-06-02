@@ -288,6 +288,27 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     }
 
     @Test
+    public void testReadRestrictionsWithTypeMismatch() {
+        PropertyState wrongType = PropertyStates.createProperty(REP_GLOB, 24);
+        Restriction r = new Restriction() {
+
+            @Override
+            public @NotNull RestrictionDefinition getDefinition() {
+                return mock(RestrictionDefinition.class);
+            }
+
+            @Override
+            public @NotNull PropertyState getProperty() {
+                return wrongType;
+            }
+        };
+        Tree aceTree = getAceTree(r);
+
+        Set<Restriction> restrictions = restrictionProvider.readRestrictions(testPath, aceTree);
+        assertTrue(restrictions.isEmpty());
+    }
+
+    @Test
     public void testValidateRestrictionsUnsupportedPathEmptyRestrictions() throws Exception {
         // empty restrictions => must succeed
         restrictionProvider.validateRestrictions(null, getAceTree());

@@ -14,7 +14,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-pluginZip=`ls /tmp/plugins | grep elastiknn-7.17 | head -n 1`
-echo "Installing plugin /tmp/plugins/$pluginZip"
-bin/elasticsearch-plugin install --batch file:///tmp/plugins/$pluginZip
-su -c "bin/elasticsearch" elasticsearch
+network.host: 0.0.0.0
+ingest.geoip.downloader.enabled: false

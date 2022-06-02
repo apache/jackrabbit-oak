@@ -115,7 +115,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             case REP_GLOBS:    return new GlobsPattern(path, values);
             case REP_SUBTREES: return new SubtreePattern(path, values);
             default: {
-                log.debug("Ignoring unsupported restriction {}", name);
+                log.debug("Ignoring unsupported restriction {} at {}", name, path);
                 return RestrictionPattern.EMPTY;
             }
         }

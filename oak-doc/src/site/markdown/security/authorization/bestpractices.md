@@ -15,8 +15,7 @@
    limitations under the License.
 -->
 
-Best Practices for Authorization
---------------------------------------------------------------------------------
+# Best Practices for Authorization
 
 <!-- MACRO{toc} -->
 
@@ -42,7 +41,7 @@ Make sure the content design allows for a readable and manageable access control
 Excessive complexity is often a strong indicator for problems with your content model, making its security error prone 
 and difficult to reason about (and might ultimately might lead to issues with scaling).
 
-Here is an example of a access control setup (with [Sling RepoInit](https://sling.apache.org/documentation/bundles/repository-initialization.html)) 
+Here is an example of an access control setup (with [Sling RepoInit](https://sling.apache.org/documentation/bundles/repository-initialization.html)) 
 illustrating why content with different access requirements should be kept in separate trees and how complexity may yield undesired
 effects (see also section 'Remember inheritance' below):
 
@@ -95,7 +94,7 @@ Note, that this document should be human readable not go into implementation det
 Instead of writing principal 'content-authors' needs jcr:write on /content, define that you have an asset 'content',
 define what kind of data it contains and how sensitive the data is (similar to the threat model).
 Then identify what roles are going to interact with this data and how they interact: for example you may identify 
-a role that just reading data, a second role that is expected to read and write and a third one that is will only 
+a role that just reading data, a second role that is expected to read and write, and a third one that will only 
 approve new content and publish it).
 
 ## General Best Practices
@@ -125,7 +124,7 @@ granted. Neither less nor more.
 
 Ideally, your tests will fail as soon as someone is attempting to make any change to the permission setup.
 Granting additional permissions may open up the door for a privilege escalation and revoking permissions will break
-your application (if it doesn't you didn't follow the principle of least privilege).
+your application (if it doesn't you did not follow the principle of least privilege).
 
 This may also include assertions that no permissions are granted at resources that are outside the scope of a given role/task.
 
@@ -196,10 +195,10 @@ its members have full access.
 
 #### Stick with group principals
 
-It is preferable to setup access control for group principals instead of individual user principals and then make sure 
+It is preferable to set up access control for group principals instead of individual user principals and then make sure 
 your `PrincipalProvider` resolves principal membership according to your needs.
 
-Further note, that the default authorization model will give precedence to user principals upon evaluation in other words 
+Further, note that the default authorization model will give precedence to user principals upon evaluation in other words 
 default access control entries for user principals will overwrite the effect of groups irrespective of the order in the list (see next section).
 
 ### Understand default access control and permission management
@@ -231,7 +230,7 @@ Note in particular for add/removing a node `jcr:addChildNodes` and `jcr:removeCh
 the parent node respectively i.e. allowing for modification of the child-node collection. 
 In addition `jcr:removeNode` needs to be granted on the target node of the removal.
 
-Thus the following subtle difference apply when evaluation effective permissions vs. privileges (see 
+Thus, the following subtle difference apply when evaluation effective permissions vs. privileges (see 
 also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) and exercises at 
 [L4_PrivilegesAndPermissionsTest.java](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/permission/L4_PrivilegesAndPermissionsTest.java)):
 
@@ -321,11 +320,11 @@ the authorization configuration of the repository.
 
 #### Leverage custom privileges
 
-If you identify application specific operations that cannot be reflected using the built-in privileges, Oak allows to 
-register custom privileges (see section [Privilege Management](../privilege.html#jackrabbit_api)). 
+If you identify application specific operations that cannot be reflected using the built-in privileges, Oak allows  
+registering custom privileges (see section [Privilege Management](../privilege.html#jackrabbit_api)). 
 
 However, note that the built-in permission evaluation will not enforce those 
-custom privileges. Instead you have to enforce it in your application or write a custom authorization model 
+custom privileges. Instead, you have to enforce it in your application or write a custom authorization model 
 (see section [Combining Multiple Authorization Models](composite.html))
 
 In the example above you might find that publishing content cannot easily be secured using built-in privileges and end 
@@ -333,9 +332,9 @@ up registering a custom _myapp:publish_ privilege.
 
 #### Leverage custom restrictions
 
-Default authorization in Oak allows to limit the effect of invidual JCR access control entries by means of restrictions.
+Default authorization in Oak allows to limit the effect of individual JCR access control entries by means of restrictions.
 See section [Restriction Management](restriction.html) for the built-in restrictions and instructions on how to plug 
-custom restrictions into the security setup. But be aware of the potential performance impact of any additional evaluation.
+custom restrictions into the security setup. Be aware though of the potential performance impact of any additional evaluation.
 
 #### Leverage a custom authorization model
 
@@ -344,4 +343,4 @@ becomes cumbersome and overly complex, consider customizing authorization setup 
 
 The _oak-exercise_ module defines a couple of [examples](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/exercise/security/authorization/models)
 to illustrate alternative approaches. The corresponding training material is located in section 
-[Advanced Authorization Topics](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/advanced)
+[Advanced Authorization Topics](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/advanced).

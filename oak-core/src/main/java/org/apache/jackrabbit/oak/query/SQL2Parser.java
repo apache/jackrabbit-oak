@@ -182,6 +182,10 @@ public class SQL2Parser {
                     } else if (readIf("TAG")) {
                         options.indexTag = readLabel();
                     }
+                } else if (readIf("OFFSET")) {
+                    q.setOffset(readNumber());
+                } else if (readIf("LIMIT")) {
+                    q.setLimit(readNumber());
                 } else {
                     break;
                 }
@@ -289,6 +293,15 @@ public class SQL2Parser {
         }
 
         return factory.selector(nodeTypeInfo, selectorName);
+    }
+
+    private long readNumber() throws ParseException {
+        String label = readName();
+        try {
+            return Long.parseLong(label);
+        } catch (NumberFormatException nfe) {
+            throw getSyntaxError("0-9");
+        }
     }
     
     private String readLabel() throws ParseException {

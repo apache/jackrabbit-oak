@@ -25,6 +25,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSIONS;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_ACCESS_CONTROLLED_PATH;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_IS_ALLOW;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PRIVILEGE_BITS;
 import static org.junit.Assert.assertEquals;
@@ -43,7 +44,7 @@ public class PermissionConstantsTest {
 
     @Test
     public void testPropertyNames() {
-        assertEquals(ImmutableSet.of(REP_ACCESS_CONTROLLED_PATH, REP_PRIVILEGE_BITS), PermissionConstants.PERMISSION_PROPERTY_NAMES);
+        assertEquals(ImmutableSet.of(REP_ACCESS_CONTROLLED_PATH, REP_PRIVILEGE_BITS, REP_IS_ALLOW), PermissionConstants.PERMISSION_PROPERTY_NAMES);
     }
 
     @Test

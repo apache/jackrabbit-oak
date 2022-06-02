@@ -14,6 +14,8 @@
 package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import java.util.HashMap;
+import java.util.Optional;
+
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -26,6 +28,7 @@ import javax.jcr.query.qom.Constraint;
 import javax.jcr.query.qom.Ordering;
 import javax.jcr.query.qom.QueryObjectModel;
 import javax.jcr.query.qom.Source;
+
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
 /**
@@ -40,8 +43,8 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     private final ValueFactory valueFactory;
     private final Ordering[] orderings;
     private final Column[] columns;
-    private long limit = Long.MAX_VALUE;
-    private long offset;
+    private Optional<Long> limit = Optional.empty();
+    private Optional<Long> offset = Optional.empty();
     private boolean parsed;
     private String storedQueryPath;
 
@@ -92,12 +95,12 @@ public class QueryObjectModelImpl implements QueryObjectModel {
 
     @Override
     public void setLimit(long limit) {
-        this.limit = limit;
+        this.limit = Optional.of(limit);
     }
 
     @Override
     public void setOffset(long offset) {
-        this.offset = offset;
+        this.offset = Optional.of(offset);
     }
 
     public ValueFactory getValueFactory() {

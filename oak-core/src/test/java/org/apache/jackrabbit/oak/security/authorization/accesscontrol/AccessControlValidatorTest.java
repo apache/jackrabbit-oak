@@ -64,6 +64,7 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.Collections;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
@@ -394,16 +395,67 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         acMgr.setPolicy(testPath, acl);
 
         // add duplicate ac-entry on OAK-API
-        Tree policy = root.getTree(testPath + "/rep:policy");
-        Tree ace = TreeUtil.addChild(policy, "duplicateAce", NT_REP_GRANT_ACE);
-        ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_ADD_CHILD_NODES), Type.NAMES);
-
+        createDuplicateAceTree();
         try {
             root.commit();
         } catch (CommitFailedException e) {
             throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 13);
         }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testDuplicateAceWithRestrictionInACE() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+        ValueFactory vf = getValueFactory(root);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
+                Collections.singletonMap(REP_GLOB, vf.createValue("some/glob")));
+        acMgr.setPolicy(testPath, acl);
+
+        // add duplicate ac-entry on OAK-API with single and mv restriction
+        Tree ace = createDuplicateAceTree();
+        ace.setProperty(AccessControlConstants.REP_GLOB, "some/glob", Type.STRING);
+
+        try {
+            root.commit();
+        } catch (CommitFailedException e) {
+            assertTrue(e.getMessage().contains("rep:glob = some/glob"));
+            throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 13);
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testDuplicateAceWithRestrictions() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+        ValueFactory vf = getValueFactory(root);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true, 
+                Collections.singletonMap(REP_GLOB, vf.createValue("some/glob")),
+                Collections.singletonMap(REP_GLOBS, new Value[] {vf.createValue("glob1"), vf.createValue("glob2")}));
+        acMgr.setPolicy(testPath, acl);
+
+        // add duplicate ac-entry on OAK-API with single and mv restriction
+        Tree ace = createDuplicateAceTree();
+        Tree rest = TreeUtil.addChild(ace, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        rest.setProperty(AccessControlConstants.REP_GLOB, "some/glob", Type.STRING);
+        rest.setProperty(AccessControlConstants.REP_GLOBS, ImmutableList.of("glob1", "glob2"), Type.STRINGS);
+        
+        try {
+            root.commit();
+        } catch (CommitFailedException e) {
+            String msg = e.getMessage();
+            assertTrue(msg.contains("rep:glob = some/glob"));
+            assertTrue(msg.contains("rep:globs = [glob1, glob2]"));
+            throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 13);
+        }
+    }
+    
+    private @NotNull Tree createDuplicateAceTree() throws AccessDeniedException {
+        Tree policy = root.getTree(testPath + "/rep:policy");
+        Tree ace = TreeUtil.addChild(policy, "duplicateAce", NT_REP_GRANT_ACE);
+        ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_ADD_CHILD_NODES), Type.NAMES);
+        return ace;
     }
 
     @Test

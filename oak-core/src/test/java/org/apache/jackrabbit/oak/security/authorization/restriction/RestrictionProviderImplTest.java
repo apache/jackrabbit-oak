@@ -29,18 +29,25 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -58,15 +65,35 @@ import static org.mockito.Mockito.mock;
 /**
  * Tests for {@link RestrictionProviderImpl}
  */
+@RunWith(Parameterized.class)
 public class RestrictionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
 
-    private RestrictionProviderImpl provider;
+    private static final String TEST_RESTR_NAME = "test";
+    
+    private final boolean asComposite;
+    private RestrictionProvider provider;
+
+    @Parameterized.Parameters(name = "name={1}")
+    public static Collection<Object[]> parameters() {
+        return Arrays.asList(
+                new Object[]{false, "RestrictionProviderImpl as singular provider"},
+                new Object[]{true, "RestrictionProviderImpl as part of a composite restriction provider"});
+    }
+    
+    public RestrictionProviderImplTest(boolean asComposite, String name) {
+        this.asComposite = asComposite;
+    }
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        provider = new RestrictionProviderImpl();
+        RestrictionProviderImpl rp = new RestrictionProviderImpl();
+        if (asComposite) {
+            provider = CompositeRestrictionProvider.newInstance(rp, new TestProvider(Collections.singletonMap(TEST_RESTR_NAME, new RestrictionDefinitionImpl("test", Type.STRING, false))));
+        } else {
+            provider = rp;
+        }
     }
 
     @Test
@@ -75,7 +102,8 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
         Set<RestrictionDefinition> defs = provider.getSupportedRestrictions("/testPath");
         assertNotNull(defs);
-        assertEquals(7, defs.size());
+        int expectedSize = (asComposite) ? 8 : 7;
+        assertEquals(expectedSize, defs.size());
 
         Set<String> stringsPropNames = ImmutableSet.of(REP_PREFIXES, REP_CURRENT, REP_GLOBS, REP_SUBTREES);
         for (RestrictionDefinition def : defs) {
@@ -92,7 +120,11 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
                 assertEquals(Type.STRINGS, def.getRequiredType());
                 assertFalse(def.isMandatory());
             } else {
-                fail("unexpected restriction " + def.getName());
+                if (asComposite) {
+                    assertEquals(TEST_RESTR_NAME, def.getName());
+                } else {
+                    fail("unexpected restriction " + def.getName());
+                }
             }
         }
     }

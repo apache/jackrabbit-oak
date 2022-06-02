@@ -106,7 +106,7 @@ in reflecting the current repository state while performing the query_
 
 Taking another example. To support following query
 
-    //*[jcr:contains(., 'text')]
+    /jcr:root/content//*[jcr:contains(., 'text')]
 
 The Lucene index needs to be configured to index all properties
 
@@ -115,6 +115,8 @@ The Lucene index needs to be configured to index all properties
       - type = "lucene"
       - compatVersion = 2
       - async = "async"
+      - includedPaths = ["/content"]
+      - queryPaths = ["/content"]
       + indexRules
         - jcr:primaryType = "nt:unstructured"
         + nt:base
@@ -326,10 +328,10 @@ indexNodeName
   name. For example
     * _select [jcr:path] from [nt:base] where NAME() = 'kite'_
     * _select [jcr:path] from [nt:base] where NAME() LIKE 'kite%'_
-    * //kite
-    * //*[jcr:like(fn:name(), 'kite%')]
-    * //element(*, app:Asset)[fn:name() = 'kite']
-    * //element(kite, app:Asset)
+    * /jcr:root//kite
+    * /jcr:root//*[jcr:like(fn:name(), 'kite%')]
+    * /jcr:root//element(*, app:Asset)[fn:name() = 'kite']
+    * /jcr:root//element(kite, app:Asset)
 
 ##### <a name="cost-overrides"></a> Cost Overrides
 
@@ -430,7 +432,7 @@ nodeScopeIndex
 : Control whether the value of a property should be part of fulltext index. That
   is, you can do a _jcr:contains(., 'foo')_ and it will return nodes that have a
   string property that contains the word foo. Example
-    * _//element(*, app:Asset)[jcr:contains(., 'image')]_
+    * /jcr:root/content//element(*, app:Asset)[jcr:contains(., 'image')]_
 
   In case of aggregation all properties would be indexed at node level by default
   if the property type is part of `includePropertyTypes`. However if there is an
@@ -447,16 +449,16 @@ nodeScopeIndex
 
 analyzed
 : Set this to true if the property is used as part of `contains`. Example
-    * _//element(*, app:Asset)[jcr:contains(type, 'image')]_
-    * _//element(*, app:Asset)[jcr:contains(jcr:content/metadata/@format, 'image')]_
+    * /jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')]_
+    * /jcr:root/content//element(*, app:Asset)[jcr:contains(jcr:content/metadata/@format, 'image')]_
 
 <a name="ordered"></a>
 ordered
 : If the property is to be used in _order by_ clause to perform sorting then
   this should be set to true. This should be set to true only if the property
   is to be used to perform sorting as it increases the index size. Example
-    * _//element(*, app:Asset)[jcr:contains(type, 'image')] order by @size_
-    * _//element(*, app:Asset)[jcr:contains(type, 'image')] order by
+    * /jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')] order by @size_
+    * /jcr:root/content//element(*, app:Asset)[jcr:contains(@type, 'image')] order by
     jcr:content/@jcr:lastModified_
 
   Refer to [Lucene based Sorting][OAK-2196] for more details. Note that this is
@@ -491,7 +493,7 @@ notNullCheckEnabled
 : If the property is checked for _is not null_ then this should be set to true.
   To reduce the index size,
   this should only be enabled for nodeTypes that are not generic.
-    * _//element(*, app:Asset)[jcr:content/@excludeFromSearch]
+    * /jcr:root/content//element(*, app:Asset)[jcr:content/@excludeFromSearch]
 
   For details, see [IS NOT NULL support][OAK-2234].
 
@@ -500,7 +502,7 @@ nullCheckEnabled
 : If the property is checked for _is null_ then this should be set to true. This
   should only be enabled for nodeTypes that are not generic as it leads to index
   entry for all nodes of that type where this property is not set.
-    * _//element(*, app:Asset)[not(jcr:content/@excludeFromSearch)]
+    * /jcr:root/content//element(*, app:Asset)[not(jcr:content/@excludeFromSearch)]
 
   It would be better to use a query which checks for property existence or property
   being set to specific values as such queries can make use of index without any
@@ -824,12 +826,12 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
 ```
     + analyzers
       + default
-        + charFilters (nt:unstructured) //The filters needs to be ordered
+        + charFilters (nt:unstructured) // the filters needs to be ordered
           + HTMLStrip
           + Mapping
         + tokenizer
           - name = "Standard"
-        + filters (nt:unstructured) //The filters needs to be ordered
+        + filters (nt:unstructured) // the filters needs to be ordered
           + LowerCase
           + Stop
             - words = "stop1.txt, stop2.txt"
@@ -855,7 +857,7 @@ Adding stemming support
       + default
         + tokenizer
           - name = "Standard"
-        + filters (nt:unstructured) //The filters needs to be ordered
+        + filters (nt:unstructured) // the filters needs to be ordered
           + LowerCase
           + HunspellStem
             - dictionary = "en_gb.dic"
@@ -938,7 +940,7 @@ would lead to smaller and compact indexes.
 When fulltext indexing is enabled then internally Oak would create a fulltext
 field which consists of text extracted from various other fields i.e. fields
 for which `nodeScopeIndex` is `true`. This allows search like
-`//*[jcr:contains(., 'foo')]` to perform search across any indexable field
+`/jcr:root/content//*[jcr:contains(., 'foo')]` to perform search across any indexable field
 containing foo (See [contains function][jcr-contains] for details)
 
 In certain cases its desirable that those nodes where the searched term is present
@@ -980,11 +982,8 @@ For more details refer to [OAK-3367][OAK-3367]
 With above index config a search like
 
 ```
-SELECT
-  *
-FROM [app:Asset]
-WHERE
-  CONTAINS(., 'Batman')
+SELECT * FROM [app:Asset]
+WHERE CONTAINS(., 'Batman')
 ```
 
 Would have those node (of type app:Asset) come first where _Batman_ is found in
@@ -1195,7 +1194,7 @@ See also [OAK-8971][OAK-8971].
 
 Oak query engine supports native queries like
 
-    //*[rep:native('lucene', 'name:(Hello OR World)')]
+    /jcr:root/content//*[rep:native('lucene', 'name:(Hello OR World)')]
 
 If multiple Lucene based indexes are enabled on the system and you need to
 make use of specific Lucene index like `/oak:index/assetIndex` then you can
@@ -1212,7 +1211,7 @@ For example for assetIndex definition like
 Executing following query would ensure that Lucene index from `assetIndex`
 should be used
 
-    //*[rep:native('lucene-assetIndex', 'name:(Hello OR World)')]
+    /jcr:root/content//*[rep:native('lucene-assetIndex', 'name:(Hello OR World)')]
 
 ### <a name="persisting-indexes"></a>Persisting indexes to FileSystem
 
@@ -1882,11 +1881,8 @@ Content like above is then queried in multiple ways. So lets take first query
 **UC1 - Find all assets which are having `status` as `published`**
 
 ```
-SELECT
-  *
-FROM [app:Asset] AS a
-WHERE
-  a.[jcr:content/metadata/status] = 'published'
+SELECT * FROM [app:Asset] AS a
+WHERE a.[jcr:content/metadata/status] = 'published'
 ```
 
 For this following index definition would be have to be created
@@ -1917,13 +1913,9 @@ Above index definition
 modified date**
 
 ```
-SELECT
-  *
-FROM [app:Asset] AS a
-WHERE
-  a.[jcr:content/metadata/status] = 'published'
-ORDER BY
-  a.[jcr:content/metadata/jcr:lastModified] DESC
+SELECT * FROM [app:Asset] AS a
+WHERE a.[jcr:content/metadata/status] = 'published'
+ORDER BY a.[jcr:content/metadata/jcr:lastModified] DESC
 ```
 
 To enable above query the index definition needs to be updated to following
@@ -1953,11 +1945,8 @@ Above index definition
 **UC3 - Find all assets where comment contains _december_**
 
 ```
-SELECT
-  *
-FROM [app:Asset]
-WHERE
-  CONTAINS([jcr:content/metadata/comment], 'december')
+SELECT * FROM [app:Asset]
+WHERE CONTAINS([jcr:content/metadata/comment], 'december')
 ```
 
 To enable above query the index definition needs to be updated to following
@@ -1982,11 +1971,8 @@ Above index definition
 **UC4 - Find all assets which are created by David and refer to december **
 
 ```
-SELECT
-  *
-FROM [app:Asset]
-WHERE
-  CONTAINS(., 'december david')
+SELECT * FROM [app:Asset]
+WHERE CONTAINS(., 'december david')
 ```
 
 Here we want to create a fulltext index for all assets. It would index all the
@@ -2078,11 +2064,11 @@ Unconstrained queries for facets like
 ```
     SELECT [rep:facet(title)] FROM [app:Asset]
 or
-    //element(*, app:Asset)/(rep:facet(title))
+    /jcr:root//element(*, app:Asset)/(rep:facet(title))
 or
     SELECT [rep:facet(title)], [rep:facet(tags)] FROM [app:Asset]
 or
-    //element(*, app:Asset)/(rep:facet(title) | rep:facet(tags))
+    /jcr:root//element(*, app:Asset)/(rep:facet(title) | rep:facet(tags))
 ```
 would require an index on `app:Asset`  containing all nodes of the type. That, in
 turn, means that either the index needs to be a fulltext index or needs to be
@@ -2137,7 +2123,7 @@ constraints would get filtered _after_ collecting counts from the index.
 
 So, following queries require correspondingly listed indexes:
 ```
-SELECT rep:facet(title) FROM [app:Asset] WHERE ISDESCENDANTNODE(/some/path)
+SELECT rep:facet(title) FROM [app:Asset] WHERE ISDESCENDANTNODE('/some/path')
 
 + /oak:index/index2
   - ...

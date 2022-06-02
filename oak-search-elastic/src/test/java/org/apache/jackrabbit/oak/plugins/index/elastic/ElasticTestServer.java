@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.transport.Version;
 import com.github.dockerjava.api.DockerClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.elasticsearch.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
@@ -43,59 +43,60 @@ import static org.junit.Assume.assumeNotNull;
 public class ElasticTestServer implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
-    private static final String PLUGIN_DIGEST = "db479aeee452b2a0f6e3c619ecdf27ca5853e54e7bc787e5c56a49899c249240";
-    private static ElasticTestServer esTestServer = new ElasticTestServer();
-    private static volatile ElasticsearchContainer elasticsearchContainer;
+    private static final String PLUGIN_DIGEST = "5e3b40bb72b2813f927be9bf6ecdf88668d89d2ef20c7ebafaa51ab8407fd179";
+    private static final ElasticTestServer SERVER = new ElasticTestServer();
+    private static volatile ElasticsearchContainer CONTAINER;
 
     private ElasticTestServer() {
     }
 
     public static synchronized ElasticsearchContainer getESTestServer() {
         // Setup a new ES container if elasticsearchContainer is null or not running
-        if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
+        if (CONTAINER == null || !CONTAINER.isRunning()) {
             LOG.info("Starting ES test server");
-            esTestServer.setup();
+            SERVER.setup();
             // Check if the ES container started, if not then cleanup and throw an exception
             // No need to run the tests further since they will anyhow fail.
-            if (elasticsearchContainer == null || !elasticsearchContainer.isRunning()) {
-                esTestServer.close();
+            if (CONTAINER == null || !CONTAINER.isRunning()) {
+                SERVER.close();
                 throw new RuntimeException("Unable to start ES container after retries. Any further tests will fail");
             }
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 LOG.info("Stopping global ES test server.");
-                esTestServer.close();
+                SERVER.close();
             }));
         }
-        return elasticsearchContainer;
+        return CONTAINER;
     }
 
     private synchronized void setup() {
-        final String pluginVersion = "7.16.3.0";
+        final String pluginVersion = Version.VERSION + ".0";
         final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
         final String localPluginPath = "target/" + pluginFileName;
         downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
         checkIfDockerClientAvailable();
         Network network = Network.newNetwork();
-        elasticsearchContainer = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT)
+        CONTAINER = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.VERSION)
+                .withCopyFileToContainer(MountableFile.forClasspathResource("elasticsearch.yml"), "/usr/share/elasticsearch/config/")
                 .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
                 .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
                 .withCommand("bash /tmp/elasticstartscript.sh")
                 .withNetwork(network)
                 .withStartupAttempts(3);
-        elasticsearchContainer.start();
+        CONTAINER.start();
     }
 
     @Override
     public void close() {
-        if (this == esTestServer) {
+        if (this == SERVER) {
             // Closed with a shutdown hook
             return;
         }
 
-        if (elasticsearchContainer != null) {
-            elasticsearchContainer.stop();
+        if (CONTAINER != null) {
+            CONTAINER.stop();
         }
-        elasticsearchContainer = null;
+        CONTAINER = null;
     }
 
     private void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
@@ -139,6 +140,17 @@ public class ElasticTestServer implements AutoCloseable {
                     ", Elastic tests will be skipped");
         }
         assumeNotNull(client);
+    }
+
+    /**
+     * Launches an Elasticsearch Test Server to re-use among several test executions.
+     */
+    public static void main(String[] args) throws IOException {
+        ElasticsearchContainer esContainer = ElasticTestServer.getESTestServer();
+        System.out.println("Docker container with Elasticsearch launched at \""+esContainer.getHttpHostAddress()+
+            "\". Please PRESS ENTER to stop it...");
+        System.in.read();
+        esContainer.stop();
     }
 
 }

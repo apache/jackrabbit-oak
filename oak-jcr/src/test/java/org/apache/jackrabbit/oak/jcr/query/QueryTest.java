@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -68,6 +69,72 @@ public class QueryTest extends AbstractRepositoryTest {
 
     public QueryTest(NodeStoreFixture fixture) {
         super(fixture);
+    }
+
+    @Test
+    public void limitOption() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+        // grammar supports limit option
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where ischildnode('/') or [jcr:uuid] = 1 option(limit 10)"));
+       
+
+        Node testRoot = session.getNode("/").addNode("limit-test","nt:unstructured");
+        for(int count: IntStream.range(0, 100).toArray()){
+            testRoot.addNode("limit-test-child"+count,"nt:unstructured");
+        }
+        session.save();
+
+        String[] paths = getNodeList(session, "SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/limit-test]) OPTION(LIMIT 10)", Query.JCR_SQL2).split(",");
+        assertEquals(10, paths.length);
+    }
+
+    @Test
+    public void offsetOption() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+        // grammar supports offset option
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where ischildnode('/') or [jcr:uuid] = 1 option(offset 10)"));
+       
+
+        Node testRoot = session.getNode("/").addNode("offset-test","nt:unstructured");
+        for(int count: IntStream.range(0, 100).toArray()){
+            testRoot.addNode("offset-test-child"+count,"nt:unstructured");
+        }
+        session.save();
+
+        String[] paths = getNodeList(session, "SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/offset-test]) OPTION(OFFSET 80)", Query.JCR_SQL2).split(",");
+        assertEquals(20, paths.length);
+
+        paths = getNodeList(session, "SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/offset-test]) OPTION(OFFSET 80, LIMIT 10)", Query.JCR_SQL2).split(",");
+        assertEquals(10, paths.length);
+    }
+
+    @Test
+    public void testSettingsOverride() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+
+        Node testRoot = session.getNode("/").addNode("settings-override-test","nt:unstructured");
+        for(int count: IntStream.range(0, 100).toArray()){
+            testRoot.addNode("settings-override-test-child"+count,"nt:unstructured");
+        }
+        session.save();
+
+        Query q = qm.createQuery("SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/settings-override-test]) OPTION(OFFSET 10)", Query.JCR_SQL2);
+        q.setLimit(90);
+        NodeIterator it = q.execute().getNodes();
+        int count = 0;
+        while(it.hasNext()){
+            count++;
+            it.next();
+        }
+        assertEquals(90, count);
     }
 
     @Test

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.util;
 
-
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
@@ -30,7 +29,6 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-
 
 public class ElasticGlobalInitializer implements RepositoryInitializer {
 

@@ -43,7 +43,7 @@ public interface PermissionConstants {
 
     Set<String> PERMISSION_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PERMISSIONS, NT_REP_PERMISSION_STORE);
     Set<String> PERMISSION_NODE_NAMES = ImmutableSet.of(REP_PERMISSION_STORE);
-    Set<String> PERMISSION_PROPERTY_NAMES = ImmutableSet.of(REP_ACCESS_CONTROLLED_PATH, REP_PRIVILEGE_BITS);
+    Set<String> PERMISSION_PROPERTY_NAMES = ImmutableSet.of(REP_ACCESS_CONTROLLED_PATH, REP_PRIVILEGE_BITS, REP_IS_ALLOW);
 
     /**
      * Configuration parameter to enforce backwards compatible permission

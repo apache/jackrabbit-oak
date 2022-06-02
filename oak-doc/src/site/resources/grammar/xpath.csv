@@ -133,7 +133,9 @@ simpleType
 "Grammar","Options","
 'option'( {
     'traversal' { 'ok' | 'warn' | 'fail' | 'default' } |
-    'index' 'tag' tagName
+    'index' 'tag' tagName |
+    'offset' number |
+    'limit' number
     } [ , ... ] )
 ","
 "
