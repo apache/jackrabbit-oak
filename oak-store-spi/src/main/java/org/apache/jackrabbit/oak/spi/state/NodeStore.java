@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -188,4 +189,15 @@ public interface NodeStore {
      */
     boolean release(@NotNull String checkpoint);
 
+    /**
+     * OAK-9780
+     * experimental API for prefetching / warming-up any applicable caches for a
+     * given collection of path.
+     * The implementation can choose to ignore this. No guarantees whatsoever.
+     * Terms and conditions apply.
+     * @param paths
+     */
+    default void prefetch(Collection<String> paths) {
+        // do nothing
+    }
 }
