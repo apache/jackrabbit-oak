@@ -41,9 +41,9 @@ import static com.google.common.base.Charsets.UTF_8;
 
 class FlatFileStoreUtils {
 
-//    public static BufferedReader createReader(File file, boolean compressionEnabled) {
-//        return createReader(file, compressionEnabled, false);
-//    }
+    public static BufferedReader createReader(File file, boolean compressionEnabled) {
+        return createReader(file, compressionEnabled, false);
+    }
 
     public static BufferedReader createReader(File file, boolean compressionEnabled, boolean useLZ4) {
         try {
@@ -62,9 +62,9 @@ class FlatFileStoreUtils {
         }
     }
 
-//    public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
-//        return createWriter(file, compressionEnabled, false);
-//    }
+    public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
+        return createWriter(file, compressionEnabled, false);
+    }
 
     public static BufferedWriter createWriter(File file, boolean compressionEnabled, boolean useLZ4) throws IOException {
         OutputStream out = new FileOutputStream(file);
