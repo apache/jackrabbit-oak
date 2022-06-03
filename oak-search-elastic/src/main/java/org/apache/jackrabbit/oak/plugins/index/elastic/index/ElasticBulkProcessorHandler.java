@@ -60,6 +60,7 @@ class ElasticBulkProcessorHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
     private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger("oak.failedDocStatusLimit", 10000);
 
+    private static final int BULK_PROCESSOR_CONCURRENCY = 4;
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
     private static boolean waitForESAcknowledgement = true;
@@ -151,7 +152,7 @@ class ElasticBulkProcessorHandler {
         return BulkProcessor.builder(requestConsumer(),
                 new OakBulkProcessorListener(), this.indexName + "-bulk-processor")
                 .setBulkActions(indexDefinition.bulkActions)
-                .setConcurrentRequests(4)
+                .setConcurrentRequests(BULK_PROCESSOR_CONCURRENCY)
                 .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
                 .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
                 .setBackoffPolicy(BackoffPolicy.exponentialBackoff(

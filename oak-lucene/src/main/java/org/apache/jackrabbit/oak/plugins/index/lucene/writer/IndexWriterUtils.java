@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,9 +39,9 @@ import org.apache.lucene.index.ConcurrentMergeScheduler;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-
 public class IndexWriterUtils {
+    private static final int INDEX_WRITER_MAX_MERGE = 8;
+    private static final int INDEX_WRITER_MAX_THREAD = 8;
 
     public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean remoteDir){
         return getIndexWriterConfig(definition, remoteDir, new LuceneIndexWriterConfig());
@@ -73,7 +75,7 @@ public class IndexWriterUtils {
                 config.setMergeScheduler(new SerialMergeScheduler());
             } else {
                 ConcurrentMergeScheduler concurrentMergeScheduler = new ConcurrentMergeScheduler();
-                concurrentMergeScheduler.setMaxMergesAndThreads(8,8);
+                concurrentMergeScheduler.setMaxMergesAndThreads(INDEX_WRITER_MAX_MERGE, INDEX_WRITER_MAX_THREAD);
                 config.setMergeScheduler(concurrentMergeScheduler);
             }
             if (definition.getCodec() != null) {

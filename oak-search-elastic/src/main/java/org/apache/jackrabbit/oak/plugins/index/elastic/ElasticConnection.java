@@ -58,6 +58,7 @@ public class ElasticConnection implements Closeable {
     protected static final int DEFAULT_PORT = 9200;
     protected static final String DEFAULT_API_KEY_ID = "";
     protected static final String DEFAULT_API_KEY_SECRET = "";
+    protected static final int ES_CLIENT_CONNECT_TIMEOUT = 120000;
 
     private final String indexPrefix;
     private final String scheme;
@@ -119,7 +120,7 @@ public class ElasticConnection implements Closeable {
                         builder.setDefaultHeaders(headers);
                     }
                     builder.setRequestConfigCallback(
-                            requestConfigBuilder -> requestConfigBuilder.setConnectTimeout(120000).setSocketTimeout(120000));
+                            requestConfigBuilder -> requestConfigBuilder.setConnectTimeout(ES_CLIENT_CONNECT_TIMEOUT).setSocketTimeout(ES_CLIENT_CONNECT_TIMEOUT));
 
                     RestClient httpClient = builder.build();
                     RestHighLevelClient hlClient = new RestHighLevelClientBuilder(httpClient)
