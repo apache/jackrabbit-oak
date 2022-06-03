@@ -101,16 +101,19 @@ public class FlatFileNodeStoreBuilderTest {
 
     @Test
     public void testBuildList() throws CompositeException, IOException {
-        File flatFile = new File(getClass().getClassLoader().getResource("simple-split.json").getFile());
-        System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, flatFile.getAbsolutePath());
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot()).withNodeStateEntryTraverserFactory(
-                nodeStateEntryTraverserFactory);
-        IndexHelper indexHelper = mock(IndexHelper.class);
-        IndexerSupport indexerSupport = mock(IndexerSupport.class);
-        NodeState rootState = mock(NodeState.class);
-        when(indexerSupport.retrieveNodeStateForCheckpoint()).thenReturn(rootState);
-        List<FlatFileStore> storeList = builder.buildList(indexHelper, indexerSupport, null);
-        assertEquals(1, storeList.size());
-        System.clearProperty(OAK_INDEXER_SORTED_FILE_PATH);
+        try {
+            File flatFile = new File(getClass().getClassLoader().getResource("simple-split.json").getFile());
+            System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, flatFile.getAbsolutePath());
+            FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot()).withNodeStateEntryTraverserFactory(
+                    nodeStateEntryTraverserFactory);
+            IndexHelper indexHelper = mock(IndexHelper.class);
+            IndexerSupport indexerSupport = mock(IndexerSupport.class);
+            NodeState rootState = mock(NodeState.class);
+            when(indexerSupport.retrieveNodeStateForCheckpoint()).thenReturn(rootState);
+            List<FlatFileStore> storeList = builder.buildList(indexHelper, indexerSupport, null);
+            assertEquals(1, storeList.size());
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORTED_FILE_PATH);
+        }
     }
 }
