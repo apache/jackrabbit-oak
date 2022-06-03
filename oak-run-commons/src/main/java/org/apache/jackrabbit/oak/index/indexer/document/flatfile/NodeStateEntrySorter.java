@@ -51,6 +51,7 @@ public class NodeStateEntrySorter {
     private final Comparator<Iterable<String>> pathComparator;
     private File sortedFile;
     private boolean useZip;
+    private boolean useLZ4;
     private boolean deleteOriginal;
     private long maxMemory = ONE_GB * 5;
     private long actualFileSize;
@@ -69,6 +70,10 @@ public class NodeStateEntrySorter {
 
     public void setUseZip(boolean useZip) {
         this.useZip = useZip;
+    }
+
+    public void setUseLZ4(boolean useLZ4) {
+        this.useLZ4 = useLZ4;
     }
 
     public void setDeleteOriginal(boolean deleteOriginal) {
@@ -114,7 +119,7 @@ public class NodeStateEntrySorter {
 
     private void mergeSortedFiles(Comparator<NodeStateHolder> comparator, Function<String, NodeStateHolder> func1,
                                   Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
-        try(BufferedWriter writer = createWriter(sortedFile, useZip)) {
+        try(BufferedWriter writer = createWriter(sortedFile, useZip, useLZ4)) {
             ExternalSort.mergeSortedFiles(sortedFiles,
                     writer,
                     comparator,
@@ -133,7 +138,7 @@ public class NodeStateEntrySorter {
                                    Function<String, NodeStateHolder> func1,
                                    Function<NodeStateHolder, String> func2) throws IOException {
         if (useZip) {
-            try (BufferedReader reader = createReader(nodeStateFile, useZip)) {
+            try (BufferedReader reader = createReader(nodeStateFile, useZip, useLZ4)) {
                 return ExternalSort.sortInBatch(reader,
                         actualFileSize,
                         comparator, //Comparator to use

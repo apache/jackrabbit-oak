@@ -69,13 +69,14 @@ class TraverseWithSortStrategy implements SortStrategy {
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
     private final boolean compressionEnabled;
+    private final boolean useLZ4;
     private final Charset charset = UTF_8;
     private final Comparator<NodeStateHolder> comparator;
     private NotificationEmitter emitter;
     private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
-    private final ExternalSort.compressionType compressionType = ExternalSort.compressionType.LZ4;
+    private final ExternalSort.compressionType compressionType;
     /**
      * Max memory to be used if jmx based memory monitoring is not available. This value is not considered if jmx based
      * monitoring is available.
@@ -96,13 +97,15 @@ class TraverseWithSortStrategy implements SortStrategy {
 
 
     TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled, Predicate<String> pathPredicate) {
+                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled, boolean useLZ4, Predicate<String> pathPredicate) {
         this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
+        this.useLZ4 = useLZ4;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.pathPredicate = pathPredicate;
+        this.compressionType = useLZ4 ? ExternalSort.compressionType.LZ4 : ExternalSort.compressionType.GZIP;
     }
 
     @Override
@@ -125,8 +128,8 @@ class TraverseWithSortStrategy implements SortStrategy {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
+        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled, useLZ4));
+        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled, useLZ4)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
@@ -194,7 +197,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
-        try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
+        try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled, useLZ4)) {
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());

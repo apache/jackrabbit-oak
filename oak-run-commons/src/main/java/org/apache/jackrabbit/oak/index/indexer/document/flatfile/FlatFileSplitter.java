@@ -19,14 +19,16 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -41,18 +43,15 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 public class FlatFileSplitter {
     private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
@@ -69,6 +68,7 @@ public class FlatFileSplitter {
     private long minimumSplitThreshold = MINIMUM_SPLIT_THRESHOLD;
     private int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
     private boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "true"));
 
     public FlatFileSplitter(File flatFile, File workdir, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader,
             Set<IndexDefinition> indexDefinitions) {
@@ -119,12 +119,11 @@ public class FlatFileSplitter {
             return returnOriginalFlatFile();
         }
 
-        Stopwatch w1 = Stopwatch.createStarted();
-        try (BufferedReader reader = createReader(flatFile, useCompression)) {
+        try (BufferedReader reader = createReader(flatFile, useCompression, useLZ4)) {
             long readPos = 0;
             int outFileIndex = 1;
-            File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useCompression));
-            BufferedWriter writer = createWriter(currentFile, useCompression);
+            File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useCompression, useLZ4));
+            BufferedWriter writer = createWriter(currentFile, useCompression, useLZ4);
             splitFlatFiles.add(currentFile);
 
             String line;
@@ -138,8 +137,8 @@ public class FlatFileSplitter {
                     log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
                     readPos = 0;
                     outFileIndex++;
-                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useCompression));
-                    writer = createWriter(currentFile, useCompression);
+                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(useCompression, useLZ4));
+                    writer = createWriter(currentFile, useCompression, useLZ4);
                     splitFlatFiles.add(currentFile);
                     log.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
                 }

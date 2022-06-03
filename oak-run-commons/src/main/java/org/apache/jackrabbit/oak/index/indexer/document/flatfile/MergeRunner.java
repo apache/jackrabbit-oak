@@ -121,13 +121,14 @@ public class MergeRunner implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(MergeRunner.class);
     private final Charset charset = UTF_8;
     private final boolean compressionEnabled;
+    private final boolean useLZ4;
     private final ArrayList<File> mergedFiles = Lists.newArrayList();
     private final ArrayList<File> unmergedFiles = Lists.newArrayList();
     private ExecutorService executorService;
     private final int threadPoolSize;
     private final int batchMergeSize;
     private final Comparator<? super File> fileSizeComparator = new SizeFileComparator();
-    private final ExternalSort.compressionType compressionType = ExternalSort.compressionType.LZ4;
+    private final ExternalSort.compressionType compressionType;
 
     /**
      * The end result file after merging all sorted files.
@@ -168,14 +169,16 @@ public class MergeRunner implements Runnable {
     /**
      * Constructor.
      * @param sortedFiles thread safe list containing files to be merged.
-     * @param comparator comparator used to help with sorting of node state entries.
      * @param mergeDir directory where sorted files will be created.
+     * @param comparator comparator used to help with sorting of node state entries.
      * @param compressionEnabled if true, the created files would be compressed
+     * @param useLZ4
      */
     MergeRunner(File sortedFile, BlockingQueue<File> sortedFiles, File mergeDir, Comparator<NodeStateHolder> comparator,
-                Phaser phaser, int batchMergeSize, int threadPoolSize, boolean compressionEnabled) {
+                Phaser phaser, int batchMergeSize, int threadPoolSize, boolean compressionEnabled, boolean useLZ4) {
         this.mergeDir = mergeDir;
         this.compressionEnabled = compressionEnabled;
+        this.useLZ4 = useLZ4;
         this.sortedFiles = sortedFiles;
         this.sortedFile = sortedFile;
         this.throwables = new ConcurrentLinkedQueue<>();
@@ -184,11 +187,12 @@ public class MergeRunner implements Runnable {
         this.batchMergeSize = batchMergeSize;
         this.threadPoolSize = threadPoolSize;
         this.mergeCancelled = new AtomicBoolean(false);
+        this.compressionType = useLZ4 ? ExternalSort.compressionType.LZ4 : ExternalSort.compressionType.GZIP;
     }
 
     private boolean merge(List<File> files, File outputFile) {
         log.debug("performing merge for {} with size {} {}", outputFile.getName(), files.size(), files);
-        try (BufferedWriter writer = createWriter(outputFile, compressionEnabled)) {
+        try (BufferedWriter writer = createWriter(outputFile, compressionEnabled, useLZ4)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(files,

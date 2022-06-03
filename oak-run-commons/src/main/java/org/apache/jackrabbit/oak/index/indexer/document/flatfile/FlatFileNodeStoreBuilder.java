@@ -48,7 +48,8 @@ public class FlatFileNodeStoreBuilder {
 
     private static final String FLAT_FILE_STORE_DIR_NAME_PREFIX = "flat-fs-";
 
-    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.compressionEnabled";
+    public static final String OAK_INDEXER_USE_LZ4 = "oak.indexer.useLZ4";
     public static final String OAK_INDEXER_PARALLEL_INDEX = "oak.indexer.parallelIndex";
     /**
      * System property name for sort strategy. If this is true, we use {@link MultithreadedTraverseWithSortStrategy}, else
@@ -121,7 +122,8 @@ public class FlatFileNodeStoreBuilder {
     private long dumpThreshold = Integer.getInteger(OAK_INDEXER_DUMP_THRESHOLD_IN_MB, OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT) * FileUtils.ONE_MB;
     private Predicate<String> pathPredicate = path -> true;
 
-    private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "true"));
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
@@ -194,7 +196,7 @@ public class FlatFileNodeStoreBuilder {
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
         FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
-                unmodifiableSet(preferredPathElements), useZip);
+                unmodifiableSet(preferredPathElements), compressionEnabled, useLZ4);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }
@@ -218,7 +220,7 @@ public class FlatFileNodeStoreBuilder {
         List<FlatFileStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
             FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, new NodeStateEntryReader(blobStore),
-                    unmodifiableSet(preferredPathElements), useZip);
+                    unmodifiableSet(preferredPathElements), compressionEnabled, useLZ4);
             storeList.add(store);
         }
         return storeList;
@@ -250,21 +252,22 @@ public class FlatFileNodeStoreBuilder {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy");
-                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, compressionEnabled, useLZ4, pathPredicate);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
-                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, compressionEnabled, useLZ4, pathPredicate);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager, dumpThreshold, pathPredicate);
+                        blobStore, dir, existingDataDumpDirs, compressionEnabled, useLZ4, memoryManager, dumpThreshold, pathPredicate);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
 
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
-        log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
+        log.info("Compression enabled while sorting : {} ({})", compressionEnabled, OAK_INDEXER_USE_ZIP);
+        log.info("LZ4 enabled as compression algorithm : {} ({})", useLZ4, OAK_INDEXER_USE_LZ4);
         log.info("Sort strategy : {} ({})", sortStrategyType, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 

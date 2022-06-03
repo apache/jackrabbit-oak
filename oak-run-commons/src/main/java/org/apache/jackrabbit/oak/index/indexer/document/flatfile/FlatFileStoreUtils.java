@@ -33,17 +33,26 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.List;
+import java.util.zip.Deflater;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import static com.google.common.base.Charsets.UTF_8;
 
 class FlatFileStoreUtils {
 
-    public static BufferedReader createReader(File file, boolean compressionEnabled) {
+//    public static BufferedReader createReader(File file, boolean compressionEnabled) {
+//        return createReader(file, compressionEnabled, false);
+//    }
+
+    public static BufferedReader createReader(File file, boolean compressionEnabled, boolean useLZ4) {
         try {
             BufferedReader br;
             InputStream in = new FileInputStream(file);
-            if (compressionEnabled) {
+            if (compressionEnabled && useLZ4) {
                 br = new BufferedReader(new InputStreamReader(new LZ4FrameInputStream(in), UTF_8));
+            } else if (compressionEnabled) {
+                br = new BufferedReader(new InputStreamReader(new GZIPInputStream(in, 2048)));
             } else {
                 br = new BufferedReader(new InputStreamReader(in, UTF_8));
             }
@@ -53,10 +62,20 @@ class FlatFileStoreUtils {
         }
     }
 
-    public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
+//    public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
+//        return createWriter(file, compressionEnabled, false);
+//    }
+
+    public static BufferedWriter createWriter(File file, boolean compressionEnabled, boolean useLZ4) throws IOException {
         OutputStream out = new FileOutputStream(file);
-        if (compressionEnabled) {
+        if (compressionEnabled && useLZ4) {
             out = new LZ4FrameOutputStream(out);
+        } else if (compressionEnabled) {
+            out = new GZIPOutputStream(out, 2048) {
+                {
+                    def.setLevel(Deflater.BEST_SPEED);
+                }
+            };
         }
         return new BufferedWriter(new OutputStreamWriter(out, UTF_8));
     }
@@ -65,7 +84,13 @@ class FlatFileStoreUtils {
         return sortedFiles.stream().mapToLong(File::length).sum();
     }
 
-    public static String getSortedStoreFileName(boolean compressionEnabled){
-        return compressionEnabled ? "store-sorted.json.lz4" : "store-sorted.json";
+    public static String getSortedStoreFileName(boolean compressionEnabled, boolean useLZ4){
+        String name = "store-sorted.json";
+        if (compressionEnabled && useLZ4) {
+            return name + ".lz4";
+        } else if (compressionEnabled) {
+            return name + ".gz";
+        }
+        return name;
     }
 }
