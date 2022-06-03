@@ -123,6 +123,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -3868,7 +3869,33 @@ public final class DocumentNodeStore
     }
 
     @Override
-    public void prefetch(java.util.Collection<String> paths) {
-        cacheWarming.prefetch(paths);
+    public void prefetch(java.util.Collection<String> paths, NodeState rootState) {
+        if (rootState instanceof DocumentNodeState) {
+            cacheWarming.prefetch(paths, (DocumentNodeState) rootState);
+        } else {
+            cacheWarming.prefetch(paths, null);
+        }
     }
+
+    public DocumentNodeState getNodeIfCached(@NotNull final Path path,
+            @NotNull final RevisionVector rev) {
+        PathRev key = new PathRev(path, rev);
+        return nodeCache.getIfPresent(key);
+    }
+
+    public boolean isCached(String path, DocumentNodeState rootState) {
+        if (rootState == null) {
+            // don't know
+            return false;
+        }
+        DocumentNodeState n = rootState;
+        for(String e : PathUtils.elements(path)) {
+            n = n.getChildIfCached(e);
+            if (n == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

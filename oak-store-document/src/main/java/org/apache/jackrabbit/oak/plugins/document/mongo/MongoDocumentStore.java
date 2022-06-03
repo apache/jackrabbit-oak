@@ -228,6 +228,12 @@ public class MongoDocumentStore implements DocumentStore {
             Integer.getInteger("oak.mongo.acceptableLagMillis", 5000);
 
     /**
+     * The minimal number of documents to prefetch.
+     */
+    private final int minPrefetch =
+            Integer.getInteger("oak.mongo.minPrefetch", 5);
+
+    /**
      * Feature flag for use of MongoDB client sessions.
      */
     private final boolean useClientSession;
@@ -1961,17 +1967,23 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> void prefetch(Collection<T> collection,
-            Iterable<String> keys) {
+            Iterable<String> keysToPrefetch) {
+        ArrayList<String> keys = new ArrayList<>();
+        for (String k : keysToPrefetch) {
+            if (nodesCache.getIfPresent(k) == null) {
+                keys.add(k);
+            }
+        }
+        if (keys.size() < minPrefetch) {
+            return;
+        }
+
         final DocumentReadPreference docReadPref = DocumentReadPreference.PRIMARY;
-        // dummy impl
-//        for (String key : keys) {
-//            find(collection, key);
-//        }
-        // poc impl
         log("prefetch", keys, docReadPref);
         final Stopwatch watch = startWatch();
         boolean isSlaveOk = false;
         boolean docFound = true;
+
         try {
             ReadPreference readPreference = getMongoReadPreference(collection, null, docReadPref);
             MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);

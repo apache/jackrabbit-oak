@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -87,6 +88,7 @@ public class SelectorImpl extends SourceImpl {
     private static final String SLOW_QUERY_COUNT_NAME = "SLOW_QUERY_COUNT";
 
     private static long timerSampleCounter;
+
     
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     private SelectorExecutionPlan plan;
@@ -365,6 +367,11 @@ public class SelectorImpl extends SourceImpl {
             FilterImpl f = createFilter(false);
             planIndexName = index.getIndexName(f, rootState);
             cursor = index.query(f, rootState);
+        }
+        int prefetchCount = query.getExecutionContext().getSettings().getPrefetchCount();
+        if (prefetchCount > 0) {
+            NodeStore store = query.getExecutionContext().getNodeStore();
+            cursor = Cursors.newPrefetchCursor(cursor, store, prefetchCount, rootState);
         }
     }
     

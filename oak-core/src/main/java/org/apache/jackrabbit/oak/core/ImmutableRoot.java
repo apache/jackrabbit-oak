@@ -135,9 +135,12 @@ public final class ImmutableRoot implements Root, ReadOnly {
             @Override
             protected ExecutionContext getExecutionContext() {
                 return new ExecutionContext(
-                        rootTree.getNodeState(), ImmutableRoot.this,
+                        rootTree.getNodeState(),
+                        ImmutableRoot.this,
                         new QueryEngineSettings(),
-                        new PropertyIndexProvider(), null);
+                        new PropertyIndexProvider(),
+                        null,
+                        null);
             }
         };
     }
