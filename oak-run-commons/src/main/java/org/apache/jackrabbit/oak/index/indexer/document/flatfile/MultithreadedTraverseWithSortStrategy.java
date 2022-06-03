@@ -150,6 +150,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
     private final boolean compressionEnabled;
+    private final boolean useLZ4;
     /**
      * Directory where sorted files will be created.
      */
@@ -232,11 +233,12 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
-                                          boolean compressionEnabled, MemoryManager memoryManager, long dumpThreshold,
+                                          boolean compressionEnabled, boolean useLZ4, MemoryManager memoryManager, long dumpThreshold,
                                           Predicate<String> pathPredicate) throws IOException {
         this.storeDir = storeDir;
         this.mergeDir = new File(storeDir, mergeDirName);
         this.compressionEnabled = compressionEnabled;
+        this.useLZ4 = useLZ4;
         this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
@@ -319,7 +321,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                compressionEnabled, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
+                compressionEnabled, useLZ4, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
                 memoryManager, dumpThreshold, sortedFiles, pathPredicate));
     }
 
@@ -330,10 +332,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
         watcher.setDaemon(true);
         watcher.start();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
+        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled, useLZ4));
         int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
         int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, compressionEnabled);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, compressionEnabled, useLZ4);
         Thread merger = new Thread(mergeRunner, mergerThreadName);
         merger.setDaemon(true);
         merger.start();

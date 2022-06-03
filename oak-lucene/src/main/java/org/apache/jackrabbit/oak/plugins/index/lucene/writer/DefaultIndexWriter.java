@@ -160,7 +160,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     //~----------------------------------------< internal >
 
-    IndexWriter getWriter() throws IOException {
+    synchronized IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
             directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);

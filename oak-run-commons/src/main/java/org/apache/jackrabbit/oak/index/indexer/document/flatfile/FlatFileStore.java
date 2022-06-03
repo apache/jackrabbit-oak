@@ -33,16 +33,17 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 
-public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
+public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     private final Closer closer = Closer.create();
     private final BlobStore blobStore;
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
     private final Set<String> preferredPathElements;
     private final boolean compressionEnabled;
+    private final boolean useLZ4;
     private long entryCount = -1;
 
-    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, boolean compressionEnabled) {
+    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, boolean compressionEnabled, boolean useLZ4) {
         this.blobStore = blobStore;
         this.storeFile = storeFile;
         if (!(storeFile.exists() && storeFile.isFile() && storeFile.canRead())) {
@@ -53,6 +54,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
         this.entryReader = entryReader;
         this.preferredPathElements = preferredPathElements;
         this.compressionEnabled = compressionEnabled;
+        this.useLZ4 = useLZ4;
     }
 
     public String getFlatFileStorePath() {
@@ -69,14 +71,14 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
-        String fileName = new File(storeFile.getParent(), "linkedList").getAbsolutePath();
+        String fileName = new File(storeFile.getParent(), storeFile.getName() + ".linkedList").getAbsolutePath();
         FlatFileStoreIterator it = new FlatFileStoreIterator(blobStore, fileName, createBaseIterator(), preferredPathElements);
         closer.register(it::close);
         return it;
     }
 
     private Iterator<NodeStateEntry> createBaseIterator() {
-        LineIterator itr = new LineIterator(createReader(storeFile, compressionEnabled));
+        LineIterator itr = new LineIterator(createReader(storeFile, compressionEnabled, useLZ4));
         closer.register(itr::close);
         return new AbstractIterator<NodeStateEntry>() {
             @Override
