@@ -84,7 +84,11 @@ class FlatFileStoreUtils {
         return sortedFiles.stream().mapToLong(File::length).sum();
     }
 
-    public static String getSortedStoreFileName(boolean compressionEnabled, boolean useLZ4){
+    public static String getSortedStoreFileName(boolean compressionEnabled) {
+        return getSortedStoreFileName(compressionEnabled, false);
+    }
+
+    public static String getSortedStoreFileName(boolean compressionEnabled, boolean useLZ4) {
         String name = "store-sorted.json";
         if (compressionEnabled && useLZ4) {
             return name + ".lz4";
