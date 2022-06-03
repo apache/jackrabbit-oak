@@ -48,7 +48,7 @@ public class FlatFileNodeStoreBuilder {
 
     private static final String FLAT_FILE_STORE_DIR_NAME_PREFIX = "flat-fs-";
 
-    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.compressionEnabled";
+    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
     public static final String OAK_INDEXER_USE_LZ4 = "oak.indexer.useLZ4";
     public static final String OAK_INDEXER_PARALLEL_INDEX = "oak.indexer.parallelIndex";
     /**
