@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
@@ -207,5 +208,33 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [c] = 'text'", results);
         verify(spyMetricHandler, times(1)).markQuery(anyString(), anyBoolean());
+    }
+
+    @Test
+    public void indexWithLowTrackTotalHits() throws Exception {
+        BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
+            IndexDefinitionBuilder builder = createIndex(p).noAsync();
+            builder.getBuilderTree().setProperty("queryFetchSizes", fetchSizes, Type.LONGS);
+            builder.getBuilderTree().setProperty("trackTotalHits", 10L, Type.LONG);
+            builder.indexRule("nt:base").property(p).propertyIndex();
+            setIndex(p + "_" + UUID.randomUUID(), builder);
+        };
+
+        buildIndex.accept("a", Collections.singletonList(10L));
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+
+        List<String> results = IntStream.range(0, 100)
+                .mapToObj(n -> {
+                    Tree child = content.addChild("child_" + n);
+                    child.setProperty("a", "text");
+                    return "/content/child_" + n;
+                })
+                .collect(Collectors.toList());
+
+        root.commit();
+
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results));
     }
 }

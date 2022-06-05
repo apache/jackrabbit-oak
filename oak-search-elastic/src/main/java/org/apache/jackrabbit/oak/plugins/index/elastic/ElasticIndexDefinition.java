@@ -63,6 +63,9 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String QUERY_FETCH_SIZES = "queryFetchSizes";
     public static final Long[] QUERY_FETCH_SIZES_DEFAULT = new Long[]{100L, 1000L};
 
+    public static final String TRACK_TOTAL_HITS = "trackTotalHits";
+    public static final Integer TRACK_TOTAL_HITS_DEFAULT = 100000;
+
     /**
      * Hidden property for storing a seed value to be used as suffix in remote index name.
      */
@@ -114,6 +117,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final int numberOfShards;
     public final int numberOfReplicas;
     public final int[] queryFetchSizes;
+    public final Integer trackTotalHits;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<PropertyDefinition> dynamicBoostProperties;
@@ -134,6 +138,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.similarityTagsBoost = getOptionalValue(defn, SIMILARITY_TAGS_BOOST, SIMILARITY_TAGS_BOOST_DEFAULT);
         this.queryFetchSizes = Arrays.stream(getOptionalValues(defn, QUERY_FETCH_SIZES, Type.LONGS, Long.class, QUERY_FETCH_SIZES_DEFAULT))
                 .mapToInt(Long::intValue).toArray();
+        this.trackTotalHits = getOptionalValue(defn, TRACK_TOTAL_HITS, TRACK_TOTAL_HITS_DEFAULT);
 
         this.propertiesByName = getDefinedRules()
                 .stream()

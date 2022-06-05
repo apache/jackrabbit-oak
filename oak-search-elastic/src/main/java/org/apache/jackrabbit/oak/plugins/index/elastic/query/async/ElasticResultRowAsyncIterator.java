@@ -22,6 +22,7 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
+import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
@@ -220,6 +221,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             SearchRequest searchReq = SearchRequest.of(builder -> {
                         builder
                                 .index(indexNode.getDefinition().getIndexAlias())
+                                .trackTotalHits(thb -> thb.count(indexNode.getDefinition().trackTotalHits))
                                 .sort(sorts)
                                 .source(sourceConfig)
                                 .query(query)
@@ -272,7 +274,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 LOG.debug("Processing search response that took {} to read {}/{} docs", searchResponse.took(), hitsSize, totalHits);
                 lastHitSortValues = searchHits.get(hitsSize - 1).sort();
                 scannedRows += hitsSize;
-                anyDataLeft.set(totalHits > scannedRows);
+                if (searchResponse.hits().total().relation() == TotalHitsRelation.Eq) {
+                    anyDataLeft.set(totalHits > scannedRows);
+                } else anyDataLeft.set(true);
                 estimator.update(indexPlan.getFilter(), totalHits);
 
                 // now that we got the last hit we can release the semaphore to potentially unlock other requests
@@ -325,6 +329,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             if (semaphore.tryAcquire() && anyDataLeft.get()) {
                 final SearchRequest searchReq = SearchRequest.of(s -> s
                         .index(indexNode.getDefinition().getIndexAlias())
+                        .trackTotalHits(thb -> thb.count(indexNode.getDefinition().trackTotalHits))
                         .sort(sorts)
                         .source(sourceConfig)
                         .searchAfter(lastHitSortValues)
