@@ -2989,6 +2989,63 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testRepSimilarWithBinaryFeatureVectorsWithDisabledBinary() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityBinaries(false);
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            String[] split = line.split(",");
+            List<Double> values = new LinkedList<>();
+            int i = 0;
+            for (String s : split) {
+                if (i > 0) {
+                    values.add(Double.parseDouble(s));
+                }
+                i++;
+            }
+
+            byte[] bytes = SimSearchUtils.toByteArray(values);
+            List<Double> actual = SimSearchUtils.toDoubles(bytes);
+            assertEquals(values, actual);
+
+            Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+            String name = split[0];
+            Tree child = test.addChild(name);
+            child.setProperty("fv", blob, Type.BINARY);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertTrue("binary data for similarity should not be indexed" ,current.size() == 0);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    @Test
     public void testRepSimilarWithStringFeatureVectors() throws Exception {
 
         IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
@@ -3027,6 +3084,50 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 current.add(next);
             }
             assertNotEquals(baseline, current);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    @Test
+    public void testRepSimilarWithStringFeatureVectorsWithDisabledStrings() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityStrings(false);
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            int i1 = line.indexOf(',');
+            String name = line.substring(0, i1);
+            String value = line.substring(i1 + 1);
+            Tree child = test.addChild(name);
+            child.setProperty("fv", value, Type.STRING);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertTrue("String data for similarity should not be indexed",current.size() == 0);
             baseline.clear();
             baseline.addAll(current);
         }

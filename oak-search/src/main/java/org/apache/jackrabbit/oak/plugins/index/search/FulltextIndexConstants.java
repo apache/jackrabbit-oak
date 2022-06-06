@@ -401,4 +401,16 @@ public interface FulltextIndexConstants {
      * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
      */
     String USE_IF_EXISTS = "useIfExists";
+
+    /**
+     * Boolean property to enable or disable indexing of binaries for similarity searches.
+     * By default the value of this property is true.
+     */
+    String INDEX_SIMILARITY_BINARIES = "indexSimilarityBinaries";
+
+    /**
+     * Boolean property to enable or disable indexing of strings for similarity searches.
+     * By default the value of this property is true.
+     */
+    String INDEX_SIMILARITY_STRINGS = "indexSimilarityStrings";
 }

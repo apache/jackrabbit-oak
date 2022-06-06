@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -42,4 +43,13 @@ public final class LuceneIndexDefinitionBuilder extends IndexDefinitionBuilder {
         return TYPE_LUCENE;
     }
 
+    public LuceneIndexDefinitionBuilder indexSimilarityBinaries(boolean indexSimilarityBinaries) {
+        getBuilderTree().setProperty(LuceneIndexConstants.INDEX_LUCENE_SIMILARITY_BINARIES, indexSimilarityBinaries);
+        return this;
+    }
+
+    public LuceneIndexDefinitionBuilder indexSimilarityStrings(boolean indexSimilarityStrings) {
+        getBuilderTree().setProperty(LuceneIndexConstants.INDEX_LUCENE_SIMILARITY_STRINGS, indexSimilarityStrings);
+        return this;
+    }
 }

@@ -194,6 +194,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
             OrderEntry.Order.DESCENDING);
 
+    private boolean indexSimilarityBinaries;
+    private boolean indexSimilarityStrings;
+
     /**
      * Dynamic boost uses index time boosting. This requires to have a separate field for each unique term that needs to
      * be boosted. With a high number of terms (thousands), this could result in a sparse index that requires extra disk
@@ -488,6 +491,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                     defn.getProperty(TYPE_PROPERTY_NAME) != null &&
                             DYNAMIC_BOOST_LITE.contains(defn.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING))
             );
+            this.indexSimilarityBinaries = getOptionalValue(defn, getIndexSimilarityBinariesDefinitionKey(), true);
+            this.indexSimilarityStrings = getOptionalValue(defn, getIndexSimilarityStringsDefinitionKey(), true);
         } catch (IllegalStateException e) {
             log.error("Config error for index definition at {} . Please correct the index definition "
                     + "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
@@ -517,6 +522,22 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return true;
+    }
+
+    public boolean shouldIndexSimilarityBinaries() {
+        return indexSimilarityBinaries;
+    }
+
+    public boolean shouldIndexSimilarityStrings() {
+        return indexSimilarityStrings;
+    }
+
+    protected String getIndexSimilarityBinariesDefinitionKey(){
+        return FulltextIndexConstants.INDEX_SIMILARITY_BINARIES;
+    }
+
+    protected String getIndexSimilarityStringsDefinitionKey(){
+        return FulltextIndexConstants.INDEX_SIMILARITY_STRINGS;
     }
 
     public boolean isDynamicBoostLiteEnabled() {

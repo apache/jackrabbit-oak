@@ -95,6 +95,16 @@ public class IndexDefinitionBuilder {
         return this;
     }
 
+    // NOOP
+    public IndexDefinitionBuilder indexSimilarityBinaries(boolean indexSimilarityBinaries) {
+        return this;
+    }
+
+    // NOOP
+    public IndexDefinitionBuilder indexSimilarityStrings(boolean indexSimilarityStrings) {
+        return this;
+    }
+
     public IndexDefinitionBuilder includedPaths(String... paths) {
         tree.setProperty(PathFilter.PROP_INCLUDED_PATHS, asList(paths), STRINGS);
         return this;

@@ -171,4 +171,16 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
     @Deprecated
     String INDEX_PATH = "indexPath";
 
+    /**
+     * Boolean property to enable or disable indexing of binaries for similarity searches.
+     * By default the value of this property is true.
+     */
+    String INDEX_LUCENE_SIMILARITY_BINARIES = "indexLuceneSimilarityBinaries";
+
+    /**
+     * Boolean property to enable or disable indexing of strings for similarity searches.
+     * By default the value of this property is true.
+     */
+    String INDEX_LUCENE_SIMILARITY_STRINGS = "indexLuceneSimilarityStrings";
+
 }
