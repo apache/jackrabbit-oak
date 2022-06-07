@@ -276,7 +276,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 scannedRows += hitsSize;
                 if (searchResponse.hits().total().relation() == TotalHitsRelation.Eq) {
                     anyDataLeft.set(totalHits > scannedRows);
-                } else anyDataLeft.set(true);
+                } else {
+                    anyDataLeft.set(true);
+                }
                 estimator.update(indexPlan.getFilter(), totalHits);
 
                 // now that we got the last hit we can release the semaphore to potentially unlock other requests
