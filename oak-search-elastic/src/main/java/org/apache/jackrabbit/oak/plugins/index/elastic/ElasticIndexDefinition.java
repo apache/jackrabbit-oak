@@ -64,7 +64,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final Long[] QUERY_FETCH_SIZES_DEFAULT = new Long[]{100L, 1000L};
 
     public static final String TRACK_TOTAL_HITS = "trackTotalHits";
-    public static final Integer TRACK_TOTAL_HITS_DEFAULT = 100000;
+    public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
 
     /**
      * Hidden property for storing a seed value to be used as suffix in remote index name.
