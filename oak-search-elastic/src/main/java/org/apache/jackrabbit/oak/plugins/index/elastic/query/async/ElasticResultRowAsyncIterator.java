@@ -149,15 +149,21 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
     /**
      * Gets a map with the excerpts read from the searchHit highlights
+     * The excerpts are provided per rep:excerpt, rep:excerpt(.) and rep:excerpt(PROPERTY)
+     * just in case they are needed.
      * @param searchHit
      * @return
      * @throws IOException
      */
     private Map<String, String> getExcerpts(Hit<ObjectNode> searchHit) {
         Map<String, String> excerpts = Maps.newHashMap();
-        for (String key : searchHit.highlight().keySet()) {
-            excerpts.put(key, Joiner.on("...").join(searchHit.highlight().get(key)));
+        Set<String> allExcerpts = new HashSet<String>();
+        for (String property : searchHit.highlight().keySet()) {
+            excerpts.put("rep:excerpt("+property+")", Joiner.on("...").join(searchHit.highlight().get(property)));
+            allExcerpts.addAll(searchHit.highlight().get(property));
         }
+        excerpts.put("rep:excerpt(.)", Joiner.on("...").join(allExcerpts));
+        excerpts.put("rep:excerpt", Joiner.on("...").join(allExcerpts));
         return excerpts;
     }
 
@@ -282,7 +288,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 if (QueryConstants.REP_EXCERPT.equals(pr.propertyName)) {
                     // Elasticsearch-java client "HighlightField.of(hf->hf.field(value))" bug
                     // bypassed with "HighlightField.of(hf->hf.withJson(new StringReader("{}")))"
-                    excerpts.put(":fulltext",HighlightField.of(hf->hf.withJson(new StringReader("{}"))));
+                    excerpts.put(pr.propertyName,HighlightField.of(hf->hf.withJson(new StringReader("{}"))));
+                    //excerpts.put(":fulltext",HighlightField.of(hf->hf.withJson(new StringReader("{}"))));
                 }
             }
             if(excerpts.isEmpty()) {
