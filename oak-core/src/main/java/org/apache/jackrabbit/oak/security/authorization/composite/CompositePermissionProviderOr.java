@@ -117,7 +117,7 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
         for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
             long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(immParent, property, permissions);
             if (Util.doEvaluate(supportedPermissions)) {
-                for (long p : Permissions.aggregates(permissions)) {
+                for (long p : Permissions.aggregates(supportedPermissions)) {
                     if (aggregatedPermissionProvider.isGranted(immParent, property, p)) {
                         coveredPermissions |= p;
                         isGranted = true;
@@ -144,7 +144,7 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
             for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
                 long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(location, permissions);
                 if (Util.doEvaluate(supportedPermissions)) {
-                    for (long p : Permissions.aggregates(permissions)) {
+                    for (long p : Permissions.aggregates(supportedPermissions)) {
                         if (aggregatedPermissionProvider.isGranted(location, p)) {
                             coveredPermissions |= p;
                             isGranted = true;
@@ -171,7 +171,7 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
                 long supportedPermissions = aggregatedPermissionProvider.supportedPermissions((Tree) null, null, repositoryPermissions);
                 if (Util.doEvaluate(supportedPermissions)) {
                     RepositoryPermission rp = aggregatedPermissionProvider.getRepositoryPermission();
-                    for (long p : Permissions.aggregates(repositoryPermissions)) {
+                    for (long p : Permissions.aggregates(supportedPermissions)) {
                         if (rp.isGranted(p)) {
                             coveredPermissions |= p;
                             isGranted = true;
