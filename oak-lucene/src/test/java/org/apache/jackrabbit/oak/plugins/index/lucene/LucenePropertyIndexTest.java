@@ -3029,7 +3029,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         // check that similarity changes across different feature vectors
-        List<String> baseline = new LinkedList<>();
         for (String similarPath : children) {
             String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
 
@@ -3039,9 +3038,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 String next = result.next();
                 current.add(next);
             }
-            assertTrue("binary data for similarity should not be indexed" ,current.size() == 0);
-            baseline.clear();
-            baseline.addAll(current);
+            assertEquals("binary data for similarity should not be indexed", 0, current.size());
         }
     }
 
@@ -3117,7 +3114,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         // check that similarity changes across different feature vectors
-        List<String> baseline = new LinkedList<>();
         for (String similarPath : children) {
             String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
 
@@ -3127,9 +3123,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 String next = result.next();
                 current.add(next);
             }
-            assertTrue("String data for similarity should not be indexed",current.size() == 0);
-            baseline.clear();
-            baseline.addAll(current);
+            assertEquals("String data for similarity should not be indexed", 0, current.size());
         }
     }
 
