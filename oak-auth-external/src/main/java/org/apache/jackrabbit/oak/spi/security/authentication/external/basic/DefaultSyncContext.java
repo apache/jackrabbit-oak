@@ -518,10 +518,12 @@ public class DefaultSyncContext implements SyncContext {
 
         // first get the set of the existing groups that are synced ones
         Map<String, Group> declaredExternalGroups = new HashMap<>();
+        List<String> declaredExternalGroupIds = new ArrayList<>();
         Iterator<Group> grpIter = auth.declaredMemberOf();
         while (grpIter.hasNext()) {
             Group grp = grpIter.next();
             if (isSameIDP(grp)) {
+                declaredExternalGroupIds.add(grp.getID());
                 declaredExternalGroups.put(grp.getID().toLowerCase(), grp);
             }
         }
@@ -546,8 +548,13 @@ public class DefaultSyncContext implements SyncContext {
             log.debug("- idp returned '{}'", extGroup.getId());
 
             // mark group as processed
+            boolean idMatches = declaredExternalGroupIds.contains(extGroup.getId());
             Group grp = declaredExternalGroups.remove(extGroup.getId().toLowerCase());
             boolean exists = grp != null;
+
+            if (exists && !idMatches) {
+                log.warn("The existing authorizable {} and the external group {} have identifiers that only differ by case. Since the identifiers are compared case-insensitively, the existing authorizable will be considered to match the external group.");
+            }
 
             if (!exists) {
                 Authorizable a = userManager.getAuthorizable(extGroup.getId());
