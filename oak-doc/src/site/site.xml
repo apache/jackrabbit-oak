@@ -159,37 +159,17 @@ under the License.
       <item href="http://jackrabbit.apache.org/oak" name="Apache Jackrabbit Oak" />
       <item href="http://jackrabbit.apache.org/" name="Apache Jackrabbit" />
     </menu>
-    
-    <head><![CDATA[
-<!-- Matomo -->
-<script>
-  var _paq = window._paq = window._paq || [];
-  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-  /* We explicitly disable cookie tracking to avoid privacy issues */
-  _paq.push(['disableCookies']);  
-  _paq.push(['trackPageView']);
-  _paq.push(['enableLinkTracking']);
-  (function() {
-    var u="https://matomo.privacy.apache.org/";
-    _paq.push(['setTrackerUrl', u+'matomo.php']);
-    _paq.push(['setSiteId', '4']);
-    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
-  })();
-</script>
-<!-- End Matomo Code -->
-       ]]></head>
-       <footer><![CDATA[
+    <footer><![CDATA[
 <p>&#169; 2012-$date.get('yyyy')
 <a href="https://www.apache.org/">The Apache Software Foundation</a> &vert; <a href="https://privacy.apache.org/policies/privacy-policy-public.html">Privacy Policy</a>
 </p>
-       ]]></footer>
+    ]]></footer>
   </body>
 
   <skin>
     <groupId>org.apache.maven.skins</groupId>
     <artifactId>maven-fluido-skin</artifactId>
-    <version>1.6</version>
+    <version>1.11.0</version>
   </skin>
 
   <custom>
@@ -207,11 +187,16 @@ under the License.
         <projectId>apache/jackrabbit-oak</projectId>
         <ribbonOrientation>right</ribbonOrientation>
       </gitHub>
-      <ohloh>
-        <projectId>jackrabbit-oak</projectId>
-        <widget>thin-badge</widget>
-      </ohloh>
-      <googlePlusOne />
+      <googleSearch/>
     </fluidoSkin>
+    <matomo>
+      <siteId>4</siteId>
+      <url>https://analytics.apache.org</url>
+      <options>
+        <disableCookies/>
+        <trackPageView/>
+        <enableLinkTracking/>
+      </options>
+    </matomo>
   </custom>
 </project>
