@@ -151,19 +151,23 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
      * Gets a map with the excerpts read from the searchHit highlights
      * The excerpts are provided per rep:excerpt, rep:excerpt(.) and rep:excerpt(PROPERTY)
      * just in case they are needed.
+     * Note: properties to get excerpt from must be included in the _source, which means ingested,
+     * not necessarily Elasticsearch indexed, neither included in the mapping properties.
      * @param searchHit
      * @return
      * @throws IOException
      */
     private Map<String, String> getExcerpts(Hit<ObjectNode> searchHit) {
         Map<String, String> excerpts = Maps.newHashMap();
-        Set<String> allExcerpts = new HashSet<String>();
         for (String property : searchHit.highlight().keySet()) {
-            excerpts.put("rep:excerpt("+property+")", Joiner.on("...").join(searchHit.highlight().get(property)));
-            allExcerpts.addAll(searchHit.highlight().get(property));
+            if(property.equals(":fulltext")){
+                String excerpt = searchHit.highlight().get(property).get(0);
+                excerpts.put("rep:excerpt(.)", excerpt);
+                excerpts.put("rep:excerpt", excerpt);
+            }else {
+                excerpts.put("rep:excerpt(" + property + ")", searchHit.highlight().get(property).get(0));
+            }
         }
-        excerpts.put("rep:excerpt(.)", Joiner.on("...").join(allExcerpts));
-        excerpts.put("rep:excerpt", Joiner.on("...").join(allExcerpts));
         return excerpts;
     }
 
@@ -255,7 +259,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         if (needsAggregations.get()) {
                             builder.aggregations(elasticRequestHandler.aggregations());
                         }
-                        Highlight highlight = computeExcerpts();
+                        Highlight highlight = computeExcerpts(query);
                         if(highlight!=null){
                             builder.highlight(highlight);
                         }
@@ -282,24 +286,53 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
-        private Highlight computeExcerpts() {
-            Map<String, HighlightField> excerpts = new HashMap<String, HighlightField>();
-            for (Filter.PropertyRestriction pr : indexPlan.getFilter().getPropertyRestrictions()) {
-                if (QueryConstants.REP_EXCERPT.equals(pr.propertyName)) {
-                    // Elasticsearch-java client "HighlightField.of(hf->hf.field(value))" bug
-                    // bypassed with "HighlightField.of(hf->hf.withJson(new StringReader("{}")))"
-                    excerpts.put(pr.propertyName,HighlightField.of(hf->hf.withJson(new StringReader("{}"))));
-                    //excerpts.put(":fulltext",HighlightField.of(hf->hf.withJson(new StringReader("{}"))));
+        private String getPropertyRestrictionField(Filter.PropertyRestriction pr){
+            String name = pr.first.toString();
+            int length = QueryConstants.REP_EXCERPT.length();
+            if(name.length()>length){
+                String field = name.substring(length+1, name.length()-1);
+                if(!field.equals(".")){
+                    return field;
                 }
             }
-            if(excerpts.isEmpty()) {
+            return null;
+        }
+
+        private boolean isExcerptPropertyRestriction(Filter.PropertyRestriction pr){
+            return pr.propertyName.startsWith(QueryConstants.REP_EXCERPT);
+        }
+
+        private Highlight computeExcerpts(Query query) {
+            List<String> fields = new ArrayList<String>();
+
+            for (Filter.PropertyRestriction pr : indexPlan.getFilter().getPropertyRestrictions()) {
+                if (isExcerptPropertyRestriction(pr)) {
+                    String value = getPropertyRestrictionField(pr);
+                    if(value == null) {
+                        value = ":fulltext";
+                    }
+                    fields.add(value);
+                }
+            }
+            if(fields.isEmpty()) {
                 return null;
+            }
+            Map<String, HighlightField> excerpts = new HashMap<String, HighlightField>();
+            for(String field : fields) {
+                // Elasticsearch-java client "HighlightField.of(hf->hf.field(value))" bug
+                // bypassed with "HighlightField.of(hf->hf.withJson(new StringReader("{}")))"
+                excerpts.put(field, HighlightField.of(hf -> hf.withJson(new StringReader("{}"))));
+                //excerpts.put(":fulltext",HighlightField.of(hf->hf.withJson(new StringReader("{}"))));
             }
             return Highlight.of(h->h
                     .preTags(HIGHLIGHT_PREFIX)
                     .postTags(HIGHLIGHT_SUFFIX)
-                    //.fragmentSize(10) //TODO approximate size of the excerpt
-                    .fields(excerpts));
+                    //.fragmentSize(10) //TODO Angela approximate size of the excerpt
+                    .fields(excerpts)
+                    .highlightQuery(hq->hq
+                            .queryString(qs->qs
+                                    .query(query.bool().must().get(0).bool().must().get(0).queryString().query()) //TODO Angela not always the same query structure. Find fix, this is workaround
+                                    .fields(fields))));
         }
 
         /**
