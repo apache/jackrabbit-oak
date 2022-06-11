@@ -83,12 +83,14 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.setProperty("baz", "fox ifoxing");
         root.commit();
 
+        Thread.sleep(1000);
         List<String> columns = newArrayList("rep:excerpt", "rep:excerpt(.)", "rep:excerpt(foo)", "rep:excerpt(bar)");
         String selectColumns = Joiner.on(",").join(
                 columns.stream().map(col -> "[" + col + "]").collect(Collectors.toList())
         );
         String query = "SELECT " + selectColumns + " FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
@@ -112,8 +114,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.setProperty("bar", "ifoxing fox");
         root.commit();
 
+        Thread.sleep(1000);
         String query = "SELECT [rep:excerpt],[rep:excerpt(.)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
@@ -140,9 +144,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.setProperty("foo", "fox");
         contentRoot.setProperty("baz", "is fox ifoxing");
         root.commit();
-
+        Thread.sleep(1000);
         String query = "SELECT [rep:excerpt(baz)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
@@ -156,9 +161,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         Tree contentRoot = root.getTree("/").addChild("testRoot");
         contentRoot.setProperty("foo", "is fox ifoxing");
         root.commit();
-
+        Thread.sleep(1000);
         String query = "SELECT [rep:excerpt(foo)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
@@ -178,9 +184,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         Tree contentRoot = root.getTree("/").addChild("testRoot");
         contentRoot.setProperty("foo", "is fox ifoxing");
         root.commit();
-
+        Thread.sleep(1000);
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
@@ -204,9 +211,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.setProperty("foo", "fox");
         contentRoot.setProperty("baz", "is fox ifoxing");
         root.commit();
-
+        Thread.sleep(1000);
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
@@ -230,8 +238,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.addChild("relative").setProperty("baz", "is fox ifoxing");
         root.commit();
 
+        Thread.sleep(1000);
         String query = "SELECT [rep:excerpt(relative/baz)] FROM [nt:base] WHERE CONTAINS([relative/baz], 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
@@ -254,9 +264,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         Blob blob = new ArrayBasedBlob(binaryText.getBytes());
         TestUtil.createFileNode(contentRoot, "binaryNode", blob, "text/plain");
         root.commit();
-
+        Thread.sleep(1000);
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Thread.sleep(1000);
         Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
         assertTrue(resultIter.hasNext());
         ResultRow firstRow = resultIter.next();
