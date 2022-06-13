@@ -147,6 +147,16 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
         return store.determineServerTimeDifferenceMillis();
     }
 
+    /**
+     * Return the size limit for node name based on the document store implementation
+     *
+     * @return node name size limit
+     */
+    @Override
+    public synchronized int getNodeNameLimit() {
+        return store.getNodeNameLimit();
+    }
+
     @Override
     public synchronized Map<String, String> getMetadata() {
         return store.getMetadata();
