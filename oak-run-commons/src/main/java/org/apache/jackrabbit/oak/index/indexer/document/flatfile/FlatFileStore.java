@@ -19,17 +19,17 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Set;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.io.Closer;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 
@@ -39,11 +39,10 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
     private final Set<String> preferredPathElements;
-    private final boolean compressionEnabled;
-    private final boolean useLZ4;
+    private final String compressionType;
     private long entryCount = -1;
 
-    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, boolean compressionEnabled, boolean useLZ4) {
+    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, String compressionType) {
         this.blobStore = blobStore;
         this.storeFile = storeFile;
         if (!(storeFile.exists() && storeFile.isFile() && storeFile.canRead())) {
@@ -53,8 +52,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
         }
         this.entryReader = entryReader;
         this.preferredPathElements = preferredPathElements;
-        this.compressionEnabled = compressionEnabled;
-        this.useLZ4 = useLZ4;
+        this.compressionType = compressionType;
     }
 
     public String getFlatFileStorePath() {
@@ -78,7 +76,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     }
 
     private Iterator<NodeStateEntry> createBaseIterator() {
-        LineIterator itr = new LineIterator(createReader(storeFile, compressionEnabled, useLZ4));
+        LineIterator itr = new LineIterator(createReader(storeFile, compressionType));
         closer.register(itr::close);
         return new AbstractIterator<NodeStateEntry>() {
             @Override

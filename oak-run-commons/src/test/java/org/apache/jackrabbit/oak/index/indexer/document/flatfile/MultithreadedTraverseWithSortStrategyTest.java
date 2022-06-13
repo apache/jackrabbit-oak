@@ -32,6 +32,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_GZIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.MultithreadedTraverseWithSortStrategy.DirectoryHelper;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.junit.Assert.assertEquals;
@@ -43,7 +44,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<Long> lastModifiedBreakpoints = Arrays.asList(10L, 20L, 30L, 40L);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                lastModifiedBreakpoints, null, null, null, null, true, false, null,
+                lastModifiedBreakpoints, null, null, null, null, COMPRESSION_TYPE_GZIP, null,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
 
             @Override
@@ -103,7 +104,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         workDirs.add(workDir);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                null, null, null, null, workDirs, true, false, null,
+                null, null, null, null, workDirs, COMPRESSION_TYPE_GZIP, null,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,

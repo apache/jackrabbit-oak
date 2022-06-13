@@ -357,9 +357,9 @@ public class ExternalSortTest {
      */
     @Test
     public void testCSVSorting() throws Exception {
-        testCSVSortingWithParams(false, null);
-        testCSVSortingWithParams(true, ExternalSort.compressionType.LZ4);
-        testCSVSortingWithParams(true, ExternalSort.compressionType.GZIP);
+        testCSVSortingWithParams(ExternalSort.CompressionType.NONE);
+        testCSVSortingWithParams(ExternalSort.CompressionType.LZ4);
+        testCSVSortingWithParams(ExternalSort.CompressionType.GZIP);
     }
 
     @Test
@@ -411,11 +411,11 @@ public class ExternalSortTest {
      * Sample case to sort csv file.
      * 
      * @param useCompression use compression for temporary files
-     * @param type use lz4 or gzip as compression algorithm
+     * @param compressionType use lz4 or gzip as compression algorithm
      * @throws Exception
      * 
      */
-    public void testCSVSortingWithParams(boolean useCompression, ExternalSort.compressionType type) throws Exception {
+    public void testCSVSortingWithParams(ExternalSort.CompressionType compressionType) throws Exception {
 
         File out = folder.newFile();
 
@@ -436,14 +436,14 @@ public class ExternalSortTest {
 
         // omit the first line, which is the header
         List<File> listOfFiles = ExternalSort.sortInBatch(this.csvFile, cmp,
-                ExternalSort.DEFAULTMAXTEMPFILES, 
+                ExternalSort.DEFAULTMAXTEMPFILES,
                 ExternalSort.DEFAULT_MAX_MEM_BYTES,
                 Charset.defaultCharset(),
-                null, false, 1, useCompression, type);
+                null, false, 1, compressionType);
 
         // now merge with append
         ExternalSort.mergeSortedFiles(listOfFiles, out, cmp,
-                Charset.defaultCharset(), false, true, useCompression, type);
+                Charset.defaultCharset(), false, true, compressionType);
 
         ArrayList<String> result = readLines(out);
 

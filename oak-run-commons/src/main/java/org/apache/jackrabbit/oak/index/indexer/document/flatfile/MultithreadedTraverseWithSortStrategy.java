@@ -149,8 +149,6 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTrav
 public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
-    private final boolean compressionEnabled;
-    private final boolean useLZ4;
     /**
      * Directory where sorted files will be created.
      */
@@ -185,6 +183,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private final MemoryManager memoryManager;
 
     private final long dumpThreshold;
+    private final String compressionType;
 
     private Predicate<String> pathPredicate = path -> true;
 
@@ -228,17 +227,16 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      * @param existingDataDumpDirs iterable over directories containing files from previous incomplete runs (which need to
      *                             be merged with the result from current run, if the current run has resumed from the point where
      *                             previous runs stopped). If this is not null and not empty, the {@code lastModifiedBreakPoints} parameter is ignored.
-     * @param compressionEnabled if true, the created files would be compressed
+     * @param compressionType string representation of the compression algorithm, use "none" for disable compression.
      */
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
-                                          boolean compressionEnabled, boolean useLZ4, MemoryManager memoryManager, long dumpThreshold,
+                                          String compressionType, MemoryManager memoryManager, long dumpThreshold,
                                           Predicate<String> pathPredicate) throws IOException {
         this.storeDir = storeDir;
         this.mergeDir = new File(storeDir, mergeDirName);
-        this.compressionEnabled = compressionEnabled;
-        this.useLZ4 = useLZ4;
+        this.compressionType = compressionType;
         this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
@@ -321,7 +319,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                compressionEnabled, useLZ4, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
+                compressionType, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
                 memoryManager, dumpThreshold, sortedFiles, pathPredicate));
     }
 
@@ -332,10 +330,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
         watcher.setDaemon(true);
         watcher.start();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled, useLZ4));
+        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionType));
         int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
         int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, compressionEnabled, useLZ4);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, compressionType);
         Thread merger = new Thread(mergeRunner, mergerThreadName);
         merger.setDaemon(true);
         merger.start();

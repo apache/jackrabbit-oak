@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_NONE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -83,7 +84,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, COMPRESSION_TYPE_NONE);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 
@@ -171,7 +172,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, COMPRESSION_TYPE_NONE);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 

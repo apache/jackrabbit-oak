@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import net.jpountz.lz4.LZ4FrameInputStream;
-import net.jpountz.lz4.LZ4FrameOutputStream;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -33,51 +32,52 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.List;
-import java.util.zip.Deflater;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
-import static com.google.common.base.Charsets.UTF_8;
 
 class FlatFileStoreUtils {
 
-    public static BufferedReader createReader(File file, boolean compressionEnabled) {
-        return createReader(file, compressionEnabled, false);
+    public static final String COMPRESSION_TYPE_LZ4 = "lz4";
+    public static final String COMPRESSION_TYPE_GZIP = "gz";
+    public static final String COMPRESSION_TYPE_NONE = "none";
+
+    /**
+     * A map of compression Type to ExternalSort CompressionType Enum
+     * @param compressionType string representation of the compression algorithm, use "none" for disable compression,
+     *                        any unknown or unsupported value will be considered as none.
+     * @return
+     */
+    public static ExternalSort.CompressionType getExternalSortCompressionType(String compressionType) {
+        switch (compressionType) {
+            case COMPRESSION_TYPE_LZ4:
+                return ExternalSort.CompressionType.LZ4;
+            case COMPRESSION_TYPE_GZIP:
+                return ExternalSort.CompressionType.GZIP;
+            case COMPRESSION_TYPE_NONE:
+                return ExternalSort.CompressionType.NONE;
+            default:
+                return ExternalSort.CompressionType.NONE;
+        }
     }
 
-    public static BufferedReader createReader(File file, boolean compressionEnabled, boolean useLZ4) {
+    public static BufferedReader createReader(File file, boolean compressionEnabled) {
+        return createReader(file, compressionEnabled ? COMPRESSION_TYPE_GZIP : COMPRESSION_TYPE_NONE);
+    }
+
+    public static BufferedReader createReader(File file, String compressionType) {
         try {
-            BufferedReader br;
             InputStream in = new FileInputStream(file);
-            if (compressionEnabled && useLZ4) {
-                br = new BufferedReader(new InputStreamReader(new LZ4FrameInputStream(in), UTF_8));
-            } else if (compressionEnabled) {
-                br = new BufferedReader(new InputStreamReader(new GZIPInputStream(in, 2048)));
-            } else {
-                br = new BufferedReader(new InputStreamReader(in, UTF_8));
-            }
-            return br;
+            return new BufferedReader(new InputStreamReader(getExternalSortCompressionType(compressionType).getInputStream(in)));
         } catch (IOException e) {
             throw new RuntimeException("Error opening file " + file, e);
         }
     }
 
     public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
-        return createWriter(file, compressionEnabled, false);
+        return createWriter(file, compressionEnabled ? COMPRESSION_TYPE_GZIP : COMPRESSION_TYPE_NONE);
     }
 
-    public static BufferedWriter createWriter(File file, boolean compressionEnabled, boolean useLZ4) throws IOException {
+    public static BufferedWriter createWriter(File file, String compressionType) throws IOException {
         OutputStream out = new FileOutputStream(file);
-        if (compressionEnabled && useLZ4) {
-            out = new LZ4FrameOutputStream(out);
-        } else if (compressionEnabled) {
-            out = new GZIPOutputStream(out, 2048) {
-                {
-                    def.setLevel(Deflater.BEST_SPEED);
-                }
-            };
-        }
-        return new BufferedWriter(new OutputStreamWriter(out, UTF_8));
+        return new BufferedWriter(new OutputStreamWriter(getExternalSortCompressionType(compressionType).getOutputStream(out)));
     }
 
     public static long sizeOf(List<File> sortedFiles) {
@@ -85,16 +85,14 @@ class FlatFileStoreUtils {
     }
 
     public static String getSortedStoreFileName(boolean compressionEnabled) {
-        return getSortedStoreFileName(compressionEnabled, false);
+        return getSortedStoreFileName(compressionEnabled ? COMPRESSION_TYPE_GZIP : COMPRESSION_TYPE_NONE);
     }
 
-    public static String getSortedStoreFileName(boolean compressionEnabled, boolean useLZ4) {
+    public static String getSortedStoreFileName(String compressionType) {
         String name = "store-sorted.json";
-        if (compressionEnabled && useLZ4) {
-            return name + ".lz4";
-        } else if (compressionEnabled) {
-            return name + ".gz";
+        if (compressionType.equals(COMPRESSION_TYPE_NONE)) {
+            return name;
         }
-        return name;
+        return name + "." + compressionType;
     }
 }

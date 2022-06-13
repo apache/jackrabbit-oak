@@ -38,6 +38,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_GZIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.MultithreadedTraverseWithSortStrategy.DirectoryHelper;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.junit.Assert.assertEquals;
@@ -68,7 +69,7 @@ public class TraverseAndSortTaskTest {
 
         Queue<Callable<List<File>>> newTaskQueue = new LinkedList<>();
         File store = new File("target/" + this.getClass().getSimpleName() + "-" + System.currentTimeMillis());
-        TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, store, true, false,
+        TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, store, COMPRESSION_TYPE_GZIP,
                 new LinkedList<>(Collections.singletonList("1")), newTaskQueue, phaser, new NodeStateEntryTraverserFactoryImpl(), mockMemManager,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, new LinkedBlockingQueue<File>(), path -> true);
 

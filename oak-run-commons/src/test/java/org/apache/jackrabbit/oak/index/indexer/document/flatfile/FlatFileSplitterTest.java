@@ -39,6 +39,8 @@ import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_NONE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.junit.Assert.assertEquals;
@@ -372,9 +374,8 @@ public class FlatFileSplitterTest {
         FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, entryReader, null);
         FieldUtils.writeField(splitter, "minimumSplitThreshold", minimumSplitThreshold, true);
         FieldUtils.writeField(splitter, "splitSize", splitSize, true);
-        FieldUtils.writeField(splitter, "useCompression", useCompression, true);
         FieldUtils.writeField(splitter, "splitNodeTypeNames", splitNodeTypeNames, true);
-        FieldUtils.writeField(splitter, "useLZ4", useCompression, true);
+        FieldUtils.writeField(splitter, "compressionType", useCompression ? COMPRESSION_TYPE_LZ4 : COMPRESSION_TYPE_NONE, true);
         return splitter;
     }
 
@@ -405,8 +406,8 @@ public class FlatFileSplitterTest {
     }
 
     public void compress(File src, File dest) throws IOException {
-        try (BufferedReader r = new BufferedReader(createReader(src, false, true));
-             BufferedWriter w = new BufferedWriter(createWriter(dest, true, true))) {
+        try (BufferedReader r = new BufferedReader(createReader(src, COMPRESSION_TYPE_NONE));
+             BufferedWriter w = new BufferedWriter(createWriter(dest, COMPRESSION_TYPE_LZ4))) {
             String line;
             while ((line = r.readLine()) != null) {
                 w.write(line);
@@ -416,8 +417,8 @@ public class FlatFileSplitterTest {
     }
 
     public void uncompress(File src, File dest) throws IOException {
-        try (BufferedReader r = new BufferedReader(createReader(src, true, true));
-             BufferedWriter w = new BufferedWriter(createWriter(dest, false, true))) {
+        try (BufferedReader r = new BufferedReader(createReader(src, COMPRESSION_TYPE_LZ4));
+             BufferedWriter w = new BufferedWriter(createWriter(dest, COMPRESSION_TYPE_NONE))) {
             String line;
             while ((line = r.readLine()) != null) {
                 w.write(line);
