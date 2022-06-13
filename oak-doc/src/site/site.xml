@@ -19,11 +19,16 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-<project xmlns="http://maven.apache.org/DECORATION/1.3.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/DECORATION/1.3.0 http://maven.apache.org/xsd/decoration-1.3.0.xsd"
+<project xmlns="http://maven.apache.org/DECORATION/1.8.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/DECORATION/1.8.0 http://maven.apache.org/xsd/decoration-1.8.0.xsd"
          name="Jackrabbit Oak">
+  <publishDate position="right"/>
+  <version position="right"/>
   <body>
+    <breadcrumbs>
+      <item name="Jackrabbit" href="https://jackrabbit.apache.org/"/>
+      <item name="Oak" href="https://jackrabbit.apache.org/oak/docs/"/>
+    </breadcrumbs>
     <menu name="Overview">
       <item href="index.html" name="Jackrabbit Oak" />
       <item href="license.html" name="License" />
@@ -156,12 +161,17 @@ under the License.
       <item href="http://jackrabbit.apache.org/oak" name="Apache Jackrabbit Oak" />
       <item href="http://jackrabbit.apache.org/" name="Apache Jackrabbit" />
     </menu>
+    <footer><![CDATA[
+<p>&#169; 2012-$date.get('yyyy')
+<a href="https://www.apache.org/">The Apache Software Foundation</a> &vert; <a href="https://privacy.apache.org/policies/privacy-policy-public.html">Privacy Policy</a>
+</p>
+    ]]></footer>
   </body>
-
+  <edit>https://github.com/apache/jackrabbit-oak/edit/trunk/oak-doc</edit>
   <skin>
     <groupId>org.apache.maven.skins</groupId>
     <artifactId>maven-fluido-skin</artifactId>
-    <version>1.6</version>
+    <version>1.11.0</version>
   </skin>
 
   <custom>
@@ -179,11 +189,16 @@ under the License.
         <projectId>apache/jackrabbit-oak</projectId>
         <ribbonOrientation>right</ribbonOrientation>
       </gitHub>
-      <ohloh>
-        <projectId>jackrabbit-oak</projectId>
-        <widget>thin-badge</widget>
-      </ohloh>
-      <googlePlusOne />
+      <googleSearch/>
     </fluidoSkin>
+    <matomo>
+      <siteId>4</siteId>
+      <url>https://analytics.apache.org</url>
+      <options>
+        <disableCookies/>
+        <trackPageView/>
+        <enableLinkTracking/>
+      </options>
+    </matomo>
   </custom>
 </project>
