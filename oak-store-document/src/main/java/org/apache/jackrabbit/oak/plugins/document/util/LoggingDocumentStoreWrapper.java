@@ -376,6 +376,19 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         return result;
     }
 
+    /**
+     * Return the size limit for node name based on the document store implementation
+     *
+     * @return node name size limit
+     */
+    @Override
+    public int getNodeNameLimit() {
+        logMethod("getNodeNameLimit", "start");
+        final int result = store.getNodeNameLimit();
+        logMethod("getNodeNameLimit", "end", result);
+        return result;
+    }
+
     private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder(logPrefix);
         buff.append('.').append(methodName).append('(');
