@@ -108,6 +108,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         assertNull(cache.getIfPresent(ID_PREFIX + 0));
         assertNull(cache.get(ID_PREFIX + 0));
         assertEquals(0, cache.getStats().getMaxTotalWeight());
+        assertEquals(0, cache.getStats().getElementCount());
         cache.invalidate(ID_PREFIX + 0);
         assertFalse(cache.containsKey(ID_PREFIX + 0));
         cache.close();
