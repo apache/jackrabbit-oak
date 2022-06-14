@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -95,13 +96,13 @@ public class IndexDefinitionBuilder {
         return this;
     }
 
-    // NOOP
-    public IndexDefinitionBuilder indexSimilarityBinaries(boolean indexSimilarityBinaries) {
+    public IndexDefinitionBuilder indexSimilarityBinaries(String... indexNames) {
+        getBuilderTree().setProperty(FulltextIndexConstants.INDEX_SIMILARITY_BINARIES, Arrays.asList(indexNames), Type.STRINGS);
         return this;
     }
 
-    // NOOP
-    public IndexDefinitionBuilder indexSimilarityStrings(boolean indexSimilarityStrings) {
+    public IndexDefinitionBuilder indexSimilarityStrings(String... indexNames) {
+        getBuilderTree().setProperty(FulltextIndexConstants.INDEX_SIMILARITY_STRINGS, Arrays.asList(indexNames), Type.STRINGS);
         return this;
     }
 

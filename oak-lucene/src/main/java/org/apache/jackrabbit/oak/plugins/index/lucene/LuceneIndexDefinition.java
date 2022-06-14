@@ -78,14 +78,6 @@ public class LuceneIndexDefinition extends IndexDefinition {
         this.codec = createCodec();
     }
 
-    protected String getIndexSimilarityBinariesDefinitionKey() {
-        return LuceneIndexConstants.INDEX_LUCENE_SIMILARITY_BINARIES;
-    }
-
-    protected String getIndexSimilarityStringsDefinitionKey() {
-        return LuceneIndexConstants.INDEX_LUCENE_SIMILARITY_STRINGS;
-    }
-
     public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
         return (Builder)new Builder()
                 .root(root)

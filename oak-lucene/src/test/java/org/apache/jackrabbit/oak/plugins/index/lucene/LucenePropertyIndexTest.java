@@ -2989,9 +2989,71 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testRepSimilarWithBinaryFeatureVectorsWithDisabledBinary() throws Exception {
+    public void testRepSimilarWithBinaryFeatureVectorsWithIndexSimilarityBinariesDefinedAsLucene() throws Exception {
 
-        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityBinaries(false);
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityBinaries("lucene");
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            String[] split = line.split(",");
+            List<Double> values = new LinkedList<>();
+            int i = 0;
+            for (String s : split) {
+                if (i > 0) {
+                    values.add(Double.parseDouble(s));
+                }
+                i++;
+            }
+
+            byte[] bytes = SimSearchUtils.toByteArray(values);
+            List<Double> actual = SimSearchUtils.toDoubles(bytes);
+            assertEquals(values, actual);
+
+            Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+            String name = split[0];
+            Tree child = test.addChild(name);
+            child.setProperty("fv", blob, Type.BINARY);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertNotEquals(baseline, current);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    /**
+     * To disable similarity for binaries the index type should not be in present as value for FulltextIndexConstants.INDEX_SIMILARITY_BINARIES.
+     * In this case index type is lucene but indexSimilarityBinaries is set to elasticsearch
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRepSimilarWithBinaryFeatureVectorsWithIndexSimilarityBinariesDefinedAsElasticsearch() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityBinaries("elasticsearch");
         idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
 
 
@@ -3087,9 +3149,59 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testRepSimilarWithStringFeatureVectorsWithDisabledStrings() throws Exception {
+    public void testRepSimilarWithStringFeatureVectorsWithIndexSimilarityStringsDefinedAsLucene() throws Exception {
 
-        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityStrings(false);
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityStrings("lucene");
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            int i1 = line.indexOf(',');
+            String name = line.substring(0, i1);
+            String value = line.substring(i1 + 1);
+            Tree child = test.addChild(name);
+            child.setProperty("fv", value, Type.STRING);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertNotEquals(baseline, current);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    /**
+     * To disable similarity for strings the index type should not be in present as value for FulltextIndexConstants.INDEX_SIMILARITY_STRINGS.
+     * In this case index type is lucene but indexSimilarityStrings is set to elasticsearch
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRepSimilarWithStringFeatureVectorsWithIndexSimilarityStringsDefinedAsElasticsearch() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityStrings("elasticsearch");
         idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
 
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
