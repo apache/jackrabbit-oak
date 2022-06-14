@@ -327,12 +327,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             return Highlight.of(h->h
                     .preTags(HIGHLIGHT_PREFIX)
                     .postTags(HIGHLIGHT_SUFFIX)
-                    //.fragmentSize(10) //TODO Angela approximate size of the excerpt
                     .fields(excerpts)
-                    .highlightQuery(hq->hq
-                            .queryString(qs->qs
-                                    .query(query.bool().must().get(0).bool().must().get(0).queryString().query()) //TODO Angela not always the same query structure. Find fix, this is workaround
-                                    .fields(fields))));
+                    .requireFieldMatch(false));
         }
 
         /**
