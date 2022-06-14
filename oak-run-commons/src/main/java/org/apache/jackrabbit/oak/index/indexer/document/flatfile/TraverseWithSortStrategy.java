@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -58,7 +59,6 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getExternalSortCompressionType;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
@@ -75,7 +75,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
-    private final String compressionType;
+    private final Compression.Algorithm algorithm;
     /**
      * Max memory to be used if jmx based memory monitoring is not available. This value is not considered if jmx based
      * monitoring is available.
@@ -96,13 +96,13 @@ class TraverseWithSortStrategy implements SortStrategy {
 
 
     TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, String compressionType, Predicate<String> pathPredicate) {
+                             NodeStateEntryWriter entryWriter, File storeDir, Compression.Algorithm algorithm, Predicate<String> pathPredicate) {
         this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.pathPredicate = pathPredicate;
-        this.compressionType = compressionType;
+        this.algorithm = algorithm;
     }
 
     @Override
@@ -125,8 +125,8 @@ class TraverseWithSortStrategy implements SortStrategy {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionType));
-        try(BufferedWriter writer = createWriter(sortedFile, compressionType)) {
+        File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
+        try(BufferedWriter writer = createWriter(sortedFile, algorithm)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
@@ -134,7 +134,7 @@ class TraverseWithSortStrategy implements SortStrategy {
                     comparator,
                     charset,
                     true, //distinct
-                    getExternalSortCompressionType(compressionType),
+                    algorithm,
                     func2,
                     func1
             );
@@ -193,7 +193,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
-        try (BufferedWriter writer = createWriter(newtmpfile, compressionType)) {
+        try (BufferedWriter writer = createWriter(newtmpfile, algorithm)) {
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());

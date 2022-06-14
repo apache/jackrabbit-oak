@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
@@ -43,9 +44,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_GZIP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_NONE;
 
 public class FlatFileNodeStoreBuilder {
 
@@ -127,7 +125,7 @@ public class FlatFileNodeStoreBuilder {
 
     private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
-    private final String compressionType = compressionEnabled ? (useLZ4 ? COMPRESSION_TYPE_LZ4 : COMPRESSION_TYPE_GZIP) : COMPRESSION_TYPE_NONE;
+    private final Compression.Algorithm algorithm = compressionEnabled ? (useLZ4 ? Compression.Algorithm.LZ4 : Compression.Algorithm.GZIP) : Compression.Algorithm.NONE;
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
@@ -200,7 +198,7 @@ public class FlatFileNodeStoreBuilder {
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
         FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
-                unmodifiableSet(preferredPathElements), compressionType);
+                unmodifiableSet(preferredPathElements), algorithm);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }
@@ -224,7 +222,7 @@ public class FlatFileNodeStoreBuilder {
         List<FlatFileStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
             FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, new NodeStateEntryReader(blobStore),
-                    unmodifiableSet(preferredPathElements), compressionType);
+                    unmodifiableSet(preferredPathElements), algorithm);
             storeList.add(store);
         }
         return storeList;
@@ -256,14 +254,14 @@ public class FlatFileNodeStoreBuilder {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy");
-                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, compressionType, pathPredicate);
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, algorithm, pathPredicate);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
-                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, compressionType, pathPredicate);
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, algorithm, pathPredicate);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, compressionType, memoryManager, dumpThreshold, pathPredicate);
+                        blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

@@ -6,6 +6,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.OakInitializer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -39,8 +40,6 @@ import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_NONE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.junit.Assert.assertEquals;
@@ -375,7 +374,7 @@ public class FlatFileSplitterTest {
         FieldUtils.writeField(splitter, "minimumSplitThreshold", minimumSplitThreshold, true);
         FieldUtils.writeField(splitter, "splitSize", splitSize, true);
         FieldUtils.writeField(splitter, "splitNodeTypeNames", splitNodeTypeNames, true);
-        FieldUtils.writeField(splitter, "compressionType", useCompression ? COMPRESSION_TYPE_LZ4 : COMPRESSION_TYPE_NONE, true);
+        FieldUtils.writeField(splitter, "algorithm", useCompression ? Compression.Algorithm.LZ4 : Compression.Algorithm.NONE, true);
         return splitter;
     }
 
@@ -406,8 +405,8 @@ public class FlatFileSplitterTest {
     }
 
     public void compress(File src, File dest) throws IOException {
-        try (BufferedReader r = new BufferedReader(createReader(src, COMPRESSION_TYPE_NONE));
-             BufferedWriter w = new BufferedWriter(createWriter(dest, COMPRESSION_TYPE_LZ4))) {
+        try (BufferedReader r = new BufferedReader(createReader(src, Compression.Algorithm.NONE));
+             BufferedWriter w = new BufferedWriter(createWriter(dest, Compression.Algorithm.LZ4))) {
             String line;
             while ((line = r.readLine()) != null) {
                 w.write(line);
@@ -417,8 +416,8 @@ public class FlatFileSplitterTest {
     }
 
     public void uncompress(File src, File dest) throws IOException {
-        try (BufferedReader r = new BufferedReader(createReader(src, COMPRESSION_TYPE_LZ4));
-             BufferedWriter w = new BufferedWriter(createWriter(dest, COMPRESSION_TYPE_NONE))) {
+        try (BufferedReader r = new BufferedReader(createReader(src, Compression.Algorithm.LZ4));
+             BufferedWriter w = new BufferedWriter(createWriter(dest, Compression.Algorithm.NONE))) {
             String line;
             while ((line = r.readLine()) != null) {
                 w.write(line);

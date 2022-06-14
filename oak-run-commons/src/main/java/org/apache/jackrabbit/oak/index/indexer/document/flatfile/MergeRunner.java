@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.comparator.SizeFileComparator;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,6 @@ import java.util.function.Function;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getExternalSortCompressionType;
 
 
 /**
@@ -121,7 +121,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 public class MergeRunner implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(MergeRunner.class);
     private final Charset charset = UTF_8;
-    private final String compressionType;
+    private final Compression.Algorithm algorithm;
     private final ArrayList<File> mergedFiles = Lists.newArrayList();
     private final ArrayList<File> unmergedFiles = Lists.newArrayList();
     private ExecutorService executorService;
@@ -170,12 +170,12 @@ public class MergeRunner implements Runnable {
      * @param sortedFiles thread safe list containing files to be merged.
      * @param mergeDir directory where sorted files will be created.
      * @param comparator comparator used to help with sorting of node state entries.
-     * @param compressionType string representation of the compression algorithm, use "none" for disable compression.
+     * @param algorithm string representation of the compression algorithm, use "none" for disable compression.
      */
     MergeRunner(File sortedFile, BlockingQueue<File> sortedFiles, File mergeDir, Comparator<NodeStateHolder> comparator,
-                Phaser phaser, int batchMergeSize, int threadPoolSize, String compressionType) {
+                Phaser phaser, int batchMergeSize, int threadPoolSize, Compression.Algorithm algorithm) {
         this.mergeDir = mergeDir;
-        this.compressionType = compressionType;
+        this.algorithm = algorithm;
         this.sortedFiles = sortedFiles;
         this.sortedFile = sortedFile;
         this.throwables = new ConcurrentLinkedQueue<>();
@@ -188,7 +188,7 @@ public class MergeRunner implements Runnable {
 
     private boolean merge(List<File> files, File outputFile) {
         log.debug("performing merge for {} with size {} {}", outputFile.getName(), files.size(), files);
-        try (BufferedWriter writer = createWriter(outputFile, compressionType)) {
+        try (BufferedWriter writer = createWriter(outputFile, algorithm)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(files,
@@ -196,7 +196,7 @@ public class MergeRunner implements Runnable {
                     comparator,
                     charset,
                     true, //distinct
-                    getExternalSortCompressionType(compressionType),
+                    algorithm,
                     func2,
                     func1
             );

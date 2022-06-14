@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -39,7 +40,6 @@ import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_NONE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 class StoreAndSortStrategy implements SortStrategy {
@@ -51,7 +51,7 @@ class StoreAndSortStrategy implements SortStrategy {
     private final PathElementComparator comparator;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
-    private final String compressionType;
+    private final Compression.Algorithm algorithm;
     private long entryCount;
     private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
     private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
@@ -60,12 +60,12 @@ class StoreAndSortStrategy implements SortStrategy {
 
 
     public StoreAndSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator comparator,
-                                NodeStateEntryWriter entryWriter, File storeDir, String compressionType, Predicate<String> pathPredicate) {
+                                NodeStateEntryWriter entryWriter, File storeDir, Compression.Algorithm algorithm, Predicate<String> pathPredicate) {
         this.nodeStatesFactory = nodeStatesFactory;
         this.comparator = comparator;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
-        this.compressionType = compressionType;
+        this.algorithm = algorithm;
         this.pathPredicate = pathPredicate;
     }
 
@@ -73,7 +73,7 @@ class StoreAndSortStrategy implements SortStrategy {
     public File createSortedStoreFile() throws IOException {
         try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(new MongoDocumentTraverser.TraversingRange(new LastModifiedRange(0,
                 Long.MAX_VALUE), null))) {
-            File storeFile = writeToStore(nodeStates, storeDir, getSortedStoreFileName(compressionType));
+            File storeFile = writeToStore(nodeStates, storeDir, getSortedStoreFileName(algorithm));
             return sortStoreFile(storeFile);
         }
     }
@@ -86,13 +86,13 @@ class StoreAndSortStrategy implements SortStrategy {
     private File sortStoreFile(File storeFile) throws IOException {
         File sortWorkDir = new File(storeFile.getParent(), "sort-work-dir");
         FileUtils.forceMkdir(sortWorkDir);
-        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(compressionType));
+        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(algorithm));
         NodeStateEntrySorter sorter =
                 new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
 
         logFlags();
 
-        sorter.setCompressionType(compressionType);
+        sorter.setCompressionAlgorithm(algorithm);
         sorter.setMaxMemoryInGB(maxMemory);
         sorter.setDeleteOriginal(deleteOriginal);
         sorter.setActualFileSize(textSize);
@@ -104,7 +104,7 @@ class StoreAndSortStrategy implements SortStrategy {
         entryCount = 0;
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();
-        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, compressionType)) {
+        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, algorithm)) {
             for (NodeStateEntry e : nodeStates) {
                 String path = e.getPath();
                 if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
@@ -116,7 +116,7 @@ class StoreAndSortStrategy implements SortStrategy {
                 }
             }
         }
-        String sizeStr = !compressionType.equals(COMPRESSION_TYPE_NONE) ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";
+        String sizeStr = !algorithm.equals(Compression.Algorithm.NONE) ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";
         log.info("Dumped {} nodestates in json format in {} ({} {})",entryCount, sw, humanReadableByteCount(file.length()), sizeStr);
         return file;
     }

@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.io.Closer;
 import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
@@ -39,10 +40,10 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
     private final Set<String> preferredPathElements;
-    private final String compressionType;
+    private final Compression.Algorithm algorithm;
     private long entryCount = -1;
 
-    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, String compressionType) {
+    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, Compression.Algorithm algorithm) {
         this.blobStore = blobStore;
         this.storeFile = storeFile;
         if (!(storeFile.exists() && storeFile.isFile() && storeFile.canRead())) {
@@ -52,7 +53,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
         }
         this.entryReader = entryReader;
         this.preferredPathElements = preferredPathElements;
-        this.compressionType = compressionType;
+        this.algorithm = algorithm;
     }
 
     public String getFlatFileStorePath() {
@@ -76,7 +77,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     }
 
     private Iterator<NodeStateEntry> createBaseIterator() {
-        LineIterator itr = new LineIterator(createReader(storeFile, compressionType));
+        LineIterator itr = new LineIterator(createReader(storeFile, algorithm));
         closer.register(itr::close);
         return new AbstractIterator<NodeStateEntry>() {
             @Override

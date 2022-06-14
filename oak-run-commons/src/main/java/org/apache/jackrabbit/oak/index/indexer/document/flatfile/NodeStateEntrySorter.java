@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +39,6 @@ import java.util.function.Function;
 import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_NONE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getExternalSortCompressionType;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
@@ -55,7 +54,7 @@ public class NodeStateEntrySorter {
     private boolean deleteOriginal;
     private long maxMemory = ONE_GB * 5;
     private long actualFileSize;
-    private String compressionType = COMPRESSION_TYPE_NONE;
+    private Compression.Algorithm algorithm = Compression.Algorithm.NONE;
 
     public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile, File workDir) {
         this(pathComparator, nodeStateFile, workDir, getSortedFileName(nodeStateFile));
@@ -68,8 +67,8 @@ public class NodeStateEntrySorter {
         this.pathComparator = pathComparator;
     }
 
-    public void setCompressionType(String compressionType) {
-        this.compressionType = compressionType;
+    public void setCompressionAlgorithm(Compression.Algorithm algorithm) {
+        this.algorithm = algorithm;
     }
 
     public void setDeleteOriginal(boolean deleteOriginal) {
@@ -115,13 +114,13 @@ public class NodeStateEntrySorter {
 
     private void mergeSortedFiles(Comparator<NodeStateHolder> comparator, Function<String, NodeStateHolder> func1,
                                   Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
-        try(BufferedWriter writer = createWriter(sortedFile, compressionType)) {
+        try(BufferedWriter writer = createWriter(sortedFile, algorithm)) {
             ExternalSort.mergeSortedFiles(sortedFiles,
                     writer,
                     comparator,
                     charset,
                     true, //distinct
-                    getExternalSortCompressionType(compressionType),
+                    algorithm,
                     func2,
                     func1
 
@@ -132,7 +131,7 @@ public class NodeStateEntrySorter {
     private List<File> sortInBatch(long memory, Comparator<NodeStateHolder> comparator,
                                    Function<String, NodeStateHolder> func1,
                                    Function<NodeStateHolder, String> func2) throws IOException {
-        try (BufferedReader reader = createReader(nodeStateFile, compressionType)) {
+        try (BufferedReader reader = createReader(nodeStateFile, algorithm)) {
             return ExternalSort.sortInBatch(reader,
                     actualFileSize,
                     comparator, //Comparator to use
@@ -142,7 +141,7 @@ public class NodeStateEntrySorter {
                     workDir,  //temp directory where intermediate files are created
                     true, //distinct
                     0,
-                    getExternalSortCompressionType(compressionType),
+                    algorithm,
                     func2,
                     func1
             );

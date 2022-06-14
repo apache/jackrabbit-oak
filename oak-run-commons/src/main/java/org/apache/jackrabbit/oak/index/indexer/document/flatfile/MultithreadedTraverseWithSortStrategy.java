@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -183,7 +184,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private final MemoryManager memoryManager;
 
     private final long dumpThreshold;
-    private final String compressionType;
+    private final Compression.Algorithm algorithm;
 
     private Predicate<String> pathPredicate = path -> true;
 
@@ -227,16 +228,16 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      * @param existingDataDumpDirs iterable over directories containing files from previous incomplete runs (which need to
      *                             be merged with the result from current run, if the current run has resumed from the point where
      *                             previous runs stopped). If this is not null and not empty, the {@code lastModifiedBreakPoints} parameter is ignored.
-     * @param compressionType string representation of the compression algorithm, use "none" for disable compression.
+     * @param algorithm string representation of the compression algorithm, use "none" for disable compression.
      */
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
-                                          String compressionType, MemoryManager memoryManager, long dumpThreshold,
+                                          Compression.Algorithm algorithm, MemoryManager memoryManager, long dumpThreshold,
                                           Predicate<String> pathPredicate) throws IOException {
         this.storeDir = storeDir;
         this.mergeDir = new File(storeDir, mergeDirName);
-        this.compressionType = compressionType;
+        this.algorithm = algorithm;
         this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
@@ -319,7 +320,7 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
         taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                compressionType, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
+                algorithm, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
                 memoryManager, dumpThreshold, sortedFiles, pathPredicate));
     }
 
@@ -330,10 +331,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
         watcher.setDaemon(true);
         watcher.start();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionType));
+        File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
         int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
         int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, compressionType);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, algorithm);
         Thread merger = new Thread(mergeRunner, mergerThreadName);
         merger.setDaemon(true);
         merger.start();

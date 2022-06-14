@@ -20,6 +20,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -357,9 +358,9 @@ public class ExternalSortTest {
      */
     @Test
     public void testCSVSorting() throws Exception {
-        testCSVSortingWithParams(ExternalSort.CompressionType.NONE);
-        testCSVSortingWithParams(ExternalSort.CompressionType.LZ4);
-        testCSVSortingWithParams(ExternalSort.CompressionType.GZIP);
+        testCSVSortingWithParams(Compression.Algorithm.NONE);
+        testCSVSortingWithParams(Compression.Algorithm.LZ4);
+        testCSVSortingWithParams(Compression.Algorithm.GZIP);
     }
 
     @Test
@@ -410,12 +411,11 @@ public class ExternalSortTest {
     /**
      * Sample case to sort csv file.
      * 
-     * @param useCompression use compression for temporary files
-     * @param compressionType use lz4 or gzip as compression algorithm
+     * @param algorithm use lz4 or gzip as compression algorithm
      * @throws Exception
      * 
      */
-    public void testCSVSortingWithParams(ExternalSort.CompressionType compressionType) throws Exception {
+    public void testCSVSortingWithParams(Compression.Algorithm algorithm) throws Exception {
 
         File out = folder.newFile();
 
@@ -439,11 +439,11 @@ public class ExternalSortTest {
                 ExternalSort.DEFAULTMAXTEMPFILES,
                 ExternalSort.DEFAULT_MAX_MEM_BYTES,
                 Charset.defaultCharset(),
-                null, false, 1, compressionType);
+                null, false, 1, algorithm);
 
         // now merge with append
         ExternalSort.mergeSortedFiles(listOfFiles, out, cmp,
-                Charset.defaultCharset(), false, true, compressionType);
+                Charset.defaultCharset(), false, true, algorithm);
 
         ArrayList<String> result = readLines(out);
 

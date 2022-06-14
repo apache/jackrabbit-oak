@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -49,9 +50,6 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_SPLIT_STORE_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_GZIP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.COMPRESSION_TYPE_NONE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
@@ -66,7 +64,7 @@ public class FlatFileSplitter {
     private final NodeTypeInfoProvider infoProvider;
     private final File flatFile;
     private final NodeStateEntryReader entryReader;
-    private final String compressionType;
+    private final Compression.Algorithm algorithm;
     private Set<IndexDefinition> indexDefinitions;
     private Set<String> splitNodeTypeNames;
     private long minimumSplitThreshold = MINIMUM_SPLIT_THRESHOLD;
@@ -83,13 +81,13 @@ public class FlatFileSplitter {
         this.infoProvider = infoProvider;
         this.entryReader = entryReader;
 
-        String compressionType = COMPRESSION_TYPE_GZIP;
+        Compression.Algorithm algorithm = Compression.Algorithm.GZIP;
         if (!useCompression) {
-            compressionType = COMPRESSION_TYPE_NONE;
+            algorithm = Compression.Algorithm.NONE;
         } else if (useLZ4) {
-            compressionType = COMPRESSION_TYPE_LZ4;
+            algorithm = Compression.Algorithm.LZ4;
         }
-        this.compressionType = compressionType;
+        this.algorithm = algorithm;
     }
 
     private List<File> returnOriginalFlatFile() {
@@ -131,11 +129,11 @@ public class FlatFileSplitter {
             return returnOriginalFlatFile();
         }
 
-        try (BufferedReader reader = createReader(flatFile, compressionType)) {
+        try (BufferedReader reader = createReader(flatFile, algorithm)) {
             long readPos = 0;
             int outFileIndex = 1;
-            File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(compressionType));
-            BufferedWriter writer = createWriter(currentFile, compressionType);
+            File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
+            BufferedWriter writer = createWriter(currentFile, algorithm);
             splitFlatFiles.add(currentFile);
 
             String line;
@@ -149,8 +147,8 @@ public class FlatFileSplitter {
                     log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
                     readPos = 0;
                     outFileIndex++;
-                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(compressionType));
-                    writer = createWriter(currentFile, compressionType);
+                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
+                    writer = createWriter(currentFile, algorithm);
                     splitFlatFiles.add(currentFile);
                     log.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
                 }
