@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -176,7 +176,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nullable
     public Node getNodeOrNull(final String absPath) throws RepositoryException {
-        checkNotNull(absPath, "parameter 'absPath' is null");
+        requireNonNull(absPath, "parameter 'absPath' must not be null");
         checkAlive();
         return sd.performNullable(new ReadOperation<Node>("getNodeOrNull") {
             @Override
@@ -194,7 +194,7 @@ public class SessionImpl implements JackrabbitSession {
     @Nullable
     public Property getPropertyOrNull(final String absPath) throws RepositoryException {
         checkAlive();
-        if (checkNotNull(absPath, "parameter 'absPath' is null").equals("/")) {
+        if (requireNonNull(absPath, "parameter 'absPath' must not be null").equals("/")) {
             return null;
         } else {
             final String oakPath;
@@ -220,7 +220,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nullable
     public Item getItemOrNull(final String absPath) throws RepositoryException {
-        checkNotNull(absPath, "parameter 'absPath' is null");
+        requireNonNull(absPath, "parameter 'absPath' must not be null");
         checkAlive();
         return sd.performNullable(new ReadOperation<Item>("getItemOrNull") {
             @Override
@@ -306,7 +306,7 @@ public class SessionImpl implements JackrabbitSession {
         checkAlive();
 
         ImpersonationCredentials impCreds = new ImpersonationCredentials(
-                checkNotNull(credentials, "parameter 'credentials' is null"), sd.getAuthInfo());
+                requireNonNull(credentials, "parameter 'credentials' must not be null"), sd.getAuthInfo());
         return getRepository().login(impCreds, sd.getWorkspaceName());
     }
 
@@ -336,7 +336,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public Node getNode(String absPath) throws RepositoryException {
-        Node node = getNodeOrNull(checkNotNull(absPath, "parameter 'absPath' is null"));
+        Node node = getNodeOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null"));
         if (node == null) {
             throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
         }
@@ -345,7 +345,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean nodeExists(String absPath) throws RepositoryException {
-        return getNodeOrNull(checkNotNull(absPath, "parameter 'absPath' is null")) != null;
+        return getNodeOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null")) != null;
     }
 
     @NotNull
@@ -371,18 +371,18 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @NotNull
     public Node getNodeByUUID(String uuid) throws RepositoryException {
-        return getNodeById(checkNotNull(uuid, "parameter 'uuid' is null"));
+        return getNodeById(requireNonNull(uuid, "parameter 'uuid' must not be null"));
     }
 
     @Override
     @NotNull
     public Node getNodeByIdentifier(String id) throws RepositoryException {
-        return getNodeById(checkNotNull(id, "parameter 'id' is null"));
+        return getNodeById(requireNonNull(id, "parameter 'id' must not be null"));
     }
 
     @Override
     public Property getProperty(String absPath) throws RepositoryException {
-        Property property = getPropertyOrNull(checkNotNull(absPath, "parameter 'absPath' is null"));
+        Property property = getPropertyOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null"));
         if (property == null) {
             throw new PathNotFoundException(absPath);
         }
@@ -391,12 +391,12 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean propertyExists(String absPath) throws RepositoryException {
-        return getPropertyOrNull(checkNotNull(absPath, "parameter 'absPath' is null")) != null;
+        return getPropertyOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null")) != null;
     }
 
     @Override
     public Item getItem(String absPath) throws RepositoryException {
-        Item item = getItemOrNull(checkNotNull(absPath, "parameter 'absPath' is null"));
+        Item item = getItemOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null"));
         if (item == null) {
             throw new PathNotFoundException(absPath);
         }
@@ -405,14 +405,14 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean itemExists(String absPath) throws RepositoryException {
-        return getItemOrNull(checkNotNull(absPath, "parameter 'absPath' is null")) != null;
+        return getItemOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null")) != null;
     }
 
     @Override
     public void move(String srcAbsPath, final String destAbsPath) throws RepositoryException {
         checkAlive();
-        checkIndexOnName(checkNotNull(destAbsPath, "parameter 'destAbsPath' is null"));
-        final String srcOakPath = getOakPathOrThrowNotFound(checkNotNull(srcAbsPath, "parameter 'srcAbsPath' is null"));
+        checkIndexOnName(requireNonNull(destAbsPath, "parameter 'destAbsPath' must not be null"));
+        final String srcOakPath = getOakPathOrThrowNotFound(requireNonNull(srcAbsPath, "parameter 'srcAbsPath' must not be null"));
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
         sd.performVoid(new WriteOperation<Void>("move") {
             @Override
@@ -432,7 +432,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void removeItem(final String absPath) throws RepositoryException {
         checkAlive();
-        final String oakPath = getOakPathOrThrowNotFound(checkNotNull(absPath, "parameter 'absPath' is null"));
+        final String oakPath = getOakPathOrThrowNotFound(requireNonNull(absPath, "parameter 'absPath' must not be null"));
         sd.performVoid(new WriteOperation<Void>("removeItem") {
             @Override
             public void performVoid() throws RepositoryException {
@@ -522,7 +522,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @NotNull
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        return new ImportHandler(checkNotNull(parentAbsPath, "parameter 'parentAbsPath' is null"), sessionContext,
+        return new ImportHandler(requireNonNull(parentAbsPath, "parameter 'parentAbsPath' must not be null"), sessionContext,
                 uuidBehavior, false);
     }
 
@@ -531,7 +531,7 @@ public class SessionImpl implements JackrabbitSession {
             throws IOException, RepositoryException {
         try {
             ContentHandler handler = getImportContentHandler(
-                    checkNotNull(parentAbsPath, "parameter 'parentAbsPath' is null"), uuidBehavior);
+                    requireNonNull(parentAbsPath, "parameter 'parentAbsPath' must not be null"), uuidBehavior);
             new ParsingContentHandler(handler).parse(in);
         } catch (SAXException e) {
             Throwable exception = e.getException();
@@ -573,16 +573,16 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
             throws SAXException, RepositoryException {
-        export(checkNotNull(absPath, "parameter 'absPath' is null"), new SystemViewExporter(this,
-                checkNotNull(contentHandler, "parameter 'contentHandler' is null"), !noRecurse, !skipBinary));
+        export(requireNonNull(absPath, "parameter 'absPath' must not be null"), new SystemViewExporter(this,
+                requireNonNull(contentHandler, "parameter 'contentHandler' must not be null"), !noRecurse, !skipBinary));
     }
 
     @Override
     public void exportSystemView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
             throws IOException, RepositoryException {
         try {
-            ContentHandler handler = new ToXmlContentHandler(checkNotNull(out, "parameter 'out' is null"));
-            export(checkNotNull(absPath, "parameter 'absPath' is null"),
+            ContentHandler handler = new ToXmlContentHandler(requireNonNull(out, "parameter 'out' must not be null"));
+            export(requireNonNull(absPath, "parameter 'absPath' must not be null"),
                     new SystemViewExporter(this, handler, !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
@@ -599,16 +599,16 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void exportDocumentView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
             throws SAXException, RepositoryException {
-        export(checkNotNull(absPath, "parameter 'absPath' is null"), new DocumentViewExporter(this,
-                checkNotNull(contentHandler, "parameter 'contentHandler' is null"), !noRecurse, !skipBinary));
+        export(requireNonNull(absPath, "parameter 'absPath' must not be null"), new DocumentViewExporter(this,
+                requireNonNull(contentHandler, "parameter 'contentHandler' must not be null"), !noRecurse, !skipBinary));
     }
 
     @Override
     public void exportDocumentView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
             throws IOException, RepositoryException {
         try {
-            ContentHandler handler = new ToXmlContentHandler(checkNotNull(out, "parameter 'out' is null"));
-            export(checkNotNull(absPath, "parameter 'absPath' is null"),
+            ContentHandler handler = new ToXmlContentHandler(requireNonNull(out, "parameter 'out' must not be null"));
+            export(requireNonNull(absPath, "parameter 'absPath' must not be null"),
                     new DocumentViewExporter(this, handler, !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
@@ -625,7 +625,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void addLockToken(String lt) {
         try {
-            getWorkspace().getLockManager().addLockToken(checkNotNull(lt, "parameter 'lt' is null"));
+            getWorkspace().getLockManager().addLockToken(requireNonNull(lt, "parameter 'lt' must not be null"));
         } catch (RepositoryException e) {
             log.warn("Unable to add lock token " + lt + " to session", e);
         }
@@ -645,7 +645,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void removeLockToken(String lt) {
         try {
-            getWorkspace().getLockManager().removeLockToken(checkNotNull(lt, "parameter 'lt' is null"));
+            getWorkspace().getLockManager().removeLockToken(requireNonNull(lt, "parameter 'lt' must not be null"));
         } catch (RepositoryException e) {
             log.warn("Unable to remove lock token " + lt + " from session", e);
         }
@@ -654,8 +654,8 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public boolean hasPermission(String absPath, final String actions) throws RepositoryException {
         checkAlive();
-        final String oakPath = getOakPathOrThrow(checkNotNull(absPath, "parameter 'absPath' is null"));
-        checkNotNull(actions, "parameter 'actions' is null");
+        final String oakPath = getOakPathOrThrow(requireNonNull(absPath, "parameter 'absPath' must not be null"));
+        requireNonNull(actions, "parameter 'actions' must not be null");
         return sd.perform(new ReadOperation<Boolean>("hasPermission") {
             @NotNull
             @Override
@@ -667,16 +667,16 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void checkPermission(String absPath, String actions) throws RepositoryException {
-        if (!hasPermission(checkNotNull(absPath, "parameter 'absPath' is null"),
-                checkNotNull(actions, "parameter 'actions' is null"))) {
+        if (!hasPermission(requireNonNull(absPath, "parameter 'absPath' must not be null"),
+                requireNonNull(actions, "parameter 'actions' must not be null"))) {
             throw new AccessControlException("Access denied.");
         }
     }
 
     @Override
     public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
-        checkNotNull(methodName, "parameter 'methodName' is null");
-        checkNotNull(target, "parameter 'target' is null");
+        requireNonNull(methodName, "parameter 'methodName' must not be null");
+        requireNonNull(target, "parameter 'target' must not be null");
         checkAlive();
 
         if (target instanceof ItemImpl) {
@@ -771,8 +771,8 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
-        sessionContext.getNamespaces().setNamespacePrefix(checkNotNull(prefix, "parameter 'prefix' is null"),
-                checkNotNull(uri, "parameter 'uri' is null"));
+        sessionContext.getNamespaces().setNamespacePrefix(requireNonNull(prefix, "parameter 'prefix' must not be null"),
+                requireNonNull(uri, "parameter 'uri' must not be null"));
     }
 
     @Override
@@ -782,12 +782,12 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public String getNamespaceURI(String prefix) throws RepositoryException {
-        return sessionContext.getNamespaces().getNamespaceURI(checkNotNull(prefix, "parameter 'prefix' is null"));
+        return sessionContext.getNamespaces().getNamespaceURI(requireNonNull(prefix, "parameter 'prefix' must not be null"));
     }
 
     @Override
     public String getNamespacePrefix(String uri) throws RepositoryException {
-        return sessionContext.getNamespaces().getNamespacePrefix(checkNotNull(uri, "parameter 'uri' is null"));
+        return sessionContext.getNamespaces().getNamespacePrefix(requireNonNull(uri, "parameter 'uri' must not be null"));
     }
 
     // --------------------------------------------------< JackrabbitSession >---
