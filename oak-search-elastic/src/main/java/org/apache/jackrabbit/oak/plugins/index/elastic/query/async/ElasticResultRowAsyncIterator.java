@@ -259,7 +259,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         if (needsAggregations.get()) {
                             builder.aggregations(elasticRequestHandler.aggregations());
                         }
-                        Highlight highlight = computeExcerpts(query);
+                        Highlight highlight = computeExcerpts();
                         if(highlight!=null){
                             builder.highlight(highlight);
                         }
@@ -302,9 +302,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             return pr.propertyName.startsWith(QueryConstants.REP_EXCERPT);
         }
 
-        private Highlight computeExcerpts(Query query) {
+        private Highlight computeExcerpts() {
             List<String> fields = new ArrayList<String>();
-
             for (Filter.PropertyRestriction pr : indexPlan.getFilter().getPropertyRestrictions()) {
                 if (isExcerptPropertyRestriction(pr)) {
                     String value = getPropertyRestrictionField(pr);
@@ -322,7 +321,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 // Elasticsearch-java client "HighlightField.of(hf->hf.field(value))" bug
                 // bypassed with "HighlightField.of(hf->hf.withJson(new StringReader("{}")))"
                 excerpts.put(field, HighlightField.of(hf -> hf.withJson(new StringReader("{}"))));
-                //excerpts.put(":fulltext",HighlightField.of(hf->hf.withJson(new StringReader("{}"))));
             }
             return Highlight.of(h->h
                     .preTags(HIGHLIGHT_PREFIX)
