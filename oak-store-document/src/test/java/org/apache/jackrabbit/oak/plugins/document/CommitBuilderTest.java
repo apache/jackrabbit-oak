@@ -150,6 +150,14 @@ public class CommitBuilderTest {
         assertNotNull(op);
     }
 
+    @Test(expected = DocumentStoreException.class)
+    public void addLongNameNodeState() {
+        Path path = Path.fromString(DocumentMK.LONG_PATH);
+        CommitBuilder builder = new CommitBuilder(ns, null);
+        builder.addNode(path);
+        fail("should not reach this point");
+    }
+
     @Test
     public void branchCommit() {
         RevisionVector baseRev = ns.getHeadRevision()
