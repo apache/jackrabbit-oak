@@ -21,10 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.*;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextDocumentMaker;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -241,6 +238,17 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected boolean indexDynamicBoost(ElasticDocument doc, String parent, String nodeName, String token, double boost) {
         if (token.length() > 0) {
             doc.addDynamicBoostField(nodeName, token, boost);
+            return true;
+        }
+        return false;
+    }
+
+    protected boolean checkUseInExcerpts(String path, ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd) {
+        if(pd.useInExcerpt && property.getType().equals(Type.STRING)) {
+            String val = property.getValue(Type.STRING);
+            if (val.length() > 0) {
+                doc.addToStoreInSource(property.getName(), val);
+            }
             return true;
         }
         return false;
