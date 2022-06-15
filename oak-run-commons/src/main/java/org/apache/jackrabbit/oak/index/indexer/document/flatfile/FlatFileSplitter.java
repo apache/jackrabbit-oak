@@ -36,6 +36,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,11 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
+/**
+ * This class is being used when {@link FlatFileNodeStoreBuilder.OAK_INDEXER_PARALLEL_INDEX} is set to true.
+ * It will split a flat file safely by checking the index definitions. An entry is considered safe to split if only
+ * none of the parent directories contains nodes in indexRule and aggregate fields of the provided index definitions.
+ */
 public class FlatFileSplitter {
     private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
 
@@ -91,11 +97,7 @@ public class FlatFileSplitter {
     }
 
     private List<File> returnOriginalFlatFile() {
-        return (new ArrayList<File>(1){
-            {
-                add(flatFile);
-            }
-        });
+        return Collections.singletonList(flatFile);
     }
 
     public List<File> split() throws IOException {

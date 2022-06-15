@@ -45,6 +45,9 @@ import java.util.function.Predicate;
 
 import static java.util.Collections.unmodifiableSet;
 
+/**
+ * This class is where the strategy being selected for building FlatFileStore.
+ */
 public class FlatFileNodeStoreBuilder {
 
     private static final String FLAT_FILE_STORE_DIR_NAME_PREFIX = "flat-fs-";
