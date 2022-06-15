@@ -10,6 +10,11 @@ import java.util.zip.Deflater;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+/**
+ * This class provides a common list of support compression algorithms and some utility functions.
+ * It is mainly used by intermediate stored files in {@link org.apache.jackrabbit.oak.commons.sort.ExternalSort} and
+ * sort/index utilities in {@link org.apache.jackrabbit.oak.index.indexer.document.flatfile}.
+ */
 public class Compression {
 
     public enum Algorithm {
