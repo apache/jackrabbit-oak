@@ -186,11 +186,13 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * @throws IOException if suggest dictionary update fails
      * @param analyzer the analyzer used to update the suggester
      */
-    private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
+    private synchronized boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
         final Closer closer = Closer.create();
 
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
+
         DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
+
         final Directory suggestDirectory =
             directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
         // updateSuggester would close the directory (directly or via lookup)
