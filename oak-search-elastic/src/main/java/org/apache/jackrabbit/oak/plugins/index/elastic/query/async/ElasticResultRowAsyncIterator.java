@@ -335,6 +335,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     .preTags(HIGHLIGHT_PREFIX)
                     .postTags(HIGHLIGHT_SUFFIX)
                     .fields(excerpts)
+                    .numberOfFragments(1)
                     .requireFieldMatch(false));
         }
 
