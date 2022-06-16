@@ -84,7 +84,7 @@ public class IndexDefinitionTest {
         assertTrue("By default fulltext is enabled", idxDefn.isFullTextEnabled());
         assertTrue("By default everything is indexed", rule.isIndexed("foo"));
         assertTrue("Property types need to be defined", rule.includePropertyType(PropertyType.DATE));
-        assertTrue("For fulltext storage is enabled", rule.getConfig("foo").stored);
+        assertTrue("For fulltext storage is enabled", rule.getConfig("foo").useInSuggest);
 
         assertFalse(rule.getConfig("foo").skipTokenization("foo"));
         assertTrue(rule.getConfig("jcr:uuid").skipTokenization("jcr:uuid"));
@@ -98,7 +98,7 @@ public class IndexDefinitionTest {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
         assertFalse(idxDefn.isFullTextEnabled());
-        assertFalse("If fulltext disabled then nothing stored", rule.getConfig("foo").stored);
+        assertFalse("If fulltext disabled then nothing stored", rule.getConfig("foo").useInExcerpt);
 
         assertTrue(rule.includePropertyType(PropertyType.LONG));
         assertFalse(rule.includePropertyType(PropertyType.STRING));
@@ -747,7 +747,7 @@ public class IndexDefinitionTest {
         assertFalse(pd.useInSpellcheck);
         assertFalse(pd.nullCheckEnabled);
         assertFalse(pd.notNullCheckEnabled);
-        assertFalse(pd.stored);
+        assertFalse(pd.useInExcerpt);
         assertFalse(pd.ordered);
         assertFalse(pd.analyzed);
 

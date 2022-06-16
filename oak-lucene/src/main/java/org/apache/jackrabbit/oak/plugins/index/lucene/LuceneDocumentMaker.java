@@ -88,7 +88,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected void indexAnalyzedProperty(Document doc, String pname, String value, PropertyDefinition pd) {
         String analyzedPropName = constructAnalyzedPropertyName(pname);
-        doc.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
+        doc.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.useInExcerpt));
     }
 
     @Override

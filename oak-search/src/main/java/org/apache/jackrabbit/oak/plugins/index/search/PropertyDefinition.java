@@ -77,8 +77,6 @@ public class PropertyDefinition {
 
     public final boolean index;
 
-    public final boolean stored;
-
     public final boolean nodeScopeIndex;
 
     public final boolean propertyIndex;
@@ -151,7 +149,6 @@ public class PropertyDefinition {
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX, true);
-        this.stored = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_EXCERPT, false);
         this.nodeScopeIndex = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, false);
 
         //If boost is specified then that field MUST be analyzed
@@ -257,7 +254,6 @@ public class PropertyDefinition {
                 ", boost=" + boost +
                 ", isRegexp=" + isRegexp +
                 ", index=" + index +
-                ", stored=" + stored +
                 ", nodeScopeIndex=" + nodeScopeIndex +
                 ", propertyIndex=" + propertyIndex +
                 ", analyzed=" + analyzed +
