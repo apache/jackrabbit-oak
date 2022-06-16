@@ -19,11 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.*;
 import org.apache.jackrabbit.oak.plugins.index.ExcerptTest;
-import org.apache.jackrabbit.oak.plugins.index.TestRepository;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
 
 public class ElasticExcerptTest extends ExcerptTest {
@@ -36,13 +33,14 @@ public class ElasticExcerptTest extends ExcerptTest {
         indexOptions = new ElasticIndexOptions();
     }
 
-
     @Override
     protected ContentRepository createRepository() {
-        ElasticTestRepositoryBuilder builder = new ElasticTestRepositoryBuilder(elasticRule);
-        builder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
-        repositoryOptionsUtil = builder.build();
-
+        repositoryOptionsUtil = new ElasticTestRepositoryBuilder(elasticRule).build();
         return repositoryOptionsUtil.getOak().createContentRepository();
+    }
+
+    @Override
+    protected void createTestIndexNode() {
+        setTraversalEnabled(false);
     }
 }
