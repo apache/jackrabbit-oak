@@ -274,7 +274,9 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         });
     }
 
-    @Test
+    //We 'intentionally' are indexing node names only on root state as we don't support indexing relative or
+    //regex for node name indexing. Comment taken from FultextDocumentMaker #148. Test skipped
+    //@Test
     public void relativePropExcerpt() throws Exception {
         Tree contentRoot = root.getTree("/").addChild("testRoot");
         contentRoot.addChild("relative").setProperty("baz", "is fox ifoxing");
