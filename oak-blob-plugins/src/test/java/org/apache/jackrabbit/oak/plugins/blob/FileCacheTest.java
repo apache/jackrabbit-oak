@@ -115,7 +115,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(0.0, cache.getStats().getMissRate(), 0.0);
         assertEquals(0, cache.getStats().getMissCount());
         assertEquals(0, cache.getStats().getHitCount());
-        assertEquals(0.0, cache.getStats().getHitRate(), 0.0);
+        assertEquals(1.0, cache.getStats().getHitRate(), 0.0);
         assertEquals(0.0, cache.getStats().getAverageLoadPenalty(), 0.0);
         assertEquals(0, cache.getStats().getLoadCount());
         assertEquals(0, cache.getStats().getLoadExceptionCount());
