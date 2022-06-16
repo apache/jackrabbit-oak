@@ -82,6 +82,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         root.commit();
     }
+
     @Test
     public void getAllSelectedColumns() throws Exception {
         Tree contentRoot = root.getTree("/").addChild("testRoot");
@@ -312,7 +313,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        assertEventually(()->{
+        assertEventually(() -> {
             Result result = null;
             try {
                 result = executeQuery(query, SQL2, NO_BINDINGS);
@@ -328,7 +329,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 excerpt = nodeExcerpt.getValue(STRING);
                 String expected = binaryText.replaceAll(" fox ", " <strong>fox</strong> ");
                 assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt + "'",
-                    excerpt.contains(expected));
+                        excerpt.contains(expected));
             } catch (ParseException e) {
                 fail(e.getMessage());
             }

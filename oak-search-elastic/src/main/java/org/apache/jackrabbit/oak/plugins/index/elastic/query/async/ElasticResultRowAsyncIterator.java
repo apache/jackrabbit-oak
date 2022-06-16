@@ -153,6 +153,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
      * rep:excerpt(PROPERTY) for other fields.
      * Note: properties to get excerpt from must be included in the _source, which means ingested,
      * not necessarily Elasticsearch indexed, neither included in the mapping properties.
+     *
      * @param searchHit
      * @return a map with the excerpts
      * @throws IOException
@@ -160,11 +161,11 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     private Map<String, String> readExcerptsFromResponse(Hit<ObjectNode> searchHit) {
         Map<String, String> excerpts = Maps.newHashMap();
         for (String property : searchHit.highlight().keySet()) {
-            if(property.equals(":fulltext")){
+            if (property.equals(":fulltext")) {
                 String excerpt = searchHit.highlight().get(property).get(0);
                 excerpts.put("rep:excerpt(.)", excerpt);
                 excerpts.put("rep:excerpt", excerpt);
-            }else {
+            } else {
                 excerpts.put("rep:excerpt(" + property + ")", searchHit.highlight().get(property).get(0));
             }
         }
@@ -261,7 +262,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                             builder.aggregations(elasticRequestHandler.aggregations());
                         }
                         Highlight highlight = generatesExcerptRequestPart();
-                        if(highlight!=null){
+                        if (highlight != null) {
                             builder.highlight(highlight);
                         }
 
@@ -287,19 +288,19 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
-        private String getPropertyRestrictionField(Filter.PropertyRestriction pr){
+        private String getPropertyRestrictionField(Filter.PropertyRestriction pr) {
             String name = pr.first.toString();
             int length = QueryConstants.REP_EXCERPT.length();
-            if(name.length()>length){
-                String field = name.substring(length+1, name.length()-1);
-                if(!field.equals(".")){
+            if (name.length() > length) {
+                String field = name.substring(length + 1, name.length() - 1);
+                if (!field.equals(".")) {
                     return field;
                 }
             }
             return null;
         }
 
-        private boolean isExcerptPropertyRestriction(Filter.PropertyRestriction pr){
+        private boolean isExcerptPropertyRestriction(Filter.PropertyRestriction pr) {
             return pr.propertyName.startsWith(QueryConstants.REP_EXCERPT);
         }
 
@@ -307,6 +308,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
          * Generates a Highlight that is the search request part necessary to obtain excerpts.
          * rep:excerpt() and rep:exerpt(.) makes use of :fulltext
          * rep:excerpt(FIELD) makes use of FIELD
+         *
          * @return a Highlight object representing the excerpts to request or null if none should be requested
          */
         private Highlight generatesExcerptRequestPart() {
@@ -314,22 +316,22 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             for (Filter.PropertyRestriction pr : indexPlan.getFilter().getPropertyRestrictions()) {
                 if (isExcerptPropertyRestriction(pr)) {
                     String value = getPropertyRestrictionField(pr);
-                    if(value == null) {
+                    if (value == null) {
                         value = ":fulltext";
                     }
                     fields.add(value);
                 }
             }
-            if(fields.isEmpty()) {
+            if (fields.isEmpty()) {
                 return null;
             }
             Map<String, HighlightField> excerpts = new HashMap<String, HighlightField>();
-            for(String field : fields) {
+            for (String field : fields) {
                 // Elasticsearch-java client "HighlightField.of(hf->hf.field(value))" bug
                 // bypassed with "HighlightField.of(hf->hf.withJson(new StringReader("{}")))"
                 excerpts.put(field, HighlightField.of(hf -> hf.withJson(new StringReader("{}"))));
             }
-            return Highlight.of(h->h
+            return Highlight.of(h -> h
                     .preTags(HIGHLIGHT_PREFIX)
                     .postTags(HIGHLIGHT_SUFFIX)
                     .fields(excerpts)
@@ -339,7 +341,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         /**
          * Handle the response action notifying the registered listeners. Depending on the listeners' configuration
          * it could keep loading chunks or wait for a {@code #scan} call to resume scanning.
-         *
+         * <p>
          * Some code in this method relies on structure that are not thread safe. We need to make sure
          * these data structures are modified before releasing the semaphore.
          */
@@ -441,7 +443,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private int getFetchSize(int requestId) {
             int[] queryFetchSizes = indexNode.getDefinition().queryFetchSizes;
             return queryFetchSizes.length > requestId ?
-                    queryFetchSizes[requestId] : queryFetchSizes[queryFetchSizes.length -1];
+                    queryFetchSizes[requestId] : queryFetchSizes[queryFetchSizes.length - 1];
         }
 
         // close all listeners

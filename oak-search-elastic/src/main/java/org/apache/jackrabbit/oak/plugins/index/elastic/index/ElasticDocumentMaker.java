@@ -244,7 +244,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     protected boolean checkUseInExcerpts(String path, ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd) {
-        if(pd.useInExcerpt && property.getType().equals(Type.STRING)) {
+        if (pd.useInExcerpt && property.getType().equals(Type.STRING)) {
             String val = property.getValue(Type.STRING);
             if (val.length() > 0) {
                 doc.addToStoreInSource(property.getName(), val);
