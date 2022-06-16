@@ -156,7 +156,9 @@ public class ElasticDocument {
                     builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);
                 }
                 for (Map.Entry<String, Set<Object>> prop : toStoreInSource.entrySet()) {
-                    builder.field(prop.getKey(), prop.getValue());
+                    if (!properties.containsKey(prop.getKey())) {
+                        builder.field(prop.getKey(), prop.getValue());
+                    }
                 }
             }
             builder.endObject();
