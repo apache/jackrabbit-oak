@@ -38,7 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.security.Principal;
 import java.util.Collection;
@@ -186,7 +185,7 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
         
         @Override
         public @NotNull PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-            throw new NotImplementedException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -210,7 +209,7 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
 
         @Override
         public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
-            throw new NotImplementedException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -220,22 +219,22 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
 
         @Override
         public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
-            throw new NotImplementedException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public void refresh() {
-            throw new NotImplementedException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public @NotNull Set<String> getPrivileges(@Nullable Tree tree) {
-            throw new NotImplementedException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-            throw new NotImplementedException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -251,7 +250,7 @@ public class CompositePermissionProviderOrTest extends AbstractSecurityTest {
 
         @Override
         public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
-            throw new NotImplementedException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
