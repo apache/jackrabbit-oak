@@ -61,7 +61,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
 
-public class ElasticWritesDisabledTest {
+public class ElasticWriterDisabledTest {
 
     protected int DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS = 5;
 
