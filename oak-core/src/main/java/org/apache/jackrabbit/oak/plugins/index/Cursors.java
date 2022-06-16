@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,10 +73,6 @@ public class Cursors {
 
     public static Cursor newConcatCursor(List<Cursor> cursors, QueryLimits settings) {
         return new ConcatCursor(cursors, settings);
-    }
-
-    public static Cursor newPrefetchCursor(Cursor cursor, NodeStore store, int prefetchCount, NodeState rootState) {
-        return new PrefetchCursor(cursor, store, prefetchCount, rootState);
     }
 
     /**
@@ -562,50 +556,4 @@ public class Cursors {
         }
 
     }
-
-    /**
-     * A cursor that prefetches nodes from the node store
-     */
-    private static class PrefetchCursor extends AbstractCursor {
-
-        private final Cursor cursor;
-        private final NodeStore store;
-        private final int prefetchCount;
-        private final NodeState rootState;
-        private Iterator<IndexRow> prefetched;
-
-        PrefetchCursor(Cursor cursor, NodeStore store, int prefetchCount, NodeState rootState) {
-            this.cursor = cursor;
-            this.store = store;
-            this.prefetchCount = prefetchCount;
-            this.rootState = rootState;
-            this.prefetched = Iterators.emptyIterator();
-        }
-
-        @Override
-        public IndexRow next() {
-            if (!prefetched.hasNext()) {
-                ArrayList<IndexRow> rows = new ArrayList<>();
-                HashSet<String> paths = new HashSet<>();
-                for (int i = 0; i < prefetchCount && cursor.hasNext(); i++) {
-                    IndexRow row = cursor.next();
-                    rows.add(row);
-                    String p = row.getPath();
-                    do {
-                        paths.add(p);
-                        p = PathUtils.getParentPath(p);
-                    } while (!PathUtils.denotesRoot(p));
-                }
-                store.prefetch(paths, rootState);
-                prefetched = rows.iterator();
-            }
-            return prefetched.next();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return prefetched.hasNext() || cursor.hasNext();
-        }
-    }
-
 }

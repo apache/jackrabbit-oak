@@ -21,7 +21,13 @@ import java.util.LinkedList;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 public class CacheWarming {
 
@@ -31,24 +37,32 @@ public class CacheWarming {
         this.documentNodeStore = documentNodeStore;
     }
 
-    public void prefetch(java.util.Collection<String> paths, DocumentNodeState rootState) {
+    public void prefetch(java.util.Collection<String> paths) {
         if ( (paths == null) || paths.isEmpty()) {
             return;
         }
-        prefetchDocumentStore(paths, rootState);
+        System.out.println("prefetching " + paths.size());
+
+        prefetchDocumentStore(paths);
+//            StringTokenizer st = new StringTokenizer(aPath, "/");
+//            String name;
+//            NodeState x = documentNodeStore.getRoot();
+//            while(st.hasMoreElements()) {
+//                name = st.nextToken();
+//                x = x.getChildNode(name);
+//            }
+//        }
     }
 
     /**
-     * This would be about pre-warming the DocumentStore
+     * This would be about prewarming the DocumentStore
      * @param paths
      */
-    private void prefetchDocumentStore(java.util.Collection<String> paths, DocumentNodeState rootState) {
+    private void prefetchDocumentStore(java.util.Collection<String> paths) {
         java.util.Collection<String> ids = new LinkedList<>();
         for (String aPath : paths) {
-            if (!documentNodeStore.isCached(aPath, rootState)) {
-                String id = Utils.getIdFromPath(aPath);
-                ids.add(id);
-            }
+            String id = Utils.getIdFromPath(aPath);
+            ids.add(id);
         }
         documentNodeStore.getDocumentStore().prefetch(Collection.NODES, ids);
     }

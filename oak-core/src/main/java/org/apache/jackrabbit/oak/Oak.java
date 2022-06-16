@@ -921,16 +921,6 @@ public class Oak {
         }
 
         @Override
-        public int getPrefetchCount() {
-            return settings.getPrefetchCount();
-        }
-
-        @Override
-        public void setPrefetchCount(int prefetchCount) {
-            settings.setPrefetchCount(prefetchCount);
-        }
-
-        @Override
         public boolean getFailTraversal() {
             return settings.getFailTraversal();
         }

@@ -68,7 +68,7 @@ public class CacheWarmingTest {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).build();
-        ns.prefetch(null, null);
+        ns.prefetch(null);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class CacheWarmingTest {
         DocumentMK mk = builderProvider.newBuilder().open();
         DocumentStore s = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
-        ns.prefetch(null, null);
+        ns.prefetch(null);
     }
 
     protected Clock getTestClock() throws InterruptedException {
@@ -140,7 +140,7 @@ public class CacheWarmingTest {
             final List<String> paths = new ArrayList<>(children);
             final java.util.Collection<String> withParents = withParents(paths);
             withParents.remove("/");
-            store.prefetch(withParents, null);
+            store.prefetch(withParents);
             logAndReset("after prefetch  ", cds);
         }
         // read the children again

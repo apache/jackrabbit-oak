@@ -317,13 +317,7 @@ class MutableRoot implements Root, PermissionAware {
                             provider, getBaseState(), getRootState());
                 }
                 return new ExecutionContext(
-                        getBaseState(),
-                        MutableRoot.this,
-                        queryEngineSettings,
-                        provider,
-                        permissionProvider.get(),
-                        store
-                );
+                        getBaseState(), MutableRoot.this, queryEngineSettings, provider, permissionProvider.get());
             }
         };
     }

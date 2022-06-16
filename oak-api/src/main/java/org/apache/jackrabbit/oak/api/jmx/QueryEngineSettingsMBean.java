@@ -59,22 +59,7 @@ public interface QueryEngineSettingsMBean {
      * @param limitReads the new limit
      */
     void setLimitReads(long limitReads);
-
-    /**
-     * Change the prefetch count.
-     *
-     * @param prefetchCount the new count
-     */
-    void setPrefetchCount(int prefetchCount);
-
-    /**
-     * Get the prefetch count.
-     *
-     * @return the count
-     */
-    @Description("Get the prefetch count. This is the number of entries pre-fetched from the node store at a time.")
-    int getPrefetchCount();
-
+    
     /**
      * Whether queries that don't use an index will fail (throw an exception).
      * The default is false.

@@ -195,11 +195,9 @@ public interface NodeStore {
      * given collection of path.
      * The implementation can choose to ignore this. No guarantees whatsoever.
      * Terms and conditions apply.
-     *
-     * @param paths the list of paths
-     * @param rootState the node state of the root (to check caches)
+     * @param paths
      */
-    default void prefetch(Collection<String> paths, NodeState rootState) {
+    default void prefetch(Collection<String> paths) {
         // do nothing
     }
 }

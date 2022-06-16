@@ -57,10 +57,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public static final long DEFAULT_QUERY_LIMIT_READS =
             Long.getLong(OAK_QUERY_LIMIT_READS, 100000);
 
-    public static final String OAK_QUERY_PREFETCH_COUNT = "oak.prefetchCount";
-
-    public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, 0);
-
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
     private static final boolean DEFAULT_FAIL_TRAVERSAL =
             Boolean.getBoolean(OAK_QUERY_FAIL_TRAVERSAL);
@@ -71,9 +67,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private long limitInMemory = DEFAULT_QUERY_LIMIT_IN_MEMORY;
     
     private long limitReads = DEFAULT_QUERY_LIMIT_READS;
-
-    private int prefetchCount = DEFAULT_PREFETCH_COUNT;
-
+    
     private boolean failTraversal = DEFAULT_FAIL_TRAVERSAL;
     
     private boolean fullTextComparisonWithoutIndex = 
@@ -142,17 +136,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public void setLimitReads(long limitReads) {
         this.limitReads = limitReads;
     }
-
-    @Override
-    public void setPrefetchCount(int prefetchCount) {
-        this.prefetchCount = prefetchCount;
-    }
-
-    @Override
-    public int getPrefetchCount() {
-        return prefetchCount;
-    }
-
+    
     @Override
     public boolean getFailTraversal() {
         return failTraversal;

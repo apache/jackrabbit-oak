@@ -831,12 +831,4 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
 
     }
-
-    public DocumentNodeState getChildIfCached(String name) {
-        if (!hasChildren) {
-            return null;
-        }
-        return store.getNodeIfCached(new Path(getPath(), name), lastRevision);
-    }
-
 }
