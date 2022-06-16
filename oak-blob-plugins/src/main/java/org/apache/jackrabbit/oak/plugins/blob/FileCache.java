@@ -176,6 +176,9 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             return new FileCache(maxSize, root, loader, executor);
         }
         return new FileCache() {
+
+            private final Cache<?,?> cache = new CacheLIRS<>(0);
+
             @Override public void put(String key, File file) {
             }
 
@@ -195,7 +198,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             }
 
             @Override public DataStoreCacheStatsMBean getStats() {
-                return new FileCacheStats(this, weigher, memWeigher, 0);
+                return new FileCacheStats(cache, weigher, memWeigher, 0);
             }
 
             @Override public void close() {
