@@ -247,7 +247,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         if (pd.useInExcerpt && property.getType().equals(Type.STRING)) {
             String val = property.getValue(Type.STRING);
             if (val.length() > 0) {
-                doc.addToStoreInSource(property.getName(), val);
+                doc.addProperty(property.getName(), val);
             }
             return true;
         }
