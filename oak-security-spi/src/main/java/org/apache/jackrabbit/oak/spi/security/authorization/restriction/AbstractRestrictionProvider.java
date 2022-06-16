@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -159,8 +160,10 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws AccessControlException {
         Map<String, PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
         if (isUnsupportedPath(oakPath)) {
-            if (!restrictionProperties.isEmpty()) {
-                throw new AccessControlException("Restrictions not supported with 'null' path.");
+            // test if there are any restrictions present that are not supported by another provider when used in a composite
+            Set<String> unsupportedNames = restrictionProperties.keySet().stream().filter(name -> !isSupportedByAnotherProvider(oakPath, name)).collect(Collectors.toSet());
+            if (!unsupportedNames.isEmpty()) {
+                throw new AccessControlException("Restrictions '"+unsupportedNames+"' not supported with path '"+oakPath+"'.");
             }
         } else {
             // supported path -> validate restrictions and test if mandatory

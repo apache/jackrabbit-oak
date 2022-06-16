@@ -75,6 +75,7 @@ import static org.mockito.Mockito.when;
 public class UtilsTest {
 
     private static final long TIME_DIFF_WARN_THRESHOLD_MILLIS = 2000L;
+    private static final String LONG_PATH = "/foo/barbar/qwerty/asdfgh/zxcvbnm/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka";
 
     @Test
     public void getPreviousIdFor() {
@@ -124,6 +125,19 @@ public class UtilsTest {
 
         assertNull(Utils.getParentId(Utils.getIdFromPath(Path.ROOT)));
         assertEquals("1:/foo", Utils.getParentId("2:/foo/bar"));
+    }
+
+    @Test
+    public void getParentIdForLongPathWithNodeNameLimit() {
+        Path longPath = Path.fromString(LONG_PATH);
+        assertTrue(Utils.isNodeNameLong(longPath, Utils.NODE_NAME_LIMIT));
+    }
+
+    @Test
+    public void getParentIdForLongPathWithoutNodeNameLimit() {
+        Path longPath = Path.fromString(LONG_PATH);
+        assertFalse(Utils.isNodeNameLong(longPath, Integer.MAX_VALUE));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
     }
 
     @Test

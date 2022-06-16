@@ -217,4 +217,14 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         performLeaseCheck();
         delegate.prefetch(collection, keys);;
     }
+
+    /**
+     * Return the size limit for node name based on the document store implementation
+     *
+     * @return node name size limit
+     */
+    @Override
+    public int getNodeNameLimit() {
+        return delegate.getNodeNameLimit();
+    }
 }
