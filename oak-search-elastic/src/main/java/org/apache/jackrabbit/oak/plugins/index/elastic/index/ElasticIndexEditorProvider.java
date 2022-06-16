@@ -54,7 +54,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     public @Nullable Editor getIndexEditor(@NotNull String type,
                                            @NotNull NodeBuilder definition, @NotNull NodeState root,
                                            @NotNull IndexUpdateCallback callback) {
-        if (TYPE_ELASTICSEARCH.equals(type) && OAK_INDEX_ELASTIC_WRITER_DISABLE == false) {
+        if (TYPE_ELASTICSEARCH.equals(type) && !OAK_INDEX_ELASTIC_WRITER_DISABLE) {
             if (!(callback instanceof ContextAwareCallback)) {
                 throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");
             }
