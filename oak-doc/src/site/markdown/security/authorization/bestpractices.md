@@ -201,13 +201,6 @@ your `PrincipalProvider` resolves principal membership according to your needs.
 Further, note that the default authorization model will give precedence to user principals upon evaluation in other words 
 default access control entries for user principals will overwrite the effect of groups irrespective of the order in the list (see next section).
 
-The above rule is particularly important for the anonymous user marking access with `GuestCredentials`.
-If you setup access control for anonymous it will result in the guest account to have effective permissions that do 
-not apply for any authenticated session.
-
-What is usually intended instead is setting up permissions for the _everyone_ group. See also
-[PrincipalManager.getEveryone()](/oak/docs/apidocs/org/apache/jackrabbit/api/security/principal/PrincipalManager.html#getEveryone)
-
 ### Understand default access control and permission management
 
 #### Remember inheritance

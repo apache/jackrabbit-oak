@@ -3898,7 +3898,4 @@ public final class DocumentNodeStore
         return true;
     }
 
-    public void prefetch(java.util.Collection<String> paths) {
-        cacheWarming.prefetch(paths);
-    }
 }

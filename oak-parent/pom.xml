@@ -393,12 +393,11 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.12.0</version>
+          <version>3.7.1</version>
           <configuration>
             <generateReports>false</generateReports>
             <skip>true</skip>
             <skipDeploy>true</skipDeploy>
-            <relativizeDecorationLinks>false</relativizeDecorationLinks><!-- leave absolute URLs untouched: https://maven.apache.org/plugins/maven-site-plugin/site-mojo.html#relativizeDecorationLinks -->
           </configuration>
         </plugin>
         <plugin>

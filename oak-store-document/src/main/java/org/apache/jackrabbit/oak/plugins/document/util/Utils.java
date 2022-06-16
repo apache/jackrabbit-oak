@@ -365,39 +365,14 @@ public class Utils {
         }
         // check if the parent path is long
         byte[] parent = PathUtils.getParentPath(path).getBytes(UTF_8);
-        return parent.length >= PATH_LONG;
-    }
-
-    /**
-     * Checks whether Node name is too long or not based on underlining document store
-     * @param path node path
-     * @param sizeLimit sizeLimit for node name
-     * @return true if node name is long else false
-     */
-    public static boolean isNodeNameLong(Path path, int sizeLimit) {
-        return isLongPath(path) && path.getName().getBytes(UTF_8).length > sizeLimit;
-    }
-
-    /**
-     * Checks whether Node name is too long or not based on underlining document store
-     * @param path node path
-     * @param sizeLimit sizeLimit for node name
-     * @return true if node name is long else false
-     */
-
-    public static boolean isNodeNameLong(String path, int sizeLimit) {
-        final String name = PathUtils.getName(path);
-        return isLongPath(path) && name.getBytes(UTF_8).length > sizeLimit;
-    }
-
-    /**
-     * Checks whether Node name is too long or not based on underlining document store
-     * @param path node path
-     * @param sizeLimit sizeLimit for node name
-     * @return true if node name is long else false
-     */
-    public static boolean isNodeNameLong(Path path, int sizeLimit) {
-        return isLongPath(path) && path.getName().getBytes(UTF_8).length > sizeLimit;
+        if (parent.length < PATH_LONG) {
+            return false;
+        }
+        String name = PathUtils.getName(path);
+        if (name.getBytes(UTF_8).length > NODE_NAME_LIMIT) {
+            throw new IllegalArgumentException("Node name is too long: " + path);
+        }
+        return true;
     }
 
     public static boolean isLongPath(Path path) {
@@ -411,7 +386,13 @@ public class Utils {
         if (parent == null) {
             return false;
         }
-        return parent.toString().getBytes(UTF_8).length >= PATH_LONG;
+        if (parent.toString().getBytes(UTF_8).length < PATH_LONG) {
+            return false;
+        }
+        if (path.getName().getBytes(UTF_8).length > NODE_NAME_LIMIT) {
+            throw new IllegalArgumentException("Node name is too long: " + path);
+        }
+        return true;
     }
 
     public static boolean isIdFromLongPath(String id) {
@@ -813,7 +794,12 @@ public class Utils {
      * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
      */
     public static Iterable<String> pathToId(@NotNull Iterable<String> paths) {
-        return transform(paths, input -> getIdFromPath(input));
+        return transform(paths, new Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return getIdFromPath(input);
+            }
+        });
     }
 
     /**

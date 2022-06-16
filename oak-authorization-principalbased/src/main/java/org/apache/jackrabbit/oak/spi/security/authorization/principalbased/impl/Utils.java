@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
@@ -150,24 +149,6 @@ final class Utils implements Constants {
             // no restriction tree present -> skip validation as principal-acl does not allow for restriction properties 
             // on the ACE-node itself as the regular rep:policy in the default access control management. 
             return true;
-        }
-    }
-
-    /**
-     * Utility method that conditionally reads restrictions from provider if the given {@code aceTree} has restriction 
-     * child tree, i.e. combining {@link #hasRestrictions(Tree)} with {@link RestrictionProvider#readRestrictions(String, Tree)}.
-     * 
-     * @param provider The restriction provider
-     * @param effectivePath The effective path
-     * @param aceTree The ace tree
-     * @return restrictions as read from the provider if the given {@code aceTree} has a rep:restriction child. otherwise,
-     * an empty set without calling the provider.
-     */
-    public static Set<Restriction> readRestrictions(@NotNull RestrictionProvider provider, @Nullable String effectivePath, @NotNull Tree aceTree) {
-        if (hasRestrictions(aceTree)) {
-            return provider.readRestrictions(effectivePath, aceTree);
-        } else {
-            return Collections.emptySet();
         }
     }
 }

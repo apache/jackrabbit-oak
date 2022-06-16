@@ -52,9 +52,6 @@ public class DocumentMK {
      * The threshold where special handling for many child node starts.
      */
     static final int MANY_CHILDREN_THRESHOLD = DocumentNodeStoreBuilder.MANY_CHILDREN_THRESHOLD;
-
-    static final String LONG_PATH = "/foo/barbar/qwerty/asdfgh/zxcvbnm/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka";
-
     /**
      * Number of content updates that need to happen before the updates
      * are automatically purged to the private branch.

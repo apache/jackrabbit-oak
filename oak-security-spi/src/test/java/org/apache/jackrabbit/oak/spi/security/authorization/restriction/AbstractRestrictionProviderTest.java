@@ -40,7 +40,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -322,64 +321,6 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         restrictionProvider.validateRestrictions(null, getAceTree(restr));
     }
 
-    @Test
-    public void testValidateRestrictionsUnsupportedPathInComposite() throws Exception {
-        // different provider that supports rep:glob at the 'null' path
-        RestrictionProvider second = createSecondProvider(Collections.singletonMap(REP_GLOB, supported.get(REP_GLOB)), s -> false);
-
-        Restriction restr = second.createRestriction(null, REP_GLOB, globValue);
-        
-        // non-empty restrictions at unsupported path => must not fail if covered by a different provider
-        RestrictionProvider composite = CompositeRestrictionProvider.newInstance(restrictionProvider, second);
-        composite.validateRestrictions(null, getAceTree(restr));
-    }
-    
-    @Test
-    public void testValidateRestrictionsUnsupportedPathInComposite2() throws Exception {
-        Restriction restr = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
-        Restriction mandatory = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(false));
-
-        // create a second provider that does not support restrictions at 'testpath'
-        RestrictionProvider second = createSecondProvider(Collections.singletonMap(REP_GLOB, supported.get(REP_GLOB)), testPath::equals);
-
-        RestrictionProvider composite = CompositeRestrictionProvider.newInstance(restrictionProvider, second);
-        composite.validateRestrictions(testPath, getAceTree(restr, mandatory));
-    }
-    
-    @Test(expected = AccessControlException.class)
-    public void testValidateRestrictionsUnsupportedPathInComposite3() throws Exception {
-        Restriction restr = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
-        Restriction mandatory = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(false));
-
-        // create a second provider that does support rep:glob at null path (but not the 'mandatory' restriction)
-        RestrictionProvider second = createSecondProvider(Collections.singletonMap(REP_GLOB, supported.get(REP_GLOB)), s -> false);
-
-        // since 'mandatory' restriction is not supported the validation must fail
-        RestrictionProvider composite = CompositeRestrictionProvider.newInstance(restrictionProvider, second);
-        composite.validateRestrictions(null, getAceTree(restr, mandatory));
-    }
-    
-    @NotNull
-    private static RestrictionProvider createSecondProvider(@NotNull Map<String, RestrictionDefinition> supported, 
-                                                            @NotNull Function<String, Boolean> isUnsupportedFunction) {
-        return new AbstractRestrictionProvider(supported) {
-            @Override
-            protected boolean isUnsupportedPath(@Nullable String oakPath) {
-                return isUnsupportedFunction.apply(oakPath);
-            }
-
-            @Override
-            public @NotNull RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public @NotNull RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-    
     @Test(expected = AccessControlException.class)
     public void testValidateRestrictionsWrongType() throws Exception {
         Restriction mand = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(true));

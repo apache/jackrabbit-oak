@@ -131,11 +131,6 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static final Bson BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
-    /**
-     * nodeNameLimit for node name based on Mongo Version
-     */
-    private final int nodeNameLimit;
-
     enum DocumentReadPreference {
         PRIMARY,
         PREFER_PRIMARY,
@@ -255,11 +250,6 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
-    @Override
-    public int getNodeNameLimit() {
-        return nodeNameLimit;
-    }
-
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
@@ -273,7 +263,6 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", status.getVersion())
                 .build();
 
-        this.nodeNameLimit = MongoUtils.getNodeNameLimit(status);
         this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
         this.clusterNodesConnection = getOrCreateClusterNodesConnection(builder);
         stats = builder.getDocumentStoreStatsCollector();

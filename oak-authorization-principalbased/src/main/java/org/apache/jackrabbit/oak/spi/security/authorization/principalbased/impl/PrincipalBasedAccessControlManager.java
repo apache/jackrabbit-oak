@@ -401,7 +401,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             return null;
         }
         
-        Set<Restriction> restrictions = Utils.readRestrictions(rp, oakPath, entryTree);
+        Set<Restriction> restrictions = rp.readRestrictions(oakPath, entryTree);
         NamePathMapper npMapper = getNamePathMapper();
         return new AbstractEntry(oakPath, principal, bits, restrictions, npMapper) {
             @Override
