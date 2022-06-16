@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.text.ParseException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,6 +43,12 @@ import static org.junit.Assert.*;
 public abstract class ExcerptTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
+    protected TestRepository repositoryOptionsUtil;
+
+    protected void assertEventually(Runnable r) {
+        TestUtils.assertEventually(r,
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+    }
 
     @Before
     public void setup() throws Exception { //named so that it gets called after super.before :-/
@@ -87,22 +94,29 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         String selectColumns = Joiner.on(",").join(
                 columns.stream().map(col -> "[" + col + "]").collect(Collectors.toList())
         );
-        String query = "SELECT " + selectColumns + " FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(() -> {
+            String query = "SELECT " + selectColumns + " FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue excerptValue;
-        String excerpt;
+                PropertyValue excerptValue;
+                String excerpt;
 
-        for (String col : columns) {
-            excerptValue = firstRow.getValue(col);
-            assertNotNull(col + " not evaluated", excerptValue);
-            excerpt = excerptValue.getValue(STRING);
-            assertFalse(col + " didn't evaluate correctly - got '" + excerpt + "'",
-                    excerpt.contains("i<strong>fox</foxing>ing"));
-        }
+                for (String col : columns) {
+                    excerptValue = firstRow.getValue(col);
+                    assertNotNull(col + " not evaluated", excerptValue);
+                    excerpt = excerptValue.getValue(STRING);
+                    assertFalse(col + " didn't evaluate correctly - got '" + excerpt + "'",
+                            excerpt.contains("i<strong>fox</foxing>ing"));
+                }
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 
     @Test
@@ -113,25 +127,32 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT [rep:excerpt],[rep:excerpt(.)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(() -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue nodeExcerpt;
-        String excerpt1, excerpt2;
+                PropertyValue nodeExcerpt;
+                String excerpt1, excerpt2;
 
 
-        nodeExcerpt = firstRow.getValue("rep:excerpt");
-        assertNotNull("rep:excerpt not evaluated", nodeExcerpt);
-        excerpt1 = nodeExcerpt.getValue(STRING);
-        assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt1 + "'",
-                "is <strong>fox</strong> ifoxing".equals(excerpt1) || "ifoxing <strong>fox</strong>".equals(excerpt1));
+                nodeExcerpt = firstRow.getValue("rep:excerpt");
+                assertNotNull("rep:excerpt not evaluated", nodeExcerpt);
+                excerpt1 = nodeExcerpt.getValue(STRING);
+                assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt1 + "'",
+                        "is <strong>fox</strong> ifoxing".equals(excerpt1) || "ifoxing <strong>fox</strong>".equals(excerpt1));
 
-        nodeExcerpt = firstRow.getValue("rep:excerpt(.)");
-        assertNotNull("rep:excerpt(.) not evaluated", nodeExcerpt);
-        excerpt2 = nodeExcerpt.getValue(STRING);
-        assertEquals("excerpt extracted via rep:excerpt not same as rep:excerpt(.)", excerpt1, excerpt2);
+                nodeExcerpt = firstRow.getValue("rep:excerpt(.)");
+                assertNotNull("rep:excerpt(.) not evaluated", nodeExcerpt);
+                excerpt2 = nodeExcerpt.getValue(STRING);
+                assertEquals("excerpt extracted via rep:excerpt not same as rep:excerpt(.)", excerpt1, excerpt2);
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 
     @Test
@@ -141,14 +162,21 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.setProperty("baz", "is fox ifoxing");
         root.commit();
 
-        String query = "SELECT [rep:excerpt(baz)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(() -> {
+            String query = "SELECT [rep:excerpt(baz)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue nodeExcerpt = firstRow.getValue("rep:excerpt(baz)");
-        assertNull("rep:excerpt(baz) if requested explicitly must be indexed to be evaluated", nodeExcerpt);
+                PropertyValue nodeExcerpt = firstRow.getValue("rep:excerpt(baz)");
+                assertNull("rep:excerpt(baz) if requested explicitly must be indexed to be evaluated", nodeExcerpt);
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 
     @Test
@@ -158,19 +186,26 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT [rep:excerpt(foo)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(() -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue nodeExcerpt;
-        String excerpt;
+                PropertyValue nodeExcerpt;
+                String excerpt;
 
-        nodeExcerpt = firstRow.getValue("rep:excerpt(foo)");
-        assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
-        excerpt = nodeExcerpt.getValue(STRING);
-        assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
-                "is <strong>fox</strong> ifoxing".equals(excerpt));
+                nodeExcerpt = firstRow.getValue("rep:excerpt(foo)");
+                assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
+                excerpt = nodeExcerpt.getValue(STRING);
+                assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
+                        "is <strong>fox</strong> ifoxing".equals(excerpt));
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 
     @Test
@@ -180,22 +215,29 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(() -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue nodeExcerpt;
-        String excerpt;
+                PropertyValue nodeExcerpt;
+                String excerpt;
 
-        nodeExcerpt = firstRow.getValue("rep:excerpt(foo)");
-        assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
-        excerpt = nodeExcerpt.getValue(STRING);
-        assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
-                excerpt.contains("<strong>fox</strong>"));
+                nodeExcerpt = firstRow.getValue("rep:excerpt(foo)");
+                assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
+                excerpt = nodeExcerpt.getValue(STRING);
+                assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
+                        excerpt.contains("<strong>fox</strong>"));
 
-        assertTrue("rep:excerpt(foo) highlighting inside words - got '" + excerpt + "'",
-                !excerpt.contains("i<strong>fox</strong>ing"));
+                assertTrue("rep:excerpt(foo) highlighting inside words - got '" + excerpt + "'",
+                        !excerpt.contains("i<strong>fox</strong>ing"));
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 
     @Test
@@ -206,22 +248,29 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(() -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue nodeExcerpt;
-        String excerpt;
+                PropertyValue nodeExcerpt;
+                String excerpt;
 
-        nodeExcerpt = firstRow.getValue("rep:excerpt(baz)");
-        assertNotNull("rep:excerpt(baz) not evaluated", nodeExcerpt);
-        excerpt = nodeExcerpt.getValue(STRING);
-        assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
-                excerpt.contains("<strong>fox</strong>"));
+                nodeExcerpt = firstRow.getValue("rep:excerpt(baz)");
+                assertNotNull("rep:excerpt(baz) not evaluated", nodeExcerpt);
+                excerpt = nodeExcerpt.getValue(STRING);
+                assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
+                        excerpt.contains("<strong>fox</strong>"));
 
-        assertTrue("rep:excerpt(baz) highlighting inside words - got '" + excerpt + "'",
-                !excerpt.contains("i<strong>fox</strong>ing"));
+                assertTrue("rep:excerpt(baz) highlighting inside words - got '" + excerpt + "'",
+                        !excerpt.contains("i<strong>fox</strong>ing"));
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 
     @Test
@@ -231,19 +280,26 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT [rep:excerpt(relative/baz)] FROM [nt:base] WHERE CONTAINS([relative/baz], 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(() -> {
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue nodeExcerpt;
-        String excerpt;
+                PropertyValue nodeExcerpt;
+                String excerpt;
 
-        nodeExcerpt = firstRow.getValue("rep:excerpt(relative/baz)");
-        assertNotNull("rep:excerpt(relative/baz) not evaluated", nodeExcerpt);
-        excerpt = nodeExcerpt.getValue(STRING);
-        assertTrue("rep:excerpt(relative/baz) didn't evaluate correctly - got '" + excerpt + "'",
-                "is <strong>fox</strong> ifoxing".equals(excerpt));
+                nodeExcerpt = firstRow.getValue("rep:excerpt(relative/baz)");
+                assertNotNull("rep:excerpt(relative/baz) not evaluated", nodeExcerpt);
+                excerpt = nodeExcerpt.getValue(STRING);
+                assertTrue("rep:excerpt(relative/baz) didn't evaluate correctly - got '" + excerpt + "'",
+                        "is <strong>fox</strong> ifoxing".equals(excerpt));
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 
     @Test
@@ -256,19 +312,26 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-        Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
-        assertTrue(resultIter.hasNext());
-        ResultRow firstRow = resultIter.next();
+        assertEventually(()->{
+            Result result = null;
+            try {
+                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
+                ResultRow firstRow = resultIter.next();
 
-        PropertyValue nodeExcerpt;
-        String excerpt;
+                PropertyValue nodeExcerpt;
+                String excerpt;
 
-        nodeExcerpt = firstRow.getValue("rep:excerpt");
-        assertNotNull("rep:excerpt not evaluated", nodeExcerpt);
-        excerpt = nodeExcerpt.getValue(STRING);
-        String expected = binaryText.replaceAll(" fox ", " <strong>fox</strong> ");
-        assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt + "'",
-                excerpt.contains(expected));
+                nodeExcerpt = firstRow.getValue("rep:excerpt");
+                assertNotNull("rep:excerpt not evaluated", nodeExcerpt);
+                excerpt = nodeExcerpt.getValue(STRING);
+                String expected = binaryText.replaceAll(" fox ", " <strong>fox</strong> ");
+                assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt + "'",
+                    excerpt.contains(expected));
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
     }
 }

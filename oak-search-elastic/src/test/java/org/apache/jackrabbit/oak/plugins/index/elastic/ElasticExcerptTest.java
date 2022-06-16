@@ -41,7 +41,7 @@ public class ElasticExcerptTest extends ExcerptTest {
     protected ContentRepository createRepository() {
         ElasticTestRepositoryBuilder builder = new ElasticTestRepositoryBuilder(elasticRule);
         builder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
-        TestRepository repositoryOptionsUtil = builder.build();
+        repositoryOptionsUtil = builder.build();
 
         return repositoryOptionsUtil.getOak().createContentRepository();
     }
