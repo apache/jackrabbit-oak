@@ -186,28 +186,27 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * @throws IOException if suggest dictionary update fails
      * @param analyzer the analyzer used to update the suggester
      */
-    private synchronized boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
-        final Closer closer = Closer.create();
+    private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
+        synchronized (this) {
+            final Closer closer = Closer.create();
 
-        NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
-
-        DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
-
-        final Directory suggestDirectory =
-            directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
-        // updateSuggester would close the directory (directly or via lookup)
-        // closer.register(suggestDirectory);
-        boolean updated = false;
-        try {
-            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
-            suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
-            updated = true;
-        } catch (Throwable e) {
-            log.warn("could not update suggester", e);
-        } finally {
-            closer.close();
+            NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
+            DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
+            final Directory suggestDirectory = directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
+            // updateSuggester would close the directory (directly or via lookup)
+            // closer.register(suggestDirectory);
+            boolean updated = false;
+            try {
+                SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
+                suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
+                updated = true;
+            } catch (Throwable e) {
+                log.warn("could not update suggester", e);
+            } finally {
+                closer.close();
+            }
+            return updated;
         }
-        return updated;
     }
 
     /**
