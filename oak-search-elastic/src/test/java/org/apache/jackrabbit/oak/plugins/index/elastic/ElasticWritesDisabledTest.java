@@ -114,7 +114,7 @@ public class ElasticWriterDisabledTest {
     }
 
     @Test
-    public void elasticDonotIndexDocuments() throws Exception {
+    public void elasticDoNotIndexDocuments() throws Exception {
         IndexDefinitionBuilder indexDefinitionBuilder = new ElasticIndexDefinitionBuilder();
         indexDefinitionBuilder.noAsync();
         IndexDefinitionBuilder.IndexRule indexRule = indexDefinitionBuilder.indexRule("nt:base");
@@ -140,7 +140,7 @@ public class ElasticWriterDisabledTest {
     }
 
     @Test
-    public void elasticDonotIndexOnReindex() throws Exception {
+    public void elasticDoNotIndexOnReindex() throws Exception {
         IndexDefinitionBuilder indexDefinitionBuilder = new ElasticIndexDefinitionBuilder();
         indexDefinitionBuilder.noAsync();
         IndexDefinitionBuilder.IndexRule indexRule = indexDefinitionBuilder.indexRule("nt:base");
