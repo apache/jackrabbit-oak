@@ -48,14 +48,15 @@ class ElasticIndexHelper {
      * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
      * The returned object can be used to create and index optimized for bulk loads (eg: reindexing) but not for queries.
      * To make it usable, a #enableIndexRequest needs to be performed.
+     *
      * @param remoteIndexName the final index name
      * @param indexDefinition the definition used to read settings/mappings
      * @return a {@code CreateIndexRequest}
      * @throws IOException if an error happens while creating the request
-     *
-     * TODO: index create cannot be migrated to the ES Java client: it does not support custom mappings/settings needed to configure elastiknn.
-     * See discussion in https://discuss.elastic.co/t/elasticsearch-java-client-support-for-custom-mappings-settings/303172
-     * The migration will continue when this roadmap item gets fixed https://github.com/elastic/elasticsearch-java/issues/252
+     *                     <p>
+     *                     TODO: index create cannot be migrated to the ES Java client: it does not support custom mappings/settings needed to configure elastiknn.
+     *                     See discussion in https://discuss.elastic.co/t/elasticsearch-java-client-support-for-custom-mappings-settings/303172
+     *                     The migration will continue when this roadmap item gets fixed https://github.com/elastic/elasticsearch-java/issues/252
      */
     public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
         final CreateIndexRequest request = new CreateIndexRequest(remoteIndexName);
@@ -82,10 +83,11 @@ class ElasticIndexHelper {
 
     /**
      * Returns a {@code UpdateSettingsRequest} to make an index ready to be queried and updated in near real time.
+     *
      * @param remoteIndexName the final index name (no alias)
      * @param indexDefinition the definition used to read settings/mappings
      * @return an {@code UpdateSettingsRequest}
-     *
+     * <p>
      * TODO: migrate to Elasticsearch Java client when the following issue will be fixed
      * <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
      */
@@ -198,17 +200,17 @@ class ElasticIndexHelper {
         checkIndexRules(indexDefinition);
         boolean useInSuggest = false;
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
-            final String name = entry.getKey();
-            final List<PropertyDefinition> propertyDefinitions = entry.getValue();
+            final String pdName = entry.getKey();
+            final List<PropertyDefinition> pds = entry.getValue();
             Type<?> type = null;
-            for (PropertyDefinition pd : propertyDefinitions) {
+            for (PropertyDefinition pd : pds) {
                 type = Type.fromTag(pd.getType(), false);
                 if (pd.useInSuggest) {
                     useInSuggest = true;
                 }
             }
 
-            mappingBuilder.startObject(name);
+            mappingBuilder.startObject(pdName);
             {
                 // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
                 if (Type.BINARY.equals(type)) {
@@ -222,7 +224,7 @@ class ElasticIndexHelper {
                 } else if (Type.BOOLEAN.equals(type)) {
                     mappingBuilder.field("type", "boolean");
                 } else {
-                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                    if (indexDefinition.isAnalyzed(pds)) {
                         mappingBuilder.field("type", "text");
                         mappingBuilder.field("analyzer", "oak_analyzer");
                         // always add keyword for sorting / faceting as sub-field
@@ -235,10 +237,27 @@ class ElasticIndexHelper {
                         }
                         mappingBuilder.endObject();
                     } else {
-                        // always add keyword for sorting / faceting
-                        mappingBuilder
-                                .field("type", "keyword")
-                                .field("ignore_above", 256);
+                        if (indexDefinition.isIndexed(pds)) {
+                            mappingBuilder
+                                    .field("type", "keyword")
+                                    .field("ignore_above", 256);
+                        } else {
+                            if (indexDefinition.isOrdered(pds) || indexDefinition.isFaceted(pds)) {
+                                mappingBuilder
+                                        .field("type", "keyword")
+                                        .field("ignore_above", 256)
+                                        .field("index", false);
+                            } else {
+                                //TODO uncomment the following tests to enable useInExcerpts
+                                /*if ( indexDefinition.useInExcerpts(pds)) {
+                                    mappingBuilder
+                                            .field("type", "keyword")
+                                            .field("ignore_above", 256)
+                                            .field("index", false)
+                                            .field("doc-values", false);
+                                }*/
+                            }
+                        }
                     }
                 }
             }
