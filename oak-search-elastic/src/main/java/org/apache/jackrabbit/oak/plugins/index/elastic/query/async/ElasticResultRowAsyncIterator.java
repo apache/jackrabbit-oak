@@ -153,10 +153,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
      * rep:excerpt(PROPERTY) for other fields.
      * Note: properties to get excerpt from must be included in the _source, which means ingested,
      * not necessarily Elasticsearch indexed, neither included in the mapping properties.
-     *
-     * @param searchHit
-     * @return a map with the excerpts
-     * @throws IOException
      */
     private Map<String, String> readExcerptsFromResponse(Hit<ObjectNode> searchHit) {
         Map<String, String> excerpts = Maps.newHashMap();
