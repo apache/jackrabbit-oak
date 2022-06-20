@@ -170,5 +170,4 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
      */
     @Deprecated
     String INDEX_PATH = "indexPath";
-
 }
