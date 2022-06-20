@@ -155,7 +155,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
      * not necessarily Elasticsearch indexed, neither included in the mapping properties.
      */
     private Map<String, String> readExcerptsFromResponse(Hit<ObjectNode> searchHit) {
-        Map<String, String> excerpts = Maps.newHashMap();
+        Map<String, String> excerpts = new HashMap<>();
         for (String property : searchHit.highlight().keySet()) {
             if (property.equals(":fulltext")) {
                 String excerpt = searchHit.highlight().get(property).get(0);
