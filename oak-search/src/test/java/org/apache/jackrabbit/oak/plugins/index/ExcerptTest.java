@@ -197,8 +197,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 nodeExcerpt = firstRow.getValue("rep:excerpt(foo)");
                 assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
                 excerpt = nodeExcerpt.getValue(STRING);
-                assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
-                        "is <strong>fox</strong> ifoxing".equals(excerpt));
+                assertEquals("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'", 
+                        "is <strong>fox</strong> ifoxing", excerpt);
             } catch (ParseException e) {
                 fail(e.getMessage());
             }
