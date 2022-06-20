@@ -38,6 +38,10 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     private final ElasticConnection elasticConnection;
     private final ExtractedTextCache extractedTextCache;
 
+    public final static  String OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY = "oak.index.elastic.writer.disable";
+
+    private final boolean OAK_INDEX_ELASTIC_WRITER_DISABLE = Boolean.getBoolean(OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY);
+
     public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
                                       @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache) {
@@ -50,7 +54,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     public @Nullable Editor getIndexEditor(@NotNull String type,
                                            @NotNull NodeBuilder definition, @NotNull NodeState root,
                                            @NotNull IndexUpdateCallback callback) {
-        if (TYPE_ELASTICSEARCH.equals(type)) {
+        if (TYPE_ELASTICSEARCH.equals(type) && !OAK_INDEX_ELASTIC_WRITER_DISABLE) {
             if (!(callback instanceof ContextAwareCallback)) {
                 throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");
             }
