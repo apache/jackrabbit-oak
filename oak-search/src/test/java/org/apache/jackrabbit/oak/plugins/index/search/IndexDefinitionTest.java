@@ -98,7 +98,7 @@ public class IndexDefinitionTest {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
         assertFalse(idxDefn.isFullTextEnabled());
-        assertFalse("If fulltext disabled then nothing stored", rule.getConfig("foo").useInExcerpt);
+        assertFalse("If fulltext disabled then nothing stored", rule.getConfig("foo").stored);
 
         assertTrue(rule.includePropertyType(PropertyType.LONG));
         assertFalse(rule.includePropertyType(PropertyType.STRING));
@@ -747,7 +747,7 @@ public class IndexDefinitionTest {
         assertFalse(pd.useInSpellcheck);
         assertFalse(pd.nullCheckEnabled);
         assertFalse(pd.notNullCheckEnabled);
-        assertFalse(pd.useInExcerpt);
+        assertFalse(pd.stored);
         assertFalse(pd.ordered);
         assertFalse(pd.analyzed);
 
