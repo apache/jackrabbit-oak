@@ -84,7 +84,7 @@ public class IndexDefinitionTest {
         assertTrue("By default fulltext is enabled", idxDefn.isFullTextEnabled());
         assertTrue("By default everything is indexed", rule.isIndexed("foo"));
         assertTrue("Property types need to be defined", rule.includePropertyType(PropertyType.DATE));
-        assertTrue("For fulltext storage is enabled", rule.getConfig("foo").useInSuggest);
+        assertTrue("For fulltext storage is enabled", rule.getConfig("foo").stored);
 
         assertFalse(rule.getConfig("foo").skipTokenization("foo"));
         assertTrue(rule.getConfig("jcr:uuid").skipTokenization("jcr:uuid"));
