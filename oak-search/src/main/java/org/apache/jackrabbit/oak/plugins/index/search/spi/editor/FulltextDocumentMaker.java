@@ -168,8 +168,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
             dirty |= indexProperty(path, document, state, property, pname, pd);
 
-            dirty |= checkUseInExcerpts(path, document, property, pname, pd);
-
             facet |= pd.facet;
         }
 
@@ -219,7 +217,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return finalizeDoc(document, dirty, facet);
     }
 
-    protected boolean checkUseInExcerpts(String path, D document, PropertyState property, String pname, PropertyDefinition pd) {
+    protected boolean checkUseInExcerpts(D document, PropertyState property, PropertyDefinition pd) {
         return false;
     }
 
@@ -317,6 +315,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (pd.similarityTags) {
                 dirty |= indexSimilarityTag(doc, property);
             }
+
+            dirty |= checkUseInExcerpts(doc, property, pd);
 
         }
 
