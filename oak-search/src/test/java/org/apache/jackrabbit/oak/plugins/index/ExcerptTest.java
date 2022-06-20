@@ -97,9 +97,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         );
         assertEventually(() -> {
             String query = "SELECT " + selectColumns + " FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
@@ -129,9 +128,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         String query = "SELECT [rep:excerpt],[rep:excerpt(.)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         assertEventually(() -> {
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
@@ -165,9 +163,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             String query = "SELECT [rep:excerpt(baz)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
@@ -188,9 +185,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         String query = "SELECT [rep:excerpt(foo)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         assertEventually(() -> {
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
@@ -217,9 +213,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         assertEventually(() -> {
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
@@ -250,9 +245,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         assertEventually(() -> {
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
@@ -284,9 +278,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         String query = "SELECT [rep:excerpt(relative/baz)] FROM [nt:base] WHERE CONTAINS([relative/baz], 'fox')";
         assertEventually(() -> {
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
@@ -316,9 +309,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
         String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         assertEventually(() -> {
-            Result result = null;
             try {
-                result = executeQuery(query, SQL2, NO_BINDINGS);
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
                 Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
                 assertTrue(resultIter.hasNext());
                 ResultRow firstRow = resultIter.next();
