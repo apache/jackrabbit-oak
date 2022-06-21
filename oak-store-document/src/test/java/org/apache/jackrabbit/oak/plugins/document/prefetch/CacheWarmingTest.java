@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Path;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -49,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.mongodb.client.MongoDatabase;
+import com.google.common.base.Stopwatch;
 
 public class CacheWarmingTest {
 
@@ -110,12 +109,18 @@ public class CacheWarmingTest {
         doSimple(true, true);
     }
 
+    @Test
+    public void simple_nocleanCaches_withprefetch() throws Exception {
+        doSimple(false, true);
+    }
+
     private void doSimple(boolean cleanCaches, boolean prefetch)
             throws InterruptedException, CommitFailedException {
         System.out.println("=== doSimple( cleanCaches = " + cleanCaches + ", prefetch = " + prefetch + " )");
+        Stopwatch sw = Stopwatch.createStarted();
         DocumentStore ds = newMongoDocumentStore();
         final CountingDocumentStore cds = new CountingDocumentStore(ds);
-        logAndReset("after init      ", cds);
+        logAndReset("after init      ", cds, sw);
         DocumentNodeStore store = builderProvider.newBuilder().setDocumentStore(cds).getNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         SortedSet<String> children = new TreeSet<String>();
@@ -126,29 +131,29 @@ public class CacheWarmingTest {
             children.add("/" + name + "/" + name + "/" + name + "/" + name);
             builder.child(name).child(name).child(name).child(name);
         }
-        logAndReset("before merge    ", cds);
+        logAndReset("before merge    ", cds, sw);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        logAndReset("after merge     ", cds);
+        logAndReset("after merge     ", cds, sw);
         if (cleanCaches) {
             // clear the cache via mbean
             store.getMBean().cleanAllCaches();
             // also clear the documentstore cache
             store.getDocumentStore().invalidateCache();
-            logAndReset("after invalidate", cds);
+            logAndReset("after invalidate", cds, sw);
         }
         if (prefetch) {
             final List<String> paths = new ArrayList<>(children);
             final java.util.Collection<String> withParents = withParents(paths);
             withParents.remove("/");
             store.prefetch(withParents, null);
-            logAndReset("after prefetch  ", cds);
+            logAndReset("after prefetch  ", cds, sw);
         }
         // read the children again
         DocumentNodeState root = store.getRoot();
         for (String aChild : root.getChildNodeNames()) {
             assertTrue(root.getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).exists());
         }
-        logAndReset("end             ", cds);
+        logAndReset("read            ", cds, sw);
     }
 
     public static java.util.Collection<String> withParents(java.util.Collection<String> paths) {
@@ -163,15 +168,18 @@ public class CacheWarmingTest {
         return new ArrayList<>(s);
     }
 
-    private void logAndReset(String context, CountingDocumentStore cds) {
+    private void logAndReset(String context,
+                             CountingDocumentStore cds,
+                             Stopwatch sw) {
         System.out.println(context
                 + " -> createOrUpdateCalls = " + cds.getNumCreateOrUpdateCalls(Collection.NODES)
                 + ", findCalls = " + cds.getNumFindCalls(Collection.NODES)
                 + ", queryCalls = " + cds.getNumQueryCalls(Collection.NODES)
                 + ", removalCalls = " + cds.getNumRemoveCalls(Collection.NODES)
                 + ", rawFindCalls = " + db.getCachedCountingCollection("nodes").getFindCounter()
-                );
+                + ", " + sw);
         db.getCachedCountingCollection("nodes").resetFindCounter();
         cds.resetCounters();
+        sw.reset().start();
     }
 }
