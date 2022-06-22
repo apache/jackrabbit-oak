@@ -123,6 +123,11 @@ class CommitBuilder {
         checkNotNull(node);
 
         Path path = node.getPath();
+
+        if (Utils.isNodeNameLong(path, nodeStore.getDocumentStore().getNodeNameLimit())) {
+            throw new DocumentStoreException("Node name is too long: " + path);
+        }
+
         UpdateOp op = node.asOperation(revision);
         if (operations.containsKey(path)) {
             String msg = "Node already added: " + path;

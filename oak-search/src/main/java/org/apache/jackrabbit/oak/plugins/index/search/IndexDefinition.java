@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -193,6 +194,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      */
     public static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
             OrderEntry.Order.DESCENDING);
+
+    private boolean indexSimilarityBinaries;
+    private boolean indexSimilarityStrings;
 
     /**
      * Dynamic boost uses index time boosting. This requires to have a separate field for each unique term that needs to
@@ -488,11 +492,27 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                     defn.getProperty(TYPE_PROPERTY_NAME) != null &&
                             DYNAMIC_BOOST_LITE.contains(defn.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING))
             );
+            this.indexSimilarityBinaries = getSimilarityDefaultValue(defn, INDEX_SIMILARITY_BINARIES);
+            this.indexSimilarityStrings = getSimilarityDefaultValue(defn, INDEX_SIMILARITY_STRINGS);
         } catch (IllegalStateException e) {
             log.error("Config error for index definition at {} . Please correct the index definition "
                     + "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
             throw new IllegalStateException(e);
         }
+    }
+
+    private boolean getSimilarityDefaultValue(NodeState defn, String propertyKey) {
+        return defn.getProperty(propertyKey) == null // = true in case this property is not defined
+                || (defn.getProperty(TYPE_PROPERTY_NAME) != null && isPresent(defn.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING), defn.getProperty(propertyKey).getValue(Type.STRINGS).iterator()));
+    }
+
+    private <T> boolean isPresent(T key, Iterator<T> iterator) {
+        while (iterator.hasNext()){
+            if (key.equals(iterator.next())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public NodeState getDefinitionNodeState() {
@@ -517,6 +537,14 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return true;
+    }
+
+    public boolean shouldIndexSimilarityBinaries() {
+        return indexSimilarityBinaries;
+    }
+
+    public boolean shouldIndexSimilarityStrings() {
+        return indexSimilarityStrings;
     }
 
     public boolean isDynamicBoostLiteEnabled() {

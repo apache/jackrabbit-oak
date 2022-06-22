@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
@@ -397,7 +398,11 @@ public class FlatFileStoreTest {
             assertContainsMergeFolder(spyBuilder.getFlatFileStoreDir(), true);
 
             List<String> sortedPaths = TestUtils.sortPaths(mongoDocs.stream().map(md -> md.path).collect(Collectors.toList()));
-            assertEquals(mongoDocs.size(), nsetf.getTotalProvidedDocCount());
+            // with multi-threaded download and multiple threads,
+            // we can't expect that each entry is downloaded exactly once,
+            // as there could be some overlap (the range check happends
+            // _after_ retrieving the entry)
+            assertTrue(mongoDocs.size() <= nsetf.getTotalProvidedDocCount());
             assertEquals(sortedPaths, entryPaths);
         } finally {
             System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
@@ -479,7 +484,8 @@ public class FlatFileStoreTest {
                     String traverserId = getId();
                     return new Iterator<NodeStateEntry>() {
 
-                        NodeStateEntry lastReturnedDoc;
+                        // ensure we don't get a NullPointerException in logger.debug below
+                        NodeStateEntry lastReturnedDoc = new NodeStateEntryBuilder(null, "/").build();
 
                         @Override
                         public boolean hasNext() {
@@ -488,7 +494,8 @@ public class FlatFileStoreTest {
 
                         @Override
                         public NodeStateEntry next() {
-                            if (providedDocuments.get() == breakAfterDelivering.get()) {
+                            // multiple threads could fail at the same time, that's fine
+                            if (providedDocuments.get() >= breakAfterDelivering.get()) {
                                 logger.debug("{} Breaking after getting docs with id {}", traverserId, lastReturnedDoc.getId());
                                 throw new IllegalStateException(EXCEPTION_MESSAGE);
                             }
