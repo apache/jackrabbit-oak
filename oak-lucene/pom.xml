@@ -142,6 +142,7 @@
             <exclude>**/test.rtf</exclude>
             <exclude>**/test.txt</exclude>
             <exclude>**/fvs.csv</exclude>
+            <exclude>src/test/resources/**/*.txt</exclude>
           </excludes>
         </configuration>
       </plugin>
