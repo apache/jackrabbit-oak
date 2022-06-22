@@ -1726,25 +1726,6 @@ The Apache Lucene version currently used in Oak has a limit of about 2^31 docume
 ([this includes Lucene version 6](http://lucene.apache.org/core/6_5_0/core/org/apache/lucene/codecs/lucene62/package-summary.html#Limitations)).
 If a larger index is needed, please use Apache Solr, which doesn't have this limit.
 
-### <a name="lucene-vs-property"></a>Lucene Index vs Property Index
-
-Lucene based index can be restricted to index only specific properties and in that
-case it is similar to [Property Index](query.html#property-index). However it differs
-from property index in following aspects
-
-1.  Lucene index is Asynchronous - Lucene indexing is done asynchronously with a default
-    interval of 5 secs. If there are lots of writes and those writes are related to what
-    is being indexed then it might cause further delay. Compared to this the property index
-    are always synchronous and upto date.
-
-    So if in your usecase you need the latest result then prefer _Property Indexes_ over
-    _Lucene Index_. Oak 1.6 supports [Near Realtime Indexing](indexing.html#nrt-indexing)
-    which reduce the lag considerably. With this you should be able to use lucene indexing
-    for most cases
-
-2.  Lucene index cannot enforce uniqueness constraint - By virtue of it being asynchronous
-    it cannot enforce uniqueness constraint.
-
 ### <a name="examples"></a>Examples
 
 Have a look at [generating index definition](#generate-index-definition) for some tooling details
