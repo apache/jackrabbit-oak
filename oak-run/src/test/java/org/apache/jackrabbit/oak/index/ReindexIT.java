@@ -139,7 +139,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
                 "test"
         };
         assertExits(1, () -> command.execute(args));
-        assertEquals("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue\n", errContent.toString());
+        assertEquals("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue", errContent.toString("UTF-8").trim());
     }
 
     @Test

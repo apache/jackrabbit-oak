@@ -247,9 +247,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         boolean dirty = false;
         if (Type.BINARY.tag() == property.getType().tag() && pd.useInSimilarity) {
             try {
-                log.trace("indexing similarity binaries for {}", pd.name);
-                indexSimilarityBinaries(doc, pd, property.getValue(Type.BINARY));
-                dirty = true;
+                if (definition.shouldIndexSimilarityBinaries()) {
+                    log.trace("indexing similarity binaries for {}", pd.name);
+                    indexSimilarityBinaries(doc, pd, property.getValue(Type.BINARY));
+                    dirty = true;
+                }
             } catch (Exception e) {
                 log.error("could not index similarity field for property {} and definition {}", property, pd);
             }
@@ -300,7 +302,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                             log.trace("indexing similarity strings for {}", pd.name);
                             try {
                                 // fallback for when feature vectors are written in string typed properties
-                                indexSimilarityStrings(doc, pd, value);
+                                if (definition.shouldIndexSimilarityStrings()) {
+                                    indexSimilarityStrings(doc, pd, value);
+                                }
                             } catch (Exception e) {
                                 log.error("could not index similarity field for property {} and definition {}", property, pd);
                             }
