@@ -87,7 +87,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         externalUsers.put(user.getId().toLowerCase(), (ExternalUser) user);
     }
 
-    private void addGroup(TestIdentity group) {
+    public void addGroup(TestIdentity group) {
         externalGroups.put(group.getId().toLowerCase(), (ExternalGroup) group);
     }
 
@@ -218,13 +218,13 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         }
 
         @NotNull
-        protected TestIdentity withProperty(@NotNull String name, @NotNull Object value) {
+        public TestIdentity withProperty(@NotNull String name, @NotNull Object value) {
             props.put(name, value);
             return this;
         }
 
         @NotNull
-        protected TestIdentity withGroups(@NotNull String ... grps) {
+        public TestIdentity withGroups(@NotNull String ... grps) {
             for (String grp: grps) {
                 groups.add(new ExternalIdentityRef(grp, id.getProviderName()));
             }
