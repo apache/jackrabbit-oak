@@ -40,6 +40,7 @@ however there are differences:
 * `name` is ignored.
 * `indexPath` is ignored.
 * `analyzers` is ignored, except for `indexOriginalTerm`.
+* `useInExcerpt` does not support regexp relative properties.
 * For property definitions, `sync` and `unique` are ignored.
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
 * The behavior for `dynamicBoost` is slightly different: 
