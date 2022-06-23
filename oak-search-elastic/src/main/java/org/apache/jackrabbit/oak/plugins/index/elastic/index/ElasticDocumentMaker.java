@@ -245,5 +245,4 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         }
         return false;
     }
-
 }
