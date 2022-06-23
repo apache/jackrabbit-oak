@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import javax.jcr.PropertyType;
@@ -149,6 +148,7 @@ public class PropertyDefinition {
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX, true);
+        this.stored = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_EXCERPT, false);
         this.nodeScopeIndex = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, false);
 
         //If boost is specified then that field MUST be analyzed
@@ -168,7 +168,6 @@ public class PropertyDefinition {
         this.useInSuggest = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SUGGEST, false);
         this.useInSpellcheck = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
         this.useInSimilarity = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SIMILARITY, false);
-        this.stored = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_EXCERPT, false);
         this.similarityRerank = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SIMILARITY_RERANK, true);
         this.similarityTags = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SIMILARITY_TAGS, false);
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, false);
