@@ -80,6 +80,29 @@ public interface ExternalIdentityConstants {
     boolean DEFAULT_PROTECT_EXTERNAL_IDS = true;
 
     /**
+     * Configuration parameter to enable special protection of external users and groups and the subtrees they define.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-9799">OAK-9799</a>
+     */
+    String PARAM_PROTECT_EXTERNAL_IDENTITIES = "protectExternalIdentities";
+
+    /**
+     * Default value for the {@link #PARAM_PROTECT_EXTERNAL_IDENTITIES} configuration option that doesn't enforce any
+     * protection (backwards compatible behavior).
+     */
+    String VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE = "None";
+    /**
+     * Value for the {@link #PARAM_PROTECT_EXTERNAL_IDENTITIES} configuration option that will log warnings upon 
+     * modification synchronized external users/groups but doesn't enforce the protection.
+     */
+    String VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN = "Warn";
+    /**
+     * Value for the {@link #PARAM_PROTECT_EXTERNAL_IDENTITIES} configuration option that will enforce protection of 
+     * synchronized external identities.
+     */
+    String VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED = "Protected";
+
+    /**
      * Configuration parameter to define names of {@code SystemUserPrincipal}s that should be excluded from the 
      * protection verification for any of the {@code RESERVED_PROPERTY_NAMES} in addition to the built in system principal.
      *
