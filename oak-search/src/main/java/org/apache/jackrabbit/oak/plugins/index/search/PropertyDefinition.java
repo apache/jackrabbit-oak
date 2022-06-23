@@ -253,6 +253,7 @@ public class PropertyDefinition {
                 ", boost=" + boost +
                 ", isRegexp=" + isRegexp +
                 ", index=" + index +
+                ", stored=" + stored +
                 ", nodeScopeIndex=" + nodeScopeIndex +
                 ", propertyIndex=" + propertyIndex +
                 ", analyzed=" + analyzed +
