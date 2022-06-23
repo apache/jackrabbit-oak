@@ -121,9 +121,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -135,7 +135,7 @@ import org.slf4j.LoggerFactory;
  * Implementation of a NodeStore on {@link DocumentStore}.
  */
 public final class DocumentNodeStore
-        implements NodeStore, RevisionContext, Observable, Clusterable, NodeStateDiffer {
+        implements NodeStore, RevisionContext, Observable, Clusterable, PrefetchNodeStore, NodeStateDiffer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStore.class);
 
@@ -607,7 +607,7 @@ public final class DocumentNodeStore
             leaseUpdateThread.start();
         }
 
-        this.cacheWarming = new CacheWarming(this);
+        this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
         this.store = s;
@@ -1297,6 +1297,33 @@ public final class DocumentNodeStore
         } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
+    }
+
+    /**
+     * Returns the node for the given path and revision from the cache. This
+     * method returns {@code null} if the cache does not have an entry for the
+     * node with the given revision.
+     * <p>
+     * This implementation behaves slightly different from
+     * {@link #getNode(Path, RevisionVector)} when the cache knows a node does
+     * not exist at a location. This method then returns a
+     * {@code DocumentNodeState} which will return false when asked whether it
+     * {@link DocumentNodeState#exists()}.
+     * 
+     * @param path the path of a node state.
+     * @param rev the revision of a node state.
+     * @return the node state or {@code null} if the cache does not have an
+     *          entry for the location and revision.
+     */
+    @Nullable
+    DocumentNodeState getNodeIfCached(@NotNull final Path path,
+                                      @NotNull final RevisionVector rev) {
+        PathRev key = new PathRev(path, rev);
+        DocumentNodeState state = nodeCache.getIfPresent(key);
+        if (state == missing) {
+            state = DocumentNodeState.newMissingNode(this, path, rev);
+        }
+        return state;
     }
 
     @NotNull
@@ -3876,26 +3903,4 @@ public final class DocumentNodeStore
             cacheWarming.prefetch(paths, null);
         }
     }
-
-    public DocumentNodeState getNodeIfCached(@NotNull final Path path,
-            @NotNull final RevisionVector rev) {
-        PathRev key = new PathRev(path, rev);
-        return nodeCache.getIfPresent(key);
-    }
-
-    public boolean isCached(String path, DocumentNodeState rootState) {
-        if (rootState == null) {
-            // don't know
-            return false;
-        }
-        DocumentNodeState n = rootState;
-        for(String e : PathUtils.elements(path)) {
-            n = n.getChildIfCached(e);
-            if (n == null) {
-                return false;
-            }
-        }
-        return true;
-    }
-
 }

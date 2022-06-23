@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +77,7 @@ public class Cursors {
         return new ConcatCursor(cursors, settings);
     }
 
-    public static Cursor newPrefetchCursor(Cursor cursor, NodeStore store, int prefetchCount, NodeState rootState) {
+    public static Cursor newPrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount, NodeState rootState) {
         return new PrefetchCursor(cursor, store, prefetchCount, rootState);
     }
 
@@ -569,12 +569,12 @@ public class Cursors {
     private static class PrefetchCursor extends AbstractCursor {
 
         private final Cursor cursor;
-        private final NodeStore store;
+        private final PrefetchNodeStore store;
         private final int prefetchCount;
         private final NodeState rootState;
         private Iterator<IndexRow> prefetched;
 
-        PrefetchCursor(Cursor cursor, NodeStore store, int prefetchCount, NodeState rootState) {
+        PrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount, NodeState rootState) {
             this.cursor = cursor;
             this.store = store;
             this.prefetchCount = prefetchCount;

@@ -66,6 +66,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.jetbrains.annotations.NotNull;
 
 class MutableRoot implements Root, PermissionAware {
@@ -322,7 +323,9 @@ class MutableRoot implements Root, PermissionAware {
                         queryEngineSettings,
                         provider,
                         permissionProvider.get(),
-                        store
+                        store instanceof PrefetchNodeStore ?
+                                (PrefetchNodeStore) store :
+                                PrefetchNodeStore.NOOP
                 );
             }
         };

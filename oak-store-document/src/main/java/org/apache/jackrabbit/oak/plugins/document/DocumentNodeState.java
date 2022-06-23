@@ -136,6 +136,17 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         this.memory = memory;
     }
 
+    static DocumentNodeState newMissingNode(@NotNull DocumentNodeStore store,
+                                            @NotNull Path path,
+                                            @NotNull RevisionVector rootRevision) {
+        return new DocumentNodeState(store, path, rootRevision) {
+            @Override
+            public boolean exists() {
+                return false;
+            }
+        };
+    }
+
     /**
      * Creates a copy of this {@code DocumentNodeState} with the
      * {@link #rootRevision} set to the given {@code root} revision. This method
@@ -271,6 +282,11 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         } else {
             return child.withRootRevision(rootRevision, fromExternalChange);
         }
+    }
+
+    @Nullable
+    public DocumentNodeState getChildIfCached(String name) {
+        return store.getNodeIfCached(new Path(getPath(), name), lastRevision);
     }
 
     @Override
@@ -831,12 +847,4 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
 
     }
-
-    public DocumentNodeState getChildIfCached(String name) {
-        if (!hasChildren) {
-            return null;
-        }
-        return store.getNodeIfCached(new Path(getPath(), name), lastRevision);
-    }
-
 }

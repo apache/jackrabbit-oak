@@ -58,7 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -370,7 +370,7 @@ public class SelectorImpl extends SourceImpl {
         }
         int prefetchCount = query.getExecutionContext().getSettings().getPrefetchCount();
         if (prefetchCount > 0) {
-            NodeStore store = query.getExecutionContext().getNodeStore();
+            PrefetchNodeStore store = query.getExecutionContext().getPrefetchNodeStore();
             cursor = Cursors.newPrefetchCursor(cursor, store, prefetchCount, rootState);
         }
     }

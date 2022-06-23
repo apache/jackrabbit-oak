@@ -18,17 +18,18 @@ package org.apache.jackrabbit.oak.plugins.document.prefetch;
 
 import java.util.LinkedList;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 public class CacheWarming {
 
-    private final DocumentNodeStore documentNodeStore;
+    private final DocumentStore store;
 
-    public CacheWarming(DocumentNodeStore documentNodeStore) {
-        this.documentNodeStore = documentNodeStore;
+    public CacheWarming(DocumentStore store) {
+        this.store = store;
     }
 
     public void prefetch(java.util.Collection<String> paths, DocumentNodeState rootState) {
@@ -42,15 +43,37 @@ public class CacheWarming {
      * This would be about pre-warming the DocumentStore
      * @param paths
      */
-    private void prefetchDocumentStore(java.util.Collection<String> paths, DocumentNodeState rootState) {
+    private void prefetchDocumentStore(java.util.Collection<String> paths,
+                                       DocumentNodeState rootState) {
         java.util.Collection<String> ids = new LinkedList<>();
         for (String aPath : paths) {
-            if (!documentNodeStore.isCached(aPath, rootState)) {
+            if (!isCached(aPath, rootState)) {
                 String id = Utils.getIdFromPath(aPath);
                 ids.add(id);
             }
         }
-        documentNodeStore.getDocumentStore().prefetch(Collection.NODES, ids);
+        store.prefetch(Collection.NODES, ids);
+    }
+
+    private boolean isCached(String path, DocumentNodeState rootState) {
+        if (rootState == null) {
+            // don't know
+            return false;
+        }
+        DocumentNodeState n = rootState;
+        for(String e : PathUtils.elements(path)) {
+            if (!n.exists() || n.hasNoChildren()) {
+                // No need to check further down the path.
+                // Descendants do not exist. We don't gain anything
+                // by reading them from the store.
+                break;
+            }
+            n = n.getChildIfCached(e);
+            if (n == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /* caches

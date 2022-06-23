@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,14 +49,14 @@ public class ExecutionContext {
 
     private final PermissionProvider permissionProvider;
 
-    private final NodeStore store;
+    private final PrefetchNodeStore store;
 
     public ExecutionContext(
             NodeState baseState, Root root,
             QueryEngineSettings settings,
             QueryIndexProvider indexProvider,
             PermissionProvider permissionProvider,
-            NodeStore store) {
+            PrefetchNodeStore store) {
         this.baseState = baseState;
         this.root = root;
         this.settings = settings;
@@ -64,7 +65,7 @@ public class ExecutionContext {
         this.store = store;
     }
 
-    public NodeStore getNodeStore() {
+    public PrefetchNodeStore getPrefetchNodeStore() {
         return store;
     }
 
