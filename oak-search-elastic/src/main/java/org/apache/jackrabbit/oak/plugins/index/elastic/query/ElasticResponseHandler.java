@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -27,6 +28,9 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import co.elastic.clients.elasticsearch.core.search.Hit;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Class to process Elastic response objects.
@@ -60,5 +64,26 @@ public class ElasticResponseHandler {
 
     public boolean isAccessible(String path) {
         return filter.isAccessible(path);
+    }
+
+    /**
+     * Reads excerpts from elasticsearch response.
+     * rep:excerpt and rep:excerpt(.) keys are used for :fulltext
+     * rep:excerpt(PROPERTY) for other fields.
+     * Note: properties to get excerpt from must be included in the _source, which means ingested,
+     * not necessarily Elasticsearch indexed, neither included in the mapping properties.
+     */
+    public Map<String, String> excerpts(Hit<ObjectNode> searchHit) {
+        Map<String, String> excerpts = new HashMap<>();
+        for (String property : searchHit.highlight().keySet()) {
+            String excerpt = searchHit.highlight().get(property).get(0);
+            if (property.equals(":fulltext")) {
+                excerpts.put("rep:excerpt(.)", excerpt);
+                excerpts.put("rep:excerpt", excerpt);
+            } else {
+                excerpts.put("rep:excerpt(" + property + ")", excerpt);
+            }
+        }
+        return excerpts;
     }
 }
