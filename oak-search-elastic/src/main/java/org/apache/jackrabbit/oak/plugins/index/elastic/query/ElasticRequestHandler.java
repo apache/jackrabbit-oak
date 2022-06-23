@@ -673,10 +673,10 @@ public class ElasticRequestHandler {
         Map<String, HighlightField> excerpts = indexPlan.getFilter().getPropertyRestrictions().stream()
                 .filter(pr -> pr.propertyName.startsWith(QueryConstants.REP_EXCERPT))
                 .map(this::excerptField)
+                .distinct()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        field -> HighlightField.of(hf -> hf.withJson(new StringReader("{}"))),
-                        (f1, f2) -> f2)
+                        field -> HighlightField.of(hf -> hf.withJson(new StringReader("{}"))))
                 );
 
         if (excerpts.isEmpty()) {
