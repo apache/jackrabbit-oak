@@ -18,14 +18,16 @@ package org.apache.jackrabbit.oak.query.xpath;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.query.QueryOptions;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.xpath.Expression.AndCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+
+import com.google.common.collect.Lists;
 
 /**
  * An xpath statement.
@@ -370,6 +372,12 @@ public class Statement {
         }
         if (queryOptions.limit.isPresent()) {
             optionValues.add("limit " + queryOptions.limit.get());
+        }
+        if (!queryOptions.prefetch.isEmpty()) {
+            String list = String.join(", ",
+                    Lists.transform(queryOptions.prefetch,
+                            SQL2Parser::escapeStringLiteral));
+            optionValues.add("prefetch (" + list + ")");
         }
         buff.append(String.join(", ", optionValues));
         buff.append(")");

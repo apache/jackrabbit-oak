@@ -76,6 +76,21 @@ public interface QueryEngineSettingsMBean {
     int getPrefetchCount();
 
     /**
+     * Change the automatic query options mapping.
+     *
+     * @param json the new mapping, in Json format
+     */
+    void setAutoOptionsMappingJson(String json);
+
+    /**
+     * Get the automatic query options mapping.
+     *
+     * @return the mapping, in Json format
+     */
+    @Description("Get the automatic query options mapping, in Json format.")
+    String getAutoOptionsMappingJson();
+
+    /**
      * Whether queries that don't use an index will fail (throw an exception).
      * The default is false.
      * 
@@ -170,7 +185,7 @@ public interface QueryEngineSettingsMBean {
             @Name("class names")
             @NotNull String[] classNames);
     
-//    @Description("Get the Java package / fully qualified class names to ignore when finding the caller of query")
+    // @Description("Get the Java package / fully qualified class names to ignore when finding the caller of query")
     @NotNull
     String[] getIgnoredClassNamesInCallTrace();
 }

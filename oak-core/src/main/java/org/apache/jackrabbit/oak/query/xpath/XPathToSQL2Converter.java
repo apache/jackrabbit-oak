@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.xpath.Statement.UnionStatement;
@@ -76,6 +77,16 @@ public class XPathToSQL2Converter {
     private ArrayList<String> expected;
     private Selector currentSelector = new Selector();
     private ArrayList<Selector> selectors = new ArrayList<Selector>();
+
+    private final QueryEngineSettings settings;
+
+    public XPathToSQL2Converter() {
+        this(null);
+    }
+
+    public XPathToSQL2Converter(QueryEngineSettings settings) {
+        this.settings = settings;
+    }
 
     /**
      * Convert the query to SQL2.
@@ -387,7 +398,12 @@ public class XPathToSQL2Converter {
         QueryOptions options = null;
         if (readIf("option")) {
             read("(");
-            options = new QueryOptions();
+            if (settings == null) {
+                options = new QueryOptions();
+            } else {
+                QueryOptions defaultOptions = settings.getAutomaticQueryOptions().getDefaultValues(query);
+                options = new QueryOptions(defaultOptions);
+            }
             while (true) {
                 if (readIf("traversal")) {
                     String type = readIdentifier().toUpperCase(Locale.ENGLISH);
@@ -402,7 +418,16 @@ public class XPathToSQL2Converter {
                     options.offset = Optional.of(readNumber());
                 } else if (readIf("limit")) {
                     options.limit = Optional.of(readNumber());
-                } else { 
+                } else if (readIf("prefetch")) {
+                    read("(");
+                    ArrayList<String> list = new ArrayList<String>();
+                    do {
+                        String x = readString();
+                        list.add(x);
+                    } while (readIf(","));
+                    read(")");
+                    options.prefetch = list;
+                } else {
                     break;
                 }
                 readIf(",");
@@ -853,6 +878,15 @@ public class XPathToSQL2Converter {
         }
     }
 
+    private String readString() throws ParseException {
+        if (currentTokenType != VALUE_STRING) {
+            throw getSyntaxError("string value");
+        }
+        String result = currentToken;
+        read();
+        return result;
+    }
+
     private Expression.Property readProperty() throws ParseException {
         if (readIf("*")) {
             return new Expression.Property(currentSelector, "*", false);
@@ -1190,7 +1224,7 @@ public class XPathToSQL2Converter {
             int startParseIndex) throws ParseException {
         int start = query.indexOf("(", startParseIndex);
         String begin = query.substring(0, start);
-        XPathToSQL2Converter converter = new XPathToSQL2Converter();
+        XPathToSQL2Converter converter = new XPathToSQL2Converter(settings);
         String partList = query.substring(start);
         converter.initialize(partList);
         converter.read();
@@ -1226,7 +1260,7 @@ public class XPathToSQL2Converter {
         QueryOptions queryOptions = null;
         for(String p : parts) {
             String q = begin + p + end;
-            converter = new XPathToSQL2Converter();
+            converter = new XPathToSQL2Converter(settings);
             Statement stat = converter.convertToStatement(q);
             orderList = stat.orderList;
             queryOptions = stat.queryOptions;

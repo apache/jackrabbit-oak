@@ -169,7 +169,15 @@ public class SQL2Parser {
             read("BY");
             orderings = parseOrder();
         }
-        QueryOptions options = new QueryOptions();
+
+        QueryOptions defaultOptions = settings.getAutomaticQueryOptions().getDefaultValues(query);
+        QueryOptions options = new QueryOptions(defaultOptions);
+        if (options.limit.isPresent()) {
+            q.setLimit(options.limit.get());
+        }
+        if (options.offset.isPresent()) {
+            q.setLimit(options.offset.get());
+        }
         if (readIf("OPTION")) {
             read("(");
             while (true) {
@@ -186,6 +194,15 @@ public class SQL2Parser {
                     q.setOffset(readNumber());
                 } else if (readIf("LIMIT")) {
                     q.setLimit(readNumber());
+                } else if (readIf("PREFETCH")) {
+                    read("(");
+                    ArrayList<String> list = new ArrayList<String>();
+                    do {
+                        String x = readString().getValue(Type.STRING);
+                        list.add(x);
+                    } while (readIf(","));
+                    read(")");
+                    options.prefetch = list;
                 } else {
                     break;
                 }

@@ -931,6 +931,16 @@ public class Oak {
         }
 
         @Override
+        public String getAutoOptionsMappingJson() {
+            return settings.getAutoOptionsMappingJson();
+        }
+
+        @Override
+        public void setAutoOptionsMappingJson(String json) {
+            settings.setAutoOptionsMappingJson(json);
+        }
+
+        @Override
         public boolean getFailTraversal() {
             return settings.getFailTraversal();
         }

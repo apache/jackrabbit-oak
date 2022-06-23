@@ -66,12 +66,17 @@ public class QueryRecorder {
         if (LOG.isTraceEnabled()) {
             LOG.trace("query:\t{}", query);
         }
+        query = simplifySafely(query);
+        record(query);
+    }
+
+    public static String simplifySafely(String query) {
         try {
-            query = simplify(query);
+            return simplify(query);
         } catch (Exception e) {
             LOG.trace("failed to simplify {}", query, e);
+            return query;
         }
-        record(query);
     }
     
     public static String simplify(String query) {

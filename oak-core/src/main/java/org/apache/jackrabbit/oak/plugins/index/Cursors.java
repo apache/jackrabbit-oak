@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -77,8 +79,9 @@ public class Cursors {
         return new ConcatCursor(cursors, settings);
     }
 
-    public static Cursor newPrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount, NodeState rootState) {
-        return new PrefetchCursor(cursor, store, prefetchCount, rootState);
+    public static Cursor newPrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount,
+            NodeState rootState, List<String> prefetchRelative) {
+        return new PrefetchCursor(cursor, store, prefetchCount, rootState, prefetchRelative);
     }
 
     /**
@@ -573,24 +576,27 @@ public class Cursors {
         private final int prefetchCount;
         private final NodeState rootState;
         private Iterator<IndexRow> prefetched;
+        private final List<String> prefetchRelative;
 
-        PrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount, NodeState rootState) {
+        PrefetchCursor(Cursor cursor, PrefetchNodeStore store, int prefetchCount, NodeState rootState, List<String> prefetchRelative) {
             this.cursor = cursor;
             this.store = store;
             this.prefetchCount = prefetchCount;
             this.rootState = rootState;
             this.prefetched = Iterators.emptyIterator();
+            this.prefetchRelative = prefetchRelative;
         }
 
         @Override
         public IndexRow next() {
             if (!prefetched.hasNext()) {
                 ArrayList<IndexRow> rows = new ArrayList<>();
-                HashSet<String> paths = new HashSet<>();
+                TreeSet<String> paths = new TreeSet<>();
                 for (int i = 0; i < prefetchCount && cursor.hasNext(); i++) {
                     IndexRow row = cursor.next();
                     rows.add(row);
                     String p = row.getPath();
+                    prefetchRelative(paths, p);
                     do {
                         paths.add(p);
                         p = PathUtils.getParentPath(p);
@@ -600,6 +606,13 @@ public class Cursors {
                 prefetched = rows.iterator();
             }
             return prefetched.next();
+        }
+
+        private void prefetchRelative(Set<String> target, String p) {
+            for (String r : prefetchRelative) {
+                String concat = PathUtils.concat(p, r);
+                target.add(concat);
+            }
         }
 
         @Override

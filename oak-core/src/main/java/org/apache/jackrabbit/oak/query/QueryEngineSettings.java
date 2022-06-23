@@ -106,6 +106,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT, 1024 * 1024); // 1 MB
     private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
 
+    private String autoOptionsMappingJson = "{}";
+    private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
 
     public long getQueryLengthWarnLimit() {
         return queryLengthWarnLimit;
@@ -151,6 +153,21 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     @Override
     public int getPrefetchCount() {
         return prefetchCount;
+    }
+
+    @Override
+    public void setAutoOptionsMappingJson(String json) {
+        autoOptionsMappingJson = json;
+        autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(json);
+    }
+
+    @Override
+    public String getAutoOptionsMappingJson() {
+        return autoOptionsMappingJson;
+    }
+
+    public QueryOptions.AutomaticQueryOptionsMapping getAutomaticQueryOptions() {
+        return autoOptionsMapping;
     }
 
     @Override
@@ -223,7 +240,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public void setIgnoredClassNamesInCallTrace(@NotNull String[] packageNames) {
         classNamesIgnoredInCallTrace = packageNames;
     }
-    
+
     public @NotNull String[] getIgnoredClassNamesInCallTrace() {
         return classNamesIgnoredInCallTrace;
     }
