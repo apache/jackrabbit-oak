@@ -76,6 +76,8 @@ public class PropertyDefinition {
 
     public final boolean index;
 
+    public final boolean stored;
+
     public final boolean nodeScopeIndex;
 
     public final boolean propertyIndex;
@@ -95,8 +97,6 @@ public class PropertyDefinition {
     public final boolean useInSuggest;
 
     public final boolean useInSpellcheck;
-
-    public final boolean stored;
 
     public final boolean facet;
 
