@@ -21,7 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.*;
+import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextDocumentMaker;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -243,14 +246,4 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         return false;
     }
 
-    protected boolean checkUseInExcerpts(ElasticDocument doc, PropertyState property, PropertyDefinition pd) {
-        if (pd.stored && property.getType().equals(Type.STRING)) {
-            String val = property.getValue(Type.STRING);
-            if (val.length() > 0) {
-                doc.addProperty(property.getName(), val);
-            }
-            return true;
-        }
-        return false;
-    }
 }

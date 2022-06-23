@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
 import java.io.IOException;
@@ -217,10 +216,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return finalizeDoc(document, dirty, facet);
     }
 
-    protected boolean checkUseInExcerpts(D document, PropertyState property, PropertyDefinition pd) {
-        return false;
-    }
-
     private boolean indexFacets(D doc, PropertyState property, String pname, PropertyDefinition pd) {
         int tag = property.getType().tag();
         int idxDefinedTag = pd.getType();
@@ -319,8 +314,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (pd.similarityTags) {
                 dirty |= indexSimilarityTag(doc, property);
             }
-
-            dirty |= checkUseInExcerpts(doc, property, pd);
 
         }
 

@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.api.*;
 import org.apache.jackrabbit.oak.plugins.index.ExcerptTest;
 import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class ElasticExcerptTest extends ExcerptTest {
 
@@ -42,5 +44,19 @@ public class ElasticExcerptTest extends ExcerptTest {
     @Override
     protected void createTestIndexNode() {
         setTraversalEnabled(false);
+    }
+
+    @Override
+    @Test
+    @Ignore("no support for excerpt from regexp")
+    public void getAllSelectedColumns() throws Exception {
+        super.getAllSelectedColumns();
+    }
+
+    @Override
+    @Test
+    @Ignore("no support for excerpt from regexp")
+    public void propExcerpt() throws Exception {
+        super.propExcerpt();
     }
 }
