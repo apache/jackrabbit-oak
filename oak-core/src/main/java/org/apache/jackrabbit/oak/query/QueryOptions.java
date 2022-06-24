@@ -117,6 +117,11 @@ public class QueryOptions {
         }
 
         public QueryOptions getDefaultValues(String statement) {
+            if (map.isEmpty()) {
+                // no need to simplify if there are no entries
+                // (which is probably most of the time)
+                return new QueryOptions();
+            }
             String queryPattern = QueryRecorder.simplifySafely(statement);
             return map.computeIfAbsent(queryPattern, v -> new QueryOptions());
         }
