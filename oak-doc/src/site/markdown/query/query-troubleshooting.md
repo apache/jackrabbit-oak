@@ -112,7 +112,7 @@ This feature should only be used for those rare corner cases.
     and [commerceType] = 'product'
     option(traversal ok)
 
-#### Estimating Node Counts
+#### Estimating Node Counts
 
 To find out how many nodes are in a certain path, you can use the JMX bean `NodeCounter`,
 which can estimate the node count. Example: run
@@ -128,7 +128,7 @@ which can estimate the node count. Example: run
 So in this case, there are still many nodes below `/etc/commerce` in the production repository. 
 Also note that the number of nodes can grow over time.
 
-#### Prevent Running Traversal Queries
+#### Prevent Running Traversal Queries
 
 To avoid running queries that don't use an index altogether,
 you can change the configuration in the JMX bean `QueryEngineSettings`:
