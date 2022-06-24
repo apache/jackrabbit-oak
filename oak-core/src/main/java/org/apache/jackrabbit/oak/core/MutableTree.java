@@ -348,7 +348,7 @@ final class MutableTree extends AbstractMutableTree {
     private void beforeWrite() throws IllegalStateException {
         beforeRead();
         if (!super.exists()) {
-            throw new IllegalStateException("This tree does not exist");
+            throw new IllegalStateException("This tree does not exist for "  + super.getPath());
         }
     }
 
