@@ -28,12 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
 
@@ -48,6 +43,7 @@ public class ElasticDocument {
     private final Map<String, Object> similarityFields;
     private final Map<String, Map<String, Double>> dynamicBoostFields;
     private final Set<String> similarityTags;
+    private final Map<String, Set<Object>> toStoreInSource;
 
     ElasticDocument(String path) {
         this.path = path;
@@ -58,6 +54,7 @@ public class ElasticDocument {
         this.similarityFields = new HashMap<>();
         this.dynamicBoostFields = new HashMap<>();
         this.similarityTags = new LinkedHashSet<>();
+        this.toStoreInSource = new HashMap<>();
     }
 
     void addFulltext(String value) {
@@ -106,6 +103,17 @@ public class ElasticDocument {
         similarityTags.add(value);
     }
 
+    /**
+     * Fields that are sent to Elasticsearch to be stored as part of the _source document meta-field.
+     * They need to be ingested (not indexed, not doc-values).
+     * Necessary when excerpts are supported
+     * @param fieldName
+     * @param value
+     */
+    void addToStoreInSource(String fieldName, Object value) {
+        toStoreInSource.computeIfAbsent(fieldName, s -> new HashSet<Object>()).add(value);
+    }
+
     public String build() {
         String ret;
         try {
@@ -147,13 +155,16 @@ public class ElasticDocument {
                 if (!similarityTags.isEmpty()) {
                     builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);
                 }
+                for (Map.Entry<String, Set<Object>> prop : toStoreInSource.entrySet()) {
+                    builder.field(prop.getKey(), prop.getValue());
+                }
             }
             builder.endObject();
 
             ret = Strings.toString(builder);
         } catch (IOException e) {
-            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, ",
-                    path, properties, fulltext, suggest, e);
+            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, useInExcerptFields: {} ",
+                    path, properties, fulltext, suggest, toStoreInSource, e);
             ret = null;
         }
 
@@ -164,5 +175,4 @@ public class ElasticDocument {
     public String toString() {
         return build();
     }
-
 }

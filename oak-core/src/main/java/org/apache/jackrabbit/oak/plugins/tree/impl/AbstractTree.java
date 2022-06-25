@@ -40,6 +40,7 @@ import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
@@ -150,34 +151,60 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public String toString() {
-        return toString(5);
+        return toJsonString(2);
     }
 
-    private String toString(int childNameCountLimit) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getPath()).append(": ");
-
-        sb.append('{');
-        for (PropertyState p : getProperties()) {
-            sb.append(' ').append(p).append(',');
+    /**
+     * Represents an OAK tree as a JSON object string
+     * When the representation is limited in depth, {"...":"..."} represents the limit.
+     * Note that, try-catch sentences are used to add "ERROR: "+e.getMessage() values in case of representation error.
+     * Note that, this is a recursive method.
+     * @param depth tree depth to represent. Use -1 for an unlimited depth.
+     * @return json object representation of the tree as a string
+     */
+    public String toJsonString(int depth){
+        if(depth == 0){
+            return "\"...\"";
         }
+        String str = "{";
+        str += "\"_properties_\":{ ";
+        for (PropertyState ps : this.getProperties()){
+            str+="\""+ps.getName()+"\":";
 
-        Iterator<String> names = this.getChildNames().iterator();
-        int count = 0;
-        while (names.hasNext() && ++count <= childNameCountLimit) {
-            sb.append(' ').append(names.next()).append(" = { ... },");
+            if(ps.getType().isArray()){
+                str += "[ ";
+                for(int i=0; i<ps.count(); i++){
+                    try {
+                        str += "\"" + jsonStringEscaper(ps.getValue(Type.STRING, i)) + "\",";
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        str += "\"ERROR:" + jsonStringEscaper(e.getMessage()) + "\",";
+                    }
+                }
+                str = str.substring(0,str.length()-1); //removing the space or the ,
+                str += "],";
+            }else {
+                try{
+                    str += "\"" + jsonStringEscaper(ps.getValue(Type.STRING)) + "\",";
+                }catch (Exception e){
+                    e.printStackTrace();
+                    str += "\"ERROR:" + jsonStringEscaper(e.getMessage()) + "\",";
+                }
+            }
         }
-
-        if (names.hasNext()) {
-            sb.append(" ...");
+        str = str.substring(0,str.length()-1); //removing the space or the ,
+        str+="},";
+        for (Tree child : this.getChildren()){
+            str+="\""+child.getName()+"\":";
+            str+=((AbstractTree)child).toJsonString(depth-1)+",";
         }
+        str = str.substring(0,str.length()-1); //removing the ,
+        str+="}";
+        return str;
+    }
 
-        if (sb.charAt(sb.length() - 1) == ',') {
-            sb.deleteCharAt(sb.length() - 1);
-        }
-        sb.append('}');
-
-        return sb.toString();
+    private String jsonStringEscaper(String value){
+        return value.replaceAll("\"","\\/");
     }
 
     //---------------------------------------------------------------< Tree >---
