@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
@@ -39,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.Monitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -51,11 +54,13 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
 import javax.jcr.ValueFactory;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -173,7 +178,48 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         assertEquals(1, validatorProviders.size());
         assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
     }
+    
+    @Test
+    public void testGetValidatorsIdentityProtectionWarn() {
+        externalPrincipalConfiguration.setParameters(ConfigurationParameters.of(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDENTITIES, ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN));
 
+        ContentSession cs = root.getContentSession();
+        String workspaceName = cs.getWorkspaceName();
+        
+        // access validators for regular session
+        List<? extends ValidatorProvider> validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, cs.getAuthInfo().getPrincipals(), new MoveTracker());
+        assertEquals(2, validatorProviders.size());
+        assertTrue(validatorProviders.get(1) instanceof ExternalUserValidatorProvider);
+        
+        // access validators for system-session
+        validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, SystemSubject.INSTANCE.getPrincipals(), new MoveTracker());
+        assertEquals(1, validatorProviders.size());
+        assertFalse(validatorProviders.get(0) instanceof ExternalUserValidatorProvider);
+    }
+
+    @Test
+    public void testGetValidatorsIdentityProtectionProtect() {
+        String principalName = UserConstants.DEFAULT_ADMIN_ID;
+        externalPrincipalConfiguration.setParameters(ConfigurationParameters.of(
+                ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDENTITIES, ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED,
+                ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, new String[] {principalName}));
+
+        ContentSession cs = root.getContentSession();
+        String workspaceName = cs.getWorkspaceName();
+
+        // access validators for regular session (no system user principal)
+        List<? extends ValidatorProvider> validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, cs.getAuthInfo().getPrincipals(), new MoveTracker());
+        assertEquals(2, validatorProviders.size());
+        assertTrue(validatorProviders.get(1) instanceof ExternalUserValidatorProvider);
+
+        // access validators for system-user-principal
+        Set<Principal> systemPrincipals = Collections.singleton((SystemUserPrincipal) () -> principalName); 
+        validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, systemPrincipals, new MoveTracker());
+        assertEquals(1, validatorProviders.size());
+        assertFalse(validatorProviders.get(0) instanceof ExternalUserValidatorProvider);
+    }
+
+    
     @Test
     public void testGetProtectedItemImporters() {
         List<? extends ProtectedItemImporter> importers = externalPrincipalConfiguration.getProtectedItemImporters();

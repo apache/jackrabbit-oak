@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -56,6 +58,10 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDENTITIES;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN;
 
 /**
  * Implementation of the {@code PrincipalConfiguration} interface that provides
@@ -78,6 +84,14 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
                 label = "External Identity Protection",
                 description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
                 boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
+        @Property(name = PARAM_PROTECT_EXTERNAL_IDENTITIES,
+                label = "External User and Group Protection",
+                description = "If 'None' is selected the synchronized external users/groups won't be protected (backwards compatible behavior) and can be edited like local users/groups. NOTE: in order to avoid having inconsistencies between the IDP that defines the external identities and local synced identities it is recommend to enable the protection. With option 'Warn' the protection is disabled but warnings will be logged.",
+                options = {
+                    @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE),
+                    @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN),
+                    @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED)
+                }),
         @Property(name = ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, 
                 label = "System Principal Names", 
                 description = "Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check. Note that this configuration does not grant the required permission to perform the operation.", 
@@ -139,8 +153,16 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        SystemPrincipalConfig spConfig = new SystemPrincipalConfig(getPrincipalNames());
-        return Collections.singletonList(new ExternalIdentityValidatorProvider(spConfig.containsSystemPrincipal(principals), protectedExternalIds()));
+        boolean isSystem = new SystemPrincipalConfig(getPrincipalNames()).containsSystemPrincipal(principals);
+        
+        ValidatorProvider idValidatorProvider = new ExternalIdentityValidatorProvider(isSystem, protectedExternalIds());
+        IdentityProtectionType ipt = getIdentityProtectionType();
+        if (ipt != IdentityProtectionType.NONE && !isSystem) {
+            ValidatorProvider extUserValidatorProvider = new ExternalUserValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), ipt);
+            return ImmutableList.of(idValidatorProvider, extUserValidatorProvider);
+        } else {
+            return Collections.singletonList(idValidatorProvider);
+        }
     }
 
     @NotNull
@@ -199,6 +221,10 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
     private boolean protectedExternalIds() {
         return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS);
+    }
+
+    private @NotNull IdentityProtectionType getIdentityProtectionType() {
+        return IdentityProtectionType.fromLabel(getParameters().getConfigValue(PARAM_PROTECT_EXTERNAL_IDENTITIES, VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE));
     }
     
     @NotNull
