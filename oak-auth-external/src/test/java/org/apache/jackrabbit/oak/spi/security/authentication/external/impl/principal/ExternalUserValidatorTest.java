@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
@@ -37,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -74,6 +77,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -465,11 +469,9 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
         assertNotNull(extuser);
         assertFalse(extuser.isGroup());
         
-        // disabling/enabling of users must still be possible.
         ((User) extuser).disable("disable");
-        root.commit();
-        ((User) extuser).disable(null);
-        root.commit();
+        assertCommit();
+        assertEquals(!exceptionExpected(), root.getTree(externalUserPath).hasProperty(UserConstants.REP_DISABLED));
     }
 
     @Test
@@ -504,5 +506,22 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
 
         sysRoot.refresh();
         assertFalse(sysRoot.getTree(path).exists());
+    }
+    
+    @Test
+    public void testValidatorWithTypeNone() {
+        if (type == IdentityProtectionType.NONE) {
+            RootProvider rp = mock(RootProvider.class);
+            TreeProvider tp = mock(TreeProvider.class);
+            SecurityProvider sp = mock(SecurityProvider.class);
+            try {
+                ExternalUserValidatorProvider vp = new ExternalUserValidatorProvider(rp, tp, sp, type);
+                fail("IllegalArgumentException expected");
+            } catch (IllegalArgumentException e) {
+                // success
+            } finally {
+                verifyNoInteractions(rp, tp, sp);
+            }
+        }
     }
 }

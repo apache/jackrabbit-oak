@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -46,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 
 class ExternalUserValidatorProvider extends ValidatorProvider implements ExternalIdentityConstants  {
@@ -65,6 +65,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
                                   @NotNull TreeProvider treeProvider, 
                                   @NotNull SecurityProvider securityProvider,
                                   @NotNull IdentityProtectionType protectionType) {
+        checkArgument(protectionType != IdentityProtectionType.NONE);
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
         this.protectionType = protectionType;
@@ -235,8 +236,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
         }
 
         /**
-         * Disabling user accounts should still be allowed.
-         * The same applies to adding mixin types that define security-related content as this is not a 
+         * Adding mixin types that define security-related content as this is not a 
          * modification of the user/group that is exposed through user-mgt API. Note however, that editing non-security
          * related mixins would still fail as the child items defined by the mixin type cannot be written.
          * 
@@ -247,8 +247,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             if (propertyState == null) {
                 return false;
             } else {
-                String name = propertyState.getName();
-                return UserConstants.REP_DISABLED.equals(name) || JCR_MIXINTYPES.equals(name);
+                return JCR_MIXINTYPES.equals(propertyState.getName());
             }
         }
         
@@ -264,6 +263,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             if (protectionType == IdentityProtectionType.WARN) {
                 log.warn(msg);
             } else {
+                // the validator is never create with IdentityProtectionType.NONE
                 throw new CommitFailedException(CommitFailedException.CONSTRAINT, 76, msg);
             }
         }

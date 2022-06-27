@@ -149,7 +149,6 @@ which either warns upon or prevents creation, modification and removal of extern
 into the repository with the following exception:
 
 - System sessions and configured service user principals (see `systemPrincipalNames` option) are exempted from the protection
-- Synchronized external users can still be disabled using Jackrabbit User Management API
 - Other security related content present with a given synced user/group can still be written given the editing session 
   has the required permissions (e.g. adding access control content or removing token nodes).
 

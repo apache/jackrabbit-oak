@@ -86,7 +86,7 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
                 boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
         @Property(name = PARAM_PROTECT_EXTERNAL_IDENTITIES,
                 label = "External User and Group Protection",
-                description = "If 'None' is selected the synchronized external users/groups won't be protected (backwards compatible behavior) and can be edited like local users/groups. NOTE: in order to avoid having inconsistencies between the IDP that defines the external identities and local synced identities it is recommend to enable the protection. With option 'Warn' the protection is disabled by warnings will be logged.",
+                description = "If 'None' is selected the synchronized external users/groups won't be protected (backwards compatible behavior) and can be edited like local users/groups. NOTE: in order to avoid having inconsistencies between the IDP that defines the external identities and local synced identities it is recommend to enable the protection. With option 'Warn' the protection is disabled but warnings will be logged.",
                 options = {
                     @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE),
                     @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN),
