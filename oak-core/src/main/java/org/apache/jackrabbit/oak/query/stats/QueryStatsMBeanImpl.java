@@ -215,11 +215,11 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         private final static String[] descriptions = names;
 
         @SuppressWarnings("rawtypes")
-        private final static OpenType[] types = { SimpleType.LONG,
-                SimpleType.LONG, SimpleType.LONG, SimpleType.LONG, 
-                SimpleType.LONG, SimpleType.LONG, SimpleType.LONG, 
-                SimpleType.LONG, SimpleType.STRING, SimpleType.STRING, 
-                SimpleType.STRING, SimpleType.STRING};
+        private final static OpenType[] types = {SimpleType.LONG,
+                    SimpleType.LONG, SimpleType.LONG, SimpleType.LONG,
+                    SimpleType.LONG, SimpleType.LONG, SimpleType.LONG, SimpleType.LONG,
+                    SimpleType.STRING, SimpleType.STRING, SimpleType.STRING,
+                    SimpleType.STRING};
 
         public static CompositeType getCompositeType() throws OpenDataException {
             return new CompositeType(QueryStatsMBean.class.getName(),
