@@ -208,7 +208,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
 
         private final static String[] names = { "position", 
                 "maxTimeMillis", "totalTimeMillis", "executeCount", 
-                "rowsRead", "rowsScanned", "maxRowsScanned",
+                "rowsRead", "rowsScanned", "maxRowsRead", "maxRowsScanned",
                 "language", "statement", "lastExecuted",
                 "lastThread"};
 
@@ -218,8 +218,8 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         private final static OpenType[] types = { SimpleType.LONG,
                 SimpleType.LONG, SimpleType.LONG, SimpleType.LONG, 
                 SimpleType.LONG, SimpleType.LONG, SimpleType.LONG, 
-                SimpleType.STRING, SimpleType.STRING, SimpleType.STRING,
-                SimpleType.STRING};
+                SimpleType.LONG, SimpleType.STRING, SimpleType.STRING, 
+                SimpleType.STRING, SimpleType.STRING};
 
         public static CompositeType getCompositeType() throws OpenDataException {
             return new CompositeType(QueryStatsMBean.class.getName(),
@@ -229,7 +229,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         public static Object[] getValues(QueryStatsData q, int position) {
             return new Object[] { (long) position,
                     q.getMaxTimeNanos() / 1000000, q.getTotalTimeNanos() / 1000000, q.getExecuteCount(), 
-                    q.getTotalRowsRead(), q.getTotalRowsScanned(), q.getMaxRowsScanned(),
+                    q.getTotalRowsRead(), q.getTotalRowsScanned(), q.getMaxRowsRead(), q.getMaxRowsScanned(),
                     q.getLanguage(), q.getQuery(), QueryStatsData.getTimeString(q.getLastExecutedMillis()),
                     q.isInternal() ? "(internal query)" : q.getLastThreadName()};
         }
