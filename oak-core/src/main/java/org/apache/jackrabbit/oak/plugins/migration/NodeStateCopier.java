@@ -94,7 +94,7 @@ public class NodeStateCopier {
 
     private final boolean preserveOnTarget;
     
-    private final Consumer<String> consumer;
+    private final Consumer<String> newNodesConsumer;
 
     private NodeStateCopier(Set<String> includePaths,
                             Set<String> excludePaths,
@@ -103,7 +103,7 @@ public class NodeStateCopier {
                             Set<String> mergePaths,
                             boolean referenceableFrozenNodes,
                             boolean preserveOnTarget,
-                            Consumer<String> consumer) {
+                            Consumer<String> newNodesConsumer) {
         this.includePaths = includePaths;
         this.excludePaths = excludePaths;
         this.fragmentPaths = fragmentPaths;
@@ -111,7 +111,7 @@ public class NodeStateCopier {
         this.mergePaths = mergePaths;
         this.referenceableFrozenNodes = referenceableFrozenNodes;
         this.preserveOnTarget = preserveOnTarget;
-        this.consumer = consumer;
+        this.newNodesConsumer = newNodesConsumer;
     }
 
     /**
@@ -178,7 +178,7 @@ public class NodeStateCopier {
             if (sourceState.exists()) {
                 final NodeBuilder targetBuilder = getChildNodeBuilder(targetRoot, includePath);
                 hasChanges = copyNodeState(sourceState, targetBuilder, includePath, this.mergePaths,
-                    this.preserveOnTarget, this.consumer) || hasChanges;
+                    this.preserveOnTarget, this.newNodesConsumer) || hasChanges;
             }
         }
         return hasChanges;
@@ -199,12 +199,12 @@ public class NodeStateCopier {
      * @param currentPath The path of both the source and target arguments.
      * @param mergePaths A Set of paths under which existing nodes should be
      *                   preserved, even if the do not exist in the source.
-     * @param consumer A consumer for the node paths being added
+     * @param newNodesConsumer A newNodesConsumer for the node paths being added
      * @return An indication of whether there were changes or not.
      */
     private static boolean copyNodeState(@NotNull final NodeState source, @NotNull final NodeBuilder target,
         @NotNull final String currentPath, @NotNull final Set<String> mergePaths,
-       final boolean preserveOnTarget, Consumer consumer) {
+       final boolean preserveOnTarget, Consumer newNodesConsumer) {
 
 
         boolean hasChanges = false;
@@ -225,12 +225,12 @@ public class NodeStateCopier {
             if (!target.hasChildNode(childName)) {
                 // add new children
                 target.setChildNode(childName, childSource);
-                consumer.accept(childPath);
+                newNodesConsumer.accept(childPath);
                 hasChanges = true;
             } else {
                 // recurse into existing children
                 final NodeBuilder childTarget = target.getChildNode(childName);
-                hasChanges = copyNodeState(childSource, childTarget, childPath, mergePaths, preserveOnTarget, consumer) || hasChanges;
+                hasChanges = copyNodeState(childSource, childTarget, childPath, mergePaths, preserveOnTarget, newNodesConsumer) || hasChanges;
             }
         }
 
@@ -338,7 +338,7 @@ public class NodeStateCopier {
         
         private boolean preserveOnTarget;
         
-        private Consumer<String> consumer = path -> {};
+        private Consumer<String> newNodesConsumer = path -> {};
         
         private Builder() {}
 
@@ -498,13 +498,13 @@ public class NodeStateCopier {
         }
 
         /**
-         * Set consumer.
+         * Set consumer for node additions.
          * 
          * @param consumer consumer to listen to path additions
          * @return this Builder instance
          */
         public Builder withNodeConsumer(@NotNull Consumer consumer) {
-            this.consumer = consumer;
+            this.newNodesConsumer = consumer;
             return this;
         }
         
@@ -523,7 +523,7 @@ public class NodeStateCopier {
          */
         public boolean copy(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
             final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths,
-                excludeFragments, mergePaths, referenceableFrozenNodes, preserveOnTarget, consumer);
+                excludeFragments, mergePaths, referenceableFrozenNodes, preserveOnTarget, newNodesConsumer);
             return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
 
