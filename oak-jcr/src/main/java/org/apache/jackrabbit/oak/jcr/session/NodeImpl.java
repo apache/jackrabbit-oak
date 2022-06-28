@@ -1631,6 +1631,40 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
+    @Override
+    public @Nullable JackrabbitNode getNodeOrNull(@NotNull String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        return sessionDelegate.performNullable(new NodeOperation<JackrabbitNode>(dlg, "getNodeOrNull") {
+            @Nullable
+            @Override
+            public JackrabbitNode performNullable() throws RepositoryException {
+                NodeDelegate nd = node.getChild(oakPath);
+                if (nd == null) {
+                    return null;
+                } else {
+                    return createNode(nd, sessionContext);
+                }
+            }
+        });
+    }
+
+    @Override
+    public @Nullable Property getPropertyOrNull(@NotNull String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        return sessionDelegate.performNullable(new NodeOperation<PropertyImpl>(dlg, "getPropertyOrNull") {
+            @Nullable
+            @Override
+            public PropertyImpl performNullable() throws RepositoryException {
+                PropertyDelegate pd = node.getPropertyOrNull(oakPath);
+                if (pd == null) {
+                    return null;
+                } else {
+                    return new PropertyImpl(pd, sessionContext);
+                }
+            }
+        });
+    }
+
     /**
      * Provide current node path. Should be invoked from within
      * the SessionDelegate#perform and preferred instead of getPath
