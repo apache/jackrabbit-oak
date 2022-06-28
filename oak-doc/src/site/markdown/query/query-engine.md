@@ -22,36 +22,41 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
 
 ## The Query Engine
 
-* [Overview](#Overview)
-    * [Query Processing](#Query_Processing)
-        * [Cost Calculation](#Cost_Calculation)
-    * [Query Options](#Query_Options)
-        * [Query Option Traversal](#Query_Option_Traversal)
-        * [Query Option Index Tag](#Query_Option_Index_Tag)
-        * [Query Option Offset / Limit](#Query_Option_Offset__Limit)
-        * [Index Selection Policy](#Index_Selection_Policy)
-    * [Compatibility](#Compatibility)
-        * [Result Size](#Result_Size)
-        * [Quoting](#Quoting)
-        * [Equality for Path Constraints](#Equality_for_Path_Constraints)
-    * [Slow Queries and Read Limits](#Slow_Queries_and_Read_Limits)
-    * [Keyset Pagination](#Keyset_Pagination)
-    * [Full-Text Queries](#Full-Text_Queries)
-    * [Excerpts and Highlighting](#Excerpts_and_Highlighting)
-    * [Native Queries](#Native_Queries)
-    * [Similarity Queries](#Similarity_Queries)
-    * [Spellchecking](#Spellchecking)
-    * [Suggestions](#Suggestions)
-    * [Facets](#Facets)
-    * [XPath to SQL-2 Transformation](#XPath_to_SQL-2_Transformation)
-    * [The Node Type Index](#The_Node_Type_Index)
-    * [Temporarily Disabling an Index](#Temporarily_Disabling_an_Index)
-    * [Deprecating Indexes](#Deprecating_Indexes)
-    * [The Deprecated Ordered Index](#The_Deprecated_Ordered_Index)
-    * [Index Storage and Manual Inspection](#Index_Storage_and_Manual_Inspection)
-    * [SQL-2 Optimisation](#SQL-2_Optimisation)
-    * [Additional XPath and SQL-2 Features](#Additional_XPath_and_SQL-2_Features)
-    * [Temporarily Blocking Queries](#Temporarily_Blocking_Queries)
+- [The Query Engine](#the-query-engine)
+- [Overview](#overview)
+  - [Query Processing](#query-processing)
+    - [Cost Calculation](#cost-calculation)
+    - [Identifying Nodes](#identifying-nodes)
+    - [Ordering](#ordering)
+    - [Iterating the result set](#iterating-the-result-set)
+  - [Query Options](#query-options)
+    - [Query Option Traversal](#query-option-traversal)
+    - [Query Option Offset / Limit](#query-option-offset--limit)
+    - [Query Option Index Tag](#query-option-index-tag)
+    - [Index Selection Policy](#index-selection-policy)
+  - [Compatibility](#compatibility)
+    - [Result Size](#result-size)
+    - [Quoting](#quoting)
+    - [Equality for Path Constraints](#equality-for-path-constraints)
+  - [Slow Queries and Read Limits](#slow-queries-and-read-limits)
+  - [Keyset Pagination](#keyset-pagination)
+  - [Full-Text Queries](#full-text-queries)
+  - [Excerpts and Highlighting](#excerpts-and-highlighting)
+    - [SimpleExcerptProvider](#simpleexcerptprovider)
+  - [Native Queries](#native-queries)
+  - [Similarity Queries](#similarity-queries)
+  - [Spellchecking](#spellchecking)
+  - [Suggestions](#suggestions)
+  - [Facets](#facets)
+  - [XPath to SQL-2 Transformation](#xpath-to-sql-2-transformation)
+  - [The Node Type Index](#the-node-type-index)
+  - [Temporarily Disabling an Index](#temporarily-disabling-an-index)
+  - [Deprecating Indexes](#deprecating-indexes)
+  - [The Deprecated Ordered Index](#the-deprecated-ordered-index)
+  - [Index Storage and Manual Inspection](#index-storage-and-manual-inspection)
+  - [SQL-2 Optimisation](#sql-2-optimisation)
+  - [Additional XPath and SQL-2 Features](#additional-xpath-and-sql-2-features)
+  - [Temporarily Blocking Queries](#temporarily-blocking-queries)
 
 
 ## Overview
@@ -121,6 +126,23 @@ Please note this method is called on each index whenever a query is run,
 so the method should be reasonably fast (not read any data itself, or at least not read too much data).
 
 If an index implementation can not query the data, it has to return `Infinity` (`Double.POSITIVE_INFINITY`).
+
+#### Identifying Nodes
+
+If an index is selected, the query is executed against the index. The translation from the JCR Query syntax into the query language supported by the index includes as many constraints as possible which are supported by the index. Depending on the index definition this can mean that not all constraints can be resolved by the index itself. 
+In this case the Query Engine tries to let the index handle as much constraints as possible and later executes all remaining constraints on its own, accessing the node store and doing all necessary operations there, which can result in a traversal. This means that despite the use of an index an additional traversal is required.
+
+If no matching index is determined in the previous step, the Query Engine executes this query solely based on a traversal.
+
+#### Ordering
+If a query requests an ordered result set, the Query Engine tries to get an already ordered result from the index; in case the index definition does not support the requested ordering or in case of a traversal, the Query Engine must execute the ordering itself. To achieve this the entire result set is read into memory and then sorted which consumes memory and takes time.
+
+#### Iterating the result set
+Query results are implemented as lazy iterators, and the result set is only read if needed. When the next result is requested, the result iterator seeks the potential nodes to find the next node matching the query. 
+During this seek process the Query Engine reads and filters the potential nodes until if finds a match. Even if the query is handled completely by an index, the Query Engine needs to check if the requesting session is allowed to read the nodes.
+
+That means that during this final step every potential node must be loaded from the node store, thus counting towards the read limit (see [Slow Queries and Read Limits](#slow-queries-and-read-limits)).
+
 
 ### Query Options
 
