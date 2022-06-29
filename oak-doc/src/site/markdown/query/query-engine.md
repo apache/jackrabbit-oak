@@ -28,7 +28,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
     - [Cost Calculation](#cost-calculation)
     - [Identifying Nodes](#identifying-nodes)
     - [Ordering](#ordering)
-    - [Iterating the result set](#iterating-the-result-set)
+    - [Iterating the Result Set](#iterating-the-result-set)
   - [Query Options](#query-options)
     - [Query Option Traversal](#query-option-traversal)
     - [Query Option Offset / Limit](#query-option-offset--limit)
@@ -137,7 +137,7 @@ If no matching index is determined in the previous step, the Query Engine execut
 #### Ordering
 If a query requests an ordered result set, the Query Engine tries to get an already ordered result from the index; in case the index definition does not support the requested ordering or in case of a traversal, the Query Engine must execute the ordering itself. To achieve this the entire result set is read into memory and then sorted which consumes memory and takes time.
 
-#### Iterating the result set
+#### Iterating the Result Set
 Query results are implemented as lazy iterators, and the result set is only read if needed. When the next result is requested, the result iterator seeks the potential nodes to find the next node matching the query. 
 During this seek process the Query Engine reads and filters the potential nodes until if finds a match. Even if the query is handled completely by an index, the Query Engine needs to check if the requesting session is allowed to read the nodes.
 
