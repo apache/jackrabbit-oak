@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.builder;
@@ -36,6 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.com
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.create;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.createNodeStoreWithContent;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.expectDifference;
+import static org.junit.Assert.assertEquals;
 
 public class NodeStateCopierTest {
 
@@ -263,7 +265,24 @@ public class NodeStateCopierTest {
                 .verify(before, after);
     }
 
+    @Test
+    public void shouldNotDeleteExistingNodesIfPreserveOnTarget() throws CommitFailedException, IOException {
+        final NodeStore source = createNodeStoreWithContent("/content/foo");
+        final NodeStore target = createNodeStoreWithContent("/content/bar");
 
+        final NodeState before = target.getRoot();
+        builder()
+            .preserve(true)
+            .copy(source, target);
+        final NodeState after = target.getRoot();
+
+        expectDifference()
+            .strict()
+            .childNodeAdded("/content/foo")
+            .childNodeChanged("/content")
+            .verify(before, after);
+    }
+    
     @Test
     public void shouldIgnoreNonMatchingMergePaths() throws CommitFailedException, IOException {
         final NodeStore source = createNodeStoreWithContent("/content/foo");
@@ -334,4 +353,24 @@ public class NodeStateCopierTest {
                 .verify(before, after);
     }
 
+    @Test
+    public void checkConsumerNotified() throws CommitFailedException, IOException {
+        final NodeStore source = createNodeStoreWithContent("/content/foo");
+        final NodeStore target = createNodeStoreWithContent("/content/bar");
+
+        final String[] consumerNotifiedPath = {""};
+        final NodeState before = target.getRoot();
+        builder()
+            .preserve(true)
+            .withNodeConsumer((Consumer<String>) path -> consumerNotifiedPath[0] = path)
+            .copy(source, target);
+        final NodeState after = target.getRoot();
+
+        expectDifference()
+            .strict()
+            .childNodeAdded("/content/foo")
+            .childNodeChanged("/content")
+            .verify(before, after);
+        assertEquals("/content/foo", consumerNotifiedPath[0]);
+    }
 }

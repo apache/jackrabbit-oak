@@ -88,7 +88,7 @@ represented by [ExternalIdentityRef].
 ### Dynamic Group Membership
 
 As of Oak 1.5.3 the default sync handler comes with an addition configuration 
-option that allows to enable dynamic group membership resolution for external users. 
+option that allows enabling dynamic group membership resolution for external users. 
 Enabling dynamic membership in the [DefaultSyncConfig] will change the way external
 groups are synchronized (see also [OAK-4101]).
  
@@ -122,7 +122,7 @@ This prevents users to unintentionally or maliciously manipulating the informati
 linking to the external identity provider in particular their external identity
 and the set of external group principals associated with their account.
 
-Additionally the validator asserts the consistency of the properties defined
+Additionally, the validator asserts the consistency of the properties defined
 with external user/group accounts.
 
 | Code              | Message                                                  |
@@ -142,6 +142,30 @@ validator performs the following checks:
 | 0074              | Attempt to add, modify or remove the system maintained property 'rep:externalId'. |
 | 0075              | Property 'rep:externalId' may only have a single value of type STRING. |
  
+##### Protecting synchronized external users/groups 
+
+If protection of synchronized external users/groups is enabled (since Oak 1.44.0) an additional validator is present
+which either warns upon or prevents creation, modification and removal of external identities that have been synchronized 
+into the repository with the following exception:
+
+- System sessions and configured service user principals (see `systemPrincipalNames` option) are exempted from the protection
+- Other security related content present with a given synced user/group can still be written given the editing session 
+  has the required permissions (e.g. adding access control content or removing token nodes).
+
+The protection aims to prevent inconsistencies between the IDP (source of truth), and the synchronized user/group 
+accounts in particular group membership and properties.
+
+The following constraint violations will be reported:
+
+| Code | Message                                                                    |
+|------|----------------------------------------------------------------------------|
+| 0076 | Attempt to add property '%s' to protected external identity node '%s'      |
+| 0076 | Attempt to modify property '%s' at protected external identity node '%s'   |
+| 0076 | Attempt to delete property '%s' from protected external identity node '%s' |
+| 0076 | Attempt to add protected external identity '%s'                            |
+| 0076 | Attempt to add node '%s' to protected external identity node '%s'          |
+| 0076 | Attempt to remove protected external identity '%s'                      |
+| 0076 | Attempt to remove node '%s' from protected external identity               |
 
 <a name="configuration"></a>
 ### Configuration
@@ -193,10 +217,11 @@ See section [Introduction to Oak Security](../../introduction.html) for further 
 
 The `ExternalPrincipalConfiguration` defines the following configuration options:
      
-| Name                         | Property                      | Description                              |
-|------------------------------|-------------------------------|------------------------------------------|
-| External Identity Protection | `protectExternalId`           | Enables protection of the system maintained `rep:externalId` properties |
-| System Principal Names       | `systemPrincipalNames`        | Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check (since Oak 1.44.0) |
+| Name                         | Property                      | Description                              | Values      |
+|------------------------------|-------------------------------|------------------------------------------|-------------|
+| External Identity Protection | `protectExternalId`           | Enables protection of the system maintained `rep:externalId` properties | `true`,`false`|
+| External User and Group Protection | `protectExternalIdentities` | Enables protection of synchronized external users/groups accounts (since Oak 1.44.0). | `None`: no protection (default),<br>`Warn`: log warnings,<br>`Protected`: protection enabled |
+| System Principal Names       | `systemPrincipalNames`        | Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check (since Oak 1.44.0) | `true`,`false` |
 | | | |
 
 <!-- references -->

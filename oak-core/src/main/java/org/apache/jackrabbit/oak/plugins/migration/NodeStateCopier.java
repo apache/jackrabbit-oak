@@ -33,6 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
+import java.util.function.Consumer;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.ImmutableSet.of;
@@ -70,6 +72,9 @@ import static java.util.Collections.emptySet;
  * <b>Merge paths:</b> if merge paths are set, any nodes matching or
  * below the merged path will not be deleted from target, even if they
  * are missing in (or excluded from) the source.
+ * <b>Preserve on Target</b> if set to true the nodes on target under the included 
+ * paths are not deleted and the merge paths property is ignored. If false 
+ * the deletion rules default to the case for merge paths. 
  */
 public class NodeStateCopier {
 
@@ -87,18 +92,26 @@ public class NodeStateCopier {
 
     private final boolean referenceableFrozenNodes;
 
+    private final boolean preserveOnTarget;
+    
+    private final Consumer<String> newNodesConsumer;
+
     private NodeStateCopier(Set<String> includePaths,
                             Set<String> excludePaths,
                             Set<String> fragmentPaths,
                             Set<String> excludeFragments,
                             Set<String> mergePaths,
-                            boolean referenceableFrozenNodes) {
+                            boolean referenceableFrozenNodes,
+                            boolean preserveOnTarget,
+                            Consumer<String> newNodesConsumer) {
         this.includePaths = includePaths;
         this.excludePaths = excludePaths;
         this.fragmentPaths = fragmentPaths;
         this.excludeFragments = excludeFragments;
         this.mergePaths = mergePaths;
         this.referenceableFrozenNodes = referenceableFrozenNodes;
+        this.preserveOnTarget = preserveOnTarget;
+        this.newNodesConsumer = newNodesConsumer;
     }
 
     /**
@@ -164,7 +177,8 @@ public class NodeStateCopier {
             final NodeState sourceState = NodeStateUtils.getNode(wrappedSource, includePath);
             if (sourceState.exists()) {
                 final NodeBuilder targetBuilder = getChildNodeBuilder(targetRoot, includePath);
-                hasChanges = copyNodeState(sourceState, targetBuilder, includePath, this.mergePaths) || hasChanges;
+                hasChanges = copyNodeState(sourceState, targetBuilder, includePath, this.mergePaths,
+                    this.preserveOnTarget, this.newNodesConsumer) || hasChanges;
             }
         }
         return hasChanges;
@@ -185,17 +199,20 @@ public class NodeStateCopier {
      * @param currentPath The path of both the source and target arguments.
      * @param mergePaths A Set of paths under which existing nodes should be
      *                   preserved, even if the do not exist in the source.
+     * @param newNodesConsumer A newNodesConsumer for the node paths being added
      * @return An indication of whether there were changes or not.
      */
     private static boolean copyNodeState(@NotNull final NodeState source, @NotNull final NodeBuilder target,
-                                         @NotNull final String currentPath, @NotNull final Set<String> mergePaths) {
+        @NotNull final String currentPath, @NotNull final Set<String> mergePaths,
+       final boolean preserveOnTarget, Consumer newNodesConsumer) {
 
 
         boolean hasChanges = false;
 
         // delete deleted children
         for (final String childName : target.getChildNodeNames()) {
-            if (!source.hasChildNode(childName) && !isMerge(PathUtils.concat(currentPath, childName), mergePaths)) {
+            if (!preserveOnTarget && !source.hasChildNode(childName) && !isMerge(PathUtils.concat(currentPath,
+                childName), mergePaths)) {
                 target.setChildNode(childName, EmptyNodeState.MISSING_NODE);
                 hasChanges = true;
             }
@@ -204,15 +221,16 @@ public class NodeStateCopier {
         for (ChildNodeEntry child : source.getChildNodeEntries()) {
             final String childName = child.getName();
             final NodeState childSource = child.getNodeState();
+            final String childPath = PathUtils.concat(currentPath, childName);
             if (!target.hasChildNode(childName)) {
                 // add new children
                 target.setChildNode(childName, childSource);
+                newNodesConsumer.accept(childPath);
                 hasChanges = true;
             } else {
                 // recurse into existing children
                 final NodeBuilder childTarget = target.getChildNode(childName);
-                final String childPath = PathUtils.concat(currentPath, childName);
-                hasChanges = copyNodeState(childSource, childTarget, childPath, mergePaths) || hasChanges;
+                hasChanges = copyNodeState(childSource, childTarget, childPath, mergePaths, preserveOnTarget, newNodesConsumer) || hasChanges;
             }
         }
 
@@ -317,7 +335,11 @@ public class NodeStateCopier {
         private Set<String> mergePaths = emptySet();
 
         private boolean referenceableFrozenNodes = true;
-
+        
+        private boolean preserveOnTarget;
+        
+        private Consumer<String> newNodesConsumer = path -> {};
+        
         private Builder() {}
 
 
@@ -326,7 +348,7 @@ public class NodeStateCopier {
          *
          * @param paths include paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder include(@NotNull Set<String> paths) {
@@ -341,7 +363,7 @@ public class NodeStateCopier {
          *
          * @param paths include paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder include(@NotNull String... paths) {
@@ -349,11 +371,24 @@ public class NodeStateCopier {
         }
 
         /**
+         * Set if preserve paths on target
+         *
+         * @param preserveOnTarget if paths on target are preserved if not present on source
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
+         */
+        @NotNull
+        public Builder preserve(@NotNull boolean preserveOnTarget) {
+            this.preserveOnTarget = preserveOnTarget;
+            return this;
+        }
+        
+        /**
          * Set exclude paths.
          *
          * @param paths exclude paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder exclude(@NotNull Set<String> paths) {
@@ -368,7 +403,7 @@ public class NodeStateCopier {
          *
          * @param paths exclude paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder exclude(@NotNull String... paths) {
@@ -380,7 +415,7 @@ public class NodeStateCopier {
          *
          * @param paths fragment paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder supportFragment(@NotNull Set<String> paths) {
@@ -395,7 +430,7 @@ public class NodeStateCopier {
          *
          * @param paths fragment paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder supportFragment(@NotNull String... paths) {
@@ -407,7 +442,7 @@ public class NodeStateCopier {
          *
          * @param fragments exclude fragments
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder excludeFragments(@NotNull Set<String> fragments) {
@@ -422,7 +457,7 @@ public class NodeStateCopier {
          *
          * @param fragments exclude fragments
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder excludeFragments(@NotNull String... fragments) {
@@ -434,7 +469,7 @@ public class NodeStateCopier {
          *
          * @param paths merge paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder merge(@NotNull Set<String> paths) {
@@ -449,7 +484,7 @@ public class NodeStateCopier {
          *
          * @param paths merge paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean, boolean, Consumer)
          */
         @NotNull
         public Builder merge(@NotNull String... paths) {
@@ -463,9 +498,20 @@ public class NodeStateCopier {
         }
 
         /**
+         * Set consumer for node additions.
+         * 
+         * @param consumer consumer to listen to path additions
+         * @return this Builder instance
+         */
+        public Builder withNodeConsumer(@NotNull Consumer consumer) {
+            this.newNodesConsumer = consumer;
+            return this;
+        }
+        
+        /**
          * Creates a NodeStateCopier to copy the {@code sourceRoot} NodeState to the
-         * {@code targetRoot} NodeBuilder, using any include, exclude and merge paths
-         * set on this NodeStateCopier.Builder.
+         * {@code targetRoot} NodeBuilder, using any include, exclude, merge paths and
+         * consumer set on this NodeStateCopier.Builder.
          * <br>
          * It is the responsibility of the caller to persist any changes using e.g.
          * {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.
@@ -476,14 +522,15 @@ public class NodeStateCopier {
          *         the same content
          */
         public boolean copy(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
-            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths, excludeFragments, mergePaths, referenceableFrozenNodes);
+            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths,
+                excludeFragments, mergePaths, referenceableFrozenNodes, preserveOnTarget, newNodesConsumer);
             return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
 
         /**
          * Creates a NodeStateCopier to copy the {@code source} NodeStore to the
-         * {@code target} NodeStore, using any include, exclude and merge paths
-         * set on this NodeStateCopier.Builder.
+         * {@code target} NodeStore, using any include, exclude, merge paths and
+         * consumer set on this NodeStateCopier.Builder.
          * <br>
          * Changes are automatically persisted with empty CommitHooks and CommitInfo
          * via {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.

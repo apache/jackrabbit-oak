@@ -77,7 +77,12 @@ public class LoggingInitializer {
         log.info("Logs would be written to {}", new File(workDir, logIdentifier + ".log"));
     }
 
-    public static void shutdownLogging(){
+    public static void shutdownLogging() {
+        //Only shutdown if init
+        if (System.getProperty(ContextInitializer.CONFIG_FILE_PROPERTY) != null) {
+            return;
+        }
+        
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         context.stop();
     }
