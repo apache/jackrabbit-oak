@@ -107,7 +107,7 @@ import org.slf4j.LoggerFactory;
  *
  * @param <T> the delegate type
  */
-public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Node, JackrabbitNode {
+public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements JackrabbitNode {
 
     /**
      * Use an zero length MVP to check read permission on jcr:mixinTypes (OAK-7652)
