@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,6 +52,8 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 
+import co.elastic.clients.elasticsearch.core.search.Highlight;
+import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -113,6 +116,9 @@ public class ElasticRequestHandler {
             SortOptions.of(so -> so.field(f -> f.field("_score").order(SortOrder.Desc))),
             SortOptions.of(so -> so.field(f -> f.field(FieldNames.PATH).order(SortOrder.Asc)))
     );
+
+    private static final String HIGHLIGHT_PREFIX = "<strong>";
+    private static final String HIGHLIGHT_SUFFIX = "</strong>";
 
     private final IndexPlan indexPlan;
     private final Filter filter;
@@ -654,6 +660,47 @@ public class ElasticRequestHandler {
                         .innerHits(InnerHits.of(h -> h.size(100)))));
         nonFullTextConstraints(indexPlan, planResult).forEach(bqBuilder::must);
         return Query.of(q -> q.bool(bqBuilder.build()));
+    }
+
+    /**
+     * Generates a Highlight that is the search request part necessary to obtain excerpts.
+     * rep:excerpt() and rep:excerpt(.) makes use of :fulltext
+     * rep:excerpt(FIELD) makes use of FIELD
+     *
+     * @return a Highlight object representing the excerpts to request or null if none should be requested
+     */
+    public Highlight highlight() {
+        Map<String, HighlightField> excerpts = indexPlan.getFilter().getPropertyRestrictions().stream()
+                .filter(pr -> pr.propertyName.startsWith(QueryConstants.REP_EXCERPT))
+                .map(this::excerptField)
+                .distinct()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        field -> HighlightField.of(hf -> hf.withJson(new StringReader("{}"))))
+                );
+
+        if (excerpts.isEmpty()) {
+            return null;
+        }
+
+        return Highlight.of(h -> h
+                .preTags(HIGHLIGHT_PREFIX)
+                .postTags(HIGHLIGHT_SUFFIX)
+                .fields(excerpts)
+                .numberOfFragments(1)
+                .requireFieldMatch(false));
+    }
+
+    private @NotNull String excerptField(Filter.PropertyRestriction pr) {
+        String name = pr.first.toString();
+        int length = QueryConstants.REP_EXCERPT.length();
+        if (name.length() > length) {
+            String field = name.substring(length + 1, name.length() - 1);
+            if (field.length() > 0 && !field.equals(".")) {
+                return field;
+            }
+        }
+        return ":fulltext";
     }
 
     private static Query nodeTypeConstraints(IndexDefinition.IndexingRule defn, Filter filter) {

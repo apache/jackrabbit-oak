@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import javax.jcr.PropertyType;
@@ -153,7 +152,7 @@ public class PropertyDefinition {
         this.nodeScopeIndex = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, false);
 
         //If boost is specified then that field MUST be analyzed
-        if (defn.hasProperty(FIELD_BOOST)){
+        if (defn.hasProperty(FIELD_BOOST)) {
             this.analyzed = true;
         } else {
             this.analyzed = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_ANALYZED, false);
@@ -203,26 +202,27 @@ public class PropertyDefinition {
      */
     public boolean skipTokenization(String propertyName) {
         //For regEx case check against a whitelist
-        if (isRegexp && IndexHelper.skipTokenization(propertyName)){
+        if (isRegexp && IndexHelper.skipTokenization(propertyName)) {
             return true;
         }
         return !analyzed;
     }
 
-    public boolean fulltextEnabled(){
+    public boolean fulltextEnabled() {
         return index && (analyzed || nodeScopeIndex);
     }
 
-    public boolean propertyIndexEnabled(){
+    public boolean propertyIndexEnabled() {
         return index && propertyIndex;
     }
 
-    public boolean isTypeDefined(){
+    public boolean isTypeDefined() {
         return propertyType != PropertyType.UNDEFINED;
     }
 
     /**
      * Returns size of dense vector used for similarity search using this index.
+     *
      * @return dense vector size
      */
     public int getSimilaritySearchDenseVectorSize() {
@@ -236,12 +236,12 @@ public class PropertyDefinition {
      *
      * @return propertyType as per javax.jcr.PropertyType
      */
-    public int getType(){
+    public int getType() {
         //If no explicit type is defined we assume it to be string
         return isTypeDefined() ? propertyType : PropertyType.STRING;
     }
 
-    public boolean includePropertyType(int type){
+    public boolean includePropertyType(int type) {
         return IndexDefinition.includePropertyType(includedPropertyTypes, type);
     }
 
@@ -258,15 +258,15 @@ public class PropertyDefinition {
                 ", propertyIndex=" + propertyIndex +
                 ", analyzed=" + analyzed +
                 ", ordered=" + ordered +
-                ", useInSuggest=" + useInSuggest+
-                ", useInSimilarity=" + useInSimilarity+
+                ", useInSuggest=" + useInSuggest +
+                ", useInSimilarity=" + useInSimilarity +
                 ", nullCheckEnabled=" + nullCheckEnabled +
                 ", notNullCheckEnabled=" + notNullCheckEnabled +
                 ", function=" + function +
                 '}';
     }
 
-    static boolean isRelativeProperty(String propertyName){
+    static boolean isRelativeProperty(String propertyName) {
         return !isAbsolute(propertyName)
                 && !FulltextIndexConstants.REGEX_ALL_PROPS.equals(propertyName)
                 && PathUtils.getNextSlash(propertyName, 0) > 0;
@@ -274,28 +274,28 @@ public class PropertyDefinition {
 
     //~---------------------------------------------< internal >
 
-    private boolean getOptionalValueIfIndexed(NodeState definition, String propName, boolean defaultVal){
+    private boolean getOptionalValueIfIndexed(NodeState definition, String propName, boolean defaultVal) {
         //If property is not to be indexed then all other config would be
         //set to false ignoring whatever is defined in config for them
-        if (!index){
+        if (!index) {
             return false;
         }
         return getOptionalValue(definition, propName, defaultVal);
     }
 
     private void validate() {
-        if (nullCheckEnabled && isRegexp){
+        if (nullCheckEnabled && isRegexp) {
             throw new IllegalStateException(String.format("%s can be set to true for property definition using " +
                     "regular expression", FulltextIndexConstants.PROP_NULL_CHECK_ENABLED));
         }
     }
 
     private String determineNonRelativeName() {
-        if (isRegexp){
+        if (isRegexp) {
             return null;
         }
 
-        if (!relative){
+        if (!relative) {
             return name;
         }
 
@@ -311,7 +311,7 @@ public class PropertyDefinition {
     }
 
 
-    private static String getName(NodeState definition, String defaultName){
+    private static String getName(NodeState definition, String defaultName) {
         PropertyState ps = definition.getProperty(FulltextIndexConstants.PROP_NAME);
         return ps == null ? defaultName : ps.getValue(Type.STRING);
     }
