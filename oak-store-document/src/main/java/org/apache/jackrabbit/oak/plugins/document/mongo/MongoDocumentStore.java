@@ -111,6 +111,7 @@ import static com.google.common.collect.Sets.difference;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
@@ -1390,6 +1391,92 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends Document> void prefetch(Collection<T> collection,
+                                              Iterable<String> keysToPrefetch) {
+        log("prefetch", keysToPrefetch);
+
+        Set<String> keys = new HashSet<>();
+        for (String k : keysToPrefetch) {
+            if (nodesCache.getIfPresent(k) == null) {
+                keys.add(k);
+            }
+        }
+        if (keys.size() < minPrefetch) {
+            return;
+        }
+
+        final Stopwatch watch = startWatch();
+        List<String> resultKeys = new ArrayList<>(keys.size());
+        CacheChangesTracker tracker = null;
+        if (collection == Collection.NODES) {
+            tracker = nodesCache.registerTracker(keys);
+        }
+        Throwable t;
+        try {
+            ReadPreference readPreference = getMongoReadPreference(collection, null, getDefaultReadPreference(collection));
+            MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
+
+            if (readPreference.isSlaveOk()) {
+                LOG.trace("Routing call to secondary for prefetching [{}]", keys);
+            }
+
+            List<BasicDBObject> result = new ArrayList<>(keys.size());
+            execute(session -> {
+                final Bson query = Filters.in(Document.ID, keys);
+                if (session != null) {
+                    dbCollection.find(session, query).into(result);
+                } else {
+                    dbCollection.find(query).into(result);
+                }
+                return null;
+            }, collection);
+
+            List<T> docs = new ArrayList<>(keys.size());
+            for (BasicDBObject dbObject : result) {
+                final T d = convertFromDBObject(collection, dbObject);
+                if (d == null) {
+                    continue;
+                }
+                d.seal();
+                String key = String.valueOf(d.get(Document.ID));
+                resultKeys.add(key);
+                keys.remove(key);
+                docs.add(d);
+            }
+
+            if (tracker != null) {
+                nodesCache.putNonConflictingDocs(tracker, (List<NodeDocument>) docs);
+
+                // documents for remaining ids in keys do not exist
+                for (String id : keys) {
+                    Lock lock = nodeLocks.acquire(id);
+                    try {
+                        // load NULL document into cache unless it may have
+                        // been affected by another concurrent operation
+                        if (!tracker.mightBeenAffected(id)) {
+                            nodesCache.get(id, () -> NULL);
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
+                }
+            }
+            return;
+        } catch (UncheckedExecutionException | ExecutionException e) {
+            t = e.getCause();
+        } catch (RuntimeException e) {
+            t = e;
+        } finally {
+            if (tracker != null) {
+                tracker.close();
+            }
+            stats.donePrefetch(watch.elapsed(TimeUnit.NANOSECONDS), collection, resultKeys);
+        }
+        throw handleException(t, collection, keysToPrefetch);
+    }
+
     /**
      * Returns the {@link Document#MOD_COUNT} and
      * {@link NodeDocument#MODIFIED_IN_SECS} values of the documents with the
@@ -1934,7 +2021,6 @@ public class MongoDocumentStore implements DocumentStore {
         }
         return dbConnection.createClientSession();
     }
-
     interface DocumentStoreCallable<T> {
 
         T call(@Nullable ClientSession session) throws DocumentStoreException;
@@ -1973,78 +2059,6 @@ public class MongoDocumentStore implements DocumentStore {
         @Override
         public String summaryReport() {
             return toString();
-        }
-    }
-
-    @Override
-    public <T extends Document> void prefetch(Collection<T> collection,
-            Iterable<String> keysToPrefetch) {
-        ArrayList<String> keys = new ArrayList<>();
-        for (String k : keysToPrefetch) {
-            if (nodesCache.getIfPresent(k) == null) {
-                keys.add(k);
-            }
-        }
-        if (keys.size() < minPrefetch) {
-            return;
-        }
-
-        final DocumentReadPreference docReadPref = DocumentReadPreference.PRIMARY;
-        log("prefetch", keys, docReadPref);
-        final Stopwatch watch = startWatch();
-        boolean isSlaveOk = false;
-        boolean docFound = true;
-
-        try {
-            ReadPreference readPreference = getMongoReadPreference(collection, null, docReadPref);
-            MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
-
-            if(readPreference.isSlaveOk()){
-                LOG.trace("Routing call to secondary for fetching [{}]", keys);
-                isSlaveOk = true;
-            }
-
-            List<BasicDBObject> result = new ArrayList<>(1);
-            execute(session -> {
-                final Bson query = Filters.in(Document.ID, keys);;
-                if (session != null) {
-                    dbCollection.find(session, query).into(result);
-                } else {
-                    dbCollection.find(query).into(result);
-                }
-                return null;
-            }, collection);
-
-            if(result.isEmpty()) {
-                docFound = false;
-                return;
-            }
-            for (BasicDBObject basicDBObject : result) {
-//                final NodeDocument d = (NodeDocument) findUncachedWithRetry(
-//                        collection, key,
-//                        getReadPreference(maxCacheAge));
-                final NodeDocument d = (NodeDocument) convertFromDBObject(collection, basicDBObject);
-                if (d == null) {
-                    continue;
-                }
-                String key = String.valueOf(d.get(Document.ID));
-                d.seal();
-                try {
-                    // load into cache
-                    invalidateCache(collection, key);
-                    nodesCache.get(key, new Callable<NodeDocument>() {
-                        @Override
-                        public NodeDocument call() throws Exception {
-                            return d == null ? NodeDocument.NULL : d;
-                        }
-                    });
-                } catch (ExecutionException e) {
-                    LOG.error("prefetch: error prefetching id {}", key, e);
-                }
-            }
-//            return doc;
-        } finally {
-//            stats.doneFindUncached(watch.elapsed(TimeUnit.NANOSECONDS), collection, key, docFound, isSlaveOk);
         }
     }
 }
