@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.plugins.migration.DescendantsIterator;
@@ -25,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryBuilder;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
@@ -44,16 +46,28 @@ public class VersionCopier {
     private final NodeBuilder targetVersionStorage;
 
     private final Supplier<Boolean> frozenNodeIsReferenceable;
+    
+    private final Consumer<String> consumer;
 
     public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage) {
+        this(targetRoot, sourceVersionStorage, targetVersionStorage, path -> {});
+    }
+
+    public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, Consumer<String> consumer) {
         this.sourceVersionStorage = sourceVersionStorage;
         this.targetVersionStorage = targetVersionStorage;
         this.frozenNodeIsReferenceable = new IsFrozenNodeReferenceable(targetRoot.getNodeState());
+        this.consumer = consumer;
     }
 
     public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, VersionCopyConfiguration config) {
+        copyVersionStorage(targetRoot, sourceVersionStorage, targetVersionStorage, config, path -> {});
+    }
+    
+    public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, VersionCopyConfiguration config,
+       @NotNull Consumer<String> consumer) {
         final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(sourceVersionStorage, 3);
-        final VersionCopier versionCopier = new VersionCopier(targetRoot, sourceVersionStorage, targetVersionStorage);
+        final VersionCopier versionCopier = new VersionCopier(targetRoot, sourceVersionStorage, targetVersionStorage, consumer);
 
         while (versionStorageIterator.hasNext()) {
             final NodeState versionHistoryBucket = versionStorageIterator.next();
@@ -61,7 +75,8 @@ public class VersionCopier {
                 if (config.removeTargetVersionHistory()) {
                     getVersionHistoryBuilder(targetVersionStorage, versionHistory).remove();
                 }
-                versionCopier.copyVersionHistory(versionHistory, config.getOrphanedMinDate());
+                versionCopier.copyVersionHistory(versionHistory, config.getOrphanedMinDate(),
+                    config.preserveOnTarget());
             }
         }
     }
@@ -74,9 +89,11 @@ public class VersionCopier {
      *            Name of the version history node
      * @param minDate
      *            Only versions older than this date will be copied
+     * @param preserveOnTarget
+     *             Preserve version not present on target
      * @return {@code true} if at least one version has been copied
      */
-    public boolean copyVersionHistory(String versionableUuid, Calendar minDate) {
+    public boolean copyVersionHistory(String versionableUuid, Calendar minDate, boolean preserveOnTarget) {
         final String versionHistoryPath = getRelativeVersionHistoryPath(versionableUuid);
         final NodeState sourceVersionHistory = getVersionHistoryNodeState(sourceVersionStorage, versionableUuid);
         final Calendar lastModified = getVersionHistoryLastModified(sourceVersionHistory);
@@ -86,6 +103,8 @@ public class VersionCopier {
                     .include(versionHistoryPath)
                     .merge(VERSION_STORE_PATH)
                     .withReferenceableFrozenNodes(frozenNodeIsReferenceable.get())
+                    .preserve(preserveOnTarget)
+                    .withNodeConsumer(consumer)
                     .copy(sourceVersionStorage, targetVersionStorage);
             return true;
         }

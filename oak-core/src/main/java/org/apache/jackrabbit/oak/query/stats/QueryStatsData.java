@@ -66,6 +66,10 @@ public class QueryStatsData {
         return planNanos + readNanos;
     }
     
+    public long getMaxRowsRead() {
+        return maxRowsRead;
+    }
+    
     public long getMaxRowsScanned() {
         return maxRowsScanned;
     }

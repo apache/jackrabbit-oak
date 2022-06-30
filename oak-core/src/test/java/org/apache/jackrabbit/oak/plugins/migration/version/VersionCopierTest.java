@@ -17,10 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -121,6 +125,28 @@ public class VersionCopierTest {
         assertVersionHistoryTestPropertyRemoved(source, target);
     }
 
+    @Test
+    public void copyVersionSourceNotRemovingTargetVersionHistory() throws Exception {
+        String path = "/foo";
+        NodeStore source = createVersionFor(path, createStore(false));
+        NodeStore target = createStore(false);
+
+        // Copy source to target as starting point to duplicate.
+        copyContent(source, target, path);
+        copyVersionStorage(source, target);
+
+        // Add another version
+        target = createNewVersion(path, target, "a");
+        
+        // copy versions again preserving any new target versions created
+        VersionCopyConfiguration config = new VersionCopyConfiguration();
+        config.setPreserveOnTarget(true);
+        copyVersionStorageInternal(source, target, config);
+
+        // Verify the test properties no longer exist in the target version history.
+        assertVersionHistoryPreserveTarget(source, target);
+    }
+
     private void addVersionHistoryTestProperty(NodeStore source, NodeStore target) throws CommitFailedException {
         final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(source.getRoot());
         final NodeBuilder targetRootBuilder = target.getRoot().builder();
@@ -145,6 +171,28 @@ public class VersionCopierTest {
         }
     }
 
+    private void assertVersionHistoryPreserveTarget(NodeStore source, NodeStore target) {
+        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(source.getRoot());
+        final NodeState targetVersionStorage = VersionHistoryUtil.getVersionStorage(target.getRoot());
+
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(targetVersionStorage, 3);
+        final NodeState versionHistoryBucket = versionStorageIterator.next();
+        for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
+            NodeState historyNodeState = getVersionHistoryNodeState(targetVersionStorage, versionHistory);
+            List<String> targetList = StreamSupport.stream(historyNodeState.getChildNodeNames().spliterator(), false)
+                .collect(Collectors.toList());
+            
+            NodeState srcHistoryNodeState = getVersionHistoryNodeState(sourceVersionStorage, versionHistory);
+            List<String> sourceList = StreamSupport.stream(srcHistoryNodeState.getChildNodeNames().spliterator(), false)
+                .collect(Collectors.toList());
+            
+            // Check all source versions in target
+            assertTrue(targetList.containsAll(sourceList));
+            // Check target has more versions
+            assertTrue(targetList.size() > sourceList.size());
+        }
+    }
+
     private void copyContent(NodeStore source, NodeStore target, String path)
             throws CommitFailedException {
         NodeStateCopier.builder().include(path).copy(source, target);
@@ -162,12 +210,18 @@ public class VersionCopierTest {
         VersionCopyConfiguration config = new VersionCopyConfiguration();
         config.setRemoveTargetVersionHistory(removeTargetVersionHistory);
 
+        copyVersionStorageInternal(source, target, config);
+    }
+
+    private void copyVersionStorageInternal(NodeStore source, NodeStore target, VersionCopyConfiguration config) 
+            throws CommitFailedException {
+
         NodeBuilder targetRootBuilder = target.getRoot().builder();
         VersionCopier.copyVersionStorage(
-                targetRootBuilder,
-                VersionHistoryUtil.getVersionStorage(source.getRoot()),
-                VersionHistoryUtil.getVersionStorage(targetRootBuilder),
-                config
+            targetRootBuilder,
+            VersionHistoryUtil.getVersionStorage(source.getRoot()),
+            VersionHistoryUtil.getVersionStorage(targetRootBuilder),
+            config
         );
         commit(target, targetRootBuilder);
     }
@@ -205,6 +259,10 @@ public class VersionCopierTest {
     }
 
     private NodeStore createVersionFor(String path, NodeStore ns) throws Exception {
+        return createVersion(path, ns, "");
+    }
+
+    private NodeStore createVersion(String path, NodeStore ns, String property) throws Exception {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder builder = rootBuilder;
         for (String name : PathUtils.elements(path)) {
@@ -213,10 +271,32 @@ public class VersionCopierTest {
         builder.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
         builder.setProperty(JCR_MIXINTYPES, singletonList(MIX_VERSIONABLE), Type.NAMES);
         builder.setProperty(JCR_UUID, UUID.randomUUID().toString());
+        if (StringUtils.isNotEmpty(property)) {
+            builder.setProperty(property, property);
+        }
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(
                 VersionHistoryUtil.getVersionStorage(rootBuilder),
                 rootBuilder
         );
+        vMgr.checkin(builder);
+        commit(ns, rootBuilder);
+        return ns;
+    }
+
+    private NodeStore createNewVersion(String path, NodeStore ns, String property) throws Exception {
+        NodeBuilder rootBuilder = ns.getRoot().builder();
+        NodeBuilder builder = rootBuilder;
+        for (String name : PathUtils.elements(path)) {
+            builder = builder.child(name);
+        }
+        if (StringUtils.isNotEmpty(property)) {
+            builder.setProperty(property, property);
+        }
+        ReadWriteVersionManager vMgr = new ReadWriteVersionManager(
+            VersionHistoryUtil.getVersionStorage(rootBuilder),
+            rootBuilder
+        );
+        vMgr.checkout(builder);
         vMgr.checkin(builder);
         commit(ns, rootBuilder);
         return ns;

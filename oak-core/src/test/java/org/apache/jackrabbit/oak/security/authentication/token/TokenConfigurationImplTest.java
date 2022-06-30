@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
@@ -30,7 +31,6 @@ import org.junit.Test;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
-import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -160,6 +160,11 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
         verify(cs, times(4)).getCredentialClasses();
         verify(cs, times(2)).getAttributes(creds);
-
+    }
+    
+    @Test
+    public void testGetContext() {
+        Context ctx = tc.getContext();
+        assertTrue(ctx instanceof TokenContext);
     }
 }

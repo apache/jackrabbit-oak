@@ -1284,6 +1284,19 @@ index content e.g. size of index, number of documents present in index etc
 
 ![Lucene Index MBean](lucene-index-mbean.png)
 
+This MBean supports retriving index fields and terms using the `getFieldTermsInfo(java.lang.String indexPath, java.lang.String field, int max)`
+and the `getFieldTermsInfo(java.lang.String indexPath, java.lang.String field, java.lang.String fieldType, int max)` methods. 
+
+The first method always assumes the return type is a String, the second method allows you to specify the return type as either:
+
+ - String (value: String, java.lang.String)
+ - Long (value: long, java.lang.Long)
+ - Integer (value: int, java.lang.Integer)
+
+ For example:
+
+![Lucene Index MBean - getFieldTermsInfo](lucene-index-mbean-getfieldtermsinfo.png)
+
 ### <a name="active-blob-collection"></a>Active Index Files Collection
 
 `@since Oak 1.7.12`
@@ -1712,25 +1725,6 @@ those columns.
 The Apache Lucene version currently used in Oak has a limit of about 2^31 documents per index
 ([this includes Lucene version 6](http://lucene.apache.org/core/6_5_0/core/org/apache/lucene/codecs/lucene62/package-summary.html#Limitations)).
 If a larger index is needed, please use Apache Solr, which doesn't have this limit.
-
-### <a name="lucene-vs-property"></a>Lucene Index vs Property Index
-
-Lucene based index can be restricted to index only specific properties and in that
-case it is similar to [Property Index](query.html#property-index). However it differs
-from property index in following aspects
-
-1.  Lucene index is Asynchronous - Lucene indexing is done asynchronously with a default
-    interval of 5 secs. If there are lots of writes and those writes are related to what
-    is being indexed then it might cause further delay. Compared to this the property index
-    are always synchronous and upto date.
-
-    So if in your usecase you need the latest result then prefer _Property Indexes_ over
-    _Lucene Index_. Oak 1.6 supports [Near Realtime Indexing](indexing.html#nrt-indexing)
-    which reduce the lag considerably. With this you should be able to use lucene indexing
-    for most cases
-
-2.  Lucene index cannot enforce uniqueness constraint - By virtue of it being asynchronous
-    it cannot enforce uniqueness constraint.
 
 ### <a name="examples"></a>Examples
 

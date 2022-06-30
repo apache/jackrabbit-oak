@@ -90,14 +90,11 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
             destroyIDP();
             idp = null;
 
-            if (systemSession != null) {
-                systemSession.close();
-            }
-
             // discard any pending changes
-            root.refresh();
+            Root r = (systemRoot != null) ? systemRoot : root;
+            r.refresh();
 
-            UserManager userManager = getUserManager(root);
+            UserManager userManager = getUserManager(r);
             Iterator<String> iter = getAllAuthorizableIds(userManager);
             while (iter.hasNext()) {
                 String id = iter.next();
@@ -108,9 +105,15 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
                     }
                 }
             }
-            root.commit();
+            r.commit();
         } finally {
             root.refresh();
+            if (systemRoot != null) {
+                systemRoot.refresh();
+            }
+            if (systemSession != null) {
+                systemSession.close();
+            }
             super.after();
         }
     }
