@@ -130,12 +130,12 @@ If an index implementation can not query the data, it has to return `Infinity` (
 #### Identifying Nodes
 
 If an index is selected, the query is executed against the index. The translation from the JCR Query syntax into the query language supported by the index includes as many constraints as possible which are supported by the index. Depending on the index definition this can mean that not all constraints can be resolved by the index itself. 
-In this case the Query Engine tries to let the index handle as much constraints as possible and later executes all remaining constraints on its own, accessing the node store and doing all necessary operations there, which can result in a traversal. This means that despite the use of an index an additional traversal is required.
+In this case, the Query Engine tries to let the index handle as much constraints as possible and later executes all remaining constraints while [Iterating the Result Set](#iterating-the-result-set) by retrieving the nodes from the node store and evaluating the nodes against the constraints. Each retrieval, including non-matching nodes is counted as a traversal. This means that despite the use of an index an additional traversal can be required if not all constraints in a query are executed against the index.
 
-If no matching index is determined in the previous step, the Query Engine executes this query solely based on a traversal.
+If no matching index is determined in the previous step, the Query Engine executes this query solely based on a traversing the Node Store and evaluating the nodes against the constraints.
 
 #### Ordering
-If a query requests an ordered result set, the Query Engine tries to get an already ordered result from the index; in case the index definition does not support the requested ordering or in case of a traversal, the Query Engine must execute the ordering itself. To achieve this the entire result set is read into memory and then sorted which consumes memory and takes time.
+If a query requests an ordered result set, the Query Engine tries to get an already ordered result from the index; in case the index definition does not support the requested ordering or in case of a traversal, the Query Engine must execute the ordering itself. To achieve this the entire result set is read into memory and then sorted. This consumes memory, takes time and requires the Query Engine to read the full result set even in the case where a limit setting would otherwise limit the number of results traversed.
 
 #### Iterating the Result Set
 Query results are implemented as lazy iterators, and the result set is only read if needed. When the next result is requested, the result iterator seeks the potential nodes to find the next node matching the query. 
