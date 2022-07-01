@@ -82,6 +82,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -93,7 +94,6 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
-import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -122,6 +122,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -213,6 +214,9 @@ public final class DocumentNodeStore
     // max time diff of 2000 millis (2sec)
     static final long DEFAULT_MAX_SERVER_TIME_DIFFERENCE = 2000L;
     private final long maxTimeDiffMillis = SystemPropertySupplier.create("oak.documentMK.maxServerTimeDiffMillis", DEFAULT_MAX_SERVER_TIME_DIFFERENCE).loggingTo(LOG).get();
+
+    public static final String SYS_PROP_PREFETCH = "oak.documentstore.prefetch";
+    private final boolean prefetchEnabled = SystemPropertySupplier.create(SYS_PROP_PREFETCH, false).loggingTo(LOG).get();
 
     /**
      * The document store without potentially lease checking wrapper.
@@ -539,6 +543,8 @@ public final class DocumentNodeStore
 
     private final Predicate<Path> nodeCachePredicate;
 
+    private final Feature prefetchFeature;
+
     private CacheWarming cacheWarming;
 
     public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
@@ -607,6 +613,7 @@ public final class DocumentNodeStore
             leaseUpdateThread.start();
         }
 
+        this.prefetchFeature = builder.getPrefetchFeature();
         this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
@@ -3897,10 +3904,16 @@ public final class DocumentNodeStore
 
     @Override
     public void prefetch(java.util.Collection<String> paths, NodeState rootState) {
-        if (rootState instanceof DocumentNodeState) {
+        if (paths != null
+                && rootState instanceof DocumentNodeState
+                && isPrefetchEnabled()) {
             cacheWarming.prefetch(paths, (DocumentNodeState) rootState);
-        } else {
-            cacheWarming.prefetch(paths, null);
         }
+    }
+
+    private boolean isPrefetchEnabled() {
+        // feature can be enabled with system property or feature toggle
+        return prefetchEnabled
+                || (prefetchFeature != null && prefetchFeature.isEnabled());
     }
 }

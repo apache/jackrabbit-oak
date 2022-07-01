@@ -17,12 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.document.prefetch;
 
 import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+
+import static java.util.Objects.requireNonNull;
 
 public class CacheWarming {
 
@@ -32,20 +36,12 @@ public class CacheWarming {
         this.store = store;
     }
 
-    public void prefetch(java.util.Collection<String> paths, DocumentNodeState rootState) {
-        if ( (paths == null) || paths.isEmpty()) {
-            return;
-        }
-        prefetchDocumentStore(paths, rootState);
-    }
+    public void prefetch(@NotNull Iterable<String> paths,
+                         @NotNull DocumentNodeState rootState) {
+        requireNonNull(paths);
+        requireNonNull(rootState);
 
-    /**
-     * This would be about pre-warming the DocumentStore
-     * @param paths
-     */
-    private void prefetchDocumentStore(java.util.Collection<String> paths,
-                                       DocumentNodeState rootState) {
-        java.util.Collection<String> ids = new LinkedList<>();
+        List<String> ids = new LinkedList<>();
         for (String aPath : paths) {
             if (!isCached(aPath, rootState)) {
                 String id = Utils.getIdFromPath(aPath);
@@ -75,33 +71,4 @@ public class CacheWarming {
         }
         return true;
     }
-
-    /* caches
-     *
-     *  DocumentNodeStore:
-        nodeStore.getDiffCache().invalidateAll();
-        nodeStore.getNodeCache().invalidateAll();
-        nodeStore.getNodeChildrenCache().invalidateAll();
-     *
-     *
-     *  MongoDocumentStore:
-     *      private final NodeDocumentCache nodesCache;
-
-     */
-
-    /*
-    two parts:
-        1. fill the MongoDocumentStore.nodesCache
-        2. fill the DocumentNodeStore.nodeState cache
-     */
-/*    private DocumentNodeState readNode(Path path, RevisionVector readRevision) {
-        String id = Utils.getIdFromPath(path);
-        Revision lastRevision = getPendingModifications().get(path);
-        NodeDocument doc = store.find(Collection.NODES, id);
-        if (doc == null) {
-            return null;
-        }
-        final DocumentNodeState result = doc.getNodeAtRevision(this, readRevision, lastRevision);
-        return result;
-    }*/
 }

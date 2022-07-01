@@ -284,6 +284,20 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
     }
 
+    /**
+     /**
+     * Returns the child node for the given name from the cache. This method
+     * returns {@code null} if the cache does not have an entry for the child
+     * node.
+     * <p>
+     * Please note, the returned node state may also represent a node that does
+     * not exist. In which case {@link #exists()} of the returned node state
+     * will return {@code false}.
+     *
+     * @param name the name of the child node.
+     * @return the node state or {@code null} if the cache does not have an
+     *          entry for the child node.
+     */
     @Nullable
     public DocumentNodeState getChildIfCached(String name) {
         return store.getNodeIfCached(new Path(getPath(), name), lastRevision);

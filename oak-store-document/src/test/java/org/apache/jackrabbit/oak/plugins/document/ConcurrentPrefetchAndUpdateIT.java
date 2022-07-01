@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -53,6 +54,7 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
     @Before
     @Override
     public void setUpConnection() throws Exception {
+        System.setProperty(DocumentNodeStore.SYS_PROP_PREFETCH, String.valueOf(true));
         mongoConnection = connectionFactory.getConnection();
         assertNotNull(mongoConnection);
         MongoDatabase db = mongoConnection.getDatabase();
@@ -61,6 +63,11 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
                 .clock(getTestClock()).setAsyncDelay(0);
         store = new TestStore(mongoConnection.getMongoClient(), db, builder);
         mk = builder.setDocumentStore(store).open();
+    }
+
+    @After
+    public void clearSystemProperty() {
+        System.clearProperty(DocumentNodeStore.SYS_PROP_PREFETCH);
     }
 
     @Test
