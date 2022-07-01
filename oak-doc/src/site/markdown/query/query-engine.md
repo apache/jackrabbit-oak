@@ -139,7 +139,7 @@ If a query requests an ordered result set, the Query Engine tries to get an alre
 
 #### Iterating the Result Set
 Query results are implemented as lazy iterators, and the result set is only read if needed. When the next result is requested, the result iterator seeks the potential nodes to find the next node matching the query. 
-During this seek process the Query Engine reads and filters the potential nodes until if finds a match. Even if the query is handled completely by an index, the Query Engine needs to check if the requesting session is allowed to read the nodes.
+During this seek process the Query Engine reads and filters the potential nodes until it finds a match. Even if the query is handled completely by an index, the Query Engine needs to check if the requesting session is allowed to read the nodes.
 
 That means that during this final step every potential node must be loaded from the node store, thus counting towards the read limit (see [Slow Queries and Read Limits](#slow-queries-and-read-limits)).
 
