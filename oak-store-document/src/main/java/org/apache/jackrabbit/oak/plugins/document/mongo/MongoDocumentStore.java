@@ -2021,6 +2021,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
         return dbConnection.createClientSession();
     }
+
     interface DocumentStoreCallable<T> {
 
         T call(@Nullable ClientSession session) throws DocumentStoreException;
