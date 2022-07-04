@@ -107,7 +107,7 @@ import org.slf4j.LoggerFactory;
  *
  * @param <T> the delegate type
  */
-public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Node, JackrabbitNode {
+public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements JackrabbitNode {
 
     /**
      * Use an zero length MVP to check read permission on jcr:mixinTypes (OAK-7652)
@@ -1627,6 +1627,40 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public void performVoid() throws RepositoryException {
                 dlg.setMixins(oakTypeNames);
+            }
+        });
+    }
+
+    @Override
+    public @Nullable JackrabbitNode getNodeOrNull(@NotNull String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        return sessionDelegate.performNullable(new NodeOperation<JackrabbitNode>(dlg, "getNodeOrNull") {
+            @Nullable
+            @Override
+            public JackrabbitNode performNullable() throws RepositoryException {
+                NodeDelegate nd = node.getChild(oakPath);
+                if (nd == null) {
+                    return null;
+                } else {
+                    return createNode(nd, sessionContext);
+                }
+            }
+        });
+    }
+
+    @Override
+    public @Nullable Property getPropertyOrNull(@NotNull String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        return sessionDelegate.performNullable(new NodeOperation<PropertyImpl>(dlg, "getPropertyOrNull") {
+            @Nullable
+            @Override
+            public PropertyImpl performNullable() throws RepositoryException {
+                PropertyDelegate pd = node.getPropertyOrNull(oakPath);
+                if (pd == null) {
+                    return null;
+                } else {
+                    return new PropertyImpl(pd, sessionContext);
+                }
             }
         });
     }

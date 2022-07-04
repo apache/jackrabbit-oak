@@ -28,12 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
 
@@ -152,7 +152,7 @@ public class ElasticDocument {
 
             ret = Strings.toString(builder);
         } catch (IOException e) {
-            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, ",
+            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}",
                     path, properties, fulltext, suggest, e);
             ret = null;
         }

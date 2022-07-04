@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
 import java.io.IOException;
@@ -52,7 +51,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 
 /**
  * Abstract implementation of a {@link DocumentMaker}.
- *
+ * <p>
  * D is the type of entities / documents to be indexed specific to subclasses implementations.
  */
 public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
@@ -106,10 +105,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     /**
      * Indexes a text value that will be used to re-score results with the given confidence
-     * @param doc the full-text document
-     * @param parent the parent node
-     * @param nodeName the current node name
-     * @param value the value to be indexed
+     *
+     * @param doc        the full-text document
+     * @param parent     the parent node
+     * @param nodeName   the current node name
+     * @param value      the value to be indexed
      * @param confidence the confidence (or weight) used for re-scoring
      * @return {@code true} id the value has been added, otherwise {@code false}
      */
@@ -157,7 +157,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
             PropertyDefinition pd = indexingRule.getConfig(pname);
 
-            if (pd == null || !pd.index){
+            if (pd == null || !pd.index) {
                 continue;
             }
 
@@ -190,14 +190,14 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
 
         String name = getName(path);
-        if (indexingRule.isNodeNameIndexed()){
+        if (indexingRule.isNodeNameIndexed()) {
             addNodeNameField(document, name);
             dirty = true;
         }
 
         //For property index no use making an empty document if
         //none of the properties are indexed
-        if(!indexingRule.indexesAllNodesOfMatchingType() && !dirty){
+        if (!indexingRule.indexesAllNodesOfMatchingType() && !dirty) {
             return null;
         }
 
@@ -209,7 +209,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
         }
 
-        if (definition.evaluatePathRestrictions()){
+        if (definition.evaluatePathRestrictions()) {
             indexAncestors(document, path);
         }
 
@@ -273,7 +273,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     if (definition.getPropertyRegex() != null && !definition.getPropertyRegex().matcher(value).find()) {
                         continue;
                     }
-                    if (!includePropertyValue(value, pd)){
+                    if (!includePropertyValue(value, pd)) {
                         continue;
                     }
 
@@ -323,7 +323,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     /**
      * In elastic we don't add analyzed data in :fulltext if index has both analyzed
      * and nodescope property. Instead we fire a multiMatch with cross_fields.
-     *
+     * <p>
      * Returns {@code true} if nodeScopeIndex full text values need to be indexed at node level (:fulltext)
      */
     protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
@@ -385,7 +385,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     protected boolean includePropertyValue(PropertyState property, int i, PropertyDefinition pd) {
-        if (property.getType().tag() == PropertyType.BINARY){
+        if (property.getType().tag() == PropertyType.BINARY) {
             return true;
         }
 
@@ -396,7 +396,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return includePropertyValue(property.getValue(Type.STRING, i), pd);
     }
 
-    protected boolean includePropertyValue(String value, PropertyDefinition pd){
+    protected boolean includePropertyValue(String value, PropertyDefinition pd) {
         return pd.valuePattern.matches(value);
     }
 
@@ -406,7 +406,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private List<String> newBinary(
             PropertyState property, NodeState state, String path) {
-        if (textExtractor == null){
+        if (textExtractor == null) {
             //Skip text extraction for sync indexing
             return Collections.emptyList();
         }
@@ -502,9 +502,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * not considered to be null
      *
      */
-    private boolean isPropertyNull(NodeState state, PropertyDefinition pd){
+    private boolean isPropertyNull(NodeState state, PropertyDefinition pd) {
         NodeState propertyNode = getPropertyNode(state, pd);
-        if (!propertyNode.exists()){
+        if (!propertyNode.exists()) {
             return false;
         }
         return !propertyNode.hasProperty(pd.nonRelativeName);
@@ -516,16 +516,16 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * For relative property if the intermediate nodes do not exist then property is
      * considered to be null
      */
-    private boolean isPropertyNotNull(NodeState state, PropertyDefinition pd){
+    private boolean isPropertyNotNull(NodeState state, PropertyDefinition pd) {
         NodeState propertyNode = getPropertyNode(state, pd);
-        if (!propertyNode.exists()){
+        if (!propertyNode.exists()) {
             return false;
         }
         return propertyNode.hasProperty(pd.nonRelativeName);
     }
 
     private static NodeState getPropertyNode(NodeState nodeState, PropertyDefinition pd) {
-        if (!pd.relative){
+        if (!pd.relative) {
             return nodeState;
         }
         NodeState node = nodeState;
@@ -584,7 +584,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 .getApplicableIndexingRule(getPrimaryTypeName(result.nodeState));
         boolean dirty = false;
 
-        for (PropertyState property : result.nodeState.getProperties()){
+        for (PropertyState property : result.nodeState.getProperties()) {
             String pname = property.getName();
             String propertyPath = PathUtils.concat(result.nodePath, pname);
 
@@ -594,11 +594,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
             //Check if type is indexed
             int type = property.getType().tag();
-            if (ruleAggNode != null ) {
+            if (ruleAggNode != null) {
                 if (!ruleAggNode.includePropertyType(type)) {
                     continue;
                 }
-            } else if (!indexingRule.includePropertyType(type)){
+            } else if (!indexingRule.includePropertyType(type)) {
                 continue;
             }
 
@@ -622,11 +622,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 dirty = true;
             } else {
                 PropertyDefinition pd = null;
-                if (ruleAggNode != null){
+                if (ruleAggNode != null) {
                     pd = ruleAggNode.getConfig(pname);
                 }
 
-                if (pd != null && !pd.nodeScopeIndex){
+                if (pd != null && !pd.nodeScopeIndex) {
                     continue;
                 }
 

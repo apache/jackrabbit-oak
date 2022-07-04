@@ -20,6 +20,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Highlight;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
@@ -138,7 +139,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             }
             try {
                 queue.put(new FulltextResultRow(path, searchHit.score() != null ? searchHit.score() : 0.0,
-                        null, elasticFacetProvider, null));
+                        elasticResponseHandler.excerpts(searchHit), elasticFacetProvider, null));
             } catch (InterruptedException e) {
                 throw new IllegalStateException("Error producing results into the iterator queue", e);
             }
@@ -178,6 +179,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
         private final Query query;
         private final @NotNull List<SortOptions> sorts;
+        private final Highlight highlight;
         private final SourceConfig sourceConfig;
 
         // concurrent data structures to coordinate chunks loading
@@ -197,6 +199,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
             this.sorts = elasticRequestHandler.baseSorts();
+            this.highlight = elasticRequestHandler.highlight();
 
             Set<String> sourceFieldsSet = new HashSet<>();
             AtomicBoolean needsAggregations = new AtomicBoolean(false);
@@ -225,6 +228,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                                 .sort(sorts)
                                 .source(sourceConfig)
                                 .query(query)
+                                .highlight(highlight)
                                 // use a smaller size when the query contains aggregations. This improves performance
                                 // when the client is only interested in insecure facets
                                 .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests));
@@ -258,7 +262,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         /**
          * Handle the response action notifying the registered listeners. Depending on the listeners' configuration
          * it could keep loading chunks or wait for a {@code #scan} call to resume scanning.
-         *
+         * <p>
          * Some code in this method relies on structure that are not thread safe. We need to make sure
          * these data structures are modified before releasing the semaphore.
          */
@@ -336,6 +340,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .source(sourceConfig)
                         .searchAfter(lastHitSortValues)
                         .query(query)
+                        .highlight(highlight)
                         .size(getFetchSize(requests++))
                 );
                 if (LOG.isTraceEnabled()) {
@@ -360,7 +365,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private int getFetchSize(int requestId) {
             int[] queryFetchSizes = indexNode.getDefinition().queryFetchSizes;
             return queryFetchSizes.length > requestId ?
-                    queryFetchSizes[requestId] : queryFetchSizes[queryFetchSizes.length -1];
+                    queryFetchSizes[requestId] : queryFetchSizes[queryFetchSizes.length - 1];
         }
 
         // close all listeners

@@ -553,7 +553,7 @@ public class DefaultSyncContext implements SyncContext {
             boolean exists = grp != null;
 
             if (exists && !idMatches) {
-                log.warn("The existing authorizable {} and the external group {} have identifiers that only differ by case. Since the identifiers are compared case-insensitively, the existing authorizable will be considered to match the external group.");
+                log.warn("The existing group {} and the external group {} have identifiers that only differ by case. Since the identifiers are compared case-insensitively, the existing authorizable will be considered to match the external group.", grp.getID(), extGroup.getId());
             }
 
             if (!exists) {
