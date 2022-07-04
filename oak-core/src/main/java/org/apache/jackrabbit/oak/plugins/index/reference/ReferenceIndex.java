@@ -25,10 +25,10 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.cursor.Cursors.newPathCursor;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.Cursors.newPathCursor;
 
 import java.util.ArrayList;
 import java.util.List;
