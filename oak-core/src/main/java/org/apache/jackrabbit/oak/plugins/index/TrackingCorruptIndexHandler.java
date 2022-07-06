@@ -114,7 +114,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         CorruptIndexInfo info = getOrCreateInfo(async, indexPath);
         if (info.skippedIndexing(checkNotNull(corruptSince))) {
             log.warn("Ignoring index [{}] which has been marked as corrupt [{}]. This index " +
-                            "MUST be reindexed for search to work properly", indexPath,
+                            "MUST be reindexed to work properly", indexPath,
                     info.getStats());
             return true;
         }
