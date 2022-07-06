@@ -120,7 +120,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.1.1</version>
                 <executions>
                     <execution>
                         <id>copy-dependencies</id>
@@ -307,6 +306,14 @@
             <artifactId>sqlite4java-win32-x64</artifactId>
             <version>${sqlite4java.version}</version>
             <type>dll</type>
+            <scope>test</scope>
+        </dependency>
+        <!-- add native implementation for Apple silicon from fork -->
+        <dependency>
+            <groupId>io.github.ganadist.sqlite4java</groupId>
+            <artifactId>libsqlite4java-osx-aarch64</artifactId>
+            <version>${sqlite4java.version}</version>
+            <type>dylib</type>
             <scope>test</scope>
         </dependency>
         <dependency>
