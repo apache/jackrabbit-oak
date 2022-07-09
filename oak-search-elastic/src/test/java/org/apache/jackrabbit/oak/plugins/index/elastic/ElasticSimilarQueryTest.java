@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -302,7 +303,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         File file = new File(uri);
 
         Collection<String> children = new LinkedList<>();
-        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+        for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
             String[] split = line.split(",");
             List<Double> values = Arrays.stream(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
@@ -315,6 +316,12 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
             child.setProperty("fv", blob, Type.BINARY);
             children.add(child.getPath());
         }
+
+        // add a node without FV, the plugin cannot handle it directly
+        Tree child = test.addChild("nofv");
+        child.setProperty("nofv", "test");
+        children.add(child.getPath());
+
         root.commit();
 
         // check that similarity changes across different feature vectors
