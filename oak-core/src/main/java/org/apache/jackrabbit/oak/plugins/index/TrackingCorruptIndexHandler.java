@@ -113,8 +113,8 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     public boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
         CorruptIndexInfo info = getOrCreateInfo(async, indexPath);
         if (info.skippedIndexing(checkNotNull(corruptSince))) {
-            log.warn("Ignoring corrupt index [{}] which has been marked as corrupt [{}]. This index " +
-                            "MUST be reindexed for indexing to work properly", indexPath,
+            log.warn("Ignoring index [{}] which has been marked as corrupt [{}]. This index " +
+                            "MUST be reindexed to work properly", indexPath,
                     info.getStats());
             return true;
         }

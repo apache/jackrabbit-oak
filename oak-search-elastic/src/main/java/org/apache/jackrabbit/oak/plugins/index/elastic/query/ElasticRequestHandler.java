@@ -317,9 +317,10 @@ public class ElasticRequestHandler {
                     continue;
                 }
 
+                String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
                 String knnQuery = "{" +
                         "  \"elastiknn_nearest_neighbors\": {" +
-                        "    \"field\": \"" + FieldNames.createSimilarityFieldName(pd.name) + "\"," +
+                        "    \"field\": \"" + similarityPropFieldName + "\"," +
                         "    \"model\": \"" + pd.getSimilaritySearchParameters().getQueryModel() + "\"," +
                         "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getQueryTimeSimilarityFunction() + "\"," +
                         "    \"candidates\": " + pd.getSimilaritySearchParameters().getCandidates() + "," +
@@ -332,8 +333,10 @@ public class ElasticRequestHandler {
                         "  }" +
                         "}";
 
-                query.should(s -> s
-                        .wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8))))
+                query
+                        .filter(fb -> fb.exists(ef -> ef.field(similarityPropFieldName)))
+                        .should(s -> s
+                                .wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8))))
                 );
             }
         }
