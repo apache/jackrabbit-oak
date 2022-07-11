@@ -138,34 +138,36 @@ public class FlatFileSplitter {
             int outFileIndex = 1;
             File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
             BufferedWriter writer = createWriter(currentFile, algorithm);
-            splitFlatFiles.add(currentFile);
-
-            String line;
-            int lineCount = 0;
-            Stack<String> nodeTypeNameStack = new Stack<>();
-            while ((line = reader.readLine()) != null) {
-                updateNodeTypeStack(nodeTypeNameStack, line);
-                boolean shouldSplit = (readPos > splitThreshold);
-                if (shouldSplit && canSplit(splitNodeTypesName, nodeTypeNameStack)) {
-                    writer.close();
-                    LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
-                    readPos = 0;
-                    outFileIndex++;
-                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
-                    writer = createWriter(currentFile, algorithm);
-                    splitFlatFiles.add(currentFile);
-                    LOG.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
+            try {
+                splitFlatFiles.add(currentFile);
+                int lineCount = 0;
+                String line;
+                Stack<String> nodeTypeNameStack = new Stack<>();
+                while ((line = reader.readLine()) != null) {
+                    updateNodeTypeStack(nodeTypeNameStack, line);
+                    boolean shouldSplit = (readPos > splitThreshold);
+                    if (shouldSplit && canSplit(splitNodeTypesName, nodeTypeNameStack)) {
+                        writer.close();
+                        LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
+                        readPos = 0;
+                        outFileIndex++;
+                        currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
+                        writer = createWriter(currentFile, algorithm);
+                        splitFlatFiles.add(currentFile);
+                        LOG.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
+                    }
+                    writer.append(line);
+                    writer.newLine();
+                    readPos += line.length() + 1;
+                    lineCount++;
                 }
-                writer.append(line);
-                writer.newLine();
-                readPos += line.length() + 1;
-                lineCount++;
+                LOG.info("created split flat file {}, size {}, line count {}",
+                        currentFile.getAbsolutePath(),
+                        FileUtils.byteCountToDisplaySize(currentFile.length()),
+                        lineCount);
+            } finally {
+                writer.close();
             }
-            writer.close();
-            LOG.info("created split flat file {}, size {}, line count {}",
-                    currentFile.getAbsolutePath(),
-                    FileUtils.byteCountToDisplaySize(currentFile.length()),
-                    lineCount);
         }
 
         if (deleteOriginal) {
