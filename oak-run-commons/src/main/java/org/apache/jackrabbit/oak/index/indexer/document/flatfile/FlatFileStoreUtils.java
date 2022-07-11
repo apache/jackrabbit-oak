@@ -39,7 +39,7 @@ import java.util.List;
 class FlatFileStoreUtils {
 
     /**
-     * This function by default uses GNU zip as compression algorithm for backward compatibility.
+     * This function by default uses gzip as compression algorithm for backward compatibility.
      */
     public static BufferedReader createReader(File file, boolean compressionEnabled) {
         return createReader(file, compressionEnabled ? Compression.Algorithm.GZIP : Compression.Algorithm.NONE);
@@ -71,7 +71,7 @@ class FlatFileStoreUtils {
     }
 
     /**
-     * This function by default uses GNU zip as compression algorithm for backward compatibility.
+     * This function by default uses gzip as compression algorithm for backward compatibility.
      */
     public static String getSortedStoreFileName(boolean compressionEnabled) {
         return getSortedStoreFileName(compressionEnabled ? Compression.Algorithm.GZIP : Compression.Algorithm.NONE);
