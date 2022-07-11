@@ -19,7 +19,7 @@ Oak Documentation
 =================
 
 The Oak documentation lives as Markdown files in `src/site/markdown` such
-that it easy to view e.g. from GitHub. Alternatively the Maven site plugin
+that it's easy to view e.g. from GitHub. Alternatively the Maven site plugin
 can be used to build and deploy a web site as follows:
 
 From the reactor do
