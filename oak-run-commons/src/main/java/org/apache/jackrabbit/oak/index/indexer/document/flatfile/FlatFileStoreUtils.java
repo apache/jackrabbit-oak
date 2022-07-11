@@ -55,7 +55,7 @@ class FlatFileStoreUtils {
     }
 
     /**
-     * This function by default uses GNU zip as compression algorithm for backward compatibility.
+     * This function by default uses gzip as compression algorithm for backward compatibility.
      */
     public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
         return createWriter(file, compressionEnabled ? Compression.Algorithm.GZIP : Compression.Algorithm.NONE);
