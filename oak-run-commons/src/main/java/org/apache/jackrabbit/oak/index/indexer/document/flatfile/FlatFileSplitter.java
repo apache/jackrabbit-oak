@@ -162,9 +162,10 @@ public class FlatFileSplitter {
                 lineCount++;
             }
             writer.close();
-            LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
-
-            LOG.info("split total line count: {}", lineCount);
+            LOG.info("created split flat file {}, size {}, line count {}",
+                    currentFile.getAbsolutePath(),
+                    FileUtils.byteCountToDisplaySize(currentFile.length()),
+                    lineCount);
         }
 
         if (deleteOriginal) {
