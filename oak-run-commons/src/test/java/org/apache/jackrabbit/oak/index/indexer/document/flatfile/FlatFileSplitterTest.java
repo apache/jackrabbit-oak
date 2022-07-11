@@ -368,7 +368,7 @@ public class FlatFileSplitterTest {
         assertEquals("test setup incorrectly", resultNodeTypes.size(), 20);
 
         FlatFileSplitter splitter = new FlatFileSplitter(null, null, mockNodeTypeInfoProvider, null, defns);
-        Set<String> nodeTypes = splitter.getSplitNodeTypeNames();
+        Set<String> nodeTypes = splitter.getIndexDefinitionNodeTypeNames();
 
         assertEquals(resultNodeTypes.size(), nodeTypes.size()); // exclude unknown node type
         assertTrue(nodeTypes.containsAll(resultNodeTypes));
