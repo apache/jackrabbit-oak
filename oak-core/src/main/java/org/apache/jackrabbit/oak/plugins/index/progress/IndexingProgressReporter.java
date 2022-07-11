@@ -234,7 +234,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
             long count = updateCount.incrementAndGet();
             if (count % 10000 == 0) {
                 synchronized (this) {
-                    log.info("{} => Indexed {} nodes in {} ...", indexPath, updateCount, watch);
+                    log.info("{} => Indexed {} nodes in {} ...", indexPath, count, watch);
                     watch.reset().start();
                 }
             }
