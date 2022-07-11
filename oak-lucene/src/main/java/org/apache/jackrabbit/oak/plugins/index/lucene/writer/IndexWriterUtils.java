@@ -40,8 +40,12 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
 
 public class IndexWriterUtils {
-    private static final int INDEX_WRITER_MAX_MERGE = 8;
-    private static final int INDEX_WRITER_MAX_THREAD = 8;
+
+    private static final String INDEX_WRITER_MAX_MERGE_KEY = "oak.lucene.IndexWriterMaxMerge";
+    private static final int INDEX_WRITER_MAX_MERGE = Integer.getInteger(INDEX_WRITER_MAX_MERGE_KEY, 4);
+
+    private static final String INDEX_WRITER_MAX_THREAD_KEY = "oak.lucene.IndexWriterMaxThread";
+    private static final int INDEX_WRITER_MAX_THREAD = Integer.getInteger(INDEX_WRITER_MAX_THREAD_KEY, 4);
 
     public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean remoteDir){
         return getIndexWriterConfig(definition, remoteDir, new LuceneIndexWriterConfig());

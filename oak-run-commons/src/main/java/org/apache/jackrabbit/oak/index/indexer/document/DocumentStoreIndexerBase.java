@@ -271,12 +271,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
-    private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter) {
+    private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
+            throws CommitFailedException, IOException {
         ExecutorService service = Executors.newFixedThreadPool(INDEX_THREAD_POOL_SIZE);
-        List<Future> futureList = new ArrayList<>();
+        List<Future<Boolean>> futureList = new ArrayList<>();
 
         for (FlatFileStore item : storeList) {
-            Future future = service.submit(new Callable<Boolean>() {
+            Future<Boolean> future = service.submit(new Callable<Boolean>() {
                 @Override
                 public Boolean call() throws IOException, CommitFailedException {
                     for (NodeStateEntry entry : item) {
@@ -290,13 +291,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         }
 
         try {
-            for (Future future : futureList) {
+            for (Future<Boolean> future : futureList) {
                 future.get();
             }
             log.info("All {} indexing jobs are done", storeList.size());
-            service.shutdown();
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failure getting indexing job result", e);
+            throw new IOException(e.getMessage(), e);
+        } finally {
+            service.shutdown();
         }
     }
 

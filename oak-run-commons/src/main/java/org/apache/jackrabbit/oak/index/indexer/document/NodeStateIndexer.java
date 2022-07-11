@@ -26,12 +26,21 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 
-public interface NodeStateIndexer extends Closeable{
+/**
+ * A mechanism that allows to index nodes.
+ */
+public interface NodeStateIndexer extends Closeable {
 
     boolean shouldInclude(String path);
 
     boolean shouldInclude(NodeDocument doc);
 
+    /**
+     * Index a node.
+     *
+     * @param entry the node
+     * @return true if the index was changed
+     */
     boolean index(NodeStateEntry entry) throws IOException, CommitFailedException;
 
     boolean indexesRelativeNodes();

@@ -231,8 +231,8 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         }
 
         public void indexUpdate() throws CommitFailedException {
-            updateCount.incrementAndGet();
-            if (updateCount.get() % 10000 == 0) {
+            long count = updateCount.incrementAndGet();
+            if (count % 10000 == 0) {
                 synchronized (this) {
                     log.info("{} => Indexed {} nodes in {} ...", indexPath, updateCount, watch);
                     watch.reset().start();

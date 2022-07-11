@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-// filename: ExternalSort.java
-
-import net.jpountz.lz4.LZ4FrameInputStream;
-import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.jackrabbit.oak.commons.Compression;
 
 import java.io.BufferedReader;
@@ -40,9 +36,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.function.Function;
-import java.util.zip.Deflater;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import static java.util.function.Function.identity;
 
@@ -684,7 +677,7 @@ public class ExternalSort {
             int rowcounter = merge(fbw, cmp, distinct, bfbs, typeToString);
             return rowcounter;
         } finally {
-            for (BinaryFileBuffer buffer : bfbs) {
+            for (BinaryFileBuffer<T> buffer : bfbs) {
                 try {
                     buffer.close();
                 } catch (Exception e) {}
@@ -722,7 +715,7 @@ public class ExternalSort {
                 return cmp.compare(i.peek(), j.peek());
             }
         });
-        for (BinaryFileBuffer bfb : buffers) {
+        for (BinaryFileBuffer<T> bfb : buffers) {
             if (!bfb.empty()) {
                 pq.add(bfb);
             }
@@ -748,7 +741,7 @@ public class ExternalSort {
             }
         } finally {
             fbw.close();
-            for (BinaryFileBuffer bfb : buffers) {
+            for (BinaryFileBuffer<T> bfb : buffers) {
                 bfb.close();
             }
         }

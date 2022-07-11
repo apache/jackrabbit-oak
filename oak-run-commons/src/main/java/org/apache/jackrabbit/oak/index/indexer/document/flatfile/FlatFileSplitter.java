@@ -61,7 +61,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  * none of the parent directories contains nodes in indexRule and aggregate fields of the provided index definitions.
  */
 public class FlatFileSplitter {
-    private static final Logger log = LoggerFactory.getLogger(FlatFileSplitter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FlatFileSplitter.class);
 
     private static final String SPLIT_DIR_NAME = "split";
     private static final long MINIMUM_SPLIT_THRESHOLD = 10 * FileUtils.ONE_MB;
@@ -71,12 +71,11 @@ public class FlatFileSplitter {
     private final File flatFile;
     private final NodeStateEntryReader entryReader;
     private final Compression.Algorithm algorithm;
-    private Set<IndexDefinition> indexDefinitions;
+    private final Set<IndexDefinition> indexDefinitions;
     private Set<String> splitNodeTypeNames;
-    private long minimumSplitThreshold = MINIMUM_SPLIT_THRESHOLD;
-    private int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
-    private boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
+    private final int splitSize = Integer.getInteger(PROP_SPLIT_STORE_SIZE, DEFAULT_NUMBER_OF_SPLIT_STORE_SIZE);
+    private final boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
 
     public FlatFileSplitter(File flatFile, File workdir, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader,
             Set<IndexDefinition> indexDefinitions) {
@@ -87,11 +86,11 @@ public class FlatFileSplitter {
         this.infoProvider = infoProvider;
         this.entryReader = entryReader;
 
-        Compression.Algorithm algorithm = Compression.Algorithm.GZIP;
-        if (!useCompression) {
-            algorithm = Compression.Algorithm.NONE;
-        } else if (useLZ4) {
-            algorithm = Compression.Algorithm.LZ4;
+        Compression.Algorithm algorithm = Compression.Algorithm.NONE;
+        if (useCompression) {
+            algorithm = useLZ4 ?
+                    Compression.Algorithm.LZ4 :
+                    Compression.Algorithm.GZIP;
         }
         this.algorithm = algorithm;
     }
@@ -109,25 +108,28 @@ public class FlatFileSplitter {
         try {
             FileUtils.forceMkdir(workDir);
         } catch (IOException e) {
-            log.error("failed to create split directory {}", workDir.getAbsolutePath());
+            LOG.error("failed to create split directory {}", workDir.getAbsolutePath());
             return returnOriginalFlatFile();
         }
 
         long fileSizeInBytes = flatFile.length();
         long splitThreshold = Math.round((double) (fileSizeInBytes / splitSize));
-        log.info("original flat file size: ~{}",  FileUtils.byteCountToDisplaySize(fileSizeInBytes));
-        log.info("split threshold is ~{} bytes, estimate split size >={} files",  FileUtils.byteCountToDisplaySize(splitThreshold), splitSize);
 
         // return original if file too small or split size equals 1
-        if (splitThreshold < minimumSplitThreshold || splitSize <= 1) {
-            log.info("split is not necessary, skip splitting");
+        if (splitThreshold < MINIMUM_SPLIT_THRESHOLD || splitSize <= 1) {
+            LOG.info("split is not necessary, skip splitting");
             return returnOriginalFlatFile();
         }
 
+        LOG.info("original flat file size: ~{}",
+                FileUtils.byteCountToDisplaySize(fileSizeInBytes));
+        LOG.info("split threshold is ~{} bytes, estimate split size >={} files",
+                FileUtils.byteCountToDisplaySize(splitThreshold), splitSize);
+
         Set<String>splitNodeTypesName = getSplitNodeTypeNames();
-        log.info("unsafe split types: {}", splitNodeTypesName);
+        LOG.info("unsafe split types: {}", splitNodeTypesName);
         if (splitNodeTypesName.contains(NT_BASE)) {
-            log.info("Skipping split because split node types set contains {}", NT_BASE);
+            LOG.info("Skipping split because split node types set contains {}", NT_BASE);
             return returnOriginalFlatFile();
         }
 
@@ -146,13 +148,13 @@ public class FlatFileSplitter {
                 boolean shouldSplit = (readPos > splitThreshold);
                 if (shouldSplit && canSplit(splitNodeTypesName, nodeTypeNameStack)) {
                     writer.close();
-                    log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
+                    LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
                     readPos = 0;
                     outFileIndex++;
                     currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
                     writer = createWriter(currentFile, algorithm);
                     splitFlatFiles.add(currentFile);
-                    log.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
+                    LOG.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
                 }
                 writer.append(line);
                 writer.newLine();
@@ -160,13 +162,13 @@ public class FlatFileSplitter {
                 lineCount++;
             }
             writer.close();
-            log.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
+            LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
 
-            log.info("split total line count: {}", lineCount);
+            LOG.info("split total line count: {}", lineCount);
         }
 
         if (deleteOriginal) {
-            log.info("removing original flat file {} after splitting into {} files", flatFile.getAbsolutePath(), splitFlatFiles);
+            LOG.info("removing original flat file {} after splitting into {} files", flatFile.getAbsolutePath(), splitFlatFiles);
             flatFile.delete();
         }
 
