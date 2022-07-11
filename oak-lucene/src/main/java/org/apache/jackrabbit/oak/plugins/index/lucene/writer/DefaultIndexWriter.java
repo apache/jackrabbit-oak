@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
 
@@ -27,6 +26,7 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -268,9 +268,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private static void trackIndexSizeInfo(@NotNull IndexWriter writer,
                                            @NotNull IndexDefinition definition,
                                            @NotNull Directory directory) throws IOException {
-        checkNotNull(writer);
-        checkNotNull(definition);
-        checkNotNull(directory);
+        Objects.requireNonNull(writer);
+        Objects.requireNonNull(definition);
+        Objects.requireNonNull(directory);
 
         int docs = writer.numDocs();
         int ram = writer.numRamDocs();
