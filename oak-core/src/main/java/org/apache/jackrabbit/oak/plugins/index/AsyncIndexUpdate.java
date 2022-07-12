@@ -107,7 +107,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * Name of service property which determines the name of Async task
      */
     public static final String PROP_ASYNC_NAME = "oak.async";
-    private static final String CONCURRENT_EXCEPTIPN_MSG ="Another copy of the index update is already running; skipping this update. ";
+    private static final String CONCURRENT_EXCEPTION_MSG ="Another copy of the index update is already running; skipping this update. ";
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
 
@@ -151,7 +151,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     /**
      * Set of reindexed definitions updated between runs because a single diff
-     * can report less definitions than there really are. Used in coordination
+     * can report fewer definitions than there really are. Used in coordination
      * with the switchOnSync flag, so we know which def need to be updated after
      * a run with no changes.
      */
@@ -510,7 +510,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             long currentTime = System.currentTimeMillis();
             if (leaseEndTime > currentTime) {
                 long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
-                String err = String.format(CONCURRENT_EXCEPTIPN_MSG +
+                String err = String.format(CONCURRENT_EXCEPTION_MSG +
                         "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
                 indexStats.failed(new Exception(err, newConcurrentUpdateException()));
                 return;
@@ -1078,7 +1078,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         public void failed(Exception e) {
             boolean isConcurrentUpdateException = (e.getMessage() != null)
-                    && (e.getMessage().startsWith(CONCURRENT_EXCEPTIPN_MSG));
+                    && (e.getMessage().startsWith(CONCURRENT_EXCEPTION_MSG));
             if (e == INTERRUPTED){
                 status = STATUS_INTERRUPTED;
                 log.info("[{}] The index update interrupted", name);

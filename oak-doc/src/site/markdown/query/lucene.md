@@ -104,7 +104,7 @@ _Note that compared to [Property Index](query.html#property-index) Lucene
 Property Index is always configured in Async mode hence it might lag behind
 in reflecting the current repository state while performing the query_
 
-Taking another example. To support following query
+Taking another example. To support the following query
 
     /jcr:root/content//*[jcr:contains(., 'text')]
 
@@ -181,7 +181,7 @@ codec
 compatVersion
 : Required integer property and should be set to 2
 : By default Oak uses older Lucene index implementation which does not
-  supports property restrictions, index time aggregation etc.
+  support property restrictions, index time aggregation etc.
   To make use of this feature set it to 2.
   Please note for full text indexing with compatVersion 2,
   at query time, only the access right of the parent (aggregate) node is checked,
@@ -272,7 +272,7 @@ indexPath
 
 #### <a name="indexing-rules"></a> Indexing Rules
 
-Indexing rules defines which types of node and properties are indexed. An
+Indexing rules define which types of nodes and properties are indexed. An
 index configuration can define one or more `indexingRules` for different
 nodeTypes.
 
@@ -297,7 +297,7 @@ nodeTypes.
               - name = "jcr:content/metadata/imageType"
 
 Rules are defined per nodeType and each rule has one or more property
-definitions determine which properties are indexed. Below is the canonical index
+definitions that determine which properties are indexed. Below is the canonical index
 definition structure
 
     ruleName (nt:unstructured)
