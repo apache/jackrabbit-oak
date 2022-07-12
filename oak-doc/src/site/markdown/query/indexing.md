@@ -56,7 +56,7 @@ The indexing mode defines how comparing is performed, and when the index content
 Indexing uses [Commit Editors](../architecture/nodestate.html#commit-editors). 
 Some of the editors are of type `IndexEditor`, which are responsible for updating index content 
 based on changes in main content. 
-Currently, Oak has following in built editors:
+Currently, Oak has the following built-in editors:
 
 1. PropertyIndexEditor
 2. ReferenceEditor
@@ -102,7 +102,7 @@ The index definitions nodes have the following properties:
     * `lucene`
     * `solr`
 2. `async` - This determines if the index is to be updated synchronously or asynchronously. 
-    It can have following values:
+    It can have the following values:
     * `sync` - The default value. It indicates that index is meant to be updated as part of each commit.
     * `nrt`  - Indicates that index is a [near real time](#nrt-indexing) index. 
     * `async` - Indicates that index is to be updated asynchronously. 
@@ -130,7 +130,7 @@ Currently only `lucene` indexes support creating index definitions at non-root p
 
 ### <a name="sync-indexing"></a> Synchronous Indexing
 
-Under synchronous indexing, the index content gets updates as part of the commit itself. 
+Under synchronous indexing, the index content gets updated as part of the commit itself. 
 Changes to both the main content, as well as the index content, are done atomically in a single commit. 
 
 This mode is currently supported by `property` and `reference` indexes.
@@ -201,9 +201,9 @@ while _assetIndex_ is bound to  the "fulltext-async" lane.
 Oak [setup](#async-index-setup) configures two `AsyncIndexUpdate` jobs: 
 one for "async", and one for "fulltext-async".
 When the job for "async" is run, 
-it only processes index definition where the `async` value is `async`, 
+it only processes index definitions where the `async` value is `async`, 
 while when the job for "fulltext-async" is run,
-it only pick up index definitions where the `async` value is `fulltext-async`.
+it only picks up index definitions where the `async` value is `fulltext-async`.
 
 These jobs can be scheduled to run at different intervals, and also on different cluster nodes. 
 Each job keeps its own bookkeeping of checkpoint state, 
@@ -258,12 +258,12 @@ and can keep the results more up to date.
 
 `@since Oak 1.6`
 
-Async indexers can be configure via the OSGi config for `org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService`.
+Async indexers can be configured via the OSGi config for `org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService`.
 
 ![Async Indexing Config](async-index-config.png)
 
 Different lanes can be configured by adding more rows of _Async Indexer Configs_. 
-Prior to 1.6, the indexers were created programatically while constructing Oak.
+Prior to 1.6, the indexers were created programmatically while constructing Oak.
 
 #### <a name="async-index-mbean"></a> Async Indexing MBean
 
@@ -273,7 +273,7 @@ which provides various stats around the current indexing state:
     org.apache.jackrabbit.oak: async (IndexStats)
     org.apache.jackrabbit.oak: fulltext-async (IndexStats)
 
-It provide the following details:
+It provides the following details:
 
 * FailingIndexStats - Stats around indexes which are [failing and marked as corrupt](#corrupt-index-handling).
 * LastIndexedTime - Time up to which the repository state has been indexed.
@@ -537,7 +537,7 @@ Once reindexing is complete, the `reindex` flag is set to `false` automatically.
 
 If the index being reindexed has full text extraction configured then reindexing can take long time as most of the 
 time is spent in text extraction. 
-For such cases its recommended to use text [pre-extraction support](pre-extract-text.html).
+For such cases it's recommended to use text [pre-extraction support](pre-extract-text.html).
 The text pre-extraction can be done before starting the actual reindexing. This would then ensure that during reindexing
 time is not spent in performing text extraction and hence the actual time taken for reindexing such an index gets reduced
 considerably.

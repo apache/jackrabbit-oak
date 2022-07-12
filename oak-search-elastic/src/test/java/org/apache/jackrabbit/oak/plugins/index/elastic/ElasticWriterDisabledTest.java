@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -55,7 +58,9 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -77,9 +82,9 @@ public class ElasticWriterDisabledTest {
     public final RestoreSystemProperties restoreSystemProperties
             = new RestoreSystemProperties();
 
-
     private Session adminSession;
     private QueryManager qe;
+    private AsyncIndexUpdate asyncIndexUpdate;
 
     @Before
     public void setup() throws Exception {
@@ -96,7 +101,10 @@ public class ElasticWriterDisabledTest {
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         NodeStore nodeStore = new MemoryNodeStore(INITIAL_CONTENT);
-
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+                editorProvider,
+                new NodeCounterEditorProvider()
+        )));
         Oak oak = new Oak(nodeStore)
                 .with(new OpenSecurityProvider())
                 .with(editorProvider)
@@ -116,7 +124,6 @@ public class ElasticWriterDisabledTest {
     @Test
     public void elasticDoNotIndexDocuments() throws Exception {
         IndexDefinitionBuilder indexDefinitionBuilder = new ElasticIndexDefinitionBuilder();
-        indexDefinitionBuilder.noAsync();
         IndexDefinitionBuilder.IndexRule indexRule = indexDefinitionBuilder.indexRule("nt:base");
         indexRule.property("a").propertyIndex().analyzed();
 
@@ -131,18 +138,19 @@ public class ElasticWriterDisabledTest {
             c.setProperty("b", "bar");
         }
         adminSession.save();
+        asyncIndexUpdate.run();
         try {
             assertQuery("select [jcr:path] from [nt:base] where contains(a, 'foo')", 100);
             Assert.fail("documents should not be indexed");
         } catch (AssertionError e) {
             Assert.assertEquals(e.getCause().getMessage(), "expected:<100> but was:<0>");
         }
+        Assert.assertFalse(((IndexStatsMBean) asyncIndexUpdate.getIndexStats()).isFailing());
     }
 
     @Test
     public void elasticDoNotIndexOnReindex() throws Exception {
         IndexDefinitionBuilder indexDefinitionBuilder = new ElasticIndexDefinitionBuilder();
-        indexDefinitionBuilder.noAsync();
         IndexDefinitionBuilder.IndexRule indexRule = indexDefinitionBuilder.indexRule("nt:base");
         indexRule.property("a").propertyIndex().analyzed();
 
@@ -157,6 +165,7 @@ public class ElasticWriterDisabledTest {
             c.setProperty("b", "bar");
         }
         adminSession.save();
+        asyncIndexUpdate.run();
 
         try {
             assertQuery("select [jcr:path] from [nt:base] where contains(a, 'foo')", 100);
@@ -164,6 +173,7 @@ public class ElasticWriterDisabledTest {
         } catch (AssertionError e) {
             Assert.assertEquals(e.getCause().getMessage(), "expected:<100> but was:<0>");
         }
+        Assert.assertFalse(((IndexStatsMBean) asyncIndexUpdate.getIndexStats()).isFailing());
 
         // adding an extra content node (handled by reindex and potentially incremental indexing)
         Node c = content.addNode("c_100");
@@ -177,13 +187,14 @@ public class ElasticWriterDisabledTest {
         // Now we reindex and see everything works fine
         indexNode.setProperty(REINDEX_PROPERTY_NAME, true);
         adminSession.save();
-
+        asyncIndexUpdate.run();
         try {
             assertQuery("select [jcr:path] from [nt:base] where contains(a, 'foo')", 101);
             Assert.fail("documents should not be indexed");
         } catch (AssertionError e) {
             Assert.assertEquals(e.getCause().getMessage(), "expected:<101> but was:<0>");
         }
+        Assert.assertFalse(((IndexStatsMBean) asyncIndexUpdate.getIndexStats()).isFailing());
     }
 
 
