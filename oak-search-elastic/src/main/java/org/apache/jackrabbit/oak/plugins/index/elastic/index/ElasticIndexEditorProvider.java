@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -24,12 +26,15 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
 
 public class ElasticIndexEditorProvider implements IndexEditorProvider {
@@ -38,7 +43,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     private final ElasticConnection elasticConnection;
     private final ExtractedTextCache extractedTextCache;
 
-    public final static  String OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY = "oak.index.elastic.writer.disable";
+    public final static String OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY = "oak.index.elastic.writer.disable";
 
     private final boolean OAK_INDEX_ELASTIC_WRITER_DISABLE = Boolean.getBoolean(OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY);
 
@@ -54,7 +59,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     public @Nullable Editor getIndexEditor(@NotNull String type,
                                            @NotNull NodeBuilder definition, @NotNull NodeState root,
                                            @NotNull IndexUpdateCallback callback) {
-        if (TYPE_ELASTICSEARCH.equals(type) && !OAK_INDEX_ELASTIC_WRITER_DISABLE) {
+        if (TYPE_ELASTICSEARCH.equals(type)) {
             if (!(callback instanceof ContextAwareCallback)) {
                 throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");
             }
@@ -73,13 +78,75 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
                     extractedTextCache,
                     indexingContext,
                     true);
-
-            return new ElasticIndexEditor(context);
+            if (OAK_INDEX_ELASTIC_WRITER_DISABLE) {
+                return new NOOPIndexEditor<>(context);
+            } else {
+                return new ElasticIndexEditor(context);
+            }
         }
         return null;
     }
 
     public ExtractedTextCache getExtractedTextCache() {
         return extractedTextCache;
+    }
+
+    /**
+     * This is a no-op editor, so that elastic index is not updated
+     * where OAK_INDEX_ELASTIC_WRITER_DISABLE = true is set as system property.
+     */
+    private class NOOPIndexEditor<D> extends FulltextIndexEditor<D> {
+        public NOOPIndexEditor(FulltextIndexEditorContext<D> context) {
+            super(context);
+        }
+
+        @Override
+        public void enter(NodeState before, NodeState after) {
+        }
+
+        @Override
+        public void leave(NodeState before, NodeState after) {
+        }
+
+        @Override
+        public String getPath() {
+            return ROOT_PATH;
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after) {
+        }
+
+        @Override
+        public void propertyChanged(PropertyState before, PropertyState after) {
+        }
+
+        @Override
+        public void propertyDeleted(PropertyState before) {
+        }
+
+        @Override
+        public Editor childNodeAdded(String name, NodeState after) {
+            return this;
+        }
+
+        @Override
+        public Editor childNodeChanged(String name, NodeState before, NodeState after) {
+            return this;
+        }
+
+        @Override
+        public Editor childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+            return this;
+        }
+
+        @Override
+        public FulltextIndexEditorContext<D> getContext() {
+            return super.getContext();
+        }
+
+        @Override
+        public void markDirty() {
+        }
     }
 }
