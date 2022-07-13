@@ -127,10 +127,11 @@ in Oak 1.0 as well as a list of built-in restrictions and extensibility can be
 found in section [Restriction Management](../authorization/restriction.html).
 
 <a name="representation"></a>
+
 ### Representation in the Repository
 
-All access control policies defined with an Oak repository are stores child of
-the node they are bound to. The node type definition used to represent access control content:
+Access control policies created and modified using the default authorization model are stored as child of
+the node they are bound to with name `rep:policy` or as node with path `/rep:repoPolicy` (for repo-level policies). The node type definition used to represent access control content:
 
     [rep:AccessControllable]
       mixin
