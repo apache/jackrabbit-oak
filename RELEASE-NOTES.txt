@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.11
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.12
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.11 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.12 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,21 +15,19 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.11
+Changes in Oak 1.22.12
 ---------------------
 
 Bug
 
-    [OAK-9653] - Adding the index tag option interferes with regex properties, leads to return zero results
-
-New Feature
-
-    [OAK-9587] - Add an attribute to enforce a strict index tag check ("selectionPolicy")
+    [OAK-9773] - DefaultSyncContext#syncMembership() compares external ids case-sensitively
 
 Improvement
 
-    [OAK-9634] - CacheLIRS: test failure with ARM processor
-    [OAK-9651] - Protection against very large queries
+    [OAK-9404] - Missing nullability annotations in org.apache.jackrabbit.oak.plugins.tree
+    [OAK-9405] - Reduce complexity of TreeUtil
+    [OAK-9527] - Typos in security related API
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the previous Apache Jackrabbit Oak 1.22.x release.
