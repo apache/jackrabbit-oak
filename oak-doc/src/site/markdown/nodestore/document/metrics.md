@@ -232,6 +232,7 @@ DOCUMENT_NODES_FIND_MISSING | The number of document reads from the `nodes` coll
 DOCUMENT_NODES_FIND_PRIMARY | The number of document reads from the `nodes` collection served by the primary. | reads per second
 DOCUMENT_NODES_FIND_SLAVE | The number of document reads from the `nodes` collection served by the slave/secondary. | reads per second
 DOCUMENT_NODES_FIND_SPLIT | The number of split/previous document reads from the `nodes` collection. | reads per second
+DOCUMENT_NODES_PREFETCH | The number of documents prefetched from the `nodes`collection. | documents per second
 DOCUMENT_NODES_QUERY_FIND | The number of documents returned by queries on the `nodes` collection. | documents per second
 DOCUMENT_NODES_QUERY_LOCK | The number of times queries on the `nodes` collection had to acquire a lock in the `DocumentStore`. | locks per second
 DOCUMENT_NODES_QUERY_PRIMARY | The number of queries on the `nodes` collection targeting the primary. | queries per second
@@ -260,6 +261,7 @@ DOCUMENT_NODES_CREATE_TIMER | The time it takes to create a document in the `nod
 DOCUMENT_NODES_CREATE_UPSERT_TIMER | The time it takes to upsert a document in the `nodes` collection.
 DOCUMENT_NODES_FIND | The time it takes to lookup a document in the `nodes` collection. This does not include lookups for documents that do not exist.
 DOCUMENT_NODES_FIND_MISSING_TIMER | The time it takes to lookup a document in the `nodes` collection that does not exist.
+DOCUMENT_NODES_PREFETCH_TIMER | The time it takes to perform a prefetch on the `nodes` collection.
 DOCUMENT_NODES_QUERY | The time it takes to perform a query on the `nodes` collection without additional filters. These are queries that only put a constraint on the `_id` field.
 DOCUMENT_NODES_QUERY_FILTER | The time it takes to perform a query on the `nodes` collection with additional filters. Additional filters could e.g. include a constraint on the `_modified` field.
 DOCUMENT_NODES_QUERY_LOCK_TIMER | The time a query spent in the `DocumentStore` waiting on a lock before it is executed.
