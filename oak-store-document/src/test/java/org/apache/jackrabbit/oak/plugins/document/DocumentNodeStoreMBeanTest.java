@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.AfterClass;
@@ -26,16 +25,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class DocumentNodeStoreMBeanTest {
 
