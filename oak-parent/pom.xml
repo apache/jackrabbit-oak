@@ -212,6 +212,7 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.identifier</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.aggregate</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.cursor</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.property</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.property.strategy</filter>
