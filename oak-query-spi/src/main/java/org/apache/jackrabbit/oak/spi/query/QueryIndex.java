@@ -169,7 +169,7 @@ public interface QueryIndex {
     }
 
     /**
-     * An query index that may support using multiple access orders
+     * A query index that may support using multiple access orders
      * (returning the rows in a specific order), and that can provide detailed
      * information about the cost.
      */
@@ -279,7 +279,7 @@ public interface QueryIndex {
          * Whether the cursor is able to read all properties from a node.
          * If yes, then the query engine will not have to read the data itself.
          *
-         * @return wheter node data is returned
+         * @return whether node data is returned
          */
         boolean includesNodeData();
 

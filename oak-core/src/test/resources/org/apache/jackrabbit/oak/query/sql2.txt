@@ -15,15 +15,14 @@
 #
 # Syntax:
 # * lines that start with spaces belong to the previous line
-# * lines starting with "#" are remarks.
+# * lines starting with "#" are remarks
 # * lines starting with "select" are queries, followed by expected results and an empty line
 # * lines starting with "explain" are followed by expected query plan and an empty line
 # * lines starting with "sql1" are run using the sql1 language
-# * lines starting with "xpath2sql" are just converted
-  from xpath to sql2
-# * all other lines are are committed into the microkernel (line by line)
-# * new tests are typically be added on top, after the syntax docs
-# * use ascii character only
+# * lines starting with "xpath2sql" are just converted from xpath to sql2
+# * all other lines are committed into the microkernel (line by line)
+# * new tests are typically added on top, after the syntax docs
+# * use ascii characters only
 
 # union, distinct
 

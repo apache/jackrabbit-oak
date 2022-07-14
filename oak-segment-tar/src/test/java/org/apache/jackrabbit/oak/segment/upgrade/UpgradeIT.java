@@ -30,10 +30,13 @@ import static org.apache.jackrabbit.oak.segment.file.ManifestChecker.newManifest
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -59,6 +62,7 @@ public class UpgradeIT {
      */
     @Before
     public void setup() throws IOException, InterruptedException {
+        assumeFalse(SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_12));
         Process oakConsole = new ProcessBuilder(
                 "java", "-jar", "oak-run.jar",
                 "console", fileStoreHome.getRoot().getAbsolutePath(), "--read-write",
