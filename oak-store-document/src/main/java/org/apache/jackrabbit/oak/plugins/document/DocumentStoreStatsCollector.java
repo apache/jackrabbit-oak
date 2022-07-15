@@ -94,4 +94,14 @@ public interface DocumentStoreStatsCollector {
     void doneRemove(long timeTakenNanos,
                     Collection<? extends Document> collection,
                     int removeCount);
+
+    /**
+     * Called when a prefetch operation for documents was completed.
+     * @param timeTakenNanos time taken
+     * @param collection the collection
+     * @param ids list of IDs to prefetch / read
+     */
+    void donePrefetch(long timeTakenNanos,
+                      Collection<? extends Document> collection,
+                      List<String> ids);
 }

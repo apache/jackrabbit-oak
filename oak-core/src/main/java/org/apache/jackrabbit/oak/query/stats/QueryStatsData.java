@@ -142,12 +142,6 @@ public class QueryStatsData {
     public class QueryExecutionStats {
         
         long time;
-        private final long SLOW_QUERY_HISTOGRAM = 1;
-        private final long TOTAL_QUERY_HISTOGRAM = 0;
-        private final String SLOW_QUERY_PERCENTILE_METRICS_NAME = "SLOW_QUERY_PERCENTILE_METRICS";
-        private final String SLOW_QUERY_COUNT_NAME = "SLOW_QUERY_COUNT";
-        private final int SLOW_QUERY_LIMIT_SCANNED =
-                Integer.getInteger("oak.query.slowScanLimit", 100000);
         
         public void execute(long nanos) {
             QueryRecorder.record(query, internal);

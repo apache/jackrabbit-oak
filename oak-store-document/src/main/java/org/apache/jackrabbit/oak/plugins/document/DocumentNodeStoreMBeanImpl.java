@@ -249,6 +249,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         nodeStore.getDiffCache().invalidateAll();
         nodeStore.getNodeCache().invalidateAll();
         nodeStore.getNodeChildrenCache().invalidateAll();
+        nodeStore.getDocumentStore().invalidateCache();
         return "Caches invalidated.";
     }
 
@@ -264,6 +265,9 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
             case "NODECHILDREN":
                 nodeStore.getNodeChildrenCache().invalidateAll();
                 return "NodeChildrenCache invalidated.";
+            case "DOCUMENT":
+                nodeStore.getDocumentStore().invalidateCache();
+                return "DocumentCache invalidated.";
             default:
                 return "ERROR: Invalid cache name received.";
         }

@@ -47,12 +47,6 @@ public class CacheChangesTracker implements Closeable {
         changeTrackers.add(this);
     }
 
-    public void putDocument(String key) {
-        if (keyFilter.apply(key)) {
-            lazyBloomFilter.put(key);
-        }
-    }
-
     public void invalidateDocument(String key) {
         if (keyFilter.apply(key)) {
             lazyBloomFilter.put(key);

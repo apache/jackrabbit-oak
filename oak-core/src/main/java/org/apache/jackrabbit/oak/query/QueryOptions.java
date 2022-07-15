@@ -13,18 +13,32 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.query.stats.QueryRecorder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A query options (or "hints") that are used to customize the way the query is processed.
  */
 public class QueryOptions {
     
+    private static final Logger LOG = LoggerFactory.getLogger(QueryOptions.class);
+
     public Traversal traversal = Traversal.DEFAULT;
     public String indexName;
     public String indexTag;
     public Optional<Long> limit = Optional.empty();
     public Optional<Long> offset = Optional.empty();
+    public List<String> prefetch = Collections.emptyList();
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
@@ -36,5 +50,82 @@ public class QueryOptions {
         // the default setting
         DEFAULT
     };
+
+    public QueryOptions() {
+    }
+
+    public QueryOptions(QueryOptions defaultValues) {
+        traversal = defaultValues.traversal;
+        indexName = defaultValues.indexName;
+        indexTag = defaultValues.indexTag;
+        limit = defaultValues.limit;
+        offset = defaultValues.offset;
+        prefetch = defaultValues.prefetch;
+    }
+
+    QueryOptions(JsonObject json) {
+        Map<String, String> map = json.getProperties();
+        String x = map.get("traversal");
+        if (x != null) {
+            traversal = Traversal.valueOf(x);
+        }
+        x = map.get("indexName");
+        if (x != null) {
+            indexName = x;
+        }
+        x = map.get("indexTag");
+        if (x != null) {
+            indexTag = x;
+        }
+        x = map.get("limit");
+        if (x != null) {
+            try {
+                limit = Optional.of(Long.parseLong(x));
+            } catch (NumberFormatException e) {
+                LOG.warn("Invalid limit {}", x);
+            }
+        }
+        x = map.get("prefetch");
+        if (x != null) {
+            ArrayList<String> list = new ArrayList<>();
+            JsopTokenizer t = new JsopTokenizer(x);
+            t.read('[');
+            do {
+                list.add(t.readString());
+            } while (t.matches(','));
+            t.read(']');
+            prefetch = list;
+        }
+    }
+
+    public static class AutomaticQueryOptionsMapping {
+
+        private final HashMap<String, QueryOptions> map = new HashMap<>();
+
+        public AutomaticQueryOptionsMapping(String json) {
+            try {
+                JsonObject obj = JsonObject.fromJson(json, true);
+                for (Map.Entry<String, JsonObject> e : obj.getChildren().entrySet()) {
+                    String statement = e.getKey();
+                    QueryOptions options = new QueryOptions(e.getValue());
+                    String queryPattern = QueryRecorder.simplifySafely(statement);
+                    map.put(queryPattern, options);
+                }
+            } catch (IllegalArgumentException e) {
+                LOG.warn("Can not parse {}", json, e);
+            }
+        }
+
+        public QueryOptions getDefaultValues(String statement) {
+            if (map.isEmpty()) {
+                // no need to simplify if there are no entries
+                // (which is probably most of the time)
+                return new QueryOptions();
+            }
+            String queryPattern = QueryRecorder.simplifySafely(statement);
+            return map.computeIfAbsent(queryPattern, v -> new QueryOptions());
+        }
+
+    }
 
 }

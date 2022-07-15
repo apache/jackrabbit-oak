@@ -73,6 +73,10 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     static final String NODES_REMOVE = "DOCUMENT_NODES_REMOVE";
     static final String NODES_REMOVE_TIMER = "DOCUMENT_NODES_REMOVE_TIMER";
 
+    static final String NODES_PREFETCH = "DOCUMENT_NODES_PREFETCH";
+
+    static final String NODES_PREFETCH_TIMER = "DOCUMENT_NODES_PREFETCH_TIMER";
+
     static final String JOURNAL_QUERY = "DOCUMENT_JOURNAL_QUERY";
     static final String JOURNAL_CREATE = "DOCUMENT_JOURNAL_CREATE";
     static final String JOURNAL_QUERY_TIMER = "DOCUMENT_JOURNAL_QUERY_TIMER";
@@ -109,6 +113,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     private final MeterStats updateNodeRetryCountMeter;
     private final MeterStats removeNodes;
     private final TimerStats removeNodesTimer;
+    private final MeterStats prefetchNodes;
+    private final TimerStats prefetchNodesTimer;
 
     public DocumentStoreStats(StatisticsProvider provider) {
         statisticsProvider = checkNotNull(provider);
@@ -148,6 +154,9 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
         removeNodes = provider.getMeter(NODES_REMOVE, StatsOptions.DEFAULT);
         removeNodesTimer = provider.getTimer(NODES_REMOVE_TIMER, StatsOptions.METRICS_ONLY);
+
+        prefetchNodes = provider.getMeter(NODES_PREFETCH, StatsOptions.DEFAULT);
+        prefetchNodesTimer = provider.getTimer(NODES_PREFETCH_TIMER, StatsOptions.METRICS_ONLY);
     }
 
     //~------------------------------------------< DocumentStoreStatsCollector >
@@ -292,6 +301,17 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         perfLog(timeTakenNanos, "remove [{}]", removeCount);
     }
 
+    @Override
+    public void donePrefetch(long timeTakenNanos,
+                             Collection<? extends Document> collection,
+                             List<String> ids) {
+        if (collection == Collection.NODES) {
+            prefetchNodes.mark(ids.size());
+            prefetchNodesTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
+        }
+        perfLog(timeTakenNanos, "prefetch {}", ids);
+    }
+
     private void perfLog(long timeTakenNanos, String logMessagePrefix, Object... arguments){
         if (!perfLog.isDebugEnabled()){
             return;
@@ -354,6 +374,11 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     @Override
     public long getJournalReadCount() {
         return queryJournal.getCount();
+    }
+
+    @Override
+    public long getNodesPrefetchCount() {
+        return prefetchNodes.getCount();
     }
 
     @Override
@@ -444,6 +469,12 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     public CompositeData getRemoveNodesHistory() {
         return getTimeSeriesData(NODES_REMOVE,
                 "Number of removed node documents.");
+    }
+
+    @Override
+    public CompositeData getPrefetchNodesHistory() {
+        return getTimeSeriesData(NODES_PREFETCH,
+                "Number of prefetched node documents.");
     }
 
     private CompositeData getTimeSeriesData(String name, String desc){

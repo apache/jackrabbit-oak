@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -85,7 +87,7 @@ import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPa
  * using oak-upgrade {@code --{include,exclude}-paths} and then configure this
  * node store implementation to composite split parts together.
  */
-public class CompositeNodeStore implements NodeStore, Observable {
+public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observable {
 
     private static final Logger LOG = LoggerFactory.getLogger(CompositeNodeStore.class);
 
@@ -369,6 +371,11 @@ public class CompositeNodeStore implements NodeStore, Observable {
     @Override
     public Closeable addObserver(final Observer observer) {
         return dispatcher.addObserver(observer);
+    }
+
+    @Override
+    public void prefetch(Collection<String> paths, NodeState rootState) {
+        ctx.prefetch(paths, rootState);
     }
 
     public static class Builder {

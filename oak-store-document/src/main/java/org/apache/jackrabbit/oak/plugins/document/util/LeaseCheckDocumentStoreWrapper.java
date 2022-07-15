@@ -211,6 +211,13 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         return delegate.determineServerTimeDifferenceMillis();
     }
 
+    @Override
+    public <T extends Document> void prefetch(Collection<T> collection,
+            Iterable<String> keys) {
+        performLeaseCheck();
+        delegate.prefetch(collection, keys);
+    }
+
     /**
      * Return the size limit for node name based on the document store implementation
      *

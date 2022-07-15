@@ -49,8 +49,8 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -87,6 +88,7 @@ public class SelectorImpl extends SourceImpl {
     private static final String SLOW_QUERY_COUNT_NAME = "SLOW_QUERY_COUNT";
 
     private static long timerSampleCounter;
+
     
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     private SelectorExecutionPlan plan;
@@ -365,6 +367,12 @@ public class SelectorImpl extends SourceImpl {
             FilterImpl f = createFilter(false);
             planIndexName = index.getIndexName(f, rootState);
             cursor = index.query(f, rootState);
+        }
+        int prefetchCount = query.getExecutionContext().getSettings().getPrefetchCount();
+        if (prefetchCount > 0) {
+            PrefetchNodeStore store = query.getExecutionContext().getPrefetchNodeStore();
+            cursor = Cursors.newPrefetchCursor(cursor, store, prefetchCount,
+                    rootState, query.getQueryOptions().prefetch);
         }
     }
     

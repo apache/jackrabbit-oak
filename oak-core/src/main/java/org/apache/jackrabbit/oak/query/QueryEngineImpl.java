@@ -176,7 +176,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             parser.setAllowNumberLiterals(false);
             parser.setAllowTextLiterals(false);
         }
-        
+
         ArrayList<Query> queries = new ArrayList<Query>();
         
         Query q;
@@ -187,7 +187,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             parser.setSupportSQL1(true);
             q = parser.parse(statement, false);
         } else if (XPATH.equals(language)) {
-            XPathToSQL2Converter converter = new XPathToSQL2Converter();
+            XPathToSQL2Converter converter = new XPathToSQL2Converter(settings);
             String sql2 = converter.convert(statement);
             LOG.debug("XPath > SQL2: {}", sql2);
             try {

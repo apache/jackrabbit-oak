@@ -59,7 +59,7 @@ import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
+public class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
 
     private final MongoCollection<TDocument> collection;
 
@@ -67,7 +67,7 @@ class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
     private final AtomicReference<String> beforeUpdateException;
     private final AtomicReference<String> afterUpdateException;
 
-    MongoTestCollection(MongoCollection<TDocument> collection,
+    protected MongoTestCollection(MongoCollection<TDocument> collection,
                         AtomicReference<String> beforeQueryException,
                         AtomicReference<String> beforeUpdateException,
                         AtomicReference<String> afterUpdateException) {

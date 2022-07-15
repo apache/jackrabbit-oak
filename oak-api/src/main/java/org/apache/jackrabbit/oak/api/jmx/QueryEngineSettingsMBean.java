@@ -59,7 +59,37 @@ public interface QueryEngineSettingsMBean {
      * @param limitReads the new limit
      */
     void setLimitReads(long limitReads);
-    
+
+    /**
+     * Change the prefetch count.
+     *
+     * @param prefetchCount the new count
+     */
+    void setPrefetchCount(int prefetchCount);
+
+    /**
+     * Get the prefetch count.
+     *
+     * @return the count
+     */
+    @Description("Get the prefetch count. This is the number of entries pre-fetched from the node store at a time.")
+    int getPrefetchCount();
+
+    /**
+     * Change the automatic query options mapping.
+     *
+     * @param json the new mapping, in Json format
+     */
+    void setAutoOptionsMappingJson(String json);
+
+    /**
+     * Get the automatic query options mapping.
+     *
+     * @return the mapping, in Json format
+     */
+    @Description("Get the automatic query options mapping, in Json format.")
+    String getAutoOptionsMappingJson();
+
     /**
      * Whether queries that don't use an index will fail (throw an exception).
      * The default is false.
@@ -155,7 +185,7 @@ public interface QueryEngineSettingsMBean {
             @Name("class names")
             @NotNull String[] classNames);
     
-//    @Description("Get the Java package / fully qualified class names to ignore when finding the caller of query")
+    // @Description("Get the Java package / fully qualified class names to ignore when finding the caller of query")
     @NotNull
     String[] getIgnoredClassNamesInCallTrace();
 }

@@ -97,6 +97,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
@@ -169,6 +170,11 @@ public class DocumentNodeStoreService {
      */
     static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
 
+    /**
+     * Feature toggle name to enable prefetch operation in DocumentStore
+     */
+    private static final String FT_NAME_PREFETCH = "FT_PREFETCH_OAK-9780";
+
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
@@ -202,6 +208,7 @@ public class DocumentNodeStoreService {
     private DocumentNodeStore nodeStore;
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
+    private Feature prefetchFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -234,6 +241,7 @@ public class DocumentNodeStoreService {
         executor.start(whiteboard);
         customBlobStore = this.config.customBlobStore();
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
+        prefetchFeature = Feature.newFeature(FT_NAME_PREFETCH, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -446,6 +454,7 @@ public class DocumentNodeStoreService {
                 setBundlingDisabled(config.bundlingDisabled()).
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
+                setPrefetchFeature(prefetchFeature).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
@@ -575,6 +584,10 @@ public class DocumentNodeStoreService {
 
         if (journalPropertyHandlerFactory != null){
             journalPropertyHandlerFactory.stop();
+        }
+
+        if (prefetchFeature != null) {
+            prefetchFeature.close();
         }
 
         unregisterNodeStore();

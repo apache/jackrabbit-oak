@@ -459,6 +459,14 @@ public interface DocumentStore {
             throws UnsupportedOperationException, DocumentStoreException;
 
     /**
+     * optional method indicating the DocumentStore should prefetch, in the most
+     * optimal way eg by batching, a bunch of keys as they might soon be needed.
+     */
+    default <T extends Document> void prefetch(Collection<T> collection, Iterable<String> keys) {
+        // default does nothing
+    }
+
+    /**
      * Return the size limit for node name based on the document store implementation
      *
      * @return node name size limit

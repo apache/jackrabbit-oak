@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,6 +46,8 @@ class CompositionContext {
 
     private final MountedNodeStore globalStore;
 
+    private final PrefetchNodeStore prefetchNodeStore;
+
     private final List<MountedNodeStore> nonDefaultStores;
 
     private final Map<Mount, MountedNodeStore> nodeStoresByMount;
@@ -61,6 +64,7 @@ class CompositionContext {
         this.pathCache = new StringCache().withMonitor(nodeStateMonitor);
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
+        this.prefetchNodeStore = globalStore instanceof PrefetchNodeStore ? (PrefetchNodeStore) globalStore : PrefetchNodeStore.NOOP;
         this.nonDefaultStores = nonDefaultStores;
 
         ImmutableSet.Builder<MountedNodeStore> b = ImmutableSet.builder();
@@ -205,4 +209,7 @@ class CompositionContext {
         return nodeBuilderMonitor;
     }
 
+    public void prefetch(Collection<String> paths, NodeState rootState) {
+        prefetchNodeStore.prefetch(paths, rootState);
+    }
 }

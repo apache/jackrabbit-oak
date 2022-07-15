@@ -77,13 +77,13 @@ public interface DocumentNodeStoreMBean {
             @Name("clusterId")
             int clusterId);
 
-    @Description("Invalidates all the caches used by the DocumentNodeStore: DiffCache, NodeCache and NodeChildrenCache.")
+    @Description("Invalidates all the caches used by the DocumentNodeStore and DocumentStore: DiffCache, NodeCache, NodeChildrenCache and DocumentCache.")
     String cleanAllCaches();
 
-    @Description("Invalidates the specified cache: DiffCache, NodeCache or NodeChildrenCache.\n" +
+    @Description("Invalidates the specified cache: DiffCache, NodeCache, NodeChildrenCache or DocumentCache.\n" +
             "Note: The values are case insensitive.")
     String cleanIndividualCache(
-            @Description("Possible values are: DIFF, NODE, NODECHILDREN")
+            @Description("Possible values are: DIFF, NODE, NODECHILDREN, DOCUMENT")
             @Name("name")
             String name);
 

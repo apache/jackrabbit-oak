@@ -111,6 +111,7 @@ import static com.google.common.collect.Sets.difference;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
@@ -231,6 +232,12 @@ public class MongoDocumentStore implements DocumentStore {
      */
     private final int acceptableLagMillis =
             Integer.getInteger("oak.mongo.acceptableLagMillis", 5000);
+
+    /**
+     * The minimal number of documents to prefetch.
+     */
+    private final int minPrefetch =
+            Integer.getInteger("oak.mongo.minPrefetch", 5);
 
     /**
      * Feature flag for use of MongoDB client sessions.
@@ -1382,6 +1389,92 @@ public class MongoDocumentStore implements DocumentStore {
         } finally {
             stats.doneCreate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids, insertSuccess);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends Document> void prefetch(Collection<T> collection,
+                                              Iterable<String> keysToPrefetch) {
+        log("prefetch", keysToPrefetch);
+
+        Set<String> keys = new HashSet<>();
+        for (String k : keysToPrefetch) {
+            if (nodesCache.getIfPresent(k) == null) {
+                keys.add(k);
+            }
+        }
+        if (keys.size() < minPrefetch) {
+            return;
+        }
+
+        final Stopwatch watch = startWatch();
+        List<String> resultKeys = new ArrayList<>(keys.size());
+        CacheChangesTracker tracker = null;
+        if (collection == Collection.NODES) {
+            tracker = nodesCache.registerTracker(keys);
+        }
+        Throwable t;
+        try {
+            ReadPreference readPreference = getMongoReadPreference(collection, null, getDefaultReadPreference(collection));
+            MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
+
+            if (readPreference.isSlaveOk()) {
+                LOG.trace("Routing call to secondary for prefetching [{}]", keys);
+            }
+
+            List<BasicDBObject> result = new ArrayList<>(keys.size());
+            execute(session -> {
+                final Bson query = Filters.in(Document.ID, keys);
+                if (session != null) {
+                    dbCollection.find(session, query).into(result);
+                } else {
+                    dbCollection.find(query).into(result);
+                }
+                return null;
+            }, collection);
+
+            List<T> docs = new ArrayList<>(keys.size());
+            for (BasicDBObject dbObject : result) {
+                final T d = convertFromDBObject(collection, dbObject);
+                if (d == null) {
+                    continue;
+                }
+                d.seal();
+                String key = String.valueOf(d.get(Document.ID));
+                resultKeys.add(key);
+                keys.remove(key);
+                docs.add(d);
+            }
+
+            if (tracker != null) {
+                nodesCache.putNonConflictingDocs(tracker, (List<NodeDocument>) docs);
+
+                // documents for remaining ids in keys do not exist
+                for (String id : keys) {
+                    Lock lock = nodeLocks.acquire(id);
+                    try {
+                        // load NULL document into cache unless it may have
+                        // been affected by another concurrent operation
+                        if (!tracker.mightBeenAffected(id)) {
+                            nodesCache.get(id, () -> NULL);
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
+                }
+            }
+            return;
+        } catch (UncheckedExecutionException | ExecutionException e) {
+            t = e.getCause();
+        } catch (RuntimeException e) {
+            t = e;
+        } finally {
+            if (tracker != null) {
+                tracker.close();
+            }
+            stats.donePrefetch(watch.elapsed(TimeUnit.NANOSECONDS), collection, resultKeys);
+        }
+        throw handleException(t, collection, keysToPrefetch);
     }
 
     /**
