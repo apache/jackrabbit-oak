@@ -829,7 +829,7 @@
 
    <!--  - - - - - - - - - - - - - - - - - - - will run all the required tests before a release -->
    <profile>
-      <id>apache-release</id><!-- activated by maven-release-plugin in ASF parent -->
+      <id>release</id> <!-- needs to be activated manually, not used automatically with m-release-p goals -->
       <properties>
          <nsfixtures />
          <rdb.jdbc-url>jdbc:derby:./target/derby-release-test;create=true</rdb.jdbc-url>
