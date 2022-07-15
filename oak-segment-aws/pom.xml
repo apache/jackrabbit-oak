@@ -33,7 +33,7 @@
     <name>Oak Segment AWS</name>
 
     <properties>
-        <aws.version>1.11.700</aws.version>
+        <aws.version>1.12.261</aws.version>
         <sqlite4java.version>1.0.392</sqlite4java.version>
     </properties>
 
