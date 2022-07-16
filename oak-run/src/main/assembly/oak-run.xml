@@ -32,7 +32,7 @@
       <excludes>
         <exclude>org.apache.lucene</exclude>
         <exclude>org.apache.tika:tika-core:*</exclude>
-        <exclude>org.apache.tika:tika-parsers:*</exclude>
+        <exclude>org.apache.tika:tika-parsers-standard-package:*</exclude>
         <exclude>org.apache.jackrabbit:jackrabbit-aws-ext:*</exclude>
         <exclude>io.prometheus:simpleclient*:*</exclude>
       </excludes>
@@ -54,13 +54,13 @@
         </excludes>
       </unpackOptions>
     </dependencySet>
-    <!-- Exclude the transitive dependency as tika-parsers depend
+    <!-- Exclude the transitive dependency as tika-parsers-standard-package depend
       on many other jars. Instead users can include tika-app.jar in classpath-->
     <dependencySet>
       <outputDirectory>/</outputDirectory>
       <includes>
         <include>org.apache.tika:tika-core</include>
-        <include>org.apache.tika:tika-parsers</include>
+        <include>org.apache.tika:tika-parsers-standard-package</include>
       </includes>
       <useStrictFiltering>true</useStrictFiltering>
       <useTransitiveDependencies>false</useTransitiveDependencies>

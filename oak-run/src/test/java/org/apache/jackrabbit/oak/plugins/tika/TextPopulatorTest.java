@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.beust.jcommander.internal.Maps;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
@@ -43,7 +43,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;

@@ -47,7 +47,7 @@
         </excludes>
       </unpackOptions>
     </dependencySet>
-    <!-- Exclude the transitive dependency as tika-parsers depend
+    <!-- Exclude the transitive dependency as tika-parsers-standard-package depend
       on many other jars. Instead users can include tika-app.jar in classpath-->
     <dependencySet>
       <outputDirectory>/</outputDirectory>

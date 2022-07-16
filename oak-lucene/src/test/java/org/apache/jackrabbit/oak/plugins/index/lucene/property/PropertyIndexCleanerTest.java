@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
-import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -290,7 +289,7 @@ public class PropertyIndexCleanerTest {
         assertEquals(expected, stats.cleanupPerformed);
     }
 
-    private void assertJsonInfo(String indexPath, String expectedJson) throws ParseException {
+    private void assertJsonInfo(String indexPath, String expectedJson) {
         NodeState idx = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
         String json = new HybridPropertyIndexInfo(idx).getInfoAsJson();
         JsonObject j1 = (JsonObject) new JsonParser().parse(json);
