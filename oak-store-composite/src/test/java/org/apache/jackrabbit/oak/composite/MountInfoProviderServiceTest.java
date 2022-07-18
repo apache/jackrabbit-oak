@@ -122,6 +122,19 @@ public class MountInfoProviderServiceTest {
     }
 
     @Test
+    public void mountWithConfig_Multiple_NotAllExpected() {
+        registerActivateMountInfoConfig(propsBuilder().withMountName("foo").withMountPaths("/a").buildMountInfoProps());
+        registerActivateMountInfoConfig(propsBuilder().withMountName("bar").withMountPaths("/b").buildMountInfoProps());
+
+        MockOsgi.injectServices(service, context.bundleContext());
+        service.activate(context.bundleContext(), withExpectedMounts("foo", "bar", "baz"));
+        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
+
+        MountInfoProvider provider = context.getService(MountInfoProvider.class);
+        assertNull("Not all expected mounts have been provided", provider);
+    }
+
+    @Test
     public void mountWithConfig_Name() {
         registerActivateMountInfoConfig(propsBuilder().withMountName("foo").withMountPaths("/a", "/b").buildMountInfoProps());
 
