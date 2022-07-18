@@ -309,6 +309,14 @@
             <type>dll</type>
             <scope>test</scope>
         </dependency>
+        <!-- add native implementation for Apple silicon from fork -->
+        <dependency>
+            <groupId>io.github.ganadist.sqlite4java</groupId>
+            <artifactId>libsqlite4java-osx-aarch64</artifactId>
+            <version>${sqlite4java.version}</version>
+            <type>dylib</type>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
             <artifactId>libsqlite4java-osx</artifactId>
