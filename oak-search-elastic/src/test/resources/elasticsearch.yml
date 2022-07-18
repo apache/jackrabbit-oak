@@ -16,3 +16,4 @@
 #
 network.host: 0.0.0.0
 ingest.geoip.downloader.enabled: false
+xpack.security.enabled: false
