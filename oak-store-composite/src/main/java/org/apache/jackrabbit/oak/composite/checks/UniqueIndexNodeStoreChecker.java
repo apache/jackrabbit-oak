@@ -78,7 +78,7 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
         for ( ChildNodeEntry indexDef : indexDefs.getChildNodeEntries() ) {
             if ( indexDef.getNodeState().hasProperty(UNIQUE_PROPERTY_NAME) &&
                     indexDef.getNodeState().getBoolean(UNIQUE_PROPERTY_NAME) ) {
-                ctx.add(indexDef, mip.getDefaultMount(), indexDefs);
+                ctx.add(indexDef, mip.getDefaultMount(), indexDefs, this);
                 ctx.track(new MountedNodeStore(mip.getDefaultMount() , globalStore));
             }
         }
@@ -102,7 +102,7 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
                 NodeState mountIndexDef = indexDef.getNodeState().getChildNode(mountIndexDefName);
                 
                 if ( mountIndexDef.exists() ) {
-                    context.add(indexDef, mountedStore.getMount(), indexDefs);
+                    context.add(indexDef, mountedStore.getMount(), indexDefs, this);
                 }
             }
         }
@@ -126,11 +126,11 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
             mountedNodeStoresByName.put(mountedNodeStore.getMount().getName(), mountedNodeStore);
         }
 
-        public void add(ChildNodeEntry rootIndexDef, Mount mount, NodeState indexDef) {
+        public void add(ChildNodeEntry rootIndexDef, Mount mount, NodeState indexDef, UniqueIndexNodeStoreChecker checker) {
 
             IndexCombination combination = combinations.get(rootIndexDef.getName());
             if ( combination == null ) {
-                combination = new IndexCombination(rootIndexDef);
+                combination = new IndexCombination(rootIndexDef, checker);
                 combinations.put(rootIndexDef.getName(), combination);
             }
             
@@ -151,12 +151,14 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
     
     static class IndexCombination {
         private final ChildNodeEntry rootIndexDef;
+        private final UniqueIndexNodeStoreChecker checker;
         private final Map<Mount, NodeState> indexEntries = Maps.newHashMap();
         private final List<Mount[]> checked = new ArrayList<>();
         // bounded as the ErrorHolder has a reasonable limit of entries before it fails immediately
         private final Set<String> reportedConflictingValues = new HashSet<>();
         
-        IndexCombination(ChildNodeEntry rootIndexDef) {
+        IndexCombination(ChildNodeEntry rootIndexDef, UniqueIndexNodeStoreChecker checker) {
+            this.checker = checker;
             this.rootIndexDef = rootIndexDef;
         }
         
@@ -227,7 +229,7 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
                     IndexEntry hit2 = result.get();
                     if ( reportedConflictingValues.add(hit.getPropertyValue())) {
                         errorHolder.report(wrapper.nodeStore, hit.getPath(), wrapper2.nodeStore, hit2.getPath(), 
-                                hit.getPropertyValue(), "duplicate unique index entry");
+                                hit.getPropertyValue(), "duplicate unique index entry", checker);
                     }
                 }
             }

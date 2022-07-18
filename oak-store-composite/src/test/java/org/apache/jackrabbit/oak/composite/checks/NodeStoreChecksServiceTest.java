@@ -100,7 +100,7 @@ public class NodeStoreChecksServiceTest {
         @Override
         public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, Void context) {
             if ( name.equals(tree.getName()))
-                errorHolder.report(mountedStore, tree.getPath(), "test failure");
+                errorHolder.report(mountedStore, tree.getPath(), "test failure", this);
             
             return true;
         }
