@@ -28,6 +28,7 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -336,13 +337,21 @@ public abstract class AbstractQueryTest {
         assertEquals("Expected sorted result not found", expected, actual);
     }
 
+    /**
+     * Checks that the two lists have the same elements ignoring their order.
+     */
     protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {
-        for (String p : checkNotNull(expected)) {
-            assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
-                    .contains(p));
-        }
-        assertEquals("Result set size is different: " + actual, expected.size(),
-                actual.size());
+        checkNotNull(expected);
+        checkNotNull(actual);
+        assertEquals("Result set size is different. Expected: " + expected + ", actual: " + actual, expected.size(), actual.size());
+
+        String[] sortedActual = actual.toArray(new String[0]);
+        Arrays.sort(sortedActual);
+
+        String[] sortedExpected = expected.toArray(new String[0]);
+        Arrays.sort(sortedExpected);
+
+        assertTrue("Invalid result set. Expected: " + expected + ", Actual: " + actual, Arrays.equals(sortedExpected, sortedActual));
     }
 
     protected void setTraversalEnabled(boolean traversalEnabled) {
