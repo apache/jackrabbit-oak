@@ -175,6 +175,24 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
             boolValue = PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT
     )
     public static final String PARAM_USER_DYNAMIC_MEMBERSHIP = "user.dynamicMembership";
+    
+    /**
+     * @see DefaultSyncConfig.User#getEnforceDynamicMembership()
+     */
+    public static final boolean PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT = false;
+
+    /**
+     * Configuration option to enforce dynamic group membership upon user sync. If enabled the
+     * implementation will clean up previous synchronized membership information that is not yet dynamic.
+     *
+     * @see DefaultSyncConfig.User#getDynamicMembership()
+     */
+    @Property(
+            label = "User Enforce Dynamic Membership",
+            description = "If enabled dynamic membership will be enforced for previously synchronized users. Note, that this option has no effect if 'dynamic membership' is disabled.",
+            boolValue = PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT
+    )
+    public static final String PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP = "user.enforceDynamicMembership";
 
     /**
      * @see User#getDisableMissing()
@@ -287,6 +305,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
                 .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
                 .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP, PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
+                .setEnforceDynamicMembership(params.getConfigValue(PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP, PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT))
                 .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setApplyRFC7613UsernameCaseMapped(params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
                 .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))

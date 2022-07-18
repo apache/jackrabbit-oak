@@ -34,7 +34,10 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_PATH_PREFIX_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_PROPERTY_MAPPING_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP_DEFAULT;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_EXPIRATION_TIME_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT;
@@ -43,6 +46,8 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_PROPERTY_MAPPING_DEFAULT;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class DefaultSyncConfigImplTest {
 
@@ -57,6 +62,7 @@ public class DefaultSyncConfigImplTest {
         DefaultSyncConfig.User userConfig = DefaultSyncConfigImpl.of(ConfigurationParameters.EMPTY).user();
         assertEquals(PARAM_DISABLE_MISSING_USERS_DEFAULT, userConfig.getDisableMissing());
         assertEquals(PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT, userConfig.getDynamicMembership());
+        assertEquals(PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT, userConfig.getEnforceDynamicMembership());
         assertEquals(PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, userConfig.getMembershipNestingDepth());
         assertEquals(ConfigurationParameters.Milliseconds.of(PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT), ConfigurationParameters.Milliseconds.of(userConfig.getMembershipExpirationTime()));
 
@@ -65,6 +71,24 @@ public class DefaultSyncConfigImplTest {
         assertArrayEquals(PARAM_USER_AUTO_MEMBERSHIP_DEFAULT, userConfig.getAutoMembership().toArray(new String[0]));
         assertEquals(getMapping(PARAM_USER_PROPERTY_MAPPING_DEFAULT), userConfig.getPropertyMapping());
         assertEquals(PARAM_USER_PATH_PREFIX_DEFAULT, userConfig.getPathPrefix());
+    }
+    
+    @Test
+    public void testUserDynamicMembership() {
+        ConfigurationParameters params = ConfigurationParameters.of(PARAM_USER_DYNAMIC_MEMBERSHIP, true);
+        DefaultSyncConfig.User userConfig = DefaultSyncConfigImpl.of(params).user();
+        assertTrue(userConfig.getDynamicMembership());
+        assertFalse(userConfig.getEnforceDynamicMembership());
+
+        params = ConfigurationParameters.of(PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP, true);
+        userConfig = DefaultSyncConfigImpl.of(params).user();
+        assertFalse(userConfig.getDynamicMembership());
+        assertTrue(userConfig.getEnforceDynamicMembership());
+
+        params = ConfigurationParameters.of(PARAM_USER_DYNAMIC_MEMBERSHIP, true, PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP, true);
+        userConfig = DefaultSyncConfigImpl.of(params).user();
+        assertTrue(userConfig.getDynamicMembership());
+        assertTrue(userConfig.getEnforceDynamicMembership());
     }
 
     @Test

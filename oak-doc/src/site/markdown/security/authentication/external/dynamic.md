@@ -46,7 +46,7 @@ effects:
   'STRING' storing the names of the `java.security.acl.Group`-principals a given 
   external user is member of (both declared and inherited according to the configured
   membership nesting depth)
-- External groups will no longer be synchronised into the repository's user management 
+- External groups will no longer be synchronized into the repository's user management 
   but will only be available as `Principal`s (see section _User Management_ below).
   
 Note: as a further improvement the [PrincipalNameResolver] interface was introduced 
@@ -88,7 +88,7 @@ implementation (i.e. [ExternalPrincipalConfiguration]) that is in charge of secu
 the `rep:externalPrincipalNames` properties (see also section [Validation](defaultusersync.html#validation) 
 and [Configuration](defaultusersync.html#configuration)). 
 
-Additionally the [ExternalPrincipalConfiguration] provides a `PrincipalProvider` 
+Additionally, the [ExternalPrincipalConfiguration] provides a `PrincipalProvider` 
 implementation which makes external (group) principals available to the repository's 
 authentication and authorization using the `rep:externalPrincipalNames` as a 
 persistent cache to avoid expensive lookup on the IDP.
@@ -109,10 +109,12 @@ user management feature but limit the synchronized information to the principal
 names and the membership relation between a given `java.security.acl.Group` principal 
 and external user accounts.
 
-The user management API will consequently no longer be knowledgeable of **external 
-group identities** (exception: groups that have been synchronized before enabling 
-the feature will remain untouched and will be synchronized according to the 
-sync configuration).
+The user management API will consequently no longer be knowledgeable of **external group identities**.
+
+For groups that have been synchronized before dynamic membership got enabled, the following rules will 
+apply:
+- if option `user.enforceDynamicMembership` is disabled (default), previously synced groups and their member information will continue to be synchronized according to the sync configuration.
+- if option `user.enforceDynamicMembership` is enabled, previously synced membership will be migrated to become dynamic upon user synchronization. The synchronized group will be removed once it not longer has any declared members.
 
 While this behavior does not affect default authentication and authorization modules 
 (see below) it will have an impact on applications that rely on full synchronization 
