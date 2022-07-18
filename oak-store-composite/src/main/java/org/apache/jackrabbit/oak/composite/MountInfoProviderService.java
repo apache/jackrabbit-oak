@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -34,7 +33,6 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
@@ -43,6 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.stream.Collectors.toSet;
+
+import java.util.ArrayList;
 
 @Component
 @Designate(ocd = MountInfoProviderService.Props.class)
@@ -90,7 +90,7 @@ public class MountInfoProviderService {
 
     }
 
-    private final List<MountInfoConfig> mountInfoConfigs = new CopyOnWriteArrayList<>();
+    private final List<MountInfoConfig> mountInfoConfigs = new ArrayList<>();
 
     private Set<String> expectedMounts;
     private ServiceRegistration reg;
@@ -127,12 +127,12 @@ public class MountInfoProviderService {
         }
     }
 
-    @Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)
+    @Reference(cardinality = ReferenceCardinality.MULTIPLE, policyOption = ReferencePolicyOption.GREEDY)
     protected void bindMountInfoConfig(MountInfoConfig config) {
         if (!config.getPaths().isEmpty()) { // Ignore empty configs
             mountInfoConfigs.add(config);
         }
-        registerMountInfoProvider();
+        // this is a static reference, i.e. called before activate(), the registration happens during activate()
     }
 
     private void registerMountInfoProvider() {
