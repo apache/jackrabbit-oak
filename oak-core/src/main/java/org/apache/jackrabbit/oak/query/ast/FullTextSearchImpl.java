@@ -265,7 +265,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getValue(Type.STRING));
+        if (selector.equals(f.getSelector())) {
+            f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getValue(Type.STRING));
+        }
     }
 
     @Override
