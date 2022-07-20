@@ -50,7 +50,7 @@ def buildModule(moduleSpec) {
             sh '''
             echo "Setting MAVEN_OPTS"
             echo "MAVEN_OPTS was ${MAVEN_OPTS}"
-            export MAVEN_OPTS="-Xmx1024M"
+            export MAVEN_OPTS="-Xmx1536M"
             echo "MAVEN_OPTS now ${MAVEN_OPTS}"
             echo "Setting MAVEN_OPTS done"
             '''
