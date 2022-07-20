@@ -170,7 +170,7 @@ public class Segment {
     Segment(
         @NotNull SegmentId id,
         @NotNull SegmentReader reader,
-        @NotNull byte[] buffer,
+        byte @NotNull [] buffer,
         @NotNull RecordNumbers recordNumbers,
         @NotNull SegmentReferences segmentReferences,
         @NotNull String info
