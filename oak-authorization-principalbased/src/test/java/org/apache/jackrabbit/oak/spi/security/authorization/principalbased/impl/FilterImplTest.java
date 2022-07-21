@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -35,6 +37,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -51,7 +54,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class FilterImplTest extends AbstractPrincipalBasedTest {
 
@@ -216,6 +222,41 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
+    public void testCanHandleCombinationMultipleUnsupportedSystemUserPrincipal() throws Exception {
+        UserManager um = getUserManager(root);
+        Principal unsupported1 = um.createSystemUser("serviceUser1", null).getPrincipal();
+        Principal unsupported2 = um.createSystemUser("serviceUser2", null).getPrincipal();
+        ItemBasedPrincipal unsupported3 = (ItemBasedPrincipal) mock(SystemUserPrincipal.class, withSettings().extraInterfaces(ItemBasedPrincipal.class));
+        when(unsupported3.getPath()).thenReturn(PathUtils.concat(DEFAULT_USER_PATH, DEFAULT_SYSTEM_RELATIVE_PATH, "unsupported3"));
+        when(unsupported3.getName()).thenReturn("serviceUser3");
+        
+        Set<Principal> set = Sets.newLinkedHashSet(Arrays.asList(unsupported1, getTestSystemUser().getPrincipal(), unsupported2, unsupported3));
+        assertFalse(filter.canHandle(set));
+        
+        // verify that all system-user-principals have been checked
+        verify(unsupported3).getPath();
+        verify(unsupported3, times(2)).getName();
+        verifyNoMoreInteractions(unsupported3);
+    }
+
+    @Test
+    public void testCanHandleCombinationShortcutForNonSystemUsers() throws Exception {
+        Principal other = when(mock(Principal.class).getName()).thenReturn("any").getMock();
+        ItemBasedPrincipal unsupported = (ItemBasedPrincipal) mock(SystemUserPrincipal.class, withSettings().extraInterfaces(ItemBasedPrincipal.class));
+        when(unsupported.getPath()).thenReturn(PathUtils.concat(DEFAULT_USER_PATH, DEFAULT_SYSTEM_RELATIVE_PATH, "unsupported"));
+        when(unsupported.getName()).thenReturn("unsupported");
+
+        Set<Principal> set = Sets.newLinkedHashSet(Arrays.asList(getTestSystemUser().getPrincipal(), other, unsupported));
+        assertFalse(filter.canHandle(set));
+
+        // verify that 'canHandle' shortcuts and does not reach the verification of the 'unsupported' principal
+        verifyNoInteractions(unsupported);
+        // equally the name of the 'other' principal must not have been accessed for log the WARNing
+        // about mixed principal set
+        verifyNoInteractions(other);
+    }
+    
+    @Test
     public void testCanHandlePopulatesCache() throws Exception  {
         Principal principal = getTestSystemUser().getPrincipal();
         PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(principal.getName())).thenReturn(principal).getMock();
@@ -320,6 +361,13 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         Principal principal = user.getPrincipal();
         assertEquals(principal, filter.getValidPrincipal(getNamePathMapper().getOakPath(user.getPath())));
     }
+
+    @Test
+    public void testGetPrincipalUnsupportedSystemUserPath() throws Exception {
+        UserManager um = getUserManager(root);
+        User unsupportedSystemUser = um.createSystemUser("systemUser2", null);
+        assertNull(filter.getValidPrincipal(getNamePathMapper().getOakPath(unsupportedSystemUser.getPath())));
+    }   
 
     @Test
     public void testGetPrincipalSupportedRootPath() {

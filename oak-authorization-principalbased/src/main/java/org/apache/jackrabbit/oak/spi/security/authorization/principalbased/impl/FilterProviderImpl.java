@@ -43,8 +43,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -116,6 +119,19 @@ public class FilterProviderImpl implements FilterProvider {
     private static boolean isValidPath(@Nullable String path) {
         return !Strings.isNullOrEmpty(path) && PathUtils.isAbsolute(path);
     }
+
+    private static boolean canHandle(@Nullable List<String> invalidNames, @NotNull Set<Principal> principals) {
+        if (invalidNames == null) {
+            return true;
+        }
+        if (invalidNames.size() != principals.size()) {
+            // mixing service users that support principal based authorization with others that don't is likely not
+            // intended and may result in missing effective permissions.
+            List<String> supported = principals.stream().map(Principal::getName).filter(pName -> !invalidNames.contains(pName)).collect(Collectors.toList());
+            log.warn("Principal set with inconsistent support for principal-based authorization. Not supported = {}, Supported = {}", invalidNames, supported);
+        }
+        return false;
+    }
     //-------------------------------------------------------------< Filter >---
 
     private final class FilterImpl implements Filter {
@@ -135,12 +151,24 @@ public class FilterProviderImpl implements FilterProvider {
             if (principals.isEmpty()) {
                 return false;
             }
-            for (Principal p : principals) {
-                if (!isValidPrincipal(p)) {
+            List<String> invalidNames = null;
+            for (Principal p : principals)  {
+                // shortcut if another principal type is found
+                if (!isSystemUserPrincipal(p)) {
                     return false;
                 }
+                // keep track of system-user-principals in order to warn about subject that mix system users
+                // with and without support for principal-based authorization as this is most likely not intended.
+                String name = p.getName();
+                if (!isValidSystemUserPrincipal(p, name)) {
+                    if (invalidNames == null) {
+                        invalidNames = new ArrayList<>();
+                    }
+                    invalidNames.add(name);
+                }
             }
-            return true;
+            
+            return FilterProviderImpl.canHandle(invalidNames, principals);
         }
 
         @Override
@@ -157,19 +185,18 @@ public class FilterProviderImpl implements FilterProvider {
         @Nullable
         public Principal getValidPrincipal(@NotNull String oakPath) {
             ItemBasedPrincipal principal = principalProvider.getItemBasedPrincipal(oakPath);
-            if (principal != null && isValidPrincipal(principal)) {
+            if (isSystemUserPrincipal(principal) && isValidSystemUserPrincipal(principal, principal.getName())) {
                 return principal;
             } else {
                 return null;
             }
         }
 
-        private boolean isValidPrincipal(@NotNull Principal principal) {
-            if (!(principal instanceof SystemUserPrincipal)) {
-                return false;
-            }
+        private boolean isSystemUserPrincipal(@Nullable Principal principal) {
+            return principal instanceof SystemUserPrincipal;
+        }
 
-            String principalName = principal.getName();
+        private boolean isValidSystemUserPrincipal(@NotNull Principal principal, @NotNull String principalName) {
             String path = validatedPrincipalNamesPathMap.get(principalName);
             if (path != null && isValidMapEntry(principal, path)) {
                 return true;
@@ -179,7 +206,7 @@ public class FilterProviderImpl implements FilterProvider {
                 return false;
             }
 
-            String principalPath = getPrincipalPath(principal);
+            String principalPath = getPrincipalPath(principal, principalName);
             if (principalPath != null && handlesPath(principalPath)) {
                 unsupportedPrincipalNames.remove(principalName);
                 validatedPrincipalNamesPathMap.put(principalName, principalPath);
@@ -211,7 +238,7 @@ public class FilterProviderImpl implements FilterProvider {
         }
 
         @Nullable
-        private String getPrincipalPath(@NotNull Principal principal) {
+        private String getPrincipalPath(@NotNull Principal principal, @NotNull String principalName) {
             String prinicpalOakPath = null;
             if (principal instanceof ItemBasedPrincipal) {
                 prinicpalOakPath = getOakPath((ItemBasedPrincipal) principal);
@@ -220,7 +247,7 @@ public class FilterProviderImpl implements FilterProvider {
                 // the given principal is not ItemBasedPrincipal or it has been obtained with a different name-path-mapper
                 // (making the conversion to oak-path return null) or it has been moved and the path no longer points to
                 // an existing tree -> try looking up principal by name
-                Principal p = principalProvider.getPrincipal(principal.getName());
+                Principal p = principalProvider.getPrincipal(principalName);
                 if (p instanceof ItemBasedPrincipal) {
                     prinicpalOakPath = getOakPath((ItemBasedPrincipal) p);
                 } else {
