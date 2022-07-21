@@ -82,6 +82,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentMK.Builder.DEFAULT_UPDATE_LIMIT, config.updateLimit());
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
         assertEquals("STRICT", config.leaseCheckMode());
+        assertEquals(DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE, config.throttleDocumentStore());
     }
 
     @Test
@@ -90,6 +91,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "mongouri", uri);
         Configuration config = createConfiguration();
         assertEquals(uri, config.mongouri());
+    }
+
+    @Test
+    public void throttleDocumentStore() throws Exception {
+        boolean throttleDocStore = false;
+        addConfigurationEntry(preset, "throttleDocumentStore", throttleDocStore);
+        Configuration config = createConfiguration();
+        assertEquals(throttleDocStore, config.throttleDocumentStore());
     }
 
     @Test
