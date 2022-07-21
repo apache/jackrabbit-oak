@@ -267,4 +267,13 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
             @Option(label = "STRICT", value = "STRICT"),
             @Option(label = "LENIENT", value = "LENIENT")})
     String leaseCheckMode() default "STRICT";
+
+    @AttributeDefinition(
+            name = "Document Node Store throttling",
+            description = "Boolean value indicating whether throttling should be " +
+                    "enabled for document node store or not. The Default value is " +
+                    DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE +
+                    "Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.throttleDocumentStore'")
+    boolean throttleDocumentStore() default DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE;
 }

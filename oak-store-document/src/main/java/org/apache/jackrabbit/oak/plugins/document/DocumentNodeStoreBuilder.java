@@ -100,6 +100,12 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
             "oak.documentMK.manyChildren", 50);
 
+    public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger(
+            "oak.documentMK.throttlingThreshold", 2);
+
+    public static final long DEFAULT_THROTTLING_TIME = Long.getLong(
+            "oak.documentMK.throttlingTime", 20);
+
     /**
      * Whether to use the CacheLIRS (default) or the Guava cache implementation.
      */
@@ -158,6 +164,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             LoggerFactory.getLogger(VersionGarbageCollector.class));
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
+    private boolean throttleDocumentStore;
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -269,6 +276,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     LeaseCheckMode getLeaseCheckMode() {
         return leaseCheck;
+    }
+
+    public T setThrottleDocumentStore(boolean b) {
+        this.throttleDocumentStore = b;
+        return thisBuilder();
+    }
+
+    public boolean getThrottleDocumentStore() {
+        return this.throttleDocumentStore;
     }
 
     public T setReadOnlyMode() {

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +42,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.AtomicDouble;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
@@ -61,6 +63,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.ThrottlingMetrics;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
@@ -89,6 +92,7 @@ import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -108,6 +112,9 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Sets.difference;
+import static java.lang.Integer.MAX_VALUE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_THROTTLING_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_THROTTLING_TIME;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -132,10 +139,24 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static final Bson BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
+    private static final String OPLOG_RS = "oplog.rs";
+
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
     private final int nodeNameLimit;
+    private ThrottlingMetrics throttlingMetrics = ThrottlingMetrics.DEFAULT_THROTTLING_METRIC;
+
+    /**
+     * local database for mongo cluster
+     */
+    private MongoDatabase localDb;
+
+    /**
+     * oplog window based on current oplog filling rate
+     */
+    private AtomicDouble oplogWindow;
+    private final boolean throttleDocumentStore;
 
     enum DocumentReadPreference {
         PRIMARY,
@@ -261,9 +282,15 @@ public class MongoDocumentStore implements DocumentStore {
         return nodeNameLimit;
     }
 
+    @Override
+    public ThrottlingMetrics throttlingMetrics() {
+        return throttlingMetrics;
+    }
+
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
+        this.throttleDocumentStore = builder.getThrottleDocumentStore();
         MongoStatus status = builder.getMongoStatus();
         if (status == null) {
             status = new MongoStatus(connection, db.getName());
@@ -295,15 +322,38 @@ public class MongoDocumentStore implements DocumentStore {
         this.nodeLocks = new StripedNodeDocumentLocks();
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
+        // if throttling is enabled
+        if (throttleDocumentStore) {
+            this.localDb = connection.getDatabase("local");
+            final MongoIterable<String> collectionNames = localDb.listCollectionNames();
+            String ol = null;
+            for (String e: collectionNames) {
+                if (Objects.equals(e, OPLOG_RS)) {
+                    ol = OPLOG_RS;
+                    break;
+                }
+            }
+
+            if (Objects.isNull(ol)) {
+                LOG.warn("Connected to MongoDB with replication not detected and hence oplog based throttling is not supported");
+            } else {
+                oplogWindow = new AtomicDouble(MAX_VALUE);
+                throttlingMetrics = MongoThrottlingMetrics.of(oplogWindow, DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME);
+                new MongoDocumentStoreThrottling(localDb, (MongoThrottlingMetrics) throttlingMetrics).updateMetrics();
+                LOG.info("Started MongoDB throttling metrics with threshold {}, throttling time {}",
+                        DEFAULT_THROTTLING_TIME, DEFAULT_THROTTLING_TIME);
+            }
+        }
+
         LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
                 "leaseSocketTimeout {}, clientSessionSupported {}, " +
-                "clientSessionInUse {}, {}, serverStatus {}",
+                "clientSessionInUse {}, {}, serverStatus {}, throttlingSupported {}",
                 status.getVersion(), maxReplicationLagMillis,
                 maxDeltaForModTimeIdxSecs, disableIndexHint,
                 builder.getLeaseSocketTimeout(),
                 status.isClientSessionSupported(), useClientSession,
-                db.getWriteConcern(), status.getServerDetails());
+                db.getWriteConcern(), status.getServerDetails(), throttleDocumentStore);
     }
 
     @NotNull
@@ -903,7 +953,7 @@ public class MongoDocumentStore implements DocumentStore {
                         result = dbCollection.deleteMany(query);
                     }
                     return result.getDeletedCount();
-                }, collection), Integer.MAX_VALUE);
+                }, collection), MAX_VALUE);
             } catch (Exception e) {
                 throw DocumentStoreException.convert(e, "Remove failed for " + collection + ": " +
                     indexedProperty + " in (" + startValue + ", " + endValue + ")");
@@ -1522,7 +1572,7 @@ public class MongoDocumentStore implements DocumentStore {
             return DocumentReadPreference.PREFER_SECONDARY;
         } else if(maxCacheAge >= 0 && maxCacheAge < maxReplicationLagMillis) {
             return DocumentReadPreference.PRIMARY;
-        } else if(maxCacheAge == Integer.MAX_VALUE){
+        } else if(maxCacheAge == MAX_VALUE){
             return DocumentReadPreference.PREFER_SECONDARY;
         } else {
            return DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH;

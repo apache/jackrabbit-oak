@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.ThrottlingMetrics;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 
@@ -226,5 +227,15 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     @Override
     public int getNodeNameLimit() {
         return delegate.getNodeNameLimit();
+    }
+
+    /**
+     * Return the @{@link ThrottlingMetrics} for the underlying document store
+     *
+     * @return throttling metric for document store
+     */
+    @Override
+    public ThrottlingMetrics throttlingMetrics() {
+        return delegate.throttlingMetrics();
     }
 }
