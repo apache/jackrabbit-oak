@@ -46,6 +46,8 @@ public final class Main {
             args = copyOfRange(args, 1, args.length);
         }
 
-        command.execute(args);
+        int statuscode = command.execute(args);
+        
+        System.exit(statuscode);
     }
 }
