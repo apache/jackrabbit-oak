@@ -25,10 +25,10 @@ import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
 class HelpCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         System.err.print("Available run modes: ");
         System.err.println(Joiner.on(", ").join(MODES.getModes()));
-        System.exit(1);
+        return 1;
     }
 
 }

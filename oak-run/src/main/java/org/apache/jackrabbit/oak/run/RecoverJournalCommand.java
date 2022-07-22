@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.segment.tool.RecoverJournal;
 class RecoverJournalCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser options = new OptionParser();
         OptionSpec<?> help = options.acceptsAll(asList("h", "help"), "Prints help and exits");
         OptionSpec<File> dir = options.nonOptions()
@@ -42,17 +42,17 @@ class RecoverJournalCommand implements Command {
 
         if (parsed.has(help)) {
             options.printHelpOn(System.out);
-            System.exit(0);
+            return 0;
         }
 
         if (parsed.valuesOf(dir).size() == 0) {
             System.err.println("Segment Store path not specified");
-            System.exit(1);
+            return 1;
         }
 
         if (parsed.valuesOf(dir).size() > 1) {
             System.err.println("Too many Segment Store paths specified");
-            System.exit(1);
+            return 1;
         }
 
         int code = RecoverJournal.builder()
@@ -61,7 +61,7 @@ class RecoverJournalCommand implements Command {
             .withErr(System.err)
             .build()
             .run();
-        System.exit(code);
+        return code;
     }
 
 }

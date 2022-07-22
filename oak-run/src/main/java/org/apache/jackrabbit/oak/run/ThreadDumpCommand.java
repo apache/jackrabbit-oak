@@ -55,7 +55,7 @@ public class ThreadDumpCommand implements Command {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Void> convertSpec = parser.accepts("convert",
                 "convert the thread dumps to the standard format");
@@ -85,7 +85,7 @@ public class ThreadDumpCommand implements Command {
             System.out.println("Mode: " + THREADDUMP);
             System.out.println();
             parser.printHelpOn(System.out);
-            return;
+            return 1;
         }
         boolean convert = options.has(convertSpec);
         boolean filter = options.has(filterSpec);
@@ -132,6 +132,7 @@ public class ThreadDumpCommand implements Command {
                 Profiler.main(list.toArray(new String[0]));
             }
         }
+        return 0;
     }
 
     private static File combineAndExpandFiles(File file) throws IOException {

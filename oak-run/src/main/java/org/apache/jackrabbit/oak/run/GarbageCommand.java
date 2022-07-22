@@ -26,14 +26,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 class GarbageCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         Closer closer = Utils.createCloserWithShutdownHook();
         String h = "garbage mongodb://host:port/database | jdbc:...";
         try {
             NodeStore store = Utils.bootstrapNodeStore(args, closer, h);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Garbage mode only available for DocumentNodeStore");
-                System.exit(1);
+                return 1;
             }
             DocumentNodeStore dns = (DocumentNodeStore) store;
 
@@ -43,6 +43,7 @@ class GarbageCommand implements Command {
         } finally {
             closer.close();
         }
+        return 0;
     }
 
 }

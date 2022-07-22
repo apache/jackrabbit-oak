@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 class BenchmarkCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
-        BenchmarkRunner.main(args);
+    public int execute(String... args) throws Exception {
+        return BenchmarkRunner.main(args);
     }
 
 }

@@ -72,7 +72,7 @@ class ResetClusterIdCommand implements Command {
     }
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         String help = "resetclusterid {<path>|<mongo-uri>|<jdbc-uri>}";
         Utils.NodeStoreOptions opts = new Utils.NodeStoreOptions(help).parse(args);
 
@@ -85,5 +85,6 @@ class ResetClusterIdCommand implements Command {
         } finally {
             closer.close();
         }
+        return 0;
     }
 }

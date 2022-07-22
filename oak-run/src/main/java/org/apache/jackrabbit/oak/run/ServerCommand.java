@@ -56,7 +56,7 @@ class ServerCommand implements Command {
     }
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)").withRequiredArg().ofType(Integer.class).defaultsTo(100);
@@ -84,7 +84,7 @@ class ServerCommand implements Command {
 
         if (options.has(help)) {
             parser.printHelpOn(System.out);
-            System.exit(0);
+            return 0;
         }
 
         OakFixture oakFixture;
@@ -131,6 +131,7 @@ class ServerCommand implements Command {
         }
 
         startOakServer(oakFixture, uri, cIds);
+        return 0;
     }
 
 }

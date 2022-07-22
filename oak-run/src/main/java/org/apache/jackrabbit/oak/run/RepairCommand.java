@@ -27,19 +27,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 class RepairCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         Closer closer = Utils.createCloserWithShutdownHook();
         String h = "repair mongodb://host:port/database path";
         try {
             NodeStore store = Utils.bootstrapNodeStore(args, closer, h);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Repair only available for DocumentNodeStore");
-                System.exit(1);
+                return 1;
             }
             DocumentNodeStore dns = (DocumentNodeStore) store;
             if (!(dns.getDocumentStore() instanceof MongoDocumentStore)) {
                 System.err.println("Repair only available for MongoDocumentStore");
-                System.exit(1);
+                return 1;
             }
             MongoDocumentStore docStore = (MongoDocumentStore) dns.getDocumentStore();
 
@@ -50,6 +50,7 @@ class RepairCommand implements Command {
         } finally {
             closer.close();
         }
+        return 0;
     }
 
 }

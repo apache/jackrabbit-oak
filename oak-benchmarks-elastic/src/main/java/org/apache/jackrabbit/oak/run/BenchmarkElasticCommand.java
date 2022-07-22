@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 
 public class BenchmarkElasticCommand implements Command {
     @Override
-    public void execute(String... args) throws Exception {
-        ElasticBenchmarkRunner.main(args);
+    public int execute(String... args) throws Exception {
+        return ElasticBenchmarkRunner.main(args);
     }
 }

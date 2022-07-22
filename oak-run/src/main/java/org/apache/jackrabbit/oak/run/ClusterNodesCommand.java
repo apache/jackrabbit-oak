@@ -41,7 +41,7 @@ import joptsimple.OptionSpec;
 class ClusterNodesCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         Closer closer = Utils.createCloserWithShutdownHook();
         try {
             String h = "clusternodes mongodb://host:port/database|jdbc:...";
@@ -83,6 +83,7 @@ class ClusterNodesCommand implements Command {
         } finally {
             closer.close();
         }
+        return 0;
     }
 
     private static void print(List<ClusterNodeInfoDocument> docs, boolean verbose) {

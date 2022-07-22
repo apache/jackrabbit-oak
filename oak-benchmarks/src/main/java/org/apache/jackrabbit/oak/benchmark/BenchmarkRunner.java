@@ -79,13 +79,13 @@ public class BenchmarkRunner {
     private static boolean initFlag = false;
 
 
-    public static void main(String[] args) throws Exception {
+    public static int main(String[] args) throws Exception {
 
         initOptionSet(args);
 
         if (options.has(benchmarkOptions.getHelp())) {
             parser.printHelpOn(System.out);
-            System.exit(0);
+            return 0;
         }
 
         String uri = benchmarkOptions.getMongouri().value(options);
@@ -504,7 +504,9 @@ public class BenchmarkRunner {
             reportMetrics(statsProvider);
         } else {
             System.err.println("Unknown arguments: " + argset);
+            return 1;
         }
+        return 0;
     }
 
     private static void reportMetrics(StatisticsProvider statsProvider) {

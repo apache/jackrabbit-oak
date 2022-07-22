@@ -41,7 +41,7 @@ public class PurgeOldIndexVersionCommand implements Command {
     private final static String DEFAULT_INDEX_PATH = "/oak:index";
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         Options opts = parseCommandLineParams(args);
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
             if (!opts.getCommonOpts().isReadWrite()) {
@@ -49,6 +49,7 @@ public class PurgeOldIndexVersionCommand implements Command {
             }
             new PurgeOldIndexVersion().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths);
         }
+        return 0;
     }
 
     private Options parseCommandLineParams(String... args) throws Exception {

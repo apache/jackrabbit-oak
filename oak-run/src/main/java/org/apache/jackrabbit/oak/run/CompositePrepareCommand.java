@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class CompositePrepareCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         OptionSpec<?> help = parser
@@ -77,6 +77,7 @@ public class CompositePrepareCommand implements Command {
         } finally {
             fs.close();
         }
+        return 0;
     }
 
     public static class OakResourceTransformer {

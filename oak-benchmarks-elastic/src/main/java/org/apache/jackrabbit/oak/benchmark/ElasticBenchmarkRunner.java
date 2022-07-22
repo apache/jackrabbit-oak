@@ -25,7 +25,7 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
 
     private static ElasticConnection connection;
 
-    public static void main(String[] args) throws Exception {
+    public static int main(String[] args) throws Exception {
         initOptionSet(args);
         statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider() : StatisticsProvider.NOOP;
         // Create an Elastic Client Connection here and pass down to all the tests
@@ -80,7 +80,7 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
 
                     )
             );
-            BenchmarkRunner.main(args);
+            return BenchmarkRunner.main(args);
         } finally {
             connection.close();
         }

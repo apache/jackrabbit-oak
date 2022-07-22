@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.scalability.LuceneScalabilityRunner;
 public class ScalabilityLuceneCommand extends ScalabilityCommand {
 
     @Override
-    public void execute(String... args) throws Exception {
-        LuceneScalabilityRunner.main(args);
+    public int execute(String... args) throws Exception {
+        return LuceneScalabilityRunner.main(args);
     }
 }

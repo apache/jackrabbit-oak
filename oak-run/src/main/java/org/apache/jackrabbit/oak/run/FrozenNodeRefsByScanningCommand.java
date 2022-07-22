@@ -96,7 +96,7 @@ public class FrozenNodeRefsByScanningCommand implements Command {
     private final String summary = "Scans repository and lists all references to nt:frozenNode";
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         Options opts = new Options();
@@ -117,10 +117,11 @@ public class FrozenNodeRefsByScanningCommand implements Command {
         int count = uuidscan(userOption, passwordOption, options, nodeStoreFixture);
         if (count > 0) {
             System.err.println("FAILURE: " + count + " Reference(s) (in any uuid formatted property value) to nt:frozenNode found.");
-            System.exit(1);
+            return 1;
         } else {
             System.out.println("SUCCESS: No references (in any uuid formatted property value) to nt:frozenNode found.");
         }
+        return 0;
     }
 
     /**

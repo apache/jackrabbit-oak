@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.segment.tool.Check;
 class CheckCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Boolean> mmapArg = parser.accepts("mmap", "use memory mapping for the file store (default: true)")
             .withOptionalArg()
@@ -94,7 +94,7 @@ class CheckCommand implements Command {
             builder.withRevisionsCount(options.valueOf(last) != null ? last.value(options) : 1);
         }
 
-        System.exit(builder.build().run());
+        return builder.build().run();
     }
 
     private void printUsageAndExit(OptionParser parser, String... messages) throws IOException {

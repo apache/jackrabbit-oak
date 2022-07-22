@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.explorer.Explorer;
 class ExploreCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
-        Explorer.main(args);
+    public int  execute(String... args) throws Exception {
+        return Explorer.main(args);
     }
 
 }

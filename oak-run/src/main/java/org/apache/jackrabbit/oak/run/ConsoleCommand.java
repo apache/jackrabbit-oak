@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.console.Console;
 class ConsoleCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
-        Console.main(args);
+    public int execute(String... args) throws Exception {
+        return Console.main(args);
     }
 
 }

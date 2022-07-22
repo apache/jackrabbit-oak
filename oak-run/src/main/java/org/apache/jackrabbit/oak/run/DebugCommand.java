@@ -32,17 +32,17 @@ import org.apache.jackrabbit.oak.segment.tool.DebugTars;
 class DebugCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> nonOptions = parser.nonOptions().ofType(String.class);
         OptionSet options = parser.parse(args);
 
         if (options.valuesOf(nonOptions).isEmpty()) {
             System.err.println("usage: debug <path> [id...]");
-            System.exit(1);
+            return 1;
         }
 
-        System.exit(debug(options.valuesOf(nonOptions)));
+        return debug(options.valuesOf(nonOptions));
     }
 
     private static int debug(List<String> args) {

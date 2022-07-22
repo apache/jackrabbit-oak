@@ -110,8 +110,8 @@ public class DataStoreCheckCommand implements Command {
     };
 
     @Override
-    public void execute(String... args) throws Exception {
-        System.exit(checkDataStore(args));
+    public int execute(String... args) throws Exception {
+        return checkDataStore(args);
     }
 
     static int checkDataStore(String... args) {

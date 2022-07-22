@@ -56,13 +56,13 @@ public class ScalabilityRunner {
     protected static OptionSet options;
     private static boolean initFlag = false;
 
-    public static void main(String[] args) throws Exception {
+    public static int main(String[] args) throws Exception {
         initOptionSet(args);
         OptionSet options = parser.parse(args);
 
         if (options.has(scalabilityOptions.getHelp())) {
             parser.printHelpOn(System.out);
-            System.exit(0);
+            return 0;
         }
 
         int cacheSize = scalabilityOptions.getCache().value(options);
@@ -187,7 +187,9 @@ public class ScalabilityRunner {
             }
         } else {
             System.err.println("Unknown arguments: " + argset);
+            return 1;
         }
+        return 0;
     }
 
     protected static void addToScalabilitySuiteList(List<ScalabilitySuite> suites) {

@@ -27,13 +27,13 @@ import org.apache.jackrabbit.oak.segment.tool.Restore;
 class RestoreCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().size() < 2) {
             System.err.println("This command requires a target and a source folder");
-            System.exit(1);
+            return 1;
         }
 
         File target = new File(options.nonOptionArguments().get(0).toString());
@@ -44,7 +44,7 @@ class RestoreCommand implements Command {
             .withTarget(target)
             .build()
             .run();
-        System.exit(statusCode);
+        return statusCode;
     }
 
 }

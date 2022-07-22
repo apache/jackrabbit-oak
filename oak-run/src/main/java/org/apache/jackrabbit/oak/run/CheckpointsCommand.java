@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 class CheckpointsCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
 
         CheckpointsOptions options = new CheckpointsOptions("checkpoints {<path>|<mongo-uri>|<jdbc-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>|info <checkpoint>|set <checkpoint> <name> [<value>]] [--segment]").parse(args);;
         if (options.isHelp()) {
@@ -170,8 +170,10 @@ class CheckpointsCommand implements Command {
             closer.close();
         }
         if (!success) {
-            System.exit(1);
+            return 1;
         }
+        return 0;
+        
     }
 
     private static void failWith(String message) {

@@ -31,7 +31,7 @@ import joptsimple.OptionSet;
 class SegmentCopyCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         OptionSpec<Integer> last = parser.accepts("last", "define the number of revisions to be copied (default: 1)")
@@ -69,7 +69,7 @@ class SegmentCopyCommand implements Command {
                 builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
             }
 
-            System.exit(builder.build().run());
+            return builder.build().run();
         } else {
             SegmentCopy.Builder builder = SegmentCopy.builder()
                     .withSource(source)
@@ -86,7 +86,7 @@ class SegmentCopyCommand implements Command {
                 builder.withFlat(flat.value(options));
             }
 
-            System.exit(builder.build().run());
+            return builder.build().run();
         }
     }
 

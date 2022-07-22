@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.segment.tool.Backup;
 class BackupCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSet options = parser.parse(args);
 
@@ -44,7 +44,7 @@ class BackupCommand implements Command {
             .withTarget(target)
             .build()
             .run();
-        System.exit(statusCode);
+       return statusCode;
     }
 
 }

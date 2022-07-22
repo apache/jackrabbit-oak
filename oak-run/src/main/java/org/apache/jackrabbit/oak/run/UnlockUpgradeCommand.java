@@ -49,7 +49,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.VERSI
 class UnlockUpgradeCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         // RDB specific options
         OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
@@ -63,12 +63,12 @@ class UnlockUpgradeCommand implements Command {
 
         if (options.has(help)) {
             parser.printHelpOn(System.out);
-            return;
+            return 0;
         }
 
         if (nonOptions.isEmpty()) {
             parser.printHelpOn(System.err);
-            return;
+            return 0;
         }
 
         DocumentStore store = null;
@@ -97,10 +97,12 @@ class UnlockUpgradeCommand implements Command {
             }
         } catch (DocumentStoreException e) {
             System.err.println(e.getMessage());
+            return 1;
         } finally {
             if (store != null) {
                 store.dispose();
             }
         }
+        return 0;
     }
 }

@@ -35,7 +35,7 @@ public class NodeStateExportCommand implements Command {
     private final String summary = "Exports NodeState as json";
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         Stopwatch w = Stopwatch.createStarted();
         OptionParser parser = new OptionParser();
 
@@ -69,5 +69,6 @@ public class NodeStateExportCommand implements Command {
                     eo.getPath(), dir.getAbsolutePath(), w);
 
         }
+        return 0;
     }
 }

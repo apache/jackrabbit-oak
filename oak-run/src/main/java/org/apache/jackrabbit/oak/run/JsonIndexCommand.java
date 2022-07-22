@@ -85,7 +85,7 @@ public class JsonIndexCommand implements Command {
     private final Map<String, Object> data = new HashMap<String, Object>();
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> scriptOption = parser
                 .accepts("script", "Path to Script").withOptionalArg()
@@ -114,6 +114,7 @@ public class JsonIndexCommand implements Command {
             nodeStoreFixture.close();
             reader.close();
         }
+        return 0;
     }
 
     private LineNumberReader openScriptReader(String script)

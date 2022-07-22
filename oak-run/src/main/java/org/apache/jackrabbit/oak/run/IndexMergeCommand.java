@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 public class IndexMergeCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
-        new IndexMerge().execute(args);
+    public int execute(String... args) throws Exception {
+        return new IndexMerge().execute(args);
     }
 
 }

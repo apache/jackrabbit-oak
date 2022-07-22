@@ -50,16 +50,17 @@ public class FrozenNodeRefsUsingIndexCommand implements Command {
     public static final String NAME = "frozennoderefsusingindex";
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         String help = NAME + " {<path>|<mongo-uri>|<jdbc-uri>} [options]";
         Utils.NodeStoreOptions nopts = new Utils.NodeStoreOptions(help).parse(args);
         int count = countNtFrozenNodeReferences(nopts);
         if (count > 0) {
             System.err.println("FAILURE: " + count + " Reference(s) (in /oak:index/references) to nt:frozenNode found.");
-            System.exit(1);
+            return 1;
         } else {
             System.out.println("SUCCESS: No references (in /oak:index/references) to nt:frozenNode found.");
         }
+        return 0;
     }
 
     /**

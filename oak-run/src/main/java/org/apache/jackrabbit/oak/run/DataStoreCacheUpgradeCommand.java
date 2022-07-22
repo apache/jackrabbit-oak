@@ -32,7 +32,7 @@ import static java.util.Arrays.asList;
  */
 public class DataStoreCacheUpgradeCommand implements Command {
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         try {
@@ -56,12 +56,12 @@ public class DataStoreCacheUpgradeCommand implements Command {
             } catch (Exception e) {
                 System.err.println(e);
                 parser.printHelpOn(System.err);
-                return;
+                return 1;
             }
 
             if (options.has(help)) {
                 parser.printHelpOn(System.out);
-                return;
+                return 1;
             }
 
             File homeDir = options.valueOf(homeDirOption);
@@ -77,6 +77,8 @@ public class DataStoreCacheUpgradeCommand implements Command {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Error upgrading cache");
+            return 1;
         }
+        return 0;
     }
 }

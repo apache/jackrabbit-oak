@@ -41,7 +41,7 @@ public class PersistentCacheCommand implements Command {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> pathSpec = parser.accepts("path", 
                 "only list entries starting with this path prefix").
@@ -77,7 +77,7 @@ public class PersistentCacheCommand implements Command {
                     "create table cache as select * from csvread('cache.csv', null, 'fieldDelimiter=')");
             System.out.println();
             parser.printHelpOn(System.out);
-            return;
+            return 1;
         }
         String path = pathSpec.value(options);
         String revision = revisionSpec.value(options);
@@ -93,6 +93,7 @@ public class PersistentCacheCommand implements Command {
             dump(write, path, revision, map, fileName, values, raw);
         }      
         write.flush();
+        return 0;
     }
     
     static void dump(PrintWriter write, String path, String revision, 

@@ -96,7 +96,7 @@ public class IndexMerge {
      *
      * @param args the command line arguments
      */
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Void> quietOption = parser.accepts("quiet", "be less chatty");
         OptionSpec<String> indexDirectory = parser.accepts("indexDir", "Index directory").
@@ -162,8 +162,9 @@ public class IndexMerge {
             executorService.shutdown();
         }
         if (!success) {
-            System.exit(1);
+            return 1;
         }
+        return 0;
     }
 
     private void storeIndex(NodeStore ns, String newIndexName, JsonObject indexDef) {

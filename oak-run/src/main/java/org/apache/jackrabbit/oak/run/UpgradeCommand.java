@@ -22,8 +22,9 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 class UpgradeCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         System.out.println("This command was moved to the oak-upgrade module");
+        return 1;
     }
 
 }

@@ -165,7 +165,7 @@ public class RevisionsCommand implements Command {
     }
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         Closer closer = Closer.create();
         try {
             RevisionsOptions options = new RevisionsOptions(USAGE).parse(args);
@@ -182,6 +182,7 @@ public class RevisionsCommand implements Command {
                 sweep(options, closer);
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
+                return 1;
             }
         } catch (Throwable e) {
             LOG.error("Command failed", e);
@@ -189,6 +190,7 @@ public class RevisionsCommand implements Command {
         } finally {
             closer.close();
         }
+        return 0;
     }
 
     private void setupLoggers(boolean verbose) {

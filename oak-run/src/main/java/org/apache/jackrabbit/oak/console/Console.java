@@ -36,7 +36,7 @@ import org.codehaus.groovy.tools.shell.util.Preferences;
  */
 public class Console {
 
-    public static void main(String[] args) throws Exception {
+    public static int main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
 
         OptionSpec quiet = parser.accepts("quiet", "be less chatty");
@@ -75,6 +75,6 @@ public class Console {
             }
         }
 
-        System.exit(code);
+        return code;
     }
 }

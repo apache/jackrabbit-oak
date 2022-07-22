@@ -122,7 +122,7 @@ public class DataStoreCommand implements Command {
     };
 
 
-    @Override public void execute(String... args) throws Exception {
+    @Override public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         opts = new Options();
@@ -152,7 +152,7 @@ public class DataStoreCommand implements Command {
             log.info("Node Store fixture created and registered");
 
             if (!checkParameters(dataStoreOpts, opts, fixture, parser)) {
-                return;
+                return 1;
             }
             execute(fixture, dataStoreOpts, opts, closer);
             success = true;
@@ -164,8 +164,9 @@ public class DataStoreCommand implements Command {
         }
 
         if (!success) {
-            System.exit(1);
+            return 1;
         }
+        return 0;
     }
 
     private static boolean checkParameters(DataStoreOptions dataStoreOpts, Options opts, NodeStoreFixture fixture,

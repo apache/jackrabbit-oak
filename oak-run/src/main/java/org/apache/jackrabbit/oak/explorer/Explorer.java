@@ -53,7 +53,7 @@ public class Explorer {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static int main(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
         OptionSpec skipSizeCheck = parser.accepts("skip-size-check", "Don't compute the size of the records");
         OptionSpec<String> nonOptions = parser.nonOptions("path to repository").ofType(String.class);
@@ -61,7 +61,7 @@ public class Explorer {
 
         if (options.valuesOf(nonOptions).isEmpty()) {
             parser.printHelpOn(System.err);
-            System.exit(1);
+            return 1;
         }
 
         String path = options.valuesOf(nonOptions).get(0);
@@ -73,6 +73,7 @@ public class Explorer {
             backend = new SegmentTarExplorerBackend(path);
         }
         new Explorer(path, backend, options.has(skipSizeCheck));
+        return 0;
     }
 
     private final ExplorerBackend backend;

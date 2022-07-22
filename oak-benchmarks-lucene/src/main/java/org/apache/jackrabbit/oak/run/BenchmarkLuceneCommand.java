@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 public class BenchmarkLuceneCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
-        LuceneBenchmarkRunner.main(args);
+    public int execute(String... args) throws Exception {
+        return LuceneBenchmarkRunner.main(args);
     }
 }

@@ -37,7 +37,7 @@ class CompactCommand implements Command {
     }
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> directoryArg = parser.nonOptions(
                 "Path/URI to TAR/remote segment store (required)").ofType(String.class);
@@ -82,7 +82,7 @@ class CompactCommand implements Command {
         if (path == null) {
             System.err.println("Compact a file store. Usage: compact [path] <options>");
             parser.printHelpOn(System.err);
-            System.exit(-1);
+            return -1;
         }
 
         int code = 0;
@@ -141,7 +141,7 @@ class CompactCommand implements Command {
                     .run();
         }
 
-        System.exit(code);
+        return code;
     }
 
 }

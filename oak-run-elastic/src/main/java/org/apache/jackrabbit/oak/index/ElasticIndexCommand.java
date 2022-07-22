@@ -74,7 +74,7 @@ public class ElasticIndexCommand implements Command {
 
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         opts = new Options();
@@ -123,8 +123,9 @@ public class ElasticIndexCommand implements Command {
 
         if (!success) {
             //Needed for changes after OAK-6409
-            System.exit(1);
+            return 1;
         }
+        return 0;
     }
 
     private void execute(NodeStoreFixture fixture, ElasticIndexOptions indexOpts, Closer closer)

@@ -19,6 +19,6 @@ package org.apache.jackrabbit.oak.run.commons;
 
 public interface Command {
 
-    void execute(String... args) throws Exception;
+    int execute(String... args) throws Exception;
 
 }

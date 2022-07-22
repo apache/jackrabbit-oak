@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.segment.tool.History;
 class HistoryCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<File> directoryArg = parser.nonOptions(
                 "Path to segment store (required)").ofType(File.class);
@@ -49,7 +49,7 @@ class HistoryCommand implements Command {
         if (directory == null) {
             System.err.println("Trace the history of a path. Usage: history [File] <options>");
             parser.printHelpOn(System.err);
-            System.exit(-1);
+            return -1;
         }
 
         String path = pathArg.value(options);
@@ -64,7 +64,7 @@ class HistoryCommand implements Command {
             .withDepth(depth)
             .build()
             .run();
-        System.exit(returnCode);
+        return returnCode;
     }
 
 }

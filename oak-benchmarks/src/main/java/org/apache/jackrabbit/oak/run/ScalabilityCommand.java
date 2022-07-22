@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 class ScalabilityCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
-        ScalabilityRunner.main(args);
+    public int execute(String... args) throws Exception {
+        return ScalabilityRunner.main(args);
     }
 
 }

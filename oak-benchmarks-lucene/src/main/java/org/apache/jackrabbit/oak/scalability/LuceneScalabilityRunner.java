@@ -48,7 +48,7 @@ import java.util.Arrays;
 
 public class LuceneScalabilityRunner extends ScalabilityRunner {
 
-    public static void main(String[] args) throws Exception {
+    public static int main(String[] args) throws Exception {
         initOptionSet(args);
         ScalabilityRunner.addToScalabilitySuiteList(
                 Arrays.asList(
@@ -82,7 +82,7 @@ public class LuceneScalabilityRunner extends ScalabilityRunner {
                                 .addBenchmarks(new AggregateNodeSearcher())
                 )
         );
-
+        return 0;
     }
 
 }

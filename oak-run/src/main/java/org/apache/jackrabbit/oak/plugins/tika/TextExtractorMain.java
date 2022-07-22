@@ -46,7 +46,7 @@ public class TextExtractorMain {
     private TextExtractorMain() {
     }
 
-    public static void main(String[] args) throws Exception {
+    public static int main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
 
         Options opts = new Options();
@@ -175,5 +175,6 @@ public class TextExtractorMain {
                 writer.close();
             }
         }
+        return 0;
     }
 }

@@ -29,7 +29,7 @@ import joptsimple.OptionSpec;
 public class RDBDDLDumpCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Void> helpOption = parser.accepts("help", "show help").forHelp();
         OptionSpec<String> dbOption = parser.accepts("db", "Database type: one of " + RDBHelper.getSupportedDatabases())
@@ -51,14 +51,14 @@ public class RDBDDLDumpCommand implements Command {
                 Integer upgrade = upgradeSchemaOption.value(options);
                 RDBHelper.dump(db, initial, upgrade);
             }
-            System.exit(0);
+            return 0;
         } catch (joptsimple.OptionException ex) {
             System.err.println(ex.getLocalizedMessage());
             System.err.println(Arrays.toString(args));
             System.err.println();
             System.err.println("Options:");
             parser.printHelpOn(System.err);
-            System.exit(2);
+            return 2;
         }
     }
 }

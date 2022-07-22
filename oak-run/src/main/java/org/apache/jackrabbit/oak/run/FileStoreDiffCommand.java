@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.segment.tool.Revisions;
 class FileStoreDiffCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSpec<File> storeO = parser.nonOptions("Path to segment store (required)").ofType(File.class);
@@ -52,7 +52,7 @@ class FileStoreDiffCommand implements Command {
 
         if (store == null) {
             parser.printHelpOn(System.out);
-            System.exit(1);
+            return 1;
         }
 
         File out = outO.value(options);
@@ -81,7 +81,7 @@ class FileStoreDiffCommand implements Command {
                 .build()
                 .run();
         }
-        System.exit(statusCode);
+        return statusCode;
     }
 
     private File defaultOutFile() {

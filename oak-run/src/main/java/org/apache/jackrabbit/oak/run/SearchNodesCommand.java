@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.segment.tool.SearchNodes.Output;
 class SearchNodesCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser options = new OptionParser();
         OptionSpec<String> property = options.acceptsAll(asList("p", "property"), "Matches a property name")
             .withRequiredArg()
@@ -57,17 +57,17 @@ class SearchNodesCommand implements Command {
 
         if (parsed.has(help)) {
             options.printHelpOn(System.out);
-            System.exit(0);
+            return 0;
         }
 
         if (parsed.valuesOf(dir).size() == 0) {
             System.err.println("Segment Store path not specified");
-            System.exit(1);
+            return 1;
         }
 
         if (parsed.valuesOf(dir).size() > 1) {
             System.err.println("Too many Segment Store paths specified");
-            System.exit(1);
+            return 1;
         }
 
         Builder builder = SearchNodes.builder()
@@ -87,7 +87,7 @@ class SearchNodesCommand implements Command {
                     break;
                 default:
                     System.err.printf("Unrecognized output: %s\n", v);
-                    System.exit(1);
+                    return 1;
             }
         }
 
@@ -104,13 +104,13 @@ class SearchNodesCommand implements Command {
 
             if (parts.length != 2) {
                 System.err.println("Invalid property value specified: " + v);
-                System.exit(1);
+                return 1;
             }
 
             builder.withValue(parts[0], parts[1]);
         }
 
-        System.exit(builder.build().run());
+        return builder.build().run();
     }
 
 }

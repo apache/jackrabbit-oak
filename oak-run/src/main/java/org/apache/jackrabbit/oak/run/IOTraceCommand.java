@@ -60,7 +60,7 @@ class IOTraceCommand implements Command {
     public static final String NAME = "iotrace";
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser optionParser = new OptionParser();
         ArgumentAcceptingOptionSpec<Traces> traceOption = optionParser
                 .accepts("trace", "type of the traversal. Either of " + Arrays.toString(Traces.values()))
@@ -151,8 +151,9 @@ class IOTraceCommand implements Command {
             trace.collectIOTrace(segmentStore, mmap, segmentCache, output);
         } catch (OptionException e) {
             printUsage(optionParser, System.err, e.getMessage());
-            System.exit(1);
+            return 1;
         }
+        return 0;
     }
 
     private static void printUsage(

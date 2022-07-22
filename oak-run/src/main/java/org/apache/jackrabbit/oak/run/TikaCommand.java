@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 class TikaCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
-        TextExtractorMain.main(args);
+    public int execute(String... args) throws Exception {
+        return TextExtractorMain.main(args);
     }
 
 }

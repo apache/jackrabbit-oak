@@ -83,7 +83,7 @@ public class IndexCommand implements Command {
     }
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         opts = new Options();
@@ -145,8 +145,9 @@ public class IndexCommand implements Command {
         }
 
         if (!success) {
-            System.exit(1);
+            return 1;
         }
+        return 0;
     }
 
     public static void setDisableExitOnError(boolean disableExitOnError) {

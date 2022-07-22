@@ -44,7 +44,7 @@ class RecoveryCommand implements Command {
     MapFactory oldf = MapFactory.getInstance();
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         Closer closer = Utils.createCloserWithShutdownHook();
         MapDBMapFactory mdbmf = new MapDBMapFactory();
         closer.register(mdbmf);
@@ -96,7 +96,7 @@ class RecoveryCommand implements Command {
             if (agent == null || seeker == null) {
                 System.err.println("Recovery only available for MongoDocumentStore and RDBDocumentStore (this: "
                         + ds.getClass().getName() + ")");
-                System.exit(1);
+                return 1;
             }
 
             if (builder.getClusterId() == 0) {
@@ -114,7 +114,7 @@ class RecoveryCommand implements Command {
                 catch (Throwable e) {
                     e.printStackTrace(System.err);
                 }
-                System.exit(1);
+                return 1;
             }
 
             Iterable<NodeDocument> docs = seeker.getCandidates(0);
@@ -129,5 +129,6 @@ class RecoveryCommand implements Command {
             closer.close();
             MapFactory.setInstance(oldf);
         }
+        return 0;
     }
 }

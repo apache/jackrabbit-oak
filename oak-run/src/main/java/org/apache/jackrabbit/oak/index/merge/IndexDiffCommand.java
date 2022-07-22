@@ -29,7 +29,7 @@ import joptsimple.OptionSpec;
 public class IndexDiffCommand implements Command {
 
     @Override
-    public void execute(String... args) throws Exception {
+    public int execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> customDirOption = parser
                 .accepts("custom", "Path to index definition files (.json). " +
@@ -79,7 +79,7 @@ public class IndexDiffCommand implements Command {
                 compareDirectory.isEmpty() &&
                 extractFile.isEmpty())) {
             parser.printHelpOn(System.out);
-            return;
+            return 1;
         }
         if (!customDir.isEmpty()) {
             System.out.println("Listing differences between out-of-the-box and customized indexes " +
@@ -90,7 +90,7 @@ public class IndexDiffCommand implements Command {
             String mergeAdd = mergeAddFileOption.value(options);
             if (mergeAdd.isEmpty()) {
                 parser.printHelpOn(System.out);
-                return;
+                return 1;
             }
             if (targetDirectory.isEmpty()) {
                 System.out.println("Merging indexes " +
@@ -118,7 +118,7 @@ public class IndexDiffCommand implements Command {
             } else {
                 if (index1.isEmpty() || index2.isEmpty()) {
                     parser.printHelpOn(System.out);
-                    return;
+                    return 1;
                 }
                 System.out.println("Comparing indexes " + index1 + " and " + index2 +
                         " for directory \"" +
@@ -138,6 +138,7 @@ public class IndexDiffCommand implements Command {
                 IndexDiff.extractAll(extractFile, targetDirectory);
             }
         }
+        return 0;
     }
 
 }
