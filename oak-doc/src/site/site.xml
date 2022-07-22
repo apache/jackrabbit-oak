@@ -23,7 +23,7 @@ under the License.
          xsi:schemaLocation="http://maven.apache.org/DECORATION/1.8.0 http://maven.apache.org/xsd/decoration-1.8.0.xsd"
          name="Jackrabbit Oak">
   <publishDate position="right"/>
-  <version position="right"/>
+  <version position="none"/>
   <body>
     <breadcrumbs>
       <item name="Jackrabbit" href="https://jackrabbit.apache.org/"/>
