@@ -63,7 +63,7 @@ public final class Conversions {
         public abstract String toString();
 
         /**
-         * Convert to binary. This default implementation returns an new instance
+         * Convert to binary. This default implementation returns a new instance
          * of {@link StringBasedBlob}.
          * @return  binary representation of the converted value
          */

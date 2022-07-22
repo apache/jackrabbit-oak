@@ -60,12 +60,12 @@ public final class FieldNames {
     private static final String SIMILARITY_PREFIX = "sim:";
 
     /**
-     * Prefix for all field names that contains the similarity search binary values.
+     * Prefix for all field names that contain the similarity search binary values.
      */
     private static final String SIMILARITY_BINARY_PREFIX = "simbin:";
 
     /**
-     * Prefix for all field names that contains the similarity search binary values.
+     * Prefix for all field names that contain the similarity search binary values.
      */
     public static final String SIMILARITY_TAGS = "simtags";
 

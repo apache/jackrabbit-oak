@@ -335,7 +335,7 @@ indexNodeName
 
 ##### <a name="cost-overrides"></a> Cost Overrides
 
-By default, the cost of using this index is calculated follows: For each query,
+By default, the cost of using this index is calculated as follows: For each query,
 the overhead is one operation. For each entry in the index, the cost is one.
 The following only applies to `compatVersion` 2 only:
 To use a lower or higher cost, you can set the following optional properties
@@ -356,19 +356,19 @@ Using 0.5 means the cost is half, which means the index would be used used more 
 example while indexing any node the indexer would lookup for applicable
 indexRule for that node based on its _primaryType_. If a direct match is
 found then that rule would be used otherwise it would look for rule for any
-of the parent types. The rules are looked up in the order of there entry
+of the parent types. The rules are looked up in the order of their entry
 under `indexRules` node (indexRule node itself is of type `nt:unstructured`
-which has `orderable` child nodes)
+which has `orderable` child nodes).
 
 If `inherited` is set to false on any rule then that rule would only be
-applicable if exact match is found
+applicable if exact match is found.
 
 ##### <a name="property-definitions"></a>Property Definitions
 
-Each index rule consist of one ore more property definition defined under
+Each index rule consist of one or more property definitions defined under
 `properties`. Order of property definition node is important as some properties
 are based on regular expressions. Below is the canonical property definition
-structure
+structure.
 
     propNode (nt:unstructured)
       - name (string)
@@ -387,7 +387,7 @@ structure
       - weight (long) = 5
       - function (string)
 
-Following are the details about the above mentioned config options which can be
+Following are the details about the above-mentioned config options which can be
 defined at the property definition level
 
 name
@@ -415,7 +415,7 @@ isRegexp
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
   done for the index value against the given property name. See
-  [Boost and Search Relevancy](#boost) for more details
+  [Boost and Search Relevancy](#boost) for more details.
 
 index
 : Determines if this property should be indexed. Mostly useful for fulltext

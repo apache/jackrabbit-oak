@@ -78,7 +78,7 @@ By default, the following indexes are available:
 
 * A property index for each indexed property.
 * A full-text index which is based on Apache Lucene / Solr.
-* A node type index (which is based on an property index for the properties
+* A node type index (which is based on a property index for the properties
   jcr:primaryType and jcr:mixins).
 * A traversal index that iterates over a subtree.
 
