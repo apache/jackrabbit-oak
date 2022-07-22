@@ -81,22 +81,18 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
     }
 
-    @Ignore
-    //TODO ES failing
     @Test
     public void sql1() throws Exception {
         test("sql1.txt");
     }
 
-    @Ignore
-    //TODO ES Failing
+    // TODO: Test failing on Lucene and ES
+    @Ignore("Failing on ES and Lucene")
     @Test
     public void sql2() throws Exception {
         test("sql2.txt");
     }
 
-    //TODO ES test failing
-    @Ignore
     @Test
     public void sql2FullText() throws Exception {
         test("sql2-fulltext.txt");
@@ -188,10 +184,10 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         });
     }
 
-    //TODO ES Failing
-    @Ignore
+    // TODO: Test failing on Lucene and ES
+    @Ignore("Failing on Lucene and ES")
     @Test
-    public void ischildnodeTest() throws Exception {
+    public void isChildNodeTest() throws Exception {
         Tree tree = root.getTree("/");
         Tree parents = tree.addChild("parents");
         parents.addChild("p0").setProperty("id", "0");
@@ -502,9 +498,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "//*[jcr:contains(@propa, 'Hello *ship')] ";
-        assertEventually(() -> {
-            assertQuery(query, XPATH, Arrays.asList("/test/e"));
-        });
+        assertEventually(() -> assertQuery(query, XPATH, Arrays.asList("/test/e")));
     }
 
 
@@ -522,9 +516,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "//*[jcr:contains(@propa, '*ship to can*')] ";
-        assertEventually(() -> {
-            assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c"));
-        });
+        assertEventually(() -> assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b", "/test/c")));
     }
 
     @Test
@@ -585,9 +577,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query2 = "/jcr:root/test//*[propa!='bar']";
 
-        assertEventually(() -> {
-            assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2", "/test/test3"));
-        });
+        assertEventually(() -> assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2", "/test/test3")));
     }
 
     @Test
@@ -606,9 +596,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query2 = "select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
 
-        assertEventually(() -> {
-            assertQuery(query2, SQL2, Arrays.asList("/test/test1", "/test/test2", "/test/test3"));
-        });
+        assertEventually(() -> assertQuery(query2, SQL2, Arrays.asList("/test/test1", "/test/test2", "/test/test3")));
     }
 
     @Test
@@ -628,9 +616,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query2 = "//*[propa!='bar']";
 
-        assertEventually(() -> {
-            assertQuery(query2, XPATH, Arrays.asList("/test1", "/test2", "/test3"));
-        });
+        assertEventually(() -> assertQuery(query2, XPATH, Arrays.asList("/test1", "/test2", "/test3")));
     }
 
     @Test
@@ -651,9 +637,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         String query2 = "/jcr:root/test//*[propa!='bar' and propb='world']";
         // Expected - nodes with both properties defined and propb with value 'world' and propa with value not equal to bar should be returned
         // /test/test6 should NOT be returned because for it propa = null
-        assertEventually(() -> {
-            assertQuery(query2, XPATH, Arrays.asList("/test/test1"));
-        });
+        assertEventually(() -> assertQuery(query2, XPATH, Arrays.asList("/test/test1")));
     }
 
 
@@ -673,9 +657,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query2 = "/jcr:root/test//*[propa='bar']";
 
-        assertEventually(() -> {
-            assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
-        });
+        assertEventually(() -> assertQuery(query2, XPATH, Arrays.asList("/test/test4")));
     }
 
     @Test
@@ -692,16 +674,12 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         // It should return both /test/test1 -> where content for propDate is of incorrect data type
         // and /test/test2 -> where content for propDate is of correct data type.
         String query = "/jcr:root/test//*[propa='bar']";
-        assertEventually(() -> {
-            assertQuery(query, XPATH, Arrays.asList("/test/test2", "/test/test1"));
-        });
+        assertEventually(() -> assertQuery(query, XPATH, Arrays.asList("/test/test2", "/test/test1")));
 
         // Check inequality query on propDate - this should not return /test/test1 -> since that node should not have been indexed for propDate
         // due to incorrect data type in the content for this property.
         String query2 = "/jcr:root/test//*[propDate!='2021-01-22T01:02:03.000Z']";
-        assertEventually(() -> {
-            assertQuery(query2, XPATH, Arrays.asList("/test/test3"));
-        });
+        assertEventually(() -> assertQuery(query2, XPATH, Arrays.asList("/test/test3")));
     }
 
     @Test
@@ -716,19 +694,13 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         // Below queries will ensure propa is searchable with different data types as content and behaviour is similar for lucene and elastic.
         String query = "/jcr:root/test//*[propa='bar']";
-        assertEventually(() -> {
-            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
-        });
+        assertEventually(() -> assertQuery(query, XPATH, Arrays.asList("/test/test1")));
 
         String query2 = "/jcr:root/test//*[propa=true]";
-        assertEventually(() -> {
-            assertQuery(query2, XPATH, Arrays.asList("/test/test4"));
-        });
+        assertEventually(() -> assertQuery(query2, XPATH, Arrays.asList("/test/test4")));
 
         String query3 = "/jcr:root/test//*[propa=10]";
-        assertEventually(() -> {
-            assertQuery(query3, XPATH, Arrays.asList("/test/test2", "/test/test3"));
-        });
+        assertEventually(() -> assertQuery(query3, XPATH, Arrays.asList("/test/test2", "/test/test3")));
     }
 
     @Test
@@ -741,15 +713,11 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         // Test query returns correct node on querying on dateProp
         String query = "/jcr:root/test//*[propDate='2021-01-22T01:02:03.000Z']";
-        assertEventually(() -> {
-            assertQuery(query, XPATH, Arrays.asList("/test/test1"));
-        });
+        assertEventually(() -> assertQuery(query, XPATH, Arrays.asList("/test/test1")));
 
         // Test query returns correct node on querying on String type property
         String query2 = "/jcr:root/test//*[propa='foo']";
-        assertEventually(() -> {
-            assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2"));
-        });
+        assertEventually(() -> assertQuery(query2, XPATH, Arrays.asList("/test/test1", "/test/test2")));
     }
 
     @Test
@@ -765,9 +733,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         // Test query returns correct node on querying on dateProp
         String query = "/jcr:root/test//*[propa='foo'] order by @propDate descending";
-        assertEventually(() -> {
-            assertQuery(query, XPATH, Arrays.asList("/test/test1", "/test/test3", "/test/test2"), true, true);
-        });
+        assertEventually(() -> assertQuery(query, XPATH, Arrays.asList("/test/test1", "/test/test3", "/test/test2"), true, true));
     }
 
     private static Tree child(Tree t, String n, String type) {
