@@ -87,7 +87,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     // TODO: Test failing on Lucene and ES
-    @Ignore("Failing on ES and Lucene")
+    @Ignore("OAK-9858")
     @Test
     public void sql2() throws Exception {
         test("sql2.txt");
@@ -185,7 +185,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     // TODO: Test failing on Lucene and ES
-    @Ignore("Failing on Lucene and ES")
+    @Ignore("OAK-9859")
     @Test
     public void isChildNodeTest() throws Exception {
         Tree tree = root.getTree("/");
