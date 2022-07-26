@@ -122,10 +122,10 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             try {
                 exceptionMsg = errorQueue.take().getMessage();
             } catch (InterruptedException interruptedException) {
-               LOG.debug("Error while trying to read ES exception from error queue");
+                LOG.debug("Error while trying to read ES exception from error queue");
             }
-            LOG.error("Error while fetching Results from Elastic for [{}]. Exception from Elastic : {}, Caller Stack Trace :",
-                    indexPlan.getFilter().toString(), exceptionMsg, e);
+            LOG.error("Error while fetching Results from Elastic for [{}]. Exception from Elastic : {}, Caller Stack Trace :"
+                    , indexPlan.getFilter().toString(), exceptionMsg, e);
         }
 
 
