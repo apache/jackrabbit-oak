@@ -71,11 +71,11 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     private final Predicate<String> rowInclusionPredicate;
     private final ElasticMetricHandler metricHandler;
     private final LMSEstimator estimator;
-
     private final ElasticQueryScanner elasticQueryScanner;
     private final ElasticRequestHandler elasticRequestHandler;
     private final ElasticResponseHandler elasticResponseHandler;
     private final ElasticFacetProvider elasticFacetProvider;
+    private final BlockingQueue<Throwable> errorQueue = new LinkedBlockingQueue<>();
 
     private FulltextResultRow nextRow;
 
@@ -92,7 +92,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         this.rowInclusionPredicate = rowInclusionPredicate;
         this.estimator = estimator;
         this.metricHandler = metricHandler;
-
         this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(elasticResponseHandler);
         this.elasticQueryScanner = initScanner();
     }
@@ -111,6 +110,25 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 throw new IllegalStateException("Error reading next result from Elastic", e);
             }
         }
+
+        // Check if there are any exception traces filled from onFailure Callback in the errorQueue
+        // Any exception (such as ParseException) during the prefetch (init scanner) via the async call to ES would be available here
+        // when the cursor is actually being traversed.
+        // This is being done so that we can log the caller stack trace in case of any exception from ES and not just the trace of the async query thread.
+        if (!errorQueue.isEmpty()) {
+            Exception e = new Exception();
+            e.setStackTrace(Thread.currentThread().getStackTrace());
+            String exceptionMsg = null;
+            try {
+                exceptionMsg = errorQueue.take().getMessage();
+            } catch (InterruptedException interruptedException) {
+               LOG.debug("Error while trying to read ES exception from error queue");
+            }
+            LOG.error("Error while fetching Results from Elastic for [{}]. Exception from Elastic : {}, Caller Stack Trace :",
+                    indexPlan.getFilter().toString(), exceptionMsg, e);
+        }
+
+
         return !POISON_PILL.path.equals(nextRow.path);
     }
 
@@ -256,6 +274,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                             onFailure(throwable);
                         } else onSuccess(searchResponse);
                     }));
+
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -323,7 +342,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         public void onFailure(Throwable t) {
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
                     System.currentTimeMillis() - searchStartTime);
-            LOG.error("Error retrieving data from Elastic: closing scanner, notifying listeners", t);
+            try {
+                errorQueue.put(t);
+            } catch (InterruptedException e) {
+                LOG.debug("Error while adding ES exception to error queue. Caller stack - trace wouldn't be logged.");
+                // Log just the ES exception with the async trace and the query only in this case.
+                LOG.error("Error retrieving data from Elastic for query [{}] : closing scanner, notifying listeners", indexPlan.getFilter().toString(), t);
+            }
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }
@@ -348,6 +373,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 }
 
                 searchStartTime = System.currentTimeMillis();
+
                 indexNode.getConnection().getAsyncClient()
                         .search(searchReq, ObjectNode.class)
                         .whenComplete(((searchResponse, throwable) -> {
