@@ -117,7 +117,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         // when the cursor is actually being traversed.
         // This is being done so that we can log the caller stack trace in case of any exception from ES and not just the trace of the async query thread.
 
-        Throwable error = errorRef.get();
+        Throwable error = errorRef.getAndSet(null);
         if (error != null) {
             Exception e = new Exception();
             e.setStackTrace(Thread.currentThread().getStackTrace());
@@ -338,7 +338,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         public void onFailure(Throwable t) {
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
                     System.currentTimeMillis() - searchStartTime);
-            errorRef.set(t);
+            // Check in case errorRef is already set - this seems unlikely since we close the scanner once we hit failure.
+            // But still, in case this do happen, we will log a warn.
+            Throwable error = errorRef.getAndSet(t);
+            if (error != null) {
+                LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());
+            }
+
             LOG.error("Error retrieving data from Elastic for query [{}] : closing scanner, notifying listeners", indexPlan.getFilter().toString(), t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
