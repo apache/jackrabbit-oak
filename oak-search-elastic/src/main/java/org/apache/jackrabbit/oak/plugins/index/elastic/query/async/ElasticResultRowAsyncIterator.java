@@ -120,7 +120,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         Throwable error = errorRef.getAndSet(null);
         if (error != null) {
             error.fillInStackTrace();
-            LOG.error("Error while fetching Results from Elastic for [{}]", indexPlan.getFilter().toString(), error);
+            LOG.error("Error while fetching results from Elastic for [{}]", indexPlan.getFilter(), error);
         }
         return !POISON_PILL.path.equals(nextRow.path);
     }
