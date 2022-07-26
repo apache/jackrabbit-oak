@@ -274,7 +274,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                             onFailure(throwable);
                         } else onSuccess(searchResponse);
                     }));
-
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -373,7 +372,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 }
 
                 searchStartTime = System.currentTimeMillis();
-
                 indexNode.getConnection().getAsyncClient()
                         .search(searchReq, ObjectNode.class)
                         .whenComplete(((searchResponse, throwable) -> {
