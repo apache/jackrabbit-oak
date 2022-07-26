@@ -19,6 +19,10 @@ package org.apache.jackrabbit.oak.run;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Utils;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
+import java.util.Arrays;
 import java.util.Locale;
 
 import static java.util.Arrays.copyOfRange;
@@ -29,7 +33,25 @@ public final class Main {
         // Prevent instantiation.
     }
 
+    public static boolean wasInterrupted = true;
+
+    public static final String PROP_PRINT_STACK = "printStackTraceOnSignal";
+
+    public static Thread interruptionHandler = new Thread( () -> {
+        if (wasInterrupted) {
+            System.err.println("oak-run was interrupted by a signal and stops");
+            if (System.getProperty(PROP_PRINT_STACK) != null) {
+                System.err.println("Dumping threads as requested");
+                ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+                for(ThreadInfo threadInfo : threadMXBean.dumpAllThreads(true, true)) {
+                    System.err.println(org.apache.jackrabbit.oak.run.Utils.formatThreadInfo(threadInfo));
+                }
+            }
+         }
+    });
+
     public static void main(String[] args) throws Exception {
+        Runtime.getRuntime().addShutdownHook(interruptionHandler);
         Utils.printProductInfo(
             args,
             Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
@@ -46,8 +68,11 @@ public final class Main {
             args = copyOfRange(args, 1, args.length);
         }
 
-        int statuscode = command.execute(args);
+        int exitcode = command.execute(args);
+        wasInterrupted = false;
+        // when this point is reached, the interruptionHandler is no longer required; there is a slight
+        // chance that the signal is arriving now, but we just ignore this case.
         
-        System.exit(statuscode);
+        System.exit(exitcode);
     }
 }

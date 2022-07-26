@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.management.ThreadInfo;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -369,6 +370,17 @@ class Utils {
             }
         });
         return closer;
+    }
+
+    public static String formatThreadInfo(ThreadInfo threadInfo) {
+        StringBuilder threadDumpDescription = new StringBuilder();
+        threadDumpDescription.append(String.format("\"%s\" java.lang.Thread.State: %s",
+                threadInfo.getThreadName(), threadInfo.getThreadState()));
+        for (StackTraceElement stackTraceElement : threadInfo.getStackTrace()) {
+            threadDumpDescription.append(System.lineSeparator()).append("\tat ").append(stackTraceElement);
+        }
+        threadDumpDescription.append(System.lineSeparator()).append(System.lineSeparator());
+        return threadDumpDescription.toString();
     }
 
     private static Properties loadAndTransformProps(String cfgPath) throws IOException {

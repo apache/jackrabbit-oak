@@ -28,7 +28,7 @@ class HelpCommand implements Command {
     public int execute(String... args) throws Exception {
         System.err.print("Available run modes: ");
         System.err.println(Joiner.on(", ").join(MODES.getModes()));
-        return 1;
+        return 0;
     }
 
 }
