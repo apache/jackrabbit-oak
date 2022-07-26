@@ -100,10 +100,18 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
             "oak.documentMK.manyChildren", 50);
 
+    /**
+     * The threshold value after which the document store should start (if enabled) throttling.
+     */
+    // For mongo based document store this value is threshold for the oplog replication window.
     public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger(
             "oak.documentMK.throttlingThreshold", 2);
 
-    public static final long DEFAULT_THROTTLING_TIME = Long.getLong(
+    /**
+     * The default throttling time (in millis) when throttling is enabled. This is the time for
+     * which we block any data modification operation when system has been throttled.
+     */
+    public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong(
             "oak.documentMK.throttlingTime", 20);
 
     /**
@@ -164,7 +172,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             LoggerFactory.getLogger(VersionGarbageCollector.class));
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
-    private boolean throttleDocumentStore;
+    private boolean throttlingEnabled;
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -278,13 +286,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return leaseCheck;
     }
 
-    public T setThrottleDocumentStore(boolean b) {
-        this.throttleDocumentStore = b;
+    public T setThrottlingEnabled(boolean b) {
+        this.throttlingEnabled = b;
         return thisBuilder();
     }
 
-    public boolean getThrottleDocumentStore() {
-        return this.throttleDocumentStore;
+    public boolean getThrottlingEnabled() {
+        return this.throttlingEnabled;
     }
 
     public T setReadOnlyMode() {

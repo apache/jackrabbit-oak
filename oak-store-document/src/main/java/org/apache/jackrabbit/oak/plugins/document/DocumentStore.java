@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.document.ThrottlingMetrics.DEFAULT_THROTTLING_METRIC;
+import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 
 /**
  * The interface for the backend storage for documents.
@@ -478,10 +478,12 @@ public interface DocumentStore {
     }
 
     /**
-     * Return the @{@link ThrottlingMetrics} for the underlying document store
-     * @return throttling metric for document store
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
+     *
+     * @return throttler for document store
      */
-    default ThrottlingMetrics throttlingMetrics() {
-        return DEFAULT_THROTTLING_METRIC;
+    default Throttler throttler() {
+        return NO_THROTTLING;
     }
 }

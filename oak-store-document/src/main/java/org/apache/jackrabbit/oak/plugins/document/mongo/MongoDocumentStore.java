@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -63,7 +64,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
-import org.apache.jackrabbit.oak.plugins.document.ThrottlingMetrics;
+import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
@@ -92,7 +93,6 @@ import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.ClientSession;
-import com.mongodb.client.MongoIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -114,14 +114,16 @@ import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Sets.difference;
 import static java.lang.Integer.MAX_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_THROTTLING_THRESHOLD;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_THROTTLING_TIME;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_THROTTLING_TIME_MS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
+import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.exponentialThrottler;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
@@ -145,18 +147,11 @@ public class MongoDocumentStore implements DocumentStore {
      * nodeNameLimit for node name based on Mongo Version
      */
     private final int nodeNameLimit;
-    private ThrottlingMetrics throttlingMetrics = ThrottlingMetrics.DEFAULT_THROTTLING_METRIC;
 
     /**
-     * local database for mongo cluster
+     * throttler for mongo document store
      */
-    private MongoDatabase localDb;
-
-    /**
-     * oplog window based on current oplog filling rate
-     */
-    private AtomicDouble oplogWindow;
-    private final boolean throttleDocumentStore;
+    private Throttler throttler = NO_THROTTLING;
 
     enum DocumentReadPreference {
         PRIMARY,
@@ -282,15 +277,20 @@ public class MongoDocumentStore implements DocumentStore {
         return nodeNameLimit;
     }
 
+    /**
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
+     *
+     * @return throttler for document store
+     */
     @Override
-    public ThrottlingMetrics throttlingMetrics() {
-        return throttlingMetrics;
+    public Throttler throttler() {
+        return throttler;
     }
 
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
-        this.throttleDocumentStore = builder.getThrottleDocumentStore();
         MongoStatus status = builder.getMongoStatus();
         if (status == null) {
             status = new MongoStatus(connection, db.getName());
@@ -323,25 +323,20 @@ public class MongoDocumentStore implements DocumentStore {
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
         // if throttling is enabled
-        if (throttleDocumentStore) {
-            this.localDb = connection.getDatabase("local");
-            final MongoIterable<String> collectionNames = localDb.listCollectionNames();
-            String ol = null;
-            for (String e: collectionNames) {
-                if (Objects.equals(e, OPLOG_RS)) {
-                    ol = OPLOG_RS;
-                    break;
-                }
-            }
+        boolean throttlingEnabled = builder.getThrottlingEnabled();
+        if (throttlingEnabled) {
+            MongoDatabase localDb = connection.getDatabase("local");
+            Optional<String> ol = Iterables.tryFind(localDb.listCollectionNames(), s -> Objects.equals(OPLOG_RS, s));
 
-            if (Objects.isNull(ol)) {
-                LOG.warn("Connected to MongoDB with replication not detected and hence oplog based throttling is not supported");
-            } else {
-                oplogWindow = new AtomicDouble(MAX_VALUE);
-                throttlingMetrics = MongoThrottlingMetrics.of(oplogWindow, DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME);
-                new MongoDocumentStoreThrottling(localDb, (MongoThrottlingMetrics) throttlingMetrics).updateMetrics();
+            if (ol.isPresent()) {
+                // oplog window based on current oplog filling rate
+                final AtomicDouble oplogWindow = new AtomicDouble(MAX_VALUE);
+                throttler = exponentialThrottler(DEFAULT_THROTTLING_THRESHOLD, oplogWindow, DEFAULT_THROTTLING_TIME_MS);
+                new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow).updateMetrics();
                 LOG.info("Started MongoDB throttling metrics with threshold {}, throttling time {}",
-                        DEFAULT_THROTTLING_TIME, DEFAULT_THROTTLING_TIME);
+                        DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME_MS);
+            } else {
+                LOG.warn("Connected to MongoDB with replication not detected and hence oplog based throttling is not supported");
             }
         }
 
@@ -353,7 +348,7 @@ public class MongoDocumentStore implements DocumentStore {
                 maxDeltaForModTimeIdxSecs, disableIndexHint,
                 builder.getLeaseSocketTimeout(),
                 status.isClientSessionSupported(), useClientSession,
-                db.getWriteConcern(), status.getServerDetails(), throttleDocumentStore);
+                db.getWriteConcern(), status.getServerDetails(), throttlingEnabled);
     }
 
     @NotNull

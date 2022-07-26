@@ -19,10 +19,11 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.math.DoubleMath;
 import com.google.common.util.concurrent.AtomicDouble;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreThrottling;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
@@ -32,29 +33,37 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-public class MongoDocumentStoreThrottling implements DocumentStoreThrottling {
+/**
+ * Mongo Document Store throttling metric updater.
+ *
+ * This class fetches and updates the mongo oplog window
+ */
+public class MongoDocumentStoreThrottlingMetricsUpdater {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreThrottling.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreThrottlingMetricsUpdater.class);
     static final String TS_TIME = "ts";
     private static final String NATURAL = "$natural";
     private static final String MAX_SIZE = "maxSize";
     private static final String OPLOG_RS = "oplog.rs";
     public static final String SIZE = "size";
-    private final ScheduledExecutorService throttlingExecutor;
+    private final ScheduledExecutorService throttlingMetricsExecutor;
     private final AtomicDouble oplogWindow;
     private final MongoDatabase localDb;
 
-    public MongoDocumentStoreThrottling(final @NotNull MongoDatabase localDb, final @NotNull MongoThrottlingMetrics mongoThrottlingMetrics) {
-        this.throttlingExecutor = Executors.newSingleThreadScheduledExecutor();
-        this.oplogWindow = mongoThrottlingMetrics.oplogWindow;
+    public MongoDocumentStoreThrottlingMetricsUpdater(final @NotNull MongoDatabase localDb, final @NotNull AtomicDouble oplogWindow) {
+        // exiting scheduled executor, will exit when we call to shut down jvm
+        this.throttlingMetricsExecutor = MoreExecutors.getExitingScheduledExecutorService(
+                (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1), 40, SECONDS);
+        this.oplogWindow = oplogWindow;
         this.localDb = localDb;
     }
 
     public void updateMetrics() {
-        throttlingExecutor.scheduleAtFixedRate(() -> {
+        throttlingMetricsExecutor.scheduleAtFixedRate(() -> {
             Document document = localDb.runCommand(new Document("collStats", OPLOG_RS));
             if (!document.containsKey(MAX_SIZE) || !document.containsKey(SIZE)) {
                 LOG.warn("Could not get stats for local.{}  collection. collstats returned: {}.", OPLOG_RS, document);
@@ -82,14 +91,18 @@ public class MongoDocumentStoreThrottling implements DocumentStoreThrottling {
 
     // helper methods
     @VisibleForTesting
-    double updateOplogWindow(final double maxSize, final double usedSize, final @NotNull Document first,
+    static double updateOplogWindow(final double maxSize, final double usedSize, final @NotNull Document first,
                                    final @NotNull Document last) {
         final BsonTimestamp startTime = first.get(TS_TIME, BsonTimestamp.class);
         final BsonTimestamp lastTime = last.get(TS_TIME, BsonTimestamp.class);
+
+        if (Objects.equals(startTime, lastTime) || DoubleMath.fuzzyEquals(usedSize, 0, 0.00001)) {
+            return Integer.MAX_VALUE;
+        }
         long timeDiffSec = Math.abs(lastTime.getTime() - startTime.getTime());
         double timeDiffHr = Math.ceil(((double)timeDiffSec/(60*60)) * 100000)/100000;
-        double currentOplogHourRate = usedSize /timeDiffHr;
-        double timeLeft = maxSize /currentOplogHourRate;
+        double currentOplogHourRate = usedSize / timeDiffHr;
+        double timeLeft = maxSize / currentOplogHourRate;
         LOG.info("Replication info: Oplog Max Size {} Gb, Used Oplog Size {} Gb, First Oplog " +
                 "Entry {}, Last Oplog Entry {}, Oplog Entries Time Diff {} sec, Oplog-Gb/hour " +
                 "rate {}, time left {}", maxSize, usedSize, startTime.getTime(), lastTime.getTime(),

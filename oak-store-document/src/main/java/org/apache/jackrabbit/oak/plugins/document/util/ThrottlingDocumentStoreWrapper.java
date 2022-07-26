@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.math.DoubleMath;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.ThrottlingMetrics;
+import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -37,10 +35,7 @@ import static java.lang.Thread.sleep;
 
 /**
  * Wrapper of another DocumentStore that does a throttling check on any method
- * invocation (create or update) and throttled the system if under high load.
- * <p>
- *     TODO update issue
- * @see "https://issues.apache.org/jira/browse/OAK-2739 for more details"
+ * invocation (create, update or delete) and throttled the system if under high load.
  */
 public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
@@ -189,21 +184,22 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     }
 
     /**
-     * Return the @{@link ThrottlingMetrics} for the underlying document store
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
      *
-     * @return throttling metric for document store
+     * @return throttler for document store
      */
     @Override
-    public ThrottlingMetrics throttlingMetrics() {
-        return store.throttlingMetrics();
+    public Throttler throttler() {
+        return store.throttler();
     }
 
     // helper methods
 
     private void performThrottling() {
 
-        final ThrottlingMetrics metrics = throttlingMetrics();
-        long throttleTime = getThrottleTime(metrics);
+        final Throttler throttler = throttler();
+        long throttleTime = throttler.throttlingTime();
 
         if (throttleTime == 0) {
             return; // no throttling
@@ -216,26 +212,5 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
             // swallow the exception and log it
             LOG.error("Error while throttling", e);
         }
-    }
-
-     @VisibleForTesting
-     long getThrottleTime(final ThrottlingMetrics metrics) {
-
-        long throttleTime = metrics.throttlingTime();
-        final double threshold = metrics.threshold();
-        final double currValue = metrics.currValue();
-
-        if (DoubleMath.fuzzyCompare(currValue,threshold/8,  0.001) <= 0) {
-            throttleTime = throttleTime * 8;
-        } else if (DoubleMath.fuzzyCompare(currValue,threshold/4, 0.001) <= 0) {
-            throttleTime = throttleTime * 4;
-        } else if (DoubleMath.fuzzyCompare(currValue, threshold/2, 0.001) <= 0) {
-            throttleTime = throttleTime * 2;
-        } else if (DoubleMath.fuzzyCompare(currValue, threshold,0.001) <= 0) {
-            throttleTime = metrics.throttlingTime();
-        } else {
-            throttleTime = 0;
-        }
-        return throttleTime;
     }
 }
