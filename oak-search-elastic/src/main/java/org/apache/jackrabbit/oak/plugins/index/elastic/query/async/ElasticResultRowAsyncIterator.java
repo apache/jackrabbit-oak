@@ -49,6 +49,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -75,7 +76,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     private final ElasticRequestHandler elasticRequestHandler;
     private final ElasticResponseHandler elasticResponseHandler;
     private final ElasticFacetProvider elasticFacetProvider;
-    private final BlockingQueue<Throwable> errorQueue = new LinkedBlockingQueue<>();
+    private final AtomicReference<Throwable> errorRef = new AtomicReference();
 
     private FulltextResultRow nextRow;
 
@@ -111,24 +112,20 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             }
         }
 
-        // Check if there are any exception traces filled from onFailure Callback in the errorQueue
+        // Check if there are any Throwable filled from onFailure Callback in the errorReference
         // Any exception (such as ParseException) during the prefetch (init scanner) via the async call to ES would be available here
         // when the cursor is actually being traversed.
         // This is being done so that we can log the caller stack trace in case of any exception from ES and not just the trace of the async query thread.
-        if (!errorQueue.isEmpty()) {
+
+        Throwable error = errorRef.get();
+        if (error != null) {
             Exception e = new Exception();
             e.setStackTrace(Thread.currentThread().getStackTrace());
-            String exceptionMsg = null;
-            try {
-                exceptionMsg = errorQueue.take().getMessage();
-            } catch (InterruptedException interruptedException) {
-                LOG.debug("Error while trying to read ES exception from error queue");
-            }
+            String exceptionMsg = error.getMessage();
             LOG.error("Error while fetching Results from Elastic for [{}]. Exception from Elastic : {}, Caller Stack Trace :"
                     , indexPlan.getFilter().toString(), exceptionMsg, e);
+
         }
-
-
         return !POISON_PILL.path.equals(nextRow.path);
     }
 
@@ -341,13 +338,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         public void onFailure(Throwable t) {
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
                     System.currentTimeMillis() - searchStartTime);
-            try {
-                errorQueue.put(t);
-            } catch (InterruptedException e) {
-                LOG.debug("Error while adding ES exception to error queue. Caller stack - trace wouldn't be logged.");
-                // Log just the ES exception with the async trace and the query only in this case.
-                LOG.error("Error retrieving data from Elastic for query [{}] : closing scanner, notifying listeners", indexPlan.getFilter().toString(), t);
-            }
+            errorRef.set(t);
+            LOG.error("Error retrieving data from Elastic for query [{}] : closing scanner, notifying listeners", indexPlan.getFilter().toString(), t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }
