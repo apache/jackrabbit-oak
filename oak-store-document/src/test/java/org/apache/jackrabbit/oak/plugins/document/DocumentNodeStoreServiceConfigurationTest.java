@@ -82,7 +82,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentMK.Builder.DEFAULT_UPDATE_LIMIT, config.updateLimit());
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
         assertEquals("STRICT", config.leaseCheckMode());
-        assertEquals(DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE, config.throttleDocumentStore());
+        assertEquals(DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE, config.throttlingEnabled());
     }
 
     @Test
@@ -98,7 +98,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         boolean throttleDocStore = false;
         addConfigurationEntry(preset, "throttleDocumentStore", throttleDocStore);
         Configuration config = createConfiguration();
-        assertEquals(throttleDocStore, config.throttleDocumentStore());
+        assertEquals(throttleDocStore, config.throttlingEnabled());
     }
 
     @Test

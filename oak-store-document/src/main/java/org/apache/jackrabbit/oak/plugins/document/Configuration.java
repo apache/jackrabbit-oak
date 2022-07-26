@@ -274,6 +274,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
                     "enabled for document node store or not. The Default value is " +
                     DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE +
                     "Note that this value can be overridden via framework " +
-                    "property 'oak.documentstore.throttleDocumentStore'")
-    boolean throttleDocumentStore() default DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE;
+                    "property 'oak.documentstore.throttlingEnabled'")
+    boolean throttlingEnabled() default DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE;
 }

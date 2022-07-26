@@ -17,35 +17,22 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 /**
- * Interface to expose throttling metrics.
+ * Interface to implement throttling for document store.
  *
- * Concrete implementations of this interface are required to provide implementations
- * of this class expose their throttling metrics
+ * Concrete implementations for this interface are required provide implementation
+ * for throttling time based on their internal usage/statistics
  */
-public interface ThrottlingMetrics {
+public interface Throttler {
 
-    int threshold();
-
-    double currValue();
-
+    /**
+     * The time duration (in Millis) for which we need to throttle the system.
+     * @return the throttling time duration (in Millis)
+     */
     long throttlingTime();
 
+    /**
+     * Default implementation with no throttling
+     */
+    Throttler NO_THROTTLING = () -> 0;
 
-    ThrottlingMetrics DEFAULT_THROTTLING_METRIC = new ThrottlingMetrics() {
-
-        @Override
-        public int threshold() {
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public double currValue() {
-            return 0;
-        }
-
-        @Override
-        public long throttlingTime() {
-            return 0;
-        }
-    };
 }
