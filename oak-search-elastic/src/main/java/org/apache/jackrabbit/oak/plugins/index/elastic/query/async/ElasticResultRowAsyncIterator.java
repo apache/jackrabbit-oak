@@ -341,7 +341,8 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());
             }
 
-            LOG.error("Error retrieving data from Elastic for query [{}] : closing scanner, notifying listeners", indexPlan.getFilter().toString(), t);
+            LOG.error("Error retrieving data from Elastic for jcr query [{}] :: Corresponding ES query {} : closing scanner, notifying listeners"
+                    , indexPlan.getFilter(), ElasticIndexUtils.toString(query), t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }
