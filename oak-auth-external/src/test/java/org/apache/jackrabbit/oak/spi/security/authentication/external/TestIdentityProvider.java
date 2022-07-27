@@ -105,7 +105,9 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         if (ID_EXCEPTION.equals(ref.getId())) {
             throw new ExternalIdentityException(ID_EXCEPTION);
         }
-
+        if (ref.getProviderName() == null || !idpName.equals(ref.getProviderName())) {
+            return null;
+        }
         ExternalIdentity id = externalUsers.get(ref.getId().toLowerCase());
         if (id != null) {
             return id;
