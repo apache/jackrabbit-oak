@@ -35,7 +35,7 @@ public class AutomembershipService implements DynamicMembershipService {
     @NotNull
     public DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root, @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper) {
         if (scTracker.isEnabled()) {
-            return new AutoMembershipProvider(root, userManager, namePathMapper, scTracker.getAutoMembership(), scTracker.getAutoMembershipConfig());
+            return new AutoMembershipProvider(root, userManager, namePathMapper, scTracker);
         } else {
             return DynamicMembershipProvider.EMPTY;
         }

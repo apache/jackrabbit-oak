@@ -80,6 +80,12 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         this.namePathMapper = namePathMapper;
         this.autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping, autoMembershipConfigMap);
     }
+
+    AutoMembershipProvider(@NotNull Root root,
+                           @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper,
+                           @NotNull SyncConfigTracker scTracker) {
+        this(root, userManager, namePathMapper, scTracker.getAutoMembership(), scTracker.getAutoMembershipConfig());
+    }
     
     @Override
     public boolean coversAllMembers(@NotNull Group group) {
@@ -103,10 +109,18 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             // not an external user (NOTE: with dynamic membership enabled external groups will not be synced into the repository)
             return false;
         }
-
-        // since this provider is only enabled for dynamic-auto-membership (external groups not synced), the 
-        // 'includeInherited' flag can be ignored.      
-        return autoMembershipPrincipals.isMember(idpName, group.getID(), authorizable);
+        
+        // an external user
+        return isMember(autoMembershipPrincipals, idpName, group, authorizable, includeInherited);
+    }
+    
+    private static boolean isMember(@NotNull AutoMembershipPrincipals amPrincipals, @NotNull String idpName, 
+                                    @NotNull Group group, @NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+        if (includeInherited) {
+            return amPrincipals.isInheritedMember(idpName, group, authorizable);
+        } else {
+            return amPrincipals.isMember(idpName, group.getID(), authorizable);
+        }
     }
 
     @Override

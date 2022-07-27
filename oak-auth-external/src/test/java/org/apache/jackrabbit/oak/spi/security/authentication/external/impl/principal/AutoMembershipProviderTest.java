@@ -47,6 +47,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
@@ -56,37 +57,30 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     @Before
     public void before() throws Exception {
         super.before();
-        provider = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
-    }
-    
-    @After
-    public void after() throws Exception {
-        try {
-            root.refresh();
-            Authorizable a = userManager.getAuthorizable(USER_ID);
-            if (a != null) {
-                a.remove();
-            }
-            root.commit();
-        } finally {
-            super.after();
-        }
+        provider = createAutoMembershipProvider(root, userManager);
     }
     
     private void setExternalId(@NotNull String id, @NotNull String idpName) throws Exception {
         Root sr = getSystemRoot();
         sr.refresh();
         Authorizable a = getUserManager(sr).getAuthorizable(id);
-        a.setProperty(REP_EXTERNAL_ID, getValueFactory(sr).createValue(new ExternalIdentityRef(USER_ID, idpName).getString()));
+        a.setProperty(REP_EXTERNAL_ID, getValueFactory(sr).createValue(new ExternalIdentityRef(id, idpName).getString()));
         sr.commit();
         root.refresh();
+    }
+    
+    @NotNull
+    private AutoMembershipProvider createAutoMembershipProvider(@NotNull Root root, @NotNull UserManager userManager) {
+        return new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
     }
 
     @Test
     public void testCoversAllMembers() throws RepositoryException {
         assertFalse(provider.coversAllMembers(automembershipGroup1));
         assertFalse(provider.coversAllMembers(userManager.createGroup(EveryonePrincipal.getInstance())));
-        assertFalse(provider.coversAllMembers(mock(Group.class)));
+        Group gr = mock(Group.class);
+        assertFalse(provider.coversAllMembers(gr));
+        verifyNoInteractions(gr);
     }
     
     @Test
@@ -143,16 +137,21 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
             }
         }
     }
-    
-    @Test
-    public void testGetMembersExternalGroup() throws Exception {
-        setExternalId(automembershipGroup1.getID(), IDP_VALID_AM);
-        
-        Iterator<Authorizable> it = provider.getMembers(automembershipGroup1, false);
-        assertFalse(it.hasNext());
 
-        it = provider.getMembers(automembershipGroup1, true);
-        assertFalse(it.hasNext());
+    @Test
+    public void testGetMembersExternalGroupExist() throws Exception {
+        Group testGroup = getTestGroup();
+        setExternalId(testGroup.getID(), IDP_VALID_AM);
+
+        assertFalse(provider.getMembers(automembershipGroup3, false).hasNext());
+    }
+
+    @Test
+    public void testGetMembersExternalGroupExistInherit() throws Exception {
+        Group testGroup = getTestGroup();
+        setExternalId(testGroup.getID(), IDP_VALID_AM);
+
+        assertFalse(provider.getMembers(automembershipGroup3, true).hasNext());
     }
     
     @Test
@@ -180,7 +179,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         UserManager um = spy(userManager);
         doThrow(new RepositoryException()).when(um).getAuthorizableByPath(anyString());
         
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
+        AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembers(automembershipGroup1, false).hasNext());
     }
 
@@ -190,7 +189,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("query failed", 0));
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
         
-        AutoMembershipProvider amp = new AutoMembershipProvider(r, userManager, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
+        AutoMembershipProvider amp = createAutoMembershipProvider(r, userManager);
         assertFalse(amp.getMembers(automembershipGroup1, false).hasNext());
     }
     
@@ -213,6 +212,36 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         assertTrue(provider.isMember(automembershipGroup1, getTestUser(), false));
         assertTrue(provider.isMember(automembershipGroup1, getTestUser(), true));
     }
+
+    @Test
+    public void testIsMemberExternalUserInherited() throws Exception {
+        User testUser = getTestUser();
+        setExternalId(testUser.getID(), IDP_VALID_AM);
+        
+        Group testGroup = getTestGroup(automembershipGroup1);
+
+        assertFalse(provider.isMember(testGroup, testUser, false));
+        assertTrue(provider.isMember(testGroup, testUser, true));
+    }
+
+    @Test
+    public void testIsMemberExternalUserInheritedNested() throws Exception {
+        User testUser = getTestUser();
+        setExternalId(testUser.getID(), IDP_VALID_AM);
+
+        Group testGroup = getTestGroup();
+        Group base = userManager.createGroup("baseGroup");
+        base.addMember(testGroup);
+
+        assertFalse(provider.isMember(base, testUser, false));
+        assertFalse(provider.isMember(base, testUser, true));
+        
+        // add 'automembership-group' as nested members
+        testGroup.addMember(automembershipGroup1);
+        
+        assertFalse(provider.isMember(base, testUser, false));
+        assertTrue(provider.isMember(base, testUser, true));
+    }
     
     @Test
     public void testIsMemberExternalUserIdpMismatch() throws Exception {
@@ -222,11 +251,23 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     }
 
     @Test
-    public void testIsMemberExternalGroup() throws Exception {
-        setExternalId(automembershipGroup1.getID(), IDP_VALID_AM);
+    public void testIsMemberExternalGroupSelf() throws Exception { 
+        Group testGroup = getTestGroup();
+        setExternalId(testGroup.getID(), IDP_VALID_AM);
         
-        assertFalse(provider.isMember(automembershipGroup1, automembershipGroup1, false));
-        assertFalse(provider.isMember(automembershipGroup1, automembershipGroup1, true));
+        assertFalse(provider.isMember(testGroup, testGroup, false));
+        assertFalse(provider.isMember(testGroup, testGroup, true));
+    }
+
+    @Test
+    public void testIsMemberExternalGroup() throws Exception {
+        Group testGroup = getTestGroup();
+        setExternalId(testGroup.getID(), IDP_VALID_AM);
+
+        for (Group gr : new Group[] {automembershipGroup1, automembershipGroup3}) {
+            assertFalse(provider.isMember(gr, testGroup, false));
+            assertFalse(provider.isMember(gr, testGroup, true));
+        }
     }
     
     @Test
@@ -263,26 +304,19 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     @Test
     public void testGetMembershipExternalUserNestedGroups() throws Exception {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
-        
-        Group baseGroup = userManager.createGroup("baseGroup");
-        try {
-            baseGroup.addMember(automembershipGroup1);
-            root.commit();
 
-            Set<Group> groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), false));
-            assertEquals(2, groups.size());
-            assertTrue(groups.contains(automembershipGroup1));
-            assertTrue(groups.contains(automembershipGroup2));
+        Group baseGroup = getTestGroup(automembershipGroup1);
 
-            groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
-            assertEquals(3, groups.size());
-            assertTrue(groups.contains(automembershipGroup1));
-            assertTrue(groups.contains(automembershipGroup2));
-            assertTrue(groups.contains(baseGroup));
-        } finally {
-            baseGroup.remove();
-            root.commit();
-        }
+        Set<Group> groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), false));
+        assertEquals(2, groups.size());
+        assertTrue(groups.contains(automembershipGroup1));
+        assertTrue(groups.contains(automembershipGroup2));
+
+        groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
+        assertEquals(3, groups.size());
+        assertTrue(groups.contains(automembershipGroup1));
+        assertTrue(groups.contains(automembershipGroup2));
+        assertTrue(groups.contains(baseGroup));
     }
 
     @Test
@@ -317,10 +351,11 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
     @Test
     public void testGetMembershipExternalGroup() throws Exception {
-        setExternalId(automembershipGroup1.getID(), IDP_VALID_AM);
+        Group testGroup = getTestGroup();
+        setExternalId(testGroup.getID(), IDP_VALID_AM);
 
-        assertFalse(provider.getMembership(automembershipGroup1, false).hasNext());
-        assertFalse(provider.getMembership(automembershipGroup1, true).hasNext());
+        assertFalse(provider.getMembership(testGroup, false).hasNext());
+        assertFalse(provider.getMembership(testGroup, true).hasNext());
     }
     
     @Test
@@ -334,7 +369,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
+        AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
     }
 
@@ -348,7 +383,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
         
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
+        AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
     }
 
@@ -366,7 +401,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
-        AutoMembershipProvider amp = new AutoMembershipProvider(root, um, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
+        AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         Set<Group> membership = ImmutableSet.copyOf(amp.getMembership(getTestUser(), true));
         assertEquals(2, membership.size());
     }
