@@ -93,17 +93,6 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
         super(root, mounts);
     }
     
-    @SuppressWarnings("unchecked")
-    public <T> T getNodeStore(Class<T> type) {
-        for(NodeStoreRegistration r : registrations) {
-            NodeStore store = r.getInstance();
-            if (type.isAssignableFrom(store.getClass())) {
-                return (T) store;
-            }
-        }
-        return null;
-    }
-    
     @Rule
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
