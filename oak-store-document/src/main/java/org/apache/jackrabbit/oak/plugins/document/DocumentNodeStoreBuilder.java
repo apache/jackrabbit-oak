@@ -101,20 +101,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * The threshold value after which the document store should start (if enabled) throttling.
-     */
-    // For mongo based document store this value is threshold for the oplog replication window.
-    public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger(
-            "oak.documentMK.throttlingThreshold", 2);
-
-    /**
-     * The default throttling time (in millis) when throttling is enabled. This is the time for
-     * which we block any data modification operation when system has been throttled.
-     */
-    public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong(
-            "oak.documentMK.throttlingTime", 20);
-
-    /**
      * Whether to use the CacheLIRS (default) or the Guava cache implementation.
      */
     private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");

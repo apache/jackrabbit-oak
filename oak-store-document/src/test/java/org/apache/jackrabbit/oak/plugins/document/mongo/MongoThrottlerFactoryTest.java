@@ -109,4 +109,5 @@ public class MongoThrottlerFactoryTest {
         Throttler throttler = exponentialThrottler(160, new AtomicDouble(5.0001), 10);
         assertEquals(80L, throttler.throttlingTime());
     }
+
 }
