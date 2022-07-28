@@ -693,7 +693,7 @@ Please refer to the [Remote Segment Stores](#remote-segment-stores) section for 
 
 The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be copied from the journal (default is 1).
 
-The optional `--flat [Boolean]` argument can be specified for allowing the copy process to write the segments at `DESTINATION` in a flat hierarchy, that is without writing them in tar archives. 
+The optional `--flat` argument can be specified for allowing the copy process to write the segments at `DESTINATION` in a flat hierarchy, that is without writing them in tar archives. 
 
 The optional `--append` argument can be specified for running segment copy in append mode. This causes existing segments in `DESTINATION` to be skipped instead of overwritten.
 

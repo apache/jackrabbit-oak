@@ -38,9 +38,7 @@ class SegmentCopyCommand implements Command {
                 .withOptionalArg()
                 .ofType(Integer.class);
 
-        OptionSpec<Boolean> flat = parser.accepts("flat", "copy segments in flat hierarchy")
-                .withOptionalArg()
-                .ofType(Boolean.class);
+        OptionSpec<Void> flat = parser.accepts("flat", "copy segments in flat hierarchy");
 
         OptionSpec<Void> append = parser.accepts("append", "skip existing segments");
 
@@ -84,9 +82,9 @@ class SegmentCopyCommand implements Command {
                 builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
             }
 
-            if (options.has(flat) && options.has(maxSizeGb)) {
+            if (options.has(maxSizeGb)) {
                 builder.withMaxSizeGb(maxSizeGb.value(options));
-                builder.withFlat(flat.value(options));
+                builder.withFlat(options.has(flat));
             }
 
             System.exit(builder.build().run());
