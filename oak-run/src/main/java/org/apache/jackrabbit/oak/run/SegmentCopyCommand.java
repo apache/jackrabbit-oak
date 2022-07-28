@@ -42,6 +42,8 @@ class SegmentCopyCommand implements Command {
                 .withOptionalArg()
                 .ofType(Boolean.class);
 
+        OptionSpec<Void> append = parser.accepts("append", "skip existing segments");
+
         OptionSpec<Integer> maxSizeGb = parser.accepts("max-size-gb", "define maximum size of archives to be copied")
                 .withOptionalArg()
                 .ofType(Integer.class);
@@ -75,7 +77,8 @@ class SegmentCopyCommand implements Command {
                     .withSource(source)
                     .withDestination(destination)
                     .withOutWriter(out)
-                    .withErrWriter(err);
+                    .withErrWriter(err)
+                    .withAppendMode(options.has(append));
 
             if (options.has(last)) {
                 builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
