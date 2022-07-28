@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.Thread.sleep;
+import static java.time.LocalTime.now;
 
 /**
  * Wrapper of another DocumentStore that does a throttling check on any method
@@ -40,6 +41,7 @@ import static java.lang.Thread.sleep;
 public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(ThrottlingDocumentStoreWrapper.class);
+    private volatile int lastLogTime = now().getSecond();
 
     @NotNull
     private final DocumentStore store;
@@ -75,50 +77,50 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, String key) {
-        performThrottling();
+        performThrottling(collection);
         store.remove(collection, key);
     }
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        performThrottling();
+        performThrottling(collection);
         store.remove(collection, keys);
     }
 
     @Override
     public <T extends Document> int remove(final Collection<T> collection, final Map<String, Long> toRemove) {
-        performThrottling();
+        performThrottling(collection);
         return store.remove(collection, toRemove);
     }
 
     @Override
     public <T extends Document> int remove(final Collection<T> collection, final String indexedProperty,
                                            final long startValue, final long endValue) throws DocumentStoreException {
-        performThrottling();
+        performThrottling(collection);
         return store.remove(collection, indexedProperty, startValue, endValue);
     }
 
     @Override
     public <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
-        performThrottling();
+        performThrottling(collection);
         return store.create(collection, updateOps);
     }
 
     @Override
     public <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update) {
-        performThrottling();
+        performThrottling(collection);
         return store.createOrUpdate(collection, update);
     }
 
     @Override
     public <T extends Document> List<T> createOrUpdate(final Collection<T> collection, final List<UpdateOp> updateOps) {
-        performThrottling();
+        performThrottling(collection);
         return store.createOrUpdate(collection, updateOps);
     }
 
     @Override
     public <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update) {
-        performThrottling();
+        performThrottling(collection);
         return store.findAndUpdate(collection, update);
     }
 
@@ -196,7 +198,11 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
     // helper methods
 
-    private void performThrottling() {
+    private <T extends Document> void performThrottling(final Collection<T> collection) {
+
+        if (Collection.CLUSTER_NODES == collection) {
+            return;
+        }
 
         final Throttler throttler = throttler();
         long throttleTime = throttler.throttlingTime();
@@ -206,7 +212,11 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
         }
 
         try {
-            LOG.info("Throttling the system for {} ms", throttleTime);
+            // log message every 10 secs once to reduce noise
+            if (now().getSecond() - lastLogTime >= 10) {
+                LOG.warn("Throttling the system for {} ms for {} collection", throttleTime, collection);
+                lastLogTime = now().getSecond();
+            }
             sleep(throttleTime);
         } catch (InterruptedException e) {
             // swallow the exception and log it

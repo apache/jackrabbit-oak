@@ -18,17 +18,40 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 
 /**
  * Junit for {@link ThrottlingDocumentStoreWrapper}
  */
+@RunWith(MockitoJUnitRunner.class)
 public class ThrottlingDocumentStoreWrapperTest {
+
+    private static final UpdateOp UPDATE_OP = new UpdateOp("1", false);
+    DocumentStore memStore;
+    Throttler throttler;
+
+
+    @Before
+    public void setUp() {
+        memStore = Mockito.mock(MemoryDocumentStore.class);
+        throttler = Mockito.mock(Throttler.class);
+        when(memStore.throttler()).thenReturn(throttler);
+    }
 
     @Test
     public void testDefaultThrottler() {
@@ -36,4 +59,44 @@ public class ThrottlingDocumentStoreWrapperTest {
         Throttler throttler = store.throttler();
         assertEquals(0, throttler.throttlingTime());
     }
+
+    @Test
+    public void testNoThrottlingForClusterNodes() {
+        DocumentStore store = new ThrottlingDocumentStoreWrapper(memStore);
+        store.createOrUpdate(Collection.CLUSTER_NODES, UPDATE_OP);
+        verify(memStore, never()).throttler();
+    }
+
+    @Test
+    public void testThrottlingForNodes() {
+        when(throttler.throttlingTime()).thenReturn(10L);
+        DocumentStore store = new ThrottlingDocumentStoreWrapper(memStore);
+        store.createOrUpdate(Collection.NODES, UPDATE_OP);
+        verify(memStore, atLeastOnce()).throttler();
+    }
+
+    @Test
+    public void testThrottlingForJournal() {
+        when(throttler.throttlingTime()).thenReturn(10L);
+        DocumentStore store = new ThrottlingDocumentStoreWrapper(memStore);
+        store.createOrUpdate(Collection.JOURNAL, UPDATE_OP);
+        verify(memStore, atLeastOnce()).throttler();
+    }
+
+    @Test
+    public void testThrottlingForSettings() {
+        when(throttler.throttlingTime()).thenReturn(10L);
+        DocumentStore store = new ThrottlingDocumentStoreWrapper(memStore);
+        store.createOrUpdate(Collection.SETTINGS, UPDATE_OP);
+        verify(memStore, atLeastOnce()).throttler();
+    }
+
+    @Test
+    public void testThrottlingForBlobs() {
+        when(throttler.throttlingTime()).thenReturn(10L);
+        DocumentStore store = new ThrottlingDocumentStoreWrapper(memStore);
+        store.createOrUpdate(Collection.BLOBS, UPDATE_OP);
+        verify(memStore, atLeastOnce()).throttler();
+    }
+
 }

@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import static java.lang.Integer.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -67,6 +68,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
             Document document = localDb.runCommand(new Document("collStats", OPLOG_RS));
             if (!document.containsKey(MAX_SIZE) || !document.containsKey(SIZE)) {
                 LOG.warn("Could not get stats for local.{}  collection. collstats returned: {}.", OPLOG_RS, document);
+                oplogWindow.set(MAX_VALUE);
             } else {
                 int maxSize = document.getInteger(MAX_SIZE);
                 double maxSizeGb = (double) maxSize / (1024 * 1024 * 1024);
@@ -78,9 +80,11 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
 
                 if (Objects.isNull(first) || Objects.isNull(last)) {
                     LOG.warn("Objects not found in local.oplog.rs -- is this a new and empty db instance?");
+                    oplogWindow.set(MAX_VALUE);
                 } else {
                     if (!first.containsKey(TS_TIME) || !last.containsKey(TS_TIME)) {
                         LOG.warn("ts element not found in oplog objects");
+                        oplogWindow.set(MAX_VALUE);
                     } else {
                         oplogWindow.set(updateOplogWindow(maxSizeGb, usedSizeGb, first, last));
                     }
@@ -97,7 +101,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
         final BsonTimestamp lastTime = last.get(TS_TIME, BsonTimestamp.class);
 
         if (Objects.equals(startTime, lastTime) || DoubleMath.fuzzyEquals(usedSize, 0, 0.00001)) {
-            return Integer.MAX_VALUE;
+            return MAX_VALUE;
         }
         long timeDiffSec = Math.abs(lastTime.getTime() - startTime.getTime());
         double timeDiffHr = Math.ceil(((double)timeDiffSec/(60*60)) * 100000)/100000;

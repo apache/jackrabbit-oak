@@ -113,8 +113,6 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Sets.difference;
 import static java.lang.Integer.MAX_VALUE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_THROTTLING_THRESHOLD;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_THROTTLING_TIME_MS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -142,6 +140,17 @@ public class MongoDocumentStore implements DocumentStore {
     private static final Bson BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
     private static final String OPLOG_RS = "oplog.rs";
+
+    /**
+     * The threshold value after which the document store should start (if enabled) throttling.
+     */
+    // For mongo based document store this value is threshold for the oplog replication window.
+    public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger("oak.mongo.throttlingThreshold", 2);
+    /**
+     * The default throttling time (in millis) when throttling is enabled. This is the time for
+     * which we block any data modification operation when system has been throttled.
+     */
+    public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
 
     /**
      * nodeNameLimit for node name based on Mongo Version
