@@ -31,11 +31,9 @@ import org.jetbrains.annotations.NotNull;
  */
 class ImmutableRecordNumbers implements RecordNumbers {
 
-    @NotNull
-    private final int[] offsets;
+    private final int @NotNull [] offsets;
 
-    @NotNull
-    private final byte[] type;
+    private final byte @NotNull [] type;
 
     /**
      * Create a new instance based on arrays for the offsets and types.
@@ -46,7 +44,7 @@ class ImmutableRecordNumbers implements RecordNumbers {
      * @param offsets  Offsets per position. -1 if not mapped.
      * @param type     Types per position. Not defined if not mapped.
      */
-    public ImmutableRecordNumbers(@NotNull int[] offsets, @NotNull byte[] type) {
+    public ImmutableRecordNumbers(int @NotNull [] offsets, byte @NotNull [] type) {
         this.offsets = offsets;
         this.type = type;
     }

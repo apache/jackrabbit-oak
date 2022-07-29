@@ -103,7 +103,8 @@ class DefaultCleanupStrategy implements CleanupStrategy {
 
             @Override
             public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
-                return isUnreferencedBulkSegment(id, referenced) || isOldDataSegment(id, generation);
+                return isUnreferencedBulkSegment(id, referenced) || isOldDataSegment(id, generation)
+                        || generation.getFullGeneration() > getGcGeneration(context).getFullGeneration();
             }
 
             @Override
