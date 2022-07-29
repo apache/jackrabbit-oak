@@ -39,6 +39,7 @@ public class QueryOptions {
     public Optional<Long> limit = Optional.empty();
     public Optional<Long> offset = Optional.empty();
     public List<String> prefetch = Collections.emptyList();
+    public Optional<Integer> prefetchCount = Optional.empty();
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
@@ -61,6 +62,7 @@ public class QueryOptions {
         limit = defaultValues.limit;
         offset = defaultValues.offset;
         prefetch = defaultValues.prefetch;
+        prefetchCount = defaultValues.prefetchCount;
     }
 
     QueryOptions(JsonObject json) {
@@ -83,6 +85,14 @@ public class QueryOptions {
                 limit = Optional.of(Long.parseLong(x));
             } catch (NumberFormatException e) {
                 LOG.warn("Invalid limit {}", x);
+            }
+        }
+        x = map.get("prefetches");
+        if (x != null) {
+            try {
+                prefetchCount = Optional.of(Integer.parseInt(x));
+            } catch (NumberFormatException e) {
+                LOG.warn("Invalid prefetch count {}", x);
             }
         }
         x = map.get("prefetch");
