@@ -281,15 +281,14 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     /**
-     * Following chars are used as operators in Lucene and Elastic Queries and should be escaped
+     * Following chars are used as operators in Lucene Query and should be escaped
      */
-    private static final char[] QUERY_OPERATORS = {':' , '/', '!', '&', '|', '=', '{', '}', '[', ']', '(', ')'};
+    private static final char[] QUERY_OPERATORS = {':' , '/', '!', '&', '|', '='};
 
     /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
      */
     public static String rewriteQueryText(String textsearch) {
-
         // replace escaped ' with just '
         StringBuilder rewritten = new StringBuilder();
         // most query parsers recognize 'AND' and 'NOT' as

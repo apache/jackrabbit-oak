@@ -88,34 +88,4 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         });
     }
 
-
-    @Test
-    public void testWithSpecialCharsInSearchTerm() throws Exception {
-        IndexDefinitionBuilder builder = indexOptions.createIndex(
-                indexOptions.createIndexDefinitionBuilder(), false, "analyzed_field");
-        builder.noAsync();
-        builder.indexRule("nt:base")
-                .property("analyzed_field")
-                .analyzed().nodeScopeIndex();
-
-        indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
-        root.commit();
-
-        //add content
-        Tree test = root.getTree("/").addChild("test");
-
-        test.addChild("a").setProperty("analyzed_field", "foo");
-        root.commit();
-
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, '{foo}')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo}')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '[foo]')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '(&=!foo')] ", XPATH, Collections.singletonList("/test/a"));
-        });
-
-    }
-
 }
