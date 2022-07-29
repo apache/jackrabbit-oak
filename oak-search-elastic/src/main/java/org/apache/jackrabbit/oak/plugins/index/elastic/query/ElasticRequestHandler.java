@@ -775,6 +775,7 @@ public class ElasticRequestHandler {
     private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {
         LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
+                .escape(true)
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
                 .type(TextQueryType.CrossFields);
