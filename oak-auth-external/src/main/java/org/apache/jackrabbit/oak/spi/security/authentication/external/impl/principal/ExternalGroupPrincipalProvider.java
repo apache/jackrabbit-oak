@@ -237,7 +237,8 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 // add existing group principals as defined with the _autoMembership_ option.
                 String idpName = getIdpName(userTree);
                 if (idpName != null) {
-                    groupPrincipals.addAll(autoMembershipPrincipals.getAutoMembership(idpName, authorizable));
+                    // resolve automembership including inherited group membership
+                    groupPrincipals.addAll(autoMembershipPrincipals.getAutoMembership(idpName, authorizable, true).keySet());
                 }
                 return groupPrincipals;
             }

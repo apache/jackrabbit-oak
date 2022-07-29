@@ -53,7 +53,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
@@ -130,19 +129,7 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             // not an external user (NOTE: with dynamic membership enabled external groups will not be synced into the repository)
             return RangeIteratorAdapter.EMPTY;
         }
-        Collection<Principal> groupPrincipals = autoMembershipPrincipals.getAutoMembership(idpName, authorizable);
-        Set<Group> groups = groupPrincipals.stream().map(principal -> {
-            try {
-                Authorizable a = userManager.getAuthorizable(principal);
-                if (a != null && a.isGroup()) {
-                    return (Group) a;
-                } else {
-                    return null;
-                }
-            } catch (RepositoryException e) {
-                return null;
-            }
-        }).filter(Objects::nonNull).collect(Collectors.toSet());
+        Collection<Group> groups = autoMembershipPrincipals.getAutoMembership(idpName, authorizable, false).values();
         Iterator<Group> groupIt = new RangeIteratorAdapter(groups);
         
         if (!includeInherited) {

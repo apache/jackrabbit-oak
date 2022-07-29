@@ -27,12 +27,10 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
-import java.security.Principal;
 import java.text.ParseException;
 import java.util.Iterator;
 import java.util.Map;
@@ -44,10 +42,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
@@ -364,13 +366,16 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         
         User user = mock(User.class);
         when(user.isGroup()).thenReturn(false);
-        when(um.getAuthorizable(automembershipGroup1.getPrincipal())).thenReturn(user);
-        when(um.getAuthorizable(automembershipGroup2.getPrincipal())).thenReturn(user);
+        doReturn(user).when(um).getAuthorizable(automembershipGroup1.getID());
+        doReturn(user).when(um).getAuthorizable(automembershipGroup2.getID());
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
         AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
+        
+        verify(um, times(2)).getAuthorizable(anyString());
+        verifyNoMoreInteractions(um);
     }
 
     @Test
@@ -379,12 +384,15 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         User user = mock(User.class);
         when(user.isGroup()).thenReturn(false);
-        when(um.getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException());
+        doThrow(new RepositoryException()).when(um).getAuthorizable(any(String.class));
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
         
         AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
+        
+        verify(um, times(2)).getAuthorizable(anyString());
+        verifyNoMoreInteractions(um);
     }
 
     @Test
@@ -414,6 +422,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         assertEquals(1, Iterators.size(provider.getMembership(getTestUser(), false)));
         assertEquals(1, Iterators.size(provider.getMembership(getTestUser(), true)));
         
+        // remove second group : but read principal from cache
         automembershipGroup2.remove();
         assertFalse(provider.getMembership(getTestUser(), false).hasNext());
         assertFalse(provider.getMembership(getTestUser(), true).hasNext());
