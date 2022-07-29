@@ -92,7 +92,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     @Test
     public void testWithSpecialCharsInSearchTerm() throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
-                indexOptions.createIndexDefinitionBuilder(), false, "testProp");
+                indexOptions.createIndexDefinitionBuilder(), false, "analyzed_field");
         builder.noAsync();
         builder.indexRule("nt:base")
                 .property("analyzed_field")
@@ -112,6 +112,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo}')] ", XPATH, Collections.singletonList("/test/a"));
             assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, Collections.singletonList("/test/a"));
             assertQuery("//*[jcr:contains(@analyzed_field, '[foo]')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, Collections.singletonList("/test/a"));
             assertQuery("//*[jcr:contains(@analyzed_field, '(&=!foo')] ", XPATH, Collections.singletonList("/test/a"));
         });
 
