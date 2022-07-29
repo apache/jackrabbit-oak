@@ -126,6 +126,22 @@ final class AutoMembershipPrincipals {
         return false;
     }
 
+    boolean isInheritedMember(@NotNull String idpName, @NotNull Group group, @NotNull Authorizable authorizable) throws RepositoryException {
+        String groupId = group.getID();
+        if (isMember(idpName, groupId, authorizable)) {
+            return true;
+        }
+        
+        Iterator<Authorizable> declaredGroupMembers = Iterators.filter(group.getDeclaredMembers(), Authorizable::isGroup);
+        while (declaredGroupMembers.hasNext()) {
+            Group grMember = (Group) declaredGroupMembers.next();
+            if (isInheritedMember(idpName, grMember, authorizable)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Returns the group principal that given authorizable is an automatic member of. This method evaluates both the 
      * global auto-membership settings as well as {@link AutoMembershipConfig} if they exist for the given IDP name.

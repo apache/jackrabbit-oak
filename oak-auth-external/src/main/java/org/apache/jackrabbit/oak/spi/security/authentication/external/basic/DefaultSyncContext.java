@@ -532,20 +532,10 @@ public class DefaultSyncContext implements SyncContext {
         for (ExternalIdentityRef ref : externalGroups) {
             log.debug("- processing membership {}", ref.getId());
             // get group
-            ExternalGroup extGroup;
-            try {
-                ExternalIdentity extId = idp.getIdentity(ref);
-                if (extId instanceof ExternalGroup) {
-                    extGroup = (ExternalGroup) extId;
-                } else {
-                    log.warn("No external group found for ref '{}'.", ref.getString());
-                    continue;
-                }
-            } catch (ExternalIdentityException e) {
-                log.warn("Unable to retrieve external group '{}' from provider.", ref.getString(), e);
+            ExternalGroup extGroup = getExternalGroupFromRef(ref);
+            if (extGroup == null) {
                 continue;
             }
-            log.debug("- idp returned '{}'", extGroup.getId());
 
             // mark group as processed
             boolean idMatches = declaredExternalGroupIds.contains(extGroup.getId());
@@ -595,6 +585,21 @@ public class DefaultSyncContext implements SyncContext {
         }
         timer.mark("removing");
         log.debug("syncMembership({}) {}", external.getId(), timer);
+    }
+    
+    protected @Nullable ExternalGroup getExternalGroupFromRef(@NotNull ExternalIdentityRef externalGroupRef) {
+        try {
+            ExternalIdentity extId = idp.getIdentity(externalGroupRef);
+            if (extId instanceof ExternalGroup) {
+                log.debug("- idp returned '{}'", extId.getId());
+                return (ExternalGroup) extId;
+            } else {
+                log.warn("No external group found for ref '{}'.", externalGroupRef.getString());
+            }
+        } catch (ExternalIdentityException e) {
+            log.warn("Unable to retrieve external group '{}' from provider.", externalGroupRef.getString(), e);
+        }
+        return null;
     }
 
     /**

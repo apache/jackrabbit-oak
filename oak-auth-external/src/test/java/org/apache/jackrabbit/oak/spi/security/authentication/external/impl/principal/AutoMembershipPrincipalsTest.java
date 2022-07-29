@@ -23,7 +23,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,36 +49,20 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
-
-    static final String AUTOMEMBERSHIP_GROUP_ID_3 = "autoMembershipGroupId_3";
     
     private AutoMembershipPrincipals amp;
     private final Authorizable authorizable = mock(Authorizable.class);
     
-    private Group automembershipGroup3;
     private final AutoMembershipConfig amConfig = mock(AutoMembershipConfig.class);
     
     @Before
     public void before() throws Exception {
         super.before();
         amp = new AutoMembershipPrincipals(userManager, MAPPING, getAutoMembershipConfigMapping());
-
-        automembershipGroup3 = userManager.createGroup(AUTOMEMBERSHIP_GROUP_ID_3);
-        root.commit();
         
         when(amConfig.getAutoMembership(authorizable)).thenReturn(ImmutableSet.of(automembershipGroup3.getID()));
         when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Iterators.emptyIterator());
         when(amConfig.getAutoMembers(userManager, automembershipGroup3)).thenReturn(Iterators.singletonIterator(authorizable));
-    }
-    
-    @After
-    public void after() throws Exception {
-        try {
-            automembershipGroup3.remove();
-            root.commit();
-        } finally {
-            super.after();
-        }
     }
 
     @Override
@@ -219,6 +202,26 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         assertTrue(amp.isMember(IDP_MIXED_AM, AUTOMEMBERSHIP_GROUP_ID_1, authorizable));
         assertFalse(amp.isMember(IDP_MIXED_AM, AUTOMEMBERSHIP_GROUP_ID_2, authorizable));
         assertFalse(amp.isMember(IDP_MIXED_AM, AUTOMEMBERSHIP_GROUP_ID_3, authorizable));
+    }
+    
+    @Test
+    public void testIsNotMember() throws Exception {
+        Group testGroup = getTestGroup();
+        assertFalse(amp.isMember(IDP_VALID_AM, testGroup.getID(), authorizable));
+        
+        Group nested = userManager.createGroup("nestedGroup");
+        nested.addMember(testGroup);
+        assertFalse(amp.isMember(IDP_VALID_AM, nested.getID(), authorizable));
+    }
+
+    @Test
+    public void testIsNotInheritedMember() throws Exception {
+        Group testGroup = getTestGroup();
+        assertFalse(amp.isInheritedMember(IDP_VALID_AM, testGroup, authorizable));
+        
+        Group nested = userManager.createGroup("nestedGroup");
+        nested.addMember(testGroup);
+        assertFalse(amp.isInheritedMember(IDP_VALID_AM, nested, authorizable));
     }
     
     @Test
