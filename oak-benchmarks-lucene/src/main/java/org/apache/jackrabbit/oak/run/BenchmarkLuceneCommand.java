@@ -24,6 +24,6 @@ public class BenchmarkLuceneCommand implements Command {
 
     @Override
     public int execute(String... args) throws Exception {
-        return LuceneBenchmarkRunner.main(args);
+        return LuceneBenchmarkRunner.runBenchmark(args);
     }
 }

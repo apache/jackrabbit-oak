@@ -22,6 +22,6 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 public class BenchmarkSolrCommand implements Command {
     @Override
     public int execute(String... args) throws Exception {
-        return SolrBenchmarkRunner.main(args);
+        return SolrBenchmarkRunner.runBenchmark(args);
     }
 }

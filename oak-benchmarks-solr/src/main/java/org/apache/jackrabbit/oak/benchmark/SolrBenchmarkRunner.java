@@ -23,7 +23,11 @@ import java.util.Arrays;
 
 public class SolrBenchmarkRunner extends BenchmarkRunner {
 
-    public static int main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
+        System.exit(runBenchmark(args));
+    }
+
+    public static int runBenchmark(String[] args) throws Exception {
         initOptionSet(args);
         statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider() : StatisticsProvider.NOOP;
 
@@ -35,6 +39,6 @@ public class SolrBenchmarkRunner extends BenchmarkRunner {
                         benchmarkOptions.getWithServer().value(options)))
         );
 
-        return BenchmarkRunner.main(args);
+        return BenchmarkRunner.runBenchmark(args);
     }
 }

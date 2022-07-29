@@ -23,6 +23,6 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 public class BenchmarkElasticCommand implements Command {
     @Override
     public int execute(String... args) throws Exception {
-        return ElasticBenchmarkRunner.main(args);
+        return ElasticBenchmarkRunner.runBenchmark(args);
     }
 }

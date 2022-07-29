@@ -24,7 +24,7 @@ class BenchmarkCommand implements Command {
 
     @Override
     public int execute(String... args) throws Exception {
-        return BenchmarkRunner.main(args);
+        return BenchmarkRunner.runBenchmark(args);
     }
 
 }

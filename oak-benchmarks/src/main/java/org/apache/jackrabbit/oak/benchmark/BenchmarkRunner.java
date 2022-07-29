@@ -78,8 +78,11 @@ public class BenchmarkRunner {
     protected static OptionSet options;
     private static boolean initFlag = false;
 
+    public static void main(String[] args) throws Exception {
+        System.exit(runBenchmark(args));
+    }
 
-    public static int main(String[] args) throws Exception {
+    public static int runBenchmark(String[] args) throws Exception {
 
         initOptionSet(args);
 

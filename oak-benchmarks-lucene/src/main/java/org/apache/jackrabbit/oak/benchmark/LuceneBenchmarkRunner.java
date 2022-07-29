@@ -23,7 +23,11 @@ import java.util.Arrays;
 
 public class LuceneBenchmarkRunner extends BenchmarkRunner {
 
-    public static int main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
+        System.exit(runBenchmark(args));
+    }
+
+    public static int runBenchmark(String[] args) throws Exception {
         initOptionSet(args);
         statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider() : StatisticsProvider.NOOP;
         BenchmarkRunner.addToBenchMarkList(
@@ -56,7 +60,7 @@ public class LuceneBenchmarkRunner extends BenchmarkRunner {
                 )
         );
 
-        BenchmarkRunner.main(args);
+        BenchmarkRunner.runBenchmark(args);
         return 0;
     }
 }
