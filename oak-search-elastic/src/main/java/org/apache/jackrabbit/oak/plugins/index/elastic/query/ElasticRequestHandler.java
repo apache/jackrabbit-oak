@@ -466,11 +466,17 @@ public class ElasticRequestHandler {
                 // a double negation since the contains is already of type NOT. The same does
                 // not happen in Lucene because
                 // at this stage the code is parsed with the standard lucene parser.
-                if (contains.getBase() instanceof FullTextTerm) {
-                    visitTerm(contains.getPropertyName(), ((FullTextTerm) contains.getBase()).getText(), null,
-                            contains.isNot());
+                // We could have possibly used ((FullTextTerm)contains.getBase()).getText() to fix this,
+                // but that causes other divergence from behaviour of lucene (such as it removes any escape characters added by client in the jcr query)
+                // So we simply remove the prepending '-' here.
+                String rawText = contains.getRawText();
+                if (contains.getBase() instanceof FullTextTerm && contains.isNot() && rawText.startsWith("-")) {
+                    // Replace the prepending '-' in raw text to avoid double negation
+                    String text = rawText.replaceFirst("-", "");
+                    visitTerm(contains.getPropertyName(), text, null,
+                            true);
                 } else {
-                    visitTerm(contains.getPropertyName(), contains.getRawText(), null, contains.isNot());
+                    visitTerm(contains.getPropertyName(), rawText, null, contains.isNot());
                 }
                 return true;
             }
@@ -775,7 +781,6 @@ public class ElasticRequestHandler {
     private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {
         LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
-                .escape(true)
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
                 .type(TextQueryType.CrossFields);
