@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
 import org.junit.Test;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -134,6 +135,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     // TODO : If needed in future, we can possibly use test metadata to change the
     // TODO : returned values from these based on which test is being executed
     protected abstract LogCustomizer setupLogCustomizer();
-    protected  abstract List<String> getExpectedLogMessage();
+
+    protected abstract List<String> getExpectedLogMessage();
 
 }

@@ -289,7 +289,6 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
      */
     public static String rewriteQueryText(String textsearch) {
-
         // replace escaped ' with just '
         StringBuilder rewritten = new StringBuilder();
         // most query parsers recognize 'AND' and 'NOT' as
