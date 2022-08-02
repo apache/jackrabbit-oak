@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import static java.lang.System.currentTimeMillis;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreThrottlingMetricsUpdater.TS_TIME;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreThrottlingMetricsUpdater.updateOplogWindow;
 import static org.junit.Assert.assertEquals;
 
 public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
@@ -31,7 +32,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     @Test
     public void testUpdateOplogWindow() {
 
-        double oplogWindow = MongoDocumentStoreThrottlingMetricsUpdater.updateOplogWindow(1024, 512,
+        double oplogWindow = updateOplogWindow(1024, 512,
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis(), 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis() + 3600, 0)));
 
@@ -41,7 +42,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     @Test
     public void testUpdateOplogWindow_2() {
 
-        double oplogWindow = MongoDocumentStoreThrottlingMetricsUpdater.updateOplogWindow(1024, 1024,
+        double oplogWindow = updateOplogWindow(1024, 1024,
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis(), 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis() + 3600, 0)));
 
@@ -51,7 +52,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     @Test
     public void testUpdateOplogWindow_3() {
 
-        double oplogWindow = MongoDocumentStoreThrottlingMetricsUpdater.updateOplogWindow(1024, 102.4,
+        double oplogWindow = updateOplogWindow(1024, 102.4,
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis(), 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis() + 3600, 0)));
 
@@ -61,7 +62,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     @Test
     public void testUpdateOplogWindow_ZeroUsedSize() {
 
-        double oplogWindow = MongoDocumentStoreThrottlingMetricsUpdater.updateOplogWindow(1024, 0,
+        double oplogWindow = updateOplogWindow(1024, 0,
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis(), 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis() + 3600, 0)));
 
@@ -71,7 +72,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     @Test
     public void testUpdateOplogWindow_OneOplogEntry() {
 
-        double oplogWindow = MongoDocumentStoreThrottlingMetricsUpdater.updateOplogWindow(1024, 1024,
+        double oplogWindow = updateOplogWindow(1024, 1024,
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis(), 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) currentTimeMillis(), 0)));
 

@@ -33,6 +33,7 @@ import java.util.Map;
 
 import static java.lang.Thread.sleep;
 import static java.time.LocalTime.now;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 
 /**
  * Wrapper of another DocumentStore that does a throttling check on any method
@@ -200,7 +201,7 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
     private <T extends Document> void performThrottling(final Collection<T> collection) {
 
-        if (Collection.CLUSTER_NODES == collection) {
+        if (CLUSTER_NODES == collection) {
             return;
         }
 
