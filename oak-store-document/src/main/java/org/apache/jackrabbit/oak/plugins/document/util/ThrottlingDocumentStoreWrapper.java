@@ -19,21 +19,21 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.Throttler;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.Throttler;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 
+import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.sleep;
-import static java.time.LocalTime.now;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Wrapper of another DocumentStore that does a throttling check on any method
@@ -41,8 +41,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODE
  */
 public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ThrottlingDocumentStoreWrapper.class);
-    private volatile int lastLogTime = now().getSecond();
+    private static final Logger LOG = getLogger(ThrottlingDocumentStoreWrapper.class);
+    private volatile int lastLogTime = 0;
 
     @NotNull
     private final DocumentStore store;
@@ -214,9 +214,11 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
         try {
             // log message every 10 secs once to reduce noise
-            if (now().getSecond() - lastLogTime >= 10) {
+            // (decaseconds since 1970 - overflows roughly in year 2650)
+            final int currentDecaSecond = (int) (currentTimeMillis() / 10_000);
+            if (currentDecaSecond - lastLogTime >= 10) {
                 LOG.warn("Throttling the system for {} ms for {} collection", throttleTime, collection);
-                lastLogTime = now().getSecond();
+                lastLogTime = currentDecaSecond;
             }
             sleep(throttleTime);
         } catch (InterruptedException e) {
