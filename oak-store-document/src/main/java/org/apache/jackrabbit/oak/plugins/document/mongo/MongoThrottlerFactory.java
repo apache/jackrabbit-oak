@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.google.common.math.DoubleMath;
 import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
-
+import static com.google.common.math.DoubleMath.fuzzyCompare;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 
 /**
@@ -43,7 +42,7 @@ public final class MongoThrottlerFactory {
      * @return an exponential throttler to throttle system if required
      */
     public static Throttler exponentialThrottler(final int threshold, final AtomicDouble oplogWindow, final long throttlingTime) {
-        Objects.requireNonNull(oplogWindow);
+        requireNonNull(oplogWindow);
         return new ExponentialThrottler(threshold, oplogWindow, throttlingTime);
     }
 
@@ -79,13 +78,13 @@ public final class MongoThrottlerFactory {
             final double oplogWindow = this.oplogWindow.doubleValue();
             long throttleTime = throttlingTime;
 
-            if (DoubleMath.fuzzyCompare(oplogWindow,threshold/8,  0.001) <= 0) {
+            if (fuzzyCompare(oplogWindow,threshold/8,  0.001) <= 0) {
                 throttleTime = throttleTime * 8;
-            } else if (DoubleMath.fuzzyCompare(oplogWindow,threshold/4, 0.001) <= 0) {
+            } else if (fuzzyCompare(oplogWindow,threshold/4, 0.001) <= 0) {
                 throttleTime = throttleTime * 4;
-            } else if (DoubleMath.fuzzyCompare(oplogWindow, threshold/2, 0.001) <= 0) {
+            } else if (fuzzyCompare(oplogWindow, threshold/2, 0.001) <= 0) {
                 throttleTime = throttleTime * 2;
-            } else if (DoubleMath.fuzzyCompare(oplogWindow, threshold,0.001) <= 0) {
+            } else if (fuzzyCompare(oplogWindow, threshold,0.001) <= 0) {
                 throttleTime = throttlingTime;
             } else {
                 throttleTime = 0;

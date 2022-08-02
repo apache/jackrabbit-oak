@@ -19,9 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.math.DoubleMath;
 import com.google.common.util.concurrent.AtomicDouble;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.BsonTimestamp;
@@ -31,11 +29,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import static com.google.common.math.DoubleMath.fuzzyEquals;
+import static com.google.common.util.concurrent.MoreExecutors.getExitingScheduledExecutorService;
 import static java.lang.Integer.MAX_VALUE;
+import static java.lang.Math.abs;
+import static java.lang.Math.ceil;
+import static java.util.Objects.isNull;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -57,8 +60,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
 
     public MongoDocumentStoreThrottlingMetricsUpdater(final @NotNull MongoDatabase localDb, final @NotNull AtomicDouble oplogWindow) {
         // exiting scheduled executor, will exit when we call to shut down jvm
-        this.throttlingMetricsExecutor = MoreExecutors.getExitingScheduledExecutorService(
-                (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1), 40, SECONDS);
+        this.throttlingMetricsExecutor = getExitingScheduledExecutorService(
+                (ScheduledThreadPoolExecutor) newScheduledThreadPool(1), 40, SECONDS);
         this.oplogWindow = oplogWindow;
         this.localDb = localDb;
     }
@@ -73,12 +76,12 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
                 int maxSize = document.getInteger(MAX_SIZE);
                 double maxSizeGb = (double) maxSize / (1024 * 1024 * 1024);
                 int usedSize = document.getInteger(SIZE);
-                double usedSizeGb = Math.ceil(((double) usedSize / (1024 * 1024 * 1024)) * 1000000) / 1000000;
+                double usedSizeGb = ceil(((double) usedSize / (1024 * 1024 * 1024)) * 1000000) / 1000000;
                 MongoCollection<Document> localDbCollection = localDb.getCollection(OPLOG_RS);
                 Document first = localDbCollection.find().sort(new Document(NATURAL, 1)).limit(1).first();
                 Document last = localDbCollection.find().sort(new Document(NATURAL, -1)).limit(1).first();
 
-                if (Objects.isNull(first) || Objects.isNull(last)) {
+                if (isNull(first) || isNull(last)) {
                     LOG.warn("Objects not found in local.oplog.rs -- is this a new and empty db instance?");
                     oplogWindow.set(MAX_VALUE);
                 } else {
@@ -100,11 +103,11 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
         final BsonTimestamp startTime = first.get(TS_TIME, BsonTimestamp.class);
         final BsonTimestamp lastTime = last.get(TS_TIME, BsonTimestamp.class);
 
-        if (Objects.equals(startTime, lastTime) || DoubleMath.fuzzyEquals(usedSize, 0, 0.00001)) {
+        if (Objects.equals(startTime, lastTime) || fuzzyEquals(usedSize, 0, 0.00001)) {
             return MAX_VALUE;
         }
-        long timeDiffSec = Math.abs(lastTime.getTime() - startTime.getTime());
-        double timeDiffHr = Math.ceil(((double)timeDiffSec/(60*60)) * 100000)/100000;
+        long timeDiffSec = abs(lastTime.getTime() - startTime.getTime());
+        double timeDiffHr = ceil(((double)timeDiffSec/(60*60)) * 100000)/100000;
         double currentOplogHourRate = usedSize / timeDiffHr;
         double timeLeft = maxSize / currentOplogHourRate;
         LOG.info("Replication info: Oplog Max Size {} Gb, Used Oplog Size {} Gb, First Oplog " +

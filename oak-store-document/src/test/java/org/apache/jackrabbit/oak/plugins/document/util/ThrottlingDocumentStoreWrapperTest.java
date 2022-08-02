@@ -26,14 +26,14 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.never;
 
 /**
  * Junit for {@link ThrottlingDocumentStoreWrapper}
@@ -48,8 +48,8 @@ public class ThrottlingDocumentStoreWrapperTest {
 
     @Before
     public void setUp() {
-        memStore = Mockito.mock(MemoryDocumentStore.class);
-        throttler = Mockito.mock(Throttler.class);
+        memStore = mock(MemoryDocumentStore.class);
+        throttler = mock(Throttler.class);
         when(memStore.throttler()).thenReturn(throttler);
     }
 
