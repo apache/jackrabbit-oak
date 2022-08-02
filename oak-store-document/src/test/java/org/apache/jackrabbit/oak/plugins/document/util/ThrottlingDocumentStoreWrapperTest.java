@@ -42,8 +42,8 @@ import static org.mockito.Mockito.when;
 public class ThrottlingDocumentStoreWrapperTest {
 
     private static final UpdateOp UPDATE_OP = new UpdateOp("1", false);
-    DocumentStore memStore;
-    Throttler throttler;
+    private DocumentStore memStore;
+    private Throttler throttler;
 
 
     @Before
