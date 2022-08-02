@@ -33,6 +33,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -82,7 +83,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentMK.Builder.DEFAULT_UPDATE_LIMIT, config.updateLimit());
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
         assertEquals("STRICT", config.leaseCheckMode());
-        assertEquals(DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE, config.throttlingEnabled());
+        assertEquals(DEFAULT_THROTTLE_DOCUMENT_STORE, config.throttlingEnabled());
     }
 
     @Test
@@ -94,9 +95,9 @@ public class DocumentNodeStoreServiceConfigurationTest {
     }
 
     @Test
-    public void throttleDocumentStore() throws Exception {
+    public void throttleEnabled() throws Exception {
         boolean throttleDocStore = false;
-        addConfigurationEntry(preset, "throttleDocumentStore", throttleDocStore);
+        addConfigurationEntry(preset, "throttlingEnabled", throttleDocStore);
         Configuration config = createConfiguration();
         assertEquals(throttleDocStore, config.throttlingEnabled());
     }
