@@ -1411,7 +1411,7 @@ public class MongoDocumentStore implements DocumentStore {
         List<String> resultKeys = new ArrayList<>(keys.size());
         CacheChangesTracker tracker = null;
         if (collection == Collection.NODES) {
-            tracker = nodesCache.registerTracker(keys);
+            tracker = nodesCache.registerTracker(new HashSet<>(keys));
         }
         Throwable t;
         try {
