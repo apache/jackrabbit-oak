@@ -31,7 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLE_DOCUMENT_STORE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 
 @ObjectClassDefinition(
         pid = {PID},
@@ -271,10 +271,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 
     @AttributeDefinition(
             name = "Document Node Store throttling",
-            description = "Boolean value indicating whether throttling should be " +
-                    "enabled for document node store or not. The Default value is " +
-                    DEFAULT_THROTTLE_DOCUMENT_STORE +
-                    "Note that this value can be overridden via framework " +
+            description = "Boolean value indicating whether throttling should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_THROTTLING_ENABLED +
+                    ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.throttlingEnabled'")
-    boolean throttlingEnabled() default DEFAULT_THROTTLE_DOCUMENT_STORE;
+    boolean throttlingEnabled() default DEFAULT_THROTTLING_ENABLED;
 }
