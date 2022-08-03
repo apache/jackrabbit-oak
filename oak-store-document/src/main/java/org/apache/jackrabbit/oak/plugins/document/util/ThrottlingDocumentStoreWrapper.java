@@ -217,8 +217,8 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
             // (decaseconds since 1970 - overflows roughly in year 2650)
             final int currentDecaSecond = (int) (currentTimeMillis() / 10_000);
             if (currentDecaSecond - lastLogTime >= 10) {
-                LOG.warn("Throttling the system for {} ms for {} collection", throttleTime, collection);
                 lastLogTime = currentDecaSecond;
+                LOG.warn("Throttling the system for {} ms for {} collection", throttleTime, collection);
             }
             sleep(throttleTime);
         } catch (InterruptedException e) {
