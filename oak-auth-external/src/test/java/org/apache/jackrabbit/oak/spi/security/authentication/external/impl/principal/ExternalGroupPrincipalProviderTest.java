@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -66,6 +65,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -306,10 +306,10 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testGetGroupMembershipItemBasedLookupFails() throws Exception {
         UserManager um = spy(getUserManager(root));
-        when(um.getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException());
+        doThrow(new RepositoryException()).when(um).getAuthorizable(any(Principal.class));
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         Principal principal = new PrincipalImpl(um.getAuthorizable(USER_ID).getPrincipal().getName());
         assertTrue(pp.getMembershipPrincipals(principal).isEmpty());
     }
@@ -362,7 +362,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         assertTrue(pp.getPrincipals(USER_ID).isEmpty());
     }
 
@@ -374,7 +374,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         assertTrue(pp.getPrincipals(USER_ID).isEmpty());
     }
 
@@ -383,7 +383,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         UserManager um = when(mock(UserManager.class).getAuthorizable(anyString())).thenThrow(new RepositoryException()).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         assertTrue(pp.getPrincipals(USER_ID).isEmpty());
     }
 
@@ -394,12 +394,11 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Tree t = root.getTree(userPath);
         t.removeProperty(REP_EXTERNAL_ID);
 
-        String[] automembership = getAutoMembership();
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(getUserConfiguration(), automembership, getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, getUserConfiguration());
 
-        Set<String> principalNamees = pp.getPrincipals(USER_ID).stream().map(Principal::getName).collect(Collectors.toSet());
-        assertFalse(principalNamees.isEmpty());
-        assertFalse(principalNamees.removeAll(ImmutableSet.copyOf(automembership)));
+        Set<String> principalNames = pp.getPrincipals(USER_ID).stream().map(Principal::getName).collect(Collectors.toSet());
+        assertFalse(principalNames.isEmpty());
+        assertFalse(principalNames.removeAll(ImmutableSet.copyOf(getAutoMembership())));
     }
 
     @Test
@@ -512,8 +511,9 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     public void testFindPrincipalsSorted() {
         List<Principal> in = Arrays.asList(new PrincipalImpl("p3"), new PrincipalImpl("p1"), new PrincipalImpl("p2"));
         ExternalGroupPrincipalProvider p = new ExternalGroupPrincipalProvider(root,
-                getSecurityProvider().getConfiguration(UserConfiguration.class), NamePathMapper.DEFAULT,
-                ImmutableMap.of(idp.getName(), getAutoMembership()), ImmutableMap.of(idp.getName(), getAutoMembershipConfig())) {
+                getUserConfiguration(), NamePathMapper.DEFAULT,
+                Collections.singletonMap(idp.getName(), getAutoMembership()), Collections.singletonMap(idp.getName(), getAutoMembershipConfig()), 
+                getIdpNamesWithDynamicGroups(), false) {
             @NotNull
             @Override
             public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
@@ -552,7 +552,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
 
     @Test
-    public void testFindPrincipalsWithLimit() throws Exception {
+    public void testFindPrincipalsWithLimit() {
         Set<? extends Principal> result = ImmutableSet.copyOf(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 1));
         assertEquals(1, result.size());
     }
@@ -587,7 +587,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("fail", 0));
 
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
-        ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(r, getUserConfiguration(), getNamePathMapper(), Collections.emptyMap(), Collections.emptyMap());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(r, getUserConfiguration());
 
         assertNull(pp.getPrincipal("a"));
         assertFalse(pp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP).hasNext());

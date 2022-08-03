@@ -24,9 +24,12 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +37,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
@@ -214,7 +218,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         when(um.getAuthorizable(USER_AUTO_MEMBERSHIP_GROUP_ID)).thenReturn(gr);
         when(uc.getUserManager(root, NamePathMapper.DEFAULT)).thenReturn(um);
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         Set<Principal> result = pp.getMembershipPrincipals(um.getAuthorizable(USER_ID).getPrincipal());
         assertTrue(result.stream().map(Principal::getName).noneMatch(USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME::equals));
     }
@@ -253,4 +257,5 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
             assertFalse(Iterators.contains(res, new PrincipalImpl(NON_EXISTING_GROUP_ID)));
         }
     }
+
 }

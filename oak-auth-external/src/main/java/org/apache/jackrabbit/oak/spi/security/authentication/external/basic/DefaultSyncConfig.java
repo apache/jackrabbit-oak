@@ -407,6 +407,38 @@ public class DefaultSyncConfig {
      * Group specific config
      */
     public static class Group extends Authorizable {
+        
+        private boolean dynamicGroups;
 
+        /**
+         * <p>Returns {@code true} if external group identities are being synchronized into the repository as dynamic groups.
+         * In this case a dedicated {@link org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider} must be 
+         * present in order to have group membership reflected through User Management API.</p>
+         * 
+         * <p>Note, that currently this option only takes effect if it is enabled together with dynamic membership 
+         * (i.e. {@link User#getDynamicMembership()} returns true). In this case a dedicated 
+         * {@link org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider} based on the 
+         * {@code ExternalGroupPrincipalProvider} will be registered.</p>
+         *
+         * @return {@code true} if external groups should be synchronized as dynamic groups (i.e. without having their
+         * members added); {@code false} otherwise. Note, that this option currently only takes effect if {@link User#getDynamicMembership()} is enabled.
+         */
+        public boolean getDynamicGroups() {
+            return dynamicGroups;
+        }
+
+        /**
+         * Enable or disable the dynamic group option. If turned on together with {@link User#getDynamicMembership()} 
+         * external group identities will be synchronized into the repository but without storing their members. 
+         * In other words, group membership is generated dynamically.
+         *
+         * @param dynamicGroups Boolean flag to enable or disable synchronization of dynamic groups.
+         * @return {@code this}
+         * @see #getDynamicGroups() for details.
+         */
+        public @NotNull Group setDynamicGroups(boolean dynamicGroups) {
+            this.dynamicGroups = dynamicGroups;
+            return this;
+        }
     }
 }
