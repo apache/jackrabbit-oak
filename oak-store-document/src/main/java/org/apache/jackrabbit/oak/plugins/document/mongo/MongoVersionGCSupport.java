@@ -197,7 +197,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             if (DEFAULT_NO_BRANCH != type) {
                 orClauses.add(Filters.eq(SD_TYPE, type.typeCode()));
             } else {
-                result.addAll(queryForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
+                result.addAll(queriesForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
             }
         }
         // OAK-8351: this (last) query only contains SD_TYPE and SD_MAX_REV_TIME_IN_SECS
@@ -211,7 +211,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     @NotNull
-    private List<Bson> queryForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
+    private List<Bson> queriesForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
         // default_no_branch split type is special because we can
         // only remove those older than sweep rev
         List<Bson> result = Lists.newArrayList();
