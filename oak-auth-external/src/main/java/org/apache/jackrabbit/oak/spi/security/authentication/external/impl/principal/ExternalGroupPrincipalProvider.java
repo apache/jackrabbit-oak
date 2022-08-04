@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
@@ -107,9 +106,11 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     private final NamePathMapper namePathMapper;
 
     private final UserManager userManager;
-    private final AutoMembershipPrincipals autoMembershipPrincipals;
     private final Set<String> idpNamesWithDynamicGroups;
     private final boolean hasOnlyDynamicGroups;
+
+    private final AutoMembershipPrincipals autoMembershipPrincipals;
+    private final AutoMembershipPrincipals groupAutoMembershipPrincipals;
 
     ExternalGroupPrincipalProvider(@NotNull Root root, @NotNull UserManager userManager,
                                    @NotNull NamePathMapper namePathMapper,
@@ -118,23 +119,33 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         this.namePathMapper = namePathMapper;
         this.userManager = userManager;
         
-        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
         idpNamesWithDynamicGroups = syncConfigTracker.getIdpNamesWithDynamicGroups();
         hasOnlyDynamicGroups = (idpNamesWithDynamicGroups.size() == syncConfigTracker.getServiceReferences().length);
+
+        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
+        groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
     }
 
     // Tests only
     ExternalGroupPrincipalProvider(@NotNull Root root, @NotNull UserConfiguration userConfiguration,
-                                   @NotNull NamePathMapper namePathMapper, @NotNull Map<String, String[]> automembership,
-                                   @NotNull Map<String, AutoMembershipConfig> autoMembershipConfigs,
+                                   @NotNull NamePathMapper namePathMapper, 
+                                   @NotNull String idpName,
+                                   @NotNull DefaultSyncConfig syncConfig,
                                    @NotNull Set<String> idpNamesWithDynamicGroups, boolean hasOnlyDynamicGroups) {
         this.root = root;
         this.namePathMapper = namePathMapper;
         this.userManager = userConfiguration.getUserManager(root, namePathMapper);
 
-        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, automembership, autoMembershipConfigs);
         this.idpNamesWithDynamicGroups = idpNamesWithDynamicGroups;
         this.hasOnlyDynamicGroups = hasOnlyDynamicGroups;
+
+        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, 
+                Collections.singletonMap(idpName, Iterables.toArray(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class)),
+                Collections.singletonMap(idpName, syncConfig.user().getAutoMembershipConfig()));
+        groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : 
+                new AutoMembershipPrincipals(userManager, 
+                Collections.singletonMap(idpName, syncConfig.group().getAutoMembership().toArray(new String[0])),
+                Collections.singletonMap(idpName, syncConfig.group().getAutoMembershipConfig()));
     }
 
     //--------------------------------------------------< PrincipalProvider >---
@@ -146,17 +157,17 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
         
         Result result = findPrincipals(principalName, true);
-        if (result != null && result.getRows().iterator().hasNext()) {
-            return new ExternalGroupPrincipal(principalName);
-        } else {
-            return null;
+        Iterator<? extends ResultRow> rows = (result == null) ? Iterators.emptyIterator() : result.getRows().iterator();
+        if (rows.hasNext()) {
+            return new ExternalGroupPrincipal(principalName, getIdpName(rows.next()));
         }
+        return null;
     }
 
     @NotNull
     @Override
     public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
-        if (!GroupPrincipals.isGroup(principal)) {
+        if (hasDynamicMembershipPrincipals(principal)) {
             try {
                 if (principal instanceof ItemBasedPrincipal) {
                     String path = ((ItemBasedPrincipal) principal).getPath();
@@ -166,7 +177,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                         return getGroupPrincipals(a, t);
                     }
                 } else {
-                    return getGroupPrincipals(userManager.getAuthorizable(principal));
+                    return getGroupPrincipals(userManager.getAuthorizable(principal), false);
                 }
             } catch (RepositoryException e) {
                 log.debug(e.getMessage());
@@ -180,7 +191,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @Override
     public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         try {
-            return getGroupPrincipals(userManager.getAuthorizable(userID));
+            return getGroupPrincipals(userManager.getAuthorizable(userID), true);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
             return ImmutableSet.of();
@@ -190,14 +201,20 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-        if (PrincipalManager.SEARCH_TYPE_NOT_GROUP != searchType && !hasOnlyDynamicGroups) {
-            Result result = findPrincipals(Strings.nullToEmpty(nameHint), false);
-            if (result != null) {
-                return Iterators.filter(new GroupPrincipalIterator(nameHint, result), Objects::nonNull);
-            }
+        // this provider only serves GroupPrincipal instances for external group accounts that have
+        // not been synchronized into the repository. if groups for all configured IDPs are synchronzied as
+        // dynamic groups the default principal-provider backed by user/group accounts will be in charge.
+        if (PrincipalManager.SEARCH_TYPE_NOT_GROUP == searchType || hasOnlyDynamicGroups) {
+            return Collections.emptyIterator();
         }
-
-        return Collections.emptyIterator();
+        
+        // search for external group principals that have not been synchronzied into the repository
+        Result result = findPrincipals(Strings.nullToEmpty(nameHint), false);
+        if (result != null) {
+            return Iterators.filter(new GroupPrincipalIterator(nameHint, result), Objects::nonNull);
+        } else {
+            return Collections.emptyIterator();
+        }
     }
 
     @NotNull
@@ -317,38 +334,62 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
+    @Nullable
+    private static String getIdpName(@NotNull ResultRow row) {
+        return getIdpName(row.getTree(null));
+    }
+
     @NotNull
-    private Set<Principal> getGroupPrincipals(@Nullable Authorizable authorizable) throws RepositoryException {
-        if (authorizable != null && !authorizable.isGroup()) {
-            return getGroupPrincipals(authorizable, DynamicGroupUtil.getTree(authorizable, root));
-        } else {
+    private Set<Principal> getGroupPrincipals(@Nullable Authorizable authorizable, boolean ignoreGroup) throws RepositoryException {
+        if (authorizable == null || (authorizable.isGroup() && ignoreGroup)) {
             return ImmutableSet.of();
+        } else {
+            return getGroupPrincipals(authorizable, DynamicGroupUtil.getTree(authorizable, root));
         }
     }
 
     @NotNull
-    private Set<Principal> getGroupPrincipals(@NotNull Authorizable authorizable, @NotNull Tree userTree) {
-        if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER)) {
-            PropertyState ps = userTree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+    private Set<Principal> getGroupPrincipals(@NotNull Authorizable authorizable, @NotNull Tree tree) {
+        if (!tree.exists()) {
+            return Collections.emptySet();
+        }
+        String idpName = getIdpName(tree);
+        if (idpName == null) {
+            // a tree without rep:externalid that would mark a valid synchronized external identity
+            return Collections.emptySet();
+        }
+        if (UserUtil.isType(tree, AuthorizableType.USER)) {
+            PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
                 // we have an 'external' user that has been synchronized with the dynamic-membership option
                 Set<Principal> groupPrincipals = Sets.newHashSet();
                 for (String principalName : ps.getValue(Type.STRINGS)) {
-                    groupPrincipals.add(new ExternalGroupPrincipal(principalName));
+                    groupPrincipals.add(new ExternalGroupPrincipal(principalName, idpName));
                 }
 
                 // add existing group principals as defined with the _autoMembership_ option.
-                String idpName = getIdpName(userTree);
-                if (idpName != null) {
-                    // resolve automembership including inherited group membership
-                    groupPrincipals.addAll(autoMembershipPrincipals.getAutoMembership(idpName, authorizable, true).keySet());
-                }
+                groupPrincipals.addAll(getAutomembershipPrincipals(idpName, authorizable));
                 return groupPrincipals;
+            } else {
+                return Collections.emptySet();
             }
+        } else {
+            // resolve automembership for dynamic groups
+            return getAutomembershipPrincipals(idpName, authorizable);
         }
-        // group principals cannot be retrieved
-        return ImmutableSet.of();
     }
+
+    private Set<Principal> getAutomembershipPrincipals(@NotNull String idpName, @NotNull Authorizable authorizable) {
+        if (authorizable.isGroup()) {
+            // no need to check for 'groupAutoMembershipPrincipals' being null as it is created if 'idpNamesWithDynamicGroups' is not empty
+            return (idpNamesWithDynamicGroups.contains(idpName)) ? 
+                    groupAutoMembershipPrincipals.getAutoMembership(idpName, authorizable, true).keySet() :
+                    Collections.emptySet();
+        } else {
+            return autoMembershipPrincipals.getAutoMembership(idpName, authorizable, true).keySet();
+        }
+    }
+
 
     /**
      * Runs an Oak query searching for {@link #REP_EXTERNAL_PRINCIPAL_NAMES} properties
@@ -415,6 +456,16 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         return false;
     }
     
+    private boolean hasDynamicMembershipPrincipals(@NotNull Principal principal) {
+        if (!GroupPrincipals.isGroup(principal)) {
+            return true;
+        } else if (principal instanceof ExternalGroupPrincipal) {
+            return idpNamesWithDynamicGroups.contains(((ExternalGroupPrincipal) principal).getIdpName());
+        } else {
+            return principal instanceof ItemBasedPrincipal;
+        }
+    }
+    
     //------------------------------------------------------< inner classes >---
 
     /**
@@ -424,9 +475,18 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      */
     private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
 
-        private ExternalGroupPrincipal(@NotNull String principalName) {
+        private final String idpName;
+        
+        private ExternalGroupPrincipal(@NotNull String principalName, @Nullable String idpName) {
             super(principalName);
+            this.idpName = Strings.nullToEmpty(idpName);
+        }
 
+        /**
+         * @return The IDP-name of the external user on which this external-group principal name was contained in the rep:externalPrincipalNames property.
+         */
+        private @NotNull String getIdpName() {
+            return idpName;
         }
 
         @Override
@@ -495,6 +555,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         private final Iterator<? extends ResultRow> rows;
 
         private Iterator<String> propValues = Collections.emptyIterator();
+        private String idpName = "";
 
         private GroupPrincipalIterator(@Nullable String queryString, @NotNull Result queryResult) {
             this.queryString = queryString;
@@ -505,7 +566,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         protected @Nullable Principal getNext() {
             if (!propValues.hasNext()) {
                 if (rows.hasNext()) {
-                    propValues = Iterators.filter(rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Objects::nonNull);
+                    ResultRow row = rows.next();
+                    propValues = Iterators.filter(row.getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Objects::nonNull);
+                    idpName = getIdpName(row);
                 } else {
                     propValues = Collections.emptyIterator();
                 }
@@ -514,7 +577,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 String principalName = propValues.next();
                 if (!processed.contains(principalName) && matchesQuery(principalName) ) {
                     processed.add(principalName);
-                    return new ExternalGroupPrincipal(principalName);
+                    return new ExternalGroupPrincipal(principalName, idpName);
                 }
             }
             return null;

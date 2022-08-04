@@ -20,24 +20,24 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
@@ -67,11 +67,12 @@ import static org.mockito.Mockito.when;
 @RunWith(Parameterized.class)
 public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalProviderTest {
 
-    @Parameterized.Parameters(name = "name={1}")
+    @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] { true, "Nested automembership = true" },
-                new Object[] { false, "Nested automembership = false" });
+                new Object[] { true, false, "Nested automembership = true, Dynamic Groups = false" },
+                new Object[] { false, false, "Nested automembership = false, Dynamic Groups = false" },
+                new Object[] { false, true, "Nested automembership = false, Dynamic Groups = true" });
     }
 
     private static final String USER_AUTO_MEMBERSHIP_GROUP_ID = "testGroup-" + UUID.randomUUID();
@@ -90,6 +91,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
             .thenReturn(Collections.singleton(CONFIG_AUTO_MEMBERSHIP_GROUP_ID)).getMock();
 
     private final boolean nestedAutomembership;
+    private final boolean dynamicGroups;
     
     private Group userAutoMembershipGroup;
     private Group groupAutoMembershipGroup;
@@ -97,8 +99,9 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     private Group baseGroup;
     private Group baseGroup2;
 
-    public PrincipalProviderAutoMembershipTest(boolean nestedAutomembership, @NotNull String name) {
+    public PrincipalProviderAutoMembershipTest(boolean nestedAutomembership, boolean dynamicGroups, @NotNull String name) {
         this.nestedAutomembership = nestedAutomembership;
+        this.dynamicGroups = dynamicGroups;
     }
     
     @Override
@@ -119,7 +122,8 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         }
         root.commit();
 
-        verify(amc, times(2)).getAutoMembership(any(Authorizable.class));
+        int expectedTimes = (dynamicGroups) ? 6 : 3;
+        verify(amc, times(expectedTimes)).getAutoMembership(any(Authorizable.class));
         clearInvocations(amc);
     }
 
@@ -127,16 +131,28 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     @NotNull
     protected DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig syncConfig = super.createSyncConfig();
-        syncConfig.user().setAutoMembership(USER_AUTO_MEMBERSHIP_GROUP_ID, NON_EXISTING_GROUP_ID, USER_ID);
-        syncConfig.group().setAutoMembership(GROUP_AUTO_MEMBERSHIP_GROUP_ID, NON_EXISTING_GROUP_ID2);
-        syncConfig.user().setAutoMembershipConfig(getAutoMembershipConfig());
-
+        syncConfig.user()
+                .setAutoMembership(USER_AUTO_MEMBERSHIP_GROUP_ID, NON_EXISTING_GROUP_ID, USER_ID)
+                .setAutoMembershipConfig(getAutoMembershipConfig());
+        syncConfig.group()
+                .setDynamicGroups(dynamicGroups)
+                .setAutoMembership(GROUP_AUTO_MEMBERSHIP_GROUP_ID, NON_EXISTING_GROUP_ID2)
+                .setAutoMembershipConfig(getAutoMembershipConfig());
         return syncConfig;
     }
 
     @Override
     @NotNull AutoMembershipConfig getAutoMembershipConfig() {
         return amc;
+    }
+
+    @Override
+    @NotNull Set<String> getIdpNamesWithDynamicGroups() {
+        if (dynamicGroups) {
+            return Collections.singleton(idp.getName());
+        } else {
+            return super.getIdpNamesWithDynamicGroups();
+        }
     }
 
     @Override
@@ -161,8 +177,12 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     @Override
     @NotNull
     Set<Principal> getExpectedAllSearchResult(@NotNull String userId) throws Exception {
-        // not automembership principals expected when searching for principals => call super method
-        return super.getExpectedGroupPrincipals(userId);
+        if (dynamicGroups) {
+            return Collections.emptySet();
+        } else {
+            // not automembership principals expected when searching for principals => call super method
+            return super.getExpectedGroupPrincipals(userId);
+        }
     }
 
     @Test
@@ -221,6 +241,45 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         Set<Principal> result = pp.getMembershipPrincipals(um.getAuthorizable(USER_ID).getPrincipal());
         assertTrue(result.stream().map(Principal::getName).noneMatch(USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME::equals));
+    }
+
+    @Test
+    public void testGetMembershipPrincipalsUnknownGroupPrincipal() throws Exception {
+        GroupPrincipal gp = when(mock(GroupPrincipal.class).getName()).thenReturn(idp.getGroup("a").getPrincipalName()).getMock();
+
+        assertTrue(principalProvider.getMembershipPrincipals(gp).isEmpty());
+        verifyNoInteractions(gp);
+    }
+
+    @Test
+    public void testGetMembershipPrincipalsExternalGroupPrincipal() throws Exception {
+        UserManager um = getUserManager(root);
+        User extuser = um.getAuthorizable(USER_ID, User.class);
+        assertNotNull(extuser);
+        
+        Principal externalGroupPrincipal = getExternalGroupPrincipal(extuser.getPrincipal());
+        assertNotNull(externalGroupPrincipal);
+
+        Set<Principal> dynamicGroupMembership = principalProvider.getMembershipPrincipals(externalGroupPrincipal);
+        if (dynamicGroups) {
+            Set<Principal> expected = ImmutableSet.of(groupAutoMembershipGroup.getPrincipal(), configAutoMembershipGroup.getPrincipal());
+            assertEquals(expected, dynamicGroupMembership);        
+        } else {
+            // dynamic-groups not enabled -> group automembership not resolved.
+            assertTrue(dynamicGroupMembership.isEmpty());
+        }
+    }
+    
+    private @Nullable Principal getExternalGroupPrincipal(@NotNull Principal extUserPrincipal) {
+        Iterator<Principal> it = principalProvider.getMembershipPrincipals(extUserPrincipal).iterator();
+        assertTrue(it.hasNext());
+        while (it.hasNext()) {
+            Principal p = it.next();
+            if (!(p instanceof ItemBasedPrincipal)) {
+                return p;
+            }
+        }
+        return null;
     }
 
     @Test

@@ -68,10 +68,7 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
     ExternalGroupPrincipalProvider createPrincipalProvider(@NotNull Root r, @NotNull UserConfiguration uc) {
         Set<String> idpNamesWithDynamicGroups = getIdpNamesWithDynamicGroups();
         boolean hasOnlyDynamicGroups = (idpNamesWithDynamicGroups.size() == 1 && idpNamesWithDynamicGroups.contains(idp.getName()));
-        return new ExternalGroupPrincipalProvider(r, uc, getNamePathMapper(),
-                Collections.singletonMap(idp.getName(), getAutoMembership()),
-                Collections.singletonMap(idp.getName(), getAutoMembershipConfig()),
-                idpNamesWithDynamicGroups, hasOnlyDynamicGroups);    
+        return new ExternalGroupPrincipalProvider(r, uc, getNamePathMapper(), idp.getName(), syncConfig, idpNamesWithDynamicGroups, hasOnlyDynamicGroups);    
     }
 
     @Override
