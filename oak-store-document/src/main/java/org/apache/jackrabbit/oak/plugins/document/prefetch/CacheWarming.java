@@ -25,10 +25,14 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
 public class CacheWarming {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CacheWarming.class);
 
     private final DocumentStore store;
 
@@ -47,6 +51,9 @@ public class CacheWarming {
                 String id = Utils.getIdFromPath(aPath);
                 ids.add(id);
             }
+        }
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Prefetch {} nodes", ids.size());
         }
         store.prefetch(Collection.NODES, ids);
     }

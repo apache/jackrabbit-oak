@@ -19,11 +19,13 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
-import org.junit.After;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -50,36 +53,20 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
-
-    static final String AUTOMEMBERSHIP_GROUP_ID_3 = "autoMembershipGroupId_3";
     
     private AutoMembershipPrincipals amp;
     private final Authorizable authorizable = mock(Authorizable.class);
     
-    private Group automembershipGroup3;
     private final AutoMembershipConfig amConfig = mock(AutoMembershipConfig.class);
     
     @Before
     public void before() throws Exception {
         super.before();
         amp = new AutoMembershipPrincipals(userManager, MAPPING, getAutoMembershipConfigMapping());
-
-        automembershipGroup3 = userManager.createGroup(AUTOMEMBERSHIP_GROUP_ID_3);
-        root.commit();
         
         when(amConfig.getAutoMembership(authorizable)).thenReturn(ImmutableSet.of(automembershipGroup3.getID()));
         when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Iterators.emptyIterator());
         when(amConfig.getAutoMembers(userManager, automembershipGroup3)).thenReturn(Iterators.singletonIterator(authorizable));
-    }
-    
-    @After
-    public void after() throws Exception {
-        try {
-            automembershipGroup3.remove();
-            root.commit();
-        } finally {
-            super.after();
-        }
     }
 
     @Override
@@ -87,15 +74,20 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         return Collections.singletonMap(IDP_VALID_AM, amConfig);
     }
 
+    @NotNull
+    private Set<Principal> getAutoMembership(@NotNull String idpName, @NotNull Authorizable authorizable, boolean includeInherited) {
+        return amp.getAutoMembership(idpName, authorizable, includeInherited).keySet();
+    }
+
     @Test
     public void testGetPrincipalsUnknownIdp() {
-        assertTrue(amp.getAutoMembership("unknown",authorizable).isEmpty());
+        assertTrue(amp.getAutoMembership("unknown",authorizable, false).isEmpty());
         verifyNoInteractions(authorizable, amConfig);
     }
 
     @Test
     public void testGetPrincipalsUnknownGroup() {
-        Collection<Principal> principals = amp.getAutoMembership(IDP_INVALID_AM, authorizable);
+        Collection<Principal> principals = getAutoMembership(IDP_INVALID_AM, authorizable, false);
         assertTrue(principals.isEmpty());
         verifyNoInteractions(authorizable, amConfig);
     }
@@ -104,7 +96,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
     public void testGetPrincipalsMultipleGroups() throws Exception {
         when(amConfig.getAutoMembership(authorizable)).thenReturn(Collections.emptySet());
 
-        Collection<Principal> principals = amp.getAutoMembership(IDP_VALID_AM, authorizable);
+        Collection<Principal> principals = getAutoMembership(IDP_VALID_AM, authorizable, false);
         assertFalse(principals.isEmpty());
         Set<Principal> expected = Sets.newHashSet(automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
         assertEquals(expected, principals);
@@ -112,7 +104,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         // change behavior of automembership-config
         when(amConfig.getAutoMembership(authorizable)).thenReturn(ImmutableSet.of(automembershipGroup3.getID()));
         
-        principals = amp.getAutoMembership(IDP_VALID_AM, authorizable);
+        principals = getAutoMembership(IDP_VALID_AM, authorizable, false);
         assertFalse(principals.isEmpty());
         expected.add(automembershipGroup3.getPrincipal());
         assertEquals(expected, principals);
@@ -123,11 +115,25 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
     
     @Test
     public void testGetPrincipalsMixed() throws Exception {
-        Collection<Principal> principals = amp.getAutoMembership(IDP_MIXED_AM, authorizable);
+        Collection<Principal> principals = getAutoMembership(IDP_MIXED_AM, authorizable, false);
         assertFalse(principals.isEmpty());
         assertEquals(ImmutableSet.of(automembershipGroup1.getPrincipal()), ImmutableSet.copyOf(principals));
         verifyNoInteractions(authorizable, amConfig);
     }
+
+    @Test
+    public void testGetPrincipalsInherited() throws Exception {
+        when(amConfig.getAutoMembership(authorizable)).thenReturn(Collections.emptySet());
+        
+        Group testGroup = getTestGroup(automembershipGroup1, automembershipGroup2);
+
+        Collection<Principal> principals = getAutoMembership(IDP_VALID_AM, authorizable, true);
+        Set<Principal> expected = Sets.newHashSet(testGroup.getPrincipal(), automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
+        assertEquals(expected, principals);
+
+        verifyNoInteractions(authorizable);
+        verify(amConfig).getAutoMembership(authorizable);
+    }    
     
     @Test
     public void testGroupLookupFails() throws Exception {
@@ -135,10 +141,119 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         when(um.getAuthorizable(anyString())).thenThrow(new RepositoryException());
         
         AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(um, MAPPING, getAutoMembershipConfigMapping());
-        assertTrue(amprincipals.getAutoMembership(IDP_VALID_AM, authorizable).isEmpty());
+        assertTrue(amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, false).isEmpty());
         verifyNoInteractions(authorizable);
         verify(amConfig).getAutoMembership(authorizable);
         verifyNoMoreInteractions(amConfig);
+    }
+
+    @Test
+    public void testGroupLookupByPrincipalFails() throws Exception {
+        UserManager um = spy(userManager);
+
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(um, MAPPING, Collections.emptyMap());
+        assertEquals(2, amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, false).size());
+
+        when(um.getAuthorizable(automembershipGroup1.getPrincipal())).thenThrow(new RepositoryException());
+        assertEquals(1, amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, false).size());
+    }
+
+    @Test
+    public void testGroupLookupByPrincipalReturnsUser() throws Exception {
+        UserManager um = spy(userManager);
+
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(um, MAPPING, Collections.emptyMap());
+        assertEquals(2, amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, false).size());
+
+        Authorizable a = mock(Authorizable.class);
+        when(a.isGroup()).thenReturn(false);
+        when(um.getAuthorizable(automembershipGroup1.getPrincipal())).thenReturn(a);
+        assertEquals(1, amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, false).size());
+        
+        verify(a).isGroup();
+    }
+    
+    @Test
+    public void testInheritedGroupLookupFails() throws Exception {
+        UserManager um = spy(userManager);
+
+        Group testGroup = getTestGroup(automembershipGroup1);
+
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(um, MAPPING, Collections.emptyMap());
+        Map<Principal, Group> map = amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, true);
+        assertEquals(3, map.size());
+        
+        // make sure membership lookup for automembershipGroup1 fails
+        Group gr = mock(Group.class);
+        when(gr.isGroup()).thenReturn(true);
+        when(gr.memberOf()).thenThrow(new RepositoryException());
+        
+        when(um.getAuthorizable(automembershipGroup1.getPrincipal())).thenReturn(gr);
+        
+        // principals from cache: looking up group by principal returns 
+        // 'gr' which fails upon memberof call -> should be skipped.
+        map = amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, true);
+        assertEquals(2, map.size());
+
+        verify(gr).isGroup();
+        verify(gr).memberOf();
+        verifyNoMoreInteractions(gr);
+        reset(gr, um);
+    }
+
+    @Test
+    public void testInheritedFromAMConfig() throws Exception {
+        Group testGroup = getTestGroup(automembershipGroup3);
+
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(userManager, Collections.emptyMap(), 
+                getAutoMembershipConfigMapping());
+
+        Map<Principal, Group> map = amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, true);
+        assertEquals(2, map.size());
+        
+        Set<Principal> principals = map.keySet();
+        assertTrue(principals.contains(testGroup.getPrincipal()));
+        assertTrue(principals.contains(automembershipGroup3.getPrincipal()));
+    }
+
+    @Test
+    public void testInheritedGroupPrincipalInvalid() throws Exception {
+        UserManager um = spy(userManager);
+        
+        Group testGroup = getTestGroup(automembershipGroup1);
+        GroupPrincipal p = (GroupPrincipal) testGroup.getPrincipal();
+
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(um, MAPPING, Collections.emptyMap());
+        Map<Principal, Group> map = amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, true);
+        assertEquals(3, map.size());
+
+        // make sure membership lookup for automembershipGroup1 fails
+        Principal invalid = new PrincipalImpl("invalid");
+        Group inherited =  mock(Group.class);
+        when(inherited.isGroup()).thenReturn(true);
+        when(inherited.getPrincipal()).thenReturn(invalid);
+
+        Group gr = mock(Group.class);
+        when(gr.isGroup()).thenReturn(true);
+        when(gr.memberOf()).thenReturn(Iterators.singletonIterator(inherited));
+        when(um.getAuthorizable(automembershipGroup1.getPrincipal())).thenReturn(gr);
+
+        // retrieve from cache
+        map = amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, true);
+        assertEquals(2, map.size());
+
+        Set<Principal> result = map.keySet();
+        assertFalse(result.contains(p));
+        assertFalse(result.contains(invalid));
+        assertFalse(map.containsValue(testGroup));
+
+        verify(gr).isGroup();
+        verify(gr).memberOf();
+        
+        verify(inherited).getPrincipal();
+        verify(inherited).getID();
+        verifyNoMoreInteractions(gr, inherited);
+        reset(gr, inherited, um);
     }
     
     @Test
@@ -149,7 +264,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         AutoMembershipPrincipals amp = new AutoMembershipPrincipals(um, m, m2);
         
         // verify 'getAutoMembership'
-        assertTrue(amp.getAutoMembership(IDP_VALID_AM, authorizable).isEmpty());
+        assertTrue(amp.getAutoMembership(IDP_VALID_AM, authorizable, false).isEmpty());
         
         verify(m, times(1)).size();
         verify(m, times(1)).get(IDP_VALID_AM);
@@ -191,7 +306,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         verifyNoMoreInteractions(m);
         verifyNoInteractions(m2);
 
-        assertTrue(amprincipals.getAutoMembership(IDP_VALID_AM, authorizable).isEmpty());
+        assertTrue(amprincipals.getAutoMembership(IDP_VALID_AM, authorizable, false).isEmpty());
 
         verify(m, times(1)).get(anyString());
         verify(m2, times(1)).get(anyString());
@@ -219,6 +334,26 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         assertTrue(amp.isMember(IDP_MIXED_AM, AUTOMEMBERSHIP_GROUP_ID_1, authorizable));
         assertFalse(amp.isMember(IDP_MIXED_AM, AUTOMEMBERSHIP_GROUP_ID_2, authorizable));
         assertFalse(amp.isMember(IDP_MIXED_AM, AUTOMEMBERSHIP_GROUP_ID_3, authorizable));
+    }
+    
+    @Test
+    public void testIsNotMember() throws Exception {
+        Group testGroup = getTestGroup();
+        assertFalse(amp.isMember(IDP_VALID_AM, testGroup.getID(), authorizable));
+        
+        Group nested = userManager.createGroup("nestedGroup");
+        nested.addMember(testGroup);
+        assertFalse(amp.isMember(IDP_VALID_AM, nested.getID(), authorizable));
+    }
+
+    @Test
+    public void testIsNotInheritedMember() throws Exception {
+        Group testGroup = getTestGroup();
+        assertFalse(amp.isInheritedMember(IDP_VALID_AM, testGroup, authorizable));
+        
+        Group nested = userManager.createGroup("nestedGroup");
+        nested.addMember(testGroup);
+        assertFalse(amp.isInheritedMember(IDP_VALID_AM, nested, authorizable));
     }
     
     @Test

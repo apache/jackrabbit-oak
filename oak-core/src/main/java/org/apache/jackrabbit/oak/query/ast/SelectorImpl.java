@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -368,7 +369,8 @@ public class SelectorImpl extends SourceImpl {
             planIndexName = index.getIndexName(f, rootState);
             cursor = index.query(f, rootState);
         }
-        int prefetchCount = query.getExecutionContext().getSettings().getPrefetchCount();
+        int prefetchCount = query.getQueryOptions().prefetchCount.
+                orElse(query.getExecutionContext().getSettings().getPrefetchCount());
         if (prefetchCount > 0) {
             PrefetchNodeStore store = query.getExecutionContext().getPrefetchNodeStore();
             cursor = Cursors.newPrefetchCursor(cursor, store, prefetchCount,

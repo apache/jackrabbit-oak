@@ -53,7 +53,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
@@ -80,6 +79,12 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         this.namePathMapper = namePathMapper;
         this.autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping, autoMembershipConfigMap);
     }
+
+    AutoMembershipProvider(@NotNull Root root,
+                           @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper,
+                           @NotNull SyncConfigTracker scTracker) {
+        this(root, userManager, namePathMapper, scTracker.getAutoMembership(), scTracker.getAutoMembershipConfig());
+    }
     
     @Override
     public boolean coversAllMembers(@NotNull Group group) {
@@ -103,10 +108,18 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             // not an external user (NOTE: with dynamic membership enabled external groups will not be synced into the repository)
             return false;
         }
-
-        // since this provider is only enabled for dynamic-auto-membership (external groups not synced), the 
-        // 'includeInherited' flag can be ignored.      
-        return autoMembershipPrincipals.isMember(idpName, group.getID(), authorizable);
+        
+        // an external user
+        return isMember(autoMembershipPrincipals, idpName, group, authorizable, includeInherited);
+    }
+    
+    private static boolean isMember(@NotNull AutoMembershipPrincipals amPrincipals, @NotNull String idpName, 
+                                    @NotNull Group group, @NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
+        if (includeInherited) {
+            return amPrincipals.isInheritedMember(idpName, group, authorizable);
+        } else {
+            return amPrincipals.isMember(idpName, group.getID(), authorizable);
+        }
     }
 
     @Override
@@ -116,19 +129,7 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             // not an external user (NOTE: with dynamic membership enabled external groups will not be synced into the repository)
             return RangeIteratorAdapter.EMPTY;
         }
-        Collection<Principal> groupPrincipals = autoMembershipPrincipals.getAutoMembership(idpName, authorizable);
-        Set<Group> groups = groupPrincipals.stream().map(principal -> {
-            try {
-                Authorizable a = userManager.getAuthorizable(principal);
-                if (a != null && a.isGroup()) {
-                    return (Group) a;
-                } else {
-                    return null;
-                }
-            } catch (RepositoryException e) {
-                return null;
-            }
-        }).filter(Objects::nonNull).collect(Collectors.toSet());
+        Collection<Group> groups = autoMembershipPrincipals.getAutoMembership(idpName, authorizable, false).values();
         Iterator<Group> groupIt = new RangeIteratorAdapter(groups);
         
         if (!includeInherited) {

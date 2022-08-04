@@ -418,6 +418,8 @@ public class XPathToSQL2Converter {
                     options.offset = Optional.of(readNumber());
                 } else if (readIf("limit")) {
                     options.limit = Optional.of(readNumber());
+                } else if (readIf("prefetches")) {
+                    options.prefetchCount = Optional.of((int) readNumber());
                 } else if (readIf("prefetch")) {
                     read("(");
                     ArrayList<String> list = new ArrayList<String>();

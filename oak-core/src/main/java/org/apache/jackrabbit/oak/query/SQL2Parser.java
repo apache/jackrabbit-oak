@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -194,6 +195,8 @@ public class SQL2Parser {
                     q.setOffset(readNumber());
                 } else if (readIf("LIMIT")) {
                     q.setLimit(readNumber());
+                } else if (readIf("PREFETCHES")) {
+                    options.prefetchCount = Optional.of((int) readNumber());
                 } else if (readIf("PREFETCH")) {
                     read("(");
                     ArrayList<String> list = new ArrayList<String>();

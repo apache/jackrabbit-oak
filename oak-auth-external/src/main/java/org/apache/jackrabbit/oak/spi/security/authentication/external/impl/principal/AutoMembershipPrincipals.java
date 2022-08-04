@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -31,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -126,70 +126,132 @@ final class AutoMembershipPrincipals {
         return false;
     }
 
+    boolean isInheritedMember(@NotNull String idpName, @NotNull Group group, @NotNull Authorizable authorizable) throws RepositoryException {
+        String groupId = group.getID();
+        if (isMember(idpName, groupId, authorizable)) {
+            return true;
+        }
+        
+        Iterator<Authorizable> declaredGroupMembers = Iterators.filter(group.getDeclaredMembers(), Authorizable::isGroup);
+        while (declaredGroupMembers.hasNext()) {
+            Group grMember = (Group) declaredGroupMembers.next();
+            if (isInheritedMember(idpName, grMember, authorizable)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Returns the group principal that given authorizable is an automatic member of. This method evaluates both the 
      * global auto-membership settings as well as {@link AutoMembershipConfig} if they exist for the given IDP name.
      * 
      * @param idpName The name of an IDP
      * @param authorizable The target user/group
+     * @param includeInherited Flag indicating if inherited groups should be resolved for global automemberbship groups.                    
      * @return A collection of principals the given authorizable is an automatic member of.
      */
     @NotNull
-    Collection<Principal> getAutoMembership(@NotNull String idpName, @NotNull Authorizable authorizable) {
-        ImmutableSet.Builder<Principal> builder = ImmutableSet.builder();
-        
+    Map<Principal,Group> getAutoMembership(@NotNull String idpName, @NotNull Authorizable authorizable, boolean includeInherited) {
         // global auto-membership
-        builder.addAll(collectGlobalAutoMembershipPrincipals(idpName));
-        
+        Map<Principal,Group> map = collectGlobalAutoMembershipPrincipals(idpName);
+        if (includeInherited) {
+            for (Group gr : map.values().toArray(new Group[0])) {
+                collectInheritedPrincipals(gr, map);
+            }
+        }
         // conditional auto-membership
         AutoMembershipConfig config = autoMembershipConfigMap.get(idpName);
         if (config != null) {
-            config.getAutoMembership(authorizable).forEach(groupId -> addVerifiedPrincipal(groupId, builder));
+            config.getAutoMembership(authorizable).forEach(groupId -> addVerifiedPrincipal(groupId, map, includeInherited));
         }
-        return builder.build();
+        return map;
     }
-    
-    @NotNull
-    private Set<Principal> collectGlobalAutoMembershipPrincipals(@NotNull String idpName) {
+
+    private Map<Principal, Group> collectGlobalAutoMembershipPrincipals(@NotNull String idpName) {
+        Map<Principal, Group> map = Maps.newHashMap();
         if (!principalMap.containsKey(idpName)) {
-            ImmutableSet.Builder<Principal> builder = ImmutableSet.builder();
             String[] vs = autoMembershipMapping.get(idpName);
             if (vs != null) {
                 for (String groupId : vs) {
-                    addVerifiedPrincipal(groupId, builder);
+                    addVerifiedPrincipal(groupId, map, false);
                 }
             }
-            Set<Principal> principals = builder.build();
-            principalMap.put(idpName, principals);
-            return principals;
+            // only cache the principal instance but not the group (tree might become disconnected)
+            principalMap.put(idpName, ImmutableSet.copyOf(map.keySet()));
         } else {
-            return principalMap.get(idpName);
-        }
-    }
-    
-    private void addVerifiedPrincipal(@NotNull String groupId, @NotNull ImmutableSet.Builder<Principal> builder) {
-        Principal principal = getVerifiedPrincipal(groupId);
-        if (principal != null) {
-            builder.add(principal);
-        }
-    }
-    
-    @Nullable
-    private Principal getVerifiedPrincipal(@NotNull String groupId) {
-        try {
-            Authorizable gr = userManager.getAuthorizable(groupId);
-            if (gr != null && gr.isGroup()) {
-                Principal grPrincipal = gr.getPrincipal();
-                if (GroupPrincipals.isGroup(grPrincipal)) {
-                    return grPrincipal;
-                } else {
-                    log.warn("Principal of group {} is not of group type -> Ignoring", groupId);
+            // resolve Group objects from cached principals
+            principalMap.get(idpName).forEach(groupPrincipal -> {
+                Group gr = retrieveGroup(groupPrincipal);
+                if (gr != null) {
+                    map.put(groupPrincipal, gr);
                 }
-            } else {
+
+            });
+        }
+        return map;
+    }
+
+    private static void collectInheritedPrincipals(@NotNull Group group,
+                                                   @NotNull Map<Principal, Group> map) {
+        try {
+            Iterator<Group> groups = group.memberOf();
+            while (groups.hasNext()) {
+                Group gr = groups.next();
+                Principal p = getVerifiedPrincipal(gr);
+                if (p != null) {
+                    map.put(p, gr);
+                }
+            }
+        } catch (RepositoryException e) {
+            log.warn("Error while resolving inherited auto-membership", e);
+        }
+    }
+
+    private void addVerifiedPrincipal(@NotNull String groupId, @NotNull Map<Principal,Group> builder,
+                                      boolean includeInherited) {
+        try {
+            Authorizable a = userManager.getAuthorizable(groupId);
+            if (a == null || !a.isGroup()) {
                 log.warn("Configured auto-membership group {} does not exist -> Ignoring", groupId);
+                return;
+            }
+            
+            Group group = (Group) a;
+            Principal principal = getVerifiedPrincipal(group);
+            if (principal != null) {
+                builder.put(principal, group);
+                if (includeInherited) {
+                    collectInheritedPrincipals(group, builder);
+                }
             }
         } catch (RepositoryException e) {
             log.debug("Failed to retrieved 'auto-membership' group with id {}", groupId, e);
+        }
+    }
+
+    @Nullable
+    private static Principal getVerifiedPrincipal(@NotNull Group group) throws RepositoryException {
+        Principal grPrincipal = group.getPrincipal();
+        if (GroupPrincipals.isGroup(grPrincipal)) {
+            return grPrincipal;
+        } else {
+            log.warn("Principal of group {} is not of group type -> Ignoring", group.getID());
+            return null;
+        }
+    }
+
+    @Nullable
+    private Group retrieveGroup(@NotNull Principal principal) {
+        try {
+            Authorizable gr = userManager.getAuthorizable(principal);
+            if (gr != null && gr.isGroup()) {
+                return (Group) gr;
+            } else {
+                log.warn("Cannot retrieve group from principal {} -> Ignoring", principal);
+            }
+        } catch (RepositoryException e) {
+            log.debug("Failed to retrieved 'auto-membership' group for principal {}", principal.getName(), e);
         }
         return null;
     }

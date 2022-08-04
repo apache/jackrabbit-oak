@@ -996,6 +996,34 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     }
 
     @Test
+    public void testGetExternalGroupFromGroupRef() throws Exception {
+        ExternalGroup gr = idp.listGroups().next();
+        ExternalGroup externalGroup = syncCtx.getExternalGroupFromRef(gr.getExternalId());
+        
+        assertNotNull(externalGroup);
+        assertEquals(gr.getId(), externalGroup.getId());
+    }
+    
+    @Test
+    public void testGetExternalGroupFromGroupRefIdpMismatch() throws Exception {
+        ExternalGroup gr = idp.listGroups().next();
+        ExternalIdentityRef ref = new ExternalIdentityRef(gr.getId(), "differentIDP");
+
+        assertNull(syncCtx.getExternalGroupFromRef(ref));
+    }
+
+    @Test
+    public void testGetExternalGroupFromRefFails() {
+        assertNull(syncCtx.getExternalGroupFromRef(new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName())));
+    }
+    
+    @Test
+    public void testGetExternalGroupFromUserRef() throws Exception {
+        ExternalUser user = idp.listUsers().next();
+        assertNull(syncCtx.getExternalGroupFromRef(user.getExternalId()));
+    }
+
+    @Test
     public void testApplyMembershipNonExistingGroup() throws Exception {
         User u = getTestUser();
 
