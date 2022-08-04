@@ -197,7 +197,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             if (DEFAULT_NO_BRANCH != type) {
                 orClauses.add(Filters.eq(SD_TYPE, type.typeCode()));
             } else {
-                result.add(queryForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
+                result.addAll(queryForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
             }
         }
         // OAK-8351: this (last) query only contains SD_TYPE and SD_MAX_REV_TIME_IN_SECS
@@ -211,10 +211,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     @NotNull
-    private Bson queryForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
+    private List<Bson> queryForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
         // default_no_branch split type is special because we can
         // only remove those older than sweep rev
-        List<Bson> orClauses = Lists.newArrayList();
+        List<Bson> result = Lists.newArrayList();
         for (Revision r : sweepRevs) {
             String idSuffix = Utils.getPreviousIdFor(Path.ROOT, r, 0);
             idSuffix = idSuffix.substring(idSuffix.lastIndexOf('-'));
@@ -229,16 +229,14 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                     )
             );
 
-            orClauses.add(Filters.and(
-                    idPathClause,
-                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(r.getTimestamp()))
-            ));
+            long minMaxRevTimeInSecs = Math.min(maxRevTimeInSecs, getModifiedInSecs(r.getTimestamp()));
+            result.add(Filters.and(
+                    Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
+                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
+                    idPathClause
+                    ));
         }
-        return Filters.and(
-                Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
-                Filters.lt(SD_MAX_REV_TIME_IN_SECS, maxRevTimeInSecs),
-                Filters.or(orClauses)
-                );
+        return result;
     }
 
     private void logSplitDocIdsTobeDeleted(Bson query) {
