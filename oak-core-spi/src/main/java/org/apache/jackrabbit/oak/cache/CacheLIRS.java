@@ -1025,7 +1025,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             long start = System.nanoTime();
             try {
                 value = valueLoader.call();
-                loadSuccessCount++;
+                synchronized (this) {
+                    loadSuccessCount++;
+                }
             } catch (Exception e) {
                 loadExceptionCount++;
                 throw new ExecutionException(e);

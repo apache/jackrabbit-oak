@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -247,7 +246,6 @@ public class ConcurrentTest {
         }
     }
 
-    @Ignore("OAK-9879")
     @Test
     public void loadCount() throws Exception {
         for (int i = 0; i < 50; i++) {
