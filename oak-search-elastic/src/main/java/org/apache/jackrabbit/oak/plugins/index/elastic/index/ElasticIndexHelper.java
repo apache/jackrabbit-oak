@@ -222,24 +222,6 @@ class ElasticIndexHelper {
                 } else if (Type.BOOLEAN.equals(type)) {
                     mappingBuilder.field("type", "boolean");
                 } else {
-                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
-                        mappingBuilder.field("type", "text");
-                        mappingBuilder.field("analyzer", "oak_analyzer");
-                        // always add keyword for sorting / faceting as sub-field
-                        mappingBuilder.startObject("fields");
-                        {
-                            mappingBuilder.startObject("keyword")
-                                    .field("type", "keyword")
-                                    .field("ignore_above", 256)
-                                    .endObject();
-                        }
-                        mappingBuilder.endObject();
-                    } else {
-                        // always add keyword for sorting / faceting
-                        mappingBuilder
-                                .field("type", "keyword")
-                                .field("ignore_above", 256);
-                    }
                     mappingBuilder
                             .field("type", "keyword")
                             .field("ignore_above", 256);
