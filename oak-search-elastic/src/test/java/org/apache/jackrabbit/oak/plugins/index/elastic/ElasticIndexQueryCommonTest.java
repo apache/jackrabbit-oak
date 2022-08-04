@@ -58,25 +58,25 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @Override
     public String getContainsValueForEqualityQuery_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"term\":{\"propa\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
     public String getContainsValueForInequalityQuery_native() {
         return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa\"}}," +
-                "{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
+                "{\"bool\":{\"must_not\":[{\"term\":{\"propa\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
     public String getContainsValueForInequalityQueryWithoutAncestorFilter_native() {
         return "\"filter\":[{\"exists\":{\"field\":\"propa\"}},{\"bool\":" +
-                "{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
+                "{\"must_not\":[{\"term\":{\"propa\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
     public String getContainsValueForEqualityInequalityCombined_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"term\":{\"propb.keyword\":{\"value\":\"world\"}}}," +
-                "{\"exists\":{\"field\":\"propa\"}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"term\":{\"propb\":{\"value\":\"world\"}}}," +
+                "{\"exists\":{\"field\":\"propa\"}},{\"bool\":{\"must_not\":[{\"term\":{\"propa\":{\"value\":\"bar\"}}}]";
     }
 
     @Override

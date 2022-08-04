@@ -240,9 +240,20 @@ class ElasticIndexHelper {
                                 .field("type", "keyword")
                                 .field("ignore_above", 256);
                     }
+                    mappingBuilder
+                            .field("type", "keyword")
+                            .field("ignore_above", 256);
                 }
             }
             mappingBuilder.endObject();
+
+            // Create a separate field for full text searches
+            if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                mappingBuilder.startObject(FieldNames.ANALYZED_FIELD_PREFIX + name)
+                        .field("type", "text")
+                        .field("analyzer", "oak_analyzer")
+                        .endObject();
+            }
         }
 
         mappingBuilder.startObject(FieldNames.SPELLCHECK)

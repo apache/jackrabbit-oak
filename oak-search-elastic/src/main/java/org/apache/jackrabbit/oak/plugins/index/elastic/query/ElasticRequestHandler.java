@@ -772,19 +772,19 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.multiMatch(m -> m.fields(uuid)));
     }
 
-    private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {
+    private QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {
         LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
                 .type(TextQueryType.CrossFields);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
-            for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                qsqBuilder.fields(pd.name);
+            for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
+                qsqBuilder.fields(FieldNames.ANALYZED_FIELD_PREFIX + pd.name);
                 qsqBuilder.boost(pd.boost);
             }
         }
-        return qsqBuilder.fields(fieldName);
+        return qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(fieldName));
     }
 
     private Query createQuery(String propertyName, Filter.PropertyRestriction pr, PropertyDefinition defn) {

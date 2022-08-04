@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.elasticsearch.client.indices.CreateIndexRequest;
@@ -52,9 +53,9 @@ public class ElasticIndexHelperTest {
         Map<String, Object> jsonMap = mapper.readValue(request.mappings().streamInput(), Map.class);
 
         Map fooMapping = (Map) ((Map) jsonMap.get("properties")).get("foo");
-        assertThat(fooMapping.get("type"), is("text"));
-        Map fooKeywordMapping = (Map) ((Map) fooMapping.get("fields")).get("keyword");
-        assertThat(fooKeywordMapping.get("type"), is("keyword"));
+        assertThat(fooMapping.get("type"), is("keyword"));
+        Map fooFullTextMapping = (Map) ((Map) jsonMap.get("properties")).get(FieldNames.ANALYZED_FIELD_PREFIX + "foo");
+        assertThat(fooFullTextMapping.get("type"), is("text"));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -90,7 +91,7 @@ public class ElasticIndexHelperTest {
 
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> jsonMappings = mapper.readValue(request.mappings().streamInput(), Map.class);
-        Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get("foo");
+        Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get(FieldNames.ANALYZED_FIELD_PREFIX + "foo");
         assertThat(fooMapping.get("analyzer"), is("oak_analyzer"));
         Map barMapping = (Map) ((Map) jsonMappings.get("properties")).get("bar");
         assertThat(barMapping.get("analyzer"), nullValue());
