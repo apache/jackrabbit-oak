@@ -56,7 +56,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        setTraversalEnabled(false);
         Tree index = root.getTree("/");
         indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
         TestUtil.useV2(indexDefn);
@@ -78,16 +77,27 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         Tree dateProp = TestUtil.enableForOrdered(props, "propDate");
         dateProp.setProperty(FulltextIndexConstants.PROP_TYPE, "Date");
 
+        // Note  - certain tests in this class like #sql2 test regex based like queries.
+        // And since all the tests here use this common full text index - please be careful while adding any new properties.
+        // For example - #sql2() tests with a query on length of name property.
+        // Since this is a fulltext index with a regex property that indexes everything, those property names are also indexed.
+        // So if we add any property with propName that has length equal to what that test expects - that will effectively break the #sql2() test (giving more results).
+        // Ideally one would see the test failing while adding new properties - but there have been cases where this test was ignored due to a different reason
+        // and adding a new property added more failure reasons.
+
+        // So just be careful while changing the test collateral/setup here.
+
         root.commit();
     }
 
+    // TODO : The below 3 tests - #sql1, #sq2 and #sql2FullText need refactoring.
+    //  These are huge tests with multiple queries running and verification happening in the end by comparing against results in an expected test file.
+    //  These could possibly be broken down into several smaller tests instead which would make debugging much easier.
     @Test
     public void sql1() throws Exception {
         test("sql1.txt");
     }
 
-    // TODO: Test failing on Lucene and ES
-    @Ignore("OAK-9858")
     @Test
     public void sql2() throws Exception {
         test("sql2.txt");
@@ -184,8 +194,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         });
     }
 
-    // TODO: Test failing on Lucene and ES
-    @Ignore("OAK-9859")
     @Test
     public void isChildNodeTest() throws Exception {
         Tree tree = root.getTree("/");
