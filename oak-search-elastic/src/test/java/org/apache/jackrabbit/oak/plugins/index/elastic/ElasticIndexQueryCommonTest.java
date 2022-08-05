@@ -93,7 +93,6 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
     }
 
     @Override
-    @Ignore("OAK-9858")
     @Test
     public void sql2FullText() throws Exception {
         super.sql2FullText();
