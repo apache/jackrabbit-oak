@@ -214,6 +214,7 @@ public class ElasticRequestHandler {
             return DEFAULT_SORTS;
         }
         Map<String, List<PropertyDefinition>> indexProperties = elasticIndexDefinition.getPropertiesByName();
+
         boolean hasTieBreaker = false;
         List<SortOptions> list = new ArrayList<>();
         for (QueryIndex.OrderEntry o : sortOrder) {
@@ -225,7 +226,12 @@ public class ElasticRequestHandler {
                 hasTieBreaker = true;
             } else if (JCR_SCORE.equals(sortPropertyName)) {
                 fieldName = "_score";
-            } else if (indexProperties.containsKey(sortPropertyName)) {
+            } else if (indexProperties.containsKey(sortPropertyName) || elasticIndexDefinition.getDefinedRules()
+                    .stream().map(rule -> rule.getConfig(sortPropertyName))
+                    .collect(Collectors.toList()).size() > 0) {
+                // There are 2 conditions in this if statement -
+                // First one returns true if sortPropertyName is one of the defined indexed properties on the index
+                // Second condition returns true if sortPropertyName might not be explicitly defined but covered by a regex property.
                 fieldName = elasticIndexDefinition.getElasticKeyword(sortPropertyName);
             } else {
                 LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
