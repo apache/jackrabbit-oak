@@ -118,38 +118,34 @@ public class TestS3DataStore {
     public void testSecret() throws Exception {
         assumeTrue(isS3Configured());
 
+        S3DataStore s3 = getDataStore();
+        // get ref as record
+        DataRecord refRec = s3.getMetadataRecord("reference.key");
+        assertNotNull("Reference data record null", refRec);
+        byte[] refDirectFromBackend = IOUtils.toByteArray(refRec.getStream());
+        LOG.warn("Ref direct from backend {}", refDirectFromBackend);
+        
+        // reference.key initialized in backend#init() - OAK-9807, so expected reference.key already created
+        byte[] refKey = ((S3Backend) s3.getBackend()).getOrCreateReferenceKey();
+        assertTrue("refKey in memory not equal to the metadata record",
+            Arrays.equals(refKey, refDirectFromBackend));
+        
         Random randomGen = new Random();
-        props = S3DataStoreUtils.getS3Config();
-        props.put("cacheSize", "0");
-        ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
-        bucket = props.getProperty(S3Constants.S3_BUCKET);
-
         byte[] data = new byte[4096];
         randomGen.nextBytes(data);
-        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        DataRecord rec = s3.addRecord(new ByteArrayInputStream(data));
         assertEquals(data.length, rec.getLength());
         String ref = rec.getReference();
         assertNotNull(ref);
 
         String id = rec.getIdentifier().toString();
-
-        S3DataStore s3 = ((S3DataStore) ds);
-        byte[] refKey = ((S3Backend) s3.getBackend()).getOrCreateReferenceKey();
-
+        
         Mac mac = Mac.getInstance("HmacSHA1");
         mac.init(new SecretKeySpec(refKey, "HmacSHA1"));
         byte[] hash = mac.doFinal(id.getBytes("UTF-8"));
         String calcRef = id + ':' + encodeHexString(hash);
 
         assertEquals("getReference() not equal", calcRef, ref);
-
-        DataRecord refRec = s3.getMetadataRecord("reference.key");
-        assertNotNull("Reference data record null", refRec);
-
-        byte[] refDirectFromBackend = IOUtils.toByteArray(refRec.getStream());
-        LOG.warn("Ref direct from backend {}", refDirectFromBackend);
-        assertTrue("refKey in memory not equal to the metadata record",
-            Arrays.equals(refKey, refDirectFromBackend));
     }
 
     @Test
@@ -283,7 +279,9 @@ public class TestS3DataStore {
         assumeTrue(isS3Configured());
         S3DataStore s3ds = getDataStore();
 
-        assertEquals(0, s3ds.getAllMetadataRecords("").size());
+        // reference.key initialized in backend#init() - OAK-9807, so expected 1 record
+        assertEquals(1, s3ds.getAllMetadataRecords("").size());
+        s3ds.deleteAllMetadataRecords("");
 
         String prefixAll = "prefix1";
         String prefixSome = "prefix1.prefix2";
@@ -402,7 +400,8 @@ public class TestS3DataStore {
         assumeTrue(isS3Configured());
         S3DataStore s3ds = getDataStore();
 
-        assertEquals(0, s3ds.getAllMetadataRecords("").size());
+        // reference.key initialized in backend#init() - OAK-9807, so expected 1 record
+        assertEquals(1, s3ds.getAllMetadataRecords("").size());
 
         s3ds.deleteAllMetadataRecords("");
 
