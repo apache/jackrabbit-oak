@@ -177,7 +177,7 @@ public class CacheWarmingTest {
         SortedSet<String> children = new TreeSet<String>();
         // create a bunch of nodes
         // make it 4 levels deep to avoid things like 'readChildren' to be able to use optimizations such as query()
-        for (int i = 0; i < 5*1024; i++) {
+        for (int i = 0; i < 4*1024; i++) {
             String name = "c" + i;
             children.add("/" + name + "/" + name + "/" + name + "/" + name);
             builder.child(name).child(name).child(name).child(name);
@@ -206,10 +206,11 @@ public class CacheWarmingTest {
             assertTrue(root.getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).exists());
         }
         // raw find calls must be reasonably low with prefetch
-        if (prefetch) {
-            assertThat(getRawFindCalls(), lessThan(10));
-        }
+        int rawFindCalls = getRawFindCalls();
         logAndReset("read            ", cds, sw);
+        if (prefetch) {
+            assertThat(rawFindCalls, lessThan(10));
+        }
     }
 
     public static java.util.Collection<String> withParents(java.util.Collection<String> paths) {
