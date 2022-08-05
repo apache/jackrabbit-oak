@@ -736,7 +736,7 @@ public class ElasticRequestHandler {
         String first = pr.first != null ? pr.first.getValue(Type.STRING) : null;
         if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
             // [property]=[value]
-            return Query.of(q -> q.term(t -> t.field(FieldNames.NODE_NAME).value(FieldValue.of(first))));
+            return Query.of(q -> q.term(t -> t.field(elasticIndexDefinition.getElasticKeyword(FieldNames.NODE_NAME)).value(FieldValue.of(first))));
         }
 
         if (pr.isLike) {
