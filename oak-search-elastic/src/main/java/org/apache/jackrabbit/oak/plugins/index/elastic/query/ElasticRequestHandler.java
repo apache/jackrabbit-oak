@@ -732,7 +732,7 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.bool(bqBuilder.build()));
     }
 
-    private static Query nodeName(Filter.PropertyRestriction pr) {
+    private Query nodeName(Filter.PropertyRestriction pr) {
         String first = pr.first != null ? pr.first.getValue(Type.STRING) : null;
         if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
             // [property]=[value]
@@ -746,7 +746,7 @@ public class ElasticRequestHandler {
         throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported " + pr);
     }
 
-    private static Query like(String name, String first) {
+    private Query like(String name, String first) {
         first = first.replace('%', WildcardQuery.WILDCARD_STRING);
         first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
 
@@ -754,19 +754,24 @@ public class ElasticRequestHandler {
         int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
         int len = first.length();
 
+        // Non full text (Non analyzed) properties are keyword types in ES. For those field would be equal to name.
+        // Analyzed properties, however are of text type on which we can't perform wildcard or prefix queries so we use the keyword (sub) field
+        // by appending .keyword to the name here.
+        String field = elasticIndexDefinition.getElasticKeyword(name);
+
         if (indexOfWS == len || indexOfWC == len) {
             // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
-            if (JCR_PATH.equals(name)) {
+            if (JCR_PATH.equals(field)) {
                 return newPrefixPathQuery(first);
             } else {
-                return newPrefixQuery(name, first);
+                return newPrefixQuery(field, first);
             }
         } else {
-            if (JCR_PATH.equals(name)) {
+            if (JCR_PATH.equals(field)) {
                 return newWildcardPathQuery(first);
             } else {
-                return newWildcardQuery(name, first);
+                return newWildcardQuery(field, first);
             }
         }
     }
