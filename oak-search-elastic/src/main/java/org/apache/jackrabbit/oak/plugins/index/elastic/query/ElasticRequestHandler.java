@@ -228,9 +228,7 @@ public class ElasticRequestHandler {
             } else if (JCR_SCORE.equals(sortPropertyName)) {
                 fieldName = "_score";
             } else if (indexProperties.containsKey(sortPropertyName) || elasticIndexDefinition.getDefinedRules()
-                    .stream().map(rule -> Optional.ofNullable(rule.getConfig(sortPropertyName)))
-                    .filter(Optional::isPresent)
-                    .collect(Collectors.toList()).size() > 0) {
+                    .stream().map(rule -> Optional.ofNullable(rule.getConfig(sortPropertyName))).anyMatch(Optional::isPresent)) {
                 // There are 2 conditions in this if statement -
                 // First one returns true if sortPropertyName is one of the defined indexed properties on the index
                 // Second condition returns true if sortPropertyName might not be explicitly defined but covered by a regex property
