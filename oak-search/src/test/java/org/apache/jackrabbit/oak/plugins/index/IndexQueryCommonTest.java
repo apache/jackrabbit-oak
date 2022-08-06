@@ -178,6 +178,26 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void descendantTestWithIndexTagExplain() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a");
+        test.addChild("b");
+        root.commit();
+
+        String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+    }
+
+    // Check if this is a valid behaviour or not ?
+    // This was discovered when we removed setTraversalEnabled(false); from the test setup.
+    @Ignore("Index not picked even when using option tag if traversal cost is lower")
+    @Test
+    public void descendantTestWithIndexTagExplainWithNoData() {
+        String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+    }
+
+    @Test
     public void descendantTest2() throws Exception {
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("name", asList("Hello", "World"), STRINGS);
@@ -581,7 +601,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain /jcr:root/test//*[propa!='bar']";
 
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForInequalityQuery_native()));
+        assertEventually(getAssertionForExplain(query, XPATH, getContainsValueForInequalityQuery_native(), false));
 
         String query2 = "/jcr:root/test//*[propa!='bar']";
 
@@ -600,7 +620,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
 
-        assertEventually(getAssertionForExplainContains(query, SQL2, getContainsValueForNotNullQuery_native()));
+        assertEventually(getAssertionForExplain(query, SQL2, getContainsValueForNotNullQuery_native(), false));
 
         String query2 = "select * from [nt:base] as s where propa is not null and ISDESCENDANTNODE(s, '/test')";
 
@@ -620,7 +640,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain //*[propa!='bar']";
 
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForInequalityQueryWithoutAncestorFilter_native()));
+        assertEventually(getAssertionForExplain(query, XPATH, getContainsValueForInequalityQueryWithoutAncestorFilter_native(), false));
 
         String query2 = "//*[propa!='bar']";
 
@@ -640,7 +660,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "explain /jcr:root/test//*[propa!='bar' and propb='world']";
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForEqualityInequalityCombined_native()));
+        assertEventually(getAssertionForExplain(query, XPATH, getContainsValueForEqualityInequalityCombined_native(), false));
 
         String query2 = "/jcr:root/test//*[propa!='bar' and propb='world']";
         // Expected - nodes with both properties defined and propb with value 'world' and propa with value not equal to bar should be returned
@@ -661,7 +681,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         String query = "explain /jcr:root/test//*[propa='bar']";
 
-        assertEventually(getAssertionForExplainContains(query, XPATH, getContainsValueForEqualityQuery_native()));
+        assertEventually(getAssertionForExplain(query, XPATH, getContainsValueForEqualityQuery_native(), false));
 
         String query2 = "/jcr:root/test//*[propa='bar']";
 
@@ -760,7 +780,9 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
     public abstract String getContainsValueForNotNullQuery_native();
 
-    private Runnable getAssertionForExplainContains(String query, String language, String containValue) {
+    public abstract String getExplainValueForDescendantTestWithIndexTagExplain();
+
+    private Runnable getAssertionForExplain(String query, String language, String expected, boolean matchComplete) {
         return () -> {
             Result result = null;
             try {
@@ -769,7 +791,11 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
                 fail(e.getMessage());
             }
             ResultRow row = result.getRows().iterator().next();
-            assertTrue(row.getValue("plan").toString().contains(containValue));
+            if (matchComplete) {
+                assertEquals(row.getValue("plan").toString(), expected);
+            } else {
+                assertTrue(row.getValue("plan").toString().contains(expected));
+            }
         };
     }
 
