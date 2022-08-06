@@ -232,12 +232,10 @@ public abstract class AbstractQueryTest {
                     // The index definitions in these tests don't have async property set
                     // So lucene, in this case behaves in a sync manner. But the tests fail on Elastic,
                     // since ES indexing is always async.
-                    // The below commit info map (sync-xmode = rt) would make Elastic use RealTimeBulkProcessHandler.
+                    // The below commit info map (sync-mode = rt) would make Elastic use RealTimeBulkProcessHandler.
                     // This would make ES indexes also sync.
                     // This will NOT have any impact on the lucene tests.
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("sync-mode", "rt");
-                    root.commit(map);
+                    root.commit(Collections.singletonMap("sync-mode", "rt"));
                 }
                 w.flush();
             }

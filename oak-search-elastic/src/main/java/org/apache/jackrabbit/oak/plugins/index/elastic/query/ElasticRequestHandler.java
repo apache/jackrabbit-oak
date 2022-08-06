@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
@@ -227,11 +228,13 @@ public class ElasticRequestHandler {
             } else if (JCR_SCORE.equals(sortPropertyName)) {
                 fieldName = "_score";
             } else if (indexProperties.containsKey(sortPropertyName) || elasticIndexDefinition.getDefinedRules()
-                    .stream().map(rule -> rule.getConfig(sortPropertyName))
+                    .stream().map(rule -> Optional.ofNullable(rule.getConfig(sortPropertyName)))
+                    .filter(Optional::isPresent)
                     .collect(Collectors.toList()).size() > 0) {
                 // There are 2 conditions in this if statement -
                 // First one returns true if sortPropertyName is one of the defined indexed properties on the index
-                // Second condition returns true if sortPropertyName might not be explicitly defined but covered by a regex property.
+                // Second condition returns true if sortPropertyName might not be explicitly defined but covered by a regex property
+                // in any of the defined index rules.
                 fieldName = elasticIndexDefinition.getElasticKeyword(sortPropertyName);
             } else {
                 LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
