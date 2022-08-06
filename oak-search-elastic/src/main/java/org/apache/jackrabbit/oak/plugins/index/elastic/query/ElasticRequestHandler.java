@@ -765,13 +765,13 @@ public class ElasticRequestHandler {
         if (indexOfWS == len || indexOfWC == len) {
             // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
-            if (JCR_PATH.equals(field)) {
+            if (JCR_PATH.equals(name)) {
                 return newPrefixPathQuery(first);
             } else {
                 return newPrefixQuery(field, first);
             }
         } else {
-            if (JCR_PATH.equals(field)) {
+            if (JCR_PATH.equals(name)) {
                 return newWildcardPathQuery(first);
             } else {
                 return newWildcardQuery(field, first);
