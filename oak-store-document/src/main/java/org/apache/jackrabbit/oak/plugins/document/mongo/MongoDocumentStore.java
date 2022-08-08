@@ -332,7 +332,7 @@ public class MongoDocumentStore implements DocumentStore {
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
         // if throttling is enabled
-        boolean throttlingEnabled = builder.getThrottlingEnabled();
+        boolean throttlingEnabled = builder.isThrottlingEnabled();
         if (throttlingEnabled) {
             MongoDatabase localDb = connection.getDatabase("local");
             Optional<String> ol = Iterables.tryFind(localDb.listCollectionNames(), s -> Objects.equals(OPLOG_RS, s));
