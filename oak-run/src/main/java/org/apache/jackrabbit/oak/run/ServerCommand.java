@@ -77,6 +77,8 @@ class ServerCommand implements Command {
         OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
         OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
                 .withOptionalArg().defaultsTo("");
+        OptionSpec<Boolean> throttlingEnabled = parser.accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE); // throttling is disabled by default
 
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
@@ -111,11 +113,11 @@ class ServerCommand implements Command {
                 oakFixture = OakFixture.getMongoNS(
                         host.value(options), port.value(options),
                         db, false,
-                        cacheSize * MB);
+                        cacheSize * MB, throttlingEnabled.value(options));
             } else {
                 oakFixture = OakFixture.getMongo(
                         host.value(options), port.value(options),
-                        db, false, cacheSize * MB);
+                        db, false, cacheSize * MB, throttlingEnabled.value(options));
             }
         } else if (fix.equals(OakFixture.OAK_SEGMENT_TAR)) {
             File baseFile = base.value(options);

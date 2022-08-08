@@ -140,48 +140,42 @@ public abstract class OakFixture {
         };
     }
 
-    public static OakFixture getMongo(String uri,
-                                      boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OAK_MONGO, uri,
-                dropDBAfterTest, cacheSize, false, null, 0);
+    public static OakFixture getMongo(String uri, boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
+        return getMongo(OAK_MONGO, uri, dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
     }
 
     public static OakFixture getMongo(String host, int port, String database,
-                                      boolean dropDBAfterTest, long cacheSize) {
+                                      boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
         return getMongo(OAK_MONGO, host, port, database,
-                dropDBAfterTest, cacheSize, false, null, 0);
+                dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
     }
 
     public static OakFixture getMongoNS(String uri,
-                                      boolean dropDBAfterTest, long cacheSize) {
+                                      boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
         return getMongo(OAK_MONGO_NS, uri,
-                dropDBAfterTest, cacheSize, false, null, 0);
+                dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
     }
 
     public static OakFixture getMongoNS(String host, int port, String database,
-                                        boolean dropDBAfterTest, long cacheSize) {
+                                        boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
         return getMongo(OAK_MONGO_NS, host, port, database,
-                dropDBAfterTest, cacheSize, false, null, 0);
+                dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
     }
 
-    public static OakFixture getMongo(String name, final String host,
-                                      final int port, String database,
-                                      final boolean dropDBAfterTest, final long cacheSize,
-                                      final boolean useFileDataStore,
-                                      final File base,
-                                      final int fdsCacheInMB) {
+    public static OakFixture getMongo(String name, final String host, final int port, String database,
+                                      final boolean dropDBAfterTest, final long cacheSize, final boolean useFileDataStore,
+                                      final File base, final int fdsCacheInMB, final boolean throttlingEnabled) {
         if (database == null) {
             database = getUniqueDatabaseName(name);
         }
         String uri = "mongodb://" + host + ":" + port + "/" + database;
-        return getMongo(name, uri, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB);
+        return getMongo(name, uri, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB, throttlingEnabled);
     }
 
     public static OakFixture getMongo(final String name, final String uri,
-                                      final boolean dropDBAfterTest, final long cacheSize,
-                                      final boolean useDataStore,
-                                      final File base, final int dsCacheInMB) {
-        return new MongoFixture(name, uri, dropDBAfterTest, cacheSize, useDataStore, base, dsCacheInMB);
+                                      final boolean dropDBAfterTest, final long cacheSize, final boolean useDataStore,
+                                      final File base, final int dsCacheInMB, final boolean throttlingEnabled) {
+        return new MongoFixture(name, uri, dropDBAfterTest, cacheSize, useDataStore, base, dsCacheInMB, throttlingEnabled);
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
@@ -392,11 +386,9 @@ public abstract class OakFixture {
         return newCompositeMemoryFixture(name);
     }
 
-    public static OakFixture getCompositeMongoStore(String name,
-                                                    String uri,
-                                                    long cacheSize,
-                                                    boolean dropDBAfterTest) {
-        return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize);
+    public static OakFixture getCompositeMongoStore(String name, String uri, long cacheSize, boolean dropDBAfterTest,
+                                                    boolean throttlingEnabled) {
+        return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize, throttlingEnabled);
     }
 
 
@@ -418,15 +410,15 @@ public abstract class OakFixture {
         private final File base;
 
         private final int dsCacheInMB;
+        private final boolean throttlingEnabled;
 
         private List<DocumentNodeStore> nodeStores = new ArrayList<>();
         private BlobStoreFixture blobStoreFixture;
         private BlobStore blobStore;
 
         public MongoFixture(final String name, final String uri,
-                            final boolean dropDBAfterTest, final long cacheSize,
-                            final boolean useDataStore,
-                            final File base, final int dsCacheInMB) {
+                            final boolean dropDBAfterTest, final long cacheSize, final boolean useDataStore,
+                            final File base, final int dsCacheInMB, final boolean throttlingEnabled) {
             super(name);
             this.uri = uri;
             this.dropDBAfterTest = dropDBAfterTest;
@@ -434,6 +426,7 @@ public abstract class OakFixture {
             this.useDataStore = useDataStore;
             this.base = base;
             this.dsCacheInMB = dsCacheInMB;
+            this.throttlingEnabled = throttlingEnabled;
         }
 
         public DocumentNodeStoreBuilder<?> getBuilder(int clusterId) {
@@ -448,7 +441,8 @@ public abstract class OakFixture {
             }.setMongoDB(mongo.getMongoClient(), mongo.getDBName()).
                     memoryCacheSize(cacheSize).
                     setClusterId(clusterId).
-                    setLogging(false);
+                    setLogging(false)
+            .setThrottlingEnabled(throttlingEnabled);
 
             configurePersistentCache(builder);
             setupBlobStore(builder, StatisticsProvider.NOOP);
