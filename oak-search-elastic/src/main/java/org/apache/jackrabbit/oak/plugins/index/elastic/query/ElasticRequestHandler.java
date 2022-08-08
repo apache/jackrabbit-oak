@@ -207,7 +207,7 @@ public class ElasticRequestHandler {
                 }
         );
     }
-    
+
     public @NotNull List<SortOptions> baseSorts() {
         List<QueryIndex.OrderEntry> sortOrder = indexPlan.getSortOrder();
         if (sortOrder == null || sortOrder.isEmpty()) {
@@ -268,7 +268,7 @@ public class ElasticRequestHandler {
         return filter.getPropertyRestrictions().stream()
                 .anyMatch(pr -> QueryConstants.REP_FACET.equals(pr.propertyName));
     }
-    
+
     public Map<String, Aggregation> aggregations() {
         return facetFields().collect(Collectors.toMap(Function.identity(), facetProp -> Aggregation.of(af ->
                 af.terms(tf -> tf.field(elasticIndexDefinition.getElasticKeyword(facetProp))
@@ -746,14 +746,14 @@ public class ElasticRequestHandler {
         throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported " + pr);
     }
 
-    private static Query like(String name, String first) {
-        first = first.replace('%', WildcardQuery.WILDCARD_STRING);
+    private static Query like(String name, String first) {first = first.replace('%', WildcardQuery.WILDCARD_STRING);
         first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
 
-        int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
-        int lastChar = first.length() - 1;
+        // If the query ends in a wildcard string (*) and has no other wildcard characters, use a prefix match query
+        boolean hasSingleWildcardStringAtEnd = first.indexOf(WildcardQuery.WILDCARD_STRING) == first.length() - 1;
+        boolean doesNotContainWildcardChar = first.indexOf(WildcardQuery.WILDCARD_CHAR) == -1;
 
-        if (indexOfWS == lastChar) {
+        if (hasSingleWildcardStringAtEnd && doesNotContainWildcardChar) {
             // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
             if (JCR_PATH.equals(name)) {

@@ -281,6 +281,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         test.addChild("a").setProperty("propa", "humpty");
         test.addChild("b").setProperty("propa", "dumpty");
         test.addChild("c").setProperty("propa", "humpy");
+        test.addChild("d").setProperty("propa", "alice");
         root.commit();
 
         assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
@@ -289,6 +290,18 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
                 ImmutableList.of("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
                 ImmutableList.of("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '_ump%'",
+                ImmutableList.of("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'a_ice%'",
+                ImmutableList.of("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'a_i_e%'",
+                ImmutableList.of("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '_____'",
+                ImmutableList.of("/test/c", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'h%y'",
+                ImmutableList.of("/test/a", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'humpy'",
+                ImmutableList.of("/test/c"));
     }
 
     @Test
