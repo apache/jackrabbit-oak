@@ -678,7 +678,7 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 ### <a name="segment-copy"/> Segment-Copy
 ```
-java -jar oak-run.jar segment-copy SOURCE DESTINATION [--last <REV_COUNT>] [--flat] [--max-size-gb <MAX_SIZE_GB>]
+java -jar oak-run.jar segment-copy SOURCE DESTINATION [--last <REV_COUNT>] [--flat] [--append] [--max-size-gb <MAX_SIZE_GB>]
 ```
 
 The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure or AWS Segment Store), saving the resulted Segment Store at `DESTINATION`. 
@@ -693,7 +693,9 @@ Please refer to the [Remote Segment Stores](#remote-segment-stores) section for 
 
 The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be copied from the journal (default is 1).
 
-The optional `--flat [Boolean]` argument can be specified for allowing the copy process to write the segments at `DESTINATION` in a flat hierarchy, that is without writing them in tar archives. 
+The optional `--flat` argument can be specified for allowing the copy process to write the segments at `DESTINATION` in a flat hierarchy, that is without writing them in tar archives. 
+
+The optional `--append` argument can be specified for running segment copy in append mode. This causes existing segments in `DESTINATION` to be skipped instead of overwritten.
 
 The optional `--max-size-gb <MAX_SIZE_GB>` argument can be used for specifying to copy up to `MAX_SIZE_GB` segments from `SOURCE`.
 

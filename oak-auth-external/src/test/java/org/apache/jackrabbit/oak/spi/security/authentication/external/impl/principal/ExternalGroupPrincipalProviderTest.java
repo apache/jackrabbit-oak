@@ -248,7 +248,8 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
 
         // same as in test before even if the principal is not a tree-based-principal
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(new PrincipalImpl(user.getPrincipal().getName()));
+        Principal notTreeBased = new PrincipalImpl(user.getPrincipal().getName());
+        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(notTreeBased);
         assertEquals(expected, principals);
     }
 

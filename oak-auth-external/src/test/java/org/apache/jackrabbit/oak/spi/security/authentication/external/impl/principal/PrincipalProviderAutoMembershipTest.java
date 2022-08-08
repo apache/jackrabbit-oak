@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -30,8 +31,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.security.Principal;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -56,7 +60,15 @@ import static org.mockito.Mockito.when;
  * Extension of the {@link ExternalGroupPrincipalProviderTest} with 'automembership'
  * configured in the {@link DefaultSyncConfig}.
  */
+@RunWith(Parameterized.class)
 public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalProviderTest {
+
+    @Parameterized.Parameters(name = "name={1}")
+    public static Collection<Object[]> parameters() {
+        return Lists.newArrayList(
+                new Object[] { true, "Nested automembership = true" },
+                new Object[] { false, "Nested automembership = false" });
+    }
 
     private static final String USER_AUTO_MEMBERSHIP_GROUP_ID = "testGroup-" + UUID.randomUUID();
     private static final String USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME = "p-" + USER_AUTO_MEMBERSHIP_GROUP_ID;
@@ -73,17 +85,34 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     private final AutoMembershipConfig amc = when(mock(AutoMembershipConfig.class).getAutoMembership(any(Authorizable.class)))
             .thenReturn(Collections.singleton(CONFIG_AUTO_MEMBERSHIP_GROUP_ID)).getMock();
 
+    private final boolean nestedAutomembership;
+    
     private Group userAutoMembershipGroup;
     private Group groupAutoMembershipGroup;
     private Group configAutoMembershipGroup;
+    private Group baseGroup;
+    private Group baseGroup2;
+
+    public PrincipalProviderAutoMembershipTest(boolean nestedAutomembership, @NotNull String name) {
+        this.nestedAutomembership = nestedAutomembership;
+    }
     
     @Override
     public void before() throws Exception {
         super.before();
 
-        userAutoMembershipGroup = getUserManager(root).createGroup(USER_AUTO_MEMBERSHIP_GROUP_ID, new PrincipalImpl(USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME), null);
-        groupAutoMembershipGroup = getUserManager(root).createGroup(GROUP_AUTO_MEMBERSHIP_GROUP_ID, new PrincipalImpl(GROUP_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME), null);
-        configAutoMembershipGroup = getUserManager(root).createGroup(CONFIG_AUTO_MEMBERSHIP_GROUP_ID, new PrincipalImpl(CONFIG_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME), null);
+        UserManager uMgr = getUserManager(root);
+        userAutoMembershipGroup = uMgr.createGroup(USER_AUTO_MEMBERSHIP_GROUP_ID, new PrincipalImpl(USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME), null);
+        groupAutoMembershipGroup = uMgr.createGroup(GROUP_AUTO_MEMBERSHIP_GROUP_ID, new PrincipalImpl(GROUP_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME), null);
+        configAutoMembershipGroup = uMgr.createGroup(CONFIG_AUTO_MEMBERSHIP_GROUP_ID, new PrincipalImpl(CONFIG_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME), null);
+        if (nestedAutomembership) {
+            baseGroup = uMgr.createGroup("base");
+            baseGroup.addMember(userAutoMembershipGroup);
+            baseGroup.addMember(groupAutoMembershipGroup);
+
+            baseGroup2 = uMgr.createGroup("base2");
+            baseGroup2.addMember(configAutoMembershipGroup);
+        }
         root.commit();
 
         verify(amc, times(2)).getAutoMembership(any(Authorizable.class));
@@ -102,7 +131,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     }
 
     @Override
-    AutoMembershipConfig getAutoMembershipConfig() {
+    @NotNull AutoMembershipConfig getAutoMembershipConfig() {
         return amc;
     }
 
@@ -113,8 +142,14 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
                 .addAll(super.getExpectedGroupPrincipals(userId))
                 .add(userAutoMembershipGroup.getPrincipal())
                 .add(groupAutoMembershipGroup.getPrincipal());
+        if (nestedAutomembership) {
+            builder.add(baseGroup.getPrincipal());
+        }
         if (USER_ID.equals(userId)) {
             builder.add(configAutoMembershipGroup.getPrincipal());
+            if (nestedAutomembership) {
+                builder.add(baseGroup2.getPrincipal());
+            }
         }
         return builder.build();
     }
@@ -151,6 +186,10 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         assertTrue(result.contains(userAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(groupAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(configAutoMembershipGroup.getPrincipal()));
+        if (nestedAutomembership) {
+            assertTrue(result.contains(baseGroup.getPrincipal()));
+            assertTrue(result.contains(baseGroup2.getPrincipal()));
+        }
         assertFalse(result.contains(user.getPrincipal()));
         assertEquals(expected, result);
     }
@@ -188,6 +227,10 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         assertTrue(result.contains(userAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(groupAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(configAutoMembershipGroup.getPrincipal()));
+        if (nestedAutomembership) {
+            assertTrue(result.contains(baseGroup.getPrincipal()));
+            assertTrue(result.contains(baseGroup2.getPrincipal()));
+        }
         assertFalse(result.contains(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()));
         assertEquals(expected, result);
     }
