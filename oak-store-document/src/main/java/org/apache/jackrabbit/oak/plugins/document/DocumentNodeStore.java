@@ -597,7 +597,7 @@ public final class DocumentNodeStore
         }
         this.clusterId = clusterNodeInfo.getId();
 
-        if (builder.getThrottlingEnabled()) {
+        if (builder.isThrottlingEnabled()) {
             s = new ThrottlingDocumentStoreWrapper(s);
         }
 

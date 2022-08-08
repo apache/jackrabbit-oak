@@ -277,7 +277,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
-    public boolean getThrottlingEnabled() {
+    public boolean isThrottlingEnabled() {
         return this.throttlingEnabled;
     }
 
