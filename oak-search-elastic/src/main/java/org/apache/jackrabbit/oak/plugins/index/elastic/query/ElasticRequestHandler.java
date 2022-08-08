@@ -751,10 +751,9 @@ public class ElasticRequestHandler {
         first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
 
         int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
-        int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
-        int len = first.length();
+        int lastChar = first.length() - 1;
 
-        if (indexOfWS == len || indexOfWC == len) {
+        if (indexOfWS == lastChar) {
             // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
             if (JCR_PATH.equals(name)) {

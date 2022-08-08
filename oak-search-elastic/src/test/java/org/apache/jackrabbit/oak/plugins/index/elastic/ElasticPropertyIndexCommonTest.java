@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.PropertyIndexCommonTest;
 import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
 
@@ -39,6 +41,13 @@ public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
     @Override
     protected void createTestIndexNode() {
         setTraversalEnabled(false);
+    }
+
+    @Override
+    @Test
+    @Ignore("OAK-9885")
+    public void likeQueriesWithEscapedChars() throws Exception {
+        super.likeQueriesWithEscapedChars();
     }
 
 }

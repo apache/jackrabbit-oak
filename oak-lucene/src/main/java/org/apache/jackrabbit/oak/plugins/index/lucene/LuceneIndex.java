@@ -765,6 +765,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             if (isLike) {
+                // This code may be unreachable. Adding a log statement to try to identify usages of this code
+                LOG.info("Transforming 'like' constraint {} for restriction {}", first, pr);
                 first = first.replace('%', WildcardQuery.WILDCARD_STRING);
                 first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
 
