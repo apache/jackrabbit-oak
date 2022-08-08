@@ -103,16 +103,16 @@ public class BenchmarkRunner {
         RepositoryFixture[] allFixtures = new RepositoryFixture[]{
                 new JackrabbitRepositoryFixture(benchmarkOptions.getBase().value(options), cacheSize),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
-                OakRepositoryFixture.getMongo(uri,
-                        benchmarkOptions.getDropDBAfterTest().value(options), cacheSize * MB),
+                OakRepositoryFixture.getMongo(uri, benchmarkOptions.getDropDBAfterTest().value(options),
+                        cacheSize * MB, benchmarkOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoWithDS(uri,
                         benchmarkOptions.getDropDBAfterTest().value(options),
                         cacheSize * MB,
                         benchmarkOptions.getBase().value(options),
-                        benchmarkOptions.getFdsCache().value(options)),
+                        benchmarkOptions.getFdsCache().value(options), benchmarkOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoNS(uri,
                         benchmarkOptions.getDropDBAfterTest().value(options),
-                        cacheSize * MB),
+                        cacheSize * MB, benchmarkOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getSegmentTar(benchmarkOptions.getBase().value(options), 256, cacheSize,
                         benchmarkOptions.getMmap().value(options)),
                 OakRepositoryFixture.getSegmentTarWithDataStore(benchmarkOptions.getBase().value(options), 256, cacheSize,
@@ -141,7 +141,7 @@ public class BenchmarkRunner {
                         benchmarkOptions.getMmap().value(options)),
                 OakRepositoryFixture.getCompositeMemoryStore(),
                 OakRepositoryFixture.getCompositeMongoStore(uri, cacheSize * MB,
-                        benchmarkOptions.getDropDBAfterTest().value(options))
+                        benchmarkOptions.getDropDBAfterTest().value(options), benchmarkOptions.isThrottlingEnabled().value(options))
         };
 
         addToBenchMarkList(Arrays.asList(
