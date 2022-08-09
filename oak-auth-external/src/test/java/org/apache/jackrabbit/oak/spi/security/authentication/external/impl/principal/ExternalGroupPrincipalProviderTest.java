@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -70,6 +71,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
@@ -401,8 +403,10 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testGetPrincipalsNonExistingUserTree() throws Exception {
-        Authorizable a = spy(getUserManager(root).getAuthorizable(USER_ID));
+        Authorizable a = mock(Authorizable.class, withSettings().extraInterfaces(User.class));
+        when(a.getID()).thenReturn(USER_ID);
         when(a.getPath()).thenReturn("/path/to/non/existing/item");
+        
         UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
@@ -415,6 +419,9 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Authorizable group = getUserManager(root).createGroup("testGroup");
         Authorizable a = spy(getUserManager(root).getAuthorizable(USER_ID));
         when(a.getPath()).thenReturn(group.getPath());
+        if (a instanceof  TreeAware && group instanceof TreeAware) {
+            when(((TreeAware) a).getTree()).thenReturn(((TreeAware)group).getTree());
+        }
         UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 

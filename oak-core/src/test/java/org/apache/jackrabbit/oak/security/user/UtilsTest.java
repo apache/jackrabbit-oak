@@ -21,8 +21,10 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +37,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class UtilsTest extends AbstractSecurityTest {
 
@@ -148,5 +155,35 @@ public class UtilsTest extends AbstractSecurityTest {
         Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
         when(a.isGroup()).thenReturn(true);
         assertFalse(Utils.isEveryone(a));
+    }
+    
+    @Test
+    public void testGetTreeFromTreeAware() throws Exception {
+        Tree t = mock(Tree.class);
+        Root r = mock(Root.class);
+        
+        Authorizable a = mock(Authorizable.class, withSettings().extraInterfaces(TreeAware.class));
+        when(((TreeAware) a).getTree()).thenReturn(t);
+        
+        assertSame(t, Utils.getTree(a, r));
+        
+        verifyNoInteractions(r);
+        verify((TreeAware) a).getTree();
+        verifyNoMoreInteractions(a);
+    }
+
+    @Test
+    public void testGetTree() throws Exception {
+        Tree t = mock(Tree.class);
+        Root r = when(mock(Root.class).getTree("/user/path")).thenReturn(t).getMock();
+        
+        Authorizable a = mock(Authorizable.class);
+        when(a.getPath()).thenReturn("/user/path");
+        
+        assertSame(t, Utils.getTree(a, r));
+        
+        verify(r).getTree(anyString());
+        verify(a).getPath();
+        verifyNoMoreInteractions(a, r);
     }
 }
