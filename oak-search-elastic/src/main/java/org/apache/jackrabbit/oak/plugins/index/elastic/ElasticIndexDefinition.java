@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -95,6 +96,16 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
 
+    private static final Function<Integer, Boolean> isAnalyzable;
+
+    static {
+        int[] NOT_ANALYZED_TYPES = new int[] {
+                Type.BINARY.tag(), Type.LONG.tag(), Type.DOUBLE.tag(), Type.DECIMAL.tag(), Type.DATE.tag(), Type.BOOLEAN.tag()
+        };
+        Arrays.sort(NOT_ANALYZED_TYPES); // need for binary search
+        isAnalyzable = type -> Arrays.binarySearch(NOT_ANALYZED_TYPES, type) < 0;
+    }
+
     private final String indexPrefix;
     private final String indexAlias;
     public final int bulkActions;
@@ -162,6 +173,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * Returns the index alias on the Elasticsearch cluster. This alias should be used for any query related operations.
      * The actual index name is used only when a reindex is in progress.
+     *
      * @return the Elasticsearch index alias
      */
     public String getIndexAlias() {
@@ -190,7 +202,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     /**
      * Returns the keyword field name mapped in Elasticsearch for the specified property name.
-     *
      * @param propertyName the property name in the index rules
      * @return the field name identifier in Elasticsearch
      */
@@ -201,8 +212,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
             // this can happen for properties that were not explicitly defined (eg: created with a regex)
             return propertyName + ".keyword";
         }
-
-        return propertyName;
+        // Remove this after finishing the migration of the fields in ElasticIndexHelper
+        String field = propertyName;
+        // it's ok to look at the first property since we are sure they all have the same type
+        int type = propertyDefinitions.get(0).getType();
+        if (isAnalyzable.apply(type) && isAnalyzed(propertyDefinitions)) {
+            field += ".keyword";
+        }
+        return field;
     }
 
     public String getElasticTextField(String propertyName) {

@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 
 import java.util.Iterator;
 import java.util.List;
@@ -49,9 +50,11 @@ class ElasticIndex extends FulltextIndex {
     private static final IteratorRewoundStateProvider REWOUND_STATE_PROVIDER_NOOP = () -> 0;
 
     private final ElasticIndexTracker elasticIndexTracker;
+    private final Feature separateFullTextSearchESFieldFeature;
 
-    ElasticIndex(ElasticIndexTracker elasticIndexTracker) {
+    ElasticIndex(ElasticIndexTracker elasticIndexTracker, Feature separateFullTextSearchESFieldFeature) {
         this.elasticIndexTracker = elasticIndexTracker;
+        this.separateFullTextSearchESFieldFeature = separateFullTextSearchESFieldFeature;
     }
 
     @Override
@@ -91,7 +94,7 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
-        return ElasticIndexUtils.toString(new ElasticRequestHandler(plan, getPlanResult(plan), rootState).baseQuery());
+        return ElasticIndexUtils.toString(new ElasticRequestHandler(plan, getPlanResult(plan), rootState, separateFullTextSearchESFieldFeature).baseQuery());
     }
 
     @Override
@@ -99,7 +102,7 @@ class ElasticIndex extends FulltextIndex {
         final Filter filter = plan.getFilter();
         final FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
 
-        final ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
+        final ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState, separateFullTextSearchESFieldFeature);
         final ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
 
         final Iterator<FulltextResultRow> itr;

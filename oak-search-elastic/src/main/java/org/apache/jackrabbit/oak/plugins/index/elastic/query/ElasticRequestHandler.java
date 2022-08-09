@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
@@ -83,6 +82,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.lucene.search.WildcardQuery;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -128,12 +128,15 @@ public class ElasticRequestHandler {
     private final String propertyRestrictionQuery;
     private final NodeState rootState;
 
+    private final Feature separateFullTextSearchESFieldFeature;
+
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
-            NodeState rootState) {
+                          NodeState rootState, Feature separateFullTextSearchESFieldFeature) {
         this.indexPlan = indexPlan;
         this.filter = indexPlan.getFilter();
         this.planResult = planResult;
         this.elasticIndexDefinition = (ElasticIndexDefinition) planResult.indexDefinition;
+        this.separateFullTextSearchESFieldFeature = separateFullTextSearchESFieldFeature;
 
         // Check if native function is supported
         Filter.PropertyRestriction pr = null;
@@ -796,13 +799,26 @@ public class ElasticRequestHandler {
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
                 .type(TextQueryType.CrossFields);
-        if (FieldNames.FULLTEXT.equals(fieldName)) {
-            for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                qsqBuilder.fields(FieldNames.ANALYZED_FIELD_PREFIX + pd.name);
-                qsqBuilder.boost(pd.boost);
+
+        if (separateFullTextSearchESFieldFeature.isEnabled()) {
+            // New behavior
+            if (FieldNames.FULLTEXT.equals(fieldName)) {
+                for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
+                    qsqBuilder.fields(FieldNames.ANALYZED_FIELD_PREFIX + pd.name);
+                    qsqBuilder.boost(pd.boost);
+                }
             }
+            return qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(fieldName));
+        } else {
+            // Old behavior
+            if (FieldNames.FULLTEXT.equals(fieldName)) {
+                for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
+                    qsqBuilder.fields(pd.name);
+                    qsqBuilder.boost(pd.boost);
+                }
+            }
+            return qsqBuilder.fields(fieldName);
         }
-        return qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(fieldName));
     }
 
     private Query createQuery(String propertyName, Filter.PropertyRestriction pr, PropertyDefinition defn) {

@@ -222,9 +222,27 @@ class ElasticIndexHelper {
                 } else if (Type.BOOLEAN.equals(type)) {
                     mappingBuilder.field("type", "boolean");
                 } else {
-                    mappingBuilder
-                            .field("type", "keyword")
-                            .field("ignore_above", 256);
+                    // OAK-9875 - The ES field with the same name as the property should not be used for the full text
+                    // index, it should be used only for the keyword index. The full text index is done separately below.
+                    // We preserve the old mapping in case we find some problem in production with the new mapping.
+                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                        mappingBuilder.field("type", "text");
+                        mappingBuilder.field("analyzer", "oak_analyzer");
+                        // always add keyword for sorting / faceting as sub-field
+                        mappingBuilder.startObject("fields");
+                        {
+                            mappingBuilder.startObject("keyword")
+                                    .field("type", "keyword")
+                                    .field("ignore_above", 256)
+                                    .endObject();
+                        }
+                        mappingBuilder.endObject();
+                    } else {
+                        // always add keyword for sorting / faceting
+                        mappingBuilder
+                                .field("type", "keyword")
+                                .field("ignore_above", 256);
+                    }
                 }
             }
             mappingBuilder.endObject();

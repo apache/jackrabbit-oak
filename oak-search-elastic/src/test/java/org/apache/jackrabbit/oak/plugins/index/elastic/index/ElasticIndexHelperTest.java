@@ -53,9 +53,9 @@ public class ElasticIndexHelperTest {
         Map<String, Object> jsonMap = mapper.readValue(request.mappings().streamInput(), Map.class);
 
         Map fooMapping = (Map) ((Map) jsonMap.get("properties")).get("foo");
-        assertThat(fooMapping.get("type"), is("keyword"));
-        Map fooFullTextMapping = (Map) ((Map) jsonMap.get("properties")).get(FieldNames.ANALYZED_FIELD_PREFIX + "foo");
-        assertThat(fooFullTextMapping.get("type"), is("text"));
+        assertThat(fooMapping.get("type"), is("text"));
+        Map fooKeywordMapping = (Map) ((Map) fooMapping.get("fields")).get("keyword");
+        assertThat(fooKeywordMapping.get("type"), is("keyword"));
     }
 
     @Test(expected = IllegalStateException.class)
