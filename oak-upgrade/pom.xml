@@ -32,8 +32,8 @@
   <description>Tooling for upgrading Jackrabbit repositories to Oak</description>
 
   <properties>
-    <!-- Version of Jackrabbit used for integation into oak-update, see OAK-9890 -->
-    <jackrabbit.oakupdate.version>2.20.4</jackrabbit.oakupdate.version>
+    <!-- Version of Jackrabbit used for integation into oak-upgrade, see OAK-9890 -->
+    <jackrabbit.oakupgrade.version>2.20.4</jackrabbit.oakupgrade.version>
   </properties>
 
   <build>
@@ -139,7 +139,7 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.oakupdate.version}</version>
+      <version>${jackrabbit.oakupgrade.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
