@@ -30,6 +30,8 @@ import java.util.Map;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_DISABLE_MISSING_USERS_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP_DEFAULT;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_EXPIRATION_TIME_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_PATH_PREFIX_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_PROPERTY_MAPPING_DEFAULT;
@@ -99,6 +101,18 @@ public class DefaultSyncConfigImplTest {
         assertArrayEquals(PARAM_GROUP_AUTO_MEMBERSHIP_DEFAULT, groupConfig.getAutoMembership().toArray(new String[0]));
         assertEquals(getMapping(PARAM_GROUP_PROPERTY_MAPPING_DEFAULT), groupConfig.getPropertyMapping());
         assertEquals(PARAM_GROUP_PATH_PREFIX_DEFAULT, groupConfig.getPathPrefix());
+        assertEquals(PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT, groupConfig.getDynamicGroups());
+    }
+
+    @Test
+    public void testGroup() {
+        ConfigurationParameters params = ConfigurationParameters.of(PARAM_GROUP_DYNAMIC_GROUPS, true);
+        DefaultSyncConfig.Group groupConfig = DefaultSyncConfigImpl.of(params).group();
+        assertTrue(groupConfig.getDynamicGroups());
+        
+        params = ConfigurationParameters.of(PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP, false);
+        groupConfig = DefaultSyncConfigImpl.of(params).group();
+        assertFalse(groupConfig.getDynamicGroups());
     }
 
     @Test

@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -29,9 +31,12 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.jcr.RepositoryException;
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -52,9 +57,23 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@RunWith(Parameterized.class)
 public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
-
+    
+    @Parameterized.Parameters(name = "name={1}")
+    public static Collection<Object[]> parameters() {
+        return Lists.newArrayList(
+                new Object[] { false, "Dynamic-Groups = false" },
+                new Object[] { true, "Dynamic-Groups = true" });
+    }
+    
+    private final boolean dynamicGroupsEnabled;
+    
     private AutoMembershipProvider provider;
+
+    public AutoMembershipProviderTest(boolean dynamicGroupsEnabled, @NotNull String name) {
+        this.dynamicGroupsEnabled = dynamicGroupsEnabled;
+    }
 
     @Before
     public void before() throws Exception {
@@ -73,7 +92,19 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     
     @NotNull
     private AutoMembershipProvider createAutoMembershipProvider(@NotNull Root root, @NotNull UserManager userManager) {
-        return new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, getAutoMembershipConfigMapping());
+        Map<String, String[]> groupMapping = (dynamicGroupsEnabled) ? MAPPING_GROUP : null;
+        return new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, groupMapping, getAutoMembershipConfigMapping());
+    }
+    
+    private static void assertMatchingEntries(@NotNull Iterator<Authorizable> it, @NotNull String... expectedIds) {
+        Set<String> ids = ImmutableSet.copyOf(Iterators.transform(it, authorizable -> {
+            try {
+                return authorizable.getID();
+            } catch (RepositoryException repositoryException) {
+                return "";
+            }
+        }));
+        assertEquals(ImmutableSet.copyOf(expectedIds), ids);
     }
 
     @Test
@@ -145,7 +176,15 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup();
         setExternalId(testGroup.getID(), IDP_VALID_AM);
 
-        assertFalse(provider.getMembers(automembershipGroup3, false).hasNext());
+        if (dynamicGroupsEnabled) {
+            // external group does have 'automembershipGroup3' as configured autom-membership
+            assertMatchingEntries(provider.getMembers(automembershipGroup3, false), testGroup.getID());
+
+            // external group doesn't have 'automembershipGroup1' as configured autom-membership
+            assertFalse(provider.getMembers(automembershipGroup1, false).hasNext());
+        } else {
+            assertFalse(provider.getMembers(automembershipGroup3, false).hasNext());
+        }
     }
 
     @Test
@@ -153,7 +192,37 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup();
         setExternalId(testGroup.getID(), IDP_VALID_AM);
 
-        assertFalse(provider.getMembers(automembershipGroup3, true).hasNext());
+        if (dynamicGroupsEnabled) {
+            // external group does have 'automembershipGroup3' as configured autom-membership
+            assertMatchingEntries(provider.getMembers(automembershipGroup3, true), testGroup.getID());
+            
+            // external group doesn't have 'automembershipGroup1' as configured autom-membership
+            assertFalse(provider.getMembers(automembershipGroup1, true).hasNext());
+            
+        } else {
+            assertFalse(provider.getMembers(automembershipGroup3, true).hasNext());
+        }
+    }
+
+    @Test
+    public void testGetMembersMatchingUsersAndGroups() throws Exception {
+        Group testGroup = getTestGroup();
+        setExternalId(testGroup.getID(), IDP_VALID_AM);
+        String testUserId = getTestUser().getID();
+        setExternalId(testUserId, IDP_VALID_AM);
+        
+        // create provider with a group mapping that contains same group as user-mapping
+        if (dynamicGroupsEnabled) {
+            Map<String, String[]> grMapping = ImmutableMap.of(IDP_VALID_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_1});
+            AutoMembershipProvider amp = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, grMapping, getAutoMembershipConfigMapping());
+            // external group does have 'automembershipGroup3' as configured autom-membership
+            Iterator<Authorizable> it = amp.getMembers(automembershipGroup1, false);
+            assertMatchingEntries(it, testGroup.getID(), testUserId);
+        } else {
+            AutoMembershipProvider amp = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, null, getAutoMembershipConfigMapping());
+            Iterator<Authorizable> it = amp.getMembers(automembershipGroup1, false);
+            assertMatchingEntries(it, testUserId);
+        }
     }
     
     @Test
@@ -266,9 +335,18 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup();
         setExternalId(testGroup.getID(), IDP_VALID_AM);
 
-        for (Group gr : new Group[] {automembershipGroup1, automembershipGroup3}) {
-            assertFalse(provider.isMember(gr, testGroup, false));
-            assertFalse(provider.isMember(gr, testGroup, true));
+        if (dynamicGroupsEnabled) {
+            assertTrue(provider.isMember(automembershipGroup3, testGroup, false));
+            assertTrue(provider.isMember(automembershipGroup3, testGroup, true));
+            
+            // automembershipGroup1 not configured for groups
+            assertFalse(provider.isMember(automembershipGroup1, testGroup, false));
+            assertFalse(provider.isMember(automembershipGroup1, testGroup, true));
+        } else {
+            for (Group gr : new Group[] {automembershipGroup1, automembershipGroup3}) {
+                assertFalse(provider.isMember(gr, testGroup, false));
+                assertFalse(provider.isMember(gr, testGroup, true));
+            }
         }
     }
     
@@ -356,8 +434,20 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup();
         setExternalId(testGroup.getID(), IDP_VALID_AM);
 
-        assertFalse(provider.getMembership(testGroup, false).hasNext());
-        assertFalse(provider.getMembership(testGroup, true).hasNext());
+        if (dynamicGroupsEnabled) {
+            Iterator<Group> it = provider.getMembership(testGroup, false);
+            assertTrue(it.hasNext());
+            assertEquals(automembershipGroup3.getID(), it.next().getID());
+            assertFalse(it.hasNext());
+
+            it = provider.getMembership(testGroup, false);
+            assertTrue(provider.getMembership(testGroup, true).hasNext());
+            assertEquals(automembershipGroup3.getID(), it.next().getID());
+            assertFalse(it.hasNext());
+        } else {
+            assertFalse(provider.getMembership(testGroup, false).hasNext());
+            assertFalse(provider.getMembership(testGroup, true).hasNext());
+        }
     }
     
     @Test

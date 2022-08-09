@@ -93,29 +93,42 @@ public class DynamicSyncContext extends DefaultSyncContext {
         if (identity instanceof ExternalUser) {
             return super.sync(identity);
         } else if (identity instanceof ExternalGroup) {
-            try {
-                Group group = getAuthorizable(identity, Group.class);
-                if (group != null) {
-                    // group has been synchronized before -> continue updating for consistency.
-                    return syncGroup((ExternalGroup) identity, group);
-                } else {
-                    // external group has never been synchronized before:
-                    // don't sync external groups into the repository internal user management
-                    // but limit synchronized information to group-principals stored
-                    // separately with each external user such that the subject gets
-                    // properly populated upon login
-                    ExternalIdentityRef ref = identity.getExternalId();
-
-                    log.debug("ExternalGroup {}: Not synchronized as authorizable Group into the repository.", ref.getString());
-
-                    SyncResult.Status status = (isSameIDP(ref)) ? SyncResult.Status.NOP : SyncResult.Status.FOREIGN;
-                    return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, true, -1), status);
-                }
-            } catch (RepositoryException e) {
-                throw new SyncException(e);
+            ExternalIdentityRef ref = identity.getExternalId();
+            if (!isSameIDP(ref)) {
+                // create result in accordance with sync(String) where status is FOREIGN
+                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, true, -1), SyncResult.Status.FOREIGN);
             }
+            return sync((ExternalGroup) identity, ref);
         } else {
             throw new IllegalArgumentException("identity must be user or group but was: " + identity);
+        }
+    }
+    
+    @NotNull
+    private SyncResult sync(@NotNull ExternalGroup identity, @NotNull ExternalIdentityRef ref) throws SyncException {
+        try {
+            Group group = getAuthorizable(identity, Group.class);
+            if (group != null) {
+                // this group has been synchronized before -> continue updating for consistency.
+                return syncGroup(identity, group);
+            } else if (hasDynamicGroups()) {
+                // group does not exist and dynamic-groups option is enabled -> sync the group
+                log.debug("ExternalGroup {}: synchronizing as dynamic group {}.", ref.getString(), identity.getId());
+                group = createGroup(identity);
+                DefaultSyncResultImpl res = syncGroup(identity, group);
+                res.setStatus(SyncResult.Status.ADD);
+                return res;
+            } else {
+                // external group has never been synchronized before and dynamic membership is enabled:
+                // don't sync external groups into the repository internal user management
+                // but limit synchronized information to group-principals stored
+                // separately with each external user such that the subject gets
+                // properly populated upon login
+                log.debug("ExternalGroup {}: Not synchronized as Group into the repository.", ref.getString());
+                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, true, -1), SyncResult.Status.NOP);
+            }
+        } catch (RepositoryException e) {
+            throw new SyncException(e);
         }
     }
 
@@ -127,23 +140,23 @@ public class DynamicSyncContext extends DefaultSyncContext {
         }
 
         boolean groupsSyncedBefore = groupsSyncedBefore(auth);
-        if (groupsSyncedBefore && !config.user().getEnforceDynamicMembership()) {
-            // user has been synchronized before dynamic membership has been turned on and dynamic membership is not enforced
+        if (groupsSyncedBefore && !enforceDynamicSync()) {
+            // user has been synchronized before dynamic membership has been turned on. continue regular sync unless 
+            // either dynamic membership is enforced or dynamic-group option is enabled.
             super.syncMembership(external, auth, depth);
         } else {
-            // retrieve membership of the given external user (up to the configured
-            // depth) and add (or replace) the rep:externalPrincipalNames property
-            // with the accurate collection of principal names.
             try {
-                Value[] vs;
-                if (depth <= 0) {
-                    vs = new Value[0];
-                } else {
-                    Set<String> principalsNames = new HashSet<>();
-                    collectPrincipalNames(principalsNames, external.getDeclaredGroups(), depth);
-                    vs = createValues(principalsNames);
+                Iterable<ExternalIdentityRef> declaredGroupRefs = external.getDeclaredGroups();
+                // store dynamic membership with the user
+                setExternalPrincipalNames(auth, declaredGroupRefs, depth);
+                
+                // if dynamic-group option is enabled -> sync groups without member-information
+                // in case group-membership has been synched before -> clear it
+                if (hasDynamicGroups() && depth > 0) {
+                    createDynamicGroups(declaredGroupRefs, depth);
                 }
-                auth.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
+                
+                // clean up any other membership
                 if (groupsSyncedBefore) {
                     clearGroupMembership(auth);
                 }
@@ -158,6 +171,28 @@ public class DynamicSyncContext extends DefaultSyncContext {
         log.debug("Dynamic membership sync enabled => omit setting auto-membership for {} ", member.getID());
     }
 
+    /**
+     * Retrieve membership of the given external user (up to the configured depth) and add (or replace) the 
+     * rep:externalPrincipalNames property with the accurate collection of principal names.
+     * 
+     * @param authorizable The target synced user
+     * @param declareGroupRefs The declared group references for the external user
+     * @param depth The configured depth to resolve nested groups.
+     * @throws ExternalIdentityException If group principal names cannot be calculated
+     * @throws RepositoryException If another error occurs
+     */
+    private void setExternalPrincipalNames(@NotNull Authorizable authorizable, Iterable<ExternalIdentityRef> declareGroupRefs, long depth) throws ExternalIdentityException, RepositoryException {
+        Value[] vs;
+        if (depth <= 0) {
+            vs = new Value[0];
+        } else {
+            Set<String> principalsNames = new HashSet<>();
+            collectPrincipalNames(principalsNames, declareGroupRefs, depth);
+            vs = createValues(principalsNames);
+        }
+        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
+    }
+    
     /**
      * Recursively collect the principal names of the given declared group
      * references up to the given depth.
@@ -190,20 +225,78 @@ public class DynamicSyncContext extends DefaultSyncContext {
         }
     }
     
-    private Collection<String> clearGroupMembership(@NotNull Authorizable authorizable) throws RepositoryException {
-        Set<String> principalNames = new HashSet<>();
-        Iterator<Group> grpIter = authorizable.declaredMemberOf();
-        while (grpIter.hasNext()) {
-            Group grp = grpIter.next();
-            principalNames.add(grp.getPrincipal().getName());
-            if (isSameIDP(grp)) {
-                grp.removeMember(authorizable);
-                if (!grp.getDeclaredMembers().hasNext()) {
-                    grp.remove();
+    private void createDynamicGroups(@NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, 
+                                     long depth) throws RepositoryException, ExternalIdentityException {
+        for (ExternalIdentityRef groupRef : declaredGroupIdRefs) {
+            ExternalGroup externalGroup = getExternalGroupFromRef(groupRef);
+            if (externalGroup != null) {
+                Group gr = userManager.getAuthorizable(externalGroup.getId(), Group.class);
+                if (gr == null) {
+                    gr = createGroup(externalGroup);
+                }
+                syncGroup(externalGroup, gr);
+                if (depth > 1) {
+                    createDynamicGroups(externalGroup.getDeclaredGroups(),depth-1);
                 }
             }
         }
-        return principalNames;
+    }
+    
+    @NotNull
+    private Collection<String> clearGroupMembership(@NotNull Authorizable authorizable) throws RepositoryException {
+        Set<String> groupPrincipalNames = new HashSet<>();
+        Set<Group> toRemove = new HashSet<>();
+
+        // loop over declared and inherited groups as it has been synchronzied before to clean up any previously 
+        // defined membership to external groups and automembership.
+        // principal-names are collected solely for migration trigger through JXM
+        clearGroupMembership(authorizable, groupPrincipalNames, toRemove);
+        
+        // finally remove external groups that are no longer needed
+        for (Group group : toRemove) {
+            group.remove();
+        }
+        return groupPrincipalNames;
+    }
+    
+    private void clearGroupMembership(@NotNull Authorizable authorizable, @NotNull Set<String> groupPrincipalNames, @NotNull Set<Group> toRemove) throws RepositoryException {
+        Iterator<Group> grpIter = authorizable.declaredMemberOf();
+        Set<String> autoMembership = ((authorizable.isGroup()) ? config.group() : config.user()).getAutoMembership(authorizable);
+        while (grpIter.hasNext()) {
+            Group grp = grpIter.next();
+            if (isSameIDP(grp)) {
+                // collected same-idp group principals for the rep:externalPrincipalNames property 
+                groupPrincipalNames.add(grp.getPrincipal().getName());
+                grp.removeMember(authorizable);
+                clearGroupMembership(grp, groupPrincipalNames, toRemove);
+                if (clearGroup(grp)) {
+                    toRemove.add(grp);
+                }
+            } else if (autoMembership.contains(grp.getID())) {
+                // clear auto-membership
+                grp.removeMember(authorizable);
+                clearGroupMembership(grp, groupPrincipalNames, toRemove);
+            } else {
+                // some other membership that has not been added by the sync process
+                log.debug("TODO");
+            }
+        }
+    }
+    
+    private boolean hasDynamicGroups() {
+        return config.group().getDynamicGroups();
+    }
+    
+    private boolean enforceDynamicSync() {
+        return config.user().getEnforceDynamicMembership() || hasDynamicGroups();
+    }
+    
+    private boolean clearGroup(@NotNull Group group) throws RepositoryException {
+        if (hasDynamicGroups()) {
+            return false;
+        } else {
+            return !group.getDeclaredMembers().hasNext();
+        }
     }
     
     private static boolean groupsSyncedBefore(@NotNull Authorizable authorizable) throws RepositoryException {

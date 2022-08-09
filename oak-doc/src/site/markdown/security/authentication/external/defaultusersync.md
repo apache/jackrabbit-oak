@@ -65,9 +65,8 @@ Extending from the [DefaultSyncContext] this implementation that provides specia
 handling  for external groups in case the [Dynamic Group Membership](#dynamic_membership) 
 option is enabled in the [Configuration](#configuration).
 
-In addition to the properties mentioned above this implementation will additionally create 
-a multivalued STRING property that caches the group principal names of the external 
-user accounts:
+In addition to the properties mentioned above this implementation will create a multivalued STRING property that caches 
+the group principal names of the external user accounts:
 
 - `rep:externalPrincipalNames` : Optional system-maintained property related to [Dynamic Group Membership](#dynamic_membership)
 
@@ -93,7 +92,16 @@ Enabling dynamic membership in the [DefaultSyncConfig] will change the way exter
 groups are synchronized (see also [OAK-4101]).
  
 The details and effects on other security related modules are described in 
-section [Dynamic Membership](dynamic.html). 
+section [Dynamic Membership and Dynamic Groups](dynamic.html). 
+
+<a name="dynamic_groups"></a>
+### Dynamic Groups
+
+As of Oak 1.46.0 there exists the option to leverage [Dynamic Membership](#dynamic_membership) in combination with a 
+new `Dynamic Groups` configuration option (see also [OAK-9803]). If both options are enabled external groups will continue 
+to be synchronized into the repository making sure the user-group relationship can still be inspected using Jackrabbit 
+User Management API without losing the benefits of the dynamic membership.
+See section [Dynamic Membership and Dynamic Groups](dynamic.html) for details and comparison.
 
 <a name="xml_import"></a>
 #### XML Import
@@ -164,8 +172,26 @@ The following constraint violations will be reported:
 | 0076 | Attempt to delete property '%s' from protected external identity node '%s' |
 | 0076 | Attempt to add protected external identity '%s'                            |
 | 0076 | Attempt to add node '%s' to protected external identity node '%s'          |
-| 0076 | Attempt to remove protected external identity '%s'                      |
+| 0076 | Attempt to remove protected external identity '%s'                         |
 | 0076 | Attempt to remove node '%s' from protected external identity               |
+
+##### Enforcing dynamic groups
+
+If `user.dynamicMembership` is enabled together with `group.dynamicGroups` a separate validator will be present to
+make sure no members are added to the dynamic groups through regular API calls (`Group.addMember(Authorizable)` and 
+`Group.addMembers(String...`).
+
+Note, that groups that have been synchronized prior to dynamic synchronization also subject
+to this validator and can no longer have new members added. They will eventually become 
+dynamic upon synchronization of their members, which will wipe out previously written 
+membership information.
+
+The following constraint violation exceptions will be raised upon persisting changes when new members have been added 
+to a dynamic external group:
+
+| Code | Message                                                                    |
+|------|----------------------------------------------------------------------------|
+| 0077 | "Attempt to add members to dynamic group '%s' at '%s'"                     |
 
 <a name="configuration"></a>
 ### Configuration
@@ -190,6 +216,7 @@ The default `SyncHandler` implementations are configured via [DefaultSyncConfig]
 | Group Expiration Time         | `group.expirationTime`        | Duration until a synced group expires (eg. '1h 30m' or '1d'). |
 | Group Path Prefix             | `group.pathPrefix`            | The path prefix used when creating new groups. |
 | Group property mapping        | `group.propertyMapping`       | List mapping definition of local properties from external ones. |
+| Group 'Dynamic Groups'        | `group.dynamicGroups`         | Only takes effect in combination with `user.dynamicMembership` and will result in external groups being synced as dynamic groups. |
 | | | |
 
 #### Automatic Membership with AutoMembershipConfig
@@ -239,3 +266,4 @@ The `ExternalPrincipalConfiguration` defines the following configuration options
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687
 [OAK-4301]: https://issues.apache.org/jira/browse/OAK-4301
 [OAK-9463]: https://issues.apache.org/jira/browse/OAK-9463
+[OAK-9803]: https://issues.apache.org/jira/browse/OAK-9803
