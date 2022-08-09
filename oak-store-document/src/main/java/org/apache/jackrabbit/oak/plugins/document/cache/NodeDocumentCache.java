@@ -438,13 +438,23 @@ public class NodeDocumentCache implements Closeable {
             Lock lock = locks.acquire(id);
             try {
                 NodeDocument cachedDoc = getIfPresent(id);
-                // if an old document is present in the cache, we can simply update it
                 if (cachedDoc != null && isNewer(cachedDoc, d)) {
+                    // if an old document is present in the cache, we can simply update it
                     putInternal(d, tracker);
-                // if the document hasn't been invalidated or added during the tracker lifetime,
-                // we can put it as well
                 } else if (cachedDoc == null && !tracker.mightBeenAffected(id)) {
+                    // if the document hasn't been invalidated or added during the tracker lifetime,
+                    // we can put it as well
                     putInternal(d, tracker);
+                } else {
+                    // in all other cases we don't know if the current document
+                    // is up-to-date. notify the other trackers and invalidate
+                    // the cache
+                    internalMarkChanged(id, tracker);
+                    if (isLeafPreviousDocId(id)) {
+                        prevDocumentsCache.invalidate(new StringValue(id));
+                    } else {
+                        nodeDocumentsCache.invalidate(new StringValue(id));
+                    }
                 }
             } finally {
                 lock.unlock();
