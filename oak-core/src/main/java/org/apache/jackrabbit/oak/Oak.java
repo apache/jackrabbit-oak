@@ -125,6 +125,7 @@ import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -576,6 +577,8 @@ public class Oak {
             newSettings.setLimitReads(this.queryEngineSettings.getLimitReads());
             this.queryEngineSettings = new AnnotatedQueryEngineSettings(newSettings);
         }
+        Feature prefetchFeature = Feature.newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
+        queryEngineSettings.setPrefetchFeature(prefetchFeature);
 
         return this;
     }
