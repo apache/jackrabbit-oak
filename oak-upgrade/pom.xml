@@ -144,7 +144,7 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-spi</artifactId>
-      <version>${jackrabbit.test.version}</version>
+      <version>${jackrabbit.oakupgrade.version}</version>
     </dependency>
 
     <!-- it has to match the version used in jackrabbit-core -->
