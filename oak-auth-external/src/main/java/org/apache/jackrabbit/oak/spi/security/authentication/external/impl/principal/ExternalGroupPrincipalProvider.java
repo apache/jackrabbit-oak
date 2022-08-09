@@ -409,7 +409,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         try {
             Map<String, ? extends PropertyValue> bindings = buildBinding(nameHint, exactMatch);
             String op = (exactMatch) ? " = " : " LIKE ";
-            String statement = "SELECT '" + REP_EXTERNAL_PRINCIPAL_NAMES + "' FROM [rep:User] WHERE PROPERTY(["
+            String statement = "SELECT [" + REP_EXTERNAL_PRINCIPAL_NAMES + "] FROM [rep:User] WHERE PROPERTY(["
                     + REP_EXTERNAL_PRINCIPAL_NAMES + "], '" + PropertyType.TYPENAME_STRING + "')"
                     + op + "$" + BINDING_PRINCIPAL_NAMES + QueryEngine.INTERNAL_SQL2_QUERY;
             return root.getQueryEngine().executeQuery(statement, Query.JCR_SQL2, bindings, namePathMapper.getSessionLocalMappings());
