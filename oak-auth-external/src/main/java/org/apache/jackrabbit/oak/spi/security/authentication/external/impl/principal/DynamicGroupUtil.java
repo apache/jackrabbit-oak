@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -65,7 +66,7 @@ class DynamicGroupUtil {
 
     @NotNull
     static Tree getTree(@NotNull Authorizable authorizable, @NotNull Root root) throws RepositoryException {
-        return root.getTree(authorizable.getPath());
+        return (authorizable instanceof TreeAware) ? ((TreeAware) authorizable).getTree() : root.getTree(authorizable.getPath());
     }
 
     static boolean hasStoredMemberInfo(@NotNull Group group, @NotNull Root root) {

@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("3.3.0")
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.osgi.annotation.versioning.Version;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
+
+/**
+ * Oak internal utility interface to avoid repeated retrieval of an underlying {@link Tree}.
+ * Note, that is is the responsibility of the caller to make user that the content session and root 
+ * used to retrieve {@link TreeAware} object remains the same.
+ */
+public interface TreeAware {
+
+    @NotNull
+    Tree getTree();
+    
+}
