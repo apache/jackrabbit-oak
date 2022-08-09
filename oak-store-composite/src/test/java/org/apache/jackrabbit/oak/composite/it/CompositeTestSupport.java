@@ -18,8 +18,13 @@
  */
 package org.apache.jackrabbit.oak.composite.it;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
+import org.junit.BeforeClass;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 
@@ -46,6 +51,13 @@ public abstract class CompositeTestSupport extends TestSupport {
 
     @Override
     protected ModifiableCompositeOption baseConfiguration() {
+        String bundlePath = System.getProperty("bundle.filename");
+        if (bundlePath == null) {
+            throw new IllegalArgumentException("This IT has to be called with system property 'bundle.filename' set to the path of this bundle jar");
+        }
+        if (!Files.exists(Paths.get(bundlePath))) {
+            throw new IllegalArgumentException("The bundle jar to be tested needs to be built first with 'mvn package'");
+        }
         return composite(
             super.baseConfiguration(),
             logging("INFO"),
@@ -90,7 +102,8 @@ public abstract class CompositeTestSupport extends TestSupport {
     protected static Option logging(String level) {
         return composite(
             mavenBundle("org.ops4j.pax.logging", "pax-logging-api", "1.11.13"),
-            systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value(level)
+            systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value(level),
+            SlingOptions.logback()
         );
     }
 

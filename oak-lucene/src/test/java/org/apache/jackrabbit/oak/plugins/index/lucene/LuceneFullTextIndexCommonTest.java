@@ -17,13 +17,17 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,5 +52,24 @@ public class LuceneFullTextIndexCommonTest extends FullTextIndexCommonTest {
     @After
     public void shutdownExecutor() {
         executorService.shutdown();
+    }
+
+    @Override
+    protected LogCustomizer setupLogCustomizer() {
+        return LogCustomizer.forLogger(LucenePropertyIndex.class.getName()).enable(Level.WARN).create();
+    }
+
+    @Override
+    protected List<String> getExpectedLogMessage() {
+        List<String> expectedLogList = new ArrayList<>();
+        String log1 = "query [Filter(query=select [jcr:path], [jcr:score], * from [nt:base] as a where contains([analyzed_field], 'foo}') /* xpath: " +
+                "//*[jcr:contains(@analyzed_field, 'foo}')] */ fullText=analyzed_field:\"foo}\", path=*)] via org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex failed.";
+        String log2 = "query [Filter(query=select [jcr:path], [jcr:score], * from [nt:base] as a where contains([analyzed_field], 'foo]') /* xpath: " +
+                "//*[jcr:contains(@analyzed_field, 'foo]')] */ fullText=analyzed_field:\"foo]\", path=*)] via org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex failed.";
+
+        expectedLogList.add(log1);
+        expectedLogList.add(log2);
+
+        return expectedLogList;
     }
 }

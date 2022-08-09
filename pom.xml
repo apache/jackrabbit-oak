@@ -179,7 +179,6 @@
           <!-- JCR-2455: Automatic staging of non-Maven release artifacts -->
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
-            <version>1.8</version>
             <executions>
               <execution>
                 <goals>
