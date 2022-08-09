@@ -32,6 +32,8 @@
   <packaging>bundle</packaging>
 
   <properties>
+    <!-- Version of Jackrabbit used for testing, see OAK-9889 -->
+    <jackrabbit.test.version>2.20.4</jackrabbit.test.version>
     <known.issues>
       org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings                                  <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc               <!-- OAK-132 -->
@@ -406,27 +408,27 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-data</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-server</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
        <scope>test</scope>
     </dependency>
     <dependency>
