@@ -281,7 +281,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.Group#getDynamicGroups()
      */
     @Property(
-            label = "Group 'Dynamic Groups'",
+            label = "Dynamic Groups",
             description = "If enabled external identity groups are synchronized as dynamic groups i.e. members/membership " +
                     "is resolved dynamically by a DynamicMembershipProvider. Note: currently this option only takes effect " +
                     "if 'User Dynamic Membership' is enabled.",
