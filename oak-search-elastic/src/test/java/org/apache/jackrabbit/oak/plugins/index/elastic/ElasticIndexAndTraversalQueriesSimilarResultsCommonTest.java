@@ -19,17 +19,17 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.SameQueryResultsWithAndWithoutIndexTest;
+import org.apache.jackrabbit.oak.plugins.index.IndexAndTraversalQueriesSimilarResultsCommonTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
 
-public class ElasticSameQueryResultsWithAndWithoutIndexTest extends SameQueryResultsWithAndWithoutIndexTest {
+public class ElasticIndexAndTraversalQueriesSimilarResultsCommonTest extends IndexAndTraversalQueriesSimilarResultsCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
             new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
-    public ElasticSameQueryResultsWithAndWithoutIndexTest() {
+    public ElasticIndexAndTraversalQueriesSimilarResultsCommonTest() {
         indexOptions = new ElasticIndexOptions();
         super.passingQueries = ImmutableList.of(
                 // Full-text queries

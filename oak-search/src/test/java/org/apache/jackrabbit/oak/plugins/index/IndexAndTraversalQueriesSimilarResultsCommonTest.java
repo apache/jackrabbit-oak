@@ -31,7 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public abstract class SameQueryResultsWithAndWithoutIndexTest extends AbstractQueryTest {
+public abstract class IndexAndTraversalQueriesSimilarResultsCommonTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;

@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
-import org.apache.jackrabbit.oak.plugins.index.SameQueryResultsWithAndWithoutIndexTest;
+import org.apache.jackrabbit.oak.plugins.index.IndexAndTraversalQueriesSimilarResultsCommonTest;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -30,7 +30,7 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LuceneSameQueryResultsWithAndWithoutIndexTest extends SameQueryResultsWithAndWithoutIndexTest {
+public class LuceneIndexAndTraversalQueriesSimilarResultsCommonTest extends IndexAndTraversalQueriesSimilarResultsCommonTest {
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -48,7 +48,7 @@ public class LuceneSameQueryResultsWithAndWithoutIndexTest extends SameQueryResu
         executorService.shutdown();
     }
 
-    public LuceneSameQueryResultsWithAndWithoutIndexTest() {
+    public LuceneIndexAndTraversalQueriesSimilarResultsCommonTest() {
         super.passingQueries = ImmutableList.of(
                 // Full-text queries
                 "/jcr:root//*[jcr:contains(@propa, '*')]",
