@@ -37,6 +37,7 @@ import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.CreateIndexOptions;
 import com.mongodb.client.model.DeleteOptions;
+import com.mongodb.client.model.DropCollectionOptions;
 import com.mongodb.client.model.DropIndexOptions;
 import com.mongodb.client.model.EstimatedDocumentCountOptions;
 import com.mongodb.client.model.FindOneAndDeleteOptions;
@@ -972,6 +973,16 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
     @Override
     public void drop(@NotNull ClientSession clientSession) {
         collection.drop(clientSession);
+    }
+
+    @Override
+    public void drop(DropCollectionOptions dropCollectionOptions) {
+        collection.drop(dropCollectionOptions);
+    }
+
+    @Override
+    public void drop(ClientSession clientSession, DropCollectionOptions dropCollectionOptions) {
+        collection.drop(clientSession, dropCollectionOptions);
     }
 
     @NotNull

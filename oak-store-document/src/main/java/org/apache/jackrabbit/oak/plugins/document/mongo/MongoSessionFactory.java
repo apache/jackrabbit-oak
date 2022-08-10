@@ -101,6 +101,16 @@ class MongoSessionFactory {
         }
 
         @Override
+        public void setSnapshotTimestamp(BsonTimestamp bsonTimestamp) {
+            session.setSnapshotTimestamp(bsonTimestamp);
+        }
+
+        @Override
+        public BsonTimestamp getSnapshotTimestamp() {
+            return session.getSnapshotTimestamp();
+        }
+
+        @Override
         public BsonDocument getClusterTime() {
             return session.getClusterTime();
         }
@@ -113,6 +123,11 @@ class MongoSessionFactory {
         @Override
         public boolean notifyMessageSent() {
             return session.notifyMessageSent();
+        }
+
+        @Override
+        public void notifyOperationInitiated(Object o) {
+            session.notifyOperationInitiated(o);
         }
 
         @NotNull
@@ -147,8 +162,18 @@ class MongoSessionFactory {
         }
 
         @Override
-        public void setPinnedServerAddress(ServerAddress address) {
-            session.setPinnedServerAddress(address);
+        public Object getTransactionContext() {
+            return session.getTransactionContext();
+        }
+
+        @Override
+        public void setTransactionContext(ServerAddress serverAddress, Object o) {
+            session.setTransactionContext(serverAddress, o);
+        }
+
+        @Override
+        public void clearTransactionContext() {
+            session.clearTransactionContext();
         }
 
         @NotNull
