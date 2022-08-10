@@ -99,4 +99,9 @@ public class SegmentArchiveManagerDecorator implements SegmentArchiveManager {
     public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
         delegate.backup(archiveName, backupArchiveName, recoveredEntries);
     }
+
+    @Override
+    public boolean isReadOnly(String archiveName) {
+        return delegate.isReadOnly(archiveName);
+    }
 }
