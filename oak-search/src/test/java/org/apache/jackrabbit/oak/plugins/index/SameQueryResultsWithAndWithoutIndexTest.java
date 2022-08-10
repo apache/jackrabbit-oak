@@ -16,19 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public abstract class SameQueryResultsWithAndWithoutIndexTest extends AbstractQueryTest {
 
@@ -49,29 +50,22 @@ public abstract class SameQueryResultsWithAndWithoutIndexTest extends AbstractQu
         return builder.build(root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild(idxName));
     }
 
-    final private static List<String> testQueries = ImmutableList.of(
-            "/jcr:root//*[@propa]",
-            "/jcr:root//*[@propa > 0]",
-            "/jcr:root//*[@propa > '0']",
-            "/jcr:root//*[@propa = 1.11]",
-            "/jcr:root//*[@propa = '1.11']",
-            "/jcr:root//*[@propa > 1]",
-            "/jcr:root//*[@propa > '1']",
-            "/jcr:root//*[@propa > 1111]",
-            "/jcr:root//*[@propa > '1111']",
-            "/jcr:root//*[@propa = true]",
-            "/jcr:root//*[@propa = 'true']",
-            "/jcr:root//*[@propa = false]",
-            "/jcr:root//*[@propa = 'false']",
-            // Full-text queries
-            "/jcr:root//*[jcr:contains(@propa, '*')]",
-            "/jcr:root//*[jcr:contains(@propa, '123*')]",
-            "/jcr:root//*[jcr:contains(@propa, 'fal*')]"
-    );
+    protected List<String> passingQueries;
+
+    protected List<String> failingQueries;
+
+    @Test
+    public void runPassingQueries() throws Exception {
+        runQueries(passingQueries, false);
+    }
 
     @Ignore("OAK-9874")
     @Test
-    public void similarResultsWithAndWithoutIndex() throws Exception {
+    public void runFailingQueries() throws Exception {
+        runQueries(failingQueries, true);
+    }
+
+    private void runQueries(List<String> testQueries, boolean shouldAllFail) throws Exception {
         Tree test = root.getTree("/").addChild("test");
         test.addChild("long").setProperty("propa", 1234);
         test.addChild("double").setProperty("propa", 1.11);
@@ -100,7 +94,7 @@ public abstract class SameQueryResultsWithAndWithoutIndexTest extends AbstractQu
 
         assertEventually(() -> {
             List<String> result = executeQuery("/jcr:root//*[@propa]", XPATH, true);
-            assert (!result.isEmpty());
+            assertFalse(result.isEmpty());
         });
 
         // Rerun the queries and collect results
@@ -109,23 +103,29 @@ public abstract class SameQueryResultsWithAndWithoutIndexTest extends AbstractQu
             resultsWithIndex.put(query, results);
         }
 
+        ArrayList<String> queriesFailed = new ArrayList<>();
+        ArrayList<String> queriesPassed = new ArrayList<>();
         // Compare the results for all queries
         StringBuilder sb = new StringBuilder();
-        boolean failTest = false;
         for (String query : testQueries) {
             List<String> resultWithIndex = resultsWithIndex.get(query);
             List<String> resultWithoutIndex = resultsWithoutIndex.get(query);
             Collections.sort(resultWithIndex);
             Collections.sort(resultWithoutIndex);
 
-            if (!resultWithIndex.equals(resultWithoutIndex)) {
-                failTest = true;
+            if (resultWithIndex.equals(resultWithoutIndex)) {
+                queriesPassed.add(query);
+            } else {
+                queriesFailed.add(query);
                 sb.append(String.format("Query results differ.\n  Query:         %s\n  With index:    %s\n  Without index: %s\n",
                         query, resultWithIndex, resultWithoutIndex));
             }
         }
-        if (failTest) {
-            fail("Some queries results differ when run with and without index:\n" + sb);
+        if (shouldAllFail) {
+            assertTrue("Expecting all queries to fail, but these have passed: " + queriesPassed,
+                    queriesPassed.isEmpty());
         }
+        assertTrue("Some queries results differ when run with and without index:\n" + sb,
+                queriesFailed.isEmpty());
     }
 }

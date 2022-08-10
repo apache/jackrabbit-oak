@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.SameQueryResultsWithAndWithoutIndexTest;
@@ -30,6 +31,28 @@ public class ElasticSameQueryResultsWithAndWithoutIndexTest extends SameQueryRes
 
     public ElasticSameQueryResultsWithAndWithoutIndexTest() {
         indexOptions = new ElasticIndexOptions();
+        super.passingQueries = ImmutableList.of(
+                // Full-text queries
+                "/jcr:root//*[jcr:contains(@propa, '*')]",
+                "/jcr:root//*[jcr:contains(@propa, '123*')]",
+                "/jcr:root//*[jcr:contains(@propa, 'fal*')]"
+        );
+
+        super.failingQueries = ImmutableList.of(
+                "/jcr:root//*[@propa]",
+                "/jcr:root//*[@propa > 0]",
+                "/jcr:root//*[@propa > '0']",
+                "/jcr:root//*[@propa = 1.11]",
+                "/jcr:root//*[@propa = '1.11']",
+                "/jcr:root//*[@propa > 1]",
+                "/jcr:root//*[@propa > '1']",
+                "/jcr:root//*[@propa > 1111]",
+                "/jcr:root//*[@propa > '1111']",
+                "/jcr:root//*[@propa = true]",
+                "/jcr:root//*[@propa = 'true']",
+                "/jcr:root//*[@propa = false]",
+                "/jcr:root//*[@propa = 'false']"
+        );
     }
 
     @Override
