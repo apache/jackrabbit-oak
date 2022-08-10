@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.*;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
 import org.junit.*;
+import org.osgi.util.converter.Converters;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.*;
 import static java.util.stream.Collectors.toSet;
@@ -217,46 +217,14 @@ public class AzureSegmentStoreServiceTest {
 
     @NotNull
     private static Configuration getConfiguration(String sasToken, String accessKey, String connectionURL) {
-        return new Configuration() {
-            @Override
-            public String accountName() {
-                return AzuriteDockerRule.ACCOUNT_NAME;
-            }
-
-            @Override
-            public String containerName() {
-                return AzureSegmentStoreService.DEFAULT_CONTAINER_NAME;
-            }
-
-            @Override
-            public String accessKey() {
-                return accessKey != null ? accessKey : "";
-            }
-
-            @Override
-            public String rootPath() {
-                return AzureSegmentStoreService.DEFAULT_ROOT_PATH;
-            }
-
-            @Override
-            public String connectionURL() {
-                return connectionURL != null ? connectionURL : "";
-            }
-
-            @Override
-            public String sharedAccessSignature() {
-                return sasToken != null ? sasToken : "";
-            }
-
-            @Override
-            public String blobEndpoint() {
-                return azurite.getBlobEndpoint();
-            }
-
-            @Override
-            public Class<? extends Annotation> annotationType() {
-                return Configuration.class;
-            }
-        };
+        return Converters.standardConverter()
+                .convert(new HashMap<Object, Object>() {{
+                    put("accountName", AzuriteDockerRule.ACCOUNT_NAME);
+                    put("accessKey", accessKey);
+                    put("connectionURL", connectionURL);
+                    put("sharedAccessSignature", sasToken);
+                    put("blobEndpoint", azurite.getBlobEndpoint());
+                }})
+                .to(Configuration.class);
     }
 }
