@@ -577,8 +577,10 @@ public class Oak {
             newSettings.setLimitReads(this.queryEngineSettings.getLimitReads());
             this.queryEngineSettings = new AnnotatedQueryEngineSettings(newSettings);
         }
-        Feature prefetchFeature = Feature.newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
-        queryEngineSettings.setPrefetchFeature(prefetchFeature);
+        if (queryEngineSettings != null) {
+            Feature prefetchFeature = Feature.newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
+            queryEngineSettings.setPrefetchFeature(prefetchFeature);
+        }
 
         return this;
     }
