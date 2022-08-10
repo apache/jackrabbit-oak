@@ -400,6 +400,10 @@ public class TarReader implements Closeable {
      * @param context     An instance of {@link CleanupContext}.
      */
     void mark(Set<UUID> references, Set<UUID> reclaimable, CleanupContext context) throws IOException {
+        if (archiveManager.isReadOnly(this.getFileName())) {
+            return;
+        }
+
         Map<UUID, List<UUID>> graph = getGraph();
         SegmentArchiveEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
@@ -459,6 +463,10 @@ public class TarReader implements Closeable {
      * TarReader}, or {@code null}.
      */
     TarReader sweep(@NotNull Set<UUID> reclaim, @NotNull Set<UUID> reclaimed) throws IOException {
+        if (archiveManager.isReadOnly(this.getFileName())) {
+            return this;
+        }
+
         String name = archive.getName();
         log.debug("Cleaning up {}", name);
 

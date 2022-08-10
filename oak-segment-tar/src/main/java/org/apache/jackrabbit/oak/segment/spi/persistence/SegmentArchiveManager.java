@@ -127,4 +127,16 @@ public interface SegmentArchiveManager {
      * @throws IOException
      */
     void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException;
+
+    /**
+     * Check if the named archive is a read-only archive or not. Read-only archives cannot be
+     * modified, renamed or removed. E.g. they can not be deleted by compaction even if they
+     * no longer contain any referenced segments.
+     *
+     * @return {@code true} if the named archive is read-only, false otherwise.
+     * @param archiveName The name identifying the archive.
+     */
+    default boolean isReadOnly(String archiveName) {
+        return false;
+    }
 }
