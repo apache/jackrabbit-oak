@@ -210,6 +210,10 @@ class CompositionContext {
     }
 
     public void prefetch(Collection<String> paths, NodeState rootState) {
+        if (rootState instanceof CompositeNodeState) {
+            CompositeNodeState compositeRoot = (CompositeNodeState) rootState;
+            rootState = compositeRoot.getNodeState(globalStore);
+        }
         prefetchNodeStore.prefetch(paths, rootState);
     }
 }

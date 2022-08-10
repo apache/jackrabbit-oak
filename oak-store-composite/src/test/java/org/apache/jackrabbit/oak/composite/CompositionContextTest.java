@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -25,6 +29,11 @@ import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class CompositionContextTest {
 
@@ -60,6 +69,21 @@ public class CompositionContextTest {
         assertFalse(ctx.shouldBeComposite("/jcr:system/rep:permissionStore/crx.default"));
         assertFalse(ctx.shouldBeComposite("/content"));
         assertFalse(ctx.shouldBeComposite("/jcr:system/rep:versionStorage"));
+    }
+
+    @Test
+    public void prefetch() {
+        MountInfoProvider mip = Mounts.newBuilder()
+                .mount("libs","/libs")
+                .build();
+        MyStore ns = spy(MyStore.class);
+        CompositionContext ctx = new CompositionContext(mip, ns, Collections.emptyList(), CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
+        NodeState root = EmptyNodeState.EMPTY_NODE;
+        ctx.prefetch(Collections.singletonList("/foo"), ctx.createRootNodeState(root));
+        verify(ns, times(1)).prefetch(any(), same(root));
+    }
+
+    interface MyStore extends NodeStore, PrefetchNodeStore {
     }
 
 }

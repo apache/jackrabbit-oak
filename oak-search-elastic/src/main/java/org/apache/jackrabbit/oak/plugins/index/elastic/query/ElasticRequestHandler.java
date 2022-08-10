@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
@@ -214,6 +215,7 @@ public class ElasticRequestHandler {
             return DEFAULT_SORTS;
         }
         Map<String, List<PropertyDefinition>> indexProperties = elasticIndexDefinition.getPropertiesByName();
+
         boolean hasTieBreaker = false;
         List<SortOptions> list = new ArrayList<>();
         for (QueryIndex.OrderEntry o : sortOrder) {
@@ -225,7 +227,12 @@ public class ElasticRequestHandler {
                 hasTieBreaker = true;
             } else if (JCR_SCORE.equals(sortPropertyName)) {
                 fieldName = "_score";
-            } else if (indexProperties.containsKey(sortPropertyName)) {
+            } else if (indexProperties.containsKey(sortPropertyName) || elasticIndexDefinition.getDefinedRules()
+                    .stream().anyMatch(rule -> rule.getConfig(sortPropertyName) != null)) {
+                // There are 2 conditions in this if statement -
+                // First one returns true if sortPropertyName is one of the defined indexed properties on the index
+                // Second condition returns true if sortPropertyName might not be explicitly defined but covered by a regex property
+                // in any of the defined index rules.
                 fieldName = elasticIndexDefinition.getElasticKeyword(sortPropertyName);
             } else {
                 LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
@@ -466,11 +473,17 @@ public class ElasticRequestHandler {
                 // a double negation since the contains is already of type NOT. The same does
                 // not happen in Lucene because
                 // at this stage the code is parsed with the standard lucene parser.
-                if (contains.getBase() instanceof FullTextTerm) {
-                    visitTerm(contains.getPropertyName(), ((FullTextTerm) contains.getBase()).getText(), null,
-                            contains.isNot());
+                // We could have possibly used ((FullTextTerm)contains.getBase()).getText() to fix this,
+                // but that causes other divergence from behaviour of lucene (such as it removes any escape characters added by client in the jcr query)
+                // So we simply remove the prepending '-' here.
+                String rawText = contains.getRawText();
+                if (contains.getBase() instanceof FullTextTerm && contains.isNot() && rawText.startsWith("-")) {
+                    // Replace the prepending '-' in raw text to avoid double negation
+                    String text = rawText.replaceFirst("-", "");
+                    visitTerm(contains.getPropertyName(), text, null,
+                            true);
                 } else {
-                    visitTerm(contains.getPropertyName(), contains.getRawText(), null, contains.isNot());
+                    visitTerm(contains.getPropertyName(), rawText, null, contains.isNot());
                 }
                 return true;
             }
@@ -726,11 +739,11 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.bool(bqBuilder.build()));
     }
 
-    private static Query nodeName(Filter.PropertyRestriction pr) {
+    private Query nodeName(Filter.PropertyRestriction pr) {
         String first = pr.first != null ? pr.first.getValue(Type.STRING) : null;
         if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
             // [property]=[value]
-            return Query.of(q -> q.term(t -> t.field(FieldNames.NODE_NAME).value(FieldValue.of(first))));
+            return Query.of(q -> q.term(t -> t.field(elasticIndexDefinition.getElasticKeyword(FieldNames.NODE_NAME)).value(FieldValue.of(first))));
         }
 
         if (pr.isLike) {
@@ -740,7 +753,7 @@ public class ElasticRequestHandler {
         throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported " + pr);
     }
 
-    private static Query like(String name, String first) {
+    private Query like(String name, String first) {
         first = first.replace('%', WildcardQuery.WILDCARD_STRING);
         first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
 
@@ -748,19 +761,24 @@ public class ElasticRequestHandler {
         int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
         int len = first.length();
 
+        // Non full text (Non analyzed) properties are keyword types in ES. For those field would be equal to name.
+        // Analyzed properties, however are of text type on which we can't perform wildcard or prefix queries so we use the keyword (sub) field
+        // by appending .keyword to the name here.
+        String field = elasticIndexDefinition.getElasticKeyword(name);
+
         if (indexOfWS == len || indexOfWC == len) {
             // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
             if (JCR_PATH.equals(name)) {
                 return newPrefixPathQuery(first);
             } else {
-                return newPrefixQuery(name, first);
+                return newPrefixQuery(field, first);
             }
         } else {
             if (JCR_PATH.equals(name)) {
                 return newWildcardPathQuery(first);
             } else {
-                return newWildcardQuery(name, first);
+                return newWildcardQuery(field, first);
             }
         }
     }

@@ -33,7 +33,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -71,7 +70,6 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
         System.clearProperty(DocumentNodeStore.SYS_PROP_PREFETCH);
     }
 
-    @Ignore("OAK-9850")
     @Test
     public void cacheConsistency() throws Exception {
         Revision r = newRevision();

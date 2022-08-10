@@ -18,17 +18,22 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -239,6 +244,48 @@ public class ConcurrentTest {
         }
         if (ex[0] != null) {
             throw ex[0];
+        }
+    }
+
+    @Ignore("OAK-9879")
+    @Test
+    public void loadCount() throws Exception {
+        for (int i = 0; i < 50; i++) {
+            runLoadCountTest();
+        }
+    }
+
+    private void runLoadCountTest() throws Exception {
+        CacheLIRS<Integer, Integer> cache =
+                new CacheLIRS.Builder<Integer, Integer>().
+                        segmentCount(1). // put everything in one segment
+                        maximumWeight(100).
+                        averageWeight(10).
+                        build();
+
+        int numThreads = 8;
+        CountDownLatch latch = new CountDownLatch(1);
+        List<Thread> threads = new ArrayList<>();
+        for (int i = 0; i < numThreads; i++) {
+            int v = i;
+            threads.add(new Thread(() -> loadValue(cache, latch, v)));
+        }
+        threads.forEach(Thread::start);
+        latch.countDown();
+        for (Thread t : threads) {
+            t.join();
+        }
+        assertEquals(numThreads, cache.stats().loadCount());
+    }
+
+    private void loadValue(CacheLIRS<Integer, Integer> cache,
+                           CountDownLatch latch,
+                           int value) {
+        try {
+            latch.await();
+            cache.get(value, () -> value);
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
     

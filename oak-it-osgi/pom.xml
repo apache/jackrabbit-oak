@@ -78,13 +78,6 @@
             <nonFilteredFileExtension>docx</nonFilteredFileExtension>
           </nonFilteredFileExtensions>
         </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.maven.shared</groupId>
-            <artifactId>maven-filtering</artifactId>
-            <version>1.3</version>
-          </dependency>
-        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.rat</groupId>

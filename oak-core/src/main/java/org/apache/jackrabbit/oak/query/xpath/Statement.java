@@ -373,6 +373,9 @@ public class Statement {
         if (queryOptions.limit.isPresent()) {
             optionValues.add("limit " + queryOptions.limit.get());
         }
+        if (queryOptions.prefetchCount.isPresent()) {
+            optionValues.add("prefetches " + queryOptions.prefetchCount.get());
+        }
         if (!queryOptions.prefetch.isEmpty()) {
             String list = String.join(", ",
                     Lists.transform(queryOptions.prefetch,

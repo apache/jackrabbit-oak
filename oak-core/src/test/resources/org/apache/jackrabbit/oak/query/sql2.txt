@@ -407,21 +407,22 @@ commit /testRoot + "test2": { "name": "World!" }
 commit /testRoot + "test3": { "name": "Hallo" }
 commit /testRoot + "test4": { "name": "10%" }
 commit /testRoot + "test5": { "name": "10 percent" }
+commit /testRoot + "test6": { "name": "brave" }
 
 select a.name
   from [nt:base] as a
   where a.name is not null and isdescendantnode(a , '/testRoot') order by upper(a.name)
 10 percent
 10%
+brave
 Hallo
 hello
 World!
 
 select [jcr:path]
   from [nt:base]
-  where length(name) = 5
-/testRoot/test
-/testRoot/test3
+  where length(name) = 10
+/testRoot/test5
 
 select [jcr:path]
   from [nt:base]
@@ -440,8 +441,9 @@ select [jcr:path]
 
 select [jcr:path]
   from [nt:base]
-  where name like '%o_%'
-/testRoot/test2
+  where name like '%e_%'
+/testRoot/test
+/testRoot/test5
 
 select [jcr:path]
   from [nt:base]

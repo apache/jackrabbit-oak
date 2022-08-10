@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -28,19 +29,23 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class PasswordChangeActionTest {
 
     private static final String USER_PATH = "/userpath";
 
-    private final NamePathMapper namePathMapper = Mockito.mock(NamePathMapper.class);
+    private final NamePathMapper namePathMapper = mock(NamePathMapper.class);
 
     private PasswordChangeAction pwChangeAction;
 
@@ -49,19 +54,19 @@ public class PasswordChangeActionTest {
     @Before
     public void before() throws Exception {
         pwChangeAction = new PasswordChangeAction();
-        pwChangeAction.init(Mockito.mock(SecurityProvider.class), ConfigurationParameters.EMPTY);
+        pwChangeAction.init(mock(SecurityProvider.class), ConfigurationParameters.EMPTY);
 
-        user = Mockito.mock(User.class);
+        user = mock(User.class);
         when(user.getPath()).thenReturn(USER_PATH);
     }
 
     private static Root createRoot(@Nullable String pw) throws Exception {
-        Tree userTree = Mockito.mock(Tree.class);
+        Tree userTree = mock(Tree.class);
         if (pw != null) {
             String pwHash = PasswordUtil.buildPasswordHash(pw);
             when(userTree.getProperty(UserConstants.REP_PASSWORD)).thenReturn(PropertyStates.createProperty(UserConstants.REP_PASSWORD, pwHash));
         }
-        Root root = Mockito.mock(Root.class);
+        Root root = mock(Root.class);
         when(root.getTree(USER_PATH)).thenReturn(userTree);
         return root;
     }
@@ -88,5 +93,21 @@ public class PasswordChangeActionTest {
         pwChangeAction.onPasswordChange(user, "changedPassword", createRoot(null), namePathMapper);
         verify(user).getPath();
         verifyNoMoreInteractions(user);
+    }
+    
+    @Test
+    public void testUserIsTreeAware() throws Exception {
+        Root r = createRoot("pw");
+        Tree t = r.getTree(USER_PATH);
+        
+        User u = mock(User.class, withSettings().extraInterfaces(TreeAware.class));
+        when(((TreeAware) u).getTree()).thenReturn(t);
+
+        pwChangeAction.onPasswordChange(u, "changedPassword", r, namePathMapper);
+        
+        verify(u, never()).getPath();
+        verify(((TreeAware) u)).getTree();
+        verify(r).getTree(USER_PATH);
+        verifyNoMoreInteractions(r, u);
     }
 }

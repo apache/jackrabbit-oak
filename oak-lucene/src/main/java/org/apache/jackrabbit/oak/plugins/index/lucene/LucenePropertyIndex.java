@@ -534,7 +534,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                         }
                     }
                 } catch (Exception e) {
-                    LOG.warn("query via {} failed.", LucenePropertyIndex.this, e);
+                    LOG.warn("query [{}] via {} failed.", plan.getFilter() , LucenePropertyIndex.this.getClass().getCanonicalName(), e);
                 } finally {
                     indexNode.release();
                 }

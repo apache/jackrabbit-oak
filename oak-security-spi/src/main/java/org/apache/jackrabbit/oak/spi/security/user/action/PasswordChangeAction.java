@@ -21,7 +21,9 @@ import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -55,7 +57,8 @@ public class PasswordChangeAction extends AbstractAuthorizableAction {
 
     //------------------------------------------------------------< private >---
     @Nullable
-    private String getPasswordHash(@NotNull Root root, @NotNull User user) throws RepositoryException {
-        return TreeUtil.getString(root.getTree(user.getPath()), UserConstants.REP_PASSWORD);
+    private static String getPasswordHash(@NotNull Root root, @NotNull User user) throws RepositoryException {
+        Tree tree = (user instanceof TreeAware) ? ((TreeAware)user).getTree() : root.getTree(user.getPath());
+        return TreeUtil.getString(tree, UserConstants.REP_PASSWORD);
     }
 }
