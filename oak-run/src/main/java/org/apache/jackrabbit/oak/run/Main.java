@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.run.commons.Utils;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-import java.util.Arrays;
 import java.util.Locale;
 
 import static java.util.Arrays.copyOfRange;
@@ -33,13 +32,13 @@ public final class Main {
         // Prevent instantiation.
     }
 
-    public static boolean wasInterrupted = true;
+    public static boolean commandCompleted = false;
 
     public static final String PROP_PRINT_STACK = "printStackTraceOnSignal";
 
-    public static Thread interruptionHandler = new Thread( () -> {
-        if (wasInterrupted) {
-            System.err.println("oak-run was interrupted by a signal and stops");
+    public static Thread shutdownHook = new Thread( () -> {
+        if (!commandCompleted) {
+            System.err.println("oak-run was interrupted by a signal and stopped");
             if (System.getProperty(PROP_PRINT_STACK) != null) {
                 System.err.println("Dumping threads as requested");
                 ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
@@ -51,7 +50,7 @@ public final class Main {
     });
 
     public static void main(String[] args) throws Exception {
-        Runtime.getRuntime().addShutdownHook(interruptionHandler);
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
         Utils.printProductInfo(
             args,
             Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
@@ -69,8 +68,8 @@ public final class Main {
         }
 
         int exitcode = command.execute(args);
-        wasInterrupted = false;
-        // when this point is reached, the interruptionHandler is no longer required; there is a slight
+        commandCompleted = true;
+        // when this point is reached, the shutdownHook is no longer required; there is a slight
         // chance that the signal is arriving now, but we just ignore this case.
         
         System.exit(exitcode);
