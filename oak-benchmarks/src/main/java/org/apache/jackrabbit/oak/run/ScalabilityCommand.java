@@ -24,7 +24,7 @@ class ScalabilityCommand implements Command {
 
     @Override
     public int execute(String... args) throws Exception {
-        return ScalabilityRunner.main(args);
+        return ScalabilityRunner.runTests(args);
     }
 
 }

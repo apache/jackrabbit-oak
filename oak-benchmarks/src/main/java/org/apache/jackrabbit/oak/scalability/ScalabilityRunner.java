@@ -55,8 +55,14 @@ public class ScalabilityRunner {
     protected static ScalabilityOptions scalabilityOptions = null;
     protected static OptionSet options;
     private static boolean initFlag = false;
+    
+    
+    public static void main(String[] args) throws Exception {
+        System.exit(runTests(args));
+    }
+    
 
-    public static int main(String[] args) throws Exception {
+    public static int runTests(String[] args) throws Exception {
         initOptionSet(args);
         OptionSet options = parser.parse(args);
 
