@@ -752,20 +752,36 @@ public class ElasticRequestHandler {
         throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported " + pr);
     }
 
+    // Taken from LucenePropertyIndex
+    private static void replaceWildcard(StringBuilder sb, int position, char oldWildcard, char newWildcard) {
+        if (sb.charAt(position) == oldWildcard) {
+            int escapeCount = 0;
+            for (int m = position - 1; m >= 0 && sb.charAt(m) == WildcardQuery.WILDCARD_ESCAPE; m--, escapeCount++) ;
+            if (escapeCount % 2 == 0) {
+                sb.setCharAt(position, newWildcard);
+            }
+        }
+    }
+
     private Query like(String name, String first) {
-        first = first.replace('%', WildcardQuery.WILDCARD_STRING);
-        first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
+        StringBuilder firstBuilder = new StringBuilder(first);
+        for (int k = 0; k < firstBuilder.length(); k++) {
+            replaceWildcard(firstBuilder, k, '%', WildcardQuery.WILDCARD_STRING);
+            replaceWildcard(firstBuilder, k, '_', WildcardQuery.WILDCARD_CHAR);
+        }
+        first = firstBuilder.toString();
 
         // If the query ends in a wildcard string (*) and has no other wildcard characters, use a prefix match query
-        boolean hasSingleWildcardStringAtEnd = first.indexOf(WildcardQuery.WILDCARD_STRING) == first.length() - 1;
-        boolean doesNotContainWildcardChar = first.indexOf(WildcardQuery.WILDCARD_CHAR) == -1;
+        boolean optimizeToPrefixQuery = first.indexOf(WildcardQuery.WILDCARD_STRING) == first.length() - 1 &&
+                first.indexOf(WildcardQuery.WILDCARD_ESCAPE) == -1 &&
+                first.indexOf(WildcardQuery.WILDCARD_CHAR) == -1;
 
         // Non full text (Non analyzed) properties are keyword types in ES. For those field would be equal to name.
         // Analyzed properties, however are of text type on which we can't perform wildcard or prefix queries so we use the keyword (sub) field
         // by appending .keyword to the name here.
         String field = elasticIndexDefinition.getElasticKeyword(name);
 
-        if (hasSingleWildcardStringAtEnd && doesNotContainWildcardChar) {
+        if (optimizeToPrefixQuery) {
             // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
             if (JCR_PATH.equals(name)) {
