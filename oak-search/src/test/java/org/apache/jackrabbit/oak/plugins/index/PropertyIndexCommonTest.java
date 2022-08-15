@@ -306,9 +306,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void likeQueriesWithEscapedChars() throws Exception {
-        indexOptions.setIndex(
-                root,
-                "test1",
+        indexOptions.setIndex(root, "test1",
                 indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
         );
         Tree test = root.getTree("/").addChild("test");
