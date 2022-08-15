@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.IndexAndTraversalQueriesSimilarResultsCommonTest;
@@ -35,6 +34,10 @@ public class LuceneIndexAndTraversalQueriesSimilarResultsCommonTest extends Inde
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
+    public LuceneIndexAndTraversalQueriesSimilarResultsCommonTest() {
+        indexOptions = new LuceneIndexOptions();
+    }
+
     @Override
     protected ContentRepository createRepository() {
         LuceneTestRepositoryBuilder builder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
@@ -46,30 +49,5 @@ public class LuceneIndexAndTraversalQueriesSimilarResultsCommonTest extends Inde
     @After
     public void shutdownExecutor() {
         executorService.shutdown();
-    }
-
-    public LuceneIndexAndTraversalQueriesSimilarResultsCommonTest() {
-        super.passingQueries = ImmutableList.of(
-                // Full-text queries
-                "/jcr:root//*[jcr:contains(@propa, '*')]",
-                "/jcr:root//*[jcr:contains(@propa, '123*')]",
-                "/jcr:root//*[jcr:contains(@propa, 'fal*')]"
-        );
-
-        super.failingQueries = ImmutableList.of(
-                "/jcr:root//*[@propa]",
-                "/jcr:root//*[@propa > 0]",
-                "/jcr:root//*[@propa > '0']",
-                "/jcr:root//*[@propa = 1.11]",
-                "/jcr:root//*[@propa = '1.11']",
-                "/jcr:root//*[@propa > 1]",
-                "/jcr:root//*[@propa > '1']",
-                "/jcr:root//*[@propa > 1111]",
-                "/jcr:root//*[@propa > '1111']",
-                "/jcr:root//*[@propa = true]",
-                "/jcr:root//*[@propa = 'true']",
-                "/jcr:root//*[@propa = false]",
-                "/jcr:root//*[@propa = 'false']"
-        );
     }
 }
