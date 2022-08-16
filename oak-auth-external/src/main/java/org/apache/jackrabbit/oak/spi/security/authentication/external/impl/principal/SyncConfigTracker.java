@@ -33,7 +33,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * {@code ServiceTracker} to detect any {@link SyncHandler} that has
@@ -50,8 +52,55 @@ final class SyncConfigTracker extends ServiceTracker {
         this.mappingTracker = mappingTracker;
     }
 
+    /**
+     * @return {@code true} if dynamic membership is enabled for at least one registered sync-handler; {@code false} otherwise.
+     */
     boolean isEnabled() {
         return getReferences().length > 0;
+    }
+
+    /**
+     * @return {@code true} if any of the register {@code SynchHandler} services has {@link DefaultSyncConfigImpl#PARAM_GROUP_DYNAMIC_GROUPS} 
+     * enabled on top of the dynamic-membership.
+     */
+    boolean hasDynamicGroupsEnabled() {
+        if (!isEnabled()) {
+            return false;
+        }
+        for (ServiceReference ref : getReferences()) {
+            if (PropertiesUtil.toBoolean(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS), DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the set of IDP names from the {@code org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping} 
+     * for which the associated {@code SyncHandler} is configured to have both {@link DefaultSyncConfigImpl#PARAM_USER_DYNAMIC_MEMBERSHIP dynamic membership} 
+     * and {@link DefaultSyncConfigImpl#PARAM_GROUP_DYNAMIC_GROUPS dynamic groups} enabled.
+     * 
+     * @return a set of IDP names that have dynamic groups enabled in addition to dynamic membership. If {@link #hasDynamicGroupsEnabled()}
+     * returns false, this method will return an empty set.
+     * @see #hasDynamicGroupsEnabled() 
+     */
+    @NotNull
+    Set<String> getIdpNamesWithDynamicGroups() {
+        if (!isEnabled()) {
+            return Collections.emptySet();
+        }
+
+        ServiceReference[] serviceReferences = getServiceReferences();
+        Set<String> idpNames = new HashSet<>(serviceReferences.length);
+        for (ServiceReference ref : serviceReferences) {
+            if (PropertiesUtil.toBoolean(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS), DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT)) {
+                String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
+                for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
+                    idpNames.add(idpName);
+                }
+            }
+        }
+        return idpNames;
     }
 
     @NotNull
@@ -61,20 +110,34 @@ final class SyncConfigTracker extends ServiceTracker {
             String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
             String[] userAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
             String[] groupAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
-            String[] membership =  ObjectArrays.concat(userAuthMembership, groupAuthMembership, String.class);
 
-            for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
-                String[] previous = autoMembership.put(idpName, membership);
-                if (previous != null) {
-                    String msg = (Arrays.equals(previous, membership)) ? "Duplicate" : "Colliding";
-                    String prev = Arrays.toString(previous);
-                    String mbrs = Arrays.toString(membership);
-                    log.debug("{} auto-membership configuration for IDP '{}'; replacing previous values {} by {} defined by SyncHandler '{}'",
-                            msg, idpName, prev, mbrs, syncHandlerName);
-                }
-            }
+            populateMap(syncHandlerName, ObjectArrays.concat(userAuthMembership, groupAuthMembership, String.class), autoMembership);
         }
         return autoMembership;
+    }
+
+    @NotNull
+    Map<String, String[]> getGroupAutoMembership() {
+        Map<String, String[]> autoMembership = new HashMap<>();
+        for (ServiceReference ref : getReferences()) {
+            String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
+            String[] groupAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
+            populateMap(syncHandlerName, groupAuthMembership, autoMembership);
+        }
+        return autoMembership;
+    }
+
+    private void populateMap(@NotNull String syncHandlerName, @NotNull String[] autoMembershipParam, @NotNull Map<String, String[]> autoMembership) {
+        for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
+            String[] previous = autoMembership.put(idpName, autoMembershipParam);
+            if (previous != null) {
+                String msg = (Arrays.equals(previous, autoMembershipParam)) ? "Duplicate" : "Colliding";
+                String prev = Arrays.toString(previous);
+                String mbrs = Arrays.toString(autoMembershipParam);
+                log.debug("{} group auto-membership configuration for IDP '{}'; replacing previous values {} by {} defined by SyncHandler '{}'",
+                        msg, idpName, prev, mbrs, syncHandlerName);
+            }
+        }
     }
     
     @NotNull 

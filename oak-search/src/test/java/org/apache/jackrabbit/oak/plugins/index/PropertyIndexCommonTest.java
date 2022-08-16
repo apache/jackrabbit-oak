@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -28,7 +29,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static javax.jcr.PropertyType.TYPENAME_DATE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
@@ -202,7 +202,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [oak:TestNode] where [propa] is not null";
         String explanation = explain(query);
         assertThat(explanation, containsString(propertyExistenceQueryWithNullCheckExpectedExplain()));
-        assertEventually(() -> assertQuery(query, asList("/test/a", "/test/b")));
+        assertEventually(() -> assertQuery(query, Arrays.asList("/test/a", "/test/b")));
     }
 
     protected String propertyExistenceQueryWithNullCheckExpectedExplain() {
@@ -269,12 +269,101 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
                 Arrays.asList("/test/a", "/test/b", "/test/d")));
     }
 
+    @Test
+    public void likeQueriesWithString() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
+        );
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "humpty");
+        test.addChild("b").setProperty("propa", "dumpty");
+        test.addChild("c").setProperty("propa", "humpy");
+        test.addChild("d").setProperty("propa", "alice");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
+                ImmutableList.of("/test/a", "/test/c")));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
+                ImmutableList.of("/test/a", "/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
+                ImmutableList.of("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '_ump%'",
+                ImmutableList.of("/test/a", "/test/b", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'a_ice%'",
+                ImmutableList.of("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'a_i_e%'",
+                ImmutableList.of("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '_____'",
+                ImmutableList.of("/test/c", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'h%y'",
+                ImmutableList.of("/test/a", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'humpy'",
+                ImmutableList.of("/test/c"));
+    }
+
+    @Test
+    public void likeQueriesWithEscapedChars() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
+        );
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "foo%");
+        test.addChild("b").setProperty("propa", "%bar");
+        test.addChild("c").setProperty("propa", "foo%bar");
+        test.addChild("d").setProperty("propa", "foo_");
+        test.addChild("e").setProperty("propa", "_foo");
+        test.addChild("f").setProperty("propa", "foo_bar");
+        test.addChild("g").setProperty("propa", "foo%_bar");
+        test.addChild("h").setProperty("propa", "foo\\bar");
+        test.addChild("i").setProperty("propa", "foo\\\\%bar");
+        root.commit();
+
+        assertEventually(() ->
+                assertQuery("select [jcr:path] from [nt:base] where propa like 'foo%'",
+                        ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h", "/test/i"))
+        );
+
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo%'",
+                ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g", "/test/h", "/test/i"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\%'",
+                ImmutableList.of("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%'",
+                ImmutableList.of("/test/a"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%%'",
+                ImmutableList.of("/test/a", "/test/c", "/test/g"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '\\%b%'",
+                ImmutableList.of("/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo_'",
+                ImmutableList.of("/test/a", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '_oo_'",
+                ImmutableList.of("/test/a", "/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\_'",
+                ImmutableList.of("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_'",
+                ImmutableList.of("/test/d"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_%'",
+                ImmutableList.of("/test/d", "/test/f"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%\\_%'",
+                ImmutableList.of("/test/g"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\\\bar'",
+                ImmutableList.of("/test/h"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\%'",
+                ImmutableList.of("/test/h", "/test/i"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\\\%%'",
+                ImmutableList.of("/test/i"));
+    }
+
     protected String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
-    protected static Tree createNodeWithType(Tree t, String nodeName, String typeName){
+    protected static Tree createNodeWithType(Tree t, String nodeName, String typeName) {
         t = t.addChild(nodeName);
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return t;

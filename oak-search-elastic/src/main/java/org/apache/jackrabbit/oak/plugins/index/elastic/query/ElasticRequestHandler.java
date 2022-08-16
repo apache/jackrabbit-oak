@@ -71,6 +71,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.plugins.index.search.util.QueryUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -211,7 +212,7 @@ public class ElasticRequestHandler {
                 }
         );
     }
-    
+
     public @NotNull List<SortOptions> baseSorts() {
         List<QueryIndex.OrderEntry> sortOrder = indexPlan.getSortOrder();
         if (sortOrder == null || sortOrder.isEmpty()) {
@@ -278,7 +279,7 @@ public class ElasticRequestHandler {
         return filter.getPropertyRestrictions().stream()
                 .anyMatch(pr -> QueryConstants.REP_FACET.equals(pr.propertyName));
     }
-    
+
     public Map<String, Aggregation> aggregations() {
         return facetFields().collect(Collectors.toMap(Function.identity(), facetProp -> Aggregation.of(af ->
                 af.terms(tf -> tf.field(elasticIndexDefinition.getElasticKeyword(facetProp))
@@ -757,19 +758,19 @@ public class ElasticRequestHandler {
     }
 
     private Query like(String name, String first) {
-        first = first.replace('%', WildcardQuery.WILDCARD_STRING);
-        first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
+        first = QueryUtils.sqlLikeToLuceneWildcardQuery(first);
 
-        int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
-        int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
-        int len = first.length();
+        // If the query ends in a wildcard string (*) and has no other wildcard characters, use a prefix match query
+        boolean optimizeToPrefixQuery = first.indexOf(WildcardQuery.WILDCARD_STRING) == first.length() - 1 &&
+                first.indexOf(WildcardQuery.WILDCARD_ESCAPE) == -1 &&
+                first.indexOf(WildcardQuery.WILDCARD_CHAR) == -1;
 
         // Non full text (Non analyzed) properties are keyword types in ES. For those field would be equal to name.
         // Analyzed properties, however are of text type on which we can't perform wildcard or prefix queries so we use the keyword (sub) field
         // by appending .keyword to the name here.
         String field = elasticIndexDefinition.getElasticKeyword(name);
 
-        if (indexOfWS == len || indexOfWC == len) {
+        if (optimizeToPrefixQuery) {
             // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
             if (JCR_PATH.equals(name)) {

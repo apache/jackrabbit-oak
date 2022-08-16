@@ -16,28 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.PropertyIndexCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.IndexAndTraversalQueriesSimilarResultsCommonTest;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
 
-public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
+public class ElasticIndexAndTraversalQueriesSimilarResultsCommonTest extends IndexAndTraversalQueriesSimilarResultsCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
             new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
-    public ElasticPropertyIndexCommonTest() {
+    public ElasticIndexAndTraversalQueriesSimilarResultsCommonTest() {
         indexOptions = new ElasticIndexOptions();
     }
 
     @Override
     protected ContentRepository createRepository() {
-        repositoryOptionsUtil = new ElasticTestRepositoryBuilder(elasticRule).build();
+        ElasticTestRepositoryBuilder elasticTestRepositoryBuilder = new ElasticTestRepositoryBuilder(elasticRule);
+        elasticTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
+        elasticTestRepositoryBuilder.setAsync(true);
+        repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
-    }
-
-    @Override
-    protected void createTestIndexNode() {
-        setTraversalEnabled(false);
     }
 }

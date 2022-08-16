@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -101,6 +103,15 @@ final class Utils {
             return authorizable.getID();
         } catch (RepositoryException e) {
             return null;
+        }
+    }
+    
+    @NotNull
+    static Tree getTree(@NotNull Authorizable authorizable, @NotNull Root root) throws RepositoryException {
+        if (authorizable instanceof TreeAware) {
+            return ((TreeAware) authorizable).getTree();
+        } else {
+            return root.getTree(authorizable.getPath());
         }
     }
 }

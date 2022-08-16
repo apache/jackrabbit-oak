@@ -42,7 +42,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
@@ -381,7 +383,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             String userPath = user.getPath();
             parentPath = userPath + '/' + TOKENS_NODE_NAME;
 
-            Tree userNode = root.getTree(userPath);
+            Tree userNode = getTree(user, userPath);
             tokenParent = TreeUtil.getOrAddChild(userNode, TOKENS_NODE_NAME, TOKENS_NT_NAME);
 
             root.commit();
@@ -401,6 +403,14 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             }
         }
         return tokenParent;
+    }
+
+    public @NotNull Tree getTree(@NotNull User user, @NotNull String userPath) {
+        if (user instanceof TreeAware) {
+            return ((TreeAware) user).getTree();
+        } else {
+            return root.getTree(userPath);
+        }
     }
 
     /**
