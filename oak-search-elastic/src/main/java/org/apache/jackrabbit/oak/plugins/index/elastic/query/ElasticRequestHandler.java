@@ -71,6 +71,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.plugins.index.search.util.QueryUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -752,24 +753,8 @@ public class ElasticRequestHandler {
         throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported " + pr);
     }
 
-    // Taken from LucenePropertyIndex
-    private static void replaceWildcard(StringBuilder sb, int position, char oldWildcard, char newWildcard) {
-        if (sb.charAt(position) == oldWildcard) {
-            int escapeCount = 0;
-            for (int m = position - 1; m >= 0 && sb.charAt(m) == WildcardQuery.WILDCARD_ESCAPE; m--, escapeCount++) ;
-            if (escapeCount % 2 == 0) {
-                sb.setCharAt(position, newWildcard);
-            }
-        }
-    }
-
     private Query like(String name, String first) {
-        StringBuilder firstBuilder = new StringBuilder(first);
-        for (int k = 0; k < firstBuilder.length(); k++) {
-            replaceWildcard(firstBuilder, k, '%', WildcardQuery.WILDCARD_STRING);
-            replaceWildcard(firstBuilder, k, '_', WildcardQuery.WILDCARD_CHAR);
-        }
-        first = firstBuilder.toString();
+        first = QueryUtils.sqlLikeToLuceneWildcardQuery(first);
 
         // If the query ends in a wildcard string (*) and has no other wildcard characters, use a prefix match query
         boolean optimizeToPrefixQuery = first.indexOf(WildcardQuery.WILDCARD_STRING) == first.length() - 1 &&
