@@ -17,31 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexExclusionQueryCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static com.google.common.collect.ImmutableList.of;
-import static javax.jcr.PropertyType.TYPENAME_BINARY;
-import static javax.jcr.PropertyType.TYPENAME_DATE;
-import static javax.jcr.PropertyType.TYPENAME_STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_TYPES;
 
 /**
  * Tests the {@link LuceneIndexProvider} exclusion settings
