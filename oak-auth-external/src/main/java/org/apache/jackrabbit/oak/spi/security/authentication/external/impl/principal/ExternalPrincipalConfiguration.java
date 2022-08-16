@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
@@ -105,6 +106,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     
     private SyncConfigTracker syncConfigTracker;
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
+    private ProtectionConfigTracker protectionConfigTracker;
     
     private ServiceRegistration automembershipRegistration;
     private ServiceRegistration dynamicMembershipRegistration;
@@ -166,7 +168,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         
         IdentityProtectionType ipt = getIdentityProtectionType();
         if (ipt != IdentityProtectionType.NONE && !isSystem) {
-            vps.add(new ExternalUserValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), ipt));
+            vps.add(new ExternalUserValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), ipt, getProtectionConfig()));
         }
         return vps.build();
     }
@@ -200,6 +202,9 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
         syncConfigTracker = new SyncConfigTracker(bundleContext, syncHandlerMappingTracker);
         syncConfigTracker.open();
+
+        protectionConfigTracker = new ProtectionConfigTracker(bundleContext);
+        protectionConfigTracker.open();
         
         automembershipRegistration = bundleContext.registerService(DynamicMembershipService.class.getName(), new AutomembershipService(syncConfigTracker), null);
         dynamicMembershipRegistration = bundleContext.registerService(DynamicMembershipService.class.getName(), new DynamicGroupMembershipService(syncConfigTracker), null);
@@ -214,7 +219,9 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         if (syncHandlerMappingTracker != null) {
             syncHandlerMappingTracker.close();
         }
-        
+        if (protectionConfigTracker != null) {
+            protectionConfigTracker.close();
+        }
         if (automembershipRegistration != null) {
             automembershipRegistration.unregister();
         }
@@ -239,6 +246,10 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
     private @NotNull IdentityProtectionType getIdentityProtectionType() {
         return IdentityProtectionType.fromLabel(getParameters().getConfigValue(PARAM_PROTECT_EXTERNAL_IDENTITIES, VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE));
+    }
+    
+    private @NotNull ProtectionConfig getProtectionConfig() {
+        return (protectionConfigTracker == null) ? ProtectionConfig.DEFAULT : protectionConfigTracker;
     }
     
     @NotNull

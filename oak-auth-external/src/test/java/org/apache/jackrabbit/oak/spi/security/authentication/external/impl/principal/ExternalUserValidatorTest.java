@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
@@ -515,7 +516,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
             TreeProvider tp = mock(TreeProvider.class);
             SecurityProvider sp = mock(SecurityProvider.class);
             try {
-                ExternalUserValidatorProvider vp = new ExternalUserValidatorProvider(rp, tp, sp, type);
+                ExternalUserValidatorProvider vp = new ExternalUserValidatorProvider(rp, tp, sp, type, ProtectionConfig.DEFAULT);
                 fail("IllegalArgumentException expected");
             } catch (IllegalArgumentException e) {
                 // success
