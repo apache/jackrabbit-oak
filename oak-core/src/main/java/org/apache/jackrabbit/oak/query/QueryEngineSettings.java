@@ -61,7 +61,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String OAK_QUERY_PREFETCH_COUNT = "oak.prefetchCount";
 
-    public static final String FT_NAME_PREFETCH_FOR_QUERIES = "FT_PREFETCH_OAK-9893";
+    public static final String FT_NAME_PREFETCH_FOR_QUERIES = "FT_OAK-9893";
 
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
