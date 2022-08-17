@@ -21,26 +21,33 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ErrorHolder {
     
     private static final int FAIL_IMMEDIATELY_THRESHOLD = 100;
     private final List<String> errors = new ArrayList<>();
     
-    public void report(MountedNodeStore mountedStore, String path, String error) {
-        errors.add(String.format("For NodeStore mount %s, path %s, encountered the following problem: '%s'", mountedStore.getMount().getName(), path, error));
+    private static final Logger log = LoggerFactory.getLogger(ErrorHolder.class);
+
+    public void report(MountedNodeStore mountedStore, String path, String error, MountedNodeStoreChecker<?> checker) {
+        String msg = String.format("For NodeStore mount %s, path %s, encountered the following problem: '%s' (via checker %s)", mountedStore.getMount().getName(), path, error, checker);
+        log.error(msg);
+        errors.add(msg);
         if ( errors.size() == FAIL_IMMEDIATELY_THRESHOLD ) { 
             end();
         }
     }
     
-    public void report(MountedNodeStore firstNS, String firstPath, MountedNodeStore secondNS, String secondPath, String value, String error) {
-        errors.add(String.format("For NodeStore mount %s, path %s, and NodeStore mount %s, path %s, encountered the following clash for value %s: '%s'", 
-                firstNS.getMount().getName(), firstPath, secondNS.getMount().getName(), secondPath, value, error));
+    public void report(MountedNodeStore firstNS, String firstPath, MountedNodeStore secondNS, String secondPath, String value, String error, MountedNodeStoreChecker<?> checker) {
+        String msg = String.format("For NodeStore mount %s, path %s, and NodeStore mount %s, path %s, encountered the following clash for value %s: '%s' (via checker %s)", 
+                firstNS.getMount().getName(), firstPath, secondNS.getMount().getName(), secondPath, value, error, checker);
+        log.error(msg);
+        errors.add(msg);
         if ( errors.size() == FAIL_IMMEDIATELY_THRESHOLD ) { 
             end();
         }
-        
     }
     
     public void end() {

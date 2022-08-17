@@ -67,7 +67,7 @@ public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreCheck
             @Override
             public void onConstraintViolation(String path, List<String> typeNames, int code, String message)
                     throws CommitFailedException {
-                errorHolder.report(mountedStore, path, message);
+                errorHolder.report(mountedStore, path, message, NodeTypeDefinitionNodeStoreChecker.this);
             }
         };
         
@@ -95,7 +95,7 @@ public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreCheck
             EditorDiff.process(editor, MISSING_NODE, root);
             
         } catch (CommitFailedException e) {
-            errorHolder.report(mountedStore, "/", "Unexpected error : " + e.getMessage());
+            errorHolder.report(mountedStore, "/", "Unexpected error : " + e.getMessage(), this);
         }
 
         
