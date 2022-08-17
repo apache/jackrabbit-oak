@@ -24,9 +24,11 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
@@ -46,12 +48,12 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'SUN.jpg')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'sun')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(., 'SUN.jpg')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(., 'sun')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, singletonList("/test/a"));
         });
     }
 
@@ -63,10 +65,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, singletonList("/test/a"));
         });
     }
 
@@ -80,7 +82,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() ->
-                assertQuery("//*[jcr:contains(., '01T09')] ", XPATH, Collections.singletonList("/test/a")));
+                assertQuery("//*[jcr:contains(., '01T09')] ", XPATH, singletonList("/test/a")));
     }
 
 
@@ -93,14 +95,14 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             // Special characters {':' , '/', '!', '&', '|', '='} are escaped before creating lucene/elastic queries using
             // {@see org.apache.jackrabbit.oak.plugins.index.search.spi.query.FullTextIndex#rewriteQueryText}
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '&=!foo')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '&=!foo')] ", XPATH, singletonList("/test/a"));
 
             // Braces are not escaped in the above rewriteQueryText method - we do not change that to maintain backward compatibility
             // So these need explicit escaping or filtering on client side while creating the jcr query
-            assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo\\}')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '\\[foo\\]')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo\\}')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '\\[foo\\]')] ", XPATH, singletonList("/test/a"));
         });
 
     }
@@ -117,8 +119,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         // due to unescaped special character (which is not handled in backend)
         try {
             customLogs.starting();
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo}')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo]')] ", XPATH, Collections.emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo}')] ", XPATH, emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo]')] ", XPATH, emptyList());
 
             Assert.assertTrue(customLogs.getLogs().containsAll(getExpectedLogMessage()));
         } finally {
