@@ -964,7 +964,7 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     private static <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue) {
-        return waitForMetric(f, input, expected, defaultValue, 100, 1000);
+        return waitForMetric(f, input, expected, defaultValue, 100, 1500);
     }
 
     private static <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue, int intervalMilliseconds, int waitMilliseconds) {
@@ -988,7 +988,7 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     private static <T> Long waitForNonzeroMetric(Function<T, Long> f, T input) {
-        return waitForNonzeroMetric(f, input, 100, 1000);
+        return waitForNonzeroMetric(f, input, 100, 1500);
     }
 
     private static <T> Long waitForNonzeroMetric(Function<T, Long> f, T input, int intervalMilliseconds, int waitMilliseconds) {

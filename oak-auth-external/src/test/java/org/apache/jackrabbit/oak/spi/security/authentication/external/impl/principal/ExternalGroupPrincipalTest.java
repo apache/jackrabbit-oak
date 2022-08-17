@@ -123,7 +123,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         when(um.getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException());
 
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
 
         ExternalIdentityRef ref = idp.getUser(USER_ID).getDeclaredGroups().iterator().next();
         String groupName = idp.getIdentity(ref).getPrincipalName();
@@ -156,7 +156,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         when(um.getAuthorizableByPath(userPath)).thenReturn(null);
 
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
 
         ExternalIdentityRef ref = idp.getUser(USER_ID).getDeclaredGroups().iterator().next();
         String groupName = idp.getIdentity(ref).getPrincipalName();
@@ -173,7 +173,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         when(um.getAuthorizableByPath(userPath)).thenThrow(new RepositoryException());
 
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
 
         ExternalIdentityRef ref = idp.getUser(USER_ID).getDeclaredGroups().iterator().next();
         String groupName = idp.getIdentity(ref).getPrincipalName();
@@ -190,7 +190,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
 
         Root r = spy(root);
         when(r.getQueryEngine()).thenReturn(qe);
-        ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(r, getUserConfiguration(), getNamePathMapper(), ImmutableMap.of(idp.getName(), getAutoMembership()), ImmutableMap.of(idp.getName(), getAutoMembershipConfig()));
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(r, getUserConfiguration());
 
         Principal gp = pp.getMembershipPrincipals(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()).iterator().next();
         assertTrue(gp instanceof GroupPrincipal);

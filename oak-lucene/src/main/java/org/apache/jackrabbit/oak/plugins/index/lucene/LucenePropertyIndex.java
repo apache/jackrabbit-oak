@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,6 +69,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PropertyIndexResult;
+import org.apache.jackrabbit.oak.plugins.index.search.util.QueryUtils;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -226,7 +226,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final IndexAugmentorFactory augmentorFactory;
 
     public LucenePropertyIndex(IndexTracker tracker) {
-        this(tracker,null);
+        this(tracker, null);
     }
 
     public LucenePropertyIndex(IndexTracker tracker, IndexAugmentorFactory augmentorFactory) {
@@ -315,9 +315,9 @@ public class LucenePropertyIndex extends FulltextIndex {
 
                     boolean shouldIncludeForHierarchy = shouldInclude(path, plan);
                     LOG.trace("Matched path {}; shouldIncludeForHierarchy: {}", path, shouldIncludeForHierarchy);
-                    return shouldIncludeForHierarchy? new FulltextResultRow(path, doc.score, excerpts,
+                    return shouldIncludeForHierarchy ? new FulltextResultRow(path, doc.score, excerpts,
                             facetProvider, explanation)
-                        : null;
+                            : null;
                 }
                 return null;
             }
@@ -507,7 +507,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
-                        QueryParser qp =  new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST,
+                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST,
                                 indexNode.getDefinition().isSuggestAnalyzed() ? indexNode.getDefinition().getAnalyzer() :
                                 SuggestHelper.getAnalyzer());
 
@@ -534,7 +534,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                         }
                     }
                 } catch (Exception e) {
-                    LOG.warn("query via {} failed.", LucenePropertyIndex.this, e);
+                    LOG.warn("query [{}] via {} failed.", plan.getFilter(), LucenePropertyIndex.this.getClass().getCanonicalName(), e);
                 } finally {
                     indexNode.release();
                 }
@@ -557,9 +557,9 @@ public class LucenePropertyIndex extends FulltextIndex {
                 //the reset of lastDoc would happen very frequently.
                 //Upon LuceneIndexNode change i.e. when new async index update is detected
                 //the searcher would be refreshed as done earlier
-                if (indexNodeId != indexNode.getIndexNodeId()){
+                if (indexNodeId != indexNode.getIndexNodeId()) {
                     //if already initialized then log about change
-                    if (indexNodeId > 0){
+                    if (indexNodeId > 0) {
                         LOG.info("Change in index version detected. Query would be performed without offset");
                         rewoundCount++;
                     }
@@ -573,7 +573,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             private void releaseSearcher() {
                 //For now nullifying it.
-                indexSearcher =  null;
+                indexSearcher = null;
             }
         };
         Iterator<FulltextResultRow> itr = rItr;
@@ -710,7 +710,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (requireNodeLevelExcerpt) {
             String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
 
-            nodeExcerptColumns.forEach( nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
+            nodeExcerptColumns.forEach(nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
         }
 
         columnNameToExcerpts.keySet().retainAll(excerptFields);
@@ -728,7 +728,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     @Override
     protected LuceneIndexNode acquireIndexNode(IndexPlan plan) {
-        return (LuceneIndexNode)super.acquireIndexNode(plan);
+        return (LuceneIndexNode) super.acquireIndexNode(plan);
     }
 
     @Override
@@ -818,7 +818,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             return original;
         }
         ArrayList<OrderEntry> result = new ArrayList<>();
-        for(OrderEntry oe : original) {
+        for (OrderEntry oe : original) {
             if (!isNativeSort(oe)) {
                 result.add(oe);
             }
@@ -857,7 +857,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     /**
      * Get the Lucene query for the given filter.
      *
-     * @param plan index plan containing filter details
+     * @param plan   index plan containing filter details
      * @param reader the Lucene reader
      * @return the Lucene query
      */
@@ -1009,7 +1009,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     /**
      * unwraps any NOT clauses from the provided boolean query into another boolean query.
      *
-     * @param input the query to be analysed for the existence of NOT clauses. Cannot be null.
+     * @param input  the query to be analysed for the existence of NOT clauses. Cannot be null.
      * @param output the query where the unwrapped NOTs will be saved into. Cannot be null.
      * @return true if there where at least one unwrapped NOT. false otherwise.
      */
@@ -1039,7 +1039,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     private static FulltextQueryTermsProvider getIndexAgumentor(IndexPlan plan, IndexAugmentorFactory augmentorFactory) {
         PlanResult planResult = getPlanResult(plan);
 
-        if (augmentorFactory != null){
+        if (augmentorFactory != null) {
             return augmentorFactory.getFulltextQueryTermsProvider(planResult.indexingRule.getNodeTypeName());
         }
 
@@ -1078,7 +1078,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 // deduced
                 if (planResult.isPathTransformed()) {
                     String parentPathSegment = planResult.getParentPathSegment();
-                    if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                    if (!Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
                         qs.add(new TermQuery(newPathTerm(path + parentPathSegment)));
                     }
                 } else {
@@ -1096,7 +1096,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // deduced
                     if (planResult.isPathTransformed()) {
                         String parentPathSegment = planResult.getParentPathSegment();
-                        if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                        if (!Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
                             qs.add(new TermQuery(newPathTerm(getParentPath(path) + parentPathSegment)));
                         }
                     } else {
@@ -1158,30 +1158,15 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
     }
 
-    private static void replaceWildcard(StringBuilder sb, int position, char oldWildcard, char newWildcard) {
-        if (sb.charAt(position) == oldWildcard) {
-            int escapeCount = 0;
-            for (int m = position - 1; m >= 0 && sb.charAt(m) == WildcardQuery.WILDCARD_ESCAPE; m--,escapeCount++);
-            if (escapeCount % 2 == 0) {
-                sb.setCharAt(position, newWildcard);
-            }
-        }
-    }
-
     private static Query createLikeQuery(String name, String first) {
-        StringBuilder firstBuilder = new StringBuilder(first);
-        for (int k = 0; k < firstBuilder.length(); k++) {
-            replaceWildcard(firstBuilder, k, '%', WildcardQuery.WILDCARD_STRING);
-            replaceWildcard(firstBuilder, k, '_', WildcardQuery.WILDCARD_CHAR);
-        }
-        first = firstBuilder.toString();
+        first = QueryUtils.sqlLikeToLuceneWildcardQuery(first);
 
         int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
         int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
         int len = first.length();
 
         if (indexOfWS == len || indexOfWC == len) {
-            // remove trailing "*" for prefixquery
+            // remove trailing "*" for prefix query
             first = first.substring(0, first.length() - 1);
             if (JCR_PATH.equals(name)) {
                 return new PrefixQuery(newPathTerm(first));
@@ -1618,7 +1603,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         //No need for path restriction evaluation as thats taken care by PropertyIndex impl itself
         //via content mirror strategy
         FluentIterable<FulltextResultRow> propIndex = paths
-            .transform(path -> new FulltextResultRow(path, 0, null, null, null));
+                .transform(path -> new FulltextResultRow(path, 0, null, null, null));
 
         //Property index itr should come first
         return Iterators.concat(propIndex.iterator(), itr);
@@ -1641,7 +1626,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         @Override
         public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
             if (!CACHE_FACET_RESULTS) {
-                LOG.trace("{} = {} getting uncached results for columnName = {}", CACHE_FACET_RESULTS_NAME, CACHE_FACET_RESULTS, columnName );
+                LOG.trace("{} = {} getting uncached results for columnName = {}", CACHE_FACET_RESULTS_NAME, CACHE_FACET_RESULTS, columnName);
                 return getFacetsUncached(numberOfFacets, columnName);
             }
             String cacheKey = columnName + "/" + numberOfFacets;

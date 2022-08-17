@@ -640,7 +640,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             if (!nonExisting.isEmpty()) {
                 Stopwatch watch = Stopwatch.createStarted();
                 log.debug("ImportBehavior.BESTEFFORT: Found {} entries of rep:members pointing to non-existing authorizables. Adding to rep:members.", nonExisting.size());
-                Tree groupTree = root.getTree(gr.getPath());
+                Tree groupTree = Utils.getTree(gr, root);
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
 
@@ -741,7 +741,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             // 2. adjust set of impersonators
             List<String> nonExisting = updateImpersonators(a, imp, toRemove, toAdd);
             if (!nonExisting.isEmpty()) {
-                Tree userTree = checkNotNull(root.getTree(a.getPath()));
+                Tree userTree = Utils.getTree(a, root);
                 // copy over all existing impersonators to the nonExisting list
                 PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
                 if (impersonators != null) {

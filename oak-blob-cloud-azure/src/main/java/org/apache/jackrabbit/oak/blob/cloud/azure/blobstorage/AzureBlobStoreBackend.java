@@ -220,6 +220,14 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 }
                 uploadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
                 downloadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+
+                // Initialize reference key secret
+                boolean createRefSecretOnInit = PropertiesUtil.toBoolean(
+                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
+
+                if (createRefSecretOnInit) {
+                    getOrCreateReferenceKey();
+                }
             }
             catch (StorageException e) {
                 throw new DataStoreException(e);

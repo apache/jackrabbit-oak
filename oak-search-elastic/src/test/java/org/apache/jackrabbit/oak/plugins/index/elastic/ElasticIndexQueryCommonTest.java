@@ -21,13 +21,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.IndexQueryCommonTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-
-import java.util.List;
-
-import javax.jcr.query.Query;
 
 public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
@@ -45,15 +38,6 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         elasticTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
-    }
-
-    @Test
-    public void descendantTestWithIndexTagExplain() {
-        List<String> result = executeQuery(
-                    "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)", Query.JCR_SQL2);
-        assertEquals("[[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) "
-                + "{\"bool\":{\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}}]}}\n"
-                + "  where isdescendantnode([nt:base], [/test]) */]", result.toString());
     }
 
     @Override
@@ -83,4 +67,12 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
     public String getContainsValueForNotNullQuery_native() {
         return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa\"}}]";
     }
+
+    @Override
+    public String getExplainValueForDescendantTestWithIndexTagExplain() {
+        return "[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) "
+                + "{\"bool\":{\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}}]}}"
+                + " where isdescendantnode([nt:base], [/test]) */";
+    }
+
 }

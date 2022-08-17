@@ -222,6 +222,36 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void path() throws Exception {
+        Tree index = createIndex("pathIndex", Collections.<String>emptySet());
+        Tree func = index.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("pathFunction");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "path()");
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("hello");
+        test.addChild("world");
+        test.addChild("hello world");
+        root.commit();
+        postCommitHook();
+
+        String query = "select [jcr:path] from [nt:base] where path() = '/test/world'";
+        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertQuery(query, asList("/test/world"));
+
+        query = "select [jcr:path] from [nt:base] where path() like '%hell%'";
+        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertQuery(query, asList("/test/hello", "/test/hello world"));
+
+        query = "select [jcr:path] from [nt:base] where path() like '%ll_'";
+        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertQuery(query, asList("/test/hello"));
+
+    }
+
+    @Test
     public void testOrdering2() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, indexOptions.getIndexType());

@@ -53,10 +53,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_AUTHORIZABLE;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_USER;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_AUTHORIZABLE_ID;
 
@@ -70,21 +71,24 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
     private final UserManager userManager;
     private final NamePathMapper namePathMapper;
     private final AutoMembershipPrincipals autoMembershipPrincipals;
+    private final AutoMembershipPrincipals groupAutoMembershipPrincipals;
     
     AutoMembershipProvider(@NotNull Root root,
                            @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper,
                            @NotNull Map<String, String[]> autoMembershipMapping,
+                           @Nullable Map<String, String[]> groupAutoMembershipMapping,
                            @NotNull Map<String, AutoMembershipConfig> autoMembershipConfigMap) {
         this.root = root;
         this.userManager = userManager;
         this.namePathMapper = namePathMapper;
         this.autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, autoMembershipMapping, autoMembershipConfigMap);
+        this.groupAutoMembershipPrincipals = (groupAutoMembershipMapping == null) ? null : new AutoMembershipPrincipals(userManager, groupAutoMembershipMapping, autoMembershipConfigMap);
     }
 
     AutoMembershipProvider(@NotNull Root root,
                            @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper,
                            @NotNull SyncConfigTracker scTracker) {
-        this(root, userManager, namePathMapper, scTracker.getAutoMembership(), scTracker.getAutoMembershipConfig());
+        this(root, userManager, namePathMapper, scTracker.getAutoMembership(), (scTracker.hasDynamicGroupsEnabled() ? scTracker.getGroupAutoMembership() : null), scTracker.getAutoMembershipConfig());
     }
     
     @Override
@@ -105,9 +109,23 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
     @Override
     public boolean isMember(@NotNull Group group, @NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
         String idpName = getIdpName(authorizable);
-        if (idpName == null || authorizable.isGroup()) {
-            // not an external user (NOTE: with dynamic membership enabled external groups will not be synced into the repository)
+        if (idpName == null) {
+            // not an external identity
             return false;
+        }
+        
+        // the authorizablle to test is a group
+        if (authorizable.isGroup()) {
+            // not an external user (NOTE: with dynamic membership enabled external groups will only be sync into the 
+            // repository if 'dynamic-group' option is enabled in addition)
+            if (groupAutoMembershipPrincipals == null) {
+                return false;
+            } else if (group.getID().equals(authorizable.getID())) {
+                // shortcut for the authorizable to test being the group itself
+                return false;
+            } else {
+                return isMember(groupAutoMembershipPrincipals, idpName, group, authorizable, includeInherited);
+            } 
         }
         
         // an external user
@@ -126,25 +144,34 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
     @Override
     public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
         String idpName = getIdpName(authorizable);
-        if (idpName == null || authorizable.isGroup()) {
-            // not an external user (NOTE: with dynamic membership enabled external groups will not be synced into the repository)
+        if (idpName == null) {
+            // not an external identity
             return RangeIteratorAdapter.EMPTY;
         }
-        Collection<Principal> groupPrincipals = autoMembershipPrincipals.getAutoMembership(idpName, authorizable);
-        Set<Group> groups = groupPrincipals.stream().map(principal -> {
-            try {
-                Authorizable a = userManager.getAuthorizable(principal);
-                if (a != null && a.isGroup()) {
-                    return (Group) a;
-                } else {
-                    return null;
-                }
-            } catch (RepositoryException e) {
-                return null;
+
+        Map<Principal, Group> m;
+        if (authorizable.isGroup()) {
+            // not an external user (NOTE: with dynamic membership enabled external groups will only be sync into the 
+            // repository if 'dynamic-group' option is enabled in addition)
+            if (groupAutoMembershipPrincipals == null) {
+                m = Collections.emptyMap();
+            } else {
+                m = groupAutoMembershipPrincipals.getAutoMembership(idpName, authorizable, false);
             }
-        }).filter(Objects::nonNull).collect(Collectors.toSet());
-        Iterator<Group> groupIt = new RangeIteratorAdapter(groups);
+        } else {
+            // an external user
+            m = autoMembershipPrincipals.getAutoMembership(idpName, authorizable, false);
+        }
         
+        return getGroupIterator(m.values(), includeInherited);
+    }
+    
+    @NotNull
+    private static Iterator<Group> getGroupIterator(@NotNull Collection<Group> groups, boolean includeInherited) {
+        if (groups.isEmpty()) {
+            return RangeIteratorAdapter.EMPTY;
+        }
+        Iterator<Group> groupIt = new RangeIteratorAdapter(groups);
         if (!includeInherited) {
             return groupIt;
         } else {
@@ -162,16 +189,23 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         // retrieve all idp-names for which the given group-principal is configured in the auto-membership option
         // NOTE: while the configuration takes the group-id the cache in 'autoMembershipPrincipals' is built based on the principal
         Set<String> idpNames = autoMembershipPrincipals.getConfiguredIdpNames(p);
+        Set<String> groupIdpNames = Collections.emptySet();
+        if (groupAutoMembershipPrincipals != null) {
+            groupIdpNames = groupAutoMembershipPrincipals.getConfiguredIdpNames(p);
+            idpNames.addAll(groupIdpNames);
+        }
         if (idpNames.isEmpty()) {
             return;
         }
 
-        // since this provider is only enabled for dynamic-automembership only users are expected to be returned by the
-        // query and thus the 'includeInherited' flag can be ignored.
+        String nodeType = (groupIdpNames.isEmpty()) ? NT_REP_USER : (idpNames.size() == groupIdpNames.size()) ? NT_REP_GROUP : NT_REP_AUTHORIZABLE;
+
+        // since this provider is only enabled for dynamic-automembership the 'includeInherited' flag can be ignored.
+        // as group-membership for dynamic users is flattened and automembership-configuration for groups is included.
         // TODO: execute a single (more complex) query ?
         for (String idpName : idpNames) {
             Map<String, ? extends PropertyValue> bindings = buildBinding(idpName);
-            String statement = "SELECT '" + REP_AUTHORIZABLE_ID + "' FROM ["+NT_REP_USER+"] WHERE PROPERTY(["
+            String statement = "SELECT '" + REP_AUTHORIZABLE_ID + "' FROM ["+nodeType+"] WHERE PROPERTY(["
                     + REP_EXTERNAL_ID + "], '" + PropertyType.TYPENAME_STRING + "')"
                     + " LIKE $" + BINDING_AUTHORIZABLE_IDS + QueryEngine.INTERNAL_SQL2_QUERY;
             try {

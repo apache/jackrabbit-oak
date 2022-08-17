@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -31,11 +29,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdenti
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DynamicSyncContext;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertNotNull;
@@ -43,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 
 public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
 
-    PrincipalProvider principalProvider;
+    ExternalGroupPrincipalProvider principalProvider;
 
     @Override
     public void before() throws Exception {
@@ -62,17 +61,14 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
         systemRoot.commit();
 
         root.refresh();
-        principalProvider = createPrincipalProvider();
+        principalProvider = createPrincipalProvider(root, getSecurityProvider().getConfiguration(UserConfiguration.class));
     }
 
     @NotNull
-    private PrincipalProvider createPrincipalProvider() {
-        return createPrincipalProvider(getSecurityProvider().getConfiguration(UserConfiguration.class), getAutoMembership(), getAutoMembershipConfig());
-    }
-
-    @NotNull
-    ExternalGroupPrincipalProvider createPrincipalProvider(@NotNull UserConfiguration uc, @NotNull String[] autoMembership, @NotNull AutoMembershipConfig autoMembershipConfig) {
-        return new ExternalGroupPrincipalProvider(root, uc, NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), autoMembership), ImmutableMap.of(idp.getName(), autoMembershipConfig));
+    ExternalGroupPrincipalProvider createPrincipalProvider(@NotNull Root r, @NotNull UserConfiguration uc) {
+        Set<String> idpNamesWithDynamicGroups = getIdpNamesWithDynamicGroups();
+        boolean hasOnlyDynamicGroups = (idpNamesWithDynamicGroups.size() == 1 && idpNamesWithDynamicGroups.contains(idp.getName()));
+        return new ExternalGroupPrincipalProvider(r, uc, getNamePathMapper(), idp.getName(), syncConfig, idpNamesWithDynamicGroups, hasOnlyDynamicGroups);    
     }
 
     @Override
@@ -84,20 +80,24 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
         return config;
     }
 
-    String[] getAutoMembership() {
+    @NotNull String[] getAutoMembership() {
         return Iterables.toArray(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class);
     }
     
-    AutoMembershipConfig getAutoMembershipConfig() {
+    @NotNull AutoMembershipConfig getAutoMembershipConfig() {
         return AutoMembershipConfig.EMPTY;
     }
+    
+    @NotNull Set<String> getIdpNamesWithDynamicGroups() {
+        return Collections.emptySet();
+    }
 
-    GroupPrincipal getGroupPrincipal() throws Exception {
+    @NotNull GroupPrincipal getGroupPrincipal() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
         return getGroupPrincipal(externalUser.getDeclaredGroups().iterator().next());
     }
 
-    GroupPrincipal getGroupPrincipal(@NotNull ExternalIdentityRef ref) throws Exception {
+    @NotNull GroupPrincipal getGroupPrincipal(@NotNull ExternalIdentityRef ref) throws Exception {
         String principalName = idp.getIdentity(ref).getPrincipalName();
         Principal p = principalProvider.getPrincipal(principalName);
 
@@ -107,9 +107,13 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
         return (GroupPrincipal) p;
     }
 
-    Group createTestGroup() throws Exception {
-        Group gr = getUserManager(root).createGroup("group" + UUID.randomUUID());
-        root.commit();
+    @NotNull Group createTestGroup() throws Exception {
+        return createTestGroup(root);
+    }
+
+    @NotNull Group createTestGroup(@NotNull Root r) throws Exception {
+        Group gr = getUserManager(r).createGroup("group" + UUID.randomUUID());
+        r.commit();
         return gr;
     }
 }

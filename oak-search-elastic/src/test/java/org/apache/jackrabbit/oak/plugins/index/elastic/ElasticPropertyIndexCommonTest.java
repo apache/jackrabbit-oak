@@ -40,5 +40,4 @@ public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
     protected void createTestIndexNode() {
         setTraversalEnabled(false);
     }
-
 }

@@ -119,5 +119,10 @@ public final class AzureConstants {
      */
     public static final String PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE = "presignedHttpUploadURIDomainOverride";
 
+    /**
+     * Property to enable/disable creation of reference secret on init.
+     */
+    public static final String AZURE_REF_ON_INIT = "refOnInit";
+    
     private AzureConstants() { }
 }

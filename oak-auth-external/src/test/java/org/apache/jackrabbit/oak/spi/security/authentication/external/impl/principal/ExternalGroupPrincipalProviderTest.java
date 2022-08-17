@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -54,6 +54,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -66,9 +67,11 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
@@ -99,9 +102,13 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         }
     }
 
-    @NotNull
+    @NotNull 
     Set<Principal> getExpectedAllSearchResult(@NotNull String userId) throws Exception {
-        return getExpectedGroupPrincipals(userId);
+        if (hasDynamicGroups()) {
+            return Collections.emptySet();
+        } else {
+            return getExpectedGroupPrincipals(userId);
+        }
     }
 
     private void collectExpectedPrincipals(Set<Principal> grPrincipals, @NotNull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws Exception {
@@ -112,6 +119,19 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
             ExternalIdentity ei = idp.getIdentity(ref);
             grPrincipals.add(new PrincipalImpl(ei.getPrincipalName()));
             collectExpectedPrincipals(grPrincipals, ei.getDeclaredGroups(), depth - 1);
+        }
+    }
+    
+    private boolean hasDynamicGroups() {
+        return getIdpNamesWithDynamicGroups().contains(idp.getName());
+    }
+    
+    @NotNull
+    private Set<Principal> buildExpectedPrincipals(@NotNull String principalName) {
+        if (hasDynamicGroups()) {
+            return Collections.emptySet();
+        } else {
+            return ImmutableSet.of(new PrincipalImpl(principalName));
         }
     }
 
@@ -154,8 +174,14 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
             String princName = idp.getIdentity(ref).getPrincipalName();
             Principal principal = principalProvider.getPrincipal(princName);
 
-            assertNotNull(principal);
-            assertTrue(principal instanceof GroupPrincipal);
+            if (hasDynamicGroups()) {
+                // dynamic groups that have been synced into the repository don't get served by the 
+                // ExternalGroupPrincipalProvider
+                assertNull(principal);
+            } else {
+                assertNotNull(principal);
+                assertTrue(principal instanceof GroupPrincipal);
+            }
         }
     }
 
@@ -208,8 +234,13 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
             String pName = idp.getIdentity(ref).getPrincipalName();
             Principal p = principalProvider.getPrincipal(pName);
-            assertNotNull(p);
-            assertEquals(pName, p.getName());
+            if (hasDynamicGroups()) {
+                // dynamic groups are not served by the external-group-principal-provider
+                assertNull(p);
+            } else {
+                assertNotNull(p);
+                assertEquals(pName, p.getName());
+            }
         }
     }
 
@@ -248,7 +279,8 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
 
         // same as in test before even if the principal is not a tree-based-principal
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(new PrincipalImpl(user.getPrincipal().getName()));
+        Principal notTreeBased = new PrincipalImpl(user.getPrincipal().getName());
+        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(notTreeBased);
         assertEquals(expected, principals);
     }
 
@@ -275,15 +307,30 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testGetGroupMembershipExternalGroup() throws Exception {
-        Authorizable group = getUserManager(root).getAuthorizable("secondGroup");
+        UserManager um = getUserManager(root);
+        Authorizable group = um.getAuthorizable("secondGroup");
         assertNotNull(group);
 
-        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(group.getPrincipal());
-        assertTrue(principals.isEmpty());
-
-        // same if the principal is not marked as 'GroupPrincipal' and not tree-based-principal
-        principals = principalProvider.getMembershipPrincipals(new PrincipalImpl(group.getPrincipal().getName()));
-        assertTrue(principals.isEmpty());
+        for (Principal principal : new Principal[] {group.getPrincipal(), new PrincipalImpl(group.getPrincipal().getName())}) {
+            Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(principal);
+            if (hasDynamicGroups()) {
+                Set<Principal> expected = getExpectedGroupAutomembership(group, um);
+                assertEquals(expected, principals);
+            } else {
+                assertTrue(principals.isEmpty());
+            }
+        }
+    }
+    
+    private Set<Principal> getExpectedGroupAutomembership(@NotNull Authorizable authorizable, @NotNull UserManager um) {
+        return syncConfig.group().getAutoMembership(authorizable).stream().map(id -> {
+            try {
+                Group gr = um.getAuthorizable(id, Group.class);
+                return (gr == null) ? null : gr.getPrincipal();
+            } catch (RepositoryException repositoryException) {
+                return null;
+            }
+        }).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     @Test
@@ -305,10 +352,10 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testGetGroupMembershipItemBasedLookupFails() throws Exception {
         UserManager um = spy(getUserManager(root));
-        when(um.getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException());
+        doThrow(new RepositoryException()).when(um).getAuthorizable(any(Principal.class));
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         Principal principal = new PrincipalImpl(um.getAuthorizable(USER_ID).getPrincipal().getName());
         assertTrue(pp.getMembershipPrincipals(principal).isEmpty());
     }
@@ -356,12 +403,14 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testGetPrincipalsNonExistingUserTree() throws Exception {
-        Authorizable a = spy(getUserManager(root).getAuthorizable(USER_ID));
+        Authorizable a = mock(Authorizable.class, withSettings().extraInterfaces(User.class));
+        when(a.getID()).thenReturn(USER_ID);
         when(a.getPath()).thenReturn("/path/to/non/existing/item");
+        
         UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         assertTrue(pp.getPrincipals(USER_ID).isEmpty());
     }
 
@@ -370,10 +419,13 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Authorizable group = getUserManager(root).createGroup("testGroup");
         Authorizable a = spy(getUserManager(root).getAuthorizable(USER_ID));
         when(a.getPath()).thenReturn(group.getPath());
+        if (a instanceof  TreeAware && group instanceof TreeAware) {
+            when(((TreeAware) a).getTree()).thenReturn(((TreeAware)group).getTree());
+        }
         UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         assertTrue(pp.getPrincipals(USER_ID).isEmpty());
     }
 
@@ -382,7 +434,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         UserManager um = when(mock(UserManager.class).getAuthorizable(anyString())).thenThrow(new RepositoryException()).getMock();
         UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
 
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(uc, getAutoMembership(), getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
         assertTrue(pp.getPrincipals(USER_ID).isEmpty());
     }
 
@@ -393,12 +445,10 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Tree t = root.getTree(userPath);
         t.removeProperty(REP_EXTERNAL_ID);
 
-        String[] automembership = getAutoMembership();
-        ExternalGroupPrincipalProvider pp = createPrincipalProvider(getUserConfiguration(), automembership, getAutoMembershipConfig());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, getUserConfiguration());
 
-        Set<String> principalNamees = pp.getPrincipals(USER_ID).stream().map(Principal::getName).collect(Collectors.toSet());
-        assertFalse(principalNamees.isEmpty());
-        assertFalse(principalNamees.removeAll(ImmutableSet.copyOf(automembership)));
+        Set<String> principalNames = pp.getPrincipals(USER_ID).stream().map(Principal::getName).collect(Collectors.toSet());
+        assertTrue(principalNames.isEmpty());
     }
 
     @Test
@@ -414,7 +464,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testFindPrincipalsByHintTypeGroup() {
-        Set<? extends Principal> expected = ImmutableSet.of(new PrincipalImpl("a"));
+        Set<? extends Principal> expected = buildExpectedPrincipals("a");
         Set<? extends Principal> res = ImmutableSet
                 .copyOf(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
         assertEquals(expected, res);
@@ -426,7 +476,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testFindPrincipalsByHintTypeAll() {
-        Set<? extends Principal> expected = ImmutableSet.of(new PrincipalImpl("a"));
+        Set<? extends Principal> expected = buildExpectedPrincipals("a");
         Set<? extends Principal> res = ImmutableSet
                 .copyOf(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
         assertEquals(expected, res);
@@ -441,7 +491,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_WILDCARD_USER);
         sync(externalUser);
 
-        Set<? extends Principal> expected = ImmutableSet.of(new PrincipalImpl("_gr_u_"));
+        Set<? extends Principal> expected = buildExpectedPrincipals("_gr_u_");
         Set<? extends Principal> res = ImmutableSet
                 .copyOf(principalProvider.findPrincipals("_", PrincipalManager.SEARCH_TYPE_ALL));
         assertEquals(expected, res);
@@ -455,8 +505,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_WILDCARD_USER);
         sync(externalUser);
 
-        Set<? extends Principal> expected = ImmutableSet.of(
-                new PrincipalImpl("g%r%"));
+        Set<? extends Principal> expected = buildExpectedPrincipals("g%r%");
         Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals("%", PrincipalManager.SEARCH_TYPE_ALL));
         assertEquals(expected, res);
         Set<? extends Principal> res2 = ImmutableSet
@@ -492,18 +541,18 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         sync(otherUser);
 
         Set<Principal> expected = new HashSet<>();
-        expected.add(new PrincipalImpl(gr.getPrincipalName()));
-        long depth = syncConfig.user().getMembershipNestingDepth();
-        if (depth > 1) {
-            collectExpectedPrincipals(expected, gr.getDeclaredGroups(), --depth);
+        if (!hasDynamicGroups()) {
+            expected.add(new PrincipalImpl(gr.getPrincipalName()));
+            long depth = syncConfig.user().getMembershipNestingDepth();
+            if (depth > 1) {
+                collectExpectedPrincipals(expected, gr.getDeclaredGroups(), --depth);
+            }
         }
 
         Iterator<? extends Principal> res = principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL);
-        assertTrue(res.hasNext());
         assertEquals(expected, ImmutableSet.copyOf(res));
         Iterator<? extends Principal> res2 = principalProvider.findPrincipals("a", false,
                 PrincipalManager.SEARCH_TYPE_ALL, 0, -1);
-        assertTrue(res2.hasNext());
         assertEquals(expected, ImmutableSet.copyOf(res2));
     }
 
@@ -511,8 +560,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     public void testFindPrincipalsSorted() {
         List<Principal> in = Arrays.asList(new PrincipalImpl("p3"), new PrincipalImpl("p1"), new PrincipalImpl("p2"));
         ExternalGroupPrincipalProvider p = new ExternalGroupPrincipalProvider(root,
-                getSecurityProvider().getConfiguration(UserConfiguration.class), NamePathMapper.DEFAULT,
-                ImmutableMap.of(idp.getName(), getAutoMembership()), ImmutableMap.of(idp.getName(), getAutoMembershipConfig())) {
+                getUserConfiguration(), NamePathMapper.DEFAULT, idp.getName(), syncConfig, getIdpNamesWithDynamicGroups(), false) {
             @NotNull
             @Override
             public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
@@ -551,9 +599,10 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
 
     @Test
-    public void testFindPrincipalsWithLimit() throws Exception {
+    public void testFindPrincipalsWithLimit() {
         Set<? extends Principal> result = ImmutableSet.copyOf(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 1));
-        assertEquals(1, result.size());
+        int expectedSize = (hasDynamicGroups()) ? 0 : 1;
+        assertEquals(expectedSize, result.size());
     }
 
     @Test
@@ -577,7 +626,8 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         long offset = all.size()-1;
         long limit = all.size();
         Set<? extends Principal> result = ImmutableSet.copyOf(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, offset, limit));
-        assertEquals(1, result.size());
+        int expectedSize = (hasDynamicGroups()) ? 0 : 1;
+        assertEquals(expectedSize, result.size());
     }
 
     @Test
@@ -586,7 +636,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("fail", 0));
 
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
-        ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(r, getUserConfiguration(), getNamePathMapper(), Collections.emptyMap(), Collections.emptyMap());
+        ExternalGroupPrincipalProvider pp = createPrincipalProvider(r, getUserConfiguration());
 
         assertNull(pp.getPrincipal("a"));
         assertFalse(pp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP).hasNext());

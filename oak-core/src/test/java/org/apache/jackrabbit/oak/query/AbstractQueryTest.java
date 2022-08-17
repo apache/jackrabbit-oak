@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -227,7 +228,14 @@ public abstract class AbstractQueryTest {
                     w.println(line);
                     line = line.substring("commit".length()).trim();
                     apply(root, line);
-                    root.commit();
+                    // This part of code is used by both lucene and elastic tests.
+                    // The index definitions in these tests don't have async property set
+                    // So lucene, in this case behaves in a sync manner. But the tests fail on Elastic,
+                    // since ES indexing is always async.
+                    // The below commit info map (sync-mode = rt) would make Elastic use RealTimeBulkProcessHandler.
+                    // This would make ES indexes also sync.
+                    // This will NOT have any impact on the lucene tests.
+                    root.commit(Collections.singletonMap("sync-mode", "rt"));
                 }
                 w.flush();
             }

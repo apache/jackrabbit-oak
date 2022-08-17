@@ -91,6 +91,8 @@ public class SegmentCopy {
 
         private Boolean flat = false;
 
+        private Boolean appendMode = false;
+
         private Integer maxSizeGb = 1;
 
         private Builder() {
@@ -186,11 +188,23 @@ public class SegmentCopy {
          * If enabled, the segments hierarchy will be copied without any
          * TAR archive being created, in a flat hierarchy.
          *
-         * @param flat flag controlling the copying in flat hierarchy
+         * @param flat flag controlling the copying in flat hierarchy.
          * @return this builder.
          */
         public Builder withFlat(Boolean flat) {
             this.flat = flat;
+            return this;
+        }
+
+        /**
+         * If enabled, existing segments will be skipped instead of
+         * overwritten in the copy process.
+         *
+         * @param appendMode flag controlling the segment write behavior.
+         * @return this builder.
+         */
+        public Builder withAppendMode(Boolean appendMode) {
+            this.appendMode = appendMode;
             return this;
         }
 
@@ -234,6 +248,8 @@ public class SegmentCopy {
 
     private final Boolean flat;
 
+    private final Boolean appendMode;
+
     private final Integer maxSizeGb;
 
     private SegmentNodeStorePersistence srcPersistence;
@@ -249,6 +265,7 @@ public class SegmentCopy {
         this.destPersistence = builder.destPersistence;
         this.revisionCount = builder.revisionsCount;
         this.flat = builder.flat;
+        this.appendMode = builder.appendMode;
         this.maxSizeGb = builder.maxSizeGb;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
@@ -355,12 +372,16 @@ public class SegmentCopy {
                 printMessage(outWriter, "Source: {0}", srcDescription);
                 printMessage(outWriter, "Destination: {0}", destDescription);
 
-                SegmentStoreMigrator migrator = new SegmentStoreMigrator.Builder()
+                SegmentStoreMigrator.Builder migratorBuilder = new SegmentStoreMigrator.Builder()
                         .withSourcePersistence(srcPersistence, srcDescription)
-                        .withTargetPersistence(destPersistence, destDescription).withRevisionCount(revisionCount)
-                        .build();
+                        .withTargetPersistence(destPersistence, destDescription)
+                        .withRevisionCount(revisionCount);
 
-                migrator.migrate();
+                if (appendMode) {
+                    migratorBuilder.setAppendMode();
+                }
+
+                migratorBuilder.build().migrate();
 
             } catch (Exception e) {
                 watch.stop();

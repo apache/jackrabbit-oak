@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
@@ -43,7 +44,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 /**
  * Base class for {@code User} and {@code Group} implementations.
  */
-abstract class AuthorizableImpl implements Authorizable, UserConstants {
+abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAware {
 
     /**
      * logger instance
@@ -179,16 +180,19 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         String typeStr = (isGroup()) ? "Group '" : "User '";
         return new StringBuilder().append(typeStr).append(id).append('\'').toString();
     }
-
-    //--------------------------------------------------------------------------
+    
+    //----------------------------------------------------------< TreeAware >---
+    @Override
     @NotNull
-    Tree getTree() {
+    public Tree getTree() {
         if (tree.exists()) {
             return tree;
         } else {
             throw new IllegalStateException("Authorizable " + id + ": underlying tree has been disconnected.");
         }
     }
+
+    //--------------------------------------------------------------------------
 
     @Nullable 
     String getPrincipalNameOrNull() {

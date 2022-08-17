@@ -32,6 +32,9 @@ import java.util.EnumSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.StreamSupport;
+
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -44,6 +47,8 @@ import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class AzureBlobStoreBackendTest {
@@ -129,6 +134,15 @@ public class AzureBlobStoreBackendTest {
         assertReadAccessGranted(azureBlobStoreBackend, ImmutableSet.of("file"));
     }
 
+    @Test
+    public void initSecret() throws Exception {
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
+
+        azureBlobStoreBackend.init();
+        assertReferenceSecret(azureBlobStoreBackend);
+    }
+    
     private CloudBlobContainer createBlobContainer() throws Exception {
         container = azurite.getContainer("blobstore");
         for (String blob : BLOBS) {
@@ -141,6 +155,7 @@ public class AzureBlobStoreBackendTest {
         Properties properties = getBasicConfiguration();
         properties.setProperty(AzureConstants.AZURE_SAS, sasToken);
         properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "false");
+        properties.setProperty(AzureConstants.AZURE_REF_ON_INIT, "false");
         return properties;
     }
     
@@ -185,7 +200,9 @@ public class AzureBlobStoreBackendTest {
         Set<String> actualBlobNames = StreamSupport.stream(container.listBlobs().spliterator(), false)
             .map(blob -> blob.getUri().getPath())
             .map(path -> path.substring(path.lastIndexOf('/') + 1))
+            .filter(path -> !path.isEmpty())
             .collect(toSet());
+        
         Set<String> expectedBlobNames = expectedBlobs.stream().map(name -> name + ".txt").collect(toSet());
 
         assertEquals(expectedBlobNames, actualBlobNames);
@@ -235,5 +252,13 @@ public class AzureBlobStoreBackendTest {
    
     private static String getConnectionString() {
         return Utils.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azurite.getBlobEndpoint());
+    }
+
+    private static void assertReferenceSecret(AzureBlobStoreBackend azureBlobStoreBackend)
+        throws DataStoreException, IOException {
+        // assert secret already created on init
+        DataRecord refRec = azureBlobStoreBackend.getMetadataRecord("reference.key");
+        assertNotNull("Reference data record null", refRec);
+        assertTrue("reference key is empty", refRec.getLength() > 0);
     }
 }
