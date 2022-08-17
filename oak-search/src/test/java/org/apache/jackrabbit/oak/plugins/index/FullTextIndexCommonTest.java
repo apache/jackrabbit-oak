@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -67,6 +68,19 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, Collections.emptyList());
             assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, Collections.singletonList("/test/a"));
         });
+    }
+
+    @Test
+    public void searchInDateField() throws Exception {
+        Tree test = setup();
+
+        Tree a = test.addChild("a");
+        a.setProperty("analyzed_field", "1234abCd5678");
+        a.setProperty("date_prop", "2014-04-01T09:58:03.231Z", Type.DATE);
+        root.commit();
+
+        assertEventually(() ->
+                assertQuery("//*[jcr:contains(., '01T09')] ", XPATH, Collections.singletonList("/test/a")));
     }
 
 
@@ -120,6 +134,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         builder.indexRule("nt:base")
                 .property("analyzed_field")
                 .analyzed().nodeScopeIndex();
+        builder.indexRule("nt:base")
+                .property("date_prop")
+                .analyzed().nodeScopeIndex().type("Date");
 
         indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
         root.commit();

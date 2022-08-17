@@ -21,6 +21,8 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.slf4j.event.Level;
 
 import java.util.ArrayList;
@@ -67,4 +69,9 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
         expectedLogList.add(log2);
         return expectedLogList;
     }
+
+    @Override
+    @Test
+    @Ignore("OAK-9875")
+    public void searchInDateField() {}
 }
