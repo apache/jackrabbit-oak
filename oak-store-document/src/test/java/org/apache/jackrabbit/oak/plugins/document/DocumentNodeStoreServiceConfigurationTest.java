@@ -96,7 +96,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
 
     @Test
     public void throttleEnabled() throws Exception {
-        boolean throttleDocStore = false;
+        boolean throttleDocStore = true;
         addConfigurationEntry(preset, "throttlingEnabled", throttleDocStore);
         Configuration config = createConfiguration();
         assertEquals(throttleDocStore, config.throttlingEnabled());

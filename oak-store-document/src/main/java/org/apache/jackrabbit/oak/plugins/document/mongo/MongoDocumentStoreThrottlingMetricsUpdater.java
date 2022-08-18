@@ -28,17 +28,17 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static com.google.common.math.DoubleMath.fuzzyEquals;
-import static com.google.common.util.concurrent.MoreExecutors.getExitingScheduledExecutorService;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.abs;
 import static java.lang.Math.ceil;
 import static java.util.Objects.isNull;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -46,7 +46,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  *
  * This class fetches and updates the mongo oplog window
  */
-public class MongoDocumentStoreThrottlingMetricsUpdater {
+public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreThrottlingMetricsUpdater.class);
     static final String TS_TIME = "ts";
@@ -59,14 +59,12 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
     private final MongoDatabase localDb;
 
     public MongoDocumentStoreThrottlingMetricsUpdater(final @NotNull MongoDatabase localDb, final @NotNull AtomicDouble oplogWindow) {
-        // exiting scheduled executor, will exit when we call to shut down jvm
-        this.throttlingMetricsExecutor = getExitingScheduledExecutorService(
-                (ScheduledThreadPoolExecutor) newScheduledThreadPool(1), 40, SECONDS);
+        this.throttlingMetricsExecutor = newSingleThreadScheduledExecutor();
         this.oplogWindow = oplogWindow;
         this.localDb = localDb;
     }
 
-    public void updateMetrics() {
+    public void scheduleUpdateMetrics() {
         throttlingMetricsExecutor.scheduleAtFixedRate(() -> {
             Document document = localDb.runCommand(new Document("collStats", OPLOG_RS));
             if (!document.containsKey(MAX_SIZE) || !document.containsKey(SIZE)) {
@@ -115,5 +113,26 @@ public class MongoDocumentStoreThrottlingMetricsUpdater {
                 "rate {}, time left {}", maxSize, usedSize, startTime.getTime(), lastTime.getTime(),
                 timeDiffSec, currentOplogHourRate, timeLeft);
         return timeLeft;
+    }
+
+    @Override
+    public void close() throws IOException {
+        // Disable new tasks from being submitted
+        throttlingMetricsExecutor.shutdown();
+        try {
+            // Wait a while for existing tasks to terminate
+            if (!throttlingMetricsExecutor.awaitTermination(10, SECONDS)) {
+                throttlingMetricsExecutor.shutdownNow();
+                // Cancel currently executing tasks
+                // Wait a while for tasks to respond to being cancelled
+                if (!throttlingMetricsExecutor.awaitTermination(10, SECONDS)){
+                    LOG.warn("throttlingMetricsExecutor did not terminate");
+                }
+            }
+        } catch (InterruptedException ex) {
+            throttlingMetricsExecutor.shutdownNow();
+            // Preserve interrupt status
+            Thread.currentThread().interrupt();
+        }
     }
 }
