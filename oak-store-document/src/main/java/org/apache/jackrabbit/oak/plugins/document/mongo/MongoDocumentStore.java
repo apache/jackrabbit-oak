@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.Block;
@@ -142,9 +143,11 @@ public class MongoDocumentStore implements DocumentStore {
     private static final String OPLOG_RS = "oplog.rs";
 
     /**
-     * The threshold value after which the document store should start (if enabled) throttling.
+     * The threshold value <b>(in hours)</b> after which the document store should start (if enabled) throttling.
+     * Default is 2 hours.
+     * <p>
+     * For mongo based document store this value is threshold for the oplog replication window.
      */
-    // For mongo based document store this value is threshold for the oplog replication window.
     public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger("oak.mongo.throttlingThreshold", 2);
     /**
      * The default throttling time (in millis) when throttling is enabled. This is the time for
@@ -275,6 +278,11 @@ public class MongoDocumentStore implements DocumentStore {
 
     private DocumentStoreStatsCollector stats;
 
+    /**
+     * An updater instance to periodically updates mongo oplog window
+     */
+    private MongoDocumentStoreThrottlingMetricsUpdater throttlingMetricsUpdater;
+
     private boolean hasModifiedIdCompoundIndex = true;
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
@@ -341,7 +349,8 @@ public class MongoDocumentStore implements DocumentStore {
                 // oplog window based on current oplog filling rate
                 final AtomicDouble oplogWindow = new AtomicDouble(MAX_VALUE);
                 throttler = exponentialThrottler(DEFAULT_THROTTLING_THRESHOLD, oplogWindow, DEFAULT_THROTTLING_TIME_MS);
-                new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow).updateMetrics();
+                throttlingMetricsUpdater = new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow);
+                throttlingMetricsUpdater.scheduleUpdateMetrics();
                 LOG.info("Started MongoDB throttling metrics with threshold {}, throttling time {}",
                         DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME_MS);
             } else {
@@ -1730,6 +1739,11 @@ public class MongoDocumentStore implements DocumentStore {
         connection.close();
         if (clusterNodesConnection != connection) {
             clusterNodesConnection.close();
+        }
+        try {
+            Closeables.close(throttlingMetricsUpdater, false);
+        } catch (IOException e) {
+            LOG.warn("Error occurred while closing throttlingMetricsUpdater", e);
         }
         try {
             nodesCache.close();
