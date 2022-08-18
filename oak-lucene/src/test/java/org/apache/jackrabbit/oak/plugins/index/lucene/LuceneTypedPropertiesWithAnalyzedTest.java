@@ -18,11 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.TypedPropertiesWithAnalyzedTest;
 import org.junit.After;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -45,5 +47,20 @@ public class LuceneTypedPropertiesWithAnalyzedTest extends TypedPropertiesWithAn
     @After
     public void shutdownExecutor() {
         executorService.shutdown();
+    }
+
+    @Test
+    public void typeBooleanAnalyzed() throws Exception {
+        super.prepareIndexForBooleanPropertyTest();
+        assertQuery("/jcr:root//*[jcr:contains(@propa, '123*')]", XPATH,
+                ImmutableList.of("/test/a", "/test/b", "/test/c", "/test/d"));
+        assertQuery("/jcr:root//*[jcr:contains(@propa, '432*')]", XPATH,
+                ImmutableList.of("/test/f", "/test/g", "/test/h", "/test/i"));
+        assertQuery("/jcr:root//*[jcr:contains(@propa, 'notpresent*')]", XPATH,
+                ImmutableList.of());
+        assertQuery("/jcr:root//*[jcr:contains(@propa, 'Lorem*')]", XPATH,
+                ImmutableList.of("/test/k"));
+        assertQuery("/jcr:root//*[jcr:contains(@propa, 'tru*')]", XPATH,
+                ImmutableList.of("/test/e"));
     }
 }

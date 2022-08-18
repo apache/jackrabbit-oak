@@ -97,8 +97,14 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexAnalyzedProperty(ElasticDocument doc, String pname, String value, PropertyDefinition pd) {
-        String analyzedFieldName = FieldNames.ANALYZED_FIELD_PREFIX + pname;
-        doc.addProperty(analyzedFieldName, value);
+        // Analyzed properties are persisted in Elastic using multi fields, so it is enough to map the top level property
+        // and ES will create the indexes for all the nested fields. If this property was already indexed by a call to
+        // #indexTypedProperty, then we have nothing more to do here. But if the property is not marked as a propertyIndex,
+        // then that method was not called and we must add the top level mapping here so that the full-text nested field
+        // is populated.
+        if (!pd.propertyIndex) {
+            doc.addProperty(pname, value);
+        }
     }
 
     @Override
@@ -142,32 +148,39 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
-        // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
-        // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
-        // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
-        // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
-        int tag = pd.getType();
-        Object f;
+        // Try to index the value as we receive it from the user. Elastic will try to coerce the value to the type defined
+        // in the index. If this fails, the ES index is configured to ignore the malformed fields (see ElasticIndexHelper)
+        // and continue indexing the document. The only exception are fields of type boolean, because ES does not support
+        // ignoring malformed values for boolean types.
+
+        int pdTypeTag = pd.getType();
         try {
-            if (tag == Type.LONG.tag()) {
-                f = property.getValue(Type.LONG, i);
-            } else if (tag == Type.DATE.tag()) {
-                f = property.getValue(Type.DATE, i);
-            } else if (tag == Type.DOUBLE.tag()) {
-                f = property.getValue(Type.DOUBLE, i);
-            } else if (tag == Type.BOOLEAN.tag()) {
+            Object f;
+            if (pdTypeTag == Type.BOOLEAN.tag()) {
+                // Try to convert to boolean here, as ES does not support ignore_malformed in boolean fields
                 f = property.getValue(Type.BOOLEAN, i).toString();
             } else {
-                f = property.getValue(Type.STRING, i);
+                // Let ES convert the property and rely on ignore_malformed=true to skip if the value is not valid
+                int indexTypeTag = property.getType().tag();
+                if (indexTypeTag == Type.LONG.tag()) {
+                    f = property.getValue(Type.LONG, i);
+                } else if (indexTypeTag == Type.DATE.tag()) {
+                    f = property.getValue(Type.DATE, i);
+                } else if (indexTypeTag == Type.DOUBLE.tag()) {
+                    f = property.getValue(Type.DOUBLE, i);
+                } else if (indexTypeTag == Type.BOOLEAN.tag()) {
+                    f = property.getValue(Type.BOOLEAN, i).toString();
+                } else {
+                    f = property.getValue(Type.STRING, i);
+                }
             }
-
             doc.addProperty(pname, f);
         } catch (Exception e) {
             LOG.warn(
                     "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
                     getIndexName(), pname,
                     Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+                    Type.fromTag(pdTypeTag, false), path, e);
         }
     }
 

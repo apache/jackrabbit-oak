@@ -801,25 +801,13 @@ public class ElasticRequestHandler {
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
                 .type(TextQueryType.CrossFields);
 
-        if (separateFullTextSearchESFieldFeature.isEnabled()) {
-            // New behavior
-            if (FieldNames.FULLTEXT.equals(fieldName)) {
-                for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                    qsqBuilder.fields(FieldNames.ANALYZED_FIELD_PREFIX + pd.name);
-                    qsqBuilder.boost(pd.boost);
-                }
+        if (FieldNames.FULLTEXT.equals(fieldName)) {
+            for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
+                qsqBuilder.fields(pd.name);
+                qsqBuilder.boost(pd.boost);
             }
-            return qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(fieldName));
-        } else {
-            // Old behavior
-            if (FieldNames.FULLTEXT.equals(fieldName)) {
-                for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                    qsqBuilder.fields(pd.name);
-                    qsqBuilder.boost(pd.boost);
-                }
-            }
-            return qsqBuilder.fields(fieldName);
         }
+        return qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(fieldName));
     }
 
     private Query createQuery(String propertyName, Filter.PropertyRestriction pr, PropertyDefinition defn) {

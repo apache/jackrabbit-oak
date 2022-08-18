@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.TypedPropertiesWithAnalyzedTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
+import org.junit.Test;
 
 public class ElasticTypedPropertiesWithAnalyzedTest extends TypedPropertiesWithAnalyzedTest {
 
@@ -39,5 +41,15 @@ public class ElasticTypedPropertiesWithAnalyzedTest extends TypedPropertiesWithA
         elasticTestRepositoryBuilder.setAsync(true);
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
+    }
+
+    @Test
+    public void typeBooleanAnalyzed() throws Exception {
+        super.prepareIndexForBooleanPropertyTest();
+        assertQuery("/jcr:root//*[jcr:contains(@propa, '123*')]", XPATH, ImmutableList.of());
+        assertQuery("/jcr:root//*[jcr:contains(@propa, '432*')]", XPATH, ImmutableList.of());
+        assertQuery("/jcr:root//*[jcr:contains(@propa, 'notpresent*')]", XPATH, ImmutableList.of());
+        assertQuery("/jcr:root//*[jcr:contains(@propa, 'Lorem*')]", XPATH, ImmutableList.of());
+        assertQuery("/jcr:root//*[jcr:contains(@propa, 'tru*')]", XPATH, ImmutableList.of());
     }
 }

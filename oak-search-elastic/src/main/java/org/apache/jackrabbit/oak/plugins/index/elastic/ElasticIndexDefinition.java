@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -99,7 +98,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private static final Function<Integer, Boolean> isAnalyzable;
 
     static {
-        int[] NOT_ANALYZED_TYPES = new int[] {
+        int[] NOT_ANALYZED_TYPES = new int[]{
                 Type.BINARY.tag(), Type.LONG.tag(), Type.DOUBLE.tag(), Type.DECIMAL.tag(), Type.DATE.tag(), Type.BOOLEAN.tag()
         };
         Arrays.sort(NOT_ANALYZED_TYPES); // need for binary search
@@ -202,6 +201,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     /**
      * Returns the keyword field name mapped in Elasticsearch for the specified property name.
+     *
      * @param propertyName the property name in the index rules
      * @return the field name identifier in Elasticsearch
      */
@@ -228,11 +228,27 @@ public class ElasticIndexDefinition extends IndexDefinition {
             return propertyName;
         }
 
-        if (isAnalyzed(propertyDefinitions)) {
-            return FieldNames.ANALYZED_FIELD_PREFIX + propertyName;
+        Type<?> type = null;
+        for (PropertyDefinition pd : propertyDefinitions) {
+            type = Type.fromTag(pd.getType(), false);
         }
 
-        return propertyName;
+        if (isAnalyzed(propertyDefinitions)) {
+            // The full text index for String properties is <propertyName>, while for non-string properties is part of
+            // the multi-field and is called <propertyName>.text
+            if (Type.BINARY.equals(type) ||
+                    Type.LONG.equals(type) ||
+                    Type.DOUBLE.equals(type) ||
+                    Type.DECIMAL.equals(type) ||
+                    Type.DATE.equals(type) ||
+                    Type.BOOLEAN.equals(type)) {
+                return propertyName + ".text";
+            } else {
+                return propertyName;
+            }
+        } else {
+            return propertyName;
+        }
     }
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {

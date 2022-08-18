@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.elasticsearch.client.indices.CreateIndexRequest;
@@ -91,7 +90,7 @@ public class ElasticIndexHelperTest {
 
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> jsonMappings = mapper.readValue(request.mappings().streamInput(), Map.class);
-        Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get(FieldNames.ANALYZED_FIELD_PREFIX + "foo");
+        Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get("foo");
         assertThat(fooMapping.get("analyzer"), is("oak_analyzer"));
         Map barMapping = (Map) ((Map) jsonMappings.get("properties")).get("bar");
         assertThat(barMapping.get("analyzer"), nullValue());

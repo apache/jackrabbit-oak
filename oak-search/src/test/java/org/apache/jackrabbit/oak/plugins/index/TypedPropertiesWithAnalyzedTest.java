@@ -63,6 +63,36 @@ public abstract class TypedPropertiesWithAnalyzedTest extends AbstractQueryTest 
     }
 
     @Test
+    public void typeDateAnalyzed() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.noAsync();
+        builder.indexRule("nt:base")
+                .property("propa")
+                .analyzed()
+                .type("Date");
+        setIndex(builder, UUID.randomUUID().toString());
+        root.commit();
+
+        addContent();
+        runQueries();
+    }
+
+    @Test
+    public void typeBinaryAnalyzed() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.noAsync();
+        builder.indexRule("nt:base")
+                .property("propa")
+                .analyzed()
+                .type("Binary");
+        setIndex(builder, UUID.randomUUID().toString());
+        root.commit();
+
+        addContent();
+        runQueries();
+    }
+
+    @Test
     public void typeDoubleAnalyzed() throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
         builder.noAsync();
@@ -77,8 +107,7 @@ public abstract class TypedPropertiesWithAnalyzedTest extends AbstractQueryTest 
         runQueries();
     }
 
-    @Test
-    public void typeBooleanAnalyzed() throws Exception {
+    protected void prepareIndexForBooleanPropertyTest() throws CommitFailedException {
         IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
         builder.noAsync();
         builder.indexRule("nt:base")
@@ -87,9 +116,7 @@ public abstract class TypedPropertiesWithAnalyzedTest extends AbstractQueryTest 
                 .type("Boolean");
         setIndex(builder, UUID.randomUUID().toString());
         root.commit();
-
         addContent();
-        runQueries();
     }
 
     @Test

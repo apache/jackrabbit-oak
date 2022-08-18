@@ -346,15 +346,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             if (t instanceof ElasticsearchException) {
                 ElasticsearchException esException = (ElasticsearchException) t;
                 StringBuffer errorMessage = new StringBuffer("Status: " + esException.status() + ", Message: " + esException.getMessage());
-                ErrorCause errorCause = esException.error();
-                while (errorCause != null) {
-                    errorMessage.append("; caused by " + errorCause.type() + ":" + errorCause.reason());
-                    errorCause = errorCause.causedBy();
+                for (ErrorCause c : esException.response().error().rootCause()) {
+                    errorMessage.append("; caused by ").append(c.type()).append(":").append(c.reason());
                 }
                 LOG.warn("ElasticSearch error. {}", errorMessage);
             }
             LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES query {} : closing scanner, notifying listeners",
-                indexPlan.getFilter(), ElasticIndexUtils.toString(query), t);
+                    indexPlan.getFilter(), ElasticIndexUtils.toString(query), t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }
