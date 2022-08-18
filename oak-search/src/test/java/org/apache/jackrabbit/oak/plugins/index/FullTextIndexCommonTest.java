@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -79,10 +80,16 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         Tree a = test.addChild("a");
         a.setProperty("analyzed_field", "1234abCd5678");
         a.setProperty("date_prop", "2014-04-01T09:58:03.231Z", Type.DATE);
+
+        Tree b = test.addChild("b");
+        b.setProperty("analyzed_field", "231Z");
+        b.setProperty("date_prop", "2014-04-01T10:58:03.000Z", Type.DATE);
         root.commit();
 
-        assertEventually(() ->
-                assertQuery("//*[jcr:contains(., '01T09')] ", XPATH, singletonList("/test/a")));
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., '01T09')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(., '231Z')] ", XPATH, Arrays.asList("/test/a", "/test/b"));
+        });
     }
 
 
