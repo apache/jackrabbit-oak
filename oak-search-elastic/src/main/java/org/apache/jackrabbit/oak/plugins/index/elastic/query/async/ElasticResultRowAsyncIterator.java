@@ -336,7 +336,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     System.currentTimeMillis() - searchStartTime);
             // Check in case errorRef is already set - this seems unlikely since we close the scanner once we hit failure.
             // But still, in case this do happen, we will log a warn.
-            Throwable error = errorRef.getAndSet(new ElasticAsyncQueryException(t, indexPlan.getFilter().toString(), ElasticIndexUtils.toString(query)));
+            Throwable error = errorRef.getAndSet(new ElasticAsyncQueryException(t, ElasticIndexUtils.toString(query)));
             if (error != null) {
                 LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());
             }

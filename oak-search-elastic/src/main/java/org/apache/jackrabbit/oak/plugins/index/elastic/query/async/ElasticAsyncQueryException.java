@@ -22,7 +22,7 @@ public class ElasticAsyncQueryException extends RuntimeException {
 
     private final String esQuery;
 
-    public ElasticAsyncQueryException(Throwable cause, String jcrQuery, String esQuery) {
+    public ElasticAsyncQueryException(Throwable cause, String esQuery) {
         super(cause);
 
         this.esQuery = esQuery;
