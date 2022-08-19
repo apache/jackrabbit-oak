@@ -167,6 +167,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             assertQuery("/jcr:root/test/c[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c"));
             assertQuery("/jcr:root/test/a/j:c[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a/j:c"));
 
+            // TODO : We don't have assertions for PARENT path filter here.
+            //  The usage is not documented and queries like /jcr:root/test/a/b/j:c/..[j:c/foo = 'bar'] fail with ParseException.
+            //  See if this is something that we might want to fix (given that it's not documented in public oak docs)
+
         });
     }
 
