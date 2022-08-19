@@ -22,6 +22,7 @@ import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.junit.Test;
 
+import static java.lang.Integer.MAX_VALUE;
 import static java.time.Instant.now;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreThrottlingMetricsUpdater.TS_TIME;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreThrottlingMetricsUpdater.updateOplogWindow;
@@ -69,7 +70,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
                 new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
 
-        assertEquals(Integer.MAX_VALUE, oplogWindow, 0.001);
+        assertEquals(MAX_VALUE, oplogWindow, 0.001);
     }
 
     @Test
@@ -79,7 +80,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
                 new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)));
 
-        assertEquals(Integer.MAX_VALUE, oplogWindow, 0.001);
+        assertEquals(MAX_VALUE, oplogWindow, 0.001);
     }
 
     @Test
@@ -91,6 +92,17 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
 
         // expected value should be very close to zero, since we are filling oplog window in same second
         assertEquals(0, oplogWindow, 0.001);
+    }
+
+    @Test
+    public void testUpdateOplogWindow_OplogEntries_InSameSecond_WithZeroUsedSize() {
+
+        double oplogWindow = updateOplogWindow(1024, 0,
+                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 1)));
+
+        // expected value should be very close to zero, since we are filling oplog window in same second
+        assertEquals(MAX_VALUE, oplogWindow, 0.001);
     }
 
 }
