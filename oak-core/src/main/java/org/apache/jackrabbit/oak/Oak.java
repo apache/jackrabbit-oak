@@ -579,6 +579,7 @@ public class Oak {
         }
         if (queryEngineSettings != null) {
             Feature prefetchFeature = Feature.newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
+            closer.register(prefetchFeature);
             queryEngineSettings.setPrefetchFeature(prefetchFeature);
         }
 
