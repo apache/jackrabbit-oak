@@ -26,8 +26,10 @@ import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBeanImpl;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsReporter;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Settings of the query engine.
@@ -59,7 +61,9 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String OAK_QUERY_PREFETCH_COUNT = "oak.prefetchCount";
 
-    public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, 0);
+    public static final String FT_NAME_PREFETCH_FOR_QUERIES = "FT_OAK-9893";
+
+    public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
     private static final boolean DEFAULT_FAIL_TRAVERSAL =
@@ -106,6 +110,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT, 1024 * 1024); // 1 MB
     private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
 
+    private Feature prefetchFeature;
+
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
 
@@ -123,6 +129,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public QueryEngineSettings(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
+    }
+
+    public void setPrefetchFeature(@Nullable Feature prefetch) {
+        this.prefetchFeature = prefetch;
     }
 
     @Override
@@ -152,6 +162,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     @Override
     public int getPrefetchCount() {
+        if (prefetchCount == -1) {
+            return prefetchFeature != null && prefetchFeature.isEnabled() ?
+                    20 : 0;
+        }
         return prefetchCount;
     }
 
