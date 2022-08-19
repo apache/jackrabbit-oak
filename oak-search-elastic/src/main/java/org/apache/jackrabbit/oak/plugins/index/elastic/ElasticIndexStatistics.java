@@ -54,8 +54,8 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
 public class ElasticIndexStatistics implements IndexStatistics {
 
     private static final Long MAX_SIZE = Long.getLong("oak.elastic.statsMaxSize", 10000);
-    private static final Long EXPIRE_SECONDS = Long.getLong("oak.elastic.statsExpireSeconds", 10*60);
-    private static final Long REFRESH_SECONDS = Long.getLong("oak.elastic.statsRefreshSeconds", 1*60);
+    private static final Long EXPIRE_SECONDS = Long.getLong("oak.elastic.statsExpireSeconds", 10 * 60);
+    private static final Long REFRESH_SECONDS = Long.getLong("oak.elastic.statsRefreshSeconds", 60);
 
     private static final LoadingCache<StatsRequestDescriptor, Integer> DEFAULT_COUNT_CACHE =
             setupCountCache(MAX_SIZE, EXPIRE_SECONDS, REFRESH_SECONDS, null);

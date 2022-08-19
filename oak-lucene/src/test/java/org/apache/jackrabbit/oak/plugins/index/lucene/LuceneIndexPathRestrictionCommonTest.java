@@ -43,10 +43,9 @@ public class LuceneIndexPathRestrictionCommonTest extends IndexPathRestrictionCo
     public static Collection<Object[]> data() {
         // For Lucene - evaluatePathRestrictions is used to enable/disable indexing ancestor paths.
         // So we test for both combinations here - evaluatePathRestrictions=true and  evaluatePathRestrictions=false
-        return Arrays.asList(new Object[][]{
+        return Arrays.asList(
                 doesIndexEvaluatePathRestrictions(true),
-                doesIndexEvaluatePathRestrictions(false)
-        });
+                doesIndexEvaluatePathRestrictions(false));
     }
 
     @Override
@@ -57,7 +56,7 @@ public class LuceneIndexPathRestrictionCommonTest extends IndexPathRestrictionCo
     @Override
     protected void setupHook() {
         tracker = new IndexTracker();
-        HOOK = new EditorHook(new IndexUpdateProvider(new LuceneIndexEditorProvider()));
+        hook = new EditorHook(new IndexUpdateProvider(new LuceneIndexEditorProvider()));
     }
 
     @Override

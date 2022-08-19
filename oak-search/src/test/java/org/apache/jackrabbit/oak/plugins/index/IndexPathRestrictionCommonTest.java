@@ -56,7 +56,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public abstract class IndexPathRestrictionCommonTest {
 
-    protected EditorHook HOOK;
+    protected EditorHook hook;
     private NodeBuilder rootBuilder;
     protected NodeState root;
     protected FulltextIndex index;
@@ -518,7 +518,7 @@ public abstract class IndexPathRestrictionCommonTest {
         // The below commit info map (sync-mode = rt) would make Elastic use RealTimeBulkProcessHandler.
         // This would make ES indexes also sync.
         // This will NOT have any impact on the lucene tests.
-        root = HOOK.processCommit(rootBuilder.getBaseState(), rootBuilder.getNodeState(), new CommitInfo("sync-mode", "rt"));
+        root = hook.processCommit(rootBuilder.getBaseState(), rootBuilder.getNodeState(), new CommitInfo("sync-mode", "rt"));
         rootBuilder = root.builder();
 
         postCommitHooks();

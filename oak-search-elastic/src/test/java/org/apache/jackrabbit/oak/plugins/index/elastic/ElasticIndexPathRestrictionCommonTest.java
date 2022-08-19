@@ -31,12 +31,15 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.event.Level;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionCommonTest {
@@ -45,7 +48,13 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
     public static final ElasticConnectionRule elasticRule =
             new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
-    private ElasticConnection esConnection;
+    @Rule
+    public final ProvideSystemProperty updateSystemProperties
+            = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "10");
+
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
+
     private ElasticIndexTracker indexTracker;
 
 
@@ -58,9 +67,7 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
         // For Elastic - evaluatePathRestrictions is effectively moot since we always enable path restrictions by default.
         // And always index ancestors in ElasticDocumentMaker#finalizeDoc
         // So we test for only 1 combination here - evaluatePathRestrictions=true
-        return Arrays.asList(new Object[][]{
-                doesIndexEvaluatePathRestrictions(true)
-        });
+        return Collections.singleton(doesIndexEvaluatePathRestrictions(true));
     }
 
     @Override
@@ -74,10 +81,10 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
         // before it can get the estimated doc count from the remote ES index
         System.setProperty("oak.elastic.statsRefreshSeconds", "10");
 
-        this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
+        ElasticConnection esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
-        HOOK = new EditorHook(
+        hook = new EditorHook(
                 new IndexUpdateProvider(new ElasticIndexEditorProvider(indexTracker, esConnection,
                         new ExtractedTextCache(10 * FileUtils.ONE_MB, 100))));
     }

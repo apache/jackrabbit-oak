@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -31,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,7 +43,7 @@ public class ElasticResponseHandler {
 
     private final PlanResult planResult;
     private final Filter filter;
-    private final Set<String> seenPaths = Sets.newHashSet();
+    private final Set<String> seenPaths = new HashSet<>();
 
     ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult, @NotNull Filter filter) {
         this.planResult = planResult;
@@ -51,19 +51,15 @@ public class ElasticResponseHandler {
     }
 
     public String getPath(Hit<? extends JsonNode> hit) {
-        String originalPath = hit.source().get(FieldNames.PATH).asText();
-
-        // Check here for path transformation to avoid maintaining seenPaths set in case of non transformed queries
-        if (planResult.isPathTransformed()) {
-            return transformPath(originalPath);
-        } else {
-            return originalPath;
-        }
+        return transformPath(hit.source().get(FieldNames.PATH).asText());
     }
 
     private String transformPath(String path) {
-        String transformedPath = planResult.transformPath(("".equals(path)) ? "/" : path);
+        if (!planResult.isPathTransformed()) {
+            return path;
+        }
 
+        String transformedPath = planResult.transformPath(("".equals(path)) ? "/" : path);
         if (transformedPath == null) {
             LOG.trace("Ignoring path {} : Transformation returned null", path);
             return null;
@@ -71,11 +67,10 @@ public class ElasticResponseHandler {
 
         // avoid duplicate entries
         // (This reduces number of entries passed on to QueryEngine for post processing in case of transformed path field queries)
-        if (seenPaths.contains(transformedPath)) {
+        if (!seenPaths.add(transformedPath)) {
             LOG.trace("Ignoring path {} : Duplicate post transformation", path);
             return null;
         }
-        seenPaths.add(transformedPath);
         return transformedPath;
     }
 
