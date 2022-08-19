@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
@@ -117,22 +118,6 @@ public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
 
     @Override
     public void close() throws IOException {
-        // Disable new tasks from being submitted
-        throttlingMetricsExecutor.shutdown();
-        try {
-            // Wait a while for existing tasks to terminate
-            if (!throttlingMetricsExecutor.awaitTermination(10, SECONDS)) {
-                throttlingMetricsExecutor.shutdownNow();
-                // Cancel currently executing tasks
-                // Wait a while for tasks to respond to being cancelled
-                if (!throttlingMetricsExecutor.awaitTermination(10, SECONDS)){
-                    LOG.warn("throttlingMetricsExecutor did not terminate");
-                }
-            }
-        } catch (InterruptedException ex) {
-            throttlingMetricsExecutor.shutdownNow();
-            // Preserve interrupt status
-            Thread.currentThread().interrupt();
-        }
+        new ExecutorCloser(this.throttlingMetricsExecutor).close();
     }
 }
