@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.CacheStats;
@@ -675,12 +676,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         long totalLoadTime = 0;
         long evictionCount = 0;
         for (Segment<K, V> s : segments) {
-            hitCount += s.hitCount;
-            missCount += s.missCount;
-            loadSuccessCount += s.loadSuccessCount;
-            loadExceptionCount += s.loadExceptionCount;
-            totalLoadTime += s.totalLoadTime;
-            evictionCount += s.evictionCount;
+            hitCount += s.hitCount.longValue();
+            missCount += s.missCount.longValue();
+            loadSuccessCount += s.loadSuccessCount.longValue();
+            loadExceptionCount += s.loadExceptionCount.longValue();
+            totalLoadTime += s.totalLoadTime.longValue();
+            evictionCount += s.evictionCount.longValue();
         }
         CacheStats stats = new CacheStats(hitCount, missCount, loadSuccessCount,
                 loadExceptionCount, totalLoadTime, evictionCount);
@@ -722,12 +723,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          */
         long usedMemory;
 
-        long hitCount;
-        long missCount;
-        long loadSuccessCount;
-        long loadExceptionCount;
-        long totalLoadTime;
-        long evictionCount;
+        LongAdder hitCount = new LongAdder();
+        LongAdder missCount = new LongAdder();
+        LongAdder loadSuccessCount = new LongAdder();
+        LongAdder loadExceptionCount = new LongAdder();
+        LongAdder totalLoadTime = new LongAdder();
+        LongAdder evictionCount = new LongAdder();
 
         /**
          * The cache.
@@ -878,13 +879,13 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             Entry<K, V> e = find(key, hash);
             if (e == null) {
                 // the entry was not found
-                missCount++;
+                missCount.increment();
                 return null;
             }
             V value = e.value;
             if (value == null) {
                 // it was a non-resident entry
-                missCount++;
+                missCount.increment();
                 return null;
             }
             if (e.isHot()) {
@@ -896,7 +897,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             } else {
                 access(key, hash);
             }
-            hitCount++;
+            hitCount.increment();
             return value;
         }
 
@@ -1025,13 +1026,13 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             long start = System.nanoTime();
             try {
                 value = valueLoader.call();
-                loadSuccessCount++;
+                loadSuccessCount.increment();
             } catch (Exception e) {
-                loadExceptionCount++;
+                loadExceptionCount.increment();
                 throw new ExecutionException(e);
             } finally {
                 long time = System.nanoTime() - start;
-                totalLoadTime += time;
+                totalLoadTime.add(time);
             }
             put(key, hash, value, cache.sizeOf(key, value));
             return value;
@@ -1054,13 +1055,13 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 long start = System.nanoTime();
                 try {
                     value = loader.load(key);
-                    loadSuccessCount++;
+                    loadSuccessCount.increment();
                 } catch (Exception e) {
-                    loadExceptionCount++;
+                    loadExceptionCount.increment();
                     throw new ExecutionException(e);
                 } finally {
                     long time = System.nanoTime() - start;
-                    totalLoadTime += time;
+                    totalLoadTime.add(time);
                 }
                 put(key, hash, value, cache.sizeOf(key, value));
                 return value;
@@ -1123,13 +1124,13 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     ListenableFuture<V> future = loader.reload(key, old);
                     value = future.get();
                 }
-                loadSuccessCount++;
+                loadSuccessCount.increment();
             } catch (Exception e) {
-                loadExceptionCount++;
+                loadExceptionCount.increment();
                 throw new ExecutionException(e);
             } finally {
                 long time = System.nanoTime() - start;
-                totalLoadTime += time;
+                totalLoadTime.add(time);
             }
             put(key, hash, value, cache.sizeOf(key, value));
         }
@@ -1256,7 +1257,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             while (usedMemory > maxMemory && queueSize > 1) {
                 Entry<K, V> e = queue.queuePrev;
                 usedMemory -= e.memory;
-                evictionCount++;
+                evictionCount.increment();
                 removeFromQueue(e);
                 cache.evicted(e, RemovalCause.SIZE);
                 e.value = null;
