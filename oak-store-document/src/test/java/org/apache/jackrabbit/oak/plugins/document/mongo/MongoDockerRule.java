@@ -35,7 +35,7 @@ public class MongoDockerRule extends DockerRule {
 
     private static final String CONFIG_NAME = "MongoDB-" + UUID.randomUUID().toString().substring(0, 8);
 
-    private static final String VERSION = System.getProperty("mongo.version", "3.6");
+    private static final String VERSION = System.getProperty("mongo.version", "4.2");
 
     private static final String IMAGE = "mongo:" + VERSION;
 

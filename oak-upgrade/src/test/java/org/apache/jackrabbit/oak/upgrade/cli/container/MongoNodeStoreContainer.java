@@ -72,9 +72,9 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     private static boolean testMongoAvailability() {
         MongoClient mongo = null;
         try {
-            MongoClientURI uri = new MongoClientURI(MONGO_URI + "?connectTimeoutMS=3000");
+            MongoClientURI uri = new MongoClientURI(MONGO_URI + "?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000");
             mongo = new MongoClient(uri);
-            mongo.listDatabaseNames();
+            mongo.listDatabaseNames().iterator();
             return true;
         } catch (Exception e) {
             return false;
