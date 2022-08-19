@@ -101,7 +101,6 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
                 new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
                 new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 1)));
 
-        // expected value should be very close to zero, since we are filling oplog window in same second
         assertEquals(MAX_VALUE, oplogWindow, 0.001);
     }
 
