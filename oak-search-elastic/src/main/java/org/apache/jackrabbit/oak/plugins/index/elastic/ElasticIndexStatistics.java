@@ -42,26 +42,26 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
  * Cache-based {@code IndexStatistics} implementation providing statistics for Elasticsearch reducing
  * network operations.
  * <p>
- * By default, the cache can contain a max of 10000 entries, statistic values expire after 10 minutes but are refreshed
- * in background when accessed after 1 minute. These values can be overwritten with the following system properties:
+ * By default, the cache can contain a max of 10000 entries, statistic values expire after 10 minutes (600 seconds) but are refreshed
+ * in background when accessed after 1 minute (60 seconds). These values can be overwritten with the following system properties:
  *
  * <ul>
  *     <li>{@code oak.elastic.statsMaxSize}</li>
- *     <li>{@code oak.elastic.statsExpireMin}</li>
- *     <li>{@code oak.elastic.statsRefreshMin}</li>
+ *     <li>{@code oak.elastic.statsExpireSeconds}</li>
+ *     <li>{@code oak.elastic.statsRefreshSeconds}</li>
  * </ul>
  */
 public class ElasticIndexStatistics implements IndexStatistics {
 
     private static final Long MAX_SIZE = Long.getLong("oak.elastic.statsMaxSize", 10000);
-    private static final Long EXPIRE_MIN = Long.getLong("oak.elastic.statsExpireMin", 10);
-    private static final Long REFRESH_MIN = Long.getLong("oak.elastic.statsRefreshMin", 1);
+    private static final Long EXPIRE_SECONDS = Long.getLong("oak.elastic.statsExpireSeconds", 10*60);
+    private static final Long REFRESH_SECONDS = Long.getLong("oak.elastic.statsRefreshSeconds", 1*60);
 
     private static final LoadingCache<StatsRequestDescriptor, Integer> DEFAULT_COUNT_CACHE =
-            setupCountCache(MAX_SIZE, EXPIRE_MIN, REFRESH_MIN, null);
+            setupCountCache(MAX_SIZE, EXPIRE_SECONDS, REFRESH_SECONDS, null);
 
     private static final LoadingCache<StatsRequestDescriptor, StatsResponse> STATS_CACHE =
-            setupCache(MAX_SIZE, EXPIRE_MIN, REFRESH_MIN, new StatsCacheLoader(), null);
+            setupCache(MAX_SIZE, EXPIRE_SECONDS, REFRESH_SECONDS, new StatsCacheLoader(), null);
 
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
@@ -138,17 +138,17 @@ public class ElasticIndexStatistics implements IndexStatistics {
         ).luceneDocsDeleted;
     }
 
-    static LoadingCache<StatsRequestDescriptor, Integer> setupCountCache(long maxSize, long expireMin, long refreshMin, @Nullable Ticker ticker) {
-        return setupCache(maxSize, expireMin, refreshMin, new CountCacheLoader(), ticker);
+    static LoadingCache<StatsRequestDescriptor, Integer> setupCountCache(long maxSize, long expireSeconds, long refreshSeconds, @Nullable Ticker ticker) {
+        return setupCache(maxSize, expireSeconds, refreshSeconds, new CountCacheLoader(), ticker);
     }
 
-    static <K, V> LoadingCache<K, V> setupCache(long maxSize, long expireMin, long refreshMin,
+    static <K, V> LoadingCache<K, V> setupCache(long maxSize, long expireSeconds, long refreshSeconds,
                                                 @NotNull CacheLoader<K, V> cacheLoader, @Nullable Ticker ticker) {
         CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder()
                 .maximumSize(maxSize)
-                .expireAfterWrite(expireMin, TimeUnit.MINUTES)
+                .expireAfterWrite(expireSeconds, TimeUnit.SECONDS)
                 // https://github.com/google/guava/wiki/CachesExplained#refresh
-                .refreshAfterWrite(refreshMin, TimeUnit.MINUTES);
+                .refreshAfterWrite(refreshSeconds, TimeUnit.SECONDS);
         if (ticker != null) {
             cacheBuilder.ticker(ticker);
         }

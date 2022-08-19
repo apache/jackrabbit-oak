@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -31,6 +32,7 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Class to process Elastic response objects.
@@ -41,6 +43,7 @@ public class ElasticResponseHandler {
 
     private final PlanResult planResult;
     private final Filter filter;
+    private final Set<String> seenPaths = Sets.newHashSet();
 
     ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult, @NotNull Filter filter) {
         this.planResult = planResult;
@@ -48,7 +51,14 @@ public class ElasticResponseHandler {
     }
 
     public String getPath(Hit<? extends JsonNode> hit) {
-        return transformPath(hit.source().get(FieldNames.PATH).asText());
+        String originalPath = hit.source().get(FieldNames.PATH).asText();
+
+        // Check here for path transformation to avoid maintaining seenPaths set in case of non transformed queries
+        if (planResult.isPathTransformed()) {
+            return transformPath(originalPath);
+        } else {
+            return originalPath;
+        }
     }
 
     private String transformPath(String path) {
@@ -59,6 +69,13 @@ public class ElasticResponseHandler {
             return null;
         }
 
+        // avoid duplicate entries
+        // (This reduces number of entries passed on to QueryEngine for post processing in case of transformed path field queries)
+        if (seenPaths.contains(transformedPath)) {
+            LOG.trace("Ignoring path {} : Duplicate post transformation", path);
+            return null;
+        }
+        seenPaths.add(transformedPath);
         return transformedPath;
     }
 
