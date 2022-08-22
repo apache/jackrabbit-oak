@@ -1320,11 +1320,11 @@
       <id>intellij-build-workaround</id>
       <!-- workaround for IntelliJ issue https://youtrack.jetbrains.com/issue/IDEA-141732/OSMORC-unable-to-load-bnd-plugin -->
       <!-- IntelliJ does not add the plugin's extra dependency to the plugin's class-path, which causes the build to fail. -->
-      <!-- This means unit-tests cannot be run from within the IDE. Adding the relevant configuration only in the absence  -->
-      <!-- the IntelliJ specific property "idea.maven.embedder.version" resolves the issue. In order for everything to     -->
-      <!-- work properly, a maven build may need to be run first, in order to generate SCR configuration files from the    -->
-      <!-- old Felix OSGi annotations. The newer annotations from the OSGi DS specification are supported ootb by bnd and  -->
-      <!-- thus by the maven-bundle-plugin.                                                                                -->
+      <!-- This means unit-tests cannot be run from within the IDE. Removing the _plugin instruction from the config if    -->
+      <!-- the IntelliJ specific property "idea.maven.embedder.version" is present resolves the issue. In order for all    -->
+      <!-- tests to work properly, a maven build may need to be run first, in order to generate SCR configuration files    -->
+      <!-- from the "old" Felix OSGi annotations. The newer annotations from the OSGi DS specification are supported ootb  -->
+      <!-- by bnd and thus by the maven-bundle-plugin.                                                                     -->
       <activation>
         <property>
           <name>idea.maven.embedder.version</name>
