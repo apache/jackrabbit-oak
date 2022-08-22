@@ -234,6 +234,13 @@ public class IndexDiff {
         }
     }
 
+    public static JsonObject compareIndexesInFile(Path indexPath, String index1, String index2) {
+        JsonObject indexDefinitions = IndexDiff.parseIndexDefinitions(indexPath.toString());
+        JsonObject target = new JsonObject(true);
+        compareIndexes(indexDefinitions, "", indexPath.toString(), index1, index2, target);
+        return target;
+    }
+
     private static void compareIndexesInDirectory(Path indexPath, String index1, String index2,
             JsonObject target) {
         if (Files.isDirectory(indexPath)) {
