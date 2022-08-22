@@ -143,8 +143,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         Tree temp = root.getTree("/").addChild("tmp");
 
         temp.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
+        temp.getChild("a").setProperty("abc", "foo");
         temp.addChild("b").setProperty("analyzed_field", "bar");
         temp.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
+        temp.getChild("c").getChild("d").setProperty("abc", "foo");
         root.commit();
 
         assertEventually(() -> {
@@ -167,10 +169,13 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             assertQuery("/jcr:root/test/c[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c"));
             assertQuery("/jcr:root/test/a/j:c[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a/j:c"));
 
-            // TODO : We don't have assertions for PARENT path filter here.
-            //  The usage is not documented and queries like /jcr:root/test/a/b/j:c/..[j:c/foo = 'bar'] fail with ParseException.
-            //  See if this is something that we might want to fix (given that it's not documented in public oak docs)
+            // PARENT
 
+            assertQuery("select a.[jcr:path] as [jcr:path] from [nt:base] as a \n" +
+                    "  inner join [nt:base] as b on ischildnode(b, a)\n" +
+                    "  where isdescendantnode(a, '/tmp') \n" +
+                    "  and b.[analyzed_field] = 'bar'\n" +
+                    "  and a.[abc] is not null ", SQL2, Arrays.asList("/tmp/a", "/tmp/c/d"));
         });
     }
 
