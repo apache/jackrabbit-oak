@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
@@ -44,6 +45,7 @@ import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -260,6 +262,12 @@ public class LastRevRecoveryAgent {
                     revisionContext.getClock(), clusterId,
                     revisionContext::getCommitValue);
             final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
+            // make sure recovery does not run on stale cache
+            // invalidate all suspects (OAK-9908)
+            log.info("Starting cache invalidation before sweep...");
+            CacheInvalidationStats stats = store.invalidateCache(
+                    transform(suspects, Document::getId));
+            log.info("Invalidation stats: {}", stats);
             sweeper.sweep(suspects, new NodeDocumentSweepListener() {
                 @Override
                 public void sweepUpdate(Map<Path, UpdateOp> updates)
