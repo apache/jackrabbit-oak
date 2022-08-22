@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 
@@ -155,6 +156,17 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     @Override
     public synchronized int getNodeNameLimit() {
         return store.getNodeNameLimit();
+    }
+
+    /**
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
+     *
+     * @return throttler for document store
+     */
+    @Override
+    public synchronized Throttler throttler() {
+        return store.throttler();
     }
 
     @Override

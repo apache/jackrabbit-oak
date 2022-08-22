@@ -104,10 +104,8 @@ abstract class CompositeStoreFixture extends OakFixture {
         };
     }
 
-    static OakFixture newCompositeMongoFixture(String name,
-                                               String uri,
-                                               boolean dropDBAfterTest,
-                                               long cacheSize) {
+    static OakFixture newCompositeMongoFixture(String name, String uri, boolean dropDBAfterTest, long cacheSize,
+                                               boolean throttlingEnabled) {
         return new CompositeStoreFixture(name) {
 
             private String database = new MongoClientURI(uri).getDatabase();
@@ -118,6 +116,7 @@ abstract class CompositeStoreFixture extends OakFixture {
                 ns = newMongoDocumentNodeStoreBuilder()
                         .memoryCacheSize(cacheSize)
                         .setMongoDB(uri, database, 0)
+                        .setThrottlingEnabled(throttlingEnabled)
                         .build();
                 return ns;
             }

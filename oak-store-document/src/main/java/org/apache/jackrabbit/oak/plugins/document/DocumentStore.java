@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
+
 /**
  * The interface for the backend storage for documents.
  * <p>
@@ -473,5 +475,15 @@ public interface DocumentStore {
      */
     default int getNodeNameLimit() {
         return Utils.NODE_NAME_LIMIT;
+    }
+
+    /**
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
+     *
+     * @return throttler for document store
+     */
+    default Throttler throttler() {
+        return NO_THROTTLING;
     }
 }

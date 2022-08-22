@@ -35,48 +35,45 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return new OakRepositoryFixture(OakFixture.getMemory(name, cacheSize));
     }
 
-    public static RepositoryFixture getMongo(String host, int port, String database,
-                                             boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OakFixture.OAK_MONGO, host, port, database, dropDBAfterTest, cacheSize, false, null, 0);
+    public static RepositoryFixture getMongo(String host, int port, String database, boolean dropDBAfterTest,
+                                             long cacheSize, boolean throttlingEnabled) {
+        return getMongo(OakFixture.OAK_MONGO, host, port, database, dropDBAfterTest, cacheSize, false, null, 0,
+                throttlingEnabled);
     }
 
-    public static RepositoryFixture getMongo(String uri,
-                                             boolean dropDBAfterTest, long cacheSize) {
-        return getMongoNS(uri, dropDBAfterTest, cacheSize);
+    public static RepositoryFixture getMongo(String uri, boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
+        return getMongoNS(uri, dropDBAfterTest, cacheSize, throttlingEnabled);
     }
 
-    public static RepositoryFixture getMongoWithDS(String host, int port, String database,
-                                             boolean dropDBAfterTest, long cacheSize,
-                                             final File base, int fdsCacheInMB) {
-        return getMongo(OakFixture.OAK_MONGO_DS, host, port, database,
-                dropDBAfterTest, cacheSize, true, base, fdsCacheInMB);
+    public static RepositoryFixture getMongoWithDS(String host, int port, String database, boolean dropDBAfterTest,
+                                                   long cacheSize, final File base, int fdsCacheInMB,
+                                                   final boolean throttlingEnabled) {
+        return getMongo(OakFixture.OAK_MONGO_DS, host, port, database, dropDBAfterTest, cacheSize, true,
+                base, fdsCacheInMB, throttlingEnabled);
     }
 
     public static RepositoryFixture getMongoWithDS(String uri,
-                                                    boolean dropDBAfterTest, long cacheSize,
-                                                    final File base, int fdsCacheInMB) {
+                                                   boolean dropDBAfterTest, long cacheSize,
+                                                   final File base, int fdsCacheInMB, boolean throttlingEnabled) {
         return new OakRepositoryFixture(OakFixture.getMongo(OakFixture.OAK_MONGO_DS, uri, dropDBAfterTest,
-                cacheSize, true, base, fdsCacheInMB));
+                cacheSize, true, base, fdsCacheInMB, throttlingEnabled));
     }
 
-    public static RepositoryFixture getMongoNS(String host, int port, String database,
-                                               boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OakFixture.OAK_MONGO_NS, host, port, database, dropDBAfterTest, cacheSize, false, null, 0);
+    public static RepositoryFixture getMongoNS(String host, int port, String database, boolean dropDBAfterTest,
+                                               long cacheSize, boolean throttlingEnabled) {
+        return getMongo(OakFixture.OAK_MONGO_NS, host, port, database, dropDBAfterTest, cacheSize, false, null, 0,
+                throttlingEnabled);
     }
 
-    public static RepositoryFixture getMongoNS(String uri,
-                                               boolean dropDBAfterTest, long cacheSize) {
-        return new OakRepositoryFixture(OakFixture.getMongo(uri, dropDBAfterTest, cacheSize));
+    public static RepositoryFixture getMongoNS(String uri, boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
+        return new OakRepositoryFixture(OakFixture.getMongo(uri, dropDBAfterTest, cacheSize, throttlingEnabled));
     }
 
-    private static RepositoryFixture getMongo(String name,
-                                              String host, int port, String database,
-                                              boolean dropDBAfterTest, long cacheSize,
-                                              final boolean useFileDataStore,
-                                              final File base,
-                                              final int fdsCacheInMB) {
+    private static RepositoryFixture getMongo(String name, String host, int port, String database,
+                                              boolean dropDBAfterTest, long cacheSize, final boolean useFileDataStore,
+                                              final File base, final int fdsCacheInMB, final boolean throttlingEnabled) {
         return new OakRepositoryFixture(OakFixture.getMongo(name, host, port, database, dropDBAfterTest,
-                cacheSize, useFileDataStore, base, fdsCacheInMB));
+                cacheSize, useFileDataStore, base, fdsCacheInMB, throttlingEnabled));
     }
 
     public static RepositoryFixture getRDB(String jdbcuri, String jdbcuser, String jdbcpasswd,
@@ -138,10 +135,11 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return new OakRepositoryFixture(OakFixture.getCompositeMemoryStore(OakFixture.OAK_COMPOSITE_MEMORY_STORE));
     }
 
-    public static RepositoryFixture getCompositeMongoStore(String uri, long cacheSize, boolean dropDBAfterTest) {
+    public static RepositoryFixture getCompositeMongoStore(String uri, long cacheSize, boolean dropDBAfterTest,
+                                                           boolean throttlingEnabled) {
         return new OakRepositoryFixture(OakFixture.getCompositeMongoStore(
                 OakFixture.OAK_COMPOSITE_MONGO_STORE,
-                uri, cacheSize, dropDBAfterTest)
+                uri, cacheSize, dropDBAfterTest, throttlingEnabled)
         );
     }
 

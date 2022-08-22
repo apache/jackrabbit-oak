@@ -30,17 +30,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.google.common.util.concurrent.AtomicDouble;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
@@ -61,6 +65,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
@@ -108,13 +113,16 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Sets.difference;
+import static java.lang.Integer.MAX_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
+import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.exponentialThrottler;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
@@ -132,10 +140,30 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static final Bson BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
+    private static final String OPLOG_RS = "oplog.rs";
+
+    /**
+     * The threshold value <b>(in hours)</b> after which the document store should start (if enabled) throttling.
+     * Default is 2 hours.
+     * <p>
+     * For mongo based document store this value is threshold for the oplog replication window.
+     */
+    public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger("oak.mongo.throttlingThreshold", 2);
+    /**
+     * The default throttling time (in millis) when throttling is enabled. This is the time for
+     * which we block any data modification operation when system has been throttled.
+     */
+    public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
+
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
     private final int nodeNameLimit;
+
+    /**
+     * throttler for mongo document store
+     */
+    private Throttler throttler = NO_THROTTLING;
 
     enum DocumentReadPreference {
         PRIMARY,
@@ -250,6 +278,11 @@ public class MongoDocumentStore implements DocumentStore {
 
     private DocumentStoreStatsCollector stats;
 
+    /**
+     * An updater instance to periodically updates mongo oplog window
+     */
+    private MongoDocumentStoreThrottlingMetricsUpdater throttlingMetricsUpdater;
+
     private boolean hasModifiedIdCompoundIndex = true;
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
@@ -259,6 +292,17 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public int getNodeNameLimit() {
         return nodeNameLimit;
+    }
+
+    /**
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
+     *
+     * @return throttler for document store
+     */
+    @Override
+    public Throttler throttler() {
+        return throttler;
     }
 
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
@@ -295,15 +339,34 @@ public class MongoDocumentStore implements DocumentStore {
         this.nodeLocks = new StripedNodeDocumentLocks();
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
+        // if throttling is enabled
+        boolean throttlingEnabled = builder.isThrottlingEnabled();
+        if (throttlingEnabled) {
+            MongoDatabase localDb = connection.getDatabase("local");
+            Optional<String> ol = Iterables.tryFind(localDb.listCollectionNames(), s -> Objects.equals(OPLOG_RS, s));
+
+            if (ol.isPresent()) {
+                // oplog window based on current oplog filling rate
+                final AtomicDouble oplogWindow = new AtomicDouble(MAX_VALUE);
+                throttler = exponentialThrottler(DEFAULT_THROTTLING_THRESHOLD, oplogWindow, DEFAULT_THROTTLING_TIME_MS);
+                throttlingMetricsUpdater = new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow);
+                throttlingMetricsUpdater.scheduleUpdateMetrics();
+                LOG.info("Started MongoDB throttling metrics with threshold {}, throttling time {}",
+                        DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME_MS);
+            } else {
+                LOG.warn("Connected to MongoDB with replication not detected and hence oplog based throttling is not supported");
+            }
+        }
+
         LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
                 "leaseSocketTimeout {}, clientSessionSupported {}, " +
-                "clientSessionInUse {}, {}, serverStatus {}",
+                "clientSessionInUse {}, {}, serverStatus {}, throttlingSupported {}",
                 status.getVersion(), maxReplicationLagMillis,
                 maxDeltaForModTimeIdxSecs, disableIndexHint,
                 builder.getLeaseSocketTimeout(),
                 status.isClientSessionSupported(), useClientSession,
-                db.getWriteConcern(), status.getServerDetails());
+                db.getWriteConcern(), status.getServerDetails(), throttlingEnabled);
     }
 
     @NotNull
@@ -903,7 +966,7 @@ public class MongoDocumentStore implements DocumentStore {
                         result = dbCollection.deleteMany(query);
                     }
                     return result.getDeletedCount();
-                }, collection), Integer.MAX_VALUE);
+                }, collection), MAX_VALUE);
             } catch (Exception e) {
                 throw DocumentStoreException.convert(e, "Remove failed for " + collection + ": " +
                     indexedProperty + " in (" + startValue + ", " + endValue + ")");
@@ -1522,7 +1585,7 @@ public class MongoDocumentStore implements DocumentStore {
             return DocumentReadPreference.PREFER_SECONDARY;
         } else if(maxCacheAge >= 0 && maxCacheAge < maxReplicationLagMillis) {
             return DocumentReadPreference.PRIMARY;
-        } else if(maxCacheAge == Integer.MAX_VALUE){
+        } else if(maxCacheAge == MAX_VALUE){
             return DocumentReadPreference.PREFER_SECONDARY;
         } else {
            return DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH;
@@ -1676,6 +1739,11 @@ public class MongoDocumentStore implements DocumentStore {
         connection.close();
         if (clusterNodesConnection != connection) {
             clusterNodesConnection.close();
+        }
+        try {
+            Closeables.close(throttlingMetricsUpdater, false);
+        } catch (IOException e) {
+            LOG.warn("Error occurred while closing throttlingMetricsUpdater", e);
         }
         try {
             nodesCache.close();
