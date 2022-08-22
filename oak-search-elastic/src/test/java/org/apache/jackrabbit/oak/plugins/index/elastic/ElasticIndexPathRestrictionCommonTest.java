@@ -48,6 +48,8 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
     public static final ElasticConnectionRule elasticRule =
             new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
+    // Default refresh is 1 minute - so we need to lower that otherwise test would need to wait at least 1 minute
+    // before it can get the estimated doc count from the remote ES index
     @Rule
     public final ProvideSystemProperty updateSystemProperties
             = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "10");
@@ -77,10 +79,6 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
 
     @Override
     protected void setupHook() {
-        // Default refresh is 1 minute - so we need to lower that otherwise test would need to wait at least 1 minute
-        // before it can get the estimated doc count from the remote ES index
-        System.setProperty("oak.elastic.statsRefreshSeconds", "10");
-
         ElasticConnection esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
