@@ -34,9 +34,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Arrays.asList;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -92,9 +97,10 @@ public class SplitPersistenceTest {
 
     @Test
     public void archiveManager_listArchives() throws IOException {
-        assertEquals(
-                splitArchiveManager.listArchives(),
-                asList("data00000a.tar", "data00001a.tar", "data00002a.tar", "data00003a.tar"));
+        final List<String> archives = splitArchiveManager.listArchives();
+        assertThat("Number of archives", archives.size(), is(4));
+        assertThat("Names of archives", archives,
+                hasItems("data00000a.tar", "data00001a.tar", "data00002a.tar", "data00003a.tar"));
     }
 
     @Test
@@ -129,7 +135,7 @@ public class SplitPersistenceTest {
             assertTrue("GC should run successfully", splitHarness.runGC());
             final List<String> archivesAfterGC = splitArchiveManager.listArchives();
             LOG.info("archives after gc: {}", archivesAfterGC);
-            MatcherAssert.assertThat(archivesAfterGC, CoreMatchers.hasItems(roArchives.toArray(new String[0])));
+            assertThat(archivesAfterGC, hasItems(roArchives.toArray(new String[0])));
         }
     }
 
