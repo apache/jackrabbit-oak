@@ -107,17 +107,17 @@ present using a dedicated query.
 
 ##### API Overview
 
-`extUserName`       : the principal name of an external user<br>
-`extGroupName`      : the principal name of an external group<br>
-`extUserPrincipal`  : the principal associated with a synchronized external user<br>
-`extGroupPrincipal` : the principal associated with a synchronized external group<br>
+- `extUserName`       : the principal name of an external user
+- `extGroupName`      : the principal name of an external group
+- `extUserPrincipal`  : the principal associated with a synchronized external user
+- `extGroupPrincipal` : the principal associated with a synchronized external group
 
 | API Call                                                 | Default Sync | Dynamic Membership | Dynamic Membership + Dynamic Groups | Comment |
 -----------------------------------------------------------|--------------|--------------------|------------------------|---------|
 | `PrincipalManager.getPrincipal(extUserName)`             | ok           | ok                 | ok                     | |
 | `PrincipalManager.getPrincipal(extGroupName)`            | ok           | (ok) <sup>1</sup>  | ok                     | <sup>1</sup> If the editing session can read any `rep:externalPrincipalNames` property containing the group principal name |
 | `PrincipalManager.getGroupMembership(extUserPrincipal)`  | ok           | ok                 | ok                     | Dynamic group principals include both declared external groups and configured auto-membership principals (including inherited principals).|
-| `PrincipalManager.getGroupMembership(extGroupPrincipal)` | ok           | - <sup>2</sup>     | - <sup>2,3</sup>       | <sup>2</sup> Group membership gets flattened and stored with the external user. Group-group relationship is not preserved.<br><sup>3</sup> For dynamic groups synced into the repository the configured auto-membership principals are resolved, see also user management API below.  |
+| `PrincipalManager.getGroupMembership(extGroupPrincipal)` | ok           | - <sup>2</sup>     | - <sup>2,3</sup>       | <sup>2</sup> Group membership gets flattened and stored with the external user. Group-group relationship is not preserved.<br/><sup>3</sup> For dynamic groups synced into the repository the configured auto-membership principals are resolved, see also user management API below.  |
 
 #### User Management
 ##### User Management without Dynamic Groups Option
@@ -164,19 +164,19 @@ option is present together with _Dynamic Membership_.
 
 ##### API Overview
 
-`extUserId`  : the ID of a synchronized external user<br>
-`extGroupId` : the ID of a synchronized external group<br>
-`extUser`    : a synchronized external user as `org.apache.jackrabbit.api.security.user.User`<br>
-`extGroup`   : a synchronized external group as `org.apache.jackrabbit.api.security.user.Group`<br>
-`autoGroup`  : a local group configured in the auto-membership option of the `DefaultSyncConfig`
+- `extUserId`  : the ID of a synchronized external user
+- `extGroupId` : the ID of a synchronized external group
+- `extUser`    : a synchronized external user as `org.apache.jackrabbit.api.security.user.User`
+- `extGroup`   : a synchronized external group as `org.apache.jackrabbit.api.security.user.Group`
+- `autoGroup`  : a local group configured in the auto-membership option of the `DefaultSyncConfig`
 
 | API Call                                                 | Default Sync | Dynamic Membership | Dynamic Membership + Dynamic Groups | Comment |
 -----------------------------------------------------------|--------------|--------------------|------------------------|---------|
-| `UserManager.getAuthorizable(extUserId)`                 | ok           | ok                 | ok                     | Same applies for<br>`UserManager.getAuthorizable(extUserId, User.class)`,<br>`UserManager.getAuthorizable(extUserPrincipal)`,<br>`UserManager.getAuthorizableByPath(extUserPath)` |
-| `UserManager.getAuthorizable(extGroupId)`                | ok           | -                  | ok                     | Same applies for<br>`UserManager.getAuthorizable(extGroupId, Group.class)`,<br>`UserManager.getAuthorizable(extGroupPrincipal)`,<br>`UserManager.getAuthorizableByPath(extGroupPath)`        |
-| `extUser.declaredMemberOf()`                             | ok           | - <sup>3</sup>     | (ok) <sup>4</sup>      | <sup>3</sup> Only auto-membership to local groups, external groups not synced.<br><sup>4</sup> Same as `User.memberOf()` as nested group membership gets flattened upon dynamic sync. Configured auto-membership is reflected through dynamic `AutoMembershipProvider`. |
+| `UserManager.getAuthorizable(extUserId)`                 | ok           | ok                 | ok                     | Same applies for<br/>`UserManager.getAuthorizable(extUserId, User.class)`,<br/>`UserManager.getAuthorizable(extUserPrincipal)`,<br/>`UserManager.getAuthorizableByPath(extUserPath)` |
+| `UserManager.getAuthorizable(extGroupId)`                | ok           | -                  | ok                     | Same applies for<br/>`UserManager.getAuthorizable(extGroupId, Group.class)`,<br/>`UserManager.getAuthorizable(extGroupPrincipal)`,<br/>`UserManager.getAuthorizableByPath(extGroupPath)`        |
+| `extUser.declaredMemberOf()`                             | ok           | - <sup>3</sup>     | (ok) <sup>4</sup>      | <sup>3</sup> Only auto-membership to local groups, external groups not synced.<br/><sup>4</sup> Same as `User.memberOf()` as nested group membership gets flattened upon dynamic sync. Configured auto-membership is reflected through dynamic `AutoMembershipProvider`. |
 | `extUser.memberOf()`                                     | ok           | - <sup>3</sup>     | ok                     | |
-| `extGroup.declaredMemberOf()`                            | ok           | - <sup>5</sup>     | - <sup>6</sup>         | <sup>5</sup> External groups not synced!<br><sup>6</sup> Only (conditional) automembership as upon dynamic sync nested group membership gets flattened |
+| `extGroup.declaredMemberOf()`                            | ok           | - <sup>5</sup>     | - <sup>6</sup>         | <sup>5</sup> External groups not synced!<br/><sup>6</sup> Only (conditional) automembership as upon dynamic sync nested group membership gets flattened |
 | `extGroup.memberOf()`                                    | ok           | - <sup>5</sup>     | - <sup>6</sup>         | |
 | `extGroup.getDeclaredMembers()`                          | ok           | - <sup>5</sup>     | (ok) <sup>7</sup>      | <sup>7</sup> Same as `Group.getMembers()` | 
 | `extGroup.getMembers()`                                  | ok           | - <sup>5</sup>     | (ok) <sup>8</sup>      | <sup>8</sup> Only includes external users as nested membership gets flattened upon dynamic sync. | 
