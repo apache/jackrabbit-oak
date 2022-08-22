@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
@@ -92,7 +91,6 @@ public class NodeDocumentSweeperIT extends AbstractTwoNodeTest {
         agent2 = new LastRevRecoveryAgent(ds2.getDocumentStore(), ds2, testSeeker, v -> {});
     }
 
-    @Ignore("OAK-9908")
     @Test
     public void recoveryWithSweep() throws Exception {
         // create some test data
