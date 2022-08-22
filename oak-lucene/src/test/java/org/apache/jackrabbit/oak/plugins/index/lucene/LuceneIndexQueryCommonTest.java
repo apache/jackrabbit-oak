@@ -23,17 +23,10 @@ import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.After;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.junit.Assert.assertEquals;
-
 import java.io.File;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.jcr.query.Query;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -59,14 +52,6 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
         executorService.shutdown();
     }
 
-    @Test
-    public void descendantTestWithIndexTagExplain() throws Exception {
-        List<String> result = executeQuery(
-                    "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)", Query.JCR_SQL2);
-        assertEquals("[[nt:base] as [nt:base] /* lucene:test-index(/oak:index/test-index) :ancestors:/test\n"
-                + "  where isdescendantnode([nt:base], [/test]) */]", result.toString());
-    }
-
     @Override
     public String getContainsValueForEqualityQuery_native() {
         return "+:ancestors:/test +propa:bar";
@@ -90,5 +75,11 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
     @Override
     public String getContainsValueForNotNullQuery_native() {
         return "+:ancestors:/test +propa:[* TO *]";
+    }
+
+    @Override
+    public String getExplainValueForDescendantTestWithIndexTagExplain() {
+        return "[nt:base] as [nt:base] /* lucene:test-index(/oak:index/test-index) :ancestors:/test" +
+                " where isdescendantnode([nt:base], [/test]) */";
     }
 }

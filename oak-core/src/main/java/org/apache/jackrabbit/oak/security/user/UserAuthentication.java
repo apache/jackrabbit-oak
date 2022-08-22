@@ -239,12 +239,7 @@ class UserAuthentication implements Authentication, UserConstants {
 
     @Nullable
     private Long getPasswordLastModified(@NotNull User user) throws RepositoryException {
-        Tree userTree;
-        if (user instanceof UserImpl) {
-            userTree = ((UserImpl) user).getTree();
-        } else {
-            userTree = root.getTree(user.getPath());
-        }
+        Tree userTree = Utils.getTree(user, root);
         PropertyState property = userTree.getChild(REP_PWD).getProperty(REP_PASSWORD_LAST_MODIFIED);
         return (property != null) ? property.getValue(Type.LONG) : null;
     }

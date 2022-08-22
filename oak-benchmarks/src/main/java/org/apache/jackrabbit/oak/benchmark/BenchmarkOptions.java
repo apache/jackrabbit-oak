@@ -100,6 +100,7 @@ public class BenchmarkOptions {
     private final OptionSpec<Integer> elasticPort;
     private final OptionSpec<String> elasticApiKeyId;
     private final OptionSpec<String> elasticApiKeySecret;
+    private final OptionSpec<Boolean> throttlingEnabled;
 
     public OptionSpec<String> getElasticApiKeyId() {
         return elasticApiKeyId;
@@ -363,6 +364,10 @@ public class BenchmarkOptions {
     
     public OptionSpec<String> getEvalutionType() { return evalType; }
 
+    public OptionSpec<Boolean> isThrottlingEnabled() {
+        return throttlingEnabled;
+    }
+
 
     public BenchmarkOptions(OptionParser parser) {
         base = parser.accepts("base", "Base directory")
@@ -521,6 +526,10 @@ public class BenchmarkOptions {
                 .ofType(String.class);
         elasticApiKeySecret = parser.accepts("elasticApiKeySecret", "Elastic generated API secret").withOptionalArg()
                 .ofType(String.class);
+        throttlingEnabled = parser
+                .accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE); // throttling is disabled by default
     }
 
 }

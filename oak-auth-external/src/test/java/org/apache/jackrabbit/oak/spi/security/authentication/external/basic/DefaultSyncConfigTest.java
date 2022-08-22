@@ -114,6 +114,12 @@ public class DefaultSyncConfigTest {
 
         assertNotNull(groupConfig);
         assertAuthorizableConfig(groupConfig);
+        
+        assertFalse(groupConfig.getDynamicGroups());
+        assertSame(groupConfig, groupConfig.setDynamicGroups(true));
+        assertTrue(groupConfig.getDynamicGroups());
+        assertSame(groupConfig, groupConfig.setDynamicGroups(false));
+        assertFalse(groupConfig.getDynamicGroups());
     }
     
     @Test

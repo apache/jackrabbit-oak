@@ -19,18 +19,24 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 import static org.junit.Assert.*;
 
 public class QueryEngineSettingsServiceTest {
@@ -41,7 +47,8 @@ public class QueryEngineSettingsServiceTest {
     private final Set<String> sysPropNames = ImmutableSet.of(
             QueryEngineSettings.OAK_QUERY_LIMIT_IN_MEMORY,
             QueryEngineSettings.OAK_QUERY_LIMIT_READS,
-            QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL
+            QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL,
+            QueryEngineSettings.OAK_QUERY_PREFETCH_COUNT
     );
 
     private QueryEngineSettingsService settingsService = new QueryEngineSettingsService();
@@ -80,6 +87,33 @@ public class QueryEngineSettingsServiceTest {
         assertEquals(142, settings.getLimitInMemory());
         assertTrue(settings.getFailTraversal());
         assertTrue(settings.isFastQuerySize());
+        assertEquals(0, settings.getPrefetchCount());
+    }
+
+    @Test
+    public void prefetchDefault() {
+        QueryEngineSettings settings = new QueryEngineSettings();
+        assertEquals(0, settings.getPrefetchCount());
+    }
+
+    @Test
+    public void prefetchWithFeature() {
+        QueryEngineSettings settings = new QueryEngineSettings();
+        OsgiContext context = new OsgiContext();
+        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.bundleContext());
+        try (Feature feature = newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard)) {
+            assertFalse(feature.isEnabled());
+            List<FeatureToggle> toggles = WhiteboardUtils.getServices(whiteboard, FeatureToggle.class);
+            assertEquals(1, toggles.size());
+            FeatureToggle toggle = toggles.get(0);
+            assertEquals(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, toggle.getName());
+            assertEquals(0, settings.getPrefetchCount());
+            toggle.setEnabled(true);
+            settings.setPrefetchFeature(feature);
+            assertEquals(20, settings.getPrefetchCount());
+            toggle.setEnabled(false);
+            assertEquals(0, settings.getPrefetchCount());
+        }
     }
 
     @Test

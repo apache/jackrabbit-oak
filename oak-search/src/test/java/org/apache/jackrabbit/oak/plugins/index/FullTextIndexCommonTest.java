@@ -17,11 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
@@ -36,18 +39,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void defaultAnalyzer() throws Exception {
-        IndexDefinitionBuilder builder = indexOptions.createIndex(
-                indexOptions.createIndexDefinitionBuilder(), false, "analyzed_field");
-        builder.noAsync();
-        builder.indexRule("nt:base")
-                .property("analyzed_field")
-                .analyzed().nodeScopeIndex();
-
-        indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
-        root.commit();
-
-        //add content
-        Tree test = root.getTree("/").addChild("test");
+        Tree test = setup();
 
         test.addChild("a").setProperty("analyzed_field", "sun.jpg");
         root.commit();
@@ -64,6 +56,64 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void defaultAnalyzerHonourSplitOptions() throws Exception {
+        Tree test = setup();
+
+        test.addChild("a").setProperty("analyzed_field", "1234abCd5678");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, Collections.emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, Collections.emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, Collections.emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, Collections.singletonList("/test/a"));
+        });
+    }
+
+
+    @Test
+    public void testWithSpecialCharsInSearchTerm() throws Exception {
+        Tree test = setup();
+        test.addChild("a").setProperty("analyzed_field", "foo");
+        root.commit();
+
+        assertEventually(() -> {
+            // Special characters {':' , '/', '!', '&', '|', '='} are escaped before creating lucene/elastic queries using
+            // {@see org.apache.jackrabbit.oak.plugins.index.search.spi.query.FullTextIndex#rewriteQueryText}
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '&=!foo')] ", XPATH, Collections.singletonList("/test/a"));
+
+            // Braces are not escaped in the above rewriteQueryText method - we do not change that to maintain backward compatibility
+            // So these need explicit escaping or filtering on client side while creating the jcr query
+            assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo\\}')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '\\[foo\\]')] ", XPATH, Collections.singletonList("/test/a"));
+        });
+
+    }
+
+    @Test()
+    public void testFullTextTermWithUnescapedBraces() throws Exception {
+        LogCustomizer customLogs = setupLogCustomizer();
+        Tree test = setup();
+
+        test.addChild("a").setProperty("analyzed_field", "foo");
+        root.commit();
+
+        // Below queries would fail silently (return 0 results with an entry in logs for the query that failed)
+        // due to unescaped special character (which is not handled in backend)
+        try {
+            customLogs.starting();
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo}')] ", XPATH, Collections.emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo]')] ", XPATH, Collections.emptyList());
+
+            Assert.assertTrue(customLogs.getLogs().containsAll(getExpectedLogMessage()));
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+
+    protected Tree setup() throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
                 indexOptions.createIndexDefinitionBuilder(), false, "analyzed_field");
         builder.noAsync();
@@ -76,16 +126,16 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         //add content
         Tree test = root.getTree("/").addChild("test");
-
-        test.addChild("a").setProperty("analyzed_field", "1234abCd5678");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, Collections.singletonList("/test/a"));
-        });
+        return test;
     }
+
+    // TODO : Below two method are only used for testFullTextTermWithUnescapedBraces
+    // TODO : If needed in future, we can possibly use test metadata to change the
+    // TODO : returned values from these based on which test is being executed
+    protected abstract LogCustomizer setupLogCustomizer();
+
+    protected abstract List<String> getExpectedLogMessage();
 
 }

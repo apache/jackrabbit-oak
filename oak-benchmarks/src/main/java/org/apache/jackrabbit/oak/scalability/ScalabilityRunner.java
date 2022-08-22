@@ -74,7 +74,8 @@ public class ScalabilityRunner {
                         scalabilityOptions.getPort().value(options),
                         scalabilityOptions.getDbName().value(options),
                         scalabilityOptions.getDropDBAfterTest().value(options),
-                        cacheSize * MB),
+                        cacheSize * MB,
+                        scalabilityOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoWithDS(
                         scalabilityOptions.getHost().value(options),
                         scalabilityOptions.getPort().value(options),
@@ -82,13 +83,15 @@ public class ScalabilityRunner {
                         scalabilityOptions.getDropDBAfterTest().value(options),
                         cacheSize * MB,
                         scalabilityOptions.getBase().value(options),
-                        scalabilityOptions.getFdsCache().value(options)),
+                        scalabilityOptions.getFdsCache().value(options),
+                        scalabilityOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoNS(
                         scalabilityOptions.getHost().value(options),
                         scalabilityOptions.getPort().value(options),
                         scalabilityOptions.getDbName().value(options),
                         scalabilityOptions.getDropDBAfterTest().value(options),
-                    cacheSize * MB),
+                    cacheSize * MB,
+                        scalabilityOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getSegmentTar(
                         scalabilityOptions.getBase().value(options), 256, cacheSize,
                         scalabilityOptions.getMmap().value(options)),

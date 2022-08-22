@@ -107,6 +107,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
     
     private ServiceRegistration automembershipRegistration;
+    private ServiceRegistration dynamicMembershipRegistration;
 
     private ExternalIdentityMonitor monitor = ExternalIdentityMonitor.NOOP;
 
@@ -131,7 +132,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
         if (dynamicMembershipEnabled()) {
             UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
-            return new ExternalGroupPrincipalProvider(root, uc, namePathMapper, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
+            return new ExternalGroupPrincipalProvider(root, uc.getUserManager(root, namePathMapper), namePathMapper, syncConfigTracker);
         } else {
             return EmptyPrincipalProvider.INSTANCE;
         }
@@ -154,15 +155,20 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         boolean isSystem = new SystemPrincipalConfig(getPrincipalNames()).containsSystemPrincipal(principals);
+       
+        ImmutableList.Builder<ValidatorProvider> vps = new ImmutableList.Builder<>();
+        vps.add(new ExternalIdentityValidatorProvider(isSystem, protectedExternalIds()));
+
+        Set<String> idpNamesWithDynamicGroups = getIdpNamesWithDynamicGroups();
+        if (!idpNamesWithDynamicGroups.isEmpty()) {
+            vps.add(new DynamicGroupValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), idpNamesWithDynamicGroups));
+        }
         
-        ValidatorProvider idValidatorProvider = new ExternalIdentityValidatorProvider(isSystem, protectedExternalIds());
         IdentityProtectionType ipt = getIdentityProtectionType();
         if (ipt != IdentityProtectionType.NONE && !isSystem) {
-            ValidatorProvider extUserValidatorProvider = new ExternalUserValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), ipt);
-            return ImmutableList.of(idValidatorProvider, extUserValidatorProvider);
-        } else {
-            return Collections.singletonList(idValidatorProvider);
+            vps.add(new ExternalUserValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), ipt));
         }
+        return vps.build();
     }
 
     @NotNull
@@ -196,6 +202,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         syncConfigTracker.open();
         
         automembershipRegistration = bundleContext.registerService(DynamicMembershipService.class.getName(), new AutomembershipService(syncConfigTracker), null);
+        dynamicMembershipRegistration = bundleContext.registerService(DynamicMembershipService.class.getName(), new DynamicGroupMembershipService(syncConfigTracker), null);
     }
 
     @SuppressWarnings("UnusedDeclaration")
@@ -211,12 +218,19 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         if (automembershipRegistration != null) {
             automembershipRegistration.unregister();
         }
+        if (dynamicMembershipRegistration != null) {
+            dynamicMembershipRegistration.unregister();
+        }
     }
 
     //------------------------------------------------------------< private >---
 
     private boolean dynamicMembershipEnabled() {
         return syncConfigTracker != null && syncConfigTracker.isEnabled();
+    }
+    
+    private @NotNull Set<String> getIdpNamesWithDynamicGroups() {
+        return (syncConfigTracker == null) ? Collections.emptySet() : syncConfigTracker.getIdpNamesWithDynamicGroups();
     }
 
     private boolean protectedExternalIds() {

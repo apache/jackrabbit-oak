@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -437,6 +438,24 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             long start = now();
             final int result = base.getNodeNameLimit();
             updateAndLogTimes("getNodeNameLimit", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    /**
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
+     *
+     * @return throttler for document store
+     */
+    @Override
+    public Throttler throttler() {
+        try {
+            long start = now();
+            final Throttler result = base.throttler();
+            updateAndLogTimes("throttler", start, 0, 0);
             return result;
         } catch (Exception e) {
             throw convert(e);
