@@ -359,7 +359,7 @@ public abstract class AbstractQueryTest {
         String[] sortedExpected = expected.toArray(new String[0]);
         Arrays.sort(sortedExpected);
 
-        assertTrue("Invalid result set. Expected: " + expected + ", Actual: " + actual, Arrays.equals(sortedExpected, sortedActual));
+        assertArrayEquals("Invalid result set. Expected: " + expected + ", Actual: " + actual, sortedExpected, sortedActual);
     }
 
     protected void setTraversalEnabled(boolean traversalEnabled) {
