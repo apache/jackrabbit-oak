@@ -19,18 +19,18 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.TypedPropertiesWithAnalyzedTest;
+import org.apache.jackrabbit.oak.plugins.index.TypedPropertiesWithAnalyzedCommonTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class ElasticTypedPropertiesWithAnalyzedTest extends TypedPropertiesWithAnalyzedTest {
+public class ElasticTypedPropertiesWithAnalyzedCommonTest extends TypedPropertiesWithAnalyzedCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
             new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
-    public ElasticTypedPropertiesWithAnalyzedTest() {
+    public ElasticTypedPropertiesWithAnalyzedCommonTest() {
         indexOptions = new ElasticIndexOptions();
     }
 

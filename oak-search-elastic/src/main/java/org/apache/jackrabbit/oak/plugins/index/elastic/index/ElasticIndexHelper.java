@@ -270,9 +270,9 @@ class ElasticIndexHelper {
                         LOG.warn("Property {} of type boolean does not support analyzed=true.", name);
                     }
                 } else {
-                    // OAK-9875 - The ES field with the same name as the property should not be used for the full text
-                    // index, it should be used only for the keyword index. The full text index is done separately below.
-                    // We preserve the old mapping in case we find some problem in production with the new mapping.
+                    // OAK-9875 - For String properties, the full-text index is stored at the top-level field. This is
+                    // the opposite of what is done for non-String properties, where the full text field is nested, as
+                    // propa.text. We do this to keep backwards compatibility with pre OAK=9875 indexes.
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
                         mappingBuilder.field("type", "text");
                         mappingBuilder.field("analyzer", "oak_analyzer");

@@ -28,7 +28,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertFalse;
 
-public abstract class TypedPropertiesWithAnalyzedTest extends AbstractQueryTest {
+public abstract class TypedPropertiesWithAnalyzedCommonTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;

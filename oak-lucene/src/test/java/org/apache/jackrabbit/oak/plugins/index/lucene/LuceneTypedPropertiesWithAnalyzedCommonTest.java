@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
-import org.apache.jackrabbit.oak.plugins.index.TypedPropertiesWithAnalyzedTest;
+import org.apache.jackrabbit.oak.plugins.index.TypedPropertiesWithAnalyzedCommonTest;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,7 +31,7 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LuceneTypedPropertiesWithAnalyzedTest extends TypedPropertiesWithAnalyzedTest {
+public class LuceneTypedPropertiesWithAnalyzedCommonTest extends TypedPropertiesWithAnalyzedCommonTest {
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));

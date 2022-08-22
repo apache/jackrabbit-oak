@@ -16,29 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.RandomAccessFile;
-import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-
-import javax.jcr.PropertyType;
-
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -64,6 +42,25 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 
+import javax.jcr.PropertyType;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
@@ -72,8 +69,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -101,7 +98,7 @@ public abstract class AbstractQueryTest {
 
     /**
      * Override this method to add your default index definition
-     *
+     * <p>
      * {@link #createTestIndexNode(Tree, String)} for a helper method
      */
     protected void createTestIndexNode() throws Exception {
@@ -415,7 +412,7 @@ public abstract class AbstractQueryTest {
 
     /**
      * Applies the commit string to a given Root instance
-     *
+     * <p>
      * The commit string represents a sequence of operations, jsonp style:
      *
      * <p>
@@ -483,8 +480,9 @@ public abstract class AbstractQueryTest {
 
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private static PropertyState readProperty(String name, JsopReader reader) {
@@ -516,8 +514,9 @@ public abstract class AbstractQueryTest {
 
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private static PropertyState readArrayProperty(String name, JsopReader reader) {
