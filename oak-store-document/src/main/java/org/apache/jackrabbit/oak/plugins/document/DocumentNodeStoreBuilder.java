@@ -158,6 +158,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             LoggerFactory.getLogger(VersionGarbageCollector.class));
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
+    private boolean throttlingEnabled;
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -269,6 +270,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     LeaseCheckMode getLeaseCheckMode() {
         return leaseCheck;
+    }
+
+    public T setThrottlingEnabled(boolean b) {
+        this.throttlingEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isThrottlingEnabled() {
+        return this.throttlingEnabled;
     }
 
     public T setReadOnlyMode() {

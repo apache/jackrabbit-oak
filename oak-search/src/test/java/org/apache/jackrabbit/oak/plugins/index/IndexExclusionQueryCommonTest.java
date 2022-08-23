@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_TYPES;
@@ -38,16 +39,17 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
  */
 public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
 
-    private static final String NOT_IN = "notincluded";
+    protected static final String NOT_IN = "notincluded";
     protected IndexOptions indexOptions;
+    protected TestRepository repositoryOptionsUtil;
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        Tree lucene = createTestIndexNode(root.getTree("/"), indexOptions.getIndexType());
-        lucene.setProperty(INCLUDE_PROPERTY_TYPES,
+        Tree index = createTestIndexNode(root.getTree("/"), indexOptions.getIndexType());
+        index.setProperty(INCLUDE_PROPERTY_TYPES,
                 of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
-        lucene.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
-        TestUtil.useV2(lucene);
+        index.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
+        TestUtil.useV2(index);
         root.commit();
     }
 
@@ -69,7 +71,8 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
         String query = "/jcr:root/content//*[jcr:contains(., 'abc' )"
                 + " and (@" + JCR_LASTMODIFIED
                 + " > xs:dateTime('2014-04-01T08:58:03.231Z')) ]";
-        assertQuery(query, "xpath", of("/content/two"));
+
+        TestUtils.assertEventually(() -> assertQuery(query, "xpath", of("/content/two")), 3000 * 3);
     }
 
     @Test
@@ -91,7 +94,51 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
 
         String query = "/jcr:root/content//*[jcr:contains(., 'abc' )"
                 + " and (@" + NOT_IN + " = 'querty') ]";
-        assertQuery(query, "xpath", expected);
+        TestUtils.assertEventually(() -> assertQuery(query, "xpath", expected), 3000 * 3);
+    }
+
+    @Test
+    public void ignoreByName2() throws Exception {
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree one = content.addChild("one");
+        one.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED);
+        one.setProperty("jcr:title", "querty");
+        one.setProperty(NOT_IN, "azerty");
+
+        Tree two = content.addChild("two");
+        two.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED);
+        two.setProperty("jcr:title", "abc");
+        two.setProperty(NOT_IN, "querty");
+        root.commit();
+
+        String query = "/jcr:root/content//*[jcr:contains(., 'querty')]";
+        // Should return only /content/one where querty value is set for property jcr:title
+        // Should not return /content/two since there, querty value is set for notincluded property which
+        // is part of excluded properties in the index definition
+
+        TestUtils.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
+    }
+
+    @Test
+    public void ignoreByType2() throws Exception {
+        Tree content = root.getTree("/").addChild("content");
+        Tree one = content.addChild("one");
+        one.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED);
+        one.setProperty(JCR_LASTMODIFIED, "2013-04-01T09:58:03.231Z", DATE);
+        one.setProperty("jcr:title", "2014", STRING);
+
+        Tree two = content.addChild("two");
+        two.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED);
+        two.setProperty(JCR_LASTMODIFIED, "2014-04-01T09:58:03.231Z", DATE);
+        two.setProperty("jcr:title", "abc", STRING);
+
+        root.commit();
+
+        // Assert /content/two is not returned since it matches 2014 from DATE type property field which is not part of
+        // includePropertyTypes in the index definition
+        String query = "/jcr:root/content//*[jcr:contains(., '2014')]";
+        TestUtils.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
     }
 
 }

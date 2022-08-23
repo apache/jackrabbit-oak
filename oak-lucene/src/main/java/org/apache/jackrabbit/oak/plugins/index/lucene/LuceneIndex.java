@@ -765,6 +765,12 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             if (isLike) {
+                // Note: the code below has two problems:
+                // - Does not deal with escaped wildcard characters (OAK-9885).
+                // - Does not apply the prefix query optimization: the first block of the if condition below is
+                // never executed because the guard condition is always false (OAK-9881).
+                // The correct logic is in LucenePropertyIndex#createLikeQuery.
+                // Leaving the code as it is, because this class is deprecated, as it is just for compatVersion=1
                 first = first.replace('%', WildcardQuery.WILDCARD_STRING);
                 first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
 
@@ -773,7 +779,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 int len = first.length();
 
                 if (indexOfWS == len || indexOfWC == len) {
-                    // remove trailing "*" for prefixquery
+                    // remove trailing "*" for prefix query
                     first = first.substring(0, first.length() - 1);
                     if (JCR_PATH.equals(name)) {
                         qs.add(new PrefixQuery(newPathTerm(first)));

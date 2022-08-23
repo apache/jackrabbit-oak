@@ -72,7 +72,19 @@ import static org.junit.Assert.assertTrue;
 public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest {
 
     private void registerDynamicSyncHandler() {
-        context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        registerSyncHandler(true, false);
+    }
+
+    private void registerSyncHandler(boolean dynamicMembership, boolean dynamicGroups) {
+        ImmutableMap.Builder<String, Object> config = new ImmutableMap.Builder<>();
+        config.put(DefaultSyncConfigImpl.PARAM_NAME, DefaultSyncConfig.DEFAULT_NAME);
+        if (dynamicMembership) {
+            config.put(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
+        } 
+        if (dynamicGroups) {
+            config.put(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS, true);
+        }
+        registerSyncHandler(config.build(), idp.getName());
     }
 
     private void assertIsEnabled(ExternalPrincipalConfiguration externalPrincipalConfiguration, boolean expected) {
@@ -219,6 +231,39 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         assertFalse(validatorProviders.get(0) instanceof ExternalUserValidatorProvider);
     }
 
+    @Test
+    public void testGetValidatorsDynamicGroupsEnabledWithoutDynamicMembership() {
+        ContentSession cs = root.getContentSession();
+        String workspaceName = cs.getWorkspaceName();
+
+        // dynamic groups only effective if dynamic-membership is enabled as well
+        registerSyncHandler(false, true);
+
+        List<? extends ValidatorProvider> validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, cs.getAuthInfo().getPrincipals(), new MoveTracker());
+        assertEquals(1, validatorProviders.size());
+        assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
+    }
+
+    @Test
+    public void testGetValidatorsDynamicGroupsEnabled() {
+        ContentSession cs = root.getContentSession();
+        String workspaceName = cs.getWorkspaceName();
+        
+        // upon registering a synchhandler with dynamic-membership the dynamic-group-validator must be present as well
+        registerSyncHandler(true, true);
+
+        List<? extends ValidatorProvider> validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, cs.getAuthInfo().getPrincipals(), new MoveTracker());
+        assertEquals(2, validatorProviders.size());
+        assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
+        assertTrue(validatorProviders.get(1) instanceof DynamicGroupValidatorProvider);
+
+        externalPrincipalConfiguration.setParameters(ConfigurationParameters.of(
+                ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDENTITIES, ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED));
+        
+        validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, cs.getAuthInfo().getPrincipals(), new MoveTracker());
+        assertEquals(3, validatorProviders.size());
+        assertTrue(validatorProviders.get(1) instanceof DynamicGroupValidatorProvider);
+    }
     
     @Test
     public void testGetProtectedItemImporters() {

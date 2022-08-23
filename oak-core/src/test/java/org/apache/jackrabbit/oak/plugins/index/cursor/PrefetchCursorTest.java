@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -116,4 +119,53 @@ public class PrefetchCursorTest {
                 "/test/c.pdf, /test/c.pdf/jcr:content/metadata]", ns.toString());
     }
     
+    @Test
+    public void cursorWithUnsupportedFeature() {
+        List<String> paths = Arrays.asList(
+                "/test/a.jpg", "abc");
+        TestCursor cursor = new TestCursor(paths.iterator());
+        TestPrefetchNodeStore ns = new TestPrefetchNodeStore();
+        NodeState rootState = null;
+        List<String> prefetchRelative = Arrays.asList(
+                "jcr:content/${regex(\"jpg\")}",
+                "jcr:content/${test(\\\"***\\\")}");
+        PrefetchCursor pc = new PrefetchCursor(cursor, ns, 10, rootState, prefetchRelative);
+        assertEquals("/test/a.jpg, abc",
+                CursorUtils.toString(pc));
+        assertEquals("[/test, /test/a.jpg]", ns.toString());
+    }
+
+    @Test
+    public void cursorWithVirtualRow() {
+        List<String> paths = Arrays.asList(
+                "/test/a.jpg");
+        TestCursorVirtual cursor = new TestCursorVirtual(paths.iterator());
+        TestPrefetchNodeStore ns = new TestPrefetchNodeStore();
+        NodeState rootState = null;
+        List<String> prefetchRelative = Arrays.asList(
+                "jcr:content");
+        PrefetchCursor pc = new PrefetchCursor(cursor, ns, 10, rootState, prefetchRelative);
+        assertEquals("/test/a.jpg",
+                CursorUtils.toString(pc));
+        assertEquals("[]", ns.toString());
+    }
+
+    @Test
+    public void cursorWithManyResults() {
+        List<String> paths = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            paths.add("/test/n" + i);
+        }
+        TestCursor cursor = new TestCursor(paths.iterator());
+        TestPrefetchNodeStore ns = new TestPrefetchNodeStore();
+        NodeState rootState = null;
+        List<String> prefetchRelative = Arrays.asList("jcr:content/metadata");
+        PrefetchCursor pc = new PrefetchCursor(cursor, ns, 10, rootState, prefetchRelative);
+        for (int i = 0; i < 1000; i++) {
+            assertTrue(pc.hasNext());
+            assertEquals("/test/n" + i, pc.next().getPath().toString());
+        }
+        assertFalse(pc.hasNext());
+    }
+
 }

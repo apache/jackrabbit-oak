@@ -45,6 +45,11 @@ public abstract class AbstractAutoMembershipTest  extends AbstractExternalAuthTe
             IDP_INVALID_AM, new String[] {NON_EXISTING_GROUP_ID},
             IDP_MIXED_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_1, NON_EXISTING_GROUP_ID});
 
+    static final Map<String, String[]> MAPPING_GROUP = ImmutableMap.of(
+            IDP_VALID_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_3},
+            IDP_INVALID_AM, new String[] {NON_EXISTING_GROUP_ID},
+            IDP_MIXED_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_3, NON_EXISTING_GROUP_ID}); 
+
     UserManager userManager;
     Group automembershipGroup1;
     Group automembershipGroup2;

@@ -137,6 +137,7 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
+    static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -455,6 +456,7 @@ public class DocumentNodeStoreService {
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setPrefetchFeature(prefetchFeature).
+                setThrottlingEnabled(config.throttlingEnabled()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();

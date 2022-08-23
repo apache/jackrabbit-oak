@@ -589,7 +589,9 @@ public class AzureDataStoreTest {
 
     @Test
     public void testBackendGetAllMetadataRecordsPrefixMatchesAll() throws DataStoreException {
-        assertEquals(0, backend.getAllMetadataRecords("").size());
+        // reference.key initialized in backend#init() - OAK-9807, so expected 1 record
+        assertEquals(1, backend.getAllMetadataRecords("").size());
+        backend.deleteAllMetadataRecords("");
 
         String prefixAll = "prefix1";
         String prefixSome = "prefix1.prefix2";
@@ -694,7 +696,8 @@ public class AzureDataStoreTest {
 
     @Test
     public void testBackendDeleteAllMetadataRecordsNoRecordsNoChange() {
-        assertEquals(0, backend.getAllMetadataRecords("").size());
+        // reference.key initialized in backend#init() - OAK-9807, so expected 1 record
+        assertEquals(1, backend.getAllMetadataRecords("").size());
 
         backend.deleteAllMetadataRecords("");
 
@@ -714,6 +717,10 @@ public class AzureDataStoreTest {
 
     @Test
     public void testSecret() throws Exception {
+        // assert secret already created on init
+        DataRecord refRec = ds.getMetadataRecord("reference.key");
+        assertNotNull("Reference data record null", refRec);
+        
         byte[] data = new byte[4096];
         randomGen.nextBytes(data);
         DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
@@ -731,9 +738,6 @@ public class AzureDataStoreTest {
         String calcRef = id + ':' + encodeHexString(hash);
 
         assertEquals("getReference() not equal", calcRef, ref);
-
-        DataRecord refRec = ds.getMetadataRecord("reference.key");
-        assertNotNull("Reference data record null", refRec);
 
         byte[] refDirectFromBackend = IOUtils.toByteArray(refRec.getStream());
         LOG.warn("Ref direct from backend {}", refDirectFromBackend);

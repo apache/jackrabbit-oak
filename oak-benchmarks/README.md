@@ -48,6 +48,8 @@ The following benchmark options (with default values) are currently supported:
     --rdbjdbcpasswd        - JDBC password (defaults to "")
     --rdbjdbctableprefix   - for RDB persistence: prefix for table names (defaults to "")
     --vgcMaxAge            - Continuous DocumentNodeStore VersionGC max age in sec (RDB only)
+    --throttlingEnabled    - Whether throttling is enabled for document store or not. Default is false. 
+                                (Currently it is supported for only Mongo Document Store)
 
 Please run `--help` to list all options.
 

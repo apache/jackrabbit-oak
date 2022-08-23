@@ -237,7 +237,10 @@ public class S3Backend extends AbstractSharedBackend {
 
             presignedDownloadURIVerifyExists =
                     PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
-
+            
+            // Initialize reference key secret
+            getOrCreateReferenceKey();
+            
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {

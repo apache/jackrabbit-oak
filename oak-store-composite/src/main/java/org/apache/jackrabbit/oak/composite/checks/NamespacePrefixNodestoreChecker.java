@@ -67,7 +67,7 @@ public class NamespacePrefixNodestoreChecker implements MountedNodeStoreChecker<
         
         String prefix = getPrefix(name);
         if ( prefix != null && !context.validPrefixes.contains(prefix) ) {
-            errorHolder.report(mountedStore, path, "invalid namespace prefix " + prefix + " , expected one of " + context.validPrefixes);
+            errorHolder.report(mountedStore, path, "invalid namespace prefix " + prefix + " , expected one of " + context.validPrefixes, this);
         }
     }
     

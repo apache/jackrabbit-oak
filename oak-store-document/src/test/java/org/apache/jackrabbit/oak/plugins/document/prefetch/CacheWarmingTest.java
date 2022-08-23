@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.prefetch;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_PREFETCH;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -30,6 +33,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.CountingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -48,12 +52,16 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.base.Stopwatch;
 
 public class CacheWarmingTest {
+
+    @Rule
+    public TemporarySystemProperty systemProperties = new TemporarySystemProperty();
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -64,6 +72,11 @@ public class CacheWarmingTest {
     private @Nullable MongoConnection mongoConnection;
 
     private CountingMongoDatabase db;
+
+    @Before
+    public void enablePrefetch() {
+        System.setProperty(SYS_PROP_PREFETCH, "true");
+    }
 
     @Test
     public void noop1() {
@@ -164,7 +177,7 @@ public class CacheWarmingTest {
         SortedSet<String> children = new TreeSet<String>();
         // create a bunch of nodes
         // make it 4 levels deep to avoid things like 'readChildren' to be able to use optimizations such as query()
-        for (int i = 0; i < 5*1024; i++) {
+        for (int i = 0; i < 4*1024; i++) {
             String name = "c" + i;
             children.add("/" + name + "/" + name + "/" + name + "/" + name);
             builder.child(name).child(name).child(name).child(name);
@@ -180,19 +193,25 @@ public class CacheWarmingTest {
             store.getDocumentStore().invalidateCache();
             logAndReset("after invalidate", cds, sw);
         }
+        DocumentNodeState root = store.getRoot();
         if (prefetch) {
             final List<String> paths = new ArrayList<>(children);
             final java.util.Collection<String> withParents = withParents(paths);
             withParents.remove("/");
-            store.prefetch(withParents, null);
+            store.prefetch(withParents, root);
             logAndReset("after prefetch  ", cds, sw);
         }
         // read the children again
-        DocumentNodeState root = store.getRoot();
         for (String aChild : root.getChildNodeNames()) {
             assertTrue(root.getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).exists());
         }
+        // raw find calls must be reasonably low with prefetch
+        int rawFindCalls = getRawFindCalls();
         logAndReset("read            ", cds, sw);
+        if (prefetch) {
+            // OAK-9883 - this assertion is not stable, disable for now
+            // assertThat(rawFindCalls, lessThan(10));
+        }
     }
 
     public static java.util.Collection<String> withParents(java.util.Collection<String> paths) {
