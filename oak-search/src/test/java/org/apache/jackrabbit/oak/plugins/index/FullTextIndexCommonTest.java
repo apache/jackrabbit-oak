@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -112,6 +113,72 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         }
     }
 
+    @Test
+    public void pathTransformationsWithNoPathRestrictions() throws Exception {
+        Tree test = setup();
+        test.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
+        test.addChild("b").setProperty("analyzed_field", "bar");
+        test.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
+
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[j:c/@analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/c/d"));
+            assertQuery("//*[d/*/@analyzed_field = 'bar']", XPATH, Collections.singletonList("/test/c"));
+        });
+    }
+
+    @Test
+    public void pathTransformationsWithPathRestrictions() throws Exception {
+        Tree test = setup();
+
+        test.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
+        test.addChild("b").setProperty("analyzed_field", "bar");
+        test.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
+        test.addChild("e").addChild("temp:c").setProperty("analyzed_field", "bar");
+        test.addChild("f").addChild("d").addChild("temp:c").setProperty("analyzed_field", "bar");
+        test.addChild("g").addChild("e").addChild("temp:c").setProperty("analyzed_field", "bar");
+
+
+        Tree temp = root.getTree("/").addChild("tmp");
+
+        temp.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
+        temp.getChild("a").setProperty("abc", "foo");
+        temp.addChild("b").setProperty("analyzed_field", "bar");
+        temp.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
+        temp.getChild("c").getChild("d").setProperty("abc", "foo");
+        root.commit();
+
+        assertEventually(() -> {
+            // ALL CHILDREN
+            assertQuery("/jcr:root/test//*[j:c/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/c/d"));
+            assertQuery("/jcr:root/test//*[*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/c/d", "/test/e", "/test/f/d", "/test/g/e"));
+            assertQuery("/jcr:root/test//*[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c", "/test/f"));
+            assertQuery("/jcr:root/test//*[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a/j:c","/test/b","/test/c/d/j:c",
+                    "/test/e/temp:c", "/test/f/d/temp:c","/test/g/e/temp:c"));
+
+            // DIRECT CHILDREN
+            assertQuery("/jcr:root/test/*[j:c/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a"));
+            assertQuery("/jcr:root/test/*[*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/e"));
+            assertQuery("/jcr:root/test/*[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c", "/test/f"));
+            assertQuery("/jcr:root/test/*[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/b"));
+
+            // EXACT
+            assertQuery("/jcr:root/test/a[j:c/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a"));
+            assertQuery("/jcr:root/test/a[*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a"));
+            assertQuery("/jcr:root/test/c[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c"));
+            assertQuery("/jcr:root/test/a/j:c[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a/j:c"));
+
+            // PARENT
+
+            assertQuery("select a.[jcr:path] as [jcr:path] from [nt:base] as a \n" +
+                    "  inner join [nt:base] as b on ischildnode(b, a)\n" +
+                    "  where isdescendantnode(a, '/tmp') \n" +
+                    "  and b.[analyzed_field] = 'bar'\n" +
+                    "  and a.[abc] is not null ", SQL2, Arrays.asList("/tmp/a", "/tmp/c/d"));
+        });
+    }
+
 
     protected Tree setup() throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
@@ -120,6 +187,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         builder.indexRule("nt:base")
                 .property("analyzed_field")
                 .analyzed().nodeScopeIndex();
+        builder.evaluatePathRestrictions();
 
         indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
         root.commit();

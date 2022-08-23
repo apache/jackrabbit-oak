@@ -30,7 +30,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Class to process Elastic response objects.
@@ -41,6 +43,7 @@ public class ElasticResponseHandler {
 
     private final PlanResult planResult;
     private final Filter filter;
+    private final Set<String> seenPaths = new HashSet<>();
 
     ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult, @NotNull Filter filter) {
         this.planResult = planResult;
@@ -52,13 +55,22 @@ public class ElasticResponseHandler {
     }
 
     private String transformPath(String path) {
-        String transformedPath = planResult.transformPath(("".equals(path)) ? "/" : path);
+        if (!planResult.isPathTransformed()) {
+            return path;
+        }
 
+        String transformedPath = planResult.transformPath(("".equals(path)) ? "/" : path);
         if (transformedPath == null) {
             LOG.trace("Ignoring path {} : Transformation returned null", path);
             return null;
         }
 
+        // avoid duplicate entries
+        // (This reduces number of entries passed on to QueryEngine for post processing in case of transformed path field queries)
+        if (!seenPaths.add(transformedPath)) {
+            LOG.trace("Ignoring path {} : Duplicate post transformation", path);
+            return null;
+        }
         return transformedPath;
     }
 
