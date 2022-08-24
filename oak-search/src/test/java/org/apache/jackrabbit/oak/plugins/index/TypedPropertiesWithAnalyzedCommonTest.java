@@ -39,7 +39,7 @@ public abstract class TypedPropertiesWithAnalyzedCommonTest extends AbstractQuer
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        setTraversalEnabled(true);
+        setTraversalEnabled(false);
     }
 
     protected Tree setIndex(IndexDefinitionBuilder builder, String idxName) {
@@ -107,7 +107,8 @@ public abstract class TypedPropertiesWithAnalyzedCommonTest extends AbstractQuer
         runQueries();
     }
 
-    protected void prepareIndexForBooleanPropertyTest() throws CommitFailedException {
+    @Test
+    public void typeBooleanAnalyzed() throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
         builder.noAsync();
         builder.indexRule("nt:base")
@@ -116,7 +117,9 @@ public abstract class TypedPropertiesWithAnalyzedCommonTest extends AbstractQuer
                 .type("Boolean");
         setIndex(builder, UUID.randomUUID().toString());
         root.commit();
+
         addContent();
+        runQueries();
     }
 
     @Test
