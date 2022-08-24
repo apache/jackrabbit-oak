@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MONGO;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MEMORY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
@@ -29,36 +28,63 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPat
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestCollection;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestDatabase;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.mongodb.ReadPreference;
-import com.spotify.docker.client.shaded.com.google.common.base.Predicate;
-import com.spotify.docker.client.shaded.com.google.common.collect.Iterables;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 @RunWith(Parameterized.class)
 public class MongoVersionGCSupportDefaultNoBranchTest {
+
+    private static class Stats {
+        private final VersionGCStats versionGCStats;
+        private final int nodesDeleteMany;
+        Stats(VersionGCStats stats, int nodesDeleteMany) {
+            if (stats == null) {
+                throw new IllegalArgumentException("stats must not be null");
+            }
+            if (nodesDeleteMany < 0) {
+                throw new IllegalArgumentException("nodesDeleteMany must be positive");
+            }
+            this.versionGCStats = stats;
+            this.nodesDeleteMany = nodesDeleteMany;
+        }
+    }
 
     private static Predicate<NodeDocument> splitDocsWithClusterId(final int clusterId) {
         return new Predicate<NodeDocument>() {
@@ -88,7 +114,6 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
                 RevisionVector sweepRevs, long oldestRevTimeStamp) {
             return super.identifyGarbage(gcTypes, sweepRevs, oldestRevTimeStamp);
         }
-
     }
     // using AbstractTwoNodeTest as a helper rather than subclassing to simplify things
     private AbstractTwoNodeTest helper;
@@ -103,18 +128,66 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     private Clock clock;
     private AtomicInteger offset = new AtomicInteger(0);
 
+    private final static AtomicInteger nodesDeleteMany = new AtomicInteger(0);
+
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
         List<DocumentStoreFixture> fixtures = Lists.newArrayList();
         if (MONGO.isAvailable()) {
-            fixtures.add(MONGO);
+            fixtures.add(new MongoFixture() {
+                @Override
+                public DocumentStore createDocumentStore(Builder builder) {
+                    try {
+                        MongoConnection connection = MongoUtils.getConnection();
+                        connections.add(connection);
+                        MongoDatabase db = connection.getDatabase();
+                        final AtomicReference<String> noEx = new AtomicReference<>(null);
+                        MongoTestDatabase testDb = new MongoTestDatabase(db, noEx, noEx, noEx) {
+
+                            public <TDocument> com.mongodb.client.MongoCollection<TDocument> getCollection(String collectionName, java.lang.Class<TDocument> tDocumentClass) {
+                                @NotNull
+                                MongoCollection<TDocument> actualCollection = super.getCollection(collectionName, tDocumentClass);
+                                if (!collectionName.equals(NODES.toString())) {
+                                    return actualCollection;
+                                }
+                                return new MongoTestCollection<TDocument>(actualCollection, noEx, noEx, noEx) {
+                                    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter) {
+                                        nodesDeleteMany.incrementAndGet();
+                                        return super.deleteMany(filter);
+                                    };
+
+                                    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
+                                        nodesDeleteMany.incrementAndGet();
+                                        return super.deleteMany(filter, options);
+                                    };
+
+                                    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter) {
+                                        nodesDeleteMany.incrementAndGet();
+                                        return super.deleteMany(clientSession, filter);
+                                    };
+
+                                    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
+                                        nodesDeleteMany.incrementAndGet();
+                                        return super.deleteMany(clientSession, filter, options);
+                                    };
+                                };
+                            };
+
+                            public com.mongodb.client.MongoCollection<org.bson.Document> getCollection(String collectionName) {
+                                throw new IllegalStateException("not yet implemented in this test");
+                            };
+                        };
+                        return new MongoDocumentStore(connection.getMongoClient(),testDb, builder);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
         }
-        // the test is targeted to Mongo, but also works in general - so adding memory as well
-        fixtures.add(MEMORY);
         return fixtures;
     }
 
-    public MongoVersionGCSupportDefaultNoBranchTest(DocumentStoreFixture fixture) throws InterruptedException {
+    public MongoVersionGCSupportDefaultNoBranchTest(final DocumentStoreFixture fixture) throws InterruptedException {
         this.fixture = fixture;
         helper = new AbstractTwoNodeTest(fixture);
         helper.setUp();
@@ -137,6 +210,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         } else {
             this.gcSupport1 = new VersionGCSupport(store1);
         }
+
+        nodesDeleteMany.set(0);
     }
 
     @After
@@ -146,9 +221,12 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         fixture.dispose();
     }
 
-    public void deleteSplitDocuments(VersionGCSupport gcSupport, RevisionVector sweepRevs, long oldestRevTimeStamp) {
+    public Stats deleteSplitDocuments(VersionGCSupport gcSupport, RevisionVector sweepRevs, long oldestRevTimeStamp) {
+        int a = nodesDeleteMany.get();
         VersionGCStats stats = new VersionGCStats();
         ((VersionGCSupport)gcSupport).deleteSplitDocuments(GC_TYPES, sweepRevs, oldestRevTimeStamp, stats);;
+        int b = nodesDeleteMany.get() - a;
+        return new Stats(stats, b);
     }
 
     @Test
@@ -184,13 +262,11 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     public void doTestBothInstancesSplit(int numSplit1, int numSplit2) throws Exception {
         final int totalSplits = numSplit1 + numSplit2;
 
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        waitALittle();
 
-        NodeBuilder builder = ds1.getRoot().builder();
-        builder.child("foo");
-        TestUtils.merge(ds1, builder);
+        modify(ds1, (b) -> b.child("foo"));
 
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        waitALittle();
 
         assertNumSplitDocs(store1, "/foo", 0);
         assertNumSplitDocs(store2, "/foo", 0);
@@ -204,21 +280,21 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         for(int i = 0; i < numSplit2; i++) {
             splitPathNoBranch(ds2, "/foo", ds1);
         }
+
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
 
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
-        builder = ds1.getRoot().builder();
-        builder.setProperty("sweeptrigger", offset.getAndIncrement());
-        TestUtils.merge(ds1, builder);
+        waitALittle();
+        if (numSplit1 > 0) {
+            modify(ds1, (b) -> b.setProperty("sweeptrigger", offset.getAndIncrement()));
+        }
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
-        builder = ds2.getRoot().builder();
-        builder.setProperty("sweeptrigger", offset.getAndIncrement());
-        TestUtils.merge(ds2, builder);
+        if (numSplit2 > 0) {
+            modify(ds2, (b) -> b.setProperty("sweeptrigger", offset.getAndIncrement()));
+        }
         ds2.runBackgroundOperations();
         ds1.runBackgroundOperations();
-
         long oldestRevTimeStamp = clock.getTime();
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
@@ -233,7 +309,9 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         assertEquals(numSplit1, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1))));
         assertEquals(numSplit2, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2))));
 
-        deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
+        Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
+        assertNotNull(stats);
+        assertEquals(totalSplits, stats.versionGCStats.splitDocGCCount);
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
         ds1.runBackgroundOperations();
@@ -242,6 +320,71 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         ds2.runBackgroundOperations();
         assertNumSplitDocs(store1, "/foo", 0);
         assertNumSplitDocs(store2, "/foo", 0);
+
+        waitALittle();
+        oldestRevTimeStamp = clock.getTime();
+        sweepRevs = ds1.getSweepRevisions();
+        stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
+        assertNotNull(stats);
+        assertEquals(0, stats.versionGCStats.splitDocGCCount);
+        assertEquals(1, stats.nodesDeleteMany);
+    }
+
+    public void modify(DocumentNodeStore ds, Function<NodeBuilder,NodeBuilder> builderFunction) throws CommitFailedException {
+        NodeBuilder builder = ds.getRoot().builder();
+        builderFunction.apply(builder);
+        TestUtils.merge(ds, builder);
+    }
+
+    @Test
+    public void testLastDefaultNoBranchDeletionRevs() throws Exception {
+        final int NUM_BOTH_SPLITS = 10;
+        for(int i = 0; i < NUM_BOTH_SPLITS; i++) {
+            doTestBothInstancesSplit(1,2);
+        }
+        ds1.runBackgroundOperations();
+        ds2.runBackgroundOperations();
+        int removesCount = nodesDeleteMany.getAndSet(0);
+        // there should be 4 deleteMany calls : first call results in 3, second in 1 => 4
+        assertEquals(4 * NUM_BOTH_SPLITS, removesCount);
+        for(int i = 0; i < 10; i++) {
+            doTestBothInstancesSplit(1,0);
+        }
+        ds1.runBackgroundOperations();
+        ds2.runBackgroundOperations();
+        removesCount = nodesDeleteMany.getAndSet(0);
+        // there should be between 3 and 4 deleteMany calls due to avoiding calls if nothing changed
+        // but seems every other (more or less) iteration there is still a change in _lastRev
+        // so the condition is strict >3 and <4
+        assertTrue(3 * NUM_BOTH_SPLITS < removesCount);
+        assertTrue(4 * NUM_BOTH_SPLITS > removesCount);
+        for(int i = 0; i < 10; i++) {
+            doTestBothInstancesSplit(0, 1);
+        }
+        ds1.runBackgroundOperations();
+        ds2.runBackgroundOperations();
+        removesCount = nodesDeleteMany.getAndSet(0);
+        // there should be between 3 and 4 deleteMany calls due to avoiding calls if nothing changed
+        // but seems every other (more or less) iteration there is still a change in _lastRev
+        // so the condition is strict >3 and <4
+        assertTrue(3 * NUM_BOTH_SPLITS < removesCount);
+        assertTrue(4 * NUM_BOTH_SPLITS > removesCount);
+
+        assertNumSplitDocs(store1, "/foo", 0);
+        assertNumSplitDocs(store2, "/foo", 0);
+
+        waitALittle();
+        long oldestRevTimeStamp = clock.getTime();
+        @NotNull
+        RevisionVector sweepRevs = ds1.getSweepRevisions();
+        Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
+        assertNotNull(stats);
+        assertEquals(0, stats.versionGCStats.splitDocGCCount);
+        assertEquals(1, stats.nodesDeleteMany);
+    }
+
+    private void waitALittle() throws InterruptedException {
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
     }
 
     private void assertNumSplitDocs(DocumentStore ds, String path, int expected) throws Exception {
