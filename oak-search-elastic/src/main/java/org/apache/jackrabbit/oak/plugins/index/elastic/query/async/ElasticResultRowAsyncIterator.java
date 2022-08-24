@@ -148,6 +148,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 LOG.trace("Path {} not included because of hierarchy inclusion rules", path);
                 return;
             }
+            LOG.trace("Path {} satisfies hierarchy inclusion rules", path);
             try {
                 queue.put(new FulltextResultRow(path, searchHit.score() != null ? searchHit.score() : 0.0,
                         elasticResponseHandler.excerpts(searchHit), elasticFacetProvider, null));

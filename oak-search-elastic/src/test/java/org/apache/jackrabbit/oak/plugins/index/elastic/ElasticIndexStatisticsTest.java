@@ -70,7 +70,7 @@ public class ElasticIndexStatisticsTest {
     public void cachedStatistics() throws Exception {
         MutableTicker ticker = new MutableTicker();
         LoadingCache<ElasticIndexStatistics.StatsRequestDescriptor, Integer> cache =
-                ElasticIndexStatistics.setupCountCache(100, 10, 1, ticker);
+                ElasticIndexStatistics.setupCountCache(100, 10 * 60, 60, ticker);
         ElasticIndexStatistics indexStatistics =
                 new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache);
 

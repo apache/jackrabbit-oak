@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.index.merge;
 
 import static java.util.Arrays.asList;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 import org.apache.jackrabbit.oak.run.commons.Command;
 
 import joptsimple.OptionParser;
@@ -43,8 +46,8 @@ public class IndexDiffCommand implements Command {
                 .accepts("merge-add", "Path to index definition file (.json) to merge. " +
                         "Adds the new out-of-the-box index to each index definition.").withOptionalArg()
                 .defaultsTo("");
-        OptionSpec<String> compareDirectoryOption = parser
-                .accepts("compare", "Path to index definition files (.json). " +
+        OptionSpec<String> comparePathOption = parser
+                .accepts("compare", "Path to index definition file or files (.json). " +
                         "Compare index1 and index2, or all indexes there to the indexBase file").withOptionalArg()
                 .defaultsTo("");
         OptionSpec<String> index1Option = parser
@@ -71,12 +74,12 @@ public class IndexDiffCommand implements Command {
         OptionSet options = parser.parse(args);
         String customDir = customDirOption.value(options);
         String mergeDirectory = mergeDirectoryOption.value(options);
-        String compareDirectory = compareDirectoryOption.value(options);
+        String comparePath = comparePathOption.value(options);
         String extractFile = extractFileOption.value(options);
         String targetDirectory = targetDirectoryOption.value(options);
         if (options.has(helpSpec) || (customDir.isEmpty() &&
                 mergeDirectory.isEmpty() &&
-                compareDirectory.isEmpty() &&
+                comparePath.isEmpty() &&
                 extractFile.isEmpty())) {
             parser.printHelpOn(System.out);
             return;
@@ -106,24 +109,31 @@ public class IndexDiffCommand implements Command {
                 IndexDiff.mergeIndex(mergeDirectory, mergeAdd, targetDirectory);
             }
         }
-        if (!compareDirectory.isEmpty()) {
+        if (!comparePath.isEmpty()) {
             String index1 = index1Option.value(options);
             String index2 = index2Option.value(options);
             String indexBaseFile = indexBaseOption.value(options);
             if (!indexBaseFile.isEmpty()) {
                 System.out.println("Comparing indexes in " + indexBaseFile + " against all indexes in " +
                         " directory \"" +
-                        compareDirectory + "\"");
-                System.out.println(IndexDiff.compareIndexesAgainstBase(compareDirectory, indexBaseFile));
+                        comparePath + "\"");
+                System.out.println(IndexDiff.compareIndexesAgainstBase(comparePath, indexBaseFile));
             } else {
                 if (index1.isEmpty() || index2.isEmpty()) {
                     parser.printHelpOn(System.out);
                     return;
                 }
-                System.out.println("Comparing indexes " + index1 + " and " + index2 +
-                        " for directory \"" +
-                        compareDirectory + "\"");
-                System.out.println(IndexDiff.compareIndexes(compareDirectory, index1, index2));
+                if (Files.isRegularFile(Paths.get(comparePath))) {
+                    System.out.println("Comparing indexes " + index1 + " and " + index2 +
+                            " in file \"" +
+                            comparePath + "\"");
+                    System.out.println(IndexDiff.compareIndexesInFile(Paths.get(comparePath), index1, index2));
+                } else {
+                    System.out.println("Comparing indexes " + index1 + " and " + index2 +
+                            " for directory \"" +
+                            comparePath + "\"");
+                    System.out.println(IndexDiff.compareIndexes(comparePath, index1, index2));
+                }
             }
         }
         if (!extractFile.isEmpty()) {
