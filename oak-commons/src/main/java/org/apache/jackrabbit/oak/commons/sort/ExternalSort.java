@@ -17,6 +17,10 @@
 package org.apache.jackrabbit.oak.commons.sort;
 
 // filename: ExternalSort.java
+
+import net.jpountz.lz4.LZ4FrameInputStream;
+import net.jpountz.lz4.LZ4FrameOutputStream;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
@@ -88,6 +92,10 @@ public class ExternalSort {
     * Defines the default maximum memory to be used while sorting (8 MB)
     */
     static final long DEFAULT_MAX_MEM_BYTES = 8388608L;
+
+    public enum compressionType {
+        LZ4, GZIP
+    }
     
     // we divide the file into small blocks. If the blocks
     // are too small, we shall create too many temporary files.
@@ -196,7 +204,40 @@ public class ExternalSort {
                                          boolean distinct, int numHeader, boolean usegzip)
             throws IOException {
         return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct,
-                numHeader, usegzip, identity(), identity());
+                numHeader, usegzip, compressionType.GZIP);
+    }
+
+    /**
+     * This will simply load the file by blocks of lines, then sort them in-memory, and write the
+     * result to temporary files that have to be merged later. You can specify a bound on the number
+     * of temporary files that will be created.
+     *
+     * @param file
+     *            some flat file
+     * @param cmp
+     *            string comparator
+     * @param maxtmpfiles
+     *            maximal number of temporary files
+     * @param cs
+     *            character set to use (can use Charset.defaultCharset())
+     * @param tmpdirectory
+     *            location of the temporary files (set to null for default location)
+     * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded.
+     * @param numHeader
+     *            number of lines to preclude before sorting starts
+     * @param useCompression
+     *            enable compression for temporary files
+     * @param type
+     *            use gzip or lz4 as compression algorithm
+     * @return a list of temporary flat files
+     */
+    public static List<File> sortInBatch(File file, Comparator<String> cmp,
+                                         int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                         boolean distinct, int numHeader, boolean useCompression, compressionType type)
+            throws IOException {
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct,
+                numHeader, useCompression, type, identity(), identity());
     }
 
     /**
@@ -231,11 +272,19 @@ public class ExternalSort {
                                              boolean distinct, int numHeader, boolean usegzip,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader, usegzip, compressionType.GZIP, typeToString,  stringToType);
+    }
+
+    public static <T> List<File> sortInBatch(File file, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean useCompression, compressionType type,
+                                             Function<T, String> typeToString, Function<String, T> stringToType)
+            throws IOException {
         // in bytes
         long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles, maxMemory);
         try (BufferedReader fbr = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), cs))) {
-            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, typeToString, stringToType);
+            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, useCompression, type, typeToString, stringToType);
         }
     }
 
@@ -244,10 +293,18 @@ public class ExternalSort {
                                              boolean distinct, int numHeader, boolean usegzip,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
+        return sortInBatch(fbr, actualFileSize, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader, usegzip, compressionType.GZIP, typeToString, stringToType);
+    }
+
+    public static <T> List<File> sortInBatch(BufferedReader fbr, long actualFileSize, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean useCompression, compressionType type,
+                                             Function<T, String> typeToString, Function<String, T> stringToType)
+            throws IOException {
         // in bytes
         long blocksize = estimateBestSizeOfBlocks(actualFileSize, maxtmpfiles, maxMemory);
         try {
-            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, typeToString, stringToType);
+            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, useCompression, type, typeToString, stringToType);
         } finally {
             fbr.close();
         }
@@ -283,7 +340,7 @@ public class ExternalSort {
      */
     private static <T> List<File> sortInBatch(BufferedReader fbr, long blocksize, Comparator<T> cmp,
                                              Charset cs, File tmpdirectory,
-                                             boolean distinct, int numHeader, boolean usegzip,
+                                             boolean distinct, int numHeader, boolean usegzip, compressionType type,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
         List<File> files = new ArrayList<File>();
@@ -311,13 +368,13 @@ public class ExternalSort {
                                 .estimatedSizeOf(line);
                     }
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, usegzip, typeToString));
+                            tmpdirectory, distinct, usegzip, type, typeToString));
                     tmplist.clear();
                 }
             } catch (EOFException oef) {
                 if (tmplist.size() > 0) {
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, usegzip, typeToString));
+                            tmpdirectory, distinct, usegzip, type, typeToString));
                     tmplist.clear();
                 }
             }
@@ -376,6 +433,30 @@ public class ExternalSort {
 
     /**
      * Sort a list and save it to a temporary file
+     *
+     * @return the file containing the sorted data
+     * @param tmplist
+     *            data to be sorted
+     * @param cmp
+     *            string comparator
+     * @param cs
+     *            charset to use for output (can use Charset.defaultCharset())
+     * @param tmpdirectory
+     *            location of the temporary files (set to null for default location)
+     * @param distinct
+     * @param usegzip
+     * @param typeToString
+     *        function to map string to custom type. User for coverting line to custom type for the
+     *        purpose of sorting
+     */
+    public static <T> File sortAndSave(List<T> tmplist,
+                                       Comparator<T> cmp, Charset cs, File tmpdirectory,
+                                       boolean distinct, boolean usegzip, Function<T, String> typeToString) throws IOException {
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip, compressionType.GZIP, typeToString);
+    }
+
+    /**
+     * Sort a list and save it to a temporary file
      * 
      * @return the file containing the sorted data
      * @param tmplist
@@ -387,20 +468,28 @@ public class ExternalSort {
      * @param tmpdirectory
 *            location of the temporary files (set to null for default location)
      * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
+     * @param useCompression
+     *            enable compression for temporary files
+     * @param type
+     *            use gzip or lz4 as compression algorithm
      * @param typeToString
      *        function to map string to custom type. User for coverting line to custom type for the
      *        purpose of sorting
      */
     public static <T> File sortAndSave(List<T> tmplist,
                                    Comparator<T> cmp, Charset cs, File tmpdirectory,
-                                   boolean distinct, boolean usegzip, Function<T, String> typeToString) throws IOException {
+                                   boolean distinct, boolean useCompression, compressionType type,
+                                   Function<T, String> typeToString) throws IOException {
         Collections.sort(tmplist, cmp);
         File newtmpfile = File.createTempFile("sortInBatch",
                 "flatfile", tmpdirectory);
         newtmpfile.deleteOnExit();
         OutputStream out = new FileOutputStream(newtmpfile);
         int zipBufferSize = 2048;
-        if (usegzip) {
+        if (useCompression && type == compressionType.LZ4) {
+            out = new LZ4FrameOutputStream(out);
+        } else if (useCompression && type == compressionType.GZIP) {
             out = new GZIPOutputStream(out, zipBufferSize) {
                 {
                     def.setLevel(Deflater.BEST_SPEED);
@@ -510,7 +599,36 @@ public class ExternalSort {
     public static <T> int mergeSortedFiles(List<File> files, File outputfile,
                                            final Comparator<String> cmp, Charset cs, boolean distinct,
                                            boolean append, boolean usegzip) throws IOException {
-        return mergeSortedFiles(files, outputfile, cmp, cs, distinct, append, usegzip, Function.identity(), Function.identity());
+        return mergeSortedFiles(files, outputfile, cmp, cs, distinct, append, usegzip, compressionType.GZIP);
+    }
+
+    /**
+     * This merges a bunch of temporary flat files
+     *
+     * @param files
+     *            The {@link List} of sorted {@link File}s to be merged.
+     * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
+     * @param outputfile
+     *            The output {@link File} to merge the results to.
+     * @param cmp
+     *            The {@link Comparator} to use to compare {@link String}s.
+     * @param cs
+     *            The {@link Charset} to be used for the byte to character conversion.
+     * @param append
+     *            Pass <code>true</code> if result should append to {@link File} instead of
+     *            overwrite. Default to be false for overloading methods.
+     * @param useCompression
+     *            enable compression for temporary files
+     * @param type
+     *            use gzip or lz4 as compression algorithm
+     * @return The number of lines sorted. (P. Beaudoin)
+     * @since v0.1.4
+     */
+    public static <T> int mergeSortedFiles(List<File> files, File outputfile,
+                                           final Comparator<String> cmp, Charset cs, boolean distinct,
+                                           boolean append, boolean useCompression, compressionType type) throws IOException {
+        return mergeSortedFiles(files, outputfile, cmp, cs, distinct, append, useCompression, type, Function.identity(), Function.identity());
     }
 
     /**
@@ -542,9 +660,43 @@ public class ExternalSort {
                                            final Comparator<T> cmp, Charset cs, boolean distinct,
                                            boolean append, boolean usegzip, Function<T, String> typeToString,
                                            Function<String, T> stringToType) throws IOException {
+        return mergeSortedFiles(files, outputfile, cmp, cs, distinct, append, usegzip, compressionType.GZIP, typeToString, stringToType);
+    }
+
+    /**
+     * This merges a bunch of temporary flat files and deletes them on success or error.
+     *
+     * @param files
+     *            The {@link List} of sorted {@link File}s to be merged.
+     * @param outputfile
+     *            The output {@link File} to merge the results to.
+     * @param cmp
+     *            The {@link Comparator} to use to compare {@link String}s.
+     * @param cs
+     *            The {@link Charset} to be used for the byte to character conversion.
+     * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
+     * @param append
+     *            Pass <code>true</code> if result should append to {@link File} instead of
+     *            overwrite. Default to be false for overloading methods.
+     * @param useCompression
+     *            enable compression for temporary files
+     * @param type
+     *            use gzip or lz4 as compression algorithm
+     * @param typeToString
+     *            function to map string to custom type. User for coverting line to custom type for the
+     *            purpose of sorting
+     * @param stringToType
+     *          function to map custom type to string. Used for storing sorted content back to file
+     * @since v0.1.4
+     */
+    public static <T> int mergeSortedFiles(List<File> files, File outputfile,
+                                           final Comparator<T> cmp, Charset cs, boolean distinct,
+                                           boolean append, boolean useCompression, compressionType type, Function<T, String> typeToString,
+                                           Function<String, T> stringToType) throws IOException {
         boolean success = false;
         try (BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputfile, append), cs))){
-            int result = mergeSortedFiles(files, fbw, cmp, cs, distinct, usegzip, typeToString, stringToType);
+            int result = mergeSortedFiles(files, fbw, cmp, cs, distinct, useCompression, type, typeToString, stringToType);
             success = true;
             return result;
         } finally {
@@ -584,17 +736,49 @@ public class ExternalSort {
                                            BufferedWriter fbw, final Comparator<T> cmp, Charset cs, boolean distinct,
                                            boolean usegzip, Function<T, String> typeToString,
                                            Function<String, T> stringToType) throws IOException {
+        return mergeSortedFiles(files, fbw, cmp, cs, distinct, usegzip, compressionType.GZIP, typeToString, stringToType);
+    }
+
+    /**
+     * This merges a bunch of temporary flat files and deletes them on success or error.
+     *
+     * @param files
+     *            The {@link List} of sorted {@link File}s to be merged.
+     * @param fbw
+     *            Buffered writer used to store the sorted content
+     * @param cmp
+     *            The {@link Comparator} to use to compare {@link String}s.
+     * @param cs
+     *            The {@link Charset} to be used for the byte to character conversion.
+     * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
+     * @param useCompression
+     *            enable compression for temporary files
+     * @param type
+     *            use gzip or lz4 as compression algorithm
+     * @param typeToString
+     *            function to map string to custom type. User for coverting line to custom type for the
+     *            purpose of sorting
+     * @param stringToType
+     *          function to map custom type to string. Used for storing sorted content back to file
+     * @since v0.1.4
+     */
+    public static <T> int mergeSortedFiles(List<File> files,
+                                           BufferedWriter fbw, final Comparator<T> cmp, Charset cs, boolean distinct,
+                                           boolean useCompression, compressionType type, Function<T, String> typeToString,
+                                           Function<String, T> stringToType) throws IOException {
         ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
         try {
             for (File f : files) {
                 final int bufferSize = 2048;
                 InputStream in = new FileInputStream(f);
                 BufferedReader br;
-                if (usegzip) {
-                    br = new BufferedReader(new InputStreamReader(new GZIPInputStream(in, bufferSize), cs));
-                } else {
-                    br = new BufferedReader(new InputStreamReader(in, cs));
+                if (useCompression && type == compressionType.LZ4) {
+                    in = new LZ4FrameInputStream(in);
+                } else if (useCompression && type == compressionType.GZIP) {
+                    in = new GZIPInputStream(in, bufferSize);
                 }
+                br = new BufferedReader(new InputStreamReader(in, cs));
 
                 BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
                 bfbs.add(bfb);

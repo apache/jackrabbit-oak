@@ -83,7 +83,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false, false);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 
@@ -171,7 +171,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false, false);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 
