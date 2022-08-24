@@ -136,17 +136,19 @@ public abstract class TypedPropertiesWithAnalyzedCommonTest extends AbstractQuer
 
     private void addContent() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", 1234);
-        test.addChild("b").setProperty("propa", "1234");
-        test.addChild("c").setProperty("propa", "1234abcd");
-        test.addChild("d").setProperty("propa", "1234.12");
-        test.addChild("e").setProperty("propa", "true");
-        test.addChild("f").setProperty("propa", 4321);
-        test.addChild("g").setProperty("propa", "4321");
-        test.addChild("h").setProperty("propa", "4321abcd");
-        test.addChild("i").setProperty("propa", "4321.12");
-        test.addChild("j").setProperty("propa", "false");
-        test.addChild("k").setProperty("propa", "LoremIpsum");
+        test.addChild("p1").setProperty("propa", 1234);
+        test.addChild("p2").setProperty("propa", "1234");
+        test.addChild("p3").setProperty("propa", "1234abcd");
+        test.addChild("p4").setProperty("propa", "1234.12");
+        test.addChild("p5").setProperty("propa", true);
+        test.addChild("p6").setProperty("propa", "true");
+        test.addChild("p7").setProperty("propa", 4321);
+        test.addChild("p8").setProperty("propa", "4321");
+        test.addChild("p9").setProperty("propa", "4321abcd");
+        test.addChild("p10").setProperty("propa", "4321.12");
+        test.addChild("p11").setProperty("propa", false);
+        test.addChild("p12").setProperty("propa", "false");
+        test.addChild("p13").setProperty("propa", "LoremIpsum");
         root.commit();
     }
 
@@ -157,14 +159,14 @@ public abstract class TypedPropertiesWithAnalyzedCommonTest extends AbstractQuer
         });
 
         assertQuery("/jcr:root//*[jcr:contains(@propa, '123*')]", XPATH,
-                ImmutableList.of("/test/a", "/test/b", "/test/c", "/test/d"));
+                ImmutableList.of("/test/p1", "/test/p2", "/test/p3", "/test/p4"));
         assertQuery("/jcr:root//*[jcr:contains(@propa, '432*')]", XPATH,
-                ImmutableList.of("/test/f", "/test/g", "/test/h", "/test/i"));
+                ImmutableList.of("/test/p7", "/test/p8", "/test/p9", "/test/p10"));
         assertQuery("/jcr:root//*[jcr:contains(@propa, 'notpresent*')]", XPATH,
                 ImmutableList.of());
         assertQuery("/jcr:root//*[jcr:contains(@propa, 'Lorem*')]", XPATH,
-                ImmutableList.of("/test/k"));
+                ImmutableList.of("/test/p13"));
         assertQuery("/jcr:root//*[jcr:contains(@propa, 'tru*')]", XPATH,
-                ImmutableList.of("/test/e"));
+                ImmutableList.of("/test/p5", "/test/p6"));
     }
 }

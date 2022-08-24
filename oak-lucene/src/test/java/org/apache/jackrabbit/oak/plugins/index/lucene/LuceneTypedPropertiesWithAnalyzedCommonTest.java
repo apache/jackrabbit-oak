@@ -53,14 +53,20 @@ public class LuceneTypedPropertiesWithAnalyzedCommonTest extends TypedProperties
     public void typeBooleanAnalyzed() throws Exception {
         super.prepareIndexForBooleanPropertyTest();
         assertQuery("/jcr:root//*[jcr:contains(@propa, '123*')]", XPATH,
-                ImmutableList.of("/test/a", "/test/b", "/test/c", "/test/d"));
+                ImmutableList.of("/test/p1", "/test/p2", "/test/p3", "/test/p4"));
         assertQuery("/jcr:root//*[jcr:contains(@propa, '432*')]", XPATH,
-                ImmutableList.of("/test/f", "/test/g", "/test/h", "/test/i"));
+                ImmutableList.of("/test/p7", "/test/p8", "/test/p9", "/test/p10"));
         assertQuery("/jcr:root//*[jcr:contains(@propa, 'notpresent*')]", XPATH,
                 ImmutableList.of());
         assertQuery("/jcr:root//*[jcr:contains(@propa, 'Lorem*')]", XPATH,
-                ImmutableList.of("/test/k"));
+                ImmutableList.of("/test/p13"));
         assertQuery("/jcr:root//*[jcr:contains(@propa, 'tru*')]", XPATH,
-                ImmutableList.of("/test/e"));
+                ImmutableList.of("/test/p5", "/test/p6"));
+
+        assertQuery("/jcr:root//*[@propa]", XPATH, ImmutableList.of(
+                "/test/p1", "/test/p10", "/test/p11", "/test/p12", "/test/p13", "/test/p2", "/test/p3", "/test/p4", "/test/p5", "/test/p6", "/test/p7", "/test/p8", "/test/p9"
+        ));
+        assertQuery("/jcr:root//*[@propa = true]", XPATH, ImmutableList.of("/test/p5", "/test/p6"));
+        assertQuery("/jcr:root//*[@propa = false]", XPATH, ImmutableList.of("/test/p11", "/test/p12"));
     }
 }

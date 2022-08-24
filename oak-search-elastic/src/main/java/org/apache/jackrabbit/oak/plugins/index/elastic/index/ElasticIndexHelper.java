@@ -197,7 +197,7 @@ class ElasticIndexHelper {
         // .endObject();
     }
 
-    private static void createNestedAnalyzed(XContentBuilder mappingBuilder) throws IOException {
+    private static void createAnalyzedSubfield(XContentBuilder mappingBuilder) throws IOException {
         // Create a separate field for full text search on non-string properties
         mappingBuilder.startObject("fields");
         {
@@ -236,25 +236,25 @@ class ElasticIndexHelper {
                     mappingBuilder.field("type", "binary");
                     // ignore_malformed not allowed for binary fields but also not needed as there is no type conversion
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
-                        createNestedAnalyzed(mappingBuilder);
+                        createAnalyzedSubfield(mappingBuilder);
                     }
                 } else if (Type.LONG.equals(type)) {
                     mappingBuilder.field("type", "long");
                     mappingBuilder.field("ignore_malformed", true);
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
-                        createNestedAnalyzed(mappingBuilder);
+                        createAnalyzedSubfield(mappingBuilder);
                     }
                 } else if (Type.DOUBLE.equals(type) || Type.DECIMAL.equals(type)) {
                     mappingBuilder.field("type", "double");
                     mappingBuilder.field("ignore_malformed", true);
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
-                        createNestedAnalyzed(mappingBuilder);
+                        createAnalyzedSubfield(mappingBuilder);
                     }
                 } else if (Type.DATE.equals(type)) {
                     mappingBuilder.field("type", "date");
                     mappingBuilder.field("ignore_malformed", true);
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
-                        createNestedAnalyzed(mappingBuilder);
+                        createAnalyzedSubfield(mappingBuilder);
                     }
                 } else if (Type.BOOLEAN.equals(type)) {
                     mappingBuilder.field("type", "boolean");

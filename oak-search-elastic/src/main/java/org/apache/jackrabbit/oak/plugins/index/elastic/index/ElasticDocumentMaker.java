@@ -153,23 +153,29 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         // and continue indexing the document. The only exception are fields of type boolean, because ES does not support
         // ignoring malformed values for boolean types.
 
-        int pdTypeTag = pd.getType();
+        // This is the type in the index definition. It may not be the same as the type of value of the property being
+        // indexed.
+        int indexType = pd.getType();
         try {
             Object f;
-            if (pdTypeTag == Type.BOOLEAN.tag()) {
-                // Try to convert to boolean here, as ES does not support ignore_malformed in boolean fields
-                f = property.getValue(Type.BOOLEAN, i).toString();
+            if (indexType == Type.BOOLEAN.tag()) {
+                // Try to convert the value to the index definition type, which is Boolean. This is a special case,
+                // because ES does not support ignore_malformed in boolean fields so we cannot rely on ES for conversion
+                f = property.getValue(Type.BOOLEAN, i);
             } else {
-                // Let ES convert the property and rely on ignore_malformed=true to skip if the value is not valid
-                int indexTypeTag = property.getType().tag();
-                if (indexTypeTag == Type.LONG.tag()) {
+                // Send to ES the value as we got it from the user and let ES convert the property. If ES cannot convert
+                // the value, then it ignores it without raising an error (ignore_malformed=true)
+                // Get the type of the property, as was received from the client.
+                int propertyType = property.getType().tag();
+                // The code below does not perform any type conversion, it simply gets the value as the type of the property
+                if (propertyType == Type.LONG.tag()) {
                     f = property.getValue(Type.LONG, i);
-                } else if (indexTypeTag == Type.DATE.tag()) {
+                } else if (propertyType == Type.DATE.tag()) {
                     f = property.getValue(Type.DATE, i);
-                } else if (indexTypeTag == Type.DOUBLE.tag()) {
+                } else if (propertyType == Type.DOUBLE.tag()) {
                     f = property.getValue(Type.DOUBLE, i);
-                } else if (indexTypeTag == Type.BOOLEAN.tag()) {
-                    f = property.getValue(Type.BOOLEAN, i).toString();
+                } else if (propertyType == Type.BOOLEAN.tag()) {
+                    f = property.getValue(Type.BOOLEAN, i);
                 } else {
                     f = property.getValue(Type.STRING, i);
                 }
@@ -180,7 +186,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
                     "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
                     getIndexName(), pname,
                     Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(pdTypeTag, false), path, e);
+                    Type.fromTag(indexType, false), path, e);
         }
     }
 
