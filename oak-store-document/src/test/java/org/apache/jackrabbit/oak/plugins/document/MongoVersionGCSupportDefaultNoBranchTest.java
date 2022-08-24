@@ -247,16 +247,19 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     @Test
     public void testBothInstancesSplit_two_three() throws Exception {
         doTestBothInstancesSplit(2, 3);
+        assertEquals(4, nodesDeleteMany.get());
     }
 
     @Test
     public void testBothInstancesSplit_three_two() throws Exception {
         doTestBothInstancesSplit(3, 2);
+        assertEquals(4, nodesDeleteMany.get());
     }
 
     @Test
     public void testBothInstancesSplit_many_many() throws Exception {
         doTestBothInstancesSplit(7, 9);
+        assertEquals(4, nodesDeleteMany.get());
     }
 
     public void doTestBothInstancesSplit(int numSplit1, int numSplit2) throws Exception {
