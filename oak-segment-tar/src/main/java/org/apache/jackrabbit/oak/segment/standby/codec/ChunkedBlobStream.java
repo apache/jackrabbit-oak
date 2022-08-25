@@ -117,7 +117,7 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
         }
 
         boolean release = true;
-        ByteBuf decorated = allocator.buffer();
+        ByteBuf decorated = null;
 
         try {
             ByteBuf buffer = allocator.buffer();
@@ -131,7 +131,7 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
             release = false;
             return decorated;
         } finally {
-            if (release) {
+            if (decorated != null && release) {
                 decorated.release();
             }
         }
