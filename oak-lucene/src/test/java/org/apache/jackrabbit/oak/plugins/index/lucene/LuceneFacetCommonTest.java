@@ -22,9 +22,7 @@ import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.FacetCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.TestUtils;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import javax.jcr.Repository;
@@ -44,13 +42,6 @@ public class LuceneFacetCommonTest extends FacetCommonTest {
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
         return jcr.createRepository();
-    }
-
-    @Override
-    @Test
-    @Ignore("failing in lucene only, needs more investigation")
-    public void statisticalFacets_withHitCountSameAsSampleSize() throws Exception {
-        super.statisticalFacets_withHitCountSameAsSampleSize();
     }
 
     protected void assertEventually(Runnable r) {

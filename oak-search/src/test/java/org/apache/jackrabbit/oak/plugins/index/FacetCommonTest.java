@@ -73,7 +73,7 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     public void createIndex() throws RepositoryException {
         String indexName = UUID.randomUUID().toString();
         IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
-        builder.noAsync();
+        builder.noAsync().evaluatePathRestrictions();
         builder.getBuilderTree().setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
         indexRule.property("cons").propertyIndex();
