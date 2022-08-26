@@ -139,10 +139,11 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
      * Migrate when resolved
      */
     private Stream<String> suggestions() throws IOException {
-        final SearchRequest searchReq = SearchRequest.of(sr -> sr
-                .index(String.join(",", indexNode.getDefinition().getIndexAlias()))
+        SearchRequest searchReq = SearchRequest.of(sr -> sr
+                .index(indexNode.getDefinition().getIndexAlias())
                 .suggest(sb -> sb.text(spellCheckQuery)
-                        .suggesters("oak:suggestion", fs -> fs.phrase(requestHandler.suggestQuery()))));
+                        .suggesters("oak:suggestion", fs -> fs.phrase(requestHandler.suggestQuery()))
+                ));
 
         String endpoint = "/" + String.join(",", searchReq.index()) + "/_search?filter_path=suggest";
         Request request = new Request("POST", endpoint);

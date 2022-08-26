@@ -443,7 +443,7 @@ public class ElasticRequestHandler {
         return PhraseSuggester.of(ps -> ps
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
-                .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing))
+                .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing).size(10))
                 .collate(c -> c.query(q -> q.source(ElasticIndexUtils.toString(query))))
         );
     }
