@@ -53,6 +53,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 
+import com.mongodb.client.model.CreateCollectionOptions;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -79,6 +80,10 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.bson.BsonDocument;
+import org.bson.BsonString;
+import org.bson.BsonValue;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -157,6 +162,13 @@ public class MongoDocumentStore implements DocumentStore {
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
 
     /**
+     * mongodb support for zstd compression on documents
+     */
+    private static final String ENABLE_ZSTD_COMPRESSION = "{\n" + "  \"wiredTiger\": {\n"
+            + "    \"configString\": \"block_compressor=zstd\"\n" + "  }\n"
+            + "}";
+
+    /**
      * nodeNameLimit for node name based on Mongo Version
      */
     private final int nodeNameLimit;
@@ -193,6 +205,8 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final MongoDBConnection connection;
     private final MongoDBConnection clusterNodesConnection;
+
+    private String MongoDBBlockCompressor;
 
     private final NodeDocumentCache nodesCache;
 
@@ -334,6 +348,8 @@ public class MongoDocumentStore implements DocumentStore {
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
         if (!readOnly) {
+            createCollection(db, Collection.NODES.toString(), status);
+            createCollection(db, Collection.JOURNAL.toString(), status);
             ensureIndexes(status);
         }
 
@@ -370,6 +386,21 @@ public class MongoDocumentStore implements DocumentStore {
                 db.getWriteConcern(), status.getServerDetails(), throttlingEnabled);
     }
 
+    private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
+        CreateCollectionOptions options = new CreateCollectionOptions();
+
+        if (mongoStatus.isVersion(4, 2)) {
+            Bson storageOptions = BsonDocument.parse(ENABLE_ZSTD_COMPRESSION);
+            options.storageEngineOptions(storageOptions);
+            if (!db.listCollectionNames()
+                    .into(new ArrayList<String>()).contains(collectionName)) {
+                db.createCollection(collectionName,options);
+                LOG.info("Creating Collection {}, with document compression", collectionName);
+            }
+        }
+
+    }
+
     @NotNull
     private MongoDBConnection getOrCreateClusterNodesConnection(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
         MongoDBConnection mc;
@@ -393,6 +424,7 @@ public class MongoDocumentStore implements DocumentStore {
         if (emptyNodesCollection) {
             // this is an empty store, create a compound index
             // on _modified and _id (OAK-3071)
+
             createIndex(nodes, new String[]{NodeDocument.MODIFIED_IN_SECS, Document.ID},
                     new boolean[]{true, true}, false, false);
         } else if (!hasIndex(nodes.withReadPreference(ReadPreference.primary()),
@@ -1805,6 +1837,14 @@ public class MongoDocumentStore implements DocumentStore {
             doc = null;
         }
         return doc;
+    }
+
+    public String getMongoDBBlockCompressor() {
+        return MongoDBBlockCompressor;
+    }
+
+    public void setMongoDBBlockCompressor(String mongoDBBlockCompressor) {
+        MongoDBBlockCompressor = mongoDBBlockCompressor;
     }
 
     @NotNull
