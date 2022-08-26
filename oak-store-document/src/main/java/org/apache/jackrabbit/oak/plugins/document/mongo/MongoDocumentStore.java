@@ -127,6 +127,7 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.create
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -340,7 +341,7 @@ public class MongoDocumentStore implements DocumentStore {
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
         // if throttling is enabled
-        boolean throttlingEnabled = builder.isThrottlingEnabled();
+        final boolean throttlingEnabled = isThrottlingEnabled(builder);
         if (throttlingEnabled) {
             MongoDatabase localDb = connection.getDatabase("local");
             Optional<String> ol = Iterables.tryFind(localDb.listCollectionNames(), s -> Objects.equals(OPLOG_RS, s));

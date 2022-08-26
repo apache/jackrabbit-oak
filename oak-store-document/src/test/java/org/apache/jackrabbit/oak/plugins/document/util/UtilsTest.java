@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -47,12 +48,16 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -138,6 +143,45 @@ public class UtilsTest {
         Path longPath = Path.fromString(LONG_PATH);
         assertFalse(Utils.isNodeNameLong(longPath, Integer.MAX_VALUE));
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
+    }
+
+    @Test
+    public void throttlingEnabledDefaultValue() {
+        boolean throttlingEnabled = isThrottlingEnabled(newDocumentNodeStoreBuilder());
+        assertFalse("Throttling is disabled by default", throttlingEnabled);
+    }
+
+    @Test
+    public void throttlingExplicitlyDisabled() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setThrottlingEnabled(false);
+        Feature docStoreThrottlingFeature = mock(Feature.class);
+        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
+        boolean throttlingEnabled = isThrottlingEnabled(builder);
+        assertFalse("Throttling is disabled explicitly", throttlingEnabled);
+    }
+
+    @Test
+    public void throttlingEnabledViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setThrottlingEnabled(true);
+        Feature docStoreThrottlingFeature = mock(Feature.class);
+        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
+        boolean throttlingEnabled = isThrottlingEnabled(builder);
+        assertTrue("Throttling is enabled via configuration", throttlingEnabled);
+    }
+
+    @Test
+    public void throttlingEnabledViaFeatureToggle() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setThrottlingEnabled(false);
+        Feature docStoreThrottlingFeature = mock(Feature.class);
+        when(docStoreThrottlingFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
+        boolean throttlingEnabled = isThrottlingEnabled(builder);
+        assertTrue("Throttling is enabled via Feature Toggle", throttlingEnabled);
     }
 
     @Test
