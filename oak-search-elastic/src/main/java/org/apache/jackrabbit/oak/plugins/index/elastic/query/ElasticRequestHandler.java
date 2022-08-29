@@ -575,8 +575,8 @@ public class ElasticRequestHandler {
 
         Filter filter = plan.getFilter();
         if (!filter.matchesAllTypes()) {
-            nodeTypeConstraints(planResult.indexingRule, filter).ifPresent(queries::add);
-            //queries.add(nodeTypeConstraints(planResult.indexingRule, filter));
+            Optional<Query> nodeTypeConstraints = nodeTypeConstraints(planResult.indexingRule, filter);
+            nodeTypeConstraints.ifPresent(queries::add);
         }
 
         if (elasticIndexDefinition.evaluatePathRestrictions()) {
