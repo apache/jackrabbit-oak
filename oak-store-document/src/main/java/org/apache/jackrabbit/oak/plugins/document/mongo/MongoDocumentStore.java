@@ -80,10 +80,6 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.bson.BsonDocument;
-import org.bson.BsonString;
-import org.bson.BsonValue;
-import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -160,13 +156,6 @@ public class MongoDocumentStore implements DocumentStore {
      * which we block any data modification operation when system has been throttled.
      */
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
-
-    /**
-     * mongodb support for zstd compression on documents
-     */
-    private static final String ENABLE_ZSTD_COMPRESSION = "{\n" + "  \"wiredTiger\": {\n"
-            + "    \"configString\": \"block_compressor=zstd\"\n" + "  }\n"
-            + "}";
 
     /**
      * nodeNameLimit for node name based on Mongo Version
@@ -348,9 +337,7 @@ public class MongoDocumentStore implements DocumentStore {
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
         if (!readOnly) {
-            createCollection(db, Collection.NODES.toString(), status);
-            createCollection(db, Collection.JOURNAL.toString(), status);
-            ensureIndexes(status);
+            ensureIndexes(db, status);
         }
 
         this.nodeLocks = new StripedNodeDocumentLocks();
@@ -386,21 +373,6 @@ public class MongoDocumentStore implements DocumentStore {
                 db.getWriteConcern(), status.getServerDetails(), throttlingEnabled);
     }
 
-    private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
-        CreateCollectionOptions options = new CreateCollectionOptions();
-
-        if (mongoStatus.isVersion(4, 2)) {
-            Bson storageOptions = BsonDocument.parse(ENABLE_ZSTD_COMPRESSION);
-            options.storageEngineOptions(storageOptions);
-            if (!db.listCollectionNames()
-                    .into(new ArrayList<String>()).contains(collectionName)) {
-                db.createCollection(collectionName,options);
-                LOG.info("Creating Collection {}, with document compression", collectionName);
-            }
-        }
-
-    }
-
     @NotNull
     private MongoDBConnection getOrCreateClusterNodesConnection(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
         MongoDBConnection mc;
@@ -414,12 +386,12 @@ public class MongoDocumentStore implements DocumentStore {
         return mc;
     }
 
-    private void ensureIndexes(@NotNull MongoStatus mongoStatus) {
+    private void ensureIndexes(MongoDatabase db, @NotNull MongoStatus mongoStatus) {
         // reading documents in the nodes collection and checking
         // existing indexes is performed against the MongoDB primary
         // this ensures the information is up-to-date and accurate
         boolean emptyNodesCollection = execute(session -> MongoUtils.isCollectionEmpty(nodes, session), Collection.NODES);
-
+        createCollection(db, Collection.NODES.toString(), mongoStatus);
         // compound index on _modified and _id
         if (emptyNodesCollection) {
             // this is an empty store, create a compound index
@@ -473,6 +445,19 @@ public class MongoDocumentStore implements DocumentStore {
 
         // index on _modified for journal entries
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
+    }
+
+    private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
+        CreateCollectionOptions options = new CreateCollectionOptions();
+
+        if (mongoStatus.isVersion(4, 2)) {
+            options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions());
+            if (!db.listCollectionNames()
+                    .into(new ArrayList<String>()).contains(collectionName)) {
+                db.createCollection(collectionName, options);
+                LOG.info("Creating Collection {}, with document compression", collectionName);
+            }
+        }
     }
 
     public boolean isReadOnly() {
