@@ -195,8 +195,6 @@ public class MongoDocumentStore implements DocumentStore {
     private final MongoDBConnection connection;
     private final MongoDBConnection clusterNodesConnection;
 
-    private String MongoDBBlockCompressor;
-
     private final NodeDocumentCache nodesCache;
 
     private final NodeDocumentLocks nodeLocks;
@@ -1822,14 +1820,6 @@ public class MongoDocumentStore implements DocumentStore {
             doc = null;
         }
         return doc;
-    }
-
-    public String getMongoDBBlockCompressor() {
-        return MongoDBBlockCompressor;
-    }
-
-    public void setMongoDBBlockCompressor(String mongoDBBlockCompressor) {
-        MongoDBBlockCompressor = mongoDBBlockCompressor;
     }
 
     @NotNull
