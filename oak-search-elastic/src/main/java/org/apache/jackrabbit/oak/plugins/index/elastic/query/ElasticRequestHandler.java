@@ -737,7 +737,8 @@ public class ElasticRequestHandler {
                 queries.add(TermQuery.of(t -> t.field(JCR_MIXINTYPES).value(FieldValue.of(type)))._toQuery());
             }
         }
-        return Optional.ofNullable(queries.isEmpty() ? null : Query.of(qb -> qb.bool(b -> b.should(queries))));
+
+        return queries.isEmpty() ? Optional.empty() : Optional.of(Query.of(qb -> qb.bool(b -> b.should(queries))));
     }
 
     private Query nodeName(Filter.PropertyRestriction pr) {
