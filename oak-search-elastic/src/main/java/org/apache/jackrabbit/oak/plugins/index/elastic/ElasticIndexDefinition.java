@@ -98,7 +98,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private static final Function<Integer, Boolean> isAnalyzable;
 
     static {
-        int[] NOT_ANALYZED_TYPES = new int[] {
+        int[] NOT_ANALYZED_TYPES = new int[]{
                 Type.BINARY.tag(), Type.LONG.tag(), Type.DOUBLE.tag(), Type.DECIMAL.tag(), Type.DATE.tag(), Type.BOOLEAN.tag()
         };
         Arrays.sort(NOT_ANALYZED_TYPES); // need for binary search
@@ -172,6 +172,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * Returns the index alias on the Elasticsearch cluster. This alias should be used for any query related operations.
      * The actual index name is used only when a reindex is in progress.
+     *
      * @return the Elasticsearch index alias
      */
     public String getIndexAlias() {
@@ -200,6 +201,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     /**
      * Returns the keyword field name mapped in Elasticsearch for the specified property name.
+     *
      * @param propertyName the property name in the index rules
      * @return the field name identifier in Elasticsearch
      */
@@ -223,6 +225,23 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {
         return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed);
     }
+
+    public boolean isIndexed(List<PropertyDefinition> propertyDefinitions) {
+        return propertyDefinitions.stream().anyMatch(pd -> pd.index);
+    }
+
+    public boolean isOrdered(List<PropertyDefinition> propertyDefinitions) {
+        return propertyDefinitions.stream().anyMatch(pd -> pd.ordered);
+    }
+
+    public boolean isFaceted(List<PropertyDefinition> propertyDefinitions) {
+        return propertyDefinitions.stream().anyMatch(pd -> pd.facet);
+    }
+
+    //TODO uncomment the following tests to enable useInExcerpts
+    /*public boolean useInExcerpts(List<PropertyDefinition> propertyDefinitions) {
+        return propertyDefinitions.stream().anyMatch(pd -> pd.useInExcerpts);
+    }*/
 
     @Override
     protected String getDefaultFunctionName() {
