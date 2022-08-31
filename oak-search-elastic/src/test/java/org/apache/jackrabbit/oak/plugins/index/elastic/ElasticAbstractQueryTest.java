@@ -37,9 +37,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.util.TestFeatureToggleFactory;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -79,9 +77,6 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     @ClassRule
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
-
-    protected Feature separateFullTextSearchESFieldFeature =
-            TestFeatureToggleFactory.newFeature(ElasticIndexProviderService.FT_SEPARATE_FT_ES_FIELD, true);
 
     @After
     public void tearDown() throws IOException {
@@ -145,7 +140,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ElasticIndexTracker indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, separateFullTextSearchESFieldFeature);
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         nodeStore = getNodeStore();
 

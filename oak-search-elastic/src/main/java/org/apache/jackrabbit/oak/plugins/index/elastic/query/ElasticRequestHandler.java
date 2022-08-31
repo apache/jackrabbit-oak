@@ -83,7 +83,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.lucene.search.WildcardQuery;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -129,15 +128,12 @@ public class ElasticRequestHandler {
     private final String propertyRestrictionQuery;
     private final NodeState rootState;
 
-    private final Feature separateFullTextSearchESFieldFeature;
-
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
-                          NodeState rootState, Feature separateFullTextSearchESFieldFeature) {
+            NodeState rootState) {
         this.indexPlan = indexPlan;
         this.filter = indexPlan.getFilter();
         this.planResult = planResult;
         this.elasticIndexDefinition = (ElasticIndexDefinition) planResult.indexDefinition;
-        this.separateFullTextSearchESFieldFeature = separateFullTextSearchESFieldFeature;
 
         // Check if native function is supported
         Filter.PropertyRestriction pr = null;

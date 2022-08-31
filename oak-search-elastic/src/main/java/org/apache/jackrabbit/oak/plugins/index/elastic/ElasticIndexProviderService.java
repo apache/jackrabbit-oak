@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -75,11 +74,6 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_API_KEY_ID = "elasticsearch.apiKeyId";
     protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
-    /**
-     * Feature toggle to disable the new mapping of analyzed fields into an Elastic field separate from the field used
-     * for non-full-text queries (full:<pnmame>)
-     */
-    public static final String FT_SEPARATE_FT_ES_FIELD = "FT_SEPARATE_FT_ES_FIELD_OAK-9875";
 
     @ObjectClassDefinition(name = "ElasticIndexProviderService", description = "Apache Jackrabbit Oak ElasticIndexProvider")
     public @interface Config {
@@ -165,8 +159,6 @@ public class ElasticIndexProviderService {
     private ElasticMetricHandler metricHandler;
     private ElasticIndexTracker indexTracker;
 
-    private Feature separateFullTextSearchESFieldFeature;
-
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
         boolean disabled = Boolean.parseBoolean(System.getProperty(OAK_ELASTIC_PREFIX + PROP_DISABLED, Boolean.toString(config.disabled())));
@@ -179,7 +171,7 @@ public class ElasticIndexProviderService {
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);
-        separateFullTextSearchESFieldFeature = Feature.newFeature(FT_SEPARATE_FT_ES_FIELD, whiteboard);
+
         elasticConnection = getElasticConnection(config);
         metricHandler = new ElasticMetricHandler(statisticsProvider);
         indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler);
@@ -237,7 +229,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexProvider(BundleContext bundleContext) {
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, separateFullTextSearchESFieldFeature);
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);

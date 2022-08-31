@@ -29,9 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.util.TestFeatureToggleFactory;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
@@ -47,9 +45,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 elasticRule.getElasticConnectionFromString();
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = getIndexEditorProvider();
-        Feature separateFullTextSearchESFieldFeature =
-                TestFeatureToggleFactory.newFeature(ElasticIndexProviderService.FT_SEPARATE_FT_ES_FIELD, false);
-        this.indexProvider = new ElasticIndexProvider(indexTracker, separateFullTextSearchESFieldFeature);
+        this.indexProvider = new ElasticIndexProvider(indexTracker);
         this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
                 editorProvider,
                 new NodeCounterEditorProvider()

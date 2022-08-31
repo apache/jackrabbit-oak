@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -29,15 +28,13 @@ import java.util.List;
 public class ElasticIndexProvider implements QueryIndexProvider {
 
     private final ElasticIndexTracker indexTracker;
-    private final Feature separateFullTextSearchESFieldFeature;
 
-    public ElasticIndexProvider(ElasticIndexTracker indexTracker, Feature separateFullTextSearchESFieldFeature) {
+    public ElasticIndexProvider(ElasticIndexTracker indexTracker) {
         this.indexTracker = indexTracker;
-        this.separateFullTextSearchESFieldFeature = separateFullTextSearchESFieldFeature;
     }
 
     @Override
     public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return Collections.singletonList(new ElasticIndex(indexTracker, separateFullTextSearchESFieldFeature));
+        return Collections.singletonList(new ElasticIndex(indexTracker));
     }
 }

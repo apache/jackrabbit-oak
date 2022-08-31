@@ -29,9 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.util.TestFeatureToggleFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -96,9 +94,7 @@ public class ElasticSpellcheckTest {
                 new ElasticMetricHandler(StatisticsProvider.NOOP));
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        Feature separateFullTextSearchESFieldFeature =
-                TestFeatureToggleFactory.newFeature(ElasticIndexProviderService.FT_SEPARATE_FT_ES_FIELD, true);
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, separateFullTextSearchESFieldFeature);
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         NodeStore nodeStore = new MemoryNodeStore(INITIAL_CONTENT);
         Oak oak = new Oak(nodeStore)

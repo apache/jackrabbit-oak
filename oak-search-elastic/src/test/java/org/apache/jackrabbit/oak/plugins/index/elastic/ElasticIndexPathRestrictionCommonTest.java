@@ -29,9 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.util.TestFeatureToggleFactory;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.contrib.java.lang.system.ProvideSystemProperty;
@@ -92,9 +90,7 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
     @Override
     protected void setupFullTextIndex() {
         indexTracker.update(root);
-        Feature separateFullTextSearchESFieldFeature =
-                TestFeatureToggleFactory.newFeature(ElasticIndexProviderService.FT_SEPARATE_FT_ES_FIELD, true);
-        index = (FulltextIndex) new ElasticIndexProvider(indexTracker, separateFullTextSearchESFieldFeature).getQueryIndexes(null).get(0);
+        index = (FulltextIndex) new ElasticIndexProvider(indexTracker).getQueryIndexes(null).get(0);
     }
 
     @Override
