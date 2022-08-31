@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
@@ -33,9 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvide
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.util.TestFeatureToggleFactory;
 
 import javax.jcr.Repository;
 import javax.jcr.query.Query;
@@ -76,9 +73,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
                         new ElasticMetricHandler(StatisticsProvider.NOOP));
                 ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
                         new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-                Feature separateFullTextSearchESFieldFeature =
-                        TestFeatureToggleFactory.newFeature(ElasticIndexProviderService.FT_SEPARATE_FT_ES_FIELD, true);
-                ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, separateFullTextSearchESFieldFeature);
+                ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
                 oak.with(editorProvider)
                         .with(indexProvider)
                         .with(indexProvider)
