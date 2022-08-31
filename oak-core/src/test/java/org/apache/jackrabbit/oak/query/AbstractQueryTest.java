@@ -16,7 +16,28 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import javax.jcr.PropertyType;
+
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -41,25 +62,6 @@ import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
-
-import javax.jcr.PropertyType;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.RandomAccessFile;
-import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
@@ -139,9 +141,8 @@ public abstract class AbstractQueryTest {
 
         InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
         ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
-        PrintWriter w = new PrintWriter(new OutputStreamWriter(
-                new FileOutputStream(output)));
-        HashSet<String> knownQueries = new HashSet<String>();
+        PrintWriter w = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output)));
+        HashSet<String> knownQueries = new HashSet<>();
         boolean errors = false;
         try {
             while (true) {
@@ -268,7 +269,7 @@ public abstract class AbstractQueryTest {
 
     protected List<String> executeQuery(String query, String language, boolean pathsOnly, boolean skipSort) {
         long time = System.currentTimeMillis();
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         try {
             Result result = executeQuery(query, language, NO_BINDINGS);
             if (query.startsWith("explain ")) {
@@ -600,7 +601,7 @@ public abstract class AbstractQueryTest {
      * A line reader that supports multi-line statements, where lines that start
      * with a space belong to the previous line.
      */
-    class ContinueLineReader {
+    static class ContinueLineReader {
 
         private final LineNumberReader reader;
 
