@@ -796,16 +796,9 @@ public class ElasticRequestHandler {
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
                 .type(TextQueryType.CrossFields);
-
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                // TODO: improve this
-                List<PropertyDefinition> property = elasticIndexDefinition.getPropertiesByName().get(pd.name);
-                if (property.get(0).getType() != PropertyType.STRING) {
-                    qsqBuilder.fields(pd.name + ".text");
-                } else {
-                    qsqBuilder.fields(pd.name);
-                }
+                qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(pd.name));
                 qsqBuilder.boost(pd.boost);
             }
         }

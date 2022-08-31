@@ -212,7 +212,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
             // this can happen for properties that were not explicitly defined (eg: created with a regex)
             return propertyName + ".keyword";
         }
-        // Remove this after finishing the migration of the fields in ElasticIndexHelper
         String field = propertyName;
         // it's ok to look at the first property since we are sure they all have the same type
         int type = propertyDefinitions.get(0).getType();
