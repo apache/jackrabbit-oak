@@ -194,6 +194,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final MongoDBConnection connection;
     private final MongoDBConnection clusterNodesConnection;
+    private final Map<String, String> mongoStorageOptions = new HashMap<>();
 
     private final NodeDocumentCache nodesCache;
 
@@ -243,7 +244,7 @@ public class MongoDocumentStore implements DocumentStore {
      * How many times should be the bulk update request retries in case of
      * a conflict.
      * <p>
-     * Default is 0 (no retries).
+     * Default is 0 (no retries).≠≠
      */
     private int bulkRetries =
             Integer.getInteger("oak.mongo.bulkRetries", 0);
@@ -328,6 +329,7 @@ public class MongoDocumentStore implements DocumentStore {
         clusterNodes = this.clusterNodesConnection.getCollection(Collection.CLUSTER_NODES.toString());
         settings = this.connection.getCollection(Collection.SETTINGS.toString());
         journal = this.connection.getCollection(Collection.JOURNAL.toString());
+        initializeMongoStorageOptions(builder);
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
@@ -369,6 +371,13 @@ public class MongoDocumentStore implements DocumentStore {
                 builder.getLeaseSocketTimeout(),
                 status.isClientSessionSupported(), useClientSession,
                 db.getWriteConcern(), status.getServerDetails(), throttlingEnabled);
+    }
+
+    // constructs storage options from config
+    private void initializeMongoStorageOptions(MongoDocumentNodeStoreBuilderBase<?> builder) {
+        if (builder.getCollectionCompressionType() != null) {
+            this.mongoStorageOptions.put(MongoDBConfig.COLLECTION_COMPRESSION_TYPE, builder.getCollectionCompressionType());
+        }
     }
 
     @NotNull
@@ -449,11 +458,11 @@ public class MongoDocumentStore implements DocumentStore {
         CreateCollectionOptions options = new CreateCollectionOptions();
 
         if (mongoStatus.isVersion(4, 2)) {
-            options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions());
+            options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions(mongoStorageOptions));
             if (!db.listCollectionNames()
-                    .into(new ArrayList<String>()).contains(collectionName)) {
+                    .into(new ArrayList<>()).contains(collectionName)) {
                 db.createCollection(collectionName, options);
-                LOG.info("Creating Collection {}, with document compression", collectionName);
+                LOG.info("Creating Collection {}, by applying collection storage options", collectionName);
             }
         }
     }

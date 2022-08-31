@@ -276,4 +276,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.throttlingEnabled'")
     boolean throttlingEnabled() default DEFAULT_THROTTLING_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Compression",
+            description = "Select compressor type for collections. 'Snappy' is the default supported compression.")
+    String collectionCompressionType() default "snappy";
 }
