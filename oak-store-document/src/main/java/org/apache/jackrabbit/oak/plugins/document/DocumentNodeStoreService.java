@@ -53,7 +53,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
@@ -285,7 +285,7 @@ public class DocumentNodeStoreService {
             String uri = config.mongouri();
             String db = config.db();
 
-            MongoClientURI mongoURI = new MongoClientURI(uri);
+            ConnectionString mongoURI = new ConnectionString(uri);
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
             String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
@@ -296,7 +296,7 @@ public class DocumentNodeStoreService {
                                 "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
                         journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs());
-                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI));
             }
 
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();

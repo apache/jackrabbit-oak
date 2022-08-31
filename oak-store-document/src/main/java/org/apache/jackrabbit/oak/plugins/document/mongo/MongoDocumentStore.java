@@ -46,10 +46,9 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.mongodb.ConnectionString;
 import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -95,6 +94,7 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -1923,15 +1923,15 @@ public class MongoDocumentStore implements DocumentStore {
             if(!readWriteMode.startsWith("mongodb://")){
                 rwModeUri = String.format("mongodb://localhost/?%s", readWriteMode);
             }
-            MongoClientURI uri = new MongoClientURI(rwModeUri);
-            ReadPreference readPref = uri.getOptions().getReadPreference();
+            ConnectionString uri = new ConnectionString(rwModeUri);
+            ReadPreference readPref = uri.getReadPreference();
 
             if (!readPref.equals(nodes.getReadPreference())) {
                 nodes = nodes.withReadPreference(readPref);
                 LOG.info("Using ReadPreference {} ", readPref);
             }
 
-            WriteConcern writeConcern = uri.getOptions().getWriteConcern();
+            WriteConcern writeConcern = uri.getWriteConcern();
             if (!writeConcern.equals(nodes.getWriteConcern())) {
                 nodes = nodes.withWriteConcern(writeConcern);
                 LOG.info("Using WriteConcern " + writeConcern);

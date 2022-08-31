@@ -21,14 +21,15 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -51,7 +52,7 @@ public class MongoConnection {
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
     private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
-    private final MongoClientURI mongoURI;
+    private final ConnectionString mongoURI;
     private final MongoClient mongo;
 
     /**
@@ -73,10 +74,12 @@ public class MongoConnection {
      * @param builder the client option defaults.
      * @throws MongoException if there are failures
      */
-    public MongoConnection(String uri, MongoClientOptions.Builder builder)
+    public MongoConnection(String uri, MongoClientSettings.Builder builder)
             throws MongoException {
-        mongoURI = new MongoClientURI(uri, builder);
-        mongo = new MongoClient(mongoURI);
+        mongoURI = new ConnectionString(uri);
+        // Local copy of the builder to avoid modifying it inside this method
+        MongoClientSettings.Builder builderCopy = MongoClientSettings.builder(builder.build());
+        mongo = MongoClients.create(builderCopy.applyConnectionString(mongoURI).build());
     }
 
     /**
@@ -99,7 +102,7 @@ public class MongoConnection {
      * @param client the already connected client.
      */
     public MongoConnection(String uri, MongoClient client) {
-        mongoURI = new MongoClientURI(uri, MongoConnection.getDefaultBuilder());
+        mongoURI = new ConnectionString(uri);
         mongo = client;
     }
 
@@ -150,23 +153,41 @@ public class MongoConnection {
      *
      * @return builder with default options set
      */
-    public static MongoClientOptions.Builder getDefaultBuilder() {
-        return new MongoClientOptions.Builder()
+    public static MongoClientSettings.Builder getDefaultBuilder() {
+        return MongoClientSettings.builder()
                 .applicationName("Oak DocumentMK")
-                .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
-                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .addClusterListener(new MongoClusterListener());
+                .applyToConnectionPoolSettings(builder -> {
+                    builder.maxWaitTime(DEFAULT_MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
+                })
+                .applyToServerSettings(builder -> {
+                    builder.heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS, TimeUnit.MILLISECONDS);
+                })
+                .applyToClusterSettings(builder -> {
+                    builder.addClusterListener(new MongoClusterListener());
+                });
     }
 
-    public static String toString(MongoClientOptions opts) {
+    public static String toString(MongoClientSettings opts) {
         return Objects.toStringHelper(opts)
-                .add("connectionsPerHost", opts.getConnectionsPerHost())
-                .add("connectTimeout", opts.getConnectTimeout())
-                .add("socketTimeout", opts.getSocketTimeout())
-                .add("maxWaitTime", opts.getMaxWaitTime())
-                .add("heartbeatFrequency", opts.getHeartbeatFrequency())
+                .add("connectionsPerHost", opts.getConnectionPoolSettings().getMaxSize())
+                .add("connectTimeout", opts.getSocketSettings().getConnectTimeout(TimeUnit.MILLISECONDS))
+                .add("socketTimeout", opts.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS))
+                .add("maxWaitTime", opts.getConnectionPoolSettings().getMaxWaitTime(TimeUnit.MILLISECONDS))
+                .add("heartbeatFrequency", opts.getServerSettings().getHeartbeatFrequency(TimeUnit.MILLISECONDS))
                 .add("readPreference", opts.getReadPreference().getName())
                 .add("writeConcern", opts.getWriteConcern())
+                .toString();
+    }
+
+    public static String toString(ConnectionString connectionString) {
+        return Objects.toStringHelper(connectionString)
+                .add("connectionsPerHost", connectionString.getMaxConnecting())
+                .add("connectTimeout", connectionString.getConnectTimeout())
+                .add("socketTimeout", connectionString.getSocketTimeout())
+                .add("maxWaitTime", connectionString.getMaxWaitTime())
+                .add("heartbeatFrequency", connectionString.getHeartbeatFrequency())
+                .add("readPreference", connectionString.getReadPreference())
+                .add("writeConcern", connectionString.getWriteConcern())
                 .toString();
     }
 
@@ -177,11 +198,8 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasWriteConcern(@NotNull String uri) {
-        MongoClientOptions.Builder builder = MongoClientOptions.builder();
-        builder.writeConcern(WC_UNKNOWN);
-        WriteConcern wc = new MongoClientURI(checkNotNull(uri), builder)
-                .getOptions().getWriteConcern();
-        return !WC_UNKNOWN.equals(wc);
+        WriteConcern wc = new ConnectionString(checkNotNull(uri)).getWriteConcern();
+        return wc != null && !WC_UNKNOWN.equals(wc);
     }
 
     /**
@@ -191,9 +209,8 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasReadConcern(@NotNull String uri) {
-        ReadConcern rc = new MongoClientURI(checkNotNull(uri))
-                .getOptions().getReadConcern();
-        return readConcernLevel(rc) != null;
+        ReadConcern rc = new ConnectionString(checkNotNull(uri)).getReadConcern();
+        return rc != null && readConcernLevel(rc) != null;
     }
 
     /**
@@ -356,7 +373,7 @@ public class MongoConnection {
     }
 
     private static MongoClusterListener getOakClusterListener(@NotNull MongoClient client) {
-        for (ClusterListener clusterListener : client.getMongoClientOptions().getClusterListeners()) {
+        for (ClusterListener clusterListener : client.getClusterDescription().getClusterSettings().getClusterListeners()) {
             if (clusterListener instanceof MongoClusterListener) {
                 MongoClusterListener replClusterListener = (MongoClusterListener) clusterListener;
                 return replClusterListener;

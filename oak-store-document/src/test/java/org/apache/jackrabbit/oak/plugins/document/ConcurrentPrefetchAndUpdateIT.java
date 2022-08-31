@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Lists;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;

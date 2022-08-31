@@ -65,7 +65,7 @@ import org.jetbrains.annotations.Nullable;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -220,13 +220,13 @@ class Utils {
         }
         DocumentNodeStoreBuilder<?> builder;
         if (src.startsWith(MongoConnection.MONGODB_PREFIX)) {
-            MongoClientURI uri = new MongoClientURI(src);
+            ConnectionString uri = new ConnectionString(src);
             if (uri.getDatabase() == null) {
                 System.err.println("Database missing in MongoDB URI: "
-                        + uri.getURI());
+                        + uri.getConnectionString());
                 System.exit(1);
             }
-            MongoConnection mongo = new MongoConnection(uri.getURI());
+            MongoConnection mongo = new MongoConnection(uri.getConnectionString());
             closer.register(asCloseable(mongo));
             builder = newMongoDocumentNodeStoreBuilder().setMongoDB(
                     mongo.getMongoClient(), mongo.getDBName());

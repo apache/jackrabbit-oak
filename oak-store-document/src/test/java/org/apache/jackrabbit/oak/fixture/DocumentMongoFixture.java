@@ -33,8 +33,9 @@ import org.junit.AssumptionViolatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoClient;
 
 public class DocumentMongoFixture extends NodeStoreFixture {
 
@@ -79,11 +80,14 @@ public class DocumentMongoFixture extends NodeStoreFixture {
     }
 
     protected MongoClient createClient() {
-        return new MongoClient(new MongoClientURI(uri, MongoConnection.getDefaultBuilder()));
+        return MongoClients.create(MongoConnection.getDefaultBuilder()
+                .applyConnectionString(
+                        new ConnectionString(uri)
+                ).build());
     }
 
     protected String getDBName(String suffix) {
-        String dbName = new MongoClientURI(uri).getDatabase();
+        String dbName = new ConnectionString(uri).getDatabase();
         return dbName + "-" + suffix;
     }
 
@@ -106,7 +110,7 @@ public class DocumentMongoFixture extends NodeStoreFixture {
         String suffix = suffixes.remove(nodeStore);
         if (suffix != null) {
             try (MongoClient client = createClient()) {
-                client.dropDatabase(getDBName(suffix));
+                client.getDatabase(getDBName(suffix)).drop();
             } catch (Exception e) {
                 log.error("Can't close Mongo", e);
             }

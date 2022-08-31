@@ -22,13 +22,13 @@ import java.util.List;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DuplicateKeyException;
-import com.mongodb.MongoClient;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcernException;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;

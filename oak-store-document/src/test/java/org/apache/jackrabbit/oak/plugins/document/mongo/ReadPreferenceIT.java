@@ -116,10 +116,11 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         mongoDS.setReadWriteMode(rwMode(ReadPreference.primary()));
         assertEquals(ReadPreference.primary(), mongoDS.getConfiguredReadPreference(NODES));
 
-        mongoDS.setReadWriteMode("readPreference=secondary&w=2&safe=true&j=true");
+        // Command failed with error 2 (BadValue): 'cannot use 'w' > 1 when a host is not replicated'
+        mongoDS.setReadWriteMode("readPreference=secondary&w=1&safe=true&j=true");
 
         assertEquals(ReadPreference.secondary(), mongoDS.getDBCollection(NODES).getReadPreference());
-        assertEquals(2, mongoDS.getDBCollection(NODES).getWriteConcern().getW());
+        assertEquals(1, mongoDS.getDBCollection(NODES).getWriteConcern().getW());
         Boolean journal = mongoDS.getDBCollection(NODES).getWriteConcern().getJournal();
         assertNotNull(journal);
         assertTrue(journal);

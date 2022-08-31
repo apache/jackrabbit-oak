@@ -162,7 +162,7 @@
     <!-- Optional dependencies for different persistence backends -->
     <dependency>
       <groupId>org.mongodb</groupId>
-      <artifactId>mongodb-driver-legacy</artifactId>
+      <artifactId>mongodb-driver-sync</artifactId>
       <optional>true</optional>
     </dependency>
 

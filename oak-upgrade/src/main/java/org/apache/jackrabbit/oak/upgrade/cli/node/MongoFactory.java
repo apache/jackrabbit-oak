@@ -23,8 +23,9 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 import java.io.IOException;
 
@@ -32,14 +33,14 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNode
 
 public class MongoFactory extends DocumentFactory {
 
-    private final MongoClientURI uri;
+    private final ConnectionString uri;
 
     private final int cacheSize;
 
     private final boolean readOnly;
 
     public MongoFactory(String repoDesc, int cacheSize, boolean readOnly) {
-        this.uri = new MongoClientURI(repoDesc);
+        this.uri = new ConnectionString(repoDesc);
         this.cacheSize = cacheSize;
         this.readOnly = readOnly;
     }
@@ -65,7 +66,7 @@ public class MongoFactory extends DocumentFactory {
     }
 
     private MongoClient createClient(Closer closer) {
-        MongoClient client = new MongoClient(uri);
+        MongoClient client = MongoClients.create(uri);
         closer.register(client::close);
         return client;
     }

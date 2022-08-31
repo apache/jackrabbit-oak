@@ -26,8 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 public class MongoNodeStoreContainer implements NodeStoreContainer {
 
@@ -72,8 +73,8 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     private static boolean testMongoAvailability() {
         MongoClient mongo = null;
         try {
-            MongoClientURI uri = new MongoClientURI(MONGO_URI + "?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000");
-            mongo = new MongoClient(uri);
+            ConnectionString uri = new ConnectionString(MONGO_URI + "?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000");
+            mongo = MongoClients.create(uri);
             mongo.listDatabaseNames().iterator();
             return true;
         } catch (Exception e) {
@@ -102,9 +103,9 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        MongoClientURI uri = new MongoClientURI(mongoUri);
-        MongoClient client = new MongoClient(uri);
-        client.dropDatabase(uri.getDatabase());
+        ConnectionString uri = new ConnectionString(mongoUri);
+        MongoClient client = MongoClients.create(uri);
+        client.getDatabase(uri.getDatabase()).drop();
         blob.clean();
     }
 

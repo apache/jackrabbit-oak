@@ -100,7 +100,7 @@
     </dependency>
     <dependency>
       <groupId>org.mongodb</groupId>
-      <artifactId>mongodb-driver-legacy</artifactId>
+      <artifactId>mongodb-driver-sync</artifactId>
       <version>${mongo.driver.version}</version>
       <optional>true</optional>
     </dependency>

@@ -43,7 +43,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
@@ -108,7 +108,7 @@ abstract class CompositeStoreFixture extends OakFixture {
                                                boolean throttlingEnabled) {
         return new CompositeStoreFixture(name) {
 
-            private String database = new MongoClientURI(uri).getDatabase();
+            private String database = new ConnectionString(uri).getDatabase();
             private DocumentNodeStore ns;
 
             @Override

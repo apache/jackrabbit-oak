@@ -52,8 +52,9 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -188,8 +189,8 @@ public class DataStoreCheckCommand implements Command {
             if (options.has(store)) {
                 String source = options.valueOf(store);
                 if (source.startsWith(MongoConnection.MONGODB_PREFIX)) {
-                    MongoClientURI uri = new MongoClientURI(source);
-                    MongoClient client = new MongoClient(uri);
+                    ConnectionString uri = new ConnectionString(source);
+                    MongoClient client = MongoClients.create(uri);
                     DocumentNodeStore docNodeStore =
                         newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
                     closer.register(Utils.asCloseable(docNodeStore));

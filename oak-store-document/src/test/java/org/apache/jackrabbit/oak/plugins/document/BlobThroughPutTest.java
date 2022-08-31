@@ -30,9 +30,10 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -75,8 +76,8 @@ public class BlobThroughPutTest {
     @Ignore
     @Test
     public void performBenchMark() throws InterruptedException {
-        MongoClient local = new MongoClient(new MongoClientURI(localServer));
-        MongoClient remote = new MongoClient(new MongoClientURI(remoteServer));
+        MongoClient local = MongoClients.create(new ConnectionString(localServer));
+        MongoClient remote = MongoClients.create(new ConnectionString(remoteServer));
 
         run(local, false, false);
         run(local, true, false);
@@ -89,7 +90,7 @@ public class BlobThroughPutTest {
     @Ignore
     @Test
     public void performBenchMark_WriteConcern() throws InterruptedException {
-        MongoClient mongo = new MongoClient(new MongoClientURI(remoteServer));
+        MongoClient mongo = MongoClients.create(new ConnectionString(remoteServer));
         final MongoDatabase db = mongo.getDatabase(TEST_DB1);
         final MongoCollection<BasicDBObject> nodes = db.getCollection("nodes", BasicDBObject.class);
         final MongoCollection<BasicDBObject> blobs = db.getCollection("blobs", BasicDBObject.class);

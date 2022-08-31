@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.ReadConcern;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ClusterSettings;
 import com.mongodb.event.ClusterListener;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Test;
@@ -116,9 +117,11 @@ public class MongoConnectionTest {
         listenerList.add(mockListener);
 
         MongoClient client = mock(MongoClient.class);
-        MongoClientOptions options = mock(MongoClientOptions.class);
-        when(client.getMongoClientOptions()).thenReturn(options);
-        when(options.getClusterListeners()).thenReturn(listenerList);
+        ClusterDescription clusterDescription = mock(ClusterDescription.class);
+        ClusterSettings clusterSettings = mock(ClusterSettings.class);
+        when(client.getClusterDescription()).thenReturn(clusterDescription);
+        when(client.getClusterDescription().getClusterSettings()).thenReturn(clusterSettings);
+        when(client.getClusterDescription().getClusterSettings().getClusterListeners()).thenReturn(listenerList);
         return client;
     }
 }
