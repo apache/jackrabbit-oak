@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -52,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -879,6 +881,17 @@ public class Utils {
             min = Math.min(r.getTimestamp(), min);
         }
         return min;
+    }
+
+    /**
+     * Check whether throttling is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if throttling is enabled else false
+     */
+    public static boolean isThrottlingEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreThrottlingFeature = builder.getDocStoreThrottlingFeature();
+        return builder.isThrottlingEnabled() || (docStoreThrottlingFeature != null && docStoreThrottlingFeature.isEnabled());
     }
 
     /**

@@ -36,7 +36,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.Objects;
 import java.util.Properties;
+
+import static org.osgi.framework.Constants.SERVICE_PID;
 
 @Component(
     configurationPolicy = ConfigurationPolicy.REQUIRE,
@@ -55,7 +58,12 @@ public class AzureSegmentStoreService {
     public void activate(ComponentContext context, Configuration config) throws IOException {
         AzurePersistence persistence = createAzurePersistenceFrom(config);
         registration = context.getBundleContext()
-            .registerService(SegmentNodeStorePersistence.class.getName(), persistence, new Properties());
+            .registerService(SegmentNodeStorePersistence.class.getName(), persistence, new Properties() {{
+                put(SERVICE_PID, String.format("%s(%s, %s)", AzurePersistence.class.getName(), config.accountName(), config.rootPath()));
+                if (!Objects.equals(config.role(), "")) {
+                    put("role", config.role());
+                }
+            }});
     }
 
     @Deactivate
