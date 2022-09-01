@@ -162,6 +162,11 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return thisBuilder();
     }
 
+    public T setCollectionCompressionType(String compressionType) {
+        this.collectionCompressionType = compressionType;
+        return thisBuilder();
+    }
+
     @Override
     public VersionGCSupport createVersionGCSupport() {
         DocumentStore store = getDocumentStore();
@@ -192,14 +197,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         }
     }
 
-    public T setCollectionCompressionType(String type) {
-        //final DocumentStore store = getDocumentStore();
-       // if (store instanceof MongoDocumentStore) {
-            this.collectionCompressionType = type;
-       // }
-
-        return thisBuilder();
-    }
 
     public String getCollectionCompressionType(){
         return collectionCompressionType;

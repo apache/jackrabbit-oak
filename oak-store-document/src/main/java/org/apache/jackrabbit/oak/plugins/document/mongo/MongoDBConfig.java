@@ -25,10 +25,8 @@ import java.util.Map;
 
 public class MongoDBConfig {
     public static final String COLLECTION_COMPRESSION_TYPE = "collectionCompressionType";
-
-    private static final String STORAGE_ENGINE = "wiredTiger";
-
-    private static final String CONFIG = "configString";
+    public static final String STORAGE_ENGINE = "wiredTiger";
+    public static final String STORAGE_CONFIG = "configString";
 
     enum CollectionCompressor {
         SNAPPY("snappy"), ZLIB("zlib"), ZSTD("zstd");
@@ -70,7 +68,7 @@ public class MongoDBConfig {
         if (CollectionCompressor.isSupportedCompressor(compressionType)) {
             JsonObject root = new JsonObject();
             JsonObject configString = new JsonObject();
-            configString.getProperties().put(CONFIG,
+            configString.getProperties().put(STORAGE_CONFIG,
                     getCompressionConfig(mongoStorageOptions));
             root.getChildren().put(STORAGE_ENGINE, configString);
 

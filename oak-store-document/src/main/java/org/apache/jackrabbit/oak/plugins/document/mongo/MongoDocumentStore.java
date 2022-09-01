@@ -462,7 +462,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (!db.listCollectionNames()
                     .into(new ArrayList<>()).contains(collectionName)) {
                 db.createCollection(collectionName, options);
-                LOG.info("Creating Collection {}, by applying collection storage options", collectionName);
+                LOG.info("Creating Collection {}, with collection storage options", collectionName);
             }
         }
     }
