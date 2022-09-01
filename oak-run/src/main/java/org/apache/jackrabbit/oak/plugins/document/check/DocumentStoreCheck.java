@@ -49,8 +49,6 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocume
  */
 public class DocumentStoreCheck {
 
-    private static final int NUM_THREADS = Integer.getInteger("numThreads", Runtime.getRuntime().availableProcessors());
-
     private final DocumentNodeStore ns;
 
     private final DocumentStore store;
@@ -63,6 +61,8 @@ public class DocumentStoreCheck {
 
     private final boolean summary;
 
+    private final int numThreads;
+
     private final String output;
 
     private final boolean orphan;
@@ -73,6 +73,7 @@ public class DocumentStoreCheck {
                                boolean progress,
                                boolean silent,
                                boolean summary,
+                               int numThreads,
                                String output,
                                boolean orphan) {
         this.ns = ns;
@@ -81,6 +82,7 @@ public class DocumentStoreCheck {
         this.progress = progress;
         this.silent = silent;
         this.summary = summary;
+        this.numThreads = numThreads;
         this.output = output;
         this.orphan = orphan;
     }
@@ -122,7 +124,7 @@ public class DocumentStoreCheck {
     private DocumentProcessor createDocumentProcessor() {
         List<DocumentProcessor> processors = new ArrayList<>();
         if (summary) {
-            processors.add(new Summary(NUM_THREADS));
+            processors.add(new Summary(numThreads));
         }
         if (progress) {
             DocumentProcessor p;
@@ -136,7 +138,7 @@ public class DocumentStoreCheck {
             processors.add(p);
         }
         if (orphan) {
-            OrphanedNodeCheck onc = new OrphanedNodeCheck(ns, ns.getHeadRevision(), NUM_THREADS);
+            OrphanedNodeCheck onc = new OrphanedNodeCheck(ns, ns.getHeadRevision(), numThreads);
             closer.register(onc);
             processors.add(onc);
         }
@@ -165,6 +167,8 @@ public class DocumentStoreCheck {
 
         private boolean summary;
 
+        private int numThreads = Runtime.getRuntime().availableProcessors();
+
         private String output;
 
         private boolean orphan;
@@ -192,6 +196,11 @@ public class DocumentStoreCheck {
             return this;
         }
 
+        public Builder withNumThreads(int numThreads) {
+            this.numThreads = numThreads;
+            return this;
+        }
+
         public Builder withOutput(String outputFilePath) {
             this.output = outputFilePath;
             return this;
@@ -203,7 +212,7 @@ public class DocumentStoreCheck {
         }
 
         public DocumentStoreCheck build() {
-            return new DocumentStoreCheck(ns, store, closer, progress, silent, summary, output, orphan);
+            return new DocumentStoreCheck(ns, store, closer, progress, silent, summary, numThreads, output, orphan);
         }
     }
 

@@ -66,6 +66,7 @@ class DocumentStoreCheckCommand implements Command {
                     .withProgress(options.withProgress())
                     .isSilent(options.isSilent())
                     .withSummary(options.withSummary())
+                    .withNumThreads(options.getNumThreads())
                     .build().run();
 
         } catch (Throwable e) {
@@ -87,6 +88,8 @@ class DocumentStoreCheckCommand implements Command {
 
         final OptionSpec<Boolean> orphan;
 
+        final OptionSpec<Integer> numThreads;
+
         public CheckOptions(String usage) {
             super(usage);
 
@@ -99,6 +102,8 @@ class DocumentStoreCheckCommand implements Command {
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             orphan = parser.accepts("orphan", "Check for orphaned nodes")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            numThreads = parser.accepts("numThreads", "Use this number of threads to check consistency")
+                    .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
         }
 
         @Override
@@ -125,6 +130,10 @@ class DocumentStoreCheckCommand implements Command {
 
         public boolean withOrphan() {
             return orphan.value(options);
+        }
+
+        public int getNumThreads() {
+            return numThreads.value(options);
         }
 
         boolean isHelp() {
