@@ -381,7 +381,7 @@ public class AzureArchiveManagerTest {
         rwFileStore.close();
 
         assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
-        // after creating a read-only FS, the recovery procedure has happened started since there is another running Oak process
+        // after creating a read-only FS, the recovery procedure has happened since there is another running Oak process
         // and the last archive is not closed
         assertTrue(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
     }
