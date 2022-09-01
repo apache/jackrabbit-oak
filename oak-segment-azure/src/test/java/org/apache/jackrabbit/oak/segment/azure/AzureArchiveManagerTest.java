@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -42,7 +43,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,6 +72,9 @@ public class AzureArchiveManagerTest {
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
     private CloudBlobContainer container;
+
+    @Rule
+    public final TestRule restoreSystemProperties = new RestoreSystemProperties();
 
     @Before
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
@@ -320,5 +327,62 @@ public class AzureArchiveManagerTest {
 
         // SegmentNotFoundException should be thrown here
         fileStore.readSegment(new SegmentId(fileStore, u.getMostSignificantBits(), u.getLeastSignificantBits()));
+    }
+
+    @Test
+    public void testReadOnlyWithoutRecovery() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
+
+        AzurePersistence rwPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+        NodeBuilder builder = segmentNodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        rwFileStore.flush();
+
+        assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+        assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
+
+        // set the system property so that the check if archive dir is closed is skipped
+        System.setProperty("segment.azure.skipArchiveClosedCheck", "true");
+
+        // create read-only FS
+        AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly();
+
+        roFileStore.close();
+        rwFileStore.close();
+
+        assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+        // after creating a read-only FS, the recovery procedure should not be started since there is another running Oak process
+        assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
+
+    }
+
+    @Test
+    public void testReadOnlyWithRecovery() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
+
+        AzurePersistence rwPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+        NodeBuilder builder = segmentNodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        rwFileStore.flush();
+
+        assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+        assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
+
+        // create read-only FS
+        AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly();
+
+        roFileStore.close();
+        rwFileStore.close();
+
+        assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+        // after creating a read-only FS, the recovery procedure has happened started since there is another running Oak process
+        // and the last archive is not closed
+        assertTrue(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
     }
 }

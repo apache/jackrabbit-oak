@@ -56,6 +56,8 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private static final Logger log = LoggerFactory.getLogger(AzureSegmentArchiveReader.class);
 
+    private boolean skipArchiveClosedCheck = Boolean.getBoolean("segment.azure.skipArchiveClosedCheck");
+
     protected final CloudBlobDirectory cloudBlobDirectory;
 
     protected final IOMonitor ioMonitor;
@@ -110,7 +112,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     public SegmentArchiveReader open(String archiveName) throws IOException {
         try {
             CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
-            if (!archiveDirectory.getBlockBlobReference("closed").exists()) {
+             if (!skipArchiveClosedCheck && !archiveDirectory.getBlockBlobReference("closed").exists()) {
                 throw new IOException("The archive " + archiveName + " hasn't been closed correctly.");
             }
             return new AzureSegmentArchiveReader(archiveDirectory, ioMonitor);
