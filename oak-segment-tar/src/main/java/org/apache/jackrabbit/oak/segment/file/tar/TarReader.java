@@ -59,7 +59,7 @@ public class TarReader implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
 
     static TarReader open(String file, SegmentArchiveManager archiveManager) throws IOException {
-        TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager, false);
         if (reader != null) {
             return reader;
         } else {
@@ -88,7 +88,7 @@ public class TarReader implements Closeable {
         List<String> list = newArrayList(sorted.values());
         Collections.reverse(list);
 
-        TarReader reader = openFirstFileWithValidIndex(list, archiveManager);
+        TarReader reader = openFirstFileWithValidIndex(list, archiveManager, false);
         if (reader != null) {
             return reader;
         }
@@ -104,7 +104,7 @@ public class TarReader implements Closeable {
         String file = sorted.values().iterator().next();
         generateTarFile(entries, file, recovery, archiveManager);
 
-        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
+        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager, false);
         if (reader != null) {
             return reader;
         } else {
@@ -116,10 +116,17 @@ public class TarReader implements Closeable {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
         String file = files.get(Collections.max(files.keySet()));
-        TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager, false);
         if (reader != null) {
             return reader;
         }
+
+        log.warn("Could not find a valid tar index in {}, trying to force-open.", file);
+        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager, true);
+        if (reader != null) {
+            return reader;
+        }
+
         log.warn("Could not find a valid tar index in {}, recovering read-only", file);
         // collecting the entries (without touching the original file) and
         // writing them into an artificial tar file '.ro.bak'
@@ -127,7 +134,7 @@ public class TarReader implements Closeable {
         collectFileEntries(file, entries, false, archiveManager);
         file = findAvailGen(file, ".ro.bak", archiveManager);
         generateTarFile(entries, file, recovery, archiveManager);
-        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
+        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager, false);
         if (reader != null) {
             return reader;
         }
@@ -226,10 +233,17 @@ public class TarReader implements Closeable {
         return backup;
     }
 
-    private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager) {
+    private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager, boolean forceOpen) {
         for (String name : archives) {
             try {
-                SegmentArchiveReader reader = archiveManager.open(name);
+                SegmentArchiveReader reader = null;
+
+                if (forceOpen) {
+                    reader = archiveManager.forceOpen(name);
+                } else {
+                    reader = archiveManager.open(name);
+                }
+
                 if (reader != null) {
                     for (String other : archives) {
                         if (other != name) {
@@ -560,7 +574,7 @@ public class TarReader implements Closeable {
 
         writer.close();
 
-        TarReader reader = openFirstFileWithValidIndex(singletonList(newFile), archiveManager);
+        TarReader reader = openFirstFileWithValidIndex(singletonList(newFile), archiveManager, false);
         if (reader != null) {
             reclaimed.addAll(cleaned);
             return reader;
