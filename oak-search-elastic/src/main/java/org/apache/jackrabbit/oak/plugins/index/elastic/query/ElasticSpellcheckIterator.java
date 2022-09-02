@@ -101,18 +101,22 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
 
     private void loadSuggestions() {
         try {
+            // spell check requires 2 calls to elastic
             final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
+            // 1. loads the possible top 10 corrections for the input text
             MsearchRequest.Builder multiSearch = suggestions().map(s -> {
                         suggestionTexts.offer(s);
                         return requestHandler.suggestMatchQuery(s);
                     })
                     .map(query -> RequestItem.of(rib ->
-                            rib.header(hb -> hb.index(String.join(",", indexNode.getDefinition().getIndexAlias())))
+                            rib.header(hb -> hb.index(indexNode.getDefinition().getIndexAlias()))
                                     .body(bb -> bb.query(qb -> qb.bool(query)).size(100))))
                     .reduce(
-                            new MsearchRequest.Builder().index(String.join(",", indexNode.getDefinition().getIndexAlias())),
+                            new MsearchRequest.Builder().index(indexNode.getDefinition().getIndexAlias()),
                             MsearchRequest.Builder::searches, (ms, ms2) -> ms);
 
+            // 2. executes a multi search query with the results of the previous query. For each sub query, we then check
+            // there is at least 1 accessible result. In that case the correction is returned, otherwise it's filtered out
             if (!suggestionTexts.isEmpty()) {
                 MsearchResponse<ObjectNode> mSearchResponse = indexNode.getConnection().getClient()
                         .msearch(multiSearch.build(), ObjectNode.class);
@@ -139,10 +143,11 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
      * Migrate when resolved
      */
     private Stream<String> suggestions() throws IOException {
-        final SearchRequest searchReq = SearchRequest.of(sr -> sr
-                .index(String.join(",", indexNode.getDefinition().getIndexAlias()))
+        SearchRequest searchReq = SearchRequest.of(sr -> sr
+                .index(indexNode.getDefinition().getIndexAlias())
                 .suggest(sb -> sb.text(spellCheckQuery)
-                        .suggesters("oak:suggestion", fs -> fs.phrase(requestHandler.suggestQuery()))));
+                        .suggesters("oak:suggestion", fs -> fs.phrase(requestHandler.suggestQuery()))
+                ));
 
         String endpoint = "/" + String.join(",", searchReq.index()) + "/_search?filter_path=suggest";
         Request request = new Request("POST", endpoint);

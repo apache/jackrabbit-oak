@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
@@ -52,6 +53,7 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.PropertyType;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.core.search.Highlight;
 import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -443,7 +445,7 @@ public class ElasticRequestHandler {
         return PhraseSuggester.of(ps -> ps
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
-                .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing))
+                .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing).size(10))
                 .collate(c -> c.query(q -> q.source(ElasticIndexUtils.toString(query))))
         );
     }
@@ -573,54 +575,53 @@ public class ElasticRequestHandler {
 
         Filter filter = plan.getFilter();
         if (!filter.matchesAllTypes()) {
-            queries.add(nodeTypeConstraints(planResult.indexingRule, filter));
+            Optional<Query> nodeTypeConstraints = nodeTypeConstraints(planResult.indexingRule, filter);
+            nodeTypeConstraints.ifPresent(queries::add);
         }
 
-        String path = FulltextIndex.getPathRestriction(plan);
-        switch (filter.getPathRestriction()) {
-        case ALL_CHILDREN:
-            if (!"/".equals(path)) {
-                queries.add(newAncestorQuery(path));
-            }
-            break;
-        case DIRECT_CHILDREN:
-            queries.add(Query.of(q -> q.bool(b -> b.must(newAncestorQuery(path)).must(newDepthQuery(path, planResult)))));
-            break;
-        case EXACT:
-            // For transformed paths, we can only add path restriction if absolute path to
-            // property can be
-            // deduced
-            if (planResult.isPathTransformed()) {
-                String parentPathSegment = planResult.getParentPathSegment();
-                if (!any.test(PathUtils.elements(parentPathSegment), "*")) {
-                    queries.add(newPathQuery(path + parentPathSegment));
-                }
-            } else {
-                queries.add(newPathQuery(path));
-            }
-            break;
-        case PARENT:
-            if (PathUtils.denotesRoot(path)) {
-                // there's no parent of the root node
-                // we add a path that can not possibly occur because there
-                // is no way to say "match no documents" in Lucene
-                queries.add(newPathQuery("///"));
-            } else {
-                // For transformed paths, we can only add path restriction if absolute path to
-                // property can be
-                // deduced
-                if (planResult.isPathTransformed()) {
-                    String parentPathSegment = planResult.getParentPathSegment();
-                    if (!any.test(PathUtils.elements(parentPathSegment), "*")) {
-                        queries.add(newPathQuery(PathUtils.getParentPath(path) + parentPathSegment));
+        if (elasticIndexDefinition.evaluatePathRestrictions()) {
+            String path = FulltextIndex.getPathRestriction(plan);
+            switch (filter.getPathRestriction()) {
+                case ALL_CHILDREN:
+                    if (!"/".equals(path)) {
+                        queries.add(newAncestorQuery(path));
                     }
-                } else {
-                    queries.add(newPathQuery(PathUtils.getParentPath(path)));
-                }
+                    break;
+                case DIRECT_CHILDREN:
+                    queries.add(Query.of(q -> q.bool(b -> b.must(newAncestorQuery(path)).must(newDepthQuery(path, planResult)))));
+                    break;
+                case EXACT:
+                    // For transformed paths, we can only add path restriction if absolute path to property can be deduced
+                    if (planResult.isPathTransformed()) {
+                        String parentPathSegment = planResult.getParentPathSegment();
+                        if (!any.test(PathUtils.elements(parentPathSegment), "*")) {
+                            queries.add(newPathQuery(path + parentPathSegment));
+                        }
+                    } else {
+                        queries.add(newPathQuery(path));
+                    }
+                    break;
+                case PARENT:
+                    if (PathUtils.denotesRoot(path)) {
+                        // there's no parent of the root node
+                        // we add a path that can not possibly occur because there
+                        // is no way to say "match no documents" in Lucene
+                        queries.add(newPathQuery("///"));
+                    } else {
+                        // For transformed paths, we can only add path restriction if absolute path to property can be deduced
+                        if (planResult.isPathTransformed()) {
+                            String parentPathSegment = planResult.getParentPathSegment();
+                            if (!any.test(PathUtils.elements(parentPathSegment), "*")) {
+                                queries.add(newPathQuery(PathUtils.getParentPath(path) + parentPathSegment));
+                            }
+                        } else {
+                            queries.add(newPathQuery(PathUtils.getParentPath(path)));
+                        }
+                    }
+                    break;
+                case NO_RESTRICTION:
+                    break;
             }
-            break;
-        case NO_RESTRICTION:
-            break;
         }
 
         for (Filter.PropertyRestriction pr : filter.getPropertyRestrictions()) {
@@ -719,24 +720,25 @@ public class ElasticRequestHandler {
         return ":fulltext";
     }
 
-    private static Query nodeTypeConstraints(IndexDefinition.IndexingRule defn, Filter filter) {
-        final BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
+    private static Optional<Query> nodeTypeConstraints(IndexDefinition.IndexingRule defn, Filter filter) {
+        List<Query> queries = new ArrayList<>();
         PropertyDefinition primaryType = defn.getConfig(JCR_PRIMARYTYPE);
         // TODO OAK-2198 Add proper nodeType query support
 
         if (primaryType != null && primaryType.propertyIndex) {
             for (String type : filter.getPrimaryTypes()) {
-                bqBuilder.should(q -> q.term(t -> t.field(JCR_PRIMARYTYPE).value(FieldValue.of(type))));
+                queries.add(TermQuery.of(t -> t.field(JCR_PRIMARYTYPE).value(FieldValue.of(type)))._toQuery());
             }
         }
 
         PropertyDefinition mixinType = defn.getConfig(JCR_MIXINTYPES);
         if (mixinType != null && mixinType.propertyIndex) {
             for (String type : filter.getMixinTypes()) {
-                bqBuilder.should(q -> q.term(t -> t.field(JCR_MIXINTYPES).value(FieldValue.of(type))));
+                queries.add(TermQuery.of(t -> t.field(JCR_MIXINTYPES).value(FieldValue.of(type)))._toQuery());
             }
         }
-        return Query.of(q -> q.bool(bqBuilder.build()));
+
+        return queries.isEmpty() ? Optional.empty() : Optional.of(Query.of(qb -> qb.bool(b -> b.should(queries))));
     }
 
     private Query nodeName(Filter.PropertyRestriction pr) {

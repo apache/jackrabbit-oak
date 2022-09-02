@@ -22,7 +22,6 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.query.AbstractJcrTest;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.jcr.Node;

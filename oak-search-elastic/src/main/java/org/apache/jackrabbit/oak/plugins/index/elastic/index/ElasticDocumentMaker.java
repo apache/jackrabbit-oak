@@ -53,7 +53,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected ElasticDocument finalizeDoc(ElasticDocument doc, boolean dirty, boolean facet) {
-        // evaluate path restrictions is enabled by default in elastic. Always index ancestors
+        // Evaluate path restrictions is enabled by default in elastic. Always index ancestors.
+        // When specifically disabled, we will keep indexing it, but the field won't be used at query time
         doc.indexAncestors(path);
         return doc;
     }
