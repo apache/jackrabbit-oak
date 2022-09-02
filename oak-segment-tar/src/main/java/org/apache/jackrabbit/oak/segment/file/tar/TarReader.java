@@ -112,24 +112,32 @@ public class TarReader implements Closeable {
         }
     }
 
+    @FunctionalInterface
+    private interface OpenStrategy {
+        SegmentArchiveReader open(SegmentArchiveManager segmentArchiveManager, String archiveName) throws IOException;
+    }
+
     static TarReader openRO(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
         String file = files.get(Collections.max(files.keySet()));
-        TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
-        if (reader != null) {
-            return reader;
-        }
-        log.warn("Could not find a valid tar index in {}, recovering read-only", file);
-        // collecting the entries (without touching the original file) and
-        // writing them into an artificial tar file '.ro.bak'
-        LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
-        collectFileEntries(file, entries, false, archiveManager);
-        file = findAvailGen(file, ".ro.bak", archiveManager);
-        generateTarFile(entries, file, recovery, archiveManager);
-        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
-        if (reader != null) {
-            return reader;
+
+        OpenStrategy recoverAndOpen = (segmentArchiveManager, archiveName) -> {
+            log.info("Could not find a valid tar index in {}, recovering read-only", archiveName);
+            // collecting the entries (without touching the original file) and
+            // writing them into an artificial tar file '.ro.bak'
+            LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+            collectFileEntries(archiveName, entries, false, segmentArchiveManager);
+            String bakFile = findAvailGen(archiveName, ".ro.bak", segmentArchiveManager);
+            generateTarFile(entries, bakFile, recovery, segmentArchiveManager);
+            return segmentArchiveManager.open(bakFile);
+        };
+
+        for (OpenStrategy openStrategy : new OpenStrategy[]{SegmentArchiveManager::open, SegmentArchiveManager::forceOpen, recoverAndOpen}) {
+            TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager, openStrategy);
+            if (reader != null) {
+                return reader;
+            }
         }
         throw new IOException("Failed to open tar file " + file);
     }
@@ -227,9 +235,13 @@ public class TarReader implements Closeable {
     }
 
     private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager) {
+        return openFirstFileWithValidIndex(archives, archiveManager, SegmentArchiveManager::open);
+    }
+
+    private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager, OpenStrategy openStrategy) {
         for (String name : archives) {
             try {
-                SegmentArchiveReader reader = archiveManager.open(name);
+                SegmentArchiveReader reader = openStrategy.open(archiveManager, name);
                 if (reader != null) {
                     for (String other : archives) {
                         if (other != name) {
