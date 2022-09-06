@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -458,6 +459,18 @@ public class Utils {
      */
     public static boolean isLeafPreviousDocId(String id){
         return isPreviousDocId(id) && id.endsWith("/0");
+    }
+
+    /**
+     * To calculate total time taken (in ns)
+     *
+     * @param timeTakenNanos time in nanos
+     * @param timeToConvert time to convert into nanos
+     * @param timeUnit timeUnit of timeToConvert
+     * @return sum of timeTakenNanos & timeToConvert (after converting to ns)
+     */
+    public static long getTotalTimeTakenNanos(final long timeTakenNanos, final long timeToConvert, final TimeUnit timeUnit) {
+        return timeTakenNanos + timeUnit.toNanos(timeToConvert);
     }
 
     /**

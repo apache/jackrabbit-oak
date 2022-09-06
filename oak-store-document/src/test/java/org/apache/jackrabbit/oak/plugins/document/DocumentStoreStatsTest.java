@@ -32,10 +32,35 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.JOURNAL_CREATE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.JOURNAL_CREATE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.JOURNAL_CREATE_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.JOURNAL_CREATE_WITH_THROTTLING_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_SPLIT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_SPLIT_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_UPSERT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_UPSERT_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_UPSERT_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_WITH_THROTTLING_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_REMOVE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_REMOVE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_REMOVE_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_REMOVE_WITH_THROTTLING_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE_FAILURE_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE_WITH_THROTTLING;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE_WITH_THROTTLING_TIMER;
 import static org.junit.Assert.assertEquals;
 
 public class DocumentStoreStatsTest {
@@ -48,6 +73,10 @@ public class DocumentStoreStatsTest {
     public void shutDown(){
         statsProvider.close();
         new ExecutorCloser(executor).close();
+    }
+    @Before
+    public void startUp() {
+        stats = new DocumentStoreStats(statsProvider);
     }
 
     @Test
@@ -106,6 +135,167 @@ public class DocumentStoreStatsTest {
         stats.doneCreate(100, Collection.JOURNAL, of("a", "b"), true);
         assertEquals(2, getMeter(DocumentStoreStats.JOURNAL_CREATE).getCount());
         assertEquals(100, getTimer(DocumentStoreStats.JOURNAL_CREATE_TIMER).getSnapshot().getMax());
+
+        stats.doneCreate(100, JOURNAL, of("c", "d"), false);
+        assertEquals(4, getMeter(JOURNAL_CREATE).getCount());
+        assertEquals(100, getTimer(JOURNAL_CREATE_TIMER).getSnapshot().getMax());
+    }
+
+    @Test
+    public void doneCreate_JournalWithThrottling() {
+        stats.setThrottler(() -> 10);
+
+        stats.doneCreate(100, JOURNAL, of("a", "b"), true);
+        assertEquals(2, getMeter(JOURNAL_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(10000100, getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        stats.doneCreate(200, JOURNAL, of("c", "d"), true);
+        assertEquals(4, getMeter(JOURNAL_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(10000200, getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // journal metrics updated even if insert is not successful
+        stats.doneCreate(200, JOURNAL, of("e", "f"), false);
+        assertEquals(6, getMeter(JOURNAL_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(10000200, getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // Neither Nodes metrics nor non throttling are updated
+        assertEquals(0, getMeter(NODES_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_CREATE).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(JOURNAL_CREATE).getCount());
+        assertEquals(0, getTimer(JOURNAL_CREATE_TIMER).getSnapshot().getMax());
+    }
+
+    @Test
+    public void doneCreate_Nodes() {
+
+        // empty list of ids
+        stats.doneCreate(100, NODES, of(), true);
+        assertEquals(0, getMeter(NODES_CREATE).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
+
+        stats.doneCreate(100, NODES, of("a", "b"), true);
+        assertEquals(2, getMeter(NODES_CREATE).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(50, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
+
+        // adding an Id with previous doc
+        stats.doneCreate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true);
+        assertEquals(3, getMeter(NODES_CREATE).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(200, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
+
+        // if insert is not successful
+        stats.doneCreate(200, NODES, of("c"), false);
+        assertEquals(3, getMeter(NODES_CREATE).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(200, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
+
+        // journal metrics are not updated
+        assertEquals(0, getMeter(JOURNAL_CREATE).getCount());
+        assertEquals(0, getTimer(JOURNAL_CREATE_TIMER).getSnapshot().getMax());
+    }
+
+    @Test
+    public void doneCreate_NodesWithThrottling() {
+        stats.setThrottler(() -> 10);
+
+        // empty list of ids
+        stats.doneCreate(100, NODES, of(), true);
+        assertEquals(0, getMeter(NODES_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        stats.doneCreate(100, NODES, of("a", "b"), true);
+        assertEquals(2, getMeter(NODES_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(5000050, getTimer(NODES_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // adding an Id with previous Doc
+        stats.doneCreate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true);
+        assertEquals(3, getMeter(NODES_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(10000200, getTimer(NODES_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // insert is not successful
+        stats.doneCreate(200, NODES, of("c"), false);
+        assertEquals(3, getMeter(NODES_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(10000200, getTimer(NODES_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // neither journal metrics nor metrics without throttling are updated
+        assertEquals(0, getMeter(JOURNAL_CREATE_WITH_THROTTLING).getCount());
+        assertEquals(0, getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_CREATE).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(JOURNAL_CREATE).getCount());
+        assertEquals(0, getTimer(JOURNAL_CREATE_TIMER).getSnapshot().getMax());
+    }
+
+    @Test
+    public void doneCreateOrUpdate() {
+
+        // empty list of ids
+        stats.doneCreateOrUpdate(100, NODES, of());
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+
+        stats.doneCreateOrUpdate(100, NODES, of("a", "b"));
+        assertEquals(2, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(50, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+
+        // adding an Id with previous Doc
+        stats.doneCreateOrUpdate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
+        assertEquals(3, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(200, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+
+        // insert is done for journal collection
+        stats.doneCreateOrUpdate(200, JOURNAL, of("c"));
+        assertEquals(3, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(200, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+
+    }
+
+    @Test
+    public void doneCreateOrUpdateWithThrottling() {
+
+        stats.setThrottler(() -> 10);
+        // empty list of ids
+        stats.doneCreateOrUpdate(100, NODES, of());
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        stats.doneCreateOrUpdate(100, NODES, of("a", "b"));
+        assertEquals(2, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(5000050, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // adding an Id with previous Doc
+        stats.doneCreateOrUpdate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
+        assertEquals(3, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(10000200, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // insert is done for journal collection
+        stats.doneCreateOrUpdate(200, JOURNAL, of("c"));
+        assertEquals(3, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
+        assertEquals(10000200, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // metrics without throttling are not updated
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
     }
 
     @Test
@@ -120,6 +310,43 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
+    public void doneFindAndModifyWithThrottling() {
+        stats.setThrottler(() -> 10);
+
+        // adding wrong collection type
+        stats.doneFindAndModify(100, JOURNAL, "foo", false, true, 3);
+        assertEquals(0, getMeter(NODES_UPDATE_WITH_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // new entry is added successfully
+        stats.doneFindAndModify(100, NODES, "foo", true, true, 0);
+        assertEquals(1, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
+        assertEquals(10000100, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
+
+        // old entry is updated successfully
+        stats.doneFindAndModify(100, NODES, "foo", false, true, 0);
+        assertEquals(1, getMeter(NODES_UPDATE_WITH_THROTTLING).getCount());
+        assertEquals(10000100, getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
+
+        // entry updated after 3 retries
+        stats.doneFindAndModify(100, NODES, "foo", false, true, 3);
+        assertEquals(2, getMeter(NODES_UPDATE_WITH_THROTTLING).getCount());
+        assertEquals(10000100, getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
+
+        // non throttling metrics are not updated
+        assertEquals(0, getMeter(DocumentStoreStats.NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getTimer(DocumentStoreStats.NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(DocumentStoreStats.NODES_UPDATE).getCount());
+        assertEquals(0, getTimer(DocumentStoreStats.NODES_UPDATE_TIMER).getSnapshot().getMax());
+    }
+
+    @Test
     public void doneFindAndModifyRetryAndFailure() throws Exception{
         stats.doneFindAndModify(100, Collection.NODES, "foo", true, false, 3);
         assertEquals(1, getMeter(DocumentStoreStats.NODES_UPDATE_FAILURE).getCount());
@@ -130,12 +357,52 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
+    public void doneFindAndModifyRetryAndFailureWithThrottling() {
+        stats.setThrottler(() -> 10);
+
+        // operation has failed to update document
+        stats.doneFindAndModify(100, NODES, "foo", true, false, 3);
+        assertEquals(1, getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING).getCount());
+        assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
+
+        // operation succeeds after 2 retries
+        stats.doneFindAndModify(100, NODES, "foo", true, true, 2);
+        assertEquals(5, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
+
+        // non throttling metrics are not updated
+        assertEquals(0, getMeter(DocumentStoreStats.NODES_UPDATE_FAILURE).getCount());
+        assertEquals(0, getMeter(DocumentStoreStats.NODES_UPDATE_RETRY_COUNT).getCount());
+    }
+
+    @Test
     public void doneRemove() throws Exception {
         stats.doneRemove(100, Collection.NODES, 42);
         assertEquals(42, getMeter(DocumentStoreStats.NODES_REMOVE).getCount());
 
         stats.doneRemove(100, Collection.NODES, 17);
         assertEquals(59, getMeter(DocumentStoreStats.NODES_REMOVE).getCount());
+    }
+
+    @Test
+    public void doneRemoveWithThrottling() {
+        stats.setThrottler(() -> 10);
+
+        stats.doneRemove(100, NODES, 42);
+        assertEquals(42, getMeter(NODES_REMOVE_WITH_THROTTLING).getCount());
+        assertEquals(238097, getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        stats.doneRemove(100, NODES, 17);
+        assertEquals(59, getMeter(NODES_REMOVE_WITH_THROTTLING).getCount());
+        assertEquals(588241, getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // no document had been removed
+        stats.doneRemove(200, NODES, 0);
+        assertEquals(59, getMeter(NODES_REMOVE_WITH_THROTTLING).getCount());
+        assertEquals(588241, getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // non throttling metrics are not updated
+        assertEquals(0, getMeter(NODES_REMOVE).getCount());
+        assertEquals(0, getTimer(NODES_REMOVE_TIMER).getSnapshot().getMax());
     }
 
     @Test

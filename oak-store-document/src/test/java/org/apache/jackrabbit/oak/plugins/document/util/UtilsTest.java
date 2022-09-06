@@ -50,13 +50,17 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import static java.lang.Integer.MAX_VALUE;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getTotalTimeTakenNanos;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -182,6 +186,44 @@ public class UtilsTest {
         builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
         boolean throttlingEnabled = isThrottlingEnabled(builder);
         assertTrue("Throttling is enabled via Feature Toggle", throttlingEnabled);
+    }
+    @Test
+    public void getTimeTakenNanos() {
+        long timeTakenNanos = 123456789;
+        long timeToConvert = 1000;
+        long totalTimeTakenNanos = getTotalTimeTakenNanos(timeTakenNanos, timeToConvert, MILLISECONDS);
+        assertEquals(1123456789, totalTimeTakenNanos);
+    }
+
+    @Test
+    public void getTimeTakenNanosWithZeroMillis() {
+        long timeTakenNanos = 123456789;
+        long timeToConvert = 0;
+        long totalTimeTakenNanos = getTotalTimeTakenNanos(timeTakenNanos, timeToConvert, MILLISECONDS);
+        assertEquals(123456789, totalTimeTakenNanos);
+    }
+
+    @Test
+    public void getTimeTakenNanosWithMaxIntMillis() {
+        long timeTakenNanos = 123456789;
+        long totalTimeTakenNanos = getTotalTimeTakenNanos(timeTakenNanos, MAX_VALUE, MILLISECONDS);
+        assertEquals(2147483770456789L, totalTimeTakenNanos);
+    }
+
+    @Test
+    public void getTimeTakenNanosWithOneSecond() {
+        long timeTakenNanos = 123456789;
+        long timeToConvert = 1;
+        long totalTimeTakenNanos = getTotalTimeTakenNanos(timeTakenNanos, timeToConvert, SECONDS);
+        assertEquals(1123456789, totalTimeTakenNanos);
+    }
+
+    @Test
+    public void getTimeTakenNanosWithOneHour() {
+        long timeTakenNanos = 123456789;
+        long timeToConvert = 1;
+        long totalTimeTakenNanos = getTotalTimeTakenNanos(timeTakenNanos, timeToConvert, HOURS);
+        assertEquals(3600123456789L, totalTimeTakenNanos);
     }
 
     @Test

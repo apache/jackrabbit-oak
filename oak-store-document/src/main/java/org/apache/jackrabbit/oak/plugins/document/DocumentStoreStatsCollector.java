@@ -104,4 +104,10 @@ public interface DocumentStoreStatsCollector {
     void donePrefetch(long timeTakenNanos,
                       Collection<? extends Document> collection,
                       List<String> ids);
+
+    /**
+     * To set the {@link Throttler} object used (if throttling is enabled)
+     * @param throttler throttler used for underlying document store
+     */
+    void setThrottler(final Throttler throttler);
 }
