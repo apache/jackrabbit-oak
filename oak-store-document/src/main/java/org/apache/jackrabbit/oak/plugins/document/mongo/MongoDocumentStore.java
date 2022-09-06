@@ -244,7 +244,7 @@ public class MongoDocumentStore implements DocumentStore {
      * How many times should be the bulk update request retries in case of
      * a conflict.
      * <p>
-     * Default is 0 (no retries).≠≠
+     * Default is 0 (no retries).
      */
     private int bulkRetries =
             Integer.getInteger("oak.mongo.bulkRetries", 0);
@@ -393,7 +393,7 @@ public class MongoDocumentStore implements DocumentStore {
         return mc;
     }
 
-    private void ensureIndexes(MongoDatabase db, @NotNull MongoStatus mongoStatus) {
+    private void ensureIndexes(@NotNull MongoDatabase db, @NotNull MongoStatus mongoStatus) {
         // reading documents in the nodes collection and checking
         // existing indexes is performed against the MongoDB primary
         // this ensures the information is up-to-date and accurate
