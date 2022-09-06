@@ -103,7 +103,8 @@ public class DataStoreUtils {
             if (!Strings.isNullOrEmpty(bucket)) {
                 deleteBucket(bucket, config, new Date());
             }
-        } else if (config.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME)) {
+        } else if (config.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME)
+            || config.containsKey(AzureConstants.AZURE_CONNECTION_STRING)) {
             deleteAzureContainer(config, bucket);
         }
     }
@@ -145,20 +146,26 @@ public class DataStoreUtils {
     }
 
     public static void deleteAzureContainer(Map<String, ?> config, String containerName) throws Exception {
-        String accountName = (String)config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME);
-        String accountKey = (String)config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY);
-        if (Strings.isNullOrEmpty(containerName) ||
-                Strings.isNullOrEmpty(accountName) ||
-                Strings.isNullOrEmpty(accountKey)) {
+        if (Strings.isNullOrEmpty(containerName)) {
             return;
         }
-        log.info("deleting container [" + containerName + "]");
-        CloudBlobContainer container = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils
-            .getBlobContainer(org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionString(accountName, accountKey), containerName);
+        String connectionString = (String) config.get(AzureConstants.AZURE_CONNECTION_STRING);
+        if (Strings.isNullOrEmpty(connectionString)) {
+            String accountName = (String) config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME);
+            String accountKey = (String) config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY);
+            if (Strings.isNullOrEmpty(accountName) ||
+                Strings.isNullOrEmpty(accountKey)) {
+                return;
+            }
+            connectionString = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionString(accountName, accountKey);
+        }
+        log.info("deleting container [{}]", containerName);
+        CloudBlobContainer container = 
+            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getBlobContainer(connectionString, containerName);
         if (container.deleteIfExists()) {
-            log.info("container [ " + containerName + "] deleted");
+            log.info("container [{}] deleted", containerName);
         } else {
-            log.info("container [" + containerName + "] doesn't exists");
+            log.info("container [{}] doesn't exists", containerName);
         }
     }
 }

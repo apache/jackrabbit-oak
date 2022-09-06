@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -324,62 +325,73 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getSegmentTar(final String name, final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping, final boolean useBlobStore, final int dsCacheInMB,
-            final boolean withColdStandby, final int syncInterval, final boolean shareBlobStore, final boolean secure,
-            final boolean oneShotRun) {
+            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore, 
+            final int dsCacheInMB, final boolean withColdStandby, final int syncInterval, final boolean shareBlobStore, 
+            final boolean secure, final boolean oneShotRun) {
 
         SegmentTarFixtureBuilder builder = SegmentTarFixtureBuilder.segmentTarFixtureBuilder(name, base);
         builder.withMaxFileSize(maxFileSizeMB).withSegmentCacheSize(cacheSizeMB).withMemoryMapping(memoryMapping)
+                .withBinariesInlineThreshold(binariesInlineThreshold)
                 .withBlobStore(useBlobStore).withDSCacheSize(dsCacheInMB);
 
         return new SegmentTarFixture(builder, withColdStandby, syncInterval, shareBlobStore, secure, oneShotRun);
     }
 
     public static OakFixture getVanillaSegmentTar(final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping) {
+            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold) {
 
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB, memoryMapping, false, 0,
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, false, 0,
                 false, -1, false, false, false);
+    }
+
+    public static OakFixture getVanillaSegmentTar(final File base, final int maxFileSizeMB,
+        final int cacheSizeMB, final boolean memoryMapping) {
+
+        return getVanillaSegmentTar(base, maxFileSizeMB, cacheSizeMB, memoryMapping, Segment.MEDIUM_LIMIT);
     }
 
     public static OakFixture getSegmentTarWithDataStore(final File base,
-        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, final int dsCacheInMB) {
+        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, 
+        final int dsCacheInMB) {
         
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, true, dsCacheInMB,
-                false, -1, false, false, false);
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, true, 
+                dsCacheInMB, false, -1, false, false, false);
     }
     
     public static OakFixture getSegmentTarWithColdStandby(final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping, final boolean useBlobStore, final int dsCacheInMB,
-            final int syncInterval, final boolean shareBlobStore, final boolean secure, final boolean oneShotRun) {
+            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore, 
+            final int dsCacheInMB, final int syncInterval, final boolean shareBlobStore, final boolean secure, final boolean oneShotRun) {
         
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_COLD, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore,
-                dsCacheInMB, true, syncInterval, shareBlobStore, secure, oneShotRun);
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_COLD, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, 
+                useBlobStore, dsCacheInMB, true, syncInterval, shareBlobStore, secure, oneShotRun);
     }
 
     public static OakFixture getSegmentTarWithAwsSegmentStore(final File base, final String awsBucketName,
             final String awsRootPath, final String awsJournalTableName, final String awsLockTableName,
-            final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore, final int dsCacheInMB) {
+            final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold, final boolean useBlobStore, final int dsCacheInMB) {
         return SegmentTarFixtureBuilder.segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AWS, base)
                 .withAws(awsBucketName, awsRootPath, awsJournalTableName, awsLockTableName)
-                .withMaxFileSize(maxFileSizeMB).withSegmentCacheSize(cacheSizeMB).withBlobStore(useBlobStore)
+                .withMaxFileSize(maxFileSizeMB).withSegmentCacheSize(cacheSizeMB)
+                .withBinariesInlineThreshold(binariesInlineThreshold).withBlobStore(useBlobStore)
                 .withDSCacheSize(dsCacheInMB).build();
     }
 
     public static OakFixture getSegmentTarWithAzureSegmentStore(final File base, final String azureConnectionString, final String azureContainerName, final String azureRootPath,
-                                                                final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore, final int dsCacheInMB) {
+                                                                final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold, final boolean useBlobStore, final int dsCacheInMB) {
         return SegmentTarFixtureBuilder
                 .segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AZURE, base)
                 .withAzure(azureConnectionString, azureContainerName, azureRootPath)
                 .withMaxFileSize(maxFileSizeMB)
                 .withSegmentCacheSize(cacheSizeMB)
+                .withBinariesInlineThreshold(binariesInlineThreshold)
                 .withBlobStore(useBlobStore)
                 .withDSCacheSize(dsCacheInMB).build();
     }
 
     public static OakFixture getCompositeStore(final String name, final File base,
-                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping) {
-        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping);
+                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, 
+                                               int binariesInlineThreshold) {
+        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold);
     }
 
     public static OakFixture getCompositeMemoryStore(final String name) {
