@@ -37,18 +37,9 @@ public class RecordCacheStatsTest {
     private final Random rnd = new Random();
     private final MemoryStore store = new MemoryStore();
 
-    private final RecordCache<Integer> cache = newRecordCache(KEYS);
+    private final RecordCache<Integer> cache = newRecordCache(KEYS * 4 / 3);
     private final RecordCacheStats cacheStats =
-            new RecordCacheStats(NAME,
-                new Supplier<CacheStats>() {
-                    @Override public CacheStats get() { return cache.getStats(); }
-                },
-                new Supplier<Long>() {
-                    @Override public Long get() { return cache.size(); }
-                },
-                new Supplier<Long>() {
-                    @Override public Long get() { return cache.estimateCurrentWeight(); }
-                });
+            new RecordCacheStats(NAME, cache::getStats, cache::size, cache::estimateCurrentWeight);
 
     private int hits;
 

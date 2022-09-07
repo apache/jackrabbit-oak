@@ -19,16 +19,13 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import com.google.common.base.Supplier;
-import com.google.common.cache.CacheStats;
-import com.google.common.cache.Weigher;
-
+import com.google.common.cache.*;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.concurrent.atomic.AtomicLong;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Partial mapping of keys of type {@code K} to values of type {@link RecordId}. This is
@@ -37,11 +34,6 @@ import org.jetbrains.annotations.NotNull;
  * @param <K>
  */
 public abstract class RecordCache<K> implements Cache<K, RecordId> {
-    private long hitCount;
-    private long missCount;
-    private long loadCount;
-    private long evictionCount;
-
     /**
      * @return number of mappings
      */
@@ -58,9 +50,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
      * @return  access statistics for this cache
      */
     @NotNull
-    public CacheStats getStats() {
-        return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
-    }
+    public abstract CacheStats getStats();
 
     /**
      * Factory method for creating {@code RecordCache} instances. The returned
@@ -75,7 +65,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         if (size <= 0) {
             return new Empty<>();
         } else {
-            return new Default<>(size, CacheWeights.<T, RecordId> noopWeigher());
+            return new Default<>(size, CacheWeights.noopWeigher());
         }
     }
 
@@ -106,26 +96,28 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         if (size <= 0) {
             return Empty.emptyFactory();
         } else {
-            return Default.defaultFactory(size, CacheWeights.<T, RecordId> noopWeigher());
+            return Default.defaultFactory(size, CacheWeights.noopWeigher());
         }
     }
 
     private static class Empty<T> extends RecordCache<T> {
+        private final AtomicLong missCount = new AtomicLong();
+
         static final <T> Supplier<RecordCache<T>> emptyFactory() {
-            return  new Supplier<RecordCache<T>>() {
-                @Override
-                public RecordCache<T> get() {
-                    return new Empty<>();
-                }
-            };
+            return Empty::new;
         }
 
         @Override
-        public synchronized void put(@NotNull T key, @NotNull RecordId value) { }
+        public @NotNull CacheStats getStats() {
+            return new CacheStats(0, missCount.get(), 0, 0, 0, 0);
+        }
 
         @Override
-        public synchronized RecordId get(@NotNull T key) {
-            super.missCount++;
+        public void put(@NotNull T key, @NotNull RecordId value) { }
+
+        @Override
+        public RecordId get(@NotNull T key) {
+            missCount.incrementAndGet();
             return null;
         }
 
@@ -141,66 +133,64 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     }
 
     private static class Default<K> extends RecordCache<K> {
-
         @NotNull
-        private final Map<K, RecordId> records;
+        private final com.google.common.cache.Cache<K, RecordId> cache;
 
         @NotNull
         private final Weigher<K, RecordId> weigher;
 
-        private long weight = 0;
+        @NotNull
+        private final AtomicLong weight = new AtomicLong();
 
-        static final <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
-            return new Supplier<RecordCache<K>>() {
-                @Override
-                public RecordCache<K> get() {
-                    return new Default<>(size, checkNotNull(weigher));
-                }
-            };
+        @NotNull
+        private final AtomicLong loadCount = new AtomicLong();
+
+        @Override
+        public @NotNull CacheStats getStats() {
+            CacheStats internalStats = cache.stats();
+            // any addition to the cache counts as load by our definition
+            return new CacheStats(internalStats.hitCount(), internalStats.missCount(),
+                    loadCount.get(), 0, 0,  internalStats.evictionCount());
+        }
+
+        static <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
+            return () -> new Default<>(size, checkNotNull(weigher));
         }
 
         Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {
-            this.weigher = checkNotNull(weigher);
-            records = new LinkedHashMap<K, RecordId>(size * 4 / 3, 0.75f, true) {
-                @Override
-                protected boolean removeEldestEntry(Map.Entry<K, RecordId> eldest) {
-                    boolean remove = super.size() > size;
-                    if (remove) {
-                        Default.super.evictionCount++;
-                        weight -= weigher.weigh(eldest.getKey(),
-                                eldest.getValue());
-                    }
-                    return remove;
-                }
-            };
+            this.cache = CacheBuilder.newBuilder()
+                    .maximumSize(size)
+                    .initialCapacity(size)
+                    .concurrencyLevel(4)
+                    .recordStats()
+                    .removalListener((RemovalListener<K, RecordId>) removal -> {
+                        int removedWeight = weigher.weigh(removal.getKey(), removal.getValue());
+                        weight.addAndGet(-removedWeight);
+                    })
+                    .build();
+            this.weigher = weigher;
         }
 
         @Override
-        public synchronized void put(@NotNull K key, @NotNull RecordId value) {
-            super.loadCount++;
-            records.put(key, value);
-            weight += weigher.weigh(key, value);
+        public void put(@NotNull K key, @NotNull RecordId value) {
+            cache.put(key, value);
+            loadCount.incrementAndGet();
+            weight.addAndGet(weigher.weigh(key, value));
         }
 
         @Override
-        public synchronized RecordId get(@NotNull K key) {
-            RecordId value = records.get(key);
-            if (value == null) {
-                super.missCount++;
-            } else {
-                super.hitCount++;
-            }
-            return value;
+        public RecordId get(@NotNull K key) {
+            return cache.getIfPresent(key);
         }
 
         @Override
-        public synchronized long size() {
-            return records.size();
+        public long size() {
+            return cache.size();
         }
 
         @Override
         public long estimateCurrentWeight() {
-            return weight;
+            return weight.get();
         }
     }
 }
