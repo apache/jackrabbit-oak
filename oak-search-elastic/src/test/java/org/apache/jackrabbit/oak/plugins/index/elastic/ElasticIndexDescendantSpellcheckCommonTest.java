@@ -20,8 +20,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSpellcheckCommonTest;
 import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
 
 import javax.jcr.Repository;
 
@@ -40,21 +38,4 @@ public class ElasticIndexDescendantSpellcheckCommonTest extends IndexDescendantS
         return jcr.createRepository();
     }
 
-    //TODO this seems to be similar to
-    //https://discuss.elastic.co/t/elasticsearch-suggestion-completes-return-incorrect-number-of-suggestions/214522
-    //Even increasing the suggester query size the number of max results seems to be fixed to 5
-    @Test
-    @Ignore("OAK-9857")
-    @Override
-    public void noDescendantSuggestsAll() {
-        super.noDescendantSuggestsAll();
-    }
-
-    //TODO If path restriction is not enabled, all suggestions should be returned see #noDescendantSuggestsAll
-    @Test
-    @Ignore("OAK-3994")
-    @Override
-    public void descendantSuggestionRequirePathRestrictionIndex() throws Exception {
-        super.descendantSuggestionRequirePathRestrictionIndex();
-    }
 }

@@ -288,7 +288,7 @@ public abstract class DataStoreTestBase extends TestBase {
                 .withPort(serverPort.getPort())
                 .withFileStore(secondary)
                 .withSecureConnection(false)
-                .withReadTimeoutMs(2 * 60 * 1000)
+                .withReadTimeoutMs(4 * 60 * 1000)
                 .withAutoClean(false)
                 .withSpoolFolder(folder.newFolder())
                 .build()
