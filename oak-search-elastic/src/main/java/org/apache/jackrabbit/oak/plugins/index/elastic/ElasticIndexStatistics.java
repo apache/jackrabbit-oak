@@ -101,12 +101,23 @@ public class ElasticIndexStatistics implements IndexStatistics {
     }
 
     /**
-     * Returns the approximate size in bytes for the remote index bound to the {@code ElasticIndexDefinition}.
+     * Returns the approximate size in bytes for the primary shards of the remote index bound to the
+     * {@code ElasticIndexDefinition}.
      */
-    public long size() {
+    public long primaryStoreSize() {
         return STATS_CACHE.getUnchecked(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
-        ).size;
+        ).primaryStoreSize;
+    }
+
+    /**
+     * Returns the approximate size in bytes for the remote index bound to the {@code ElasticIndexDefinition}, including
+     * primary shards and replica shards.
+     */
+    public long storeSize() {
+        return STATS_CACHE.getUnchecked(
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
+        ).storeSize;
     }
 
     /**
@@ -205,13 +216,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
             }
             // Assuming a single index matches crd.index
             IndicesRecord record = records.get(0);
-            String size = record.storeSize();
+            String storeSize = record.storeSize();
+            String primaryStoreSize = record.storeSize();
             String creationDate = record.creationDateString();
             String luceneDocsCount = record.docsCount();
             String luceneDocsDeleted = record.docsDeleted();
             
             return new StatsResponse(
-                            size != null ? Long.parseLong(size) : -1,
+                            storeSize != null ? Long.parseLong(storeSize) : -1,
+                            primaryStoreSize != null ? Long.parseLong(primaryStoreSize) : -1,
                             creationDate != null ? Long.parseLong(creationDate) : -1,
                             luceneDocsCount != null ? Integer.parseInt(luceneDocsCount) : -1,
                             luceneDocsDeleted != null ? Integer.parseInt(luceneDocsDeleted) : -1
@@ -257,13 +270,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
 
     static class StatsResponse {
 
-        final long size;
+        final long storeSize;
+        final long primaryStoreSize;
         final long creationDate;
         final int luceneDocsCount;
         final int luceneDocsDeleted;
 
-        StatsResponse(long size, long creationDate, int luceneDocsCount, int luceneDocsDeleted) {
-            this.size = size;
+        StatsResponse(long storeSize, long primaryStoreSize, long creationDate, int luceneDocsCount, int luceneDocsDeleted) {
+            this.storeSize = storeSize;
+            this.primaryStoreSize = primaryStoreSize;
             this.creationDate = creationDate;
             this.luceneDocsCount = luceneDocsCount;
             this.luceneDocsDeleted = luceneDocsDeleted;

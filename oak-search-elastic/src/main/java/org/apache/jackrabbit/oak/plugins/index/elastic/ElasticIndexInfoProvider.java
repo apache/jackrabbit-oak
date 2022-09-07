@@ -66,7 +66,7 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
                     asyncInfo != null ? asyncInfo.getLastIndexedTo() : -1L,
                     getStatusTimestamp(node.getDefinition().getDefinitionNodeState(), IndexDefinition.STATUS_LAST_UPDATED),
                     node.getIndexStatistics().numDocs(),
-                    node.getIndexStatistics().size(),
+                    node.getIndexStatistics().primaryStoreSize(),
                     node.getIndexStatistics().creationDate(),
                     getStatusTimestamp(node.getDefinition().getDefinitionNodeState(), IndexDefinition.REINDEX_COMPLETION_TIMESTAMP)
             );
