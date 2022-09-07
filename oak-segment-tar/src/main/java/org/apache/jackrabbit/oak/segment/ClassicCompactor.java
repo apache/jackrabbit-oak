@@ -124,12 +124,18 @@ public class ClassicCompactor implements Compactor {
     }
 
     @Nullable
-    private static Buffer getStableIdBytes(NodeState state) {
+    protected static Buffer getStableIdBytes(@NotNull NodeState state) {
         if (state instanceof SegmentNodeState) {
             return ((SegmentNodeState) state).getStableIdBytes();
         } else {
             return null;
         }
+    }
+
+    protected SegmentNodeState writeNodeState(NodeState nodeState, Buffer stableIdBytes) throws IOException {
+        RecordId nodeId = writer.writeNode(nodeState, stableIdBytes);
+        compactionMonitor.onNode();
+        return new SegmentNodeState(reader, writer, blobStore, nodeId);
     }
 
     private class CompactDiff implements NodeStateDiff {
@@ -162,15 +168,14 @@ public class ClassicCompactor implements Compactor {
 
         @Nullable
         SegmentNodeState diff(@NotNull NodeState before, @NotNull NodeState after) throws IOException {
-            boolean success = after.compareAgainstBaseState(before, new CancelableDiff(this, () -> canceller.check().isCancelled()));
+            boolean success = after.compareAgainstBaseState(before,
+                    new CancelableDiff(this, () -> canceller.check().isCancelled()));
             if (exception != null) {
                 throw new IOException(exception);
             } else if (success) {
                 NodeState nodeState = builder.getNodeState();
                 checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
-                RecordId nodeId = writer.writeNode(nodeState, getStableIdBytes(after));
-                compactionMonitor.onNode();
-                return new SegmentNodeState(reader, writer, blobStore, nodeId);
+                return writeNodeState(nodeState, getStableIdBytes(after));
             } else {
                 return null;
             }
@@ -242,7 +247,7 @@ public class ClassicCompactor implements Compactor {
     }
 
     @NotNull
-    private  PropertyState compact(@NotNull PropertyState property) {
+    protected PropertyState compact(@NotNull PropertyState property) {
         compactionMonitor.onProperty();
         String name = property.getName();
         Type<?> type = property.getType();
@@ -260,5 +265,4 @@ public class ClassicCompactor implements Compactor {
             return createProperty(name, property.getValue(type), type);
         }
     }
-
 }

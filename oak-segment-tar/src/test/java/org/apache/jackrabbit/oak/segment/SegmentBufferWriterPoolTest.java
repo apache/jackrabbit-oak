@@ -71,12 +71,7 @@ public class SegmentBufferWriterPoolTest {
     }
 
     private Future<RecordId> execute(GCGeneration gcGeneration, final WriteOperation op, int executor) {
-        return executors[executor].submit(new Callable<RecordId>() {
-            @Override
-            public RecordId call() throws Exception {
-                return pool.execute(gcGeneration, op);
-            }
-        });
+        return executors[executor].submit(() -> pool.execute(gcGeneration, op));
     }
 
     private WriteOperation createOp(final String key, final ConcurrentMap<String, SegmentBufferWriter> map) {
@@ -206,27 +201,20 @@ public class SegmentBufferWriterPoolTest {
     @Test
     public void testFlushBlocks() throws ExecutionException, InterruptedException {
         GCGeneration gcGeneration = pool.getGCGeneration();
-        Future<RecordId> res = execute(gcGeneration, new WriteOperation() {
-            @Nullable
-            @Override
-            public RecordId execute(@NotNull SegmentBufferWriter writer) {
-                try {
-                    // This should deadlock as flush waits for this write
-                    // operation to finish, which in this case contains the
-                    // call to flush itself.
-                    executors[1].submit(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            pool.flush(store);
-                            return null;
-                        }
-                    }).get(100, MILLISECONDS);
-                    return null;    // No deadlock -> null indicates test failure
-                } catch (InterruptedException | ExecutionException ignore) {
-                    return null;    // No deadlock -> null indicates test failure
-                } catch (TimeoutException ignore) {
-                    return rootId;  // Deadlock -> rootId indicates test pass
-                }
+        Future<RecordId> res = execute(gcGeneration, writer -> {
+            try {
+                // This should deadlock as flush waits for this write
+                // operation to finish, which in this case contains the
+                // call to flush itself.
+                executors[1].submit(() -> {
+                    pool.flush(store);
+                    return null;
+                }).get(100, MILLISECONDS);
+                return null;    // No deadlock -> null indicates test failure
+            } catch (InterruptedException | ExecutionException ignore) {
+                return null;    // No deadlock -> null indicates test failure
+            } catch (TimeoutException ignore) {
+                return rootId;  // Deadlock -> rootId indicates test pass
             }
         }, 0);
 

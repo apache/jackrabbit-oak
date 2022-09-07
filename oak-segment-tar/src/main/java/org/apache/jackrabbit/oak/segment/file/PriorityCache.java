@@ -19,6 +19,18 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
+import com.google.common.cache.CacheStats;
+import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.oak.segment.CacheWeights;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.bitCount;
@@ -26,15 +38,6 @@ import static java.lang.Integer.numberOfTrailingZeros;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.max;
 import static java.util.Arrays.fill;
-
-import org.apache.jackrabbit.oak.segment.CacheWeights;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
-import com.google.common.cache.CacheStats;
-import com.google.common.cache.Weigher;
 
 /**
  * {@code PriorityCache} implements a partial mapping from keys of type {@code K} to values
@@ -59,19 +62,24 @@ import com.google.common.cache.Weigher;
 public class PriorityCache<K, V> {
     private final int rehash;
     private final Entry<?,?>[] entries;
-    private final int[] costs = new int[256];
-    private final int[] evictions = new int[256];
+    private final AtomicInteger[] costs;
+    private final AtomicInteger[] evictions;
 
-    private long hitCount;
-    private long missCount;
-    private long loadCount;
-    private long loadExceptionCount;
-    private long evictionCount;
-    private long size;
+    private final AtomicLong hitCount = new AtomicLong();
+    private final AtomicLong missCount = new AtomicLong();
+    private final AtomicLong loadCount = new AtomicLong();
+    private final AtomicLong loadExceptionCount = new AtomicLong();
+    private final AtomicLong evictionCount = new AtomicLong();
+    private final AtomicLong size = new AtomicLong();
+
+    private static class Segment extends ReentrantLock {}
+
+    @NotNull
+    private final Segment[] segments;
 
     @NotNull
     private final Weigher<K, V> weigher;
-    private long weight = 0;
+    private final AtomicLong weight = new AtomicLong();
 
     /**
      * Static factory for creating new {@code PriorityCache} instances.
@@ -81,12 +89,7 @@ public class PriorityCache<K, V> {
     public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size, @NotNull final Weigher<K, V> weigher) {
         checkArgument(bitCount(size) == 1);
         checkNotNull(weigher);
-        return new Supplier<PriorityCache<K, V>>() {
-            @Override
-            public PriorityCache<K, V> get() {
-                return new PriorityCache<>(size, weigher);
-            }
-        };
+        return () -> new PriorityCache<>(size, weigher);
     }
 
     /**
@@ -96,12 +99,7 @@ public class PriorityCache<K, V> {
      */
     public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size) {
         checkArgument(bitCount(size) == 1);
-        return new Supplier<PriorityCache<K, V>>() {
-            @Override
-            public PriorityCache<K, V> get() {
-                return new PriorityCache<>(size);
-            }
-        };
+        return () -> new PriorityCache<>(size);
     }
 
     private static class Entry<K, V> {
@@ -156,6 +154,19 @@ public class PriorityCache<K, V> {
      * @param weigher   Needed to provide an estimation of the cache weight in memory
      */
     public PriorityCache(int size, int rehash, @NotNull Weigher<K, V> weigher) {
+        this(size, rehash, weigher, 1024);
+    }
+
+    /**
+     * Create a new instance of the given {@code size}. {@code rehash} specifies the number
+     * of rehashes to resolve a clash.
+     * @param size        Size of the cache. Must be a power of {@code 2}.
+     * @param rehash      Number of rehashes. Must be greater or equal to {@code 0} and
+     *                    smaller than {@code 32 - numberOfTrailingZeros(size)}.
+     * @param weigher     Needed to provide an estimation of the cache weight in memory
+     * @param numSegments Number of separately locked segments
+     */
+    public PriorityCache(int size, int rehash, @NotNull Weigher<K, V> weigher, int numSegments) {
         checkArgument(bitCount(size) == 1);
         checkArgument(rehash >= 0);
         checkArgument(rehash < 32 - numberOfTrailingZeros(size));
@@ -163,6 +174,20 @@ public class PriorityCache<K, V> {
         entries = new Entry<?,?>[size];
         fill(entries, Entry.NULL);
         this.weigher = checkNotNull(weigher);
+
+        numSegments = Math.min(numSegments, size);
+        checkArgument((size % numSegments) == 0);
+        segments = new Segment[numSegments];
+        for (int s = 0; s < numSegments; s++) {
+            segments[s] = new Segment();
+        }
+
+        costs = new AtomicInteger[256];
+        evictions = new AtomicInteger[256];
+        for (int i = 0; i < 256; i++) {
+            costs[i] = new AtomicInteger();
+            evictions[i] = new AtomicInteger();
+        }
     }
 
     /**
@@ -182,11 +207,16 @@ public class PriorityCache<K, V> {
         return (hashCode >> iteration) & (entries.length - 1);
     }
 
+    private Segment getSegment(int index) {
+        int entriesPerSegment = entries.length / segments.length;
+        return segments[index / entriesPerSegment];
+    }
+
     /**
      * @return  the number of mappings in this cache.
      */
     public long size() {
-        return size;
+        return size.get();
     }
 
     /**
@@ -197,19 +227,30 @@ public class PriorityCache<K, V> {
      * @param initialCost    the initial cost associated with this mapping
      * @return  {@code true} if the mapping has been added, {@code false} otherwise.
      */
-    public synchronized boolean put(@NotNull K key, @NotNull V value, int generation, byte initialCost) {
+    public boolean put(@NotNull K key, @NotNull V value, int generation, byte initialCost) {
         int hashCode = key.hashCode();
         byte cheapest = initialCost;
-        int index = -1;
-        boolean eviction = false;
+        int index;
+        boolean eviction;
+
+        Segment lockedSegment = null;
+
         for (int k = 0; k <= rehash; k++) {
             int i = project(hashCode, k);
+            Segment segment = getSegment(i);
+            if (segment != lockedSegment) {
+                if (lockedSegment != null) {
+                    lockedSegment.unlock();
+                }
+                lockedSegment = segment;
+                lockedSegment.lock();
+            }
+
             Entry<?, ?> entry = entries[i];
             if (entry == Entry.NULL) {
                 // Empty slot -> use this index
                 index = i;
                 eviction = false;
-                break;
             } else if (entry.generation <= generation && key.equals(entry.key)) {
                 // Key exists and generation is greater or equal -> use this index and boost the cost
                 index = i;
@@ -218,42 +259,45 @@ public class PriorityCache<K, V> {
                     initialCost++;
                 }
                 eviction = false;
-                break;
             } else if (entry.generation < generation) {
                 // Old generation -> use this index
                 index = i;
                 eviction = false;
-                break;
             } else if (entry.cost < cheapest) {
                 // Candidate slot, keep on searching for even cheaper slots
                 cheapest = entry.cost;
                 index = i;
                 eviction = true;
+                if (k < rehash) {
+                    continue;
+                }
+            } else {
+                continue;
             }
-        }
 
-        if (index >= 0) {
             Entry<?, ?> old = entries[index];
             Entry<?, ?> newE = new Entry<>(key, value, generation, initialCost);
             entries[index] = newE;
-            loadCount++;
-            costs[initialCost - Byte.MIN_VALUE]++;
+            loadCount.incrementAndGet();
+            costs[initialCost - Byte.MIN_VALUE].incrementAndGet();
             if (old != Entry.NULL) {
-                costs[old.cost - Byte.MIN_VALUE]--;
+                costs[old.cost - Byte.MIN_VALUE].decrementAndGet();
                 if (eviction) {
-                    evictions[old.cost - Byte.MIN_VALUE]++;
-                    evictionCount++;
+                    evictions[old.cost - Byte.MIN_VALUE].incrementAndGet();
+                    evictionCount.incrementAndGet();
                 }
-                weight -= weighEntry(old);
+                weight.addAndGet(-weighEntry(old)) ;
             } else {
-                size++;
+                size.incrementAndGet();
             }
-            weight += weighEntry(newE);
+            weight.addAndGet(weighEntry(newE));
+            lockedSegment.unlock();
             return true;
-        } else {
-            loadExceptionCount++;
-            return false;
         }
+
+        checkNotNull(lockedSegment).unlock();
+        loadExceptionCount.incrementAndGet();
+        return false;
     }
 
     /**
@@ -265,22 +309,27 @@ public class PriorityCache<K, V> {
      */
     @SuppressWarnings("unchecked")
     @Nullable
-    public synchronized V get(@NotNull K key, int generation) {
+    public V get(@NotNull K key, int generation) {
         int hashCode = key.hashCode();
         for (int k = 0; k <= rehash; k++) {
             int i = project(hashCode, k);
+            Segment segment = getSegment(i);
+            segment.lock();
             Entry<?, ?> entry = entries[i];
             if (generation == entry.generation && key.equals(entry.key)) {
                 if (entry.cost < Byte.MAX_VALUE) {
-                    costs[entry.cost - Byte.MIN_VALUE]--;
+                    costs[entry.cost - Byte.MIN_VALUE].decrementAndGet();
                     entry.cost++;
-                    costs[entry.cost - Byte.MIN_VALUE]++;
+                    costs[entry.cost - Byte.MIN_VALUE].incrementAndGet();
                 }
-                hitCount++;
-                return (V) entry.value;
+                hitCount.incrementAndGet();
+                V value = (V) entry.value;
+                segment.unlock();
+                return value;
             }
+            segment.unlock();
         }
-        missCount++;
+        missCount.incrementAndGet();
         return null;
     }
 
@@ -289,35 +338,42 @@ public class PriorityCache<K, V> {
      * passed {@code purge} predicate.
      * @param purge
      */
-    public synchronized void purgeGenerations(@NotNull Predicate<Integer> purge) {
-        for (int i = 0; i < entries.length; i++) {
-            Entry<?, ?> entry = entries[i];
-            if (entry != Entry.NULL && purge.apply(entry.generation)) {
-                entries[i] = Entry.NULL;
-                size--;
-                weight -= weighEntry(entry);
+    public void purgeGenerations(@NotNull Predicate<Integer> purge) {
+        int numSegments = segments.length;
+        int entriesPerSegment = entries.length / numSegments;
+        for (int s = 0; s < numSegments; s++) {
+            segments[s].lock();
+            for (int i = 0; i < entriesPerSegment; i++) {
+                int j = i + s * entriesPerSegment;
+                Entry<?, ?> entry = entries[j];
+                if (entry != Entry.NULL && purge.apply(entry.generation)) {
+                    entries[j] = Entry.NULL;
+                    size.decrementAndGet();
+                    weight.addAndGet(-weighEntry(entry));
+                }
             }
+            segments[s].unlock();
         }
     }
 
-    @SuppressWarnings("unchecked")
     private int weighEntry(Entry<?, ?> entry) {
         return weigher.weigh((K) entry.key, (V) entry.value);
     }
 
     @Override
-    public synchronized String toString() {
+    public String toString() {
         return "PriorityCache" +
-            "{ costs=" + toString(costs) +
-            ", evictions=" + toString(evictions) + " }";
+                "{ costs=" + toString(costs) +
+                ", evictions=" + toString(evictions) + " }";
     }
 
-    private static String toString(int[] ints) {
+    private static String toString(AtomicInteger[] ints) {
         StringBuilder b = new StringBuilder("[");
         String sep = "";
         for (int i = 0; i < ints.length; i++) {
-            if (ints[i] > 0) {
-                b.append(sep).append(i).append("->").append(ints[i]);
+            int value = ints[i].get();
+            if (value > 0) {
+                b.append(sep).append(i).append("->").append(value);
                 sep = ",";
             }
         }
@@ -329,11 +385,12 @@ public class PriorityCache<K, V> {
      */
     @NotNull
     public CacheStats getStats() {
-        return new CacheStats(hitCount, missCount, loadCount, loadExceptionCount, 0, evictionCount);
+        return new CacheStats(hitCount.get(), missCount.get(), loadCount.get(),
+                loadExceptionCount.get(), 0, evictionCount.get());
     }
 
     public long estimateCurrentWeight() {
-        return weight;
+        return weight.get();
     }
 
 }

@@ -198,7 +198,7 @@ public class FileStore extends AbstractFileStore {
                 defaultSegmentWriterBuilder("c")
                     .with(builder.getCacheManager().withAccessTracking("COMPACT", statsProvider))
                     .withGeneration(generation)
-                    .withoutWriterPool()
+                    .withWriterPool()
                     .build(this)
         );
 
