@@ -45,14 +45,10 @@ public class MongoDBConfigTest {
 
     }
 
-    @Test
+    @Test (expected = IllegalArgumentException.class)
     public void invalidCollectionStorageOptions() {
-        try {
-            getCollectionStorageOptions(Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "Invalid"));
-            fail("Fail with IllegalArgumentException");
-        } catch(Exception e) {
-            assertEquals("Invalid collection compressionType provided: Invalid", e.getMessage());
-        }
+        getCollectionStorageOptions(Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "Invalid"));
+        fail("Should fail with IllegalArgumentException due to Invalid Compressor");
     }
 
     @Test
