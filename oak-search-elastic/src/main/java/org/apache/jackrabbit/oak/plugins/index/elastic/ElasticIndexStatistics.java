@@ -217,7 +217,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
             // Assuming a single index matches crd.index
             IndicesRecord record = records.get(0);
             String storeSize = record.storeSize();
-            String primaryStoreSize = record.storeSize();
+            String primaryStoreSize = record.priStoreSize();
             String creationDate = record.creationDateString();
             String luceneDocsCount = record.docsCount();
             String luceneDocsDeleted = record.docsDeleted();
