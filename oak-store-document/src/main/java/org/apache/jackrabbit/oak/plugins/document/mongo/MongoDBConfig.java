@@ -24,30 +24,36 @@ import org.bson.conversions.Bson;
 import java.util.Map;
 
 public class MongoDBConfig {
-    public static final String COLLECTION_COMPRESSION_TYPE = "collectionCompressionType";
-    public static final String STORAGE_ENGINE = "wiredTiger";
-    public static final String STORAGE_CONFIG = "configString";
+    static final String COLLECTION_COMPRESSION_TYPE = "collectionCompressionType";
+    static final String STORAGE_ENGINE = "wiredTiger";
+    static final String STORAGE_CONFIG = "configString";
 
     enum CollectionCompressor {
         SNAPPY("snappy"), ZLIB("zlib"), ZSTD("zstd");
 
         private final String compressionType;
+        private static final Map<String, CollectionCompressor> COLLECTION_COMPRESSOR_MAP;
 
-        private static final Map<String, CollectionCompressor> supportedCompressionTypes = ImmutableMap.of(
-                "snappy", CollectionCompressor.SNAPPY, "zlib",
-                CollectionCompressor.ZLIB, "zstd", CollectionCompressor.ZSTD);
+        static {
+            ImmutableMap.Builder<String, CollectionCompressor> builder = new ImmutableMap.Builder<>();
+            for (CollectionCompressor value : CollectionCompressor.values()) {
+                builder.put(value.getName().toLowerCase(), value);
+            }
+            COLLECTION_COMPRESSOR_MAP = builder.build();
+        }
 
         CollectionCompressor(String compressionType) {
             this.compressionType = compressionType;
         }
 
-        public String getCompressionType() {
+        public String getName() {
             return compressionType;
         }
 
         public static boolean isSupportedCompressor(String compressionType) {
-            return supportedCompressionTypes.containsKey(compressionType);
+            return COLLECTION_COMPRESSOR_MAP.containsKey(compressionType.toLowerCase());
         }
+
 
     }
 
@@ -63,7 +69,7 @@ public class MongoDBConfig {
 
         String compressionType = mongoStorageOptions.getOrDefault(
                 COLLECTION_COMPRESSION_TYPE,
-                CollectionCompressor.SNAPPY.getCompressionType());
+                CollectionCompressor.SNAPPY.getName());
 
         if (CollectionCompressor.isSupportedCompressor(compressionType)) {
             JsonObject root = new JsonObject();
@@ -75,7 +81,7 @@ public class MongoDBConfig {
             Bson storageOptions = BsonDocument.parse(root.toString());
             return storageOptions;
         } else {
-            throw new IllegalArgumentException("Invalid collection compression type provided " + compressionType);
+            throw new IllegalArgumentException("Invalid collection compressionType provided: " + compressionType);
         }
     }
 

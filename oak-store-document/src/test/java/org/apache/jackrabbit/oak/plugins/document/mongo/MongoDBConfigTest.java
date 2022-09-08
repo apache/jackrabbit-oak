@@ -24,36 +24,44 @@ import org.bson.conversions.Bson;
 import org.junit.Test;
 
 import java.util.Collections;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.getCollectionStorageOptions;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.COLLECTION_COMPRESSION_TYPE;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.STORAGE_CONFIG;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.STORAGE_ENGINE;
 
 
 public class MongoDBConfigTest {
 
-    private MongoDBConfig mongoDBConfig;
-
     @Test
     public void defaultCollectionStorageOptions() {
-        Bson bson = mongoDBConfig.getCollectionStorageOptions(Collections.emptyMap());
+        Bson bson = getCollectionStorageOptions(Collections.emptyMap());
         BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
-        String  configuredCompressor = bsonDocument.getDocument(MongoDBConfig.STORAGE_ENGINE).getString(MongoDBConfig.STORAGE_CONFIG).getValue();
-        assertTrue(configuredCompressor.indexOf(CollectionCompressor.SNAPPY.getCompressionType()) > 0);
+        String  configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE).getString(STORAGE_CONFIG).getValue();
+        assertTrue(configuredCompressor.indexOf(CollectionCompressor.SNAPPY.getName()) > 0);
 
     }
 
-    @Test (expected = IllegalArgumentException.class)
-    public void invalidCollectionStorageOptions() throws Exception {
-        mongoDBConfig.getCollectionStorageOptions(Collections.singletonMap(MongoDBConfig.COLLECTION_COMPRESSION_TYPE, "Invalid"));
+    @Test
+    public void invalidCollectionStorageOptions() {
+        try {
+            getCollectionStorageOptions(Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "Invalid"));
+            fail("Fail with IllegalArgumentException");
+        } catch(Exception e) {
+            assertEquals("Invalid collection compressionType provided: Invalid", e.getMessage());
+        }
     }
 
     @Test
     public void overrideDefaultCollectionStorageOptions() {
-        Bson bson = mongoDBConfig.getCollectionStorageOptions(Collections.singletonMap(MongoDBConfig.COLLECTION_COMPRESSION_TYPE, "zstd"));
+        Bson bson = getCollectionStorageOptions(Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "zstd"));
         BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
-        String  configuredCompressor = bsonDocument.getDocument(MongoDBConfig.STORAGE_ENGINE).getString(MongoDBConfig.STORAGE_CONFIG).getValue();
+        String  configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE).getString(STORAGE_CONFIG).getValue();
 
-        assertTrue(configuredCompressor.indexOf(CollectionCompressor.ZSTD.getCompressionType()) > 0);
+        assertTrue(configuredCompressor.indexOf(CollectionCompressor.ZSTD.getName()) > 0);
     }
-
-
 
 }

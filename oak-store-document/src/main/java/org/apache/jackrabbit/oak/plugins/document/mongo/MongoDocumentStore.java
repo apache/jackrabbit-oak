@@ -459,8 +459,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         if (mongoStatus.isVersion(4, 2)) {
             options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions(mongoStorageOptions));
-            if (!db.listCollectionNames()
-                    .into(new ArrayList<>()).contains(collectionName)) {
+            if (!Iterables.tryFind(db.listCollectionNames(), s -> Objects.equals(collectionName, s)).isPresent()) {
                 db.createCollection(collectionName, options);
                 LOG.info("Creating Collection {}, with collection storage options", collectionName);
             }
