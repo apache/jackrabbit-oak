@@ -73,7 +73,9 @@ public abstract class ModifyMetricUpdater {
         requireNonNull(retryNodesConsumer);
         requireNonNull(failureNodesConsumer);
 
-        if (isNodesCollection.negate().test(collection)) {return;}
+        if (isNodesCollection.negate().test(collection)) {
+            return;
+        }
 
         if (isSuccess) {
             if (newEntry) {

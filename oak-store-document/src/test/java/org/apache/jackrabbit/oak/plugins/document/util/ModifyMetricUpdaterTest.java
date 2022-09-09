@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater.ModifyMetricUpdaterWithThrottling;
 import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater.ModifyMetricUpdaterWithoutThrottling;
 import org.apache.jackrabbit.oak.stats.MeterStats;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
@@ -38,35 +37,19 @@ import static org.junit.Assert.fail;
  */
 public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
 
-    private ModifyMetricUpdater mMUWithoutThrottling = new ModifyMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
+    private final ModifyMetricUpdater mMUWithoutThrottling = new ModifyMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
             provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY),
             provider.getMeter(NODES_UPDATE, DEFAULT),
             provider.getTimer(NODES_UPDATE_TIMER, METRICS_ONLY),
             provider.getMeter(NODES_UPDATE_RETRY_COUNT, DEFAULT),
             provider.getMeter(NODES_UPDATE_FAILURE, DEFAULT));
-    private ModifyMetricUpdater mMUWithThrottling = new ModifyMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
+    private final ModifyMetricUpdater mMUWithThrottling = new ModifyMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
             provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, METRICS_ONLY),
             provider.getMeter(NODES_UPDATE_WITH_THROTTLING, DEFAULT),
             provider.getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER, METRICS_ONLY),
             provider.getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING, DEFAULT),
             provider.getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING, DEFAULT));
 
-    @Before
-    public void setUp() throws Exception {
-        mMUWithoutThrottling = new ModifyMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
-                provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY),
-                provider.getMeter(NODES_UPDATE, DEFAULT),
-                provider.getTimer(NODES_UPDATE_TIMER, METRICS_ONLY),
-                provider.getMeter(NODES_UPDATE_RETRY_COUNT, DEFAULT),
-                provider.getMeter(NODES_UPDATE_FAILURE, DEFAULT));
-
-        mMUWithThrottling = new ModifyMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
-                provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, METRICS_ONLY),
-                provider.getMeter(NODES_UPDATE_WITH_THROTTLING, DEFAULT),
-                provider.getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER, METRICS_ONLY),
-                provider.getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING, DEFAULT),
-                provider.getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING, DEFAULT));
-    }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullNodesPredicate() {

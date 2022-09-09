@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater.CreateMetricUpdaterWithThrottling;
 import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater.CreateMetricUpdaterWithoutThrottling;
-import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
@@ -41,12 +40,12 @@ import static org.junit.Assert.fail;
  */
 public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
-    private CreateMetricUpdater cMUWithoutThrottling = new CreateMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE, DEFAULT),
+    private final CreateMetricUpdater cMUWithoutThrottling = new CreateMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE, DEFAULT),
             provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
             provider.getTimer(NODES_CREATE_TIMER, METRICS_ONLY),
             provider.getMeter(JOURNAL_CREATE, DEFAULT),
             provider.getTimer(JOURNAL_CREATE_TIMER, METRICS_ONLY));
-    private CreateMetricUpdater cMUWithThrottling = new CreateMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_WITH_THROTTLING, DEFAULT),
+    private final CreateMetricUpdater cMUWithThrottling = new CreateMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_WITH_THROTTLING, DEFAULT),
             provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, DEFAULT),
             provider.getTimer(NODES_CREATE_WITH_THROTTLING_TIMER, METRICS_ONLY),
             provider.getMeter(JOURNAL_CREATE_WITH_THROTTLING, DEFAULT),
@@ -142,21 +141,6 @@ public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
         cMUWithoutThrottling.update(JOURNAL, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithoutThrottling(0, 100);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        cMUWithoutThrottling = new CreateMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE, DEFAULT),
-                provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
-                provider.getTimer(NODES_CREATE_TIMER, METRICS_ONLY),
-                provider.getMeter(JOURNAL_CREATE, DEFAULT),
-                provider.getTimer(JOURNAL_CREATE_TIMER, METRICS_ONLY));
-
-        cMUWithThrottling = new CreateMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_WITH_THROTTLING, DEFAULT),
-                provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, DEFAULT),
-                provider.getTimer(NODES_CREATE_WITH_THROTTLING_TIMER, METRICS_ONLY),
-                provider.getMeter(JOURNAL_CREATE_WITH_THROTTLING, DEFAULT),
-                provider.getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER, METRICS_ONLY));
     }
 
     // helper methods

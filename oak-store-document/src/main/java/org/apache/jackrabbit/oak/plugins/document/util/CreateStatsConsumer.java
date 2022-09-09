@@ -22,9 +22,9 @@ import java.util.List;
 
 /**
  * {@link FunctionalInterface} to consume Metric Stats for create/upsert operation
- * @param <T>
- * @param <U>
- * @param <V>
+ * @param <T> the type of the first argument to the consumer
+ * @param <U> the type of the second argument to the consumer
+ * @param <V> the type of the third argument to the consumer
  */
 public interface CreateStatsConsumer<T, U, V> {
     void accept(T t, U u, V v, List<String> ids, long tTN);

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater.RemoveMetricUpdaterWithThrottling;
 import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater.RemoveMetricUpdaterWithoutThrottling;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -35,9 +34,9 @@ import static org.junit.Assert.fail;
  */
 public class RemoveMetricUpdaterTest extends BaseUpdaterTest {
 
-    private RemoveMetricUpdater rMUWithoutThrottling = new RemoveMetricUpdaterWithoutThrottling(provider.getMeter(NODES_REMOVE, DEFAULT),
+    private final RemoveMetricUpdater rMUWithoutThrottling = new RemoveMetricUpdaterWithoutThrottling(provider.getMeter(NODES_REMOVE, DEFAULT),
             provider.getTimer(NODES_REMOVE_TIMER, METRICS_ONLY));
-    private RemoveMetricUpdater rMUWithThrottling = new RemoveMetricUpdaterWithThrottling(provider.getMeter(NODES_REMOVE_WITH_THROTTLING, DEFAULT),
+    private final RemoveMetricUpdater rMUWithThrottling = new RemoveMetricUpdaterWithThrottling(provider.getMeter(NODES_REMOVE_WITH_THROTTLING, DEFAULT),
             provider.getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER, METRICS_ONLY));
 
     @Test(expected = NullPointerException.class)
@@ -73,14 +72,6 @@ public class RemoveMetricUpdaterTest extends BaseUpdaterTest {
 
         rMUWithoutThrottling.update(NODES, 1, 100, isNodesCollectionUpdated(), getStatsConsumer());
         assertWithoutThrottling(1, 100);
-    }
-
-    @Before
-    public void startUp() {
-        rMUWithoutThrottling = new RemoveMetricUpdaterWithoutThrottling(provider.getMeter(NODES_REMOVE, DEFAULT),
-                provider.getTimer(NODES_REMOVE_TIMER, METRICS_ONLY));
-        rMUWithThrottling = new RemoveMetricUpdaterWithThrottling(provider.getMeter(NODES_REMOVE_WITH_THROTTLING, DEFAULT),
-                provider.getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER, METRICS_ONLY));
     }
 
     // helper methods

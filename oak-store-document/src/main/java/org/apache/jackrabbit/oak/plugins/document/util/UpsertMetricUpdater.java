@@ -56,7 +56,9 @@ public abstract class UpsertMetricUpdater {
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(upsertStatsConsumer);
 
-        if (isNodesCollectionUpdated.negate().test(collection, ids.size())) {return;}
+        if (isNodesCollectionUpdated.negate().test(collection, ids.size())) {
+            return;
+        }
         upsertStatsConsumer.accept(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer, ids, timeTakenNanos);
     }
 

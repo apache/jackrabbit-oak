@@ -152,20 +152,6 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     private final TimerStats removeNodesTimer;
     private final MeterStats prefetchNodes;
     private final TimerStats prefetchNodesTimer;
-    private final MeterStats createSplitNodeWithThrottlingMeter;
-    private final MeterStats updateNodeRetryCountWithThrottlingMeter;
-    private final MeterStats updateNodeFailureWithThrottlingMeter;
-    private final MeterStats updateNodeWithThrottlingMeter;
-    private final TimerStats updateNodeWithThrottlingTimer;
-    private final MeterStats createNodeUpsertWithThrottlingMeter;
-    private final TimerStats createNodeUpsertWithThrottlingTimer;
-    private final MeterStats createNodeWithThrottlingMeter;
-    private final TimerStats createNodeWithThrottlingTimer;
-    private final MeterStats createJournalWithThrottling;
-    private final TimerStats createJournalWithThrottlingTimer;
-    private final MeterStats removeNodesWithThrottling;
-    private final TimerStats removeNodesWithThrottlingTimer;
-
     private final RemoveMetricUpdater removeMetricUpdaterWithoutThrottling;
     private final RemoveMetricUpdater removeMetricUpdaterWithThrottling;
     private final CreateMetricUpdater createMetricUpdaterWithoutThrottling;
@@ -219,25 +205,25 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         prefetchNodesTimer = provider.getTimer(NODES_PREFETCH_TIMER, StatsOptions.METRICS_ONLY);
 
         // metrics for throttling
-        createSplitNodeWithThrottlingMeter = provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, StatsOptions.DEFAULT);
+        MeterStats createSplitNodeWithThrottlingMeter = provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, StatsOptions.DEFAULT);
 
-        updateNodeFailureWithThrottlingMeter = provider.getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        updateNodeRetryCountWithThrottlingMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING, StatsOptions.DEFAULT);
+        MeterStats updateNodeFailureWithThrottlingMeter = provider.getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING, StatsOptions.DEFAULT);
+        MeterStats updateNodeRetryCountWithThrottlingMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING, StatsOptions.DEFAULT);
 
-        createNodeWithThrottlingMeter = provider.getMeter(NODES_CREATE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        createNodeWithThrottlingTimer = provider.getTimer(NODES_CREATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats createNodeWithThrottlingMeter = provider.getMeter(NODES_CREATE_WITH_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats createNodeWithThrottlingTimer = provider.getTimer(NODES_CREATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        createNodeUpsertWithThrottlingMeter = provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, StatsOptions.DEFAULT);
-        createNodeUpsertWithThrottlingTimer = provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats createNodeUpsertWithThrottlingMeter = provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats createNodeUpsertWithThrottlingTimer = provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        updateNodeWithThrottlingMeter = provider.getMeter(NODES_UPDATE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        updateNodeWithThrottlingTimer = provider.getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats updateNodeWithThrottlingMeter = provider.getMeter(NODES_UPDATE_WITH_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats updateNodeWithThrottlingTimer = provider.getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        createJournalWithThrottling = provider.getMeter(JOURNAL_CREATE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        createJournalWithThrottlingTimer = provider.getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats createJournalWithThrottling = provider.getMeter(JOURNAL_CREATE_WITH_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats createJournalWithThrottlingTimer = provider.getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        removeNodesWithThrottling = provider.getMeter(NODES_REMOVE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        removeNodesWithThrottlingTimer = provider.getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats removeNodesWithThrottling = provider.getMeter(NODES_REMOVE_WITH_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats removeNodesWithThrottlingTimer = provider.getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
         removeMetricUpdaterWithoutThrottling = new RemoveMetricUpdaterWithoutThrottling(removeNodes, removeNodesTimer);
         removeMetricUpdaterWithThrottling = new RemoveMetricUpdaterWithThrottling(removeNodesWithThrottling, removeNodesWithThrottlingTimer);

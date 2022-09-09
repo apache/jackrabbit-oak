@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -73,10 +72,6 @@ public class DocumentStoreStatsTest {
     public void shutDown(){
         statsProvider.close();
         new ExecutorCloser(executor).close();
-    }
-    @Before
-    public void startUp() {
-        stats = new DocumentStoreStats(statsProvider);
     }
 
     @Test

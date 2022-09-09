@@ -52,7 +52,9 @@ public abstract class RemoveMetricUpdater {
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(removeStatsConsumer);
 
-        if (isNodesCollectionUpdated.negate().test(collection, removeCount)) {return;}
+        if (isNodesCollectionUpdated.negate().test(collection, removeCount)) {
+            return;
+        }
         removeStatsConsumer.accept(removeNodes, removeNodesTimer, removeCount, timeTakenNanos);
     }
 

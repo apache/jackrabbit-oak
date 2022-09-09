@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 /**
  * {@link FunctionalInterface} to consume Metric Stats for update/remove operation
- * @param <T>
- * @param <U>
+ * @param <T> the type of the first argument to the consumer
+ * @param <U> the type of the second argument to the consumer
  */
 public interface StatsConsumer<T, U> {
     void accept(T t, U u, long c, long tTN);

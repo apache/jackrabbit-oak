@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater.UpsertMetricUpdaterWithThrottling;
 import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater.UpsertMetricUpdaterWithoutThrottling;
-import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
@@ -36,10 +35,10 @@ import static org.junit.Assert.fail;
  */
 public class UpsertMetricUpdaterTest extends BaseUpdaterTest {
 
-    private UpsertMetricUpdater uMUWithoutThrottling = new UpsertMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
+    private final UpsertMetricUpdater uMUWithoutThrottling = new UpsertMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
             provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
             provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY));
-    private UpsertMetricUpdater uMUWithThrottling = new UpsertMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
+    private final UpsertMetricUpdater uMUWithThrottling = new UpsertMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
             provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, DEFAULT),
             provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, METRICS_ONLY));
 
@@ -83,16 +82,6 @@ public class UpsertMetricUpdaterTest extends BaseUpdaterTest {
 
         uMUWithoutThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(), getCreateStatsConsumer());
         assertWithoutThrottling(1, 1, 100);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        uMUWithoutThrottling = new UpsertMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
-                provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
-                provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY));
-        uMUWithThrottling = new UpsertMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
-                provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, DEFAULT),
-                provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, METRICS_ONLY));
     }
 
     // helper methods
