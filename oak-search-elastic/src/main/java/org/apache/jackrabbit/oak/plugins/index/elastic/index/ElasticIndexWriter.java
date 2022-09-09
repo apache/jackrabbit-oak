@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
@@ -144,9 +145,10 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private void saveMetrics() {
         ElasticIndexNode indexNode = indexTracker.acquireIndexNode(indexDefinition.getIndexPath());
         if (indexNode != null) {
+            ElasticIndexStatistics stats = indexNode.getIndexStatistics();
             try {
                 indexTracker.getElasticMetricHandler().markDocuments(indexName, indexNode.getIndexStatistics().numDocs());
-                indexTracker.getElasticMetricHandler().markSize(indexName, indexNode.getIndexStatistics().size());
+                indexTracker.getElasticMetricHandler().markSize(indexName, stats.primaryStoreSize(), stats.storeSize());
             } catch (Exception e) {
                 LOG.warn("Unable to store metrics for {}", indexNode.getDefinition().getIndexPath(), e);
             } finally {
