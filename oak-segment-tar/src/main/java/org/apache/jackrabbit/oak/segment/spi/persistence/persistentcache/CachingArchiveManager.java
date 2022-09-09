@@ -47,12 +47,24 @@ public class CachingArchiveManager implements SegmentArchiveManager {
 
     @Override
     public @Nullable SegmentArchiveReader open(@NotNull String archiveName) throws IOException {
-        return new CachingSegmentArchiveReader(persistentCache, delegate.open(archiveName));
+        SegmentArchiveReader delegateArchiveReader = delegate.open(archiveName);
+
+        if (delegateArchiveReader != null) {
+            return new CachingSegmentArchiveReader(persistentCache, delegateArchiveReader);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public @Nullable SegmentArchiveReader forceOpen(String archiveName) throws IOException {
-        return new CachingSegmentArchiveReader(persistentCache, delegate.forceOpen(archiveName));
+        SegmentArchiveReader delegateArchiveReader = delegate.forceOpen(archiveName);
+
+        if (delegateArchiveReader != null) {
+            return new CachingSegmentArchiveReader(persistentCache, delegateArchiveReader);
+        } else {
+            return null;
+        }
     }
 
     @Override
