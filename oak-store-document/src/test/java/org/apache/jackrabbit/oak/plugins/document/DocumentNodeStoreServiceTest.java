@@ -19,13 +19,19 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.google.common.collect.Maps;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.internal.MongoClientImpl;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -187,6 +193,37 @@ public class DocumentNodeStoreServiceTest {
         assertTrue(dns.getNodeCachePredicate().apply(Path.fromString("/c/d/e")));
 
         assertFalse(dns.getNodeCachePredicate().apply(Path.fromString("/x")));
+    }
+
+    @Test
+    public void preset() throws Exception {
+        MockOsgi.setConfigForPid(context.bundleContext(),
+                Configuration.PRESET_PID,
+                DocumentNodeStoreServiceConfiguration.PROP_UPDATE_LIMIT, 145000);
+        MockOsgi.activate(preset, context.bundleContext());
+
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, newConfig(repoHome));
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
+        assertEquals(145000, store.getUpdateLimit());
+    }
+
+    @Test
+    public void presetOverride() throws Exception {
+        MockOsgi.setConfigForPid(context.bundleContext(),
+                Configuration.PRESET_PID,
+                DocumentNodeStoreServiceConfiguration.PROP_UPDATE_LIMIT, 123000);
+        MockOsgi.activate(preset, context.bundleContext());
+
+        Map<String, Object> config = newConfig(repoHome);
+        config.put(DocumentNodeStoreServiceConfiguration.PROP_UPDATE_LIMIT, 178000);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
+        assertEquals(178000, store.getUpdateLimit());
     }
 
     @Test

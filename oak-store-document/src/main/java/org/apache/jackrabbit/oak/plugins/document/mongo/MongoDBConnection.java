@@ -67,13 +67,13 @@ final class MongoDBConnection {
                                                   int socketTimeout) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientSettings.Builder options = MongoConnection.getDefaultBuilder();
-        options.applyToServerSettings((builder) -> {
-            builder.addServerMonitorListener(serverMonitorListener);
-        });
+        options.applyToServerSettings(builder ->
+            builder.addServerMonitorListener(serverMonitorListener)
+        );
         if (socketTimeout > 0) {
-            options.applyToSocketSettings((builder) -> {
-                builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
-            });
+            options.applyToSocketSettings(builder ->
+                builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS)
+            );
         }
         options.applyConnectionString(new ConnectionString(uri));
         MongoClient client = MongoClients.create(options.build());

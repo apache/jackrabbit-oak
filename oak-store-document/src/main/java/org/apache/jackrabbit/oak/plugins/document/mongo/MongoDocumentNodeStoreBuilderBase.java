@@ -97,10 +97,10 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
-     * Enables or disables the socket keep-alive option for MongoDB. The default
-     * is enabled.
+     * This method is now deprecated and has no effect. MongoDB keep-alive
+     * is always enabled.
      *
-     * @param enable whether to enable or disable it.
+     * @param enable this parameter has no effect.
      * @return this
      */
     @Deprecated

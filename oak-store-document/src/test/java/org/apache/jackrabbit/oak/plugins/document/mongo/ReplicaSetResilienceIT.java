@@ -218,10 +218,10 @@ public class ReplicaSetResilienceIT {
                 seeds.add(p.getAddress());
             }
             try (MongoClient c = MongoClients.create(MongoClientSettings.builder()
-                    .applyToClusterSettings((builder -> { builder
-                            .hosts(seeds)
-                            .requiredReplicaSetName("rs");
-                    })).build())) {
+                    .applyToClusterSettings(builder -> builder
+                        .hosts(seeds)
+                        .requiredReplicaSetName("rs"))
+                    .build())) {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
                     address = MongoConnection.getPrimaryAddress(c);

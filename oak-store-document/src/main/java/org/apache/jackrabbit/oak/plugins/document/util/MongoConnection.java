@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -33,10 +34,11 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import com.mongodb.event.ClusterListener;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoClusterListener;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,9 +79,7 @@ public class MongoConnection {
     public MongoConnection(String uri, MongoClientSettings.Builder builder)
             throws MongoException {
         mongoURI = new ConnectionString(uri);
-        // Local copy of the builder to avoid modifying it inside this method
-        MongoClientSettings.Builder builderCopy = MongoClientSettings.builder(builder.build());
-        mongo = MongoClients.create(builderCopy.applyConnectionString(mongoURI).build());
+        mongo = MongoClients.create(builder.applyConnectionString(mongoURI).build());
     }
 
     /**
@@ -156,24 +156,24 @@ public class MongoConnection {
     public static MongoClientSettings.Builder getDefaultBuilder() {
         return MongoClientSettings.builder()
                 .applicationName("Oak DocumentMK")
-                .applyToConnectionPoolSettings(builder -> {
-                    builder.maxWaitTime(DEFAULT_MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
-                })
-                .applyToServerSettings(builder -> {
-                    builder.heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS, TimeUnit.MILLISECONDS);
-                })
-                .applyToClusterSettings(builder -> {
-                    builder.addClusterListener(new MongoClusterListener());
-                });
+                .applyToConnectionPoolSettings(builder ->
+                    builder.maxWaitTime(DEFAULT_MAX_WAIT_TIME, MILLISECONDS)
+                )
+                .applyToServerSettings(builder ->
+                    builder.heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS, MILLISECONDS)
+                )
+                .applyToClusterSettings(builder ->
+                    builder.addClusterListener(new MongoClusterListener())
+                );
     }
 
     public static String toString(MongoClientSettings opts) {
         return Objects.toStringHelper(opts)
                 .add("connectionsPerHost", opts.getConnectionPoolSettings().getMaxSize())
-                .add("connectTimeout", opts.getSocketSettings().getConnectTimeout(TimeUnit.MILLISECONDS))
-                .add("socketTimeout", opts.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS))
-                .add("maxWaitTime", opts.getConnectionPoolSettings().getMaxWaitTime(TimeUnit.MILLISECONDS))
-                .add("heartbeatFrequency", opts.getServerSettings().getHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                .add("connectTimeout", opts.getSocketSettings().getConnectTimeout(MILLISECONDS))
+                .add("socketTimeout", opts.getSocketSettings().getReadTimeout(MILLISECONDS))
+                .add("maxWaitTime", opts.getConnectionPoolSettings().getMaxWaitTime(MILLISECONDS))
+                .add("heartbeatFrequency", opts.getServerSettings().getHeartbeatFrequency(MILLISECONDS))
                 .add("readPreference", opts.getReadPreference().getName())
                 .add("writeConcern", opts.getWriteConcern())
                 .toString();
@@ -335,12 +335,11 @@ public class MongoConnection {
      * @return {@code true} if part of Replica Set, {@code false} otherwise.
      */
     public static boolean isReplicaSet(@NotNull MongoClient client) {
-        MongoClusterListener listener = getOakClusterListener(client);
-        if (listener != null) {
-            return listener.isReplicaSet();
-        }
-        LOG.warn("Method isReplicaSet called for a MongoClient without any OakClusterListener!");
-        return false;
+        return getOakClusterListener(client).map(MongoClusterListener::isReplicaSet)
+                .orElseGet(() -> {
+                    LOG.warn("Method isReplicaSet called for a MongoClient without any OakClusterListener");
+                    return false;
+                });
     }
 
     /**
@@ -349,13 +348,13 @@ public class MongoConnection {
      * @param client the mongo client.
      * @return {@ServerAddress} of the cluster. {@null} if not connected or no listener was available.
      */
+    @Nullable
     public static ServerAddress getAddress(@NotNull MongoClient client) {
-        MongoClusterListener listener = getOakClusterListener(client);
-        if (listener != null) {
-            return listener.getServerAddress();
-        }
-        LOG.warn("Method getAddress called for a MongoClient without any OakClusterListener!");
-        return null;
+        return getOakClusterListener(client).map(MongoClusterListener::getServerAddress)
+                .orElseGet(() -> {
+                    LOG.warn("Method getAddress called for a MongoClient without any OakClusterListener");
+                    return null;
+                });
     }
 
     /**
@@ -364,21 +363,20 @@ public class MongoConnection {
      * @param client the mongo client.
      * @return {@ServerAddress} of the primary. {@null} if not connected or no listener was available.
      */
+    @Nullable
     public static ServerAddress getPrimaryAddress(@NotNull MongoClient client) {
-        MongoClusterListener listener = getOakClusterListener(client);
-        if (listener != null) {
-            return listener.getPrimaryAddress();
-        }
-        return null;
+        return getOakClusterListener(client).map(MongoClusterListener::getPrimaryAddress)
+                .orElseGet(() -> {
+                    LOG.warn("Method getPrimaryAddress called for a MongoClient without any OakClusterListener");
+                    return null;
+                });
     }
 
-    private static MongoClusterListener getOakClusterListener(@NotNull MongoClient client) {
-        for (ClusterListener clusterListener : client.getClusterDescription().getClusterSettings().getClusterListeners()) {
-            if (clusterListener instanceof MongoClusterListener) {
-                MongoClusterListener replClusterListener = (MongoClusterListener) clusterListener;
-                return replClusterListener;
-            }
-        }
-        return null;
+    private static Optional<MongoClusterListener> getOakClusterListener(@NotNull MongoClient client) {
+        return client.getClusterDescription().getClusterSettings()
+                .getClusterListeners().stream()
+                .filter(clusterListener -> clusterListener instanceof MongoClusterListener)
+                .map(clusterListener -> (MongoClusterListener) clusterListener)
+                .findFirst();
     }
 }

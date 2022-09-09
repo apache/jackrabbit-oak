@@ -23,6 +23,7 @@ import com.mongodb.event.ClusterDescriptionChangedEvent;
 import com.mongodb.event.ClusterListener;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -31,14 +32,14 @@ public class MongoClusterListener implements ClusterListener {
     // Sometimes we need to wait a few seconds in case the connection was just created, the listener
     // didn't have time to receive the description from the cluster. This latch is used to check
     // if the connection was properly initialized.
-    private final CountDownLatch LATCH;
-    private final int LATCH_AWAIT_TIMEOUT = 15;
+    private static final int LATCH_AWAIT_TIMEOUT = 15;
+    private final CountDownLatch latch;
     private boolean replicaSet = false;
     private ServerAddress serverAddress;
     private ServerAddress primaryAddress;
 
     public MongoClusterListener() {
-        LATCH = new CountDownLatch(1);
+        latch = new CountDownLatch(1);
     }
 
     @Nullable
@@ -60,23 +61,25 @@ public class MongoClusterListener implements ClusterListener {
 
     @Override
     public void clusterDescriptionChanged(final ClusterDescriptionChangedEvent event) {
-        for (ServerDescription sd : event.getNewDescription().getServerDescriptions()) {
-            if (sd.getState() == ServerConnectionState.CONNECTED) {
-                serverAddress = sd.getAddress();
-                primaryAddress = new ServerAddress(sd.getPrimary());
-                if (sd.isReplicaSetMember()) {
-                    // Can't assign directly the result of the function because in some cases the cluster
-                    // type is UNKNOWN, mainly when the cluster is changing it's PRIMARY.
-                    replicaSet = true;
-                }
-                LATCH.countDown();
+        Optional<ServerDescription> ol = event.getNewDescription().getServerDescriptions()
+                .stream().filter(s -> s.getState() == ServerConnectionState.CONNECTED)
+                .findFirst();
+        if (ol.isPresent()) {
+            ServerDescription sd = ol.get();
+            serverAddress = sd.getAddress();
+            primaryAddress = new ServerAddress(sd.getPrimary());
+            if (sd.isReplicaSetMember()) {
+                // Can't assign directly the result of the function because in some cases the cluster
+                // type is UNKNOWN, mainly when the cluster PRIMARY is changing.
+                replicaSet = true;
             }
+            latch.countDown();
         }
     }
 
     private void waitForLatch() {
         try {
-            LATCH.await(LATCH_AWAIT_TIMEOUT, TimeUnit.SECONDS);
+            latch.await(LATCH_AWAIT_TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException e) {}
     }
 }

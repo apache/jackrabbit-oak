@@ -147,8 +147,8 @@ public class MongodProcessFactory extends ExternalResource {
         }
         Document config = new Document("_id", rs);
         config.append("members", members);
-        ConnectionString mongoURI = new ConnectionString(localhost());
-        try (MongoClient c = MongoClients.create(localhost())) {
+        ConnectionString mongoURI = new ConnectionString(localhost(ports[0]));
+        try (MongoClient c = MongoClients.create(mongoURI)) {
             c.getDatabase("admin").runCommand(
                     new Document("replSetInitiate", config));
         }

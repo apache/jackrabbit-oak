@@ -64,6 +64,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -188,7 +189,7 @@ public class DataStoreCheckCommand implements Command {
             NodeStore nodeStore = null;
             if (options.has(store)) {
                 String source = options.valueOf(store);
-                if (source.startsWith(MongoConnection.MONGODB_PREFIX)) {
+                if (StringUtils.startsWith(source, MongoConnection.MONGODB_PREFIX)) {
                     ConnectionString uri = new ConnectionString(source);
                     MongoClient client = MongoClients.create(uri);
                     DocumentNodeStore docNodeStore =

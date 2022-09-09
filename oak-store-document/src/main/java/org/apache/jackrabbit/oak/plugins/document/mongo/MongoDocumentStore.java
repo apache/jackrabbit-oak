@@ -1927,13 +1927,13 @@ public class MongoDocumentStore implements DocumentStore {
             ConnectionString uri = new ConnectionString(rwModeUri);
             ReadPreference readPref = uri.getReadPreference();
 
-            if (!readPref.equals(nodes.getReadPreference())) {
+            if (Objects.nonNull(readPref) && !Objects.equals(readPref, nodes.getReadPreference())) {
                 nodes = nodes.withReadPreference(readPref);
                 LOG.info("Using ReadPreference {} ", readPref);
             }
 
             WriteConcern writeConcern = uri.getWriteConcern();
-            if (!writeConcern.equals(nodes.getWriteConcern())) {
+            if (Objects.nonNull(writeConcern) && !Objects.equals(writeConcern, nodes.getWriteConcern())) {
                 nodes = nodes.withWriteConcern(writeConcern);
                 LOG.info("Using WriteConcern " + writeConcern);
             }
