@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
@@ -169,6 +170,7 @@ public class RecoveryTest extends AbstractTwoNodeTest {
     }
 
     @Test
+    @Ignore(value = "Causes OOM on travis and local as well for 1.8 branch")
     public void recoverLargeBranch() throws Exception {
         // only run this on memory fixture, others take too long
         assumeTrue(fixture instanceof MemoryFixture);
