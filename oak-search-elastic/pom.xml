@@ -33,7 +33,7 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.version>7.17.3</elasticsearch.version>
+    <elasticsearch.version>7.17.6</elasticsearch.version>
   </properties>
 
   <build>

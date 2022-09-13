@@ -32,14 +32,12 @@
     <!--
     <logger name="org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPerfTest" level="TRACE"/>
     -->
-    <!--
-    <logger name="org.apache.jackrabbit.oak.plugins.index.elastic" level="TRACE" />
-    -->
+
+<!--    <logger name="org.apache.jackrabbit.oak.plugins.index.elastic" level="TRACE" />-->
+    <logger name="org.apache.jackrabbit.oak.plugins.index" level="TRACE" />
 
     <root level="INFO">
-        <!--
         <appender-ref ref="console"/>
-        -->
         <appender-ref ref="file"/>
     </root>
 

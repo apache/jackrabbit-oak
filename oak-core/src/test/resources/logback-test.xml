@@ -29,10 +29,8 @@
     </encoder>
 </appender>
 
-<root level="INFO">
-    <!--
+<root level="TRACE">
     <appender-ref ref="console"/>
-    -->
     <appender-ref ref="file"/>
 </root>
 
