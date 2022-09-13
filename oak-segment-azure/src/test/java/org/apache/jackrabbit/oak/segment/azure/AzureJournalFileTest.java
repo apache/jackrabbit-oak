@@ -20,8 +20,11 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import java.util.stream.IntStream;
+import org.apache.commons.lang3.time.StopWatch;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -32,6 +35,8 @@ import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.google.common.collect.Lists.reverse;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -69,11 +74,7 @@ public class AzureJournalFileTest {
         index = writeNLines(index, 100); // 160
         assertEquals(4, countJournalBlobs());
 
-        try (JournalFileReader reader = journal.openJournalReader()) {
-            for (int i = index - 1; i >= 0; i--) {
-                assertEquals("line " + i, reader.readLine());
-            }
-        }
+        assertJournalEntriesCount(index);
     }
 
     private int countJournalBlobs() throws URISyntaxException, StorageException {
@@ -99,15 +100,94 @@ public class AzureJournalFileTest {
     public void testTruncateJournalFile() throws IOException {
         assertFalse(journal.exists());
 
-        JournalFileWriter writer = journal.openJournalWriter();
-        for (int i = 0; i < 100; i++) {
-            writer.writeLine("line " + i);
+        List<String> lines = buildLines(0, 100);
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(lines);
         }
 
         assertTrue(journal.exists());
+        assertJournalEntriesCount(100);
 
-        writer.truncate();
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.truncate();
+        }
 
         assertTrue(journal.exists());
+        assertJournalEntriesCount(0);
+    }
+
+    @Test
+    public void testBatchWriteLines() throws IOException {
+        int lineCount = 5000;
+        List<String> lines = buildLines(0, lineCount);
+
+        StopWatch watch = StopWatch.createStarted();
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(lines);
+        }
+        watch.stop();
+
+        List<String> entries = readEntriesFromJournal();
+        assertEquals(lines, reverse(entries));
+        long elapsedTime = watch.getTime();
+        // elapsed time should be less than 100ms, but giving max 2s to execute if in constrained environment, e.g. Jenkins.
+        assertTrue("batchWriteLines() should be fast (<2s), but took too long (" + elapsedTime + "s)", elapsedTime < 2000);
+    }
+
+    @Test
+    public void testBatchWriteLines_splitJournalFile() throws Exception {
+        assertFalse(journal.exists());
+
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(buildLines(0, 30)); // 30
+        }
+        assertTrue(journal.exists());
+        assertEquals(1, countJournalBlobs());
+
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(buildLines(30, 40)); // 70
+        }
+        assertEquals(2, countJournalBlobs());
+
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(buildLines(70, 30)); // 100
+        }
+        assertEquals(2, countJournalBlobs());
+
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(buildLines(100, 1)); // 101
+        }
+        assertEquals(3, countJournalBlobs());
+        
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(buildLines(101, 100)); // 201
+        }
+        assertEquals(5, countJournalBlobs());
+
+        assertJournalEntriesCount(201);
+    }
+
+    private void assertJournalEntriesCount(int index) throws IOException {
+        List<String> entries = readEntriesFromJournal();
+        assertEquals(buildLines(0, index), reverse(entries));
+    }
+    
+    @NotNull
+    private static List<String> buildLines(int start, int count) {
+        return IntStream.range(start, count + start)
+            .mapToObj(i -> "line " + i)
+            .collect(toList());
+    }
+
+    @NotNull
+    private List<String> readEntriesFromJournal() throws IOException {
+        List<String> result = new ArrayList<>();
+        try (JournalFileReader reader = journal.openJournalReader()) {
+            String entry;
+            while ((entry = reader.readLine()) != null) {
+                result.add(entry);
+            }
+        }
+        return result;
     }
 }
