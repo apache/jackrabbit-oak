@@ -47,4 +47,10 @@ public class MongoDocumentNodeStoreBuilderTest {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getDocStoreThrottlingFeature());
     }
+
+    @Test
+    public void collectionCompressionDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getCollectionCompressionType());
+    }
 }
