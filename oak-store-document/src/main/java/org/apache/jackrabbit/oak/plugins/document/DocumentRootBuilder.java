@@ -180,4 +180,12 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         updates = 0;
     }
 
+    /**
+     * For test purposes only!
+     */
+    void persist() {
+        purge();
+        branch.persist();
+    }
+
 }
