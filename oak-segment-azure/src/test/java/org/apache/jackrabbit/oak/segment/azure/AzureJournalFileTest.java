@@ -20,6 +20,7 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -129,9 +130,9 @@ public class AzureJournalFileTest {
 
         List<String> entries = readEntriesFromJournal();
         assertEquals(lines, reverse(entries));
-        long elapsedTime = watch.getTime();
-        // elapsed time should be less than 100ms, but giving max 2s to execute if in constrained environment, e.g. Jenkins.
-        assertTrue("batchWriteLines() should be fast (<2s), but took too long (" + elapsedTime + "s)", elapsedTime < 2000);
+        long elapsedTime = watch.getTime(TimeUnit.SECONDS);
+        // elapsed time should be less than 100ms on local machine, but giving 20s to execute if in constrained environment, e.g. Jenkins.
+        assertTrue("batchWriteLines() should be fast (<20s), but took too long (" + elapsedTime + "s)", elapsedTime <= 20);
     }
 
     @Test
