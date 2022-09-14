@@ -32,11 +32,11 @@ import java.util.function.Predicate;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Abstract class to update the metrics for {@link DocumentStoreStatsCollector#doneFindAndModify(long, Collection, String, boolean, boolean, int)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneFindAndModify(long, Collection, String, boolean, boolean, int)} for underlying {@link DocumentStore}
  *
- * <p>Concrete implementations provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
  */
-public abstract class ModifyMetricUpdater {
+public final class ModifyMetricUpdater {
 
     private final MeterStats createNodeUpsertMeter;
     private final TimerStats createNodeUpsertTimer;
@@ -62,14 +62,14 @@ public abstract class ModifyMetricUpdater {
     public void update(final Collection<? extends Document> collection, final int retryCount,
                        final long timeTakenNanos, final boolean isSuccess, final boolean  newEntry,
                        final Predicate<Collection<? extends Document>> isNodesCollection,
-                       final StatsConsumer<MeterStats, TimerStats> createStatsConsumer,
-                       final StatsConsumer<MeterStats, TimerStats> updateStatsConsumer,
+                       final BiStatsConsumer createBiStatsConsumer,
+                       final BiStatsConsumer updateBiStatsConsumer,
                        final ObjIntConsumer<MeterStats> retryNodesConsumer,
                        final Consumer<MeterStats> failureNodesConsumer) {
 
         requireNonNull(isNodesCollection);
-        requireNonNull(createStatsConsumer);
-        requireNonNull(updateStatsConsumer);
+        requireNonNull(createBiStatsConsumer);
+        requireNonNull(updateBiStatsConsumer);
         requireNonNull(retryNodesConsumer);
         requireNonNull(failureNodesConsumer);
 
@@ -79,40 +79,14 @@ public abstract class ModifyMetricUpdater {
 
         if (isSuccess) {
             if (newEntry) {
-                createStatsConsumer.accept(createNodeUpsertMeter, createNodeUpsertTimer, 1, timeTakenNanos);
+                createBiStatsConsumer.accept(createNodeUpsertMeter, createNodeUpsertTimer, 1, timeTakenNanos);
             } else {
-                updateStatsConsumer.accept(updateNodeMeter, updateNodeTimer, 1, timeTakenNanos);
+                updateBiStatsConsumer.accept(updateNodeMeter, updateNodeTimer, 1, timeTakenNanos);
             }
             if (retryCount > 0) retryNodesConsumer.accept(updateNodeRetryCountMeter, retryCount);
         } else {
             retryNodesConsumer.accept(updateNodeRetryCountMeter, retryCount);
             failureNodesConsumer.accept(updateNodeFailureMeter);
-        }
-    }
-
-    public static class ModifyMetricUpdaterWithoutThrottling extends ModifyMetricUpdater {
-
-        public ModifyMetricUpdaterWithoutThrottling(final MeterStats createNodeUpsertMeter,
-                                                    final TimerStats createNodeUpsertTimer,
-                                                    final MeterStats updateNodeMeter,
-                                                    final TimerStats updateNodeTimer,
-                                                    final MeterStats updateNodeRetryCountMeter,
-                                                    final MeterStats updateNodeFailureMeter) {
-            super(createNodeUpsertMeter, createNodeUpsertTimer, updateNodeMeter, updateNodeTimer, updateNodeRetryCountMeter,
-                    updateNodeFailureMeter);
-        }
-    }
-
-    public static class ModifyMetricUpdaterWithThrottling extends ModifyMetricUpdater {
-
-        public ModifyMetricUpdaterWithThrottling(final MeterStats createNodeUpsertMeter,
-                                                 final TimerStats createNodeUpsertTimer,
-                                                 final MeterStats updateNodeMeter,
-                                                 final TimerStats updateNodeTimer,
-                                                 final MeterStats updateNodeRetryCountMeter,
-                                                 final MeterStats updateNodeFailureMeter) {
-            super(createNodeUpsertMeter, createNodeUpsertTimer, updateNodeMeter, updateNodeTimer, updateNodeRetryCountMeter,
-                    updateNodeFailureMeter);
         }
     }
 }

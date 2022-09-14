@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
+
 import java.util.List;
 
 /**
@@ -26,6 +29,17 @@ import java.util.List;
  * @param <U> the type of the second argument to the consumer
  * @param <V> the type of the third argument to the consumer
  */
-public interface CreateStatsConsumer<T, U, V> {
-    void accept(T t, U u, V v, List<String> ids, long tTN);
+public interface TriStatsConsumer {
+
+    /**
+     * To consume stats for given operation
+     *
+     * @param meterStats1 Instance of {@link MeterStats}, to collect occurrence of operation
+     * @param meterStats2 Instance of {@link MeterStats}, to collect occurrence of operation
+     * @param timerStats Instance of {@link TimerStats}, to record operation duration
+     * @param ids Ids of nodes updated/created during operation
+     * @param tTN time taken to perform the operation (in nanos)
+     */
+    void accept(final MeterStats meterStats1, final MeterStats meterStats2, final TimerStats timerStats,
+                final List<String> ids, final long tTN);
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater.UpsertMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater.UpsertMetricUpdaterWithoutThrottling;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
@@ -35,12 +33,12 @@ import static org.junit.Assert.fail;
  */
 public class UpsertMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final UpsertMetricUpdater uMUWithoutThrottling = new UpsertMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
+    private final UpsertMetricUpdater uMUWithoutThrottling = new UpsertMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
             provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
             provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY));
-    private final UpsertMetricUpdater uMUWithThrottling = new UpsertMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
-            provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, METRICS_ONLY));
+    private final UpsertMetricUpdater uMUWithThrottling = new UpsertMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, DEFAULT),
+            provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, DEFAULT),
+            provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY));
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullPredicate() {
@@ -86,9 +84,9 @@ public class UpsertMetricUpdaterTest extends BaseUpdaterTest {
 
     // helper methods
     private void assertWithThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {
-        assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
-        assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
-        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
+        assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT_THROTTLING).getCount());
+        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
     }
 
     private void assertWithoutThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {

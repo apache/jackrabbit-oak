@@ -27,19 +27,11 @@ import javax.management.openmbean.CompositeData;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater;
-import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater.CreateMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater.CreateMetricUpdaterWithoutThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.CreateStatsConsumer;
-import org.apache.jackrabbit.oak.plugins.document.util.StatsConsumer;
+import org.apache.jackrabbit.oak.plugins.document.util.TriStatsConsumer;
+import org.apache.jackrabbit.oak.plugins.document.util.BiStatsConsumer;
 import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater;
-import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater.UpsertMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater.UpsertMetricUpdaterWithoutThrottling;
 import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater;
-import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater.ModifyMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater.ModifyMetricUpdaterWithoutThrottling;
 import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater;
-import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater.RemoveMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater.RemoveMetricUpdaterWithoutThrottling;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -105,19 +97,19 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     static final String JOURNAL_CREATE = "DOCUMENT_JOURNAL_CREATE";
     static final String JOURNAL_QUERY_TIMER = "DOCUMENT_JOURNAL_QUERY_TIMER";
     static final String JOURNAL_CREATE_TIMER = "DOCUMENT_JOURNAL_CREATE_TIMER";
-    static final String NODES_CREATE_SPLIT_WITH_THROTTLING = "DOCUMENT_NODES_CREATE_SPLIT_WITH_THROTTLING";
-    static final String NODES_UPDATE_FAILURE_WITH_THROTTLING = "DOCUMENT_NODES_UPDATE_FAILURE_WITH_THROTTLING";
-    static final String NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING = "DOCUMENT_NODES_UPDATE_RETRY_WITH_THROTTLING";
-    static final String NODES_CREATE_UPSERT_WITH_THROTTLING = "DOCUMENT_NODES_CREATE_UPSERT_WITH_THROTTLING";
-    static final String NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER = "DOCUMENT_NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER";
-    static final String NODES_CREATE_WITH_THROTTLING = "DOCUMENT_NODES_CREATE_WITH_THROTTLING";
-    static final String NODES_CREATE_WITH_THROTTLING_TIMER = "DOCUMENT_NODES_CREATE_WITH_THROTTLING_TIMER";
-    static final String NODES_UPDATE_WITH_THROTTLING = "DOCUMENT_NODES_UPDATE_WITH_THROTTLING";
-    static final String NODES_UPDATE_WITH_THROTTLING_TIMER = "DOCUMENT_NODES_UPDATE_WITH_THROTTLING_TIMER";
-    static final String NODES_REMOVE_WITH_THROTTLING = "DOCUMENT_NODES_REMOVE_WITH_THROTTLING";
-    static final String NODES_REMOVE_WITH_THROTTLING_TIMER = "DOCUMENT_NODES_REMOVE_WITH_THROTTLING_TIMER";
-    static final String JOURNAL_CREATE_WITH_THROTTLING = "DOCUMENT_JOURNAL_CREATE_WITH_THROTTLING";
-    static final String JOURNAL_CREATE_WITH_THROTTLING_TIMER = "DOCUMENT_JOURNAL_CREATE_WITH_THROTTLING_TIMER";
+    static final String NODES_CREATE_SPLIT_THROTTLING = "DOCUMENT_NODES_CREATE_SPLIT_THROTTLING";
+    static final String NODES_UPDATE_FAILURE_THROTTLING = "DOCUMENT_NODES_UPDATE_FAILURE_THROTTLING";
+    static final String NODES_UPDATE_RETRY_COUNT_THROTTLING = "DOCUMENT_NODES_UPDATE_RETRY_THROTTLING";
+    static final String NODES_CREATE_UPSERT_THROTTLING = "DOCUMENT_NODES_CREATE_UPSERT_THROTTLING";
+    static final String NODES_CREATE_UPSERT_THROTTLING_TIMER = "DOCUMENT_NODES_CREATE_UPSERT_THROTTLING_TIMER";
+    static final String NODES_CREATE_THROTTLING = "DOCUMENT_NODES_CREATE_THROTTLING";
+    static final String NODES_CREATE_THROTTLING_TIMER = "DOCUMENT_NODES_CREATE_THROTTLING_TIMER";
+    static final String NODES_UPDATE_THROTTLING = "DOCUMENT_NODES_UPDATE_THROTTLING";
+    static final String NODES_UPDATE_THROTTLING_TIMER = "DOCUMENT_NODES_UPDATE_THROTTLING_TIMER";
+    static final String NODES_REMOVE_THROTTLING = "DOCUMENT_NODES_REMOVE_THROTTLING";
+    static final String NODES_REMOVE_THROTTLING_TIMER = "DOCUMENT_NODES_REMOVE_THROTTLING_TIMER";
+    static final String JOURNAL_CREATE_THROTTLING = "DOCUMENT_JOURNAL_CREATE_THROTTLING";
+    static final String JOURNAL_CREATE_THROTTLING_TIMER = "DOCUMENT_JOURNAL_CREATE_THROTTLING_TIMER";
 
 
     private final MeterStats findNodesCachedMeter;
@@ -152,14 +144,14 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     private final TimerStats removeNodesTimer;
     private final MeterStats prefetchNodes;
     private final TimerStats prefetchNodesTimer;
-    private final RemoveMetricUpdater removeMetricUpdaterWithoutThrottling;
-    private final RemoveMetricUpdater removeMetricUpdaterWithThrottling;
-    private final CreateMetricUpdater createMetricUpdaterWithoutThrottling;
-    private final CreateMetricUpdater createMetricUpdaterWithThrottling;
-    private final UpsertMetricUpdater upsertMetricUpdaterWithoutThrottling;
-    private final UpsertMetricUpdater upsertMetricUpdaterWithThrottling;
-    private final ModifyMetricUpdater modifyMetricUpdaterWithoutThrottling;
-    private final ModifyMetricUpdater modifyMetricUpdaterWithThrottling;
+    private final RemoveMetricUpdater removeMetricUpdater;
+    private final RemoveMetricUpdater removeMetricUpdaterThrottling;
+    private final CreateMetricUpdater createMetricUpdater;
+    private final CreateMetricUpdater createMetricUpdaterThrottling;
+    private final UpsertMetricUpdater upsertMetricUpdater;
+    private final UpsertMetricUpdater upsertMetricUpdaterThrottling;
+    private final ModifyMetricUpdater modifyMetricUpdater;
+    private final ModifyMetricUpdater modifyMetricUpdaterThrottling;
     private Throttler throttler = NO_THROTTLING;
 
     public DocumentStoreStats(StatisticsProvider provider) {
@@ -205,39 +197,39 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         prefetchNodesTimer = provider.getTimer(NODES_PREFETCH_TIMER, StatsOptions.METRICS_ONLY);
 
         // metrics for throttling
-        MeterStats createSplitNodeWithThrottlingMeter = provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, StatsOptions.DEFAULT);
+        MeterStats createSplitNodeThrottlingMeter = provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, StatsOptions.DEFAULT);
 
-        MeterStats updateNodeFailureWithThrottlingMeter = provider.getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        MeterStats updateNodeRetryCountWithThrottlingMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING, StatsOptions.DEFAULT);
+        MeterStats updateNodeFailureThrottlingMeter = provider.getMeter(NODES_UPDATE_FAILURE_THROTTLING, StatsOptions.DEFAULT);
+        MeterStats updateNodeRetryCountThrottlingMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING, StatsOptions.DEFAULT);
 
-        MeterStats createNodeWithThrottlingMeter = provider.getMeter(NODES_CREATE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        TimerStats createNodeWithThrottlingTimer = provider.getTimer(NODES_CREATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats createNodeThrottlingMeter = provider.getMeter(NODES_CREATE_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats createNodeThrottlingTimer = provider.getTimer(NODES_CREATE_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        MeterStats createNodeUpsertWithThrottlingMeter = provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, StatsOptions.DEFAULT);
-        TimerStats createNodeUpsertWithThrottlingTimer = provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats createNodeUpsertThrottlingMeter = provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats createNodeUpsertThrottlingTimer = provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        MeterStats updateNodeWithThrottlingMeter = provider.getMeter(NODES_UPDATE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        TimerStats updateNodeWithThrottlingTimer = provider.getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats updateNodeThrottlingMeter = provider.getMeter(NODES_UPDATE_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats updateNodeThrottlingTimer = provider.getTimer(NODES_UPDATE_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        MeterStats createJournalWithThrottling = provider.getMeter(JOURNAL_CREATE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        TimerStats createJournalWithThrottlingTimer = provider.getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats createJournalThrottling = provider.getMeter(JOURNAL_CREATE_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats createJournalThrottlingTimer = provider.getTimer(JOURNAL_CREATE_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        MeterStats removeNodesWithThrottling = provider.getMeter(NODES_REMOVE_WITH_THROTTLING, StatsOptions.DEFAULT);
-        TimerStats removeNodesWithThrottlingTimer = provider.getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
+        MeterStats removeNodesThrottling = provider.getMeter(NODES_REMOVE_THROTTLING, StatsOptions.DEFAULT);
+        TimerStats removeNodesThrottlingTimer = provider.getTimer(NODES_REMOVE_THROTTLING_TIMER, StatsOptions.METRICS_ONLY);
 
-        removeMetricUpdaterWithoutThrottling = new RemoveMetricUpdaterWithoutThrottling(removeNodes, removeNodesTimer);
-        removeMetricUpdaterWithThrottling = new RemoveMetricUpdaterWithThrottling(removeNodesWithThrottling, removeNodesWithThrottlingTimer);
+        removeMetricUpdater = new RemoveMetricUpdater(removeNodes, removeNodesTimer);
+        removeMetricUpdaterThrottling = new RemoveMetricUpdater(removeNodesThrottling, removeNodesThrottlingTimer);
 
-        createMetricUpdaterWithoutThrottling = new CreateMetricUpdaterWithoutThrottling(createNodeMeter, createSplitNodeMeter, createNodeTimer, createJournal, createJournalTimer);
-        createMetricUpdaterWithThrottling = new CreateMetricUpdaterWithThrottling(createNodeWithThrottlingMeter, createSplitNodeWithThrottlingMeter, createNodeWithThrottlingTimer, createJournalWithThrottling,
-                createJournalWithThrottlingTimer);
+        createMetricUpdater = new CreateMetricUpdater(createNodeMeter, createSplitNodeMeter, createNodeTimer, createJournal, createJournalTimer);
+        createMetricUpdaterThrottling = new CreateMetricUpdater(createNodeThrottlingMeter, createSplitNodeThrottlingMeter, createNodeThrottlingTimer, createJournalThrottling,
+                createJournalThrottlingTimer);
 
-        upsertMetricUpdaterWithoutThrottling = new UpsertMetricUpdaterWithoutThrottling(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer);
-        upsertMetricUpdaterWithThrottling = new UpsertMetricUpdaterWithThrottling(createNodeUpsertWithThrottlingMeter, createSplitNodeWithThrottlingMeter, createNodeUpsertWithThrottlingTimer);
+        upsertMetricUpdater = new UpsertMetricUpdater(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer);
+        upsertMetricUpdaterThrottling = new UpsertMetricUpdater(createNodeUpsertThrottlingMeter, createSplitNodeThrottlingMeter, createNodeUpsertThrottlingTimer);
 
-        modifyMetricUpdaterWithoutThrottling = new ModifyMetricUpdaterWithoutThrottling(createNodeUpsertMeter, createNodeUpsertTimer, updateNodeMeter, updateNodeTimer, updateNodeRetryCountMeter, updateNodeFailureMeter);
-        modifyMetricUpdaterWithThrottling = new ModifyMetricUpdaterWithThrottling(createNodeUpsertWithThrottlingMeter, createNodeUpsertWithThrottlingTimer, updateNodeWithThrottlingMeter, updateNodeWithThrottlingTimer,
-                updateNodeRetryCountWithThrottlingMeter, updateNodeFailureWithThrottlingMeter);
+        modifyMetricUpdater = new ModifyMetricUpdater(createNodeUpsertMeter, createNodeUpsertTimer, updateNodeMeter, updateNodeTimer, updateNodeRetryCountMeter, updateNodeFailureMeter);
+        modifyMetricUpdaterThrottling = new ModifyMetricUpdater(createNodeUpsertThrottlingMeter, createNodeUpsertThrottlingTimer, updateNodeThrottlingMeter, updateNodeThrottlingTimer,
+                updateNodeRetryCountThrottlingMeter, updateNodeFailureThrottlingMeter);
     }
 
     //~------------------------------------------< DocumentStoreStatsCollector >
@@ -316,10 +308,15 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     public void doneCreate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess) {
 
         final long throttlingTime = throttler.throttlingTime();
-        final CreateMetricUpdater createMetricUpdater = throttlingTime > 0 ? createMetricUpdaterWithThrottling : createMetricUpdaterWithoutThrottling;
 
-        createMetricUpdater.update(collection, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS), ids, insertSuccess,
-                isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        // only run if we are currently throttling
+        if (throttlingTime > 0) {
+            createMetricUpdaterThrottling.update(collection, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS), ids, insertSuccess,
+                    isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        }
+
+        createMetricUpdater.update(collection, timeTakenNanos, ids, insertSuccess, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL,
+                getJournalStatsConsumer());
 
         perfLog(timeTakenNanos, "create");
     }
@@ -328,10 +325,14 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     public void doneCreateOrUpdate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids) {
 
         final long throttlingTime = throttler.throttlingTime();
-        final UpsertMetricUpdater upsertMetricUpdater = throttlingTime > 0 ? upsertMetricUpdaterWithThrottling : upsertMetricUpdaterWithoutThrottling;
 
-        upsertMetricUpdater.update(collection, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS), ids,
-                isNodesCollectionUpdated(), getCreateStatsConsumer());
+        // only run if we are currently throttling
+        if (throttlingTime > 0) {
+            upsertMetricUpdaterThrottling.update(collection, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS), ids,
+                    isNodesCollectionUpdated(), getCreateStatsConsumer());
+        }
+
+        upsertMetricUpdater.update(collection, timeTakenNanos, ids, isNodesCollectionUpdated(), getCreateStatsConsumer());
 
         perfLog(timeTakenNanos, "createOrUpdate {}", ids);
     }
@@ -341,10 +342,15 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
                                   boolean success, int retryCount) {
 
         final long throttlingTime = throttler.throttlingTime();
-        final ModifyMetricUpdater modifyMetricUpdater = throttlingTime > 0 ? modifyMetricUpdaterWithThrottling : modifyMetricUpdaterWithoutThrottling;
 
-        modifyMetricUpdater.update(collection, retryCount, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS), success, newEntry,
-            c -> c == NODES, getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        // only run if we are currently throttling
+        if (throttlingTime > 0) {
+            modifyMetricUpdaterThrottling.update(collection, retryCount, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS), success, newEntry,
+                    c -> c == NODES, getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        }
+
+        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, newEntry, c -> c == NODES, getStatsConsumer(), getStatsConsumer(),
+                MeterStats::mark, MeterStats::mark);
 
         perfLog(timeTakenNanos, "findAndModify [{}]", key);
     }
@@ -353,10 +359,14 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     public void doneRemove(long timeTakenNanos, Collection<? extends Document> collection, int removeCount) {
 
         final long throttlingTime = throttler.throttlingTime();
-        final RemoveMetricUpdater removeMetricUpdater = throttlingTime > 0 ? removeMetricUpdaterWithThrottling : removeMetricUpdaterWithoutThrottling;
 
-        removeMetricUpdater.update(collection, removeCount, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS),
-                isNodesCollectionUpdated(), getStatsConsumer());
+        // only run if we are currently throttling
+        if (throttlingTime > 0) {
+            removeMetricUpdaterThrottling.update(collection, removeCount, getTotalTimeTakenNanos(timeTakenNanos, throttlingTime, MILLISECONDS),
+                    isNodesCollectionUpdated(), getStatsConsumer());
+        }
+
+        removeMetricUpdater.update(collection, removeCount, timeTakenNanos, isNodesCollectionUpdated(), getStatsConsumer());
 
         perfLog(timeTakenNanos, "remove [{}]", removeCount);
     }
@@ -552,7 +562,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
     @NotNull
     @VisibleForTesting
-    public static StatsConsumer<MeterStats, TimerStats> getStatsConsumer() {
+    public static BiStatsConsumer getStatsConsumer() {
         return (cJ, cJT, count, tTN) -> {
             cJ.mark(count);
             cJT.update(tTN / count, NANOSECONDS);
@@ -561,7 +571,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
     @NotNull
     @VisibleForTesting
-    public static StatsConsumer<MeterStats, TimerStats> getJournalStatsConsumer() {
+    public static BiStatsConsumer getJournalStatsConsumer() {
         return (cJ, cJT, count, tTN) -> {
             cJ.mark(count);
             cJT.update(tTN, NANOSECONDS);
@@ -570,7 +580,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
     @NotNull
     @VisibleForTesting
-    public static CreateStatsConsumer<MeterStats, MeterStats, TimerStats> getCreateStatsConsumer() {
+    public static TriStatsConsumer getCreateStatsConsumer() {
         return (cNUM, cSNM, cNUT, ids1, tTN) -> {
             for (String id : ids1) {
                 cNUM.mark();

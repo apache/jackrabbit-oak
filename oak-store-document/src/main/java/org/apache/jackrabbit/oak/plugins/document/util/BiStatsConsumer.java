@@ -18,11 +18,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
+
 /**
  * {@link FunctionalInterface} to consume Metric Stats for update/remove operation
- * @param <T> the type of the first argument to the consumer
- * @param <U> the type of the second argument to the consumer
  */
-public interface StatsConsumer<T, U> {
-    void accept(T t, U u, long c, long tTN);
+public interface BiStatsConsumer {
+
+    /**
+     * To consume stats for given operation
+     *
+     * @param meterStats Instance of {@link MeterStats}, to collect occurrence of operation
+     * @param timerStats Instance of {@link TimerStats}, to record operation duration
+     * @param c count of updated ids
+     * @param tTN time taken to perform the operation (in nanos)
+     */
+    void accept(final MeterStats meterStats, final TimerStats timerStats, final long c, final long tTN);
 }

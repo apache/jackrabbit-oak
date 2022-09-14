@@ -32,11 +32,11 @@ import java.util.function.Predicate;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Abstract class to update the metrics for {@link DocumentStoreStatsCollector#doneCreate(long, Collection, List, boolean)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneCreate(long, Collection, List, boolean)} for underlying {@link DocumentStore}
  *
- * <p>Concrete implementations provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
  */
-public abstract class CreateMetricUpdater {
+public final class CreateMetricUpdater {
 
     private final MeterStats createNodeMeter;
     private final MeterStats createSplitNodeMeter;
@@ -59,41 +59,19 @@ public abstract class CreateMetricUpdater {
     public void update(final Collection<? extends Document> collection, final long timeTakenNanos,
                        final List<String> ids, final boolean insertSuccess,
                        final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
-                       final CreateStatsConsumer<MeterStats, MeterStats, TimerStats> createStatsConsumer,
+                       final TriStatsConsumer triStatsConsumer,
                        final Predicate<Collection<? extends Document>> isJournalCollection,
-                       final StatsConsumer<MeterStats, TimerStats> journalStatsConsumer) {
+                       final BiStatsConsumer journalBiStatsConsumer) {
 
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(isJournalCollection);
-        requireNonNull(createStatsConsumer);
-        requireNonNull(journalStatsConsumer);
+        requireNonNull(triStatsConsumer);
+        requireNonNull(journalBiStatsConsumer);
 
         if (isNodesCollectionUpdated.test(collection, ids.size()) && insertSuccess) {
-            createStatsConsumer.accept(createNodeMeter, createSplitNodeMeter, createNodeTimer, ids, timeTakenNanos);
+            triStatsConsumer.accept(createNodeMeter, createSplitNodeMeter, createNodeTimer, ids, timeTakenNanos);
         } else if (isJournalCollection.test(collection)) {
-            journalStatsConsumer.accept(createJournal, createJournalTimer, ids.size(), timeTakenNanos);
-        }
-    }
-
-    public static class CreateMetricUpdaterWithoutThrottling extends CreateMetricUpdater {
-
-        public CreateMetricUpdaterWithoutThrottling(final MeterStats createNodeMeter,
-                                                    final MeterStats createSplitNodeMeter,
-                                                    final TimerStats createNodeTimer,
-                                                    final MeterStats createJournal,
-                                                    final TimerStats createJournalTimer) {
-            super(createNodeMeter, createSplitNodeMeter, createNodeTimer, createJournal, createJournalTimer);
-        }
-    }
-
-    public static class CreateMetricUpdaterWithThrottling extends CreateMetricUpdater {
-
-        public CreateMetricUpdaterWithThrottling(final MeterStats createNodeMeter,
-                                                 final MeterStats createSplitNodeMeter,
-                                                 final TimerStats createNodeTimer,
-                                                 final MeterStats createJournal,
-                                                 final TimerStats createJournalTimer) {
-            super(createNodeMeter, createSplitNodeMeter, createNodeTimer, createJournal, createJournalTimer);
+            journalBiStatsConsumer.accept(createJournal, createJournalTimer, ids.size(), timeTakenNanos);
         }
     }
 }

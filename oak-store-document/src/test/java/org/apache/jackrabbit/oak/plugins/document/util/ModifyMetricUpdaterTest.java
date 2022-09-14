@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater.ModifyMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater.ModifyMetricUpdaterWithoutThrottling;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.junit.Test;
 
@@ -37,18 +35,18 @@ import static org.junit.Assert.fail;
  */
 public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final ModifyMetricUpdater mMUWithoutThrottling = new ModifyMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
+    private final ModifyMetricUpdater mMUWithoutThrottling = new ModifyMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
             provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY),
             provider.getMeter(NODES_UPDATE, DEFAULT),
             provider.getTimer(NODES_UPDATE_TIMER, METRICS_ONLY),
             provider.getMeter(NODES_UPDATE_RETRY_COUNT, DEFAULT),
             provider.getMeter(NODES_UPDATE_FAILURE, DEFAULT));
-    private final ModifyMetricUpdater mMUWithThrottling = new ModifyMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER, METRICS_ONLY),
-            provider.getMeter(NODES_UPDATE_WITH_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER, METRICS_ONLY),
-            provider.getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING, DEFAULT),
-            provider.getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING, DEFAULT));
+    private final ModifyMetricUpdater mMUWithThrottling = new ModifyMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, DEFAULT),
+            provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY),
+            provider.getMeter(NODES_UPDATE_THROTTLING, DEFAULT),
+            provider.getTimer(NODES_UPDATE_THROTTLING_TIMER, METRICS_ONLY),
+            provider.getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING, DEFAULT),
+            provider.getMeter(NODES_UPDATE_FAILURE_THROTTLING, DEFAULT));
 
 
     @Test(expected = NullPointerException.class)
@@ -92,8 +90,8 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
         mMUWithThrottling.update(CLUSTER_NODES, 0, 100, true, true, c -> c == NODES, getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithThrottling(0, 0);
         assertUpdateWithThrottling(0, 0);
-        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
-        assertEquals(0, getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
     }
 
     @Test
@@ -103,8 +101,8 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
         assertEquals(1, getMeter(NODES_UPDATE_FAILURE).getCount());
 
         mMUWithThrottling.update(NODES, 3, 100, false, true, c -> c == NODES, getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
-        assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
-        assertEquals(1, getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING).getCount());
+        assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
     }
 
     @Test
@@ -118,8 +116,8 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
         mMUWithThrottling.update(NODES, 0, 100, true, true, c -> c == NODES, getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithThrottling(1, 100);
         assertUpdateWithThrottling(0, 0);
-        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
-        assertEquals(0, getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
     }
 
     @Test
@@ -133,8 +131,8 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
         mMUWithThrottling.update(NODES, 0, 100, true, false, c -> c == NODES, getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithThrottling(0, 0);
         assertUpdateWithThrottling(1, 100);
-        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_WITH_THROTTLING).getCount());
-        assertEquals(0, getMeter(NODES_UPDATE_FAILURE_WITH_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+        assertEquals(0, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
     }
 
     // helper methods
@@ -144,8 +142,8 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
     }
 
     private void assertUpdateWithThrottling(final long nodesUpdate, final long nodesUpdateTimer) {
-        assertEquals(nodesUpdate, getMeter(NODES_UPDATE_WITH_THROTTLING).getCount());
-        assertEquals(nodesUpdateTimer, getTimer(NODES_UPDATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesUpdate, getMeter(NODES_UPDATE_THROTTLING).getCount());
+        assertEquals(nodesUpdateTimer, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 
     private void assertCreateWithoutThrottling(final long nodesCreate, final long nodesCreateTimer) {
@@ -154,7 +152,7 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
     }
 
     private void assertCreateWithThrottling(final long nodesCreate, final long nodesCreateTimer) {
-        assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT_WITH_THROTTLING).getCount());
-        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
+        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
     }
 }

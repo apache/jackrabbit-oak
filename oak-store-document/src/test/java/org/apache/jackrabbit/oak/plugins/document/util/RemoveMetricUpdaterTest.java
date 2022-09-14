@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater.RemoveMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater.RemoveMetricUpdaterWithoutThrottling;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -34,10 +32,10 @@ import static org.junit.Assert.fail;
  */
 public class RemoveMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final RemoveMetricUpdater rMUWithoutThrottling = new RemoveMetricUpdaterWithoutThrottling(provider.getMeter(NODES_REMOVE, DEFAULT),
+    private final RemoveMetricUpdater rMUWithoutThrottling = new RemoveMetricUpdater(provider.getMeter(NODES_REMOVE, DEFAULT),
             provider.getTimer(NODES_REMOVE_TIMER, METRICS_ONLY));
-    private final RemoveMetricUpdater rMUWithThrottling = new RemoveMetricUpdaterWithThrottling(provider.getMeter(NODES_REMOVE_WITH_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER, METRICS_ONLY));
+    private final RemoveMetricUpdater rMUWithThrottling = new RemoveMetricUpdater(provider.getMeter(NODES_REMOVE_THROTTLING, DEFAULT),
+            provider.getTimer(NODES_REMOVE_THROTTLING_TIMER, METRICS_ONLY));
 
     @Test(expected = NullPointerException.class)
     public void updateNodesNullConsumer() {
@@ -81,7 +79,7 @@ public class RemoveMetricUpdaterTest extends BaseUpdaterTest {
     }
 
     private void assertWithThrottling(final long nodesRemoved, final long nodesRemovedTimer) {
-        assertEquals(nodesRemoved, getMeter(NODES_REMOVE_WITH_THROTTLING).getCount());
-        assertEquals(nodesRemovedTimer, getTimer(NODES_REMOVE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesRemoved, getMeter(NODES_REMOVE_THROTTLING).getCount());
+        assertEquals(nodesRemovedTimer, getTimer(NODES_REMOVE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 }

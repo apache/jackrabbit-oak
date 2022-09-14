@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater.CreateMetricUpdaterWithThrottling;
-import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater.CreateMetricUpdaterWithoutThrottling;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
@@ -40,16 +38,16 @@ import static org.junit.Assert.fail;
  */
 public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final CreateMetricUpdater cMUWithoutThrottling = new CreateMetricUpdaterWithoutThrottling(provider.getMeter(NODES_CREATE, DEFAULT),
+    private final CreateMetricUpdater cMUWithoutThrottling = new CreateMetricUpdater(provider.getMeter(NODES_CREATE, DEFAULT),
             provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
             provider.getTimer(NODES_CREATE_TIMER, METRICS_ONLY),
             provider.getMeter(JOURNAL_CREATE, DEFAULT),
             provider.getTimer(JOURNAL_CREATE_TIMER, METRICS_ONLY));
-    private final CreateMetricUpdater cMUWithThrottling = new CreateMetricUpdaterWithThrottling(provider.getMeter(NODES_CREATE_WITH_THROTTLING, DEFAULT),
-            provider.getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_CREATE_WITH_THROTTLING_TIMER, METRICS_ONLY),
-            provider.getMeter(JOURNAL_CREATE_WITH_THROTTLING, DEFAULT),
-            provider.getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER, METRICS_ONLY));
+    private final CreateMetricUpdater cMUWithThrottling = new CreateMetricUpdater(provider.getMeter(NODES_CREATE_THROTTLING, DEFAULT),
+            provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, DEFAULT),
+            provider.getTimer(NODES_CREATE_THROTTLING_TIMER, METRICS_ONLY),
+            provider.getMeter(JOURNAL_CREATE_THROTTLING, DEFAULT),
+            provider.getTimer(JOURNAL_CREATE_THROTTLING_TIMER, METRICS_ONLY));
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullNodesPredicate() {
@@ -145,9 +143,9 @@ public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
     // helper methods
     private void assertNodesWithThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {
-        assertEquals(nodesCreate, getMeter(NODES_CREATE_WITH_THROTTLING).getCount());
-        assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT_WITH_THROTTLING).getCount());
-        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesCreate, getMeter(NODES_CREATE_THROTTLING).getCount());
+        assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT_THROTTLING).getCount());
+        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 
     private void assertNodesWithoutThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {
@@ -162,7 +160,7 @@ public class CreateMetricUpdaterTest extends BaseUpdaterTest {
     }
 
     private void assertJournalWithThrottling(final long journalCreate, final long journalCreateTimer) {
-        assertEquals(journalCreate, getMeter(JOURNAL_CREATE_WITH_THROTTLING).getCount());
-        assertEquals(journalCreateTimer, getTimer(JOURNAL_CREATE_WITH_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(journalCreate, getMeter(JOURNAL_CREATE_THROTTLING).getCount());
+        assertEquals(journalCreateTimer, getTimer(JOURNAL_CREATE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 }

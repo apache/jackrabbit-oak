@@ -30,11 +30,11 @@ import java.util.function.BiPredicate;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Abstract class to update the metrics for {@link DocumentStoreStatsCollector#doneRemove(long, Collection, int)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneRemove(long, Collection, int)} for underlying {@link DocumentStore}
  *
- * <p>Concrete implementations provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
  */
-public abstract class RemoveMetricUpdater {
+public final class RemoveMetricUpdater {
 
     private final MeterStats removeNodes;
     private final TimerStats removeNodesTimer;
@@ -47,28 +47,14 @@ public abstract class RemoveMetricUpdater {
 
     public void update(final Collection<? extends Document> collection, final int removeCount, final long timeTakenNanos,
                        final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
-                       final StatsConsumer<MeterStats, TimerStats> removeStatsConsumer) {
+                       final BiStatsConsumer removeBiStatsConsumer) {
 
         requireNonNull(isNodesCollectionUpdated);
-        requireNonNull(removeStatsConsumer);
+        requireNonNull(removeBiStatsConsumer);
 
         if (isNodesCollectionUpdated.negate().test(collection, removeCount)) {
             return;
         }
-        removeStatsConsumer.accept(removeNodes, removeNodesTimer, removeCount, timeTakenNanos);
-    }
-
-    public static class RemoveMetricUpdaterWithoutThrottling extends RemoveMetricUpdater {
-        public RemoveMetricUpdaterWithoutThrottling(final MeterStats removeNodes,
-                                                    final TimerStats removeNodesTimer) {
-            super(removeNodes, removeNodesTimer);
-        }
-    }
-
-    public static class RemoveMetricUpdaterWithThrottling extends RemoveMetricUpdater {
-        public RemoveMetricUpdaterWithThrottling(final MeterStats removeNodes,
-                                                 final TimerStats removeNodesTimer) {
-            super(removeNodes, removeNodesTimer);
-        }
+        removeBiStatsConsumer.accept(removeNodes, removeNodesTimer, removeCount, timeTakenNanos);
     }
 }

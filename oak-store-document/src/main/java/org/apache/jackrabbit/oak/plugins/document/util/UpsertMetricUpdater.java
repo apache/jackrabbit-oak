@@ -31,11 +31,11 @@ import java.util.function.BiPredicate;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Abstract class to update the metrics for {@link DocumentStoreStatsCollector#doneCreateOrUpdate(long, Collection, List)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneCreateOrUpdate(long, Collection, List)} for underlying {@link DocumentStore}
  *
- * <p>Concrete implementations provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
  */
-public abstract class UpsertMetricUpdater {
+public final class UpsertMetricUpdater {
 
     private final MeterStats createNodeUpsertMeter;
     private final MeterStats createSplitNodeMeter;
@@ -51,7 +51,7 @@ public abstract class UpsertMetricUpdater {
 
     public void update(final Collection<? extends Document> collection, final long timeTakenNanos,
                        final List<String> ids, final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
-                       final CreateStatsConsumer<MeterStats, MeterStats, TimerStats> upsertStatsConsumer) {
+                       final TriStatsConsumer upsertStatsConsumer) {
 
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(upsertStatsConsumer);
@@ -60,23 +60,5 @@ public abstract class UpsertMetricUpdater {
             return;
         }
         upsertStatsConsumer.accept(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer, ids, timeTakenNanos);
-    }
-
-    public static class UpsertMetricUpdaterWithoutThrottling extends UpsertMetricUpdater {
-
-        public UpsertMetricUpdaterWithoutThrottling(final MeterStats createNodeUpsertMeter,
-                                                    final MeterStats createSplitNodeMeter,
-                                                    final TimerStats createNodeUpsertTimer) {
-            super(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer);
-        }
-    }
-
-    public static class UpsertMetricUpdaterWithThrottling extends UpsertMetricUpdater {
-
-        public UpsertMetricUpdaterWithThrottling(final MeterStats createNodeUpsertMeter,
-                                                 final MeterStats createSplitNodeMeter,
-                                                 final TimerStats createNodeUpsertTimer) {
-            super(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer);
-        }
     }
 }
