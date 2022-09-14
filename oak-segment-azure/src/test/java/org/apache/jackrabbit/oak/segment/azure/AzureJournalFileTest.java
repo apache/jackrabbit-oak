@@ -20,7 +20,6 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.ListBlobItem;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -119,20 +118,38 @@ public class AzureJournalFileTest {
 
     @Test
     public void testBatchWriteLines() throws IOException {
-        int lineCount = 5000;
-        List<String> lines = buildLines(0, lineCount);
+        List<String> lines = buildLines(0, 5000);
 
-        StopWatch watch = StopWatch.createStarted();
         try (JournalFileWriter writer = journal.openJournalWriter()) {
             writer.batchWriteLines(lines);
         }
-        watch.stop();
 
         List<String> entries = readEntriesFromJournal();
         assertEquals(lines, reverse(entries));
-        long elapsedTime = watch.getTime(TimeUnit.SECONDS);
-        // elapsed time should be less than 100ms on local machine, but giving 20s to execute if in constrained environment, e.g. Jenkins.
-        assertTrue("batchWriteLines() should be fast (<20s), but took too long (" + elapsedTime + "s)", elapsedTime <= 20);
+    }
+
+    @Test
+    public void testEnsureBatchWriteLinesIsFasterThanNaiveImplementation() throws IOException {
+        List<String> lines = buildLines(0, 100);
+
+        StopWatch watchNaiveImpl = StopWatch.createStarted();
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            // Emulating previous naive implementation of 'batchWriteLines', which simply delegated to 'writeLine()'
+            for (String line : lines) {
+                writer.writeLine(line);
+            }
+        }
+        watchNaiveImpl.stop();
+
+        StopWatch watchOptimizedImpl = StopWatch.createStarted();
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            writer.batchWriteLines(lines);
+        }
+        watchOptimizedImpl.stop();
+        long optimizedImplTime = watchOptimizedImpl.getTime();
+        long naiveImplTime = watchNaiveImpl.getTime();
+        assertTrue("batchWriteLines() should be significantly faster (>20x) than the naive implementation, but took "
+            + optimizedImplTime + "ms while naive implementation took " + naiveImplTime + "ms", optimizedImplTime < naiveImplTime / 20);
     }
 
     @Test
@@ -159,7 +176,7 @@ public class AzureJournalFileTest {
             writer.batchWriteLines(buildLines(100, 1)); // 101
         }
         assertEquals(3, countJournalBlobs());
-        
+
         try (JournalFileWriter writer = journal.openJournalWriter()) {
             writer.batchWriteLines(buildLines(101, 100)); // 201
         }
@@ -172,7 +189,7 @@ public class AzureJournalFileTest {
         List<String> entries = readEntriesFromJournal();
         assertEquals(buildLines(0, index), reverse(entries));
     }
-    
+
     @NotNull
     private static List<String> buildLines(int start, int count) {
         return IntStream.range(start, count + start)
