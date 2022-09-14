@@ -43,7 +43,7 @@ import static org.junit.Assume.assumeNotNull;
 public class ElasticTestServer implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
-    private static final String PLUGIN_DIGEST = "5e3b40bb72b2813f927be9bf6ecdf88668d89d2ef20c7ebafaa51ab8407fd179";
+    private static final String PLUGIN_DIGEST = "326893bb98ef1a0c569d9f4c4a9a073e53361924f990b17e87077985ce8a7478";
     private static final ElasticTestServer SERVER = new ElasticTestServer();
     private static volatile ElasticsearchContainer CONTAINER;
 
