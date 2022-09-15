@@ -163,20 +163,17 @@ public class VersionHistoryTest extends AbstractJCRTest {
         assertFalse("VersionHistory node should have disappeared", superuser.itemExists(vhrpath));
     }
 
-    public void testRemoveVersionLabelWithRemovalOfVersion() throws RepositoryException{
+    public void testRemoveVersionLabelWithRemovalOfVersion() throws RepositoryException {
         int createVersions = 3;
         Node n = testRootNode.addNode(nodeName1, testNodeType);
         n.addMixin(mixVersionable);
         superuser.save();
-
-        VersionManager vm = superuser.getWorkspace().getVersionManager();
         for (int i = 0; i < createVersions; i++) {
-            vm.checkout(n.getPath());
-            vm.checkin(n.getPath());
+            versionManager.checkout(n.getPath());
+            versionManager.checkin(n.getPath());
         }
-        superuser.save();
 
-        VersionHistory vhr = vm.getVersionHistory(n.getPath());
+        VersionHistory vhr = versionManager.getVersionHistory(n.getPath());
         // initialize versionName
         String versionName = "";
         VersionIterator allversions = vhr.getAllVersions();
@@ -188,20 +185,16 @@ public class VersionHistoryTest extends AbstractJCRTest {
             }
             count++;
         }
-        int versonLabelCount = 3;
+        int versionLabelCount = 3;
         List<String> versionLabels = new ArrayList<>();
-        for(int i = 0; i < versonLabelCount; i++) {
+        for(int i = 0; i < versionLabelCount; i++) {
             String labelName = "Label_" + versionName + "_" + i;
             vhr.addVersionLabel(versionName, labelName,false);
             versionLabels.add(labelName);
         }
-
-        superuser.save();
         vhr.removeVersion(versionName);
-        superuser.save();
-
         for(String label : versionLabels) {
-            assertEquals("version label should not exist", false, vhr.hasVersionLabel(label));
+            assertFalse("version label should not exist", vhr.hasVersionLabel(label));
         }
 
     }
