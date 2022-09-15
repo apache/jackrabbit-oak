@@ -184,5 +184,4 @@ public class ElasticTestServer implements AutoCloseable {
         System.in.read();
         esContainer.stop();
     }
-
 }
