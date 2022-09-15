@@ -19,26 +19,20 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import co.elastic.clients.transport.Version;
 import com.github.dockerjava.api.DockerClient;
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.output.OutputFrame;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.utility.MountableFile;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -57,18 +51,7 @@ public class ElasticTestServer implements AutoCloseable {
     private static final ElasticTestServer SERVER = new ElasticTestServer();
     private static volatile ElasticsearchContainer CONTAINER;
 
-    private final OutputStream writer;
-
     private ElasticTestServer() {
-        Path p = Paths.get("target", "es_container.log");
-        OutputStream writer1;
-        try {
-            writer1 = new BufferedOutputStream((Files.newOutputStream(p)));
-        } catch (IOException e) {
-            LOG.warn("Could not open log file for output of test container, discarding output.",e);
-            writer1 = NullOutputStream.NULL_OUTPUT_STREAM;
-        }
-        this.writer = writer1;
     }
 
     public static synchronized ElasticsearchContainer getESTestServer() {
@@ -117,13 +100,9 @@ public class ElasticTestServer implements AutoCloseable {
                 .withNetwork(network)
                 .withStartupAttempts(3);
         CONTAINER.start();
-        CONTAINER.followOutput((OutputFrame o) -> {
-            try {
-                writer.write(o.getBytes());
-            } catch (IOException e) {
-                LOG.debug("Error writing container output to log file: {}", e.getMessage());
-            }
-        });
+
+        Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(LOG).withSeparateOutputStreams();
+        CONTAINER.followOutput(logConsumer);
     }
 
     @Override
@@ -135,11 +114,6 @@ public class ElasticTestServer implements AutoCloseable {
 
         if (CONTAINER != null) {
             CONTAINER.stop();
-        }
-        try {
-            writer.close();
-        } catch (IOException e) {
-            LOG.warn("Failed to close log file with container output", e);
         }
         CONTAINER = null;
     }
