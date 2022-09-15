@@ -130,15 +130,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         return merge0(hook, info, true);
     }
 
-    /**
-     * For test purposes only!
-     * <p>
-     * Forces the branch to persist the changes to the underlying store.
-     */
-    void persist() {
-        branchState.persist();
-    }
-
     @Override
     public void rebase() {
         branchState.rebase();
@@ -157,6 +148,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     @NotNull
     ReadWriteLock getMergeLock() {
         return mergeLock;
+    }
+
+    /**
+     * For test purposes only!
+     * <p>
+     * Forces the branch to persist the changes to the underlying store.
+     */
+    void persist() {
+        branchState.persist();
     }
 
     @NotNull

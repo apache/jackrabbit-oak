@@ -93,20 +93,20 @@ public class TestUtils {
         return null;
     }
 
-    public static void persistToBranch(NodeBuilder builder) {
-        if (builder instanceof DocumentRootBuilder) {
-            ((DocumentRootBuilder) builder).persist();
-            return;
-        }
-        fail("Not of type DocumentRootBuilder: " + builder.getClass().getName());
-    }
-
     public static void setRevisionClock(Clock c) {
         Revision.setClock(c);
     }
 
     public static void resetRevisionClockToDefault() {
         Revision.resetClockToDefault();
+    }
+
+    public static void persistToBranch(NodeBuilder builder) {
+        if (builder instanceof DocumentRootBuilder) {
+            ((DocumentRootBuilder) builder).persist();
+            return;
+        }
+        fail("Not of type DocumentRootBuilder: " + builder.getClass().getName());
     }
 
     public static void disposeQuietly(DocumentNodeStore ns) {
