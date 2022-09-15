@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -57,18 +58,21 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
     private final String authorizableRootPath;
     private final Context aggregatedCtx;
     private final IdentityProtectionType protectionType;
+    private final ProtectionConfig protectionConfig;
     
     private Root rootBefore;
     private Root rootAfter;
     
-    ExternalUserValidatorProvider(@NotNull RootProvider rootProvider, 
-                                  @NotNull TreeProvider treeProvider, 
+    ExternalUserValidatorProvider(@NotNull RootProvider rootProvider,
+                                  @NotNull TreeProvider treeProvider,
                                   @NotNull SecurityProvider securityProvider,
-                                  @NotNull IdentityProtectionType protectionType) {
+                                  @NotNull IdentityProtectionType protectionType,
+                                  @NotNull ProtectionConfig protectionConfig) {
         checkArgument(protectionType != IdentityProtectionType.NONE);
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
         this.protectionType = protectionType;
+        this.protectionConfig = protectionConfig;
 
         this.authorizableRootPath = UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.AUTHORIZABLE);
         aggregatedCtx = new AggregatedContext(securityProvider);
@@ -115,7 +119,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
                 return;
             }
 
-            if (isModifyingExternalIdentity(isExternalIdentity, after)) {
+            if (isModifyingExternalIdentity(isExternalIdentity, afterTree, after)) {
                 String msg = String.format("Attempt to add property '%s' to protected external identity node '%s'", after.getName(), afterTree.getPath());
                 handleViolation(msg);
             }
@@ -127,7 +131,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             if (definedSecurityContext(beforeTree, before)) {
                 return;
             }
-            if (isModifyingExternalIdentity(isExternalIdentity, before)) {
+            if (isModifyingExternalIdentity(isExternalIdentity, beforeTree, before)) {
                 String msg = String.format("Attempt to modify property '%s' at protected external identity node '%s'", before.getName(), beforeTree.getPath());
                 handleViolation(msg);
             }
@@ -139,7 +143,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             if (definedSecurityContext(beforeTree, before)) {
                 return;
             }
-            if (isModifyingExternalIdentity(isExternalIdentity, before)) {
+            if (isModifyingExternalIdentity(isExternalIdentity, beforeTree, before)) {
                 String msg = String.format("Attempt to delete property '%s' from protected external identity node '%s'", before.getName(), beforeTree.getPath());
                 handleViolation(msg);
             }
@@ -157,7 +161,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
                 String msg = String.format("Attempt to add protected external identity '%s'", afterTree.getPath());
                 handleViolation(msg);
                 return null;
-            } else if (isModifyingExternalIdentity(isExternalIdentity, null)) {
+            } else if (isModifyingExternalIdentity(isExternalIdentity, afterTree, null)) {
                 String msg = String.format("Attempt to add node '%s' to protected external identity node '%s'", name, afterParent.getPath());
                 handleViolation(msg);
                 return null;
@@ -194,14 +198,14 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
                 return null;
             }
             
-            if (isModifyingExternalIdentity(isExternalIdentity, null)) {
+            if (isModifyingExternalIdentity(isExternalIdentity, beforeTree, null)) {
                 // attempt to remove a node below an external user/group
                 String msg = String.format("Attempt to remove node '%s' from protected external identity", beforeTree.getPath());
                 handleViolation(msg);
                 return null;
             }
             
-            // decend into subtree to spot any removal of external user/group or it's subtree
+            // descend into subtree to spot any removal of external user/group or it's subtree
             return new ExternalUserValidator(this, beforeTree, true);
         }
         
@@ -231,8 +235,8 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             return parentAfter;
         }
         
-        private boolean isModifyingExternalIdentity(boolean insideAuthorizable, @Nullable PropertyState propertyState) {
-            return insideAuthorizable && !isExcludedProperty(propertyState);
+        private boolean isModifyingExternalIdentity(boolean insideAuthorizable, @NotNull Tree tree, @Nullable PropertyState propertyState) {
+            return insideAuthorizable && isProtected(tree, propertyState);
         }
 
         /**
@@ -240,14 +244,20 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
          * modification of the user/group that is exposed through user-mgt API. Note however, that editing non-security
          * related mixins would still fail as the child items defined by the mixin type cannot be written.
          * 
+         * Any other nodes/properties are considered protected depending on the configured {@link ProtectionConfig}.
+         * 
+         * @param tree The tree
          * @param propertyState The property to be tested
-         * @return {@code true} if the given property is excluded from protection
+         * @return {@code true} if the given property is protected
          */
-        private boolean isExcludedProperty(@Nullable PropertyState propertyState) {
+        private boolean isProtected(@NotNull Tree tree, @Nullable PropertyState propertyState) {
             if (propertyState == null) {
+                return protectionConfig.isProtectedTree(tree);
+            }
+            if (JCR_MIXINTYPES.equals(propertyState.getName())) {
                 return false;
             } else {
-                return JCR_MIXINTYPES.equals(propertyState.getName());
+                return protectionConfig.isProtectedProperty(tree, propertyState);
             }
         }
         
