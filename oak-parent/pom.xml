@@ -1127,7 +1127,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.18</version>
+          <version>42.4.1</version>
         </dependency>
       </dependencies>
     </profile>
