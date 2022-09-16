@@ -23,18 +23,37 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * <code>DocumentProcessor</code>...
+ * Defines an interface to process {@link NodeDocument}s.
  */
 public interface DocumentProcessor {
 
+    /**
+     * Process the given document and publish the result to the {@code results}
+     * queue. An implementation is not required to publish a result for each
+     * processed document.
+     *
+     * @param document the document to process.
+     * @param results the queue to publish results if necessary.
+     * @throws InterruptedException if publishing a result is interrupted.
+     */
     void processDocument(@NotNull NodeDocument document,
                          @NotNull BlockingQueue<Result> results)
             throws InterruptedException;
 
+    /**
+     * This method is called after the last document has been processed. An
+     * implementation may wish to publish aggregated results at the end.
+     *
+     * @param results the queue to publish results if necessary.
+     * @throws InterruptedException if publishing a result is interrupted.
+     */
     default void end(@NotNull BlockingQueue<Result> results)
             throws InterruptedException {
     }
 
+    /**
+     * @return the current time as an ISO-8601 formatted string.
+     */
     default String nowAsISO8601() {
         return ISO8601.format(System.currentTimeMillis());
     }
