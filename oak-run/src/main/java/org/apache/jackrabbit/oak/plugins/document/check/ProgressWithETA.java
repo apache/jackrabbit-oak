@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 
 /**
@@ -34,15 +35,16 @@ public class ProgressWithETA extends Progress {
         return new ProgressResult(numDocs, path) {
             @Override
             public String toJson() {
-                StringBuilder sb = new StringBuilder("{");
-                sb.append("\"time\": \"").append(nowAsISO8601()).append('"');
+                JsopBuilder json = new JsopBuilder();
+                json.object();
+                json.key("time").value(nowAsISO8601());
                 if (eta != null) {
-                    sb.append(", \"eta\": \"").append(eta.estimateArrivalAsISO8601(numDocs)).append('"');
-                    sb.append(", \"progress\": \"").append(eta.percentageComplete(numDocs)).append('"');
+                    json.key("eta").value(eta.estimateArrivalAsISO8601(numDocs));
+                    json.key("progress").value(eta.percentageComplete(numDocs));
                 }
-                sb.append(", \"info\": \"").append(msg).append('"');
-                sb.append("}");
-                return sb.toString();
+                json.key("info").value(msg);
+                json.endObject();
+                return json.toString();
             }
         };
     }

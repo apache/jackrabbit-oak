@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.check;
 
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.jetbrains.annotations.NotNull;
@@ -52,11 +53,12 @@ public class Progress implements DocumentProcessor {
 
         @Override
         public String toJson() {
-            StringBuilder sb = new StringBuilder("{");
-            sb.append("\"time\": \"").append(nowAsISO8601()).append('"');
-            sb.append(", \"info\": \"").append(msg).append('"');
-            sb.append("}");
-            return sb.toString();
+            JsopBuilder json = new JsopBuilder();
+            json.object();
+            json.key("time").value(nowAsISO8601());
+            json.key("info").value(msg);
+            json.endObject();
+            return json.toString();
         }
     }
 }

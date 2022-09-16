@@ -20,6 +20,7 @@ import java.util.concurrent.BlockingQueue;
 
 import com.google.common.base.Stopwatch;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.jetbrains.annotations.NotNull;
 
@@ -47,6 +48,12 @@ public class Summary implements DocumentProcessor {
     @Override
     public void end(@NotNull BlockingQueue<Result> results)
             throws InterruptedException {
-        results.put(() -> "{\"summary\": \"Checked " + numDocuments + " documents in " + sw + ". Number of threads used: " + numThreads + "\"}");
+        String summary = "Checked " + numDocuments + " documents in " + sw +
+                ". Number of threads used: " + numThreads;
+        JsopBuilder json = new JsopBuilder();
+        json.object();
+        json.key("summary").value(summary);
+        json.endObject();
+        results.put(json::toString);
     }
 }

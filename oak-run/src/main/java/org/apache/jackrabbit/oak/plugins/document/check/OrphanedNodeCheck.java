@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -72,11 +73,12 @@ public class OrphanedNodeCheck implements DocumentProcessor, Closeable {
         if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
             String msg = "Checks still not finished after the last one has been submitted 5 minutes ago";
             results.put(() -> {
-                StringBuilder sb = new StringBuilder("{");
-                sb.append("\"time\": \"").append(nowAsISO8601()).append('"');
-                sb.append(", \"info\": \"").append(msg).append('"');
-                sb.append("}");
-                return sb.toString();
+                JsopBuilder json = new JsopBuilder();
+                json.object();
+                json.key("time").value(nowAsISO8601());
+                json.key("info").value(msg);
+                json.endObject();
+                return json.toString();
             });
         }
     }
@@ -153,7 +155,13 @@ public class OrphanedNodeCheck implements DocumentProcessor, Closeable {
 
         @Override
         public String toJson() {
-            return "{\"orphaned\": \"" + orphaned + "\", \"revision\": \"" + revision + "\", \"missing\": \"" + missing + "\"}";
+            JsopBuilder json = new JsopBuilder();
+            json.object();
+            json.key("orphaned").value(orphaned.toString());
+            json.key("revision").value(revision.toString());
+            json.key("missing").value(missing.toString());
+            json.endObject();
+            return json.toString();
         }
     }
 }
