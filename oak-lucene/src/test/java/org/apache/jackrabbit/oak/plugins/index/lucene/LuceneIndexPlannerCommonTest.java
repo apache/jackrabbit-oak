@@ -556,7 +556,8 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
     @Override
     protected NodeBuilder getPropertyIndexDefinitionNodeBuilder(@NotNull NodeBuilder builder, @NotNull String name, @NotNull Set<String> includes, @NotNull String async) {
-        return newLucenePropertyIndexDefinition(builder, name, includes, async);
+        NodeBuilder oakIndex = builder.child("oak:index");
+        return newLucenePropertyIndexDefinition(oakIndex, name, includes, async);
     }
 
     @Override

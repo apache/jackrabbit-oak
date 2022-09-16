@@ -18,9 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
+import org.apache.jackrabbit.oak.plugins.index.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -29,16 +32,23 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -46,20 +56,35 @@ import java.util.List;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.ImmutableSet.of;
+import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
             new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+
+    // Default refresh is 1 minute - so we need to lower that otherwise test would need to wait at least 1 minute
+    // before it can get the estimated doc count from the remote ES index
+    @Rule
+    public final ProvideSystemProperty updateSystemProperties
+            = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "5");
+
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     private final ElasticConnection esConnection;
     private final ElasticIndexTracker indexTracker;
@@ -73,22 +98,65 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
         HOOK = new EditorHook(new IndexUpdateProvider(new ElasticIndexEditorProvider(indexTracker, esConnection, null)));
     }
 
+    @After
+    public void after() {
+        if (esConnection != null) {
+            try {
+                esConnection.getClient().indices().delete(d->d.index(esConnection.getIndexPrefix() + "*"));
+                esConnection.close();
+            } catch (IOException e) {
+                //LOG.error("Unable to delete indexes with prefix {}", esConnection.getIndexPrefix());
+            }
+        }
+    }
+
 
     private void createSampleDirectory() throws IOException, CommitFailedException {
         createSampleDirectory(1);
     }
 
-    private void createSampleDirectory(long numOfDocs) throws IOException, CommitFailedException {
+    private void createSampleDirectory(long numOfDocs) throws CommitFailedException {
         NodeState before = builder.getNodeState();
         NodeBuilder testBuilder = builder.child("test");
 
         for (int i =0 ; i < numOfDocs ; i++) {
             testBuilder.child("child" + i).setProperty("foo", "bar" + i);
+            //testBuilder.child("child22" + i).setProperty("bar", "foo" + i);
         }
 
         NodeState after = builder.getNodeState();
-        NodeState indexed = HOOK.processCommit(before, after, new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, Collections.singletonMap("sync-mode", "rt")));
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         indexTracker.update(indexed);
+    }
+
+    // This is difference in test implementation from lucene
+    // We are directly adding the content in the IndexWriter for lucene - so we can maintain what nodes to add there
+    // But for elastic we add the documents to index via normal commit hooks - so in case of fulltext -
+    // even the repo nodes get added
+    // and the doc count is different from lucene
+    @Override
+    @Test
+    public void fulltextIndexCost() throws Exception {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder defn = getIndexDefinitionNodeBuilder(index, indexName,
+                of(TYPENAME_STRING));
+        TestUtil.useV2(defn);
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
+        IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+
+        TestUtils.assertEventually(() -> {
+            FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
+
+            QueryIndex.IndexPlan plan = planner.getPlan();
+            assertNotNull(plan);
+            assertTrue(plan.getEstimatedEntryCount() > numofDocs);
+
+        }, 4500*3);
+
+
     }
 
     @Override
@@ -98,8 +166,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
         } catch (CommitFailedException e) {
             e.printStackTrace();
         }
-
-        return new ElasticIndexNodeManager(defn.getIndexPath(), root, esConnection).getIndexNode();
+        return new ElasticIndexNodeManager(defn.getIndexPath(), builder.getNodeState(), esConnection).getIndexNode();
     }
 
     @Override
@@ -110,27 +177,27 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
             e.printStackTrace();
         }
 
-        return new ElasticIndexNodeManager(defn.getIndexPath(), root, esConnection).getIndexNode();
+        return new ElasticIndexNodeManager(defn.getIndexPath(), builder.getNodeState(), esConnection).getIndexNode();
     }
 
     @Override
     protected IndexDefinition getIndexDefinition(NodeState root, NodeState defn, String indexPath) {
-        return new ElasticIndexDefinition(root, defn, indexPath, "testElastic");
+        return new ElasticIndexDefinition(root, defn, indexPath, esConnection.getIndexPrefix());
     }
 
     @Override
     protected NodeBuilder getPropertyIndexDefinitionNodeBuilder(@NotNull NodeBuilder builder, @NotNull String name, @NotNull Set<String> includes, @NotNull String async) {
         checkArgument(!includes.isEmpty(), "Lucene property index " +
                 "requires explicit list of property names to be indexed");
-        builder = builder.child("oak:index");
-        builder = builder.child(name);
-        builder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+        NodeBuilder defBuilder = builder.child("oak:index");
+        defBuilder = defBuilder.child(name);
+        defBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                 .setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType())
                 .setProperty(REINDEX_PROPERTY_NAME, true);
-        builder.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        builder.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, includes, STRINGS));
+        defBuilder.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
+        defBuilder.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, includes, STRINGS));
 
-        return builder;
+        return defBuilder;
     }
 
     @Override
@@ -138,16 +205,16 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
-        index = index.child(name);
-        index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+        NodeBuilder indexDefBuilder = index.child(name);
+        indexDefBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                 .setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType())
                 .setProperty(REINDEX_PROPERTY_NAME, true);
 
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
-            index.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
+            indexDefBuilder.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
                     propertyTypes, STRINGS));
         }
-        return index;
+        return indexDefBuilder;
     }
 
     @Override
