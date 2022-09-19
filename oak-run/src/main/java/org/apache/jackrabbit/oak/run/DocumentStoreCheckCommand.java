@@ -63,6 +63,8 @@ class DocumentStoreCheckCommand implements Command {
             new DocumentStoreCheck.Builder(dns, builder.getDocumentStore(), closer)
                     .withOutput(options.getOutput())
                     .withOrphan(options.withOrphan())
+                    .withBaseVersion(options.withBaseVersion())
+                    .withVersionHistory(options.withVersionHistory())
                     .withProgress(options.withProgress())
                     .isSilent(options.isSilent())
                     .withSummary(options.withSummary())
@@ -88,6 +90,10 @@ class DocumentStoreCheckCommand implements Command {
 
         final OptionSpec<Boolean> orphan;
 
+        final OptionSpec<Boolean> baseVersion;
+
+        final OptionSpec<Boolean> versionHistory;
+
         final OptionSpec<Integer> numThreads;
 
         public CheckOptions(String usage) {
@@ -101,6 +107,10 @@ class DocumentStoreCheckCommand implements Command {
             summary = parser.accepts("summary", "Write a summary message at the end")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             orphan = parser.accepts("orphan", "Check for orphaned nodes")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            baseVersion = parser.accepts("baseVersion", "Check base version reference")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            versionHistory = parser.accepts("versionHistory", "Check version history reference")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             numThreads = parser.accepts("numThreads", "Use this number of threads to check consistency")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
@@ -130,6 +140,14 @@ class DocumentStoreCheckCommand implements Command {
 
         public boolean withOrphan() {
             return orphan.value(options);
+        }
+
+        public boolean withBaseVersion() {
+            return baseVersion.value(options);
+        }
+
+        public boolean withVersionHistory() {
+            return versionHistory.value(options);
         }
 
         public int getNumThreads() {

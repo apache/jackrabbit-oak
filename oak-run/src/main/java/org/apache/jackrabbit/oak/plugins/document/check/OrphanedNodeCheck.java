@@ -16,16 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -34,58 +28,33 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * <code>OrphanedNodeCheck</code>...
  */
-public class OrphanedNodeCheck implements DocumentProcessor, Closeable {
+public class OrphanedNodeCheck extends AsyncDocumentProcessor {
 
     private final DocumentNodeStore ns;
 
     private final RevisionVector headRevision;
 
-    private final ExecutorService executorService;
-
     public OrphanedNodeCheck(DocumentNodeStore ns,
                              RevisionVector headRevision,
-                             int numThread) {
+                             ExecutorService executorService) {
+        super(executorService);
         this.ns = ns;
         this.headRevision = headRevision;
-        this.executorService = new ThreadPoolExecutor(
-                numThread, numThread, 1, TimeUnit.MINUTES,
-                new LinkedBlockingQueue<>(1000),
-                new ThreadPoolExecutor.CallerRunsPolicy()
-        );
     }
 
     @Override
-    public void processDocument(@NotNull NodeDocument document,
-                                @NotNull BlockingQueue<Result> results) {
-        if (!document.isSplitDocument()) {
-            executorService.submit(new CheckDocument(ns, headRevision, document, results));
+    protected @Nullable Callable<Void> createTask(@NotNull NodeDocument document,
+                                                  @NotNull BlockingQueue<Result> results) {
+        if (document.isSplitDocument()) {
+            return null;
+        } else {
+            return new CheckDocument(ns, headRevision, document, results);
         }
-    }
-
-    @Override
-    public void end(@NotNull BlockingQueue<Result> results)
-            throws InterruptedException {
-        executorService.shutdown();
-        if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
-            String msg = "Checks still not finished after the last one has been submitted 5 minutes ago";
-            results.put(() -> {
-                JsopBuilder json = new JsopBuilder();
-                json.object();
-                json.key("time").value(nowAsISO8601());
-                json.key("info").value(msg);
-                json.endObject();
-                return json.toString();
-            });
-        }
-    }
-
-    @Override
-    public void close() throws IOException {
-        new ExecutorCloser(executorService, 5, TimeUnit.MINUTES).close();
     }
 
     private static final class CheckDocument implements Callable<Void> {
@@ -157,9 +126,10 @@ public class OrphanedNodeCheck implements DocumentProcessor, Closeable {
         public String toJson() {
             JsopBuilder json = new JsopBuilder();
             json.object();
-            json.key("orphaned").value(orphaned.toString());
-            json.key("revision").value(revision.toString());
+            json.key("type").value("orphan");
+            json.key("path").value(orphaned.toString());
             json.key("missing").value(missing.toString());
+            json.key("revision").value(revision.toString());
             json.endObject();
             return json.toString();
         }

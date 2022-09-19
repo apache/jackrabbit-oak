@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document.check;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 
+import static org.apache.jackrabbit.oak.plugins.document.check.DocumentProcessor.nowAsISO8601;
+
 /**
  * <code>ProgressWithETA</code>...
  */

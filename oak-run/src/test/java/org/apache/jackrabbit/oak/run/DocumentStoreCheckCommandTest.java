@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
@@ -37,6 +39,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -83,12 +87,57 @@ public class DocumentStoreCheckCommandTest {
         assertThat(lines.get(0), containsString("summary"));
     }
 
+    @Test
+    public void baseVersion() throws Exception {
+        createVersionableWithMissingBaseVersion();
+        DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
+        cmd.execute(
+                "--summary", "false",
+                "--out", output.getAbsolutePath(),
+                MongoUtils.URL
+        );
+        List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
+        assertEquals(1, lines.size());
+        assertThat(lines.get(0), containsString(JCR_BASEVERSION));
+    }
+
+    @Test
+    public void versionHistory() throws Exception {
+        createVersionableWithMissingVersionHistory();
+        DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
+        cmd.execute(
+                "--summary", "false",
+                "--out", output.getAbsolutePath(),
+                MongoUtils.URL
+        );
+        List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
+        assertEquals(1, lines.size());
+        assertThat(lines.get(0), containsString(JCR_VERSIONHISTORY));
+    }
+
     private DocumentNodeStore createDocumentNodeStore() {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
-        return builderProvider.newBuilder().setBlobStore(new MemoryBlobStore())
+        return builderProvider.newBuilder().setAsyncDelay(0)
+                .setBlobStore(new MemoryBlobStore())
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+    }
+
+    private void createVersionableWithMissingBaseVersion()
+            throws CommitFailedException {
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("versionable").setProperty(
+                JCR_BASEVERSION, UUID.randomUUID().toString(), Type.REFERENCE);
+        merge(builder);
+    }
+
+    private void createVersionableWithMissingVersionHistory()
+            throws CommitFailedException {
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("versionable").setProperty(
+                JCR_VERSIONHISTORY, UUID.randomUUID().toString(), Type.REFERENCE);
+        merge(builder);
     }
 
     private void populateWithTestData() throws CommitFailedException {
@@ -99,6 +148,11 @@ public class DocumentStoreCheckCommandTest {
                 child.child("node-" + j);
             }
         }
+        merge(builder);
+    }
+
+    private void merge(NodeBuilder builder) throws CommitFailedException {
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns.runBackgroundOperations();
     }
 }
