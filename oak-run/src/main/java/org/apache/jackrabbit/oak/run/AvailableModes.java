@@ -41,6 +41,7 @@ public final class AvailableModes {
             .put("datastorecacheupgrade", new DataStoreCacheUpgradeCommand())
             .put("datastorecheck", new DataStoreCheckCommand())
             .put("debug", new DebugCommand())
+            .put(DocumentStoreCheckCommand.NAME, new DocumentStoreCheckCommand())
             .put("explore", new ExploreCommand())
             .put(NodeStateExportCommand.NAME, new NodeStateExportCommand())
             .put(FrozenNodeRefsByScanningCommand.NAME, new FrozenNodeRefsByScanningCommand())
