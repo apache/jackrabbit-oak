@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,8 @@ class ElasticIndexHelper {
      * @param indexDefinition the definition used to read settings/mappings
      * @return a {@code CreateIndexRequest}
      */
-    public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
+    public static CreateIndexRequest createIndexRequest(@NotNull String remoteIndexName,
+                                                        @NotNull ElasticIndexDefinition indexDefinition) {
         return new CreateIndexRequest.Builder()
                 .index(remoteIndexName)
                 .settings(s -> loadSettings(s, indexDefinition))
@@ -67,13 +69,14 @@ class ElasticIndexHelper {
                 .build();
     }
 
-    private static ObjectBuilder<TypeMapping> loadMappings(TypeMapping.Builder builder, ElasticIndexDefinition indexDefinition) {
+    private static ObjectBuilder<TypeMapping> loadMappings(@NotNull TypeMapping.Builder builder,
+                                                           @NotNull ElasticIndexDefinition indexDefinition) {
         mapInternalProperties(builder);
         mapIndexRules(builder, indexDefinition);
         return builder;
     }
 
-    private static void mapInternalProperties(TypeMapping.Builder builder) {
+    private static void mapInternalProperties(@NotNull TypeMapping.Builder builder) {
         builder.properties(FieldNames.PATH,
                         b1 -> b1.keyword(builder3 -> builder3))
                 .properties(FieldNames.ANCESTORS,
@@ -118,7 +121,8 @@ class ElasticIndexHelper {
     }
 
 
-    private static ObjectBuilder<IndexSettings> loadSettings(IndexSettings.Builder builder, ElasticIndexDefinition indexDefinition) {
+    private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
+                                                             @NotNull ElasticIndexDefinition indexDefinition) {
         if (indexDefinition.getSimilarityProperties().size() > 0) {
             builder.otherSettings("elastiknn", JsonData.of(JsonValue.TRUE));
         }
@@ -161,7 +165,8 @@ class ElasticIndexHelper {
         return builder;
     }
 
-    private static void mapIndexRules(TypeMapping.Builder builder, ElasticIndexDefinition indexDefinition) {
+    private static void mapIndexRules(@NotNull TypeMapping.Builder builder,
+                                      @NotNull ElasticIndexDefinition indexDefinition) {
         checkIndexRules(indexDefinition);
         boolean useInSuggest = false;
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
