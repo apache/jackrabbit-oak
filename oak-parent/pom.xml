@@ -65,10 +65,7 @@
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.10.5</jackson.version>
-    <!-- jackson-databind versions prior to 2.10.5.1 are affected by security vulnerability CVE-2020-25649.
-         When upgrading jackson, try to align them to the same version -->
-    <jackson.databind.version>2.10.5.1</jackson.databind.version>
+    <jackson.version>2.13.4</jackson.version>
     <testcontainers.version>1.17.3</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <java.version>1.8</java.version>
@@ -658,26 +655,6 @@
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
         <version>3.2.3</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-annotations</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.databind.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId>
-        <artifactId>jackson-dataformat-smile</artifactId>
-        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>

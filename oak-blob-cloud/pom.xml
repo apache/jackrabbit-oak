@@ -136,10 +136,6 @@
             <version>${aws.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </dependency>
         <!-- Netty -->
         <dependency>
             <groupId>io.netty</groupId>
