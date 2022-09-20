@@ -105,7 +105,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
                 esConnection.getClient().indices().delete(d->d.index(esConnection.getIndexPrefix() + "*"));
                 esConnection.close();
             } catch (IOException e) {
-                //LOG.error("Unable to delete indexes with prefix {}", esConnection.getIndexPrefix());
+                e.printStackTrace();
             }
         }
     }
@@ -121,7 +121,6 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
         for (int i =0 ; i < numOfDocs ; i++) {
             testBuilder.child("child" + i).setProperty("foo", "bar" + i);
-            //testBuilder.child("child22" + i).setProperty("bar", "foo" + i);
         }
 
         NodeState after = builder.getNodeState();
