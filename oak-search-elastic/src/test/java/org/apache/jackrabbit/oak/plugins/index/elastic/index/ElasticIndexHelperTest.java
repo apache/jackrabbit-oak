@@ -65,7 +65,6 @@ public class ElasticIndexHelperTest {
         IndexDefinitionBuilder.IndexRule indexRuleB = builder.indexRule("typeB");
         indexRuleB.property("foo").type("Boolean");
         NodeState nodeState = builder.build();
-
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
