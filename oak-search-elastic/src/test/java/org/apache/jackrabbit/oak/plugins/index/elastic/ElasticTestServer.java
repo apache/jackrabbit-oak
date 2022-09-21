@@ -47,7 +47,8 @@ public class ElasticTestServer implements AutoCloseable {
             "7.17.3.0", "5e3b40bb72b2813f927be9bf6ecdf88668d89d2ef20c7ebafaa51ab8407fd179",
             "7.17.6.0", "326893bb98ef1a0c569d9f4c4a9a073e53361924f990b17e87077985ce8a7478",
             "8.3.3.0", "14d3223456f4b9f00f86628ec8400cb46513935e618ae0f5d0d1088739ccc233",
-            "8.4.1.0", "56797a1bac6ceeaa36d2358f818b14633124d79c5e04630fa3544603d82eaa01"
+            "8.4.1.0", "56797a1bac6ceeaa36d2358f818b14633124d79c5e04630fa3544603d82eaa01",
+            "8.4.2.0", "5ce81ad043816900a496ad5b3cce7de1d99547ebf92aa1f9856343e48580c71c"
     );
 
     private static final ElasticTestServer SERVER = new ElasticTestServer();
