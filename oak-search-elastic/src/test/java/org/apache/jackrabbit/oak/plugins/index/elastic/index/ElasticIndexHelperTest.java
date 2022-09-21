@@ -74,7 +74,6 @@ public class ElasticIndexHelperTest {
 
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
-
         ElasticIndexHelper.createIndexRequest("prefix.path", definition);
     }
 
