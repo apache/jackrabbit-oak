@@ -230,8 +230,8 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
             context.getGCListener().error("compaction interrupted", e);
             currentThread().interrupt();
             return compactionAborted(context, nextGeneration);
-        } catch (IOException e) {
-            context.getGCListener().error("compaction encountered an error", e);
+        } catch (Throwable e) {
+            context.getGCListener().error("compaction encountered an error", e instanceof Exception ? (Exception) e : new Exception(e));
             return compactionAborted(context, nextGeneration);
         }
     }
