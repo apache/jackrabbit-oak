@@ -762,6 +762,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return aggregates.get(nodeType);
     }
 
+    @Nullable
+    public Map<String, Aggregate> getAggregates() {
+        return aggregates;
+    }
+
     private Map<String, Aggregate> collectAggregates(NodeState defn) {
         Map<String, Aggregate> aggregateMap = newHashMap();
 

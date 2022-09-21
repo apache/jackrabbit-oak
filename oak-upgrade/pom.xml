@@ -262,6 +262,11 @@
       <version>1.1.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.lz4</groupId>
+      <artifactId>lz4-java</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <!-- Workaround for http://bugs.java.com/view_bug.do?bug_id=6550655 -->

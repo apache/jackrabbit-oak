@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -43,7 +44,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<Long> lastModifiedBreakpoints = Arrays.asList(10L, 20L, 30L, 40L);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                lastModifiedBreakpoints, null, null, null, null, true, null,
+                lastModifiedBreakpoints, null, null, null, null, Compression.GZIP, null,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
 
             @Override
@@ -103,7 +104,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         workDirs.add(workDir);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                null, null, null, null, workDirs, true, null,
+                null, null, null, null, workDirs, Compression.GZIP, null,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,

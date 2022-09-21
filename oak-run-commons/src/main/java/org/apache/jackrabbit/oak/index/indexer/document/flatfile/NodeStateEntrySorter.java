@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.google.common.base.Stopwatch;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -27,13 +35,6 @@ import java.nio.charset.Charset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
-
-import com.google.common.base.Stopwatch;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.commons.io.FileUtils.ONE_GB;
@@ -50,10 +51,10 @@ public class NodeStateEntrySorter {
     private final Charset charset = UTF_8;
     private final Comparator<Iterable<String>> pathComparator;
     private File sortedFile;
-    private boolean useZip;
     private boolean deleteOriginal;
     private long maxMemory = ONE_GB * 5;
     private long actualFileSize;
+    private Compression algorithm = Compression.NONE;
 
     public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile, File workDir) {
         this(pathComparator, nodeStateFile, workDir, getSortedFileName(nodeStateFile));
@@ -66,8 +67,8 @@ public class NodeStateEntrySorter {
         this.pathComparator = pathComparator;
     }
 
-    public void setUseZip(boolean useZip) {
-        this.useZip = useZip;
+    public void setCompressionAlgorithm(Compression algorithm) {
+        this.algorithm = algorithm;
     }
 
     public void setDeleteOriginal(boolean deleteOriginal) {
@@ -113,13 +114,13 @@ public class NodeStateEntrySorter {
 
     private void mergeSortedFiles(Comparator<NodeStateHolder> comparator, Function<String, NodeStateHolder> func1,
                                   Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
-        try(BufferedWriter writer = createWriter(sortedFile, useZip)) {
+        try(BufferedWriter writer = createWriter(sortedFile, algorithm)) {
             ExternalSort.mergeSortedFiles(sortedFiles,
                     writer,
                     comparator,
                     charset,
                     true, //distinct
-                    useZip, //useZip
+                    algorithm,
                     func2,
                     func1
 
@@ -130,32 +131,17 @@ public class NodeStateEntrySorter {
     private List<File> sortInBatch(long memory, Comparator<NodeStateHolder> comparator,
                                    Function<String, NodeStateHolder> func1,
                                    Function<NodeStateHolder, String> func2) throws IOException {
-        if (useZip) {
-            try (BufferedReader reader = createReader(nodeStateFile, useZip)) {
-                return ExternalSort.sortInBatch(reader,
-                        actualFileSize,
-                        comparator, //Comparator to use
-                        DEFAULTMAXTEMPFILES,
-                        memory,
-                        charset, //charset
-                        workDir,  //temp directory where intermediate files are created
-                        true, //distinct
-                        0,
-                        useZip, //useZip
-                        func2,
-                        func1
-                );
-            }
-        } else {
-            return ExternalSort.sortInBatch(nodeStateFile,
+        try (BufferedReader reader = createReader(nodeStateFile, algorithm)) {
+            return ExternalSort.sortInBatch(reader,
+                    actualFileSize,
                     comparator, //Comparator to use
                     DEFAULTMAXTEMPFILES,
                     memory,
                     charset, //charset
                     workDir,  //temp directory where intermediate files are created
-                    true,
+                    true, //distinct
                     0,
-                    useZip,
+                    algorithm,
                     func2,
                     func1
             );

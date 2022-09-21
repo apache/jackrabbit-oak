@@ -49,19 +49,25 @@ public class AbstractIndexCommandTest {
     }
 
     protected void createTestData(boolean asyncIndex) throws IOException, RepositoryException {
+        createTestData("/testNode/a", "foo", 100, "nt:base", asyncIndex);
+    }
+    
+    protected void createTestData(String basePath, String propName, int count, String nodeType, boolean asyncIndex) 
+        throws IOException, RepositoryException {
         if (fixture == null) {
             this.fixture = new RepositoryFixture(temporaryFolder.newFolder());
         }
         indexIndexDefinitions();
-        createLuceneIndex(asyncIndex);
-        addTestContent(fixture, "/testNode/a", "foo", 100);
+        createLuceneIndex(nodeType, propName, asyncIndex);
+        addTestContent(fixture, basePath, propName, count);
     }
-
-    protected void addTestContent(RepositoryFixture fixture, String basePath, String propName, int count) throws IOException, RepositoryException {
+    
+    protected void addTestContent(RepositoryFixture fixture, String basePath, String propName, int count) 
+        throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         for (int i = 0; i < count; i++) {
             getOrCreateByPath(basePath+i,
-                    "oak:Unstructured", session).setProperty(propName, "bar");
+                "oak:Unstructured", session).setProperty(propName, "bar");
         }
         session.save();
         session.logout();
@@ -76,13 +82,14 @@ public class AbstractIndexCommandTest {
         session.save();
         session.logout();
     }
-
-    private void createLuceneIndex(boolean asyncIndex) throws IOException, RepositoryException {
+    
+    private void createLuceneIndex(String nodeType, String propName, boolean asyncIndex) throws IOException,
+        RepositoryException {
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
         }
-        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.indexRule(nodeType).property(propName).propertyIndex();
 
         Session session = fixture.getAdminSession();
         Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,

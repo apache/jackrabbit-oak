@@ -451,6 +451,10 @@
       <version>1.19.0</version>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.lz4</groupId>
+      <artifactId>lz4-java</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

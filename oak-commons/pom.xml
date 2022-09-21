@@ -82,6 +82,11 @@
       <artifactId>org.osgi.annotation</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.lz4</groupId>
+      <artifactId>lz4-java</artifactId>
+      <optional>true</optional>
+    </dependency>
 
     <!-- logging -->
     <dependency>

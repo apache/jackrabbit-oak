@@ -36,7 +36,7 @@
   <properties>
     <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
     <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
-    <test.opts.memory>-Xmx512m</test.opts.memory>
+    <test.opts.memory>-Xmx1024m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
@@ -780,6 +780,12 @@
         <artifactId>javax.inject</artifactId>
         <version>1</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>1.8.0</version>
+        <optional>true</optional>
       </dependency>
     </dependencies>
   </dependencyManagement>
