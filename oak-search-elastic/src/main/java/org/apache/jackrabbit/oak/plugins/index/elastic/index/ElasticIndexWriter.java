@@ -169,7 +169,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
         if (LOG.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder();
-            JsonpUtils.toString(request,sb);
+            JsonpUtils.toString(request, sb);
             LOG.debug("Creating Index with request {}", sb);
         }
         // create the new index
