@@ -28,8 +28,8 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -71,8 +71,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -100,7 +100,7 @@ public abstract class AbstractQueryTest {
 
     /**
      * Override this method to add your default index definition
-     *
+     * <p>
      * {@link #createTestIndexNode(Tree, String)} for a helper method
      */
     protected void createTestIndexNode() throws Exception {
@@ -141,9 +141,8 @@ public abstract class AbstractQueryTest {
 
         InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
         ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
-        PrintWriter w = new PrintWriter(new OutputStreamWriter(
-                new FileOutputStream(output)));
-        HashSet<String> knownQueries = new HashSet<String>();
+        PrintWriter w = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output)));
+        HashSet<String> knownQueries = new HashSet<>();
         boolean errors = false;
         try {
             while (true) {
@@ -270,7 +269,7 @@ public abstract class AbstractQueryTest {
 
     protected List<String> executeQuery(String query, String language, boolean pathsOnly, boolean skipSort) {
         long time = System.currentTimeMillis();
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         try {
             Result result = executeQuery(query, language, NO_BINDINGS);
             if (query.startsWith("explain ")) {
@@ -344,13 +343,21 @@ public abstract class AbstractQueryTest {
         assertEquals("Expected sorted result not found", expected, actual);
     }
 
+    /**
+     * Checks that the two lists have the same elements ignoring their order.
+     */
     protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {
-        for (String p : checkNotNull(expected)) {
-            assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
-                    .contains(p));
-        }
-        assertEquals("Result set size is different: " + actual, expected.size(),
-                actual.size());
+        checkNotNull(expected);
+        checkNotNull(actual);
+        assertEquals("Result set size is different. Expected: " + expected + ", actual: " + actual, expected.size(), actual.size());
+
+        String[] sortedActual = actual.toArray(new String[0]);
+        Arrays.sort(sortedActual);
+
+        String[] sortedExpected = expected.toArray(new String[0]);
+        Arrays.sort(sortedExpected);
+
+        assertArrayEquals("Invalid result set. Expected: " + expected + ", Actual: " + actual, sortedExpected, sortedActual);
     }
 
     protected void setTraversalEnabled(boolean traversalEnabled) {
@@ -406,7 +413,7 @@ public abstract class AbstractQueryTest {
 
     /**
      * Applies the commit string to a given Root instance
-     *
+     * <p>
      * The commit string represents a sequence of operations, jsonp style:
      *
      * <p>
@@ -474,8 +481,9 @@ public abstract class AbstractQueryTest {
 
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private static PropertyState readProperty(String name, JsopReader reader) {
@@ -507,8 +515,9 @@ public abstract class AbstractQueryTest {
 
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private static PropertyState readArrayProperty(String name, JsopReader reader) {
@@ -592,7 +601,7 @@ public abstract class AbstractQueryTest {
      * A line reader that supports multi-line statements, where lines that start
      * with a space belong to the previous line.
      */
-    class ContinueLineReader {
+    static class ContinueLineReader {
 
         private final LineNumberReader reader;
 

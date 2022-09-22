@@ -337,7 +337,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         public final String path;
         public final double score;
         public final String suggestion;
-        public final boolean isVirutal;
+        public final boolean isVirtual;
         public final Map<String, String> excerpts;
         public final String explanation;
         private final FacetProvider facetProvider;
@@ -347,7 +347,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             this.explanation = explanation;
             this.excerpts = excerpts;
             this.facetProvider = facetProvider;
-            this.isVirutal = false;
+            this.isVirtual = false;
             this.path = path;
             this.score = score;
             this.suggestion = null;
@@ -358,7 +358,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
 
         public FulltextResultRow(String suggestion, double weight) {
-            this.isVirutal = true;
+            this.isVirtual = true;
             this.path = "/";
             this.score = weight;
             this.suggestion = suggestion;
@@ -464,7 +464,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
                 @Override
                 public boolean isVirtualRow() {
-                    return currentRow.isVirutal;
+                    return currentRow.isVirtual;
                 }
 
                 @Override

@@ -346,7 +346,7 @@ public class ElasticRequestHandler {
                         .filter(fb -> fb.exists(ef -> ef.field(similarityPropFieldName)))
                         .should(s -> s
                                 .wrapper(w -> w.query(Base64.getEncoder().encodeToString(knnQuery.getBytes(StandardCharsets.UTF_8))))
-                );
+                        );
             }
         }
         return query.build();
@@ -538,14 +538,14 @@ public class ElasticRequestHandler {
                     qsqBuilder.boost(Float.valueOf(boost));
                 }
                 BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
-                        .must(m->m
+                        .must(m -> m
                                 .queryString(qsqBuilder.build()));
                 Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(text);
-                dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s->s.nested(dsq)));
+                dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s -> s.nested(dsq)));
 
                 if (not) {
-                    result.set(BoolQuery.of(b->b
-                            .mustNot(mn->mn
+                    result.set(BoolQuery.of(b -> b
+                            .mustNot(mn -> mn
                                     .bool(bqBuilder.build()))));
                 } else {
                     result.set(bqBuilder.build());
@@ -553,7 +553,7 @@ public class ElasticRequestHandler {
                 return true;
             }
         });
-        return Query.of(q->q
+        return Query.of(q -> q
                 .bool(result.get()));
     }
 
@@ -792,34 +792,34 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.multiMatch(m -> m.fields(uuid)));
     }
 
-    private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {
+    private QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {
         LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
                 .type(TextQueryType.CrossFields);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
-            for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                qsqBuilder.fields(pd.name);
+            for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
+                qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(pd.name));
                 qsqBuilder.boost(pd.boost);
             }
         }
-        return qsqBuilder.fields(fieldName);
+        return qsqBuilder.fields(elasticIndexDefinition.getElasticTextField(fieldName));
     }
 
     private Query createQuery(String propertyName, Filter.PropertyRestriction pr, PropertyDefinition defn) {
         int propType = FulltextIndex.determinePropertyType(defn, pr);
 
         if (pr.isNullRestriction()) {
-            return Query.of(q->q
-                    .bool(b->b
-                            .mustNot(m->m
-                                    .exists(e->e
+            return Query.of(q -> q
+                    .bool(b -> b
+                            .mustNot(m -> m
+                                    .exists(e -> e
                                             .field(propertyName)))));
         }
         if (pr.isNotNullRestriction()) {
-            return Query.of(q->q
-                    .exists(e->e
+            return Query.of(q -> q
+                    .exists(e -> e
                             .field(propertyName)));
         }
 

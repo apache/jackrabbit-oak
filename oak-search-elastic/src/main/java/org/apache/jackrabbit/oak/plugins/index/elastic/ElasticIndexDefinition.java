@@ -98,7 +98,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private static final Function<Integer, Boolean> isAnalyzable;
 
     static {
-        int[] NOT_ANALYZED_TYPES = new int[] {
+        int[] NOT_ANALYZED_TYPES = new int[]{
                 Type.BINARY.tag(), Type.LONG.tag(), Type.DOUBLE.tag(), Type.DECIMAL.tag(), Type.DATE.tag(), Type.BOOLEAN.tag()
         };
         Arrays.sort(NOT_ANALYZED_TYPES); // need for binary search
@@ -172,6 +172,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * Returns the index alias on the Elasticsearch cluster. This alias should be used for any query related operations.
      * The actual index name is used only when a reindex is in progress.
+     *
      * @return the Elasticsearch index alias
      */
     public String getIndexAlias() {
@@ -200,6 +201,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     /**
      * Returns the keyword field name mapped in Elasticsearch for the specified property name.
+     *
      * @param propertyName the property name in the index rules
      * @return the field name identifier in Elasticsearch
      */
@@ -210,7 +212,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
             // this can happen for properties that were not explicitly defined (eg: created with a regex)
             return propertyName + ".keyword";
         }
-
         String field = propertyName;
         // it's ok to look at the first property since we are sure they all have the same type
         int type = propertyDefinitions.get(0).getType();
@@ -218,6 +219,35 @@ public class ElasticIndexDefinition extends IndexDefinition {
             field += ".keyword";
         }
         return field;
+    }
+
+    public String getElasticTextField(String propertyName) {
+        List<PropertyDefinition> propertyDefinitions = propertiesByName.get(propertyName);
+        if (propertyDefinitions == null) {
+            return propertyName;
+        }
+
+        Type<?> type = null;
+        for (PropertyDefinition pd : propertyDefinitions) {
+            type = Type.fromTag(pd.getType(), false);
+        }
+
+        if (isAnalyzed(propertyDefinitions)) {
+            // The full text index for String properties is <propertyName>, while for non-string properties is part of
+            // the multi-field and is called <propertyName>.text
+            if (Type.BINARY.equals(type) ||
+                    Type.LONG.equals(type) ||
+                    Type.DOUBLE.equals(type) ||
+                    Type.DECIMAL.equals(type) ||
+                    Type.DATE.equals(type) ||
+                    Type.BOOLEAN.equals(type)) {
+                return propertyName + ".text";
+            } else {
+                return propertyName;
+            }
+        } else {
+            return propertyName;
+        }
     }
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {

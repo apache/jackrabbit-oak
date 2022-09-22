@@ -1785,7 +1785,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     // OAK-2434
     @Test
-    public void lucenPropertyBooleanComplexOrQueries() throws Exception {
+    public void lucenePropertyBooleanComplexOrQueries() throws Exception {
         fulltextBooleanComplexOrQueries(true);
     }
 

@@ -48,5 +48,6 @@ however there are differences:
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
 * The behavior for `dynamicBoost` is slightly different: 
   For Lucene indexes, boosting is done in indexing, while for Elastic it is done at query time.
+* Properties of type Boolean do not support `analyzed=true`.
 
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html

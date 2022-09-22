@@ -98,8 +98,14 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexAnalyzedProperty(ElasticDocument doc, String pname, String value, PropertyDefinition pd) {
-        // no need to do anything here. Analyzed properties are persisted in Elastic
-        // using multi fields. The analyzed properties are set calling #indexTypedProperty
+        // Analyzed properties are persisted in Elastic using multi fields, so it is enough to map the top level property
+        // and ES will create the indexes for all the nested fields. If this property was already indexed by a call to
+        // #indexTypedProperty, then we have nothing more to do here. But if the property is not marked as a propertyIndex,
+        // then that method was not called and we must add the top level mapping here so that the full-text nested field
+        // is populated.
+        if (!pd.propertyIndex) {
+            doc.addProperty(pname, value);
+        }
     }
 
     @Override
@@ -143,32 +149,45 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
-        // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
-        // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
-        // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
-        // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
-        int tag = pd.getType();
-        Object f;
-        try {
-            if (tag == Type.LONG.tag()) {
-                f = property.getValue(Type.LONG, i);
-            } else if (tag == Type.DATE.tag()) {
-                f = property.getValue(Type.DATE, i);
-            } else if (tag == Type.DOUBLE.tag()) {
-                f = property.getValue(Type.DOUBLE, i);
-            } else if (tag == Type.BOOLEAN.tag()) {
-                f = property.getValue(Type.BOOLEAN, i).toString();
-            } else {
-                f = property.getValue(Type.STRING, i);
-            }
+        // Try to index the value as we receive it from the user. Elastic will try to coerce the value to the type defined
+        // in the index. If this fails, the ES index is configured to ignore the malformed fields (see ElasticIndexHelper)
+        // and continue indexing the document. The only exception are fields of type boolean, because ES does not support
+        // ignoring malformed values for boolean types.
 
+        // This is the type in the index definition. It may not be the same as the type of value of the property being
+        // indexed.
+        int indexType = pd.getType();
+        try {
+            Object f;
+            if (indexType == Type.BOOLEAN.tag()) {
+                // Try to convert the value to the index definition type, which is Boolean. This is a special case,
+                // because ES does not support ignore_malformed in boolean fields so we cannot rely on ES for conversion
+                f = property.getValue(Type.BOOLEAN, i);
+            } else {
+                // Send to ES the value as we got it from the user and let ES convert the property. If ES cannot convert
+                // the value, then it ignores it without raising an error (ignore_malformed=true)
+                // Get the type of the property, as was received from the client.
+                int propertyType = property.getType().tag();
+                // The code below does not perform any type conversion, it simply gets the value as the type of the property
+                if (propertyType == Type.LONG.tag()) {
+                    f = property.getValue(Type.LONG, i);
+                } else if (propertyType == Type.DATE.tag()) {
+                    f = property.getValue(Type.DATE, i);
+                } else if (propertyType == Type.DOUBLE.tag()) {
+                    f = property.getValue(Type.DOUBLE, i);
+                } else if (propertyType == Type.BOOLEAN.tag()) {
+                    f = property.getValue(Type.BOOLEAN, i);
+                } else {
+                    f = property.getValue(Type.STRING, i);
+                }
+            }
             doc.addProperty(pname, f);
         } catch (Exception e) {
             LOG.warn(
                     "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
                     getIndexName(), pname,
                     Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+                    Type.fromTag(indexType, false), path, e);
         }
     }
 

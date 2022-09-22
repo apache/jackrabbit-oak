@@ -76,7 +76,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     private final ElasticRequestHandler elasticRequestHandler;
     private final ElasticResponseHandler elasticResponseHandler;
     private final ElasticFacetProvider elasticFacetProvider;
-    private final AtomicReference<Throwable> errorRef = new AtomicReference();
+    private final AtomicReference<Throwable> errorRef = new AtomicReference<>();
 
     private FulltextResultRow nextRow;
 
@@ -336,14 +336,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
                     System.currentTimeMillis() - searchStartTime);
             // Check in case errorRef is already set - this seems unlikely since we close the scanner once we hit failure.
-            // But still, in case this do happen, we will log a warn.
-            Throwable error = errorRef.getAndSet(t);
+            // But still, in case this do happen, we will log a warning.
+            Throwable error = errorRef.getAndSet(new ElasticAsyncQueryException(t, ElasticIndexUtils.toString(query)));
             if (error != null) {
-                LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());
+                LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}",
+                        error.getMessage(), t.getMessage());
             }
 
-            LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES query {} : closing scanner, notifying listeners",
-                indexPlan.getFilter(), ElasticIndexUtils.toString(query), t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }

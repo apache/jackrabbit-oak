@@ -250,8 +250,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             } catch (Exception e) {
                 log.error("could not index similarity field for property {} and definition {}", property, pd);
             }
-        } else if (Type.BINARY.tag() == property.getType().tag()
-                && includeTypeForFullText) {
+        } else if (Type.BINARY.tag() == property.getType().tag() && includeTypeForFullText) {
             List<String> binaryValues = newBinary(property, state, path + "@" + pname);
             addBinary(doc, null, binaryValues);
             dirty = true;

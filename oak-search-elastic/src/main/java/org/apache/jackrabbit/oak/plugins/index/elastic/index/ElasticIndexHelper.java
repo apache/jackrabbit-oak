@@ -26,6 +26,8 @@ import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xcontent.XContentFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,6 +38,7 @@ import java.util.stream.Collectors;
  * Provides utility functions around Elasticsearch indexing
  */
 class ElasticIndexHelper {
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexHelper.class);
 
     private static final String ES_DENSE_VECTOR_DIM_PROP = "dims";
 
@@ -194,6 +197,18 @@ class ElasticIndexHelper {
         // .endObject();
     }
 
+    private static void createAnalyzedSubfield(XContentBuilder mappingBuilder) throws IOException {
+        // Create a separate field for full text search on non-string properties
+        mappingBuilder.startObject("fields");
+        {
+            mappingBuilder.startObject("text")
+                    .field("type", "text")
+                    .field("analyzer", "oak_analyzer")
+                    .endObject();
+        }
+        mappingBuilder.endObject();
+    }
+
     private static void mapIndexRules(ElasticIndexDefinition indexDefinition, XContentBuilder mappingBuilder) throws IOException {
         checkIndexRules(indexDefinition);
         boolean useInSuggest = false;
@@ -207,21 +222,57 @@ class ElasticIndexHelper {
                     useInSuggest = true;
                 }
             }
-
+            /* TODO: (Add JIRA issue # once available) Potential future optimization:
+             *  If a property has propertyIndex=false, we could in principle create an ES mapping with index=false to
+             *  avoid creating an index for this property, thus saving time and space. However, there is an issue
+             *  with function indexes, which incorrectly rely on the index being created even in the case where
+             *  propertyIndex=false. Once this issue is solved, revise the logic below to set index=false in the ES
+             *  field if propertyIndex=false.
+             */
             mappingBuilder.startObject(name);
             {
                 // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
                 if (Type.BINARY.equals(type)) {
                     mappingBuilder.field("type", "binary");
+                    // ignore_malformed not allowed for binary fields but also not needed as there is no type conversion
+                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                        createAnalyzedSubfield(mappingBuilder);
+                    }
                 } else if (Type.LONG.equals(type)) {
                     mappingBuilder.field("type", "long");
+                    mappingBuilder.field("ignore_malformed", true);
+                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                        createAnalyzedSubfield(mappingBuilder);
+                    }
                 } else if (Type.DOUBLE.equals(type) || Type.DECIMAL.equals(type)) {
                     mappingBuilder.field("type", "double");
+                    mappingBuilder.field("ignore_malformed", true);
+                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                        createAnalyzedSubfield(mappingBuilder);
+                    }
                 } else if (Type.DATE.equals(type)) {
                     mappingBuilder.field("type", "date");
+                    mappingBuilder.field("ignore_malformed", true);
+                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                        createAnalyzedSubfield(mappingBuilder);
+                    }
                 } else if (Type.BOOLEAN.equals(type)) {
                     mappingBuilder.field("type", "boolean");
+                    // ES does not support "ignore_malformed" on boolean properties, so all values added to the index
+                    // must parse as valid booleans or else the document is rejected. We therefore also do not support
+                    // the nested full text field, because to do so we would need to provide a value for the top level
+                    // field, which must be a valid value. As in this case we cannot set ignore_malformed=true to still
+                    // index as full-text the invalid values, we cannot have a full-text index. This breaks compatibility
+                    // with Lucene, which accepts any value, even if it is not a valid boolean, but this is unlikely to
+                    // have much impact because setting analyzed=true in a boolean property should have no real world
+                    // use case.
+                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                        LOG.warn("Property {} of type boolean does not support analyzed=true.", name);
+                    }
                 } else {
+                    // OAK-9875 - For String properties, the full-text index is stored at the top-level field. This is
+                    // the opposite of what is done for non-String properties, where the full text field is nested, as
+                    // propa.text. We do this to keep backwards compatibility with pre OAK=9875 indexes.
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
                         mappingBuilder.field("type", "text");
                         mappingBuilder.field("analyzer", "oak_analyzer");
