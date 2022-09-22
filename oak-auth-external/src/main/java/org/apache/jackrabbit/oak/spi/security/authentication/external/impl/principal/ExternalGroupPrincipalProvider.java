@@ -73,6 +73,9 @@ import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.getIdpName;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isSameIDP;
+
 /**
  * Implementation of the {@code PrincipalProvider} interface that exposes
  * 'external' principals of type {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal}. 'External'
@@ -226,7 +229,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType,
-            long offset, long limit) {
+                                                        long offset, long limit) {
         Iterator<? extends Principal> principals = findPrincipals(nameHint, searchType);
         if (!principals.hasNext()) {
             return Collections.emptyIterator();
@@ -295,7 +298,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 try {
                     String groupPrincipalName = value.getString();
                     Authorizable gr = userManager.getAuthorizable(new PrincipalImpl(groupPrincipalName));
-                    return (gr != null && gr.isGroup()) ? (Group) gr : null;
+                    return isValidGroup(gr, authorizable) ? (Group) gr : null;
                 } catch (RepositoryException e) {
                     return null;
                 }
@@ -303,6 +306,23 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
+    /**
+     * Verify that the dynamic external group belongs to the same IDP as the member for which groups are being retrieved.
+     * Note that {@code DynamicSyncContext#syncMembership} also asserts there are no collisions between external principal names.
+     * 
+     * @param group The authorizable matching an entry in the {@code REP_EXTERNAL_PRINCIPAL_NAMES} property of the 
+     *              target member.
+     * @param member The target member
+     * @return {@code true} if the given authorizable is a valid external group that belongs to the same IDP; {@code false} otherwise.
+     * @throws RepositoryException If an error occors while retrieving the IDP name
+     */
+    private static boolean isValidGroup(@Nullable Authorizable group, @NotNull Authorizable member) throws RepositoryException {
+        if (group == null || !group.isGroup()) {
+            return false;
+        }
+        return isSameIDP(group, member);
+    }
+    
     /**
      * Returns true if the given user/group belongs to an IDP that has dynamic-group configuration option enabled.
      */
@@ -324,20 +344,6 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
 
     //------------------------------------------------------------< private >---
-    @Nullable
-    private static String getIdpName(@NotNull Tree userTree) {
-        PropertyState ps = userTree.getProperty(REP_EXTERNAL_ID);
-        if (ps != null) {
-            return ExternalIdentityRef.fromString(ps.getValue(Type.STRING)).getProviderName();
-        } else {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static String getIdpName(@NotNull ResultRow row) {
-        return getIdpName(row.getTree(null));
-    }
 
     @NotNull
     private Set<Principal> getGroupPrincipals(@Nullable Authorizable authorizable, boolean ignoreGroup) throws RepositoryException {
@@ -389,7 +395,6 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             return autoMembershipPrincipals.getAutoMembership(idpName, authorizable, true).keySet();
         }
     }
-
 
     /**
      * Runs an Oak query searching for {@link #REP_EXTERNAL_PRINCIPAL_NAMES} properties

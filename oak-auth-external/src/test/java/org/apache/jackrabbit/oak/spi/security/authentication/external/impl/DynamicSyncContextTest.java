@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
@@ -60,6 +61,7 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS_LIST;
@@ -326,6 +328,54 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         collectGroupPrincipals(expected, externalUser.getDeclaredGroups(), Long.MAX_VALUE);
 
         assertEquals(expected, pNames);
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflict() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        
+        // create a local group that collides with the external group membership
+        // i.e. doesn't have an rep:externalId set
+        ExternalIdentity externalGroup = idp.getIdentity(externalUser.getDeclaredGroups().iterator().next());
+        userManager.createGroup(externalGroup.getId(), new PrincipalImpl(externalGroup.getPrincipalName()), null);
+        r.commit();
+        
+        // sync the user with dynamic membership enabled
+        sync(externalUser, SyncResult.Status.ADD);
+
+        // retrieve rep:externalPrincipalNames
+        Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+        assertNotNull(extPrincipalNames);
+
+        // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
+        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflict2() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+
+        // create a local group that collides with the external group membership
+        // i.e. belongs to a different IDP
+        ExternalIdentityRef ref = externalUser.getDeclaredGroups().iterator().next();
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        Group g = userManager.createGroup(externalGroup.getId(), new PrincipalImpl(externalGroup.getPrincipalName()), null);
+        g.setProperty(REP_EXTERNAL_ID, getValueFactory().createValue(new ExternalIdentityRef(ref.getId(), ref.getProviderName()+"_mod").getString()));
+        r.commit();
+
+        // sync the user with dynamic membership enabled
+        sync(externalUser, SyncResult.Status.ADD);
+
+        // retrieve rep:externalPrincipalNames
+        Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+        assertNotNull(extPrincipalNames);
+
+        // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
+        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 
     @Test
