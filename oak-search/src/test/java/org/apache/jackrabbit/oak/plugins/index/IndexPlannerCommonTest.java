@@ -332,7 +332,7 @@ public abstract class IndexPlannerCommonTest {
 
         //For propertyIndex if entry count (default to IndexDefinition.DEFAULT_ENTRY_COUNT) is
         //less than numOfDoc then that would be preferred
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertEquals(idxDefn.getEntryCount(), plan.getEstimatedEntryCount());
@@ -352,7 +352,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
@@ -374,7 +374,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
@@ -392,7 +392,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
@@ -412,7 +412,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
 
             QueryIndex.IndexPlan plan = planner.getPlan();
@@ -562,7 +562,7 @@ public abstract class IndexPlannerCommonTest {
         filter2.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
 
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner2 = getIndexPlanner(node, "/oak:index/" + indexName, filter2, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan2 = planner2.getPlan();
             assertNotNull(plan2);
@@ -1052,7 +1052,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
@@ -1077,7 +1077,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
@@ -1102,7 +1102,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
@@ -1132,7 +1132,7 @@ public abstract class IndexPlannerCommonTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("foo"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
@@ -1158,7 +1158,7 @@ public abstract class IndexPlannerCommonTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
                     ImmutableList.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             QueryIndex.IndexPlan plan = planner.getPlan();
@@ -1184,7 +1184,7 @@ public abstract class IndexPlannerCommonTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.setFullTextConstraint(FullTextParser.parse("bar", "mountain"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
                     ImmutableList.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             QueryIndex.IndexPlan plan = planner.getPlan();
@@ -1338,7 +1338,7 @@ public abstract class IndexPlannerCommonTest {
         IndexDefinition definition = getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName);
         IndexNode node = createIndexNode(definition);
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
                     ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
                             new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
@@ -1356,7 +1356,7 @@ public abstract class IndexPlannerCommonTest {
         IndexDefinition definition = getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName);
         IndexNode node = createIndexNode(definition);
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
                     ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
                             new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));

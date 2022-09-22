@@ -18,12 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.TestUtil;
-import org.apache.jackrabbit.oak.plugins.index.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -49,6 +47,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -61,13 +61,11 @@ import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -88,30 +86,33 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
     private final ElasticConnection esConnection;
     private final ElasticIndexTracker indexTracker;
-    private EditorHook HOOK;
+    private final EditorHook hook;
+
+    private static final Logger log = LoggerFactory.getLogger(ElasticIndexPlannerCommonTest.class);
 
     public ElasticIndexPlannerCommonTest() {
         indexOptions = new ElasticIndexOptions();
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
-        HOOK = new EditorHook(new IndexUpdateProvider(new ElasticIndexEditorProvider(indexTracker, esConnection, null)));
+        this.hook = new EditorHook(new IndexUpdateProvider(new ElasticIndexEditorProvider(indexTracker, esConnection, null)));
     }
 
     @After
-    public void after() {
+    public void after() throws IOException {
         if (esConnection != null) {
             try {
                 esConnection.getClient().indices().delete(d->d.index(esConnection.getIndexPrefix() + "*"));
-                esConnection.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Unable to delete ES index", e);
+            } finally {
+                esConnection.close();
             }
         }
     }
 
 
-    private void createSampleDirectory() throws IOException, CommitFailedException {
+    private void createSampleDirectory() throws CommitFailedException {
         createSampleDirectory(1);
     }
 
@@ -124,7 +125,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
         }
 
         NodeState after = builder.getNodeState();
-        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         indexTracker.update(indexed);
     }
 
@@ -141,17 +142,17 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
                 of(TYPENAME_STRING));
         TestUtil.useV2(defn);
 
-        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
-        IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName), numofDocs);
+        long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
+        IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName), numOfDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
 
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
-            assertTrue(plan.getEstimatedEntryCount() > numofDocs);
+            assertTrue(plan.getEstimatedEntryCount() > numOfDocs);
 
         }, 4500*3);
 
@@ -163,7 +164,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
         try {
             createSampleDirectory();
         } catch (CommitFailedException e) {
-            e.printStackTrace();
+            log.error("Error while creating data for tests", e);
         }
         return new ElasticIndexNodeManager(defn.getIndexPath(), builder.getNodeState(), esConnection).getIndexNode();
     }
@@ -173,7 +174,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
         try {
             createSampleDirectory(numOfDocs);
         } catch (CommitFailedException e) {
-            e.printStackTrace();
+            log.error("Error while creating data for tests", e);
         }
 
         return new ElasticIndexNodeManager(defn.getIndexPath(), builder.getNodeState(), esConnection).getIndexNode();

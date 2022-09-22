@@ -72,7 +72,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
                 + " and (@" + JCR_LASTMODIFIED
                 + " > xs:dateTime('2014-04-01T08:58:03.231Z')) ]";
 
-        TestUtils.assertEventually(() -> assertQuery(query, "xpath", of("/content/two")), 3000 * 3);
+        TestUtil.assertEventually(() -> assertQuery(query, "xpath", of("/content/two")), 3000 * 3);
     }
 
     @Test
@@ -94,7 +94,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
 
         String query = "/jcr:root/content//*[jcr:contains(., 'abc' )"
                 + " and (@" + NOT_IN + " = 'querty') ]";
-        TestUtils.assertEventually(() -> assertQuery(query, "xpath", expected), 3000 * 3);
+        TestUtil.assertEventually(() -> assertQuery(query, "xpath", expected), 3000 * 3);
     }
 
     @Test
@@ -117,7 +117,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
         // Should not return /content/two since there, querty value is set for notincluded property which
         // is part of excluded properties in the index definition
 
-        TestUtils.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
+        TestUtil.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
     }
 
     @Test
@@ -138,7 +138,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
         // Assert /content/two is not returned since it matches 2014 from DATE type property field which is not part of
         // includePropertyTypes in the index definition
         String query = "/jcr:root/content//*[jcr:contains(., '2014')]";
-        TestUtils.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
+        TestUtil.assertEventually(() -> assertQuery(query, "xpath", of("/content/one")), 3000 * 3);
     }
 
 }

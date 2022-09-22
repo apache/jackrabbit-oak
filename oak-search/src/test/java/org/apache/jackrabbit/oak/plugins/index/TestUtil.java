@@ -47,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.Repository;
 import java.util.List;
@@ -60,6 +62,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 public class TestUtil {
     private static final AtomicInteger COUNTER = new AtomicInteger();
+    private static final Logger LOG = LoggerFactory.getLogger(TestUtil.class);
 
     public static final String NT_TEST = "oak:TestNode";
 
@@ -239,5 +242,35 @@ public class TestUtil {
             return null;
         }
 
+    }
+
+    public static void assertEventually(Runnable r, long timeoutMillis) {
+        final long start = System.currentTimeMillis();
+        long lastAttempt = 0;
+        int attempts = 0;
+
+        while (true) {
+            try {
+                attempts++;
+                LOG.info("assertEventually attempt count:{}", attempts);
+                lastAttempt = System.currentTimeMillis();
+                r.run();
+                return;
+            } catch (Throwable e) {
+                long elapsedTime = lastAttempt - start;
+                LOG.trace("assertEventually attempt {} failed because of {}", attempts, e.getMessage());
+                if (elapsedTime >= timeoutMillis) {
+                    String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
+                            elapsedTime / 1000d, attempts);
+                    throw new AssertionError(msg, e);
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+
+            }
+        }
     }
 }

@@ -163,7 +163,7 @@ public abstract class IndexQuerySQL2OptimisationCommonTest extends AbstractQuery
                         "AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
                         "ORDER BY " + added + " DESC ";
 
-        TestUtils.assertEventually(() -> assertQuery(statement, SQL2, expected), 3000 * 5);
+        TestUtil.assertEventually(() -> assertQuery(statement, SQL2, expected), 3000 * 5);
     }
 
     protected abstract Oak getOakRepo();
