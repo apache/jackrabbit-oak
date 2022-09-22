@@ -69,7 +69,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
             0, 4, 60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(),
             new ThreadFactoryBuilder()
-                    .setNameFormat("stats-cache-refresh-thread-%d")
+                    .setNameFormat("elastic-statistics-cache-refresh-thread-%d")
                     .setDaemon(true)
                     .build()
     );
