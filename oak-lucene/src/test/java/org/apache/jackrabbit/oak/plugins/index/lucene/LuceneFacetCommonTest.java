@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.FacetCommonTest;
-import org.apache.jackrabbit.oak.plugins.index.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -45,7 +45,7 @@ public class LuceneFacetCommonTest extends FacetCommonTest {
     }
 
     protected void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, (repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) * 5);
+        TestUtil.assertEventually(r, (repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) * 5);
     }
 
     @After

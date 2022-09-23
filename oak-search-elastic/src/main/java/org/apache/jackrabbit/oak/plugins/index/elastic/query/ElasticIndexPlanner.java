@@ -30,9 +30,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-class ElasticIndexPlanner extends FulltextIndexPlanner {
+public class ElasticIndexPlanner extends FulltextIndexPlanner {
 
-    ElasticIndexPlanner(IndexNode indexNode, String indexPath, Filter filter, List<QueryIndex.OrderEntry> sortOrder) {
+    public ElasticIndexPlanner(IndexNode indexNode, String indexPath, Filter filter, List<QueryIndex.OrderEntry> sortOrder) {
         super(indexNode, indexPath, filter, sortOrder);
     }
 
