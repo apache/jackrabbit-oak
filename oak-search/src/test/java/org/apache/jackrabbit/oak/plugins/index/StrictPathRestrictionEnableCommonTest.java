@@ -129,7 +129,7 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
     }
 
     private static void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, 3000 * 3);
+        TestUtil.assertEventually(r, 3000 * 3);
     }
 
 }

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -139,7 +139,7 @@ public class ElasticReindexTest {
     }
 
     private void assertQuery(String query, int resultSetSize) {
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             try {
                 Query q = qe.createQuery(query, Query.JCR_SQL2);
                 QueryResult queryResult = q.execute();
