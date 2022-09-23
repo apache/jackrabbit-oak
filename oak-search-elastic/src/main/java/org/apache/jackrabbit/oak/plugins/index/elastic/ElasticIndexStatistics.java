@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
@@ -33,6 +35,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import co.elastic.clients.elasticsearch._types.Bytes;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
@@ -52,7 +55,6 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
  * </ul>
  */
 public class ElasticIndexStatistics implements IndexStatistics {
-
     private static final Long MAX_SIZE = Long.getLong("oak.elastic.statsMaxSize", 10000);
     private static final Long EXPIRE_SECONDS = Long.getLong("oak.elastic.statsExpireSeconds", 10 * 60);
     private static final Long REFRESH_SECONDS = Long.getLong("oak.elastic.statsRefreshSeconds", 60);
@@ -62,6 +64,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
 
     private static final LoadingCache<StatsRequestDescriptor, StatsResponse> STATS_CACHE =
             setupCache(MAX_SIZE, EXPIRE_SECONDS, REFRESH_SECONDS, new StatsCacheLoader(), null);
+
+    private static final ExecutorService REFRESH_EXECUTOR = new ThreadPoolExecutor(
+            0, 4, 60L, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(),
+            new ThreadFactoryBuilder()
+                    .setNameFormat("elastic-statistics-cache-refresh-thread-%d")
+                    .setDaemon(true)
+                    .build()
+    );
 
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
@@ -176,7 +187,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         @Override
         public ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
             ListenableFutureTask<Integer> task = ListenableFutureTask.create(() -> count(crd));
-            Executors.newSingleThreadExecutor().execute(task);
+            REFRESH_EXECUTOR.execute(task);
             return task;
         }
 
@@ -186,7 +197,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
             if (crd.field != null) {
                 cBuilder.query(q -> q.exists(e -> e.field(crd.field)));
             } else {
-                cBuilder.query(q -> q.matchAll( m-> m));
+                cBuilder.query(q -> q.matchAll(m -> m));
             }
             return (int) crd.connection.getClient().count(cBuilder.build()).count();
         }
@@ -202,7 +213,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         @Override
         public ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
             ListenableFutureTask<StatsResponse> task = ListenableFutureTask.create(() -> stats(crd));
-            Executors.newSingleThreadExecutor().execute(task);
+            REFRESH_EXECUTOR.execute(task);
             return task;
         }
 
@@ -211,7 +222,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
                             .index(crd.index)
                             .bytes(Bytes.Bytes))
                     .valueBody();
-            if(records.isEmpty()){
+            if (records.isEmpty()) {
                 return null;
             }
             // Assuming a single index matches crd.index
@@ -221,13 +232,13 @@ public class ElasticIndexStatistics implements IndexStatistics {
             String creationDate = record.creationDateString();
             String luceneDocsCount = record.docsCount();
             String luceneDocsDeleted = record.docsDeleted();
-            
+
             return new StatsResponse(
-                            storeSize != null ? Long.parseLong(storeSize) : -1,
-                            primaryStoreSize != null ? Long.parseLong(primaryStoreSize) : -1,
-                            creationDate != null ? Long.parseLong(creationDate) : -1,
-                            luceneDocsCount != null ? Integer.parseInt(luceneDocsCount) : -1,
-                            luceneDocsDeleted != null ? Integer.parseInt(luceneDocsDeleted) : -1
+                    storeSize != null ? Long.parseLong(storeSize) : -1,
+                    primaryStoreSize != null ? Long.parseLong(primaryStoreSize) : -1,
+                    creationDate != null ? Long.parseLong(creationDate) : -1,
+                    luceneDocsCount != null ? Integer.parseInt(luceneDocsCount) : -1,
+                    luceneDocsDeleted != null ? Integer.parseInt(luceneDocsDeleted) : -1
             );
         }
     }
@@ -247,7 +258,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         StatsRequestDescriptor(@NotNull ElasticConnection connection,
-                                      @NotNull String index, @Nullable String field) {
+                               @NotNull String index, @Nullable String field) {
             this.connection = connection;
             this.index = index;
             this.field = field;
