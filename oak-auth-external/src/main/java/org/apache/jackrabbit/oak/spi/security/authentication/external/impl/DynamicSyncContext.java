@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -204,24 +205,51 @@ public class DynamicSyncContext extends DefaultSyncContext {
      * @param depth Configured membership nesting; the recursion will be stopped once depths is < 1.
      * @throws ExternalIdentityException If an error occurs while resolving the the external group references.
      */
-    private void collectPrincipalNames(@NotNull Set<String> principalNames, @NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException {
+    private void collectPrincipalNames(@NotNull Set<String> principalNames, @NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException, RepositoryException {
         boolean shortcut = (depth <= 1 && idp instanceof PrincipalNameResolver);
         for (ExternalIdentityRef ref : Iterables.filter(declaredGroupIdRefs, this::isSameIDP)) {
             if (shortcut) {
-                principalNames.add(((PrincipalNameResolver) idp).fromExternalIdentityRef(ref));
+                addPrincipalName(((PrincipalNameResolver) idp).fromExternalIdentityRef(ref), principalNames);
             } else {
                 // get group from the IDP
-                ExternalIdentity extId = idp.getIdentity(ref);
-                if (extId instanceof ExternalGroup) {
-                    principalNames.add(extId.getPrincipalName());
+                ExternalIdentity extId = getExternalGroupFromRef(ref);
+                if (extId != null) {
+                    addPrincipalName(extId.getPrincipalName(), principalNames);
                     // recursively apply further membership until the configured depth is reached
                     if (depth > 1) {
                         collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
                     }
-                } else {
-                    log.debug("Not an external group ({}) => ignore.", extId);
                 }
             }
+        }
+    }
+    
+    private void addPrincipalName(@NotNull String principalName, @NotNull Set<String> principalNames) throws RepositoryException {
+        if (existsConflicting(principalName)) {
+            // there exists a user or group with that principal name but it doesn't belong to the same IDP
+            // in consistency with DefaultSyncContext don't sync this very membership into the repository
+            // and log a warning about the collision instead.
+            log.warn("Existing authorizable with principal name '{}' is not a group from this IDP '{}'.", principalName, idp.getName());
+            return;
+        }
+        // no conflict detected
+        principalNames.add(principalName);
+    }
+    
+    /**
+     * Tests if there exists an user/group in the repository that has the same principal name but doesn't belong to the same IDP.
+     * 
+     * @param externalGroupPrincipalName A principal name
+     * @return {@code true} if there exists an user/group in the repository with the given principal name that doesn't 
+     * belong to this IDP; {@code false} otherwise.
+     * @throws RepositoryException If an error occurs
+     */
+    private boolean existsConflicting(@NotNull String externalGroupPrincipalName) throws RepositoryException {
+        Authorizable a = userManager.getAuthorizable(new PrincipalImpl(externalGroupPrincipalName));
+        if (a == null) {
+            return false;
+        } else {
+            return !isSameIDP(a);
         }
     }
     
@@ -278,7 +306,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 clearGroupMembership(grp, groupPrincipalNames, toRemove);
             } else {
                 // some other membership that has not been added by the sync process
-                log.debug("TODO");
+                log.warn("Ignoring unexpected membership of '{}' in group '{}' crossing IDP boundary.", authorizable.getID(), grp.getID());
             }
         }
     }
