@@ -124,7 +124,7 @@ class ElasticIndexHelper {
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
         if (indexDefinition.getSimilarityProperties().size() > 0) {
-            builder.otherSettings("elastiknn", JsonData.of(JsonValue.TRUE));
+            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(JsonValue.TRUE));
         }
         builder.index(indexBuilder -> indexBuilder
                         // static setting: cannot be changed after the index gets created

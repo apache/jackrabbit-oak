@@ -25,14 +25,20 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
+import co.elastic.clients.json.JsonData;
+import jakarta.json.JsonValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
+import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticIndexHelperTest {
@@ -76,6 +82,48 @@ public class ElasticIndexHelperTest {
         ElasticIndexHelper.createIndexRequest("prefix.path", definition);
     }
 
+    @Test()
+    public void indexSettingsAreCorrectlySet() {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("idxRule");
+        indexRule.property("foo").type("String").useInSimilarity();
+
+        final String expectedNumberOfShards = "2";
+        final boolean expectedIndexOriginalTerm = true;
+        final boolean expectedSplitOnCaseChange = true;
+        final boolean expectedSplitOnNumerics = true;
+
+        Tree analyzer = builder.getBuilderTree().addChild("analyzers");
+        analyzer.setProperty(ElasticIndexDefinition.INDEX_ORIGINAL_TERM, expectedIndexOriginalTerm);
+        analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_CASE_CHANGE, expectedSplitOnCaseChange);
+        analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_NUMERICS, expectedSplitOnNumerics);
+
+        NodeState nodeState = builder.build();
+
+        @NotNull NodeState defn = nodeState.builder()
+                .setProperty(ElasticIndexDefinition.NUMBER_OF_SHARDS, expectedNumberOfShards)
+                .getNodeState();
+
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, defn, "path", "prefix");
+        CreateIndexRequest req = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+
+        IndexSettings indexSettings = req.settings().index();
+        assertThat(expectedNumberOfShards, is(indexSettings.numberOfShards()));
+
+        WordDelimiterGraphTokenFilter wdgfDef = req.settings()
+                .analysis()
+                .filter().get("oak_word_delimiter_graph_filter")
+                .definition()
+                .wordDelimiterGraph();
+        assertThat(wdgfDef.preserveOriginal(), is(expectedIndexOriginalTerm));
+        assertThat(wdgfDef.splitOnCaseChange(), is(expectedSplitOnCaseChange));
+        assertThat(wdgfDef.splitOnNumerics(), is(expectedSplitOnNumerics));
+
+        Map<String, JsonData> otherSettings = req.settings().otherSettings();
+        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).toJson(), is(JsonValue.TRUE));
+    }
+
     @Test
     public void oakAnalyzer() {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
@@ -113,7 +161,7 @@ public class ElasticIndexHelperTest {
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("type");
         indexRule.property("foo").type("String").analyzed();
         Tree analyzer = builder.getBuilderTree().addChild("analyzers");
-        analyzer.setProperty("indexOriginalTerm", "true");
+        analyzer.setProperty(ElasticIndexDefinition.INDEX_ORIGINAL_TERM, "true");
 
         NodeState nodeState = builder.build();
 
