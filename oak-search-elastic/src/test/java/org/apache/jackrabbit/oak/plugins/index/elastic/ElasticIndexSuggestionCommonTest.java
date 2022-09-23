@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
-import org.apache.jackrabbit.oak.plugins.index.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.junit.ClassRule;
 
 import javax.jcr.Repository;
@@ -39,7 +39,7 @@ public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest 
     }
 
     protected void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r,
+        TestUtil.assertEventually(r,
                 ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 }

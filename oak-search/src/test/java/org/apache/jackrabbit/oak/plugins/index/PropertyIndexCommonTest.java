@@ -45,7 +45,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
     protected TestRepository repositoryOptionsUtil;
 
     protected void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r,
+        TestUtil.assertEventually(r,
                 ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 

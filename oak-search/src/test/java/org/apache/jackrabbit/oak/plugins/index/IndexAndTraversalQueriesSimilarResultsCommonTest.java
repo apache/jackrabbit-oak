@@ -40,7 +40,7 @@ public abstract class IndexAndTraversalQueriesSimilarResultsCommonTest extends A
     protected TestRepository repositoryOptionsUtil;
 
     protected void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 
     @Override

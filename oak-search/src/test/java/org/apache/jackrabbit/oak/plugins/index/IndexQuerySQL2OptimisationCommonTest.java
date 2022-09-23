@@ -14,49 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.lucene;
+package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Calendar;
-import java.util.List;
-
-import org.apache.jackrabbit.oak.InitialContentHelper;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import java.util.Calendar;
+import java.util.List;
 
-public class LuceneIndexQueryTestSQL2OptimisationTest extends AbstractQueryTest {
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-    Oak getOakRepo() {
-        LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
-        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider())
-                .with(new QueryEngineSettings() {
-                    @Override
-                    public boolean isSql2Optimisation() {
-                        return true;
-                    }
-                });
-    }
+public abstract class IndexQuerySQL2OptimisationCommonTest extends AbstractQueryTest {
+
+    protected IndexOptions indexOptions;
+    protected IndexEditorProvider editorProvider;
+    protected QueryIndexProvider indexProvider;
 
     @Override
     protected ContentRepository createRepository() {
@@ -66,9 +48,8 @@ public class LuceneIndexQueryTestSQL2OptimisationTest extends AbstractQueryTest 
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
-        useV2(indexDefn);
-        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        Tree indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
+        TestUtil.useV2(indexDefn);
         indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
@@ -102,9 +83,8 @@ public class LuceneIndexQueryTestSQL2OptimisationTest extends AbstractQueryTest 
         assertFalse(root.getTree("/oak:index/" + TEST_INDEX_NAME).exists());
 
         t = root.getTree("/");
-        Tree indexDefn = createTestIndexNode(t, LuceneIndexConstants.TYPE_LUCENE);
-        useV2(indexDefn);
-        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        Tree indexDefn = createTestIndexNode(t, indexOptions.getIndexType());
+        TestUtil.useV2(indexDefn);
 
         Tree props = TestUtil.newRulePropTree(indexDefn, NT_UNSTRUCTURED);
         TestUtil.enablePropertyIndex(props, name, false);
@@ -172,17 +152,19 @@ public class LuceneIndexQueryTestSQL2OptimisationTest extends AbstractQueryTest 
         }
 
         final String statement =
-            "SELECT * " +
-            "FROM [" + NT_UNSTRUCTURED + "] AS c " +
-            "WHERE " +
-            "( " +
-            "c.[" + name + "] = '" + yes + "' " +
-            "OR CONTAINS(c.[" + surname + "], '" + yes + "') " +
-            "OR CONTAINS(c.[" + description + "], '" + yes + "') " +
-            ") " +
-            "AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
-            "ORDER BY " + added + " DESC ";
+                "SELECT * " +
+                        "FROM [" + NT_UNSTRUCTURED + "] AS c " +
+                        "WHERE " +
+                        "( " +
+                        "c.[" + name + "] = '" + yes + "' " +
+                        "OR CONTAINS(c.[" + surname + "], '" + yes + "') " +
+                        "OR CONTAINS(c.[" + description + "], '" + yes + "') " +
+                        ") " +
+                        "AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
+                        "ORDER BY " + added + " DESC ";
 
-        assertQuery(statement, SQL2, expected);
+        TestUtil.assertEventually(() -> assertQuery(statement, SQL2, expected), 3000 * 5);
     }
+
+    protected abstract Oak getOakRepo();
 }

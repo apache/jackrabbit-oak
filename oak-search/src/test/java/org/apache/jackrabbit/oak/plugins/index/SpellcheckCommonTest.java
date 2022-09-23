@@ -172,7 +172,7 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
     }
 
     private static void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, 3000 * 3);
+        TestUtil.assertEventually(r, 3000 * 3);
     }
 
 }
