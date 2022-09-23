@@ -65,7 +65,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private static final LoadingCache<StatsRequestDescriptor, StatsResponse> STATS_CACHE =
             setupCache(MAX_SIZE, EXPIRE_SECONDS, REFRESH_SECONDS, new StatsCacheLoader(), null);
 
-    private static final ExecutorService refreshExecutor = new ThreadPoolExecutor(
+    private static final ExecutorService REFRESH_EXECUTOR = new ThreadPoolExecutor(
             0, 4, 60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(),
             new ThreadFactoryBuilder()
@@ -187,7 +187,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         @Override
         public ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
             ListenableFutureTask<Integer> task = ListenableFutureTask.create(() -> count(crd));
-            refreshExecutor.execute(task);
+            REFRESH_EXECUTOR.execute(task);
             return task;
         }
 
@@ -213,7 +213,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         @Override
         public ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
             ListenableFutureTask<StatsResponse> task = ListenableFutureTask.create(() -> stats(crd));
-            refreshExecutor.execute(task);
+            REFRESH_EXECUTOR.execute(task);
             return task;
         }
 
