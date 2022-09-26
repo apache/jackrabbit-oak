@@ -59,7 +59,7 @@
     <slf4j.version>1.7.32</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.10</logback.version>
     <h2.version>2.0.206</h2.version>
-    <tika.version>1.24.1</tika.version>
+    <tika.version>1.26</tika.version>
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
@@ -622,7 +622,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.10</version>
+        <version>3.12.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
