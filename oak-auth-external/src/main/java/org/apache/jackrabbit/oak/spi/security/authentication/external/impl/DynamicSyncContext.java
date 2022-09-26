@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +43,13 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Extension of the {@code DefaultSyncContext} that doesn't synchronize group
@@ -148,13 +153,16 @@ public class DynamicSyncContext extends DefaultSyncContext {
         } else {
             try {
                 Iterable<ExternalIdentityRef> declaredGroupRefs = external.getDeclaredGroups();
+                // resolve group-refs respecting depth to avoid iterating twice
+                Map<ExternalIdentityRef, SyncEntry> map = collectSyncEntries(declaredGroupRefs, depth);
+                
                 // store dynamic membership with the user
-                setExternalPrincipalNames(auth, declaredGroupRefs, depth);
+                setExternalPrincipalNames(auth, map.values());
                 
                 // if dynamic-group option is enabled -> sync groups without member-information
                 // in case group-membership has been synched before -> clear it
                 if (hasDynamicGroups() && depth > 0) {
-                    createDynamicGroups(declaredGroupRefs, depth);
+                    createDynamicGroups(map);
                 }
                 
                 // clean up any other membership
@@ -177,95 +185,117 @@ public class DynamicSyncContext extends DefaultSyncContext {
      * rep:externalPrincipalNames property with the accurate collection of principal names.
      * 
      * @param authorizable The target synced user
-     * @param declareGroupRefs The declared group references for the external user
-     * @param depth The configured depth to resolve nested groups.
-     * @throws ExternalIdentityException If group principal names cannot be calculated
+     * @param syncEntries The set of sync entries collected before.
      * @throws RepositoryException If another error occurs
      */
-    private void setExternalPrincipalNames(@NotNull Authorizable authorizable, Iterable<ExternalIdentityRef> declareGroupRefs, long depth) throws ExternalIdentityException, RepositoryException {
+    private void setExternalPrincipalNames(@NotNull Authorizable authorizable, @NotNull Collection<SyncEntry> syncEntries) throws RepositoryException {
         Value[] vs;
-        if (depth <= 0) {
+        if (syncEntries.isEmpty()) {
             vs = new Value[0];
         } else {
-            Set<String> principalsNames = new HashSet<>();
-            collectPrincipalNames(principalsNames, declareGroupRefs, depth);
+            Set<String> principalsNames = syncEntries.stream().map(syncEntry -> syncEntry.principalName).collect(Collectors.toSet());
             vs = createValues(principalsNames);
         }
         authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
     }
     
+    @NotNull
+    private Map<ExternalIdentityRef, SyncEntry> collectSyncEntries(@NotNull Iterable<ExternalIdentityRef> declaredGroupRefs, long depth) throws RepositoryException, ExternalIdentityException {
+        if (depth <= 0) {
+            return Collections.emptyMap();
+        }
+        Map<ExternalIdentityRef, SyncEntry> map = new HashMap<>();
+        collectSyncEntries(declaredGroupRefs, depth, map);
+        return map;
+    }
+
     /**
-     * Recursively collect the principal names of the given declared group
-     * references up to the given depth.
+     * Recursively collect the sync entries of the given declared group references up to the given depth.
      *
      * Note, that this method will filter out references that don't belong to the same IDP (see OAK-8665).
      *
-     * @param principalNames The set used to collect the names of the group principals.
-     * @param declaredGroupIdRefs The declared group references for a user or a group.
+     * @param declaredGroupRefs The declared group references for a user or a group.
      * @param depth Configured membership nesting; the recursion will be stopped once depths is < 1.
+     * @param map The map to be filled with all group refs and the corresponding sync entries.
      * @throws ExternalIdentityException If an error occurs while resolving the the external group references.
      */
-    private void collectPrincipalNames(@NotNull Set<String> principalNames, @NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException, RepositoryException {
+    private void collectSyncEntries(@NotNull Iterable<ExternalIdentityRef> declaredGroupRefs, long depth, @NotNull Map<ExternalIdentityRef, SyncEntry> map) throws ExternalIdentityException, RepositoryException {
         boolean shortcut = (depth <= 1 && idp instanceof PrincipalNameResolver);
-        for (ExternalIdentityRef ref : Iterables.filter(declaredGroupIdRefs, this::isSameIDP)) {
+        for (ExternalIdentityRef ref : Iterables.filter(declaredGroupRefs, this::isSameIDP)) {
+            String principalName = null;
+            Authorizable a = null;
+            ExternalGroup externalGroup = null;
             if (shortcut) {
-                addPrincipalName(((PrincipalNameResolver) idp).fromExternalIdentityRef(ref), principalNames);
+                principalName = ((PrincipalNameResolver) idp).fromExternalIdentityRef(ref);
+                a = userManager.getAuthorizable(new PrincipalImpl(principalName));
             } else {
                 // get group from the IDP
-                ExternalIdentity extId = getExternalGroupFromRef(ref);
-                if (extId != null) {
-                    addPrincipalName(extId.getPrincipalName(), principalNames);
+                externalGroup = getExternalGroupFromRef(ref);
+                if (externalGroup != null) {
+                    principalName = externalGroup.getPrincipalName();
+                    a = userManager.getAuthorizable(new PrincipalImpl(principalName));
+
                     // recursively apply further membership until the configured depth is reached
                     if (depth > 1) {
-                        collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
+                        collectSyncEntries(externalGroup.getDeclaredGroups(), depth - 1, map);
                     }
                 }
+            }
+
+            if (principalName != null && !isConflictingGroup(a, principalName)) {
+                map.put(ref, new SyncEntry(principalName, externalGroup, (Group) a));
             }
         }
     }
     
-    private void addPrincipalName(@NotNull String principalName, @NotNull Set<String> principalNames) throws RepositoryException {
-        if (existsConflicting(principalName)) {
+    /**
+     * Tests if the given existing user/group collides with the external group having the same principall name.
+     * It is considered a conflict if the existing authorizable is a user (and not a group) or if it doesn't belong to the 
+     * same IDP (i.e. a local group or one defined for a different IDP).
+     * 
+     * NOTE: this method does not verify if the 'rep:authorizableId' or the identifier part of 'rep:externalId' match,
+     * Instead it assumes that external identities and synced authorizables that are associated with the same IDP can be 
+     * trusted to be consistent as long as they have the same principal name.
+     *
+     * @param authorizable An authorizable with the given principal name or {@code null}.
+     * @return {@code true} if the given user/group collides with the external group with the given principal name; {@code false} otherwise.
+     * @throws RepositoryException If an error occurs
+     */
+    private boolean isConflictingGroup(@Nullable Authorizable authorizable, @NotNull String principalName) throws RepositoryException {
+        if (authorizable == null) {
+            return false;
+        } else if (!authorizable.isGroup()) {
+            log.warn("Existing user '{}' collides with external group.", authorizable.getID());
+            return true;
+        } else if (!isSameIDP(authorizable)) {
             // there exists a user or group with that principal name but it doesn't belong to the same IDP
             // in consistency with DefaultSyncContext don't sync this very membership into the repository
             // and log a warning about the collision instead.
             log.warn("Existing authorizable with principal name '{}' is not a group from this IDP '{}'.", principalName, idp.getName());
-            return;
-        }
-        // no conflict detected
-        principalNames.add(principalName);
-    }
-    
-    /**
-     * Tests if there exists an user/group in the repository that has the same principal name but doesn't belong to the same IDP.
-     * 
-     * @param externalGroupPrincipalName A principal name
-     * @return {@code true} if there exists an user/group in the repository with the given principal name that doesn't 
-     * belong to this IDP; {@code false} otherwise.
-     * @throws RepositoryException If an error occurs
-     */
-    private boolean existsConflicting(@NotNull String externalGroupPrincipalName) throws RepositoryException {
-        Authorizable a = userManager.getAuthorizable(new PrincipalImpl(externalGroupPrincipalName));
-        if (a == null) {
-            return false;
+            return true;
         } else {
-            return !isSameIDP(a);
+            // group has been synced before (same IDP, same principal-name)
+            return false;
         }
     }
     
-    private void createDynamicGroups(@NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, 
-                                     long depth) throws RepositoryException, ExternalIdentityException {
-        for (ExternalIdentityRef groupRef : declaredGroupIdRefs) {
-            ExternalGroup externalGroup = getExternalGroupFromRef(groupRef);
+    private void createDynamicGroups(@NotNull Map<ExternalIdentityRef, SyncEntry> map) throws RepositoryException {
+        for (Map.Entry<ExternalIdentityRef, SyncEntry> entry : map.entrySet()) {
+            ExternalIdentityRef groupRef = entry.getKey();
+            SyncEntry syncEntry = entry.getValue();
+            
+            // get external identity from IDP if it has not been resolved before (see 'shortcut' in 'collectSyncEntries').
+            ExternalGroup externalGroup = (syncEntry.externalGroup != null) ? syncEntry.externalGroup : getExternalGroupFromRef(groupRef);
             if (externalGroup != null) {
-                Group gr = userManager.getAuthorizable(externalGroup.getId(), Group.class);
+                // lookup of existing group by principal-name has been performed already 
+                // NOTE: if none exists no attempt is made to lookup again by ID as this may lead to inconsistencies 
+                // between rep:externalPrincipalNames and the dynamic group in case there existed a group with the same 
+                // ID but has a different principal name. in this case the sync will fail (conflict with ID).
+                Group gr = syncEntry.group;
                 if (gr == null) {
                     gr = createGroup(externalGroup);
                 }
                 syncGroup(externalGroup, gr);
-                if (depth > 1) {
-                    createDynamicGroups(externalGroup.getDeclaredGroups(),depth-1);
-                }
             }
         }
     }
@@ -329,5 +359,22 @@ public class DynamicSyncContext extends DefaultSyncContext {
     
     private static boolean groupsSyncedBefore(@NotNull Authorizable authorizable) throws RepositoryException {
         return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+    }
+
+    /**
+     * Helper object to avoid repeated lookup of principalName, {@link ExternalGroup} and synchronized {@link Group} for 
+     * a given {@link ExternalIdentityRef} during {@link #syncMembership(ExternalIdentity, Authorizable, long)}.
+     */
+    private static class SyncEntry {
+        
+        private final String principalName;
+        private final ExternalGroup externalGroup;
+        private final Group group;
+        
+        private SyncEntry(@NotNull String principalName, @Nullable ExternalGroup externalGroup, @Nullable Group group) {
+            this.principalName = principalName;
+            this.externalGroup = externalGroup;
+            this.group = group;
+        }
     }
 }

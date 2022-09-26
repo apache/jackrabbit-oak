@@ -43,7 +43,7 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         return new PrincipalResolvingIDP();
     }
 
-    private static class PrincipalResolvingIDP extends TestIdentityProvider implements PrincipalNameResolver {
+    static class PrincipalResolvingIDP extends TestIdentityProvider implements PrincipalNameResolver {
 
         @NotNull
         @Override
@@ -55,23 +55,5 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
                 return identity.getPrincipalName();
             }
         }
-    }
-
-    /**
-     * With {@code PrincipalNameResolver} the extra verification for all member-refs being groups is omitted.
-     * @throws Exception
-     */
-    @Test
-    public void testSyncMembershipWithUserRef() throws Exception {
-        TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
-        Set<ExternalIdentityRef> groupRefs = ImmutableSet.copyOf(testuser.getDeclaredGroups());
-
-        ExternalUser second = idp.getUser(ID_SECOND_USER);
-        testuser.withGroups(second.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
-
-        sync(testuser, SyncResult.Status.ADD);
-
-        assertDynamicMembership(testuser, 1);
     }
 }
