@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * <code>OrphanedNodeCheck</code>...
@@ -48,12 +48,12 @@ public class OrphanedNodeCheck extends AsyncDocumentProcessor {
     }
 
     @Override
-    protected @Nullable Callable<Void> createTask(@NotNull NodeDocument document,
+    protected Optional<Callable<Void>> createTask(@NotNull NodeDocument document,
                                                   @NotNull BlockingQueue<Result> results) {
         if (document.isSplitDocument()) {
-            return null;
+            return Optional.empty();
         } else {
-            return new CheckDocument(ns, headRevision, document, results);
+            return Optional.of(new CheckDocument(ns, headRevision, document, results));
         }
     }
 

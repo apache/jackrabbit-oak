@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -45,10 +46,10 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
     }
 
     @Override
-    protected @Nullable Result runTask(@NotNull Path path,
+    protected Optional<Result> runTask(@NotNull Path path,
                                        @Nullable NodeState state) {
         if (state == null) {
-            return null;
+            return Optional.empty();
         }
         PropertyState prop = state.getProperty(propertyName);
         Result result = null;
@@ -60,7 +61,7 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
                 result = new BrokenReference(path, ref, resolvedPath.get());
             }
         }
-        return result;
+        return Optional.ofNullable(result);
     }
 
     private final class BrokenReference implements Result {

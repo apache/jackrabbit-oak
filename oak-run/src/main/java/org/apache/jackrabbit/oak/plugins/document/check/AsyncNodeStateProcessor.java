@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -92,12 +93,12 @@ public abstract class AsyncNodeStateProcessor extends AsyncDocumentProcessor {
     }
 
     @Override
-    protected final @Nullable Callable<Void> createTask(@NotNull NodeDocument document,
+    protected final Optional<Callable<Void>> createTask(@NotNull NodeDocument document,
                                                         @NotNull BlockingQueue<Result> results) {
         if (process(document)) {
-            return new NodeStateTask(document, results);
+            return Optional.of(new NodeStateTask(document, results));
         } else {
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -109,9 +110,9 @@ public abstract class AsyncNodeStateProcessor extends AsyncDocumentProcessor {
      * @param state the {@code NodeState} or {@code null} if the node does not
      *          exist at this path. This may happen for nodes that have been
      *          deleted but not yet garbage collected.
-     * @return the result of the task or {@code null} if nothing is reported.
+     * @return optional result of the task.
      */
-    protected abstract @Nullable Result runTask(@NotNull Path path,
+    protected abstract Optional<Result> runTask(@NotNull Path path,
                                                 @Nullable NodeState state);
 
     protected class NodeStateTask implements Callable<Void> {
@@ -130,11 +131,17 @@ public abstract class AsyncNodeStateProcessor extends AsyncDocumentProcessor {
         public Void call() throws Exception {
             Path path = document.getPath();
             NodeState state = document.getNodeAtRevision(ns, headRevision, null);
-            Result r = runTask(path, state);
-            if (r != null) {
-                results.put(r);
-            }
+            runTask(path, state).ifPresent(this::collect);
             return null;
+        }
+
+        private void collect(Result r) {
+            try {
+                results.put(r);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while collecting result", e);
+            }
         }
     }
 }

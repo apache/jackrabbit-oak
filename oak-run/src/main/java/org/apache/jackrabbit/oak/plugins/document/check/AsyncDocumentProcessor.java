@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Base class for {@link DocumentProcessor} implementations that create tasks
@@ -39,12 +39,9 @@ public abstract class AsyncDocumentProcessor implements DocumentProcessor {
     @Override
     public final void processDocument(@NotNull NodeDocument document,
                                       @NotNull BlockingQueue<Result> results) {
-        Callable<Void> task = createTask(document, results);
-        if (task != null) {
-            executorService.submit(task);
-        }
+        createTask(document, results).ifPresent(executorService::submit);
     }
 
-    protected abstract @Nullable Callable<Void> createTask(@NotNull NodeDocument document,
+    protected abstract Optional<Callable<Void>> createTask(@NotNull NodeDocument document,
                                                            @NotNull BlockingQueue<Result> results);
 }
