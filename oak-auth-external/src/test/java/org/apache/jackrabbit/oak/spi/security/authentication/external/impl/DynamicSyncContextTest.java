@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
@@ -379,6 +380,29 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
     }
 
     @Test
+    public void testSyncExternalUserGroupConflictWithUser() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+
+        // create a local user that collides with the first external group ref
+        ExternalIdentityRef ref = externalUser.getDeclaredGroups().iterator().next();
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        User collision = userManager.createUser(externalGroup.getId(), null, new PrincipalImpl(externalGroup.getPrincipalName()), null);
+        r.commit();
+
+        // sync the user with dynamic membership enabled
+        sync(externalUser, SyncResult.Status.ADD);
+
+        // retrieve rep:externalPrincipalNames
+        Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+        assertNotNull(extPrincipalNames);
+
+        // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
+        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
+    }
+
+    @Test
     public void testSyncExternalUserExistingGroups() throws Exception {
         // verify group membership of the previously synced user
         Authorizable a = userManager.getAuthorizable(previouslySyncedUser.getId());
@@ -677,9 +701,14 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
 
-        assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
-        for (Value v : extPrincipalNames) {
-            assertNotEquals(second.getPrincipalName(), v.getString());
+        if (idp instanceof PrincipalNameResolver) {
+            // with IDP implementing PrincipalNameResolver the extra verification for all member-refs being groups is omitted.
+            assertDynamicMembership(testuser, 1);
+        } else {
+            assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+            for (Value v : extPrincipalNames) {
+                assertNotEquals(second.getPrincipalName(), v.getString());
+            }
         }
     }
 
