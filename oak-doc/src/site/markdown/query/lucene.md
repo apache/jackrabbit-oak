@@ -1191,6 +1191,7 @@ See also [OAK-8971][OAK-8971].
 
 
 ### <a name="native-query"></a>Native Query and Index Selection
+`@deprecated Oak 1.46`
 
 Oak query engine supports native queries like
 
