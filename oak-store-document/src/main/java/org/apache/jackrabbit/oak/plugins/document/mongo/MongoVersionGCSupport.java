@@ -105,11 +105,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         }
     }
 
-    /** accessor for testing only */
-    protected RevisionVector getLastDefaultNoBranchDeletionRevs() {
-        return lastDefaultNoBranchDeletionRevs;
-    }
-
     @Override
     public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
         //_deletedOnce == true && _modified >= fromModified && _modified < toModified
