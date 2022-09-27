@@ -24,90 +24,74 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import java.util.Objects;
+import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.MockReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.ConsistencyCheckResult;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link Check} assuming an invalid repository.
  */
 public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
+    private Output log;
+    
+    @Override
     @Before
     public void setup() throws Exception {
         super.setup();
         super.addInvalidRevision();
+        log = new Output();
     }
 
     @Test
     public void testInvalidRevisionFallbackOnValid() {
-        StringWriter strOut = new StringWriter();
-        StringWriter strErr = new StringWriter();
+        int checkResult = check(b -> b
+            .withFilterPaths(ImmutableSet.of("/"))
+        );
 
-        PrintWriter outWriter = new PrintWriter(strOut, true);
-        PrintWriter errWriter = new PrintWriter(strErr, true);
-
-        Set<String> filterPaths = new LinkedHashSet<>();
-        filterPaths.add("/");
-
-        Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckHead(true)
-            .withCheckpoints(checkpoints)
-            .withCheckBinaries(true)
-            .withFilterPaths(filterPaths)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
-
-        outWriter.close();
-        errWriter.close();
-
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent",
+        assertCheckSucceeded(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent",
             "Searched through 2 revisions"));
 
         // not sure whether first traversal will fail because of "/a" or "/z" 
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /"));
+        assertExpectedOutput(log.errString(), Lists.newArrayList("Error while traversing /"));
     }
 
     @Test
     public void testPartialBrokenPathWithoutValidRevision() {
-        StringWriter strOut = new StringWriter();
-        StringWriter strErr = new StringWriter();
+        int checkResult = check(b -> b
+            .withFilterPaths(ImmutableSet.of("/z"))
+        );
 
-        PrintWriter outWriter = new PrintWriter(strOut, true);
-        PrintWriter errWriter = new PrintWriter(strErr, true);
-
-        Set<String> filterPaths = new LinkedHashSet<>();
-        filterPaths.add("/z");
-
-        Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(checkpoints)
-            .withFilterPaths(filterPaths)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
-
-        outWriter.close();
-        errWriter.close();
-
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints", "No good revision found"));
-        assertExpectedOutput(strErr.toString(),
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("Checking head", "Checking checkpoints", "No good revision found"));
+        assertExpectedOutput(log.errString(),
             Lists.newArrayList(
                 "Error while traversing /z: java.lang.IllegalArgumentException: Segment reference out of bounds",
                 "Path /z not found"));
@@ -115,65 +99,28 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
     @Test
     public void testPartialBrokenPathWithValidRevision() {
-        StringWriter strOut = new StringWriter();
-        StringWriter strErr = new StringWriter();
+        int checkResult = check(b -> b
+            .withFilterPaths(ImmutableSet.of("/a"))
+            .withCheckpoints(new HashSet<>())
+        );
 
-        PrintWriter outWriter = new PrintWriter(strOut, true);
-        PrintWriter errWriter = new PrintWriter(strErr, true);
-
-        Set<String> filterPaths = new LinkedHashSet<>();
-        filterPaths.add("/a");
-
-        Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withFilterPaths(filterPaths)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
-
-        outWriter.close();
-        errWriter.close();
-
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checked 1 nodes and 1 properties", "Path /a is consistent",
+        assertCheckSucceeded(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("Checked 1 nodes and 1 properties", "Path /a is consistent",
             "Searched through 2 revisions"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(
+        assertExpectedOutput(log.errString(), Lists.newArrayList(
             "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 
     @Test
     public void testCorruptHeadWithValidCheckpoints() {
-        StringWriter strOut = new StringWriter();
-        StringWriter strErr = new StringWriter();
+        int checkResult = check(b -> b
+            .withFilterPaths(ImmutableSet.of("/"))
+        );
 
-        PrintWriter outWriter = new PrintWriter(strOut, true);
-        PrintWriter errWriter = new PrintWriter(strErr, true);
-
-        Set<String> filterPaths = new LinkedHashSet<>();
-        filterPaths.add("/");
-
-        Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(checkpoints)
-            .withFilterPaths(filterPaths)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
-
-        outWriter.close();
-        errWriter.close();
-
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
+        assertCheckSucceeded(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("Checking head", "Checking checkpoints",
             "Checked 7 nodes and 21 properties", "Path / is consistent", "Searched through 2 revisions and 2 checkpoints"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(
+        assertExpectedOutput(log.errString(), Lists.newArrayList(
             "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 
@@ -181,45 +128,19 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     public void testCorruptPathInCp1NoValidRevision() throws Exception {
         corruptPathFromCheckpoint();
 
-        StringWriter strOut = new StringWriter();
-        StringWriter strErr = new StringWriter();
+        int checkResult = check(b -> b
+            .withFilterPaths(ImmutableSet.of("/b"))
+            .withCheckpoints(ImmutableSet.of(checkpoints.iterator().next()))
+        );
 
-        PrintWriter outWriter = new PrintWriter(strOut, true);
-        PrintWriter errWriter = new PrintWriter(strErr, true);
-
-        Set<String> filterPaths = new LinkedHashSet<>();
-        filterPaths.add("/b");
-
-        Set<String> cps = new HashSet<>();
-        cps.add(checkpoints.iterator().next());
-
-        Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckpoints(cps)
-            .withFilterPaths(filterPaths)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
-
-        outWriter.close();
-        errWriter.close();
-
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 2 revisions and 1 checkpoints", "No good revision found"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList(
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("Searched through 2 revisions and 1 checkpoints", "No good revision found"));
+        assertExpectedOutput(log.errString(), Lists.newArrayList(
             "Error while traversing /b: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 
     @Test
     public void testLargeJournal() throws IOException {
-        StringWriter strOut = new StringWriter();
-        StringWriter strErr = new StringWriter();
-
-        PrintWriter outWriter = new PrintWriter(strOut, true);
-        PrintWriter errWriter = new PrintWriter(strErr, true);
-
         File segmentStoreFolder = new File(temporaryFolder.getRoot().getAbsolutePath());
         File journalFile = new File(segmentStoreFolder, "journal.log");
         File largeJournalFile = temporaryFolder.newFile("journal.log.large");
@@ -232,24 +153,164 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         for (int k = 0; k < 10000; k++) {
             FileUtils.writeStringToFile(largeJournalFile, journalLine, true);
         }
-
-        Check.builder()
+        
+        int checkResult = check(b -> b
             .withPath(segmentStoreFolder)
             .withJournal(largeJournalFile)
+            .withFilterPaths(ImmutableSet.of("/"))
+        );
+
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("No good revision found"));
+    }
+
+    @Test
+    public void testFailFast_withInvalidHead() {
+        int checkResult = check(b -> b
+            .withFilterPaths(ImmutableSet.of("/"))
+            .withFailFast(true)
+        );
+
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("Searched through 1 revisions and 2 checkpoints", "No good revision found"));
+    }
+
+    @Test
+    public void testFailFast_withInvalidCheckpoints() {
+        int checkResult = check(b -> b
+            .withFilterPaths(ImmutableSet.of("/b"))
+            .withCheckpoints(ImmutableSet.of("invalid-checkpoint-id"))
+            .withFailFast(true)
+        );
+
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.outString(), Lists.newArrayList("Path /b is consistent", "No good revision found"));
+        assertExpectedOutput(log.errString(), Lists.newArrayList("Checkpoint invalid-checkpoint-id not found in this revision!"));
+    }
+
+    @Test
+    public void testFailFast_withSegmentNotFoundException() throws Exception {
+        addMoreSegments(); // so that some segments are not loaded at initialization, but only when the check is performed
+
+        File path = new File(temporaryFolder.getRoot().getAbsolutePath());
+        File journalFile = new File(path, "journal.log");
+
+        MockReadOnlyFileStore mockStore = MockReadOnlyFileStore.buildMock(path, journalFile);
+        mockStore.failAfterReadSegmentCount(2);
+
+        ConsistencyCheckResult result = checkConsistencyFailFast(mockStore, journalFile);
+
+        assertNull(result.getOverallRevision());
+        assertTrue(hasAnyHeadRevision(result));
+        assertFalse(hasAnyCheckpointRevision(result));
+    }
+
+    @Test
+    public void testFallbackToAnotherRevision_withSegmentNotFoundException() throws Exception {
+        addMoreSegments(); // so that some segments are not loaded at initialization, but only when the check is performed
+
+        File path = new File(temporaryFolder.getRoot().getAbsolutePath());
+        File journalFile = new File(path, "journal.log");
+        MockReadOnlyFileStore mockStore = MockReadOnlyFileStore.buildMock(path, journalFile);
+        mockStore.failAfterReadSegmentCount(2);
+
+        ConsistencyCheckResult result = checkConsistencyLenient(mockStore, journalFile);
+        
+        assertTrue(hasAnyHeadRevision(result));
+        assertTrue(hasAnyCheckpointRevision(result));
+    }
+
+    @NotNull
+    private ConsistencyCheckResult checkConsistencyFailFast(MockReadOnlyFileStore mockStore, File journalFile) throws IOException {
+        return checkConsistency(mockStore, journalFile, true);
+    }
+
+    @NotNull
+    private ConsistencyCheckResult checkConsistencyLenient(MockReadOnlyFileStore mockStore, File journalFile) throws IOException {
+        return checkConsistency(mockStore, journalFile, false);
+    }
+
+    @NotNull
+    private ConsistencyCheckResult checkConsistency(MockReadOnlyFileStore store, File journalFile, boolean failFast) throws IOException {
+        return new ConsistencyChecker().checkConsistency(
+            store, new JournalReader(new LocalJournalFile(journalFile)),
+            true, checkpoints, ImmutableSet.of("/b"), true, Integer.MAX_VALUE,
+            failFast);
+    }
+
+    private void addMoreSegments() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build();
+
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        NodeBuilder builder = nodeStore.getRoot().builder();
+
+        // add a new property value to existing child "b"
+        addChildWithBlobProperties(nodeStore, builder, "y", 5);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fileStore.close();
+    }
+
+    private static boolean hasAnyHeadRevision(ConsistencyCheckResult result) {
+        return result.getHeadRevisions()
+            .values()
+            .stream()
+            .anyMatch(Objects::nonNull);
+    }
+
+    private static boolean hasAnyCheckpointRevision(ConsistencyCheckResult result) {
+        return result.getCheckpointRevisions()
+            .values()
+            .stream()
+            .flatMap(m -> m.values().stream())
+            .anyMatch(Objects::nonNull);
+    }
+
+    private int check(Consumer<Check.Builder> builderConsumer) {
+        Check.Builder builder = Check.builder()
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckHead(true)
-            .withFilterPaths(ImmutableSet.of("/"))
             .withCheckpoints(checkpoints)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
-
-        outWriter.close();
-        errWriter.close();
-
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("No good revision found"));
+            .withOutWriter(log.outWriter)
+            .withErrWriter(log.errWriter);
+        builderConsumer.accept(builder);
+        return builder.build().run();
+    }
+    
+    private static void assertCheckFailed(int checkResult) {
+        assertEquals("Check should have failed", 1, checkResult);
     }
 
+    private static void assertCheckSucceeded(int checkResult) {
+        assertEquals("Check should have succeeded", 0, checkResult);
+    }
+    
+    private static class Output {
+        private final StringWriter strOut;
+        private final StringWriter strErr;
+        private final PrintWriter outWriter;
+        private final PrintWriter errWriter;
+        
+        public Output() {
+            strOut = new StringWriter();
+            strErr = new StringWriter();
+            outWriter = new PrintWriter(strOut, true);
+            errWriter = new PrintWriter(strErr, true);
+        }
+
+        public void close() {
+            outWriter.close();
+            errWriter.close();
+        }
+
+        public String outString() {
+            return strOut.toString();
+        }
+
+        public String errString() {
+            return strErr.toString();
+        }
+    }
 }
