@@ -33,6 +33,7 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
 
     private final MongoCollection<TDocument> countingCollectionDelegate;
     private AtomicInteger findCounter = new AtomicInteger(0);
+    private AtomicInteger nodesDeleteMany = new AtomicInteger(0);
 
     CountingMongoCollection(MongoCollection<TDocument> collection,
             AtomicReference<String> beforeQueryException,
@@ -61,6 +62,38 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
     private void incFindCounter() {
         findCounter.incrementAndGet();
     }
+
+    public int getNodesDeleteMany() {
+        return nodesDeleteMany.get();
+    }
+
+    public void incNodesDeleteMany() {
+        nodesDeleteMany.incrementAndGet();
+    }
+
+    public int resetNodesDeleteMany() {
+        return nodesDeleteMany.getAndSet(0);
+    }
+
+    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter) {
+        incNodesDeleteMany();
+        return countingCollectionDelegate.deleteMany(filter);
+    };
+
+    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
+        incNodesDeleteMany();
+        return countingCollectionDelegate.deleteMany(filter, options);
+    };
+
+    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter) {
+        incNodesDeleteMany();
+        return countingCollectionDelegate.deleteMany(clientSession, filter);
+    };
+
+    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
+        incNodesDeleteMany();
+        return countingCollectionDelegate.deleteMany(clientSession, filter, options);
+    };
 
     @NotNull
     @Override

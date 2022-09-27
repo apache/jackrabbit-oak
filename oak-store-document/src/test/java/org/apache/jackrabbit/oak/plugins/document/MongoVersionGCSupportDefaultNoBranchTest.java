@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -44,10 +43,10 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixt
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestCollection;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestDatabase;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.prefetch.CountingMongoDatabase;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -65,8 +64,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.mongodb.ReadPreference;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 
 @RunWith(Parameterized.class)
 public class MongoVersionGCSupportDefaultNoBranchTest {
@@ -123,12 +120,11 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     protected DocumentNodeStore ds1;
     protected DocumentNodeStore ds2;
     private VersionGCSupport gcSupport1;
+    private CountingMongoDatabase db;
     private List<String> ids = Lists.newArrayList();
 
     private Clock clock;
     private AtomicInteger offset = new AtomicInteger(0);
-
-    private final static AtomicInteger nodesDeleteMany = new AtomicInteger(0);
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
@@ -139,45 +135,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
                 public DocumentStore createDocumentStore(Builder builder) {
                     try {
                         MongoConnection connection = MongoUtils.getConnection();
-                        connections.add(connection);
-                        MongoDatabase db = connection.getDatabase();
-                        final AtomicReference<String> noEx = new AtomicReference<>(null);
-                        MongoTestDatabase testDb = new MongoTestDatabase(db, noEx, noEx, noEx) {
-
-                            public <TDocument> com.mongodb.client.MongoCollection<TDocument> getCollection(String collectionName, java.lang.Class<TDocument> tDocumentClass) {
-                                @NotNull
-                                MongoCollection<TDocument> actualCollection = super.getCollection(collectionName, tDocumentClass);
-                                if (!collectionName.equals(NODES.toString())) {
-                                    return actualCollection;
-                                }
-                                return new MongoTestCollection<TDocument>(actualCollection, noEx, noEx, noEx) {
-                                    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter) {
-                                        nodesDeleteMany.incrementAndGet();
-                                        return super.deleteMany(filter);
-                                    };
-
-                                    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
-                                        nodesDeleteMany.incrementAndGet();
-                                        return super.deleteMany(filter, options);
-                                    };
-
-                                    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter) {
-                                        nodesDeleteMany.incrementAndGet();
-                                        return super.deleteMany(clientSession, filter);
-                                    };
-
-                                    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
-                                        nodesDeleteMany.incrementAndGet();
-                                        return super.deleteMany(clientSession, filter, options);
-                                    };
-                                };
-                            };
-
-                            public com.mongodb.client.MongoCollection<org.bson.Document> getCollection(String collectionName) {
-                                throw new IllegalStateException("not yet implemented in this test");
-                            };
-                        };
-                        return new MongoDocumentStore(connection.getMongoClient(),testDb, builder);
+                        CountingMongoDatabase db = new CountingMongoDatabase(connection.getDatabase());
+                        return new MongoDocumentStore(connection.getMongoClient(),db, builder);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -206,12 +165,30 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         MongoTestUtils.setReadPreference(store2, ReadPreference.primary());
 
         if (store1 instanceof MongoDocumentStore) {
-            this.gcSupport1 = new MongoVersionGCSupportAccessor((MongoDocumentStore) store1);
+            MongoDocumentStore mds = (MongoDocumentStore) store1;
+            this.gcSupport1 = new MongoVersionGCSupportAccessor(mds);
+            this.db = (CountingMongoDatabase) MongoDocumentStoreTestHelper.getDB(mds);
         } else {
             this.gcSupport1 = new VersionGCSupport(store1);
         }
 
-        nodesDeleteMany.set(0);
+        resetNodesDeleteMany();
+    }
+
+    private int resetNodesDeleteMany() {
+        if (this.db != null) {
+            return this.db.getCachedCountingCollection("nodes").resetNodesDeleteMany();
+        } else {
+            return 0;
+        }
+    }
+
+    private int getNodesDeleteMany() {
+        if (this.db != null) {
+            return this.db.getCachedCountingCollection("nodes").getNodesDeleteMany();
+        } else {
+            return 0;
+        }
     }
 
     @After
@@ -222,10 +199,10 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     }
 
     public Stats deleteSplitDocuments(VersionGCSupport gcSupport, RevisionVector sweepRevs, long oldestRevTimeStamp) {
-        int a = nodesDeleteMany.get();
+        int a = getNodesDeleteMany();
         VersionGCStats stats = new VersionGCStats();
         ((VersionGCSupport)gcSupport).deleteSplitDocuments(GC_TYPES, sweepRevs, oldestRevTimeStamp, stats);;
-        int b = nodesDeleteMany.get() - a;
+        int b = getNodesDeleteMany() - a;
         return new Stats(stats, b);
     }
 
@@ -247,19 +224,19 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     @Test
     public void testBothInstancesSplit_two_three() throws Exception {
         doTestBothInstancesSplit(2, 3);
-        assertEquals(4, nodesDeleteMany.get());
+        assertEquals(4, getNodesDeleteMany());
     }
 
     @Test
     public void testBothInstancesSplit_three_two() throws Exception {
         doTestBothInstancesSplit(3, 2);
-        assertEquals(4, nodesDeleteMany.get());
+        assertEquals(4, getNodesDeleteMany());
     }
 
     @Test
     public void testBothInstancesSplit_many_many() throws Exception {
         doTestBothInstancesSplit(7, 9);
-        assertEquals(4, nodesDeleteMany.get());
+        assertEquals(4, getNodesDeleteMany());
     }
 
     public void doTestBothInstancesSplit(int numSplit1, int numSplit2) throws Exception {
@@ -347,7 +324,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         }
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
-        int removesCount = nodesDeleteMany.getAndSet(0);
+        int removesCount = resetNodesDeleteMany();
         // there should be 4 deleteMany calls : first call results in 3, second in 1 => 4
         assertEquals(4 * NUM_BOTH_SPLITS, removesCount);
         for(int i = 0; i < 10; i++) {
@@ -355,7 +332,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         }
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
-        removesCount = nodesDeleteMany.getAndSet(0);
+        removesCount = resetNodesDeleteMany();
         // there should be between 3 and 4 deleteMany calls due to avoiding calls if nothing changed
         // but seems every other (more or less) iteration there is still a change in _lastRev
         // so the condition is strict >3 and <4
@@ -366,7 +343,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         }
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
-        removesCount = nodesDeleteMany.getAndSet(0);
+        removesCount = resetNodesDeleteMany();
         // there should be between 3 and 4 deleteMany calls due to avoiding calls if nothing changed
         // but seems every other (more or less) iteration there is still a change in _lastRev
         // so the condition is strict >3 and <4
