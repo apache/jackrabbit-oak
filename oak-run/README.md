@@ -145,18 +145,20 @@ The following options are currently supported:
 
     Option                     Description
     ------                     -----------
-    -?, -h, --help             show help
-    --cacheSize <Integer>      cache size (default: 0)
-    --numThreads <Integer>     Use this number of threads to check consistency
-                                 (default: 12)
-    --orphan [Boolean]         Check for orphaned nodes (default: true)
-    --out <String>             Write output to this file
-    --progress [Boolean]       Write periodic progress messages (default: true)
-    --rdbjdbcpasswd [String]   RDB JDBC password (default: )
-    --rdbjdbcuser [String]     RDB JDBC user (default: )
-    --rdbtableprefix [String]  RDB table prefix
-    --silent                   Do not write output to stdout
-    --summary [Boolean]        Write a summary message at the end (default: true)
+    -?, -h, --help              show help
+    --baseVersion [Boolean]     Check base version reference (default: true)
+    --cacheSize <Integer>       cache size (default: 0)
+    --numThreads <Integer>      Use this number of threads to check consistency
+                                  (default: 12)
+    --orphan [Boolean]          Check for orphaned nodes (default: true)
+    --out <String>              Write output to this file
+    --progress [Boolean]        Write periodic progress messages (default: true)
+    --rdbjdbcpasswd [String]    RDB JDBC password (default: )
+    --rdbjdbcuser [String]      RDB JDBC user (default: )
+    --rdbtableprefix [String]   RDB table prefix
+    --silent                    Do not write output to stdout
+    --summary [Boolean]         Write a summary message at the end (default: true)
+    --versionHistory [Boolean]  Check version history reference (default: true)
 
 The command uses a pool of threads to check consistency of the repository. The
 size of the pool is determined by the number of available cores, unless specified
