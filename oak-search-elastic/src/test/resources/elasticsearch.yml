@@ -17,3 +17,8 @@
 network.host: 0.0.0.0
 ingest.geoip.downloader.enabled: false
 xpack.security.enabled: false
+
+# In ES 8.0, by default it is no longer possible to use wildcards to delete several indexes in a single operation.
+# This is used by the tests for cleanup, so we must set this to true explicitly.
+# https://www.elastic.co/guide/en/elasticsearch/reference/master/migrating-8.0.html
+action.destructive_requires_name: false

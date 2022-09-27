@@ -81,7 +81,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
@@ -176,6 +175,11 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_PREFETCH = "FT_PREFETCH_OAK-9780";
 
+    /**
+     * Feature toggle name to enable document store throttling for Mongo Document Store
+     */
+    private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
+
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
@@ -210,6 +214,7 @@ public class DocumentNodeStoreService {
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
     private Feature prefetchFeature;
+    private Feature docStoreThrottlingFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -243,6 +248,7 @@ public class DocumentNodeStoreService {
         customBlobStore = this.config.customBlobStore();
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
         prefetchFeature = Feature.newFeature(FT_NAME_PREFETCH, whiteboard);
+        docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -307,6 +313,7 @@ public class DocumentNodeStoreService {
             builder.setSocketKeepAlive(soKeepAlive);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
+            builder.setCollectionCompressionType(config.collectionCompressionType());
             mkBuilder = builder;
 
             log.info("Connected to database '{}'", db);
@@ -456,6 +463,7 @@ public class DocumentNodeStoreService {
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setPrefetchFeature(prefetchFeature).
+                setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
@@ -590,6 +598,10 @@ public class DocumentNodeStoreService {
 
         if (prefetchFeature != null) {
             prefetchFeature.close();
+        }
+
+        if (docStoreThrottlingFeature != null) {
+            docStoreThrottlingFeature.close();
         }
 
         unregisterNodeStore();

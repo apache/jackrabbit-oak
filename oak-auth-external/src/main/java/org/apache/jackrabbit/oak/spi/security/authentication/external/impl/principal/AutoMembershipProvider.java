@@ -30,8 +30,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,6 +54,7 @@ import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.getIdpName;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_AUTHORIZABLE;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_USER;
@@ -231,12 +230,6 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         } catch (RepositoryException e) {
             return null;
         }
-    }
-    
-    @Nullable
-    private static String getIdpName(@NotNull Authorizable authorizable) throws RepositoryException {
-        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(authorizable);
-        return (ref == null) ? null : ref.getProviderName();
     }
 
     @NotNull

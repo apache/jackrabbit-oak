@@ -92,6 +92,8 @@ public class Check {
 
         private PrintWriter errWriter;
 
+        private boolean failFast;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -256,6 +258,11 @@ public class Check {
 
             return this;
         }
+        
+        public Builder withFailFast(boolean failFast) {
+            this.failFast = failFast;
+            return this;
+        }
 
         /**
          * Create an executable version of the {@link Check} command.
@@ -325,6 +332,8 @@ public class Check {
 
     private final PrintWriter err;
 
+    private final boolean failFast;
+
     private int currentNodeCount;
 
     private int currentPropertyCount;
@@ -349,6 +358,7 @@ public class Check {
         this.err = builder.errWriter;
         this.journal = journalPath(builder.path, builder.journal);
         this.revisionsCount = revisionsToCheckCount(builder.revisionsCount);
+        this.failFast = builder.failFast;
     }
 
     private static File journalPath(File segmentStore, File journal) {
@@ -411,12 +421,13 @@ public class Check {
             checkpoints,
             filterPaths,
             checkBinaries,
-            revisionsCount
+            revisionsCount,
+            failFast
         );
 
         print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());
 
-        if (hasAnyRevision(result)) {
+        if (isGoodRevisionFound(result)) {
             if (checkHead) {
                 print("\nHead");
                 for (Entry<String, Revision> e : result.getHeadRevisions().entrySet()) {
@@ -440,6 +451,10 @@ public class Check {
             print("No good revision found");
             return 1;
         }
+    }
+
+    private boolean isGoodRevisionFound(ConsistencyCheckResult result) {
+        return failFast ? hasAllRevision(result) : hasAnyRevision(result);
     }
 
     private ConsistencyChecker newConsistencyChecker() {
@@ -568,6 +583,10 @@ public class Check {
 
     private static boolean hasAnyRevision(ConsistencyCheckResult result) {
         return hasAnyHeadRevision(result) || hasAnyCheckpointRevision(result);
+    }
+
+    private static boolean hasAllRevision(ConsistencyCheckResult result) {
+        return hasAnyHeadRevision(result) && hasAnyCheckpointRevision(result);
     }
 
     private static boolean hasAnyHeadRevision(ConsistencyCheckResult result) {

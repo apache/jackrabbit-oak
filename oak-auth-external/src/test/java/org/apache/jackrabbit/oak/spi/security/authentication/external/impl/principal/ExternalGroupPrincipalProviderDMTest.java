@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -350,6 +351,20 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         assertNotNull(user);
 
         user.removeProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+
+        Iterator<Group> groups = principalProvider.getMembership(user, true);
+        assertFalse(groups.hasNext());
+    }
+    
+    @Test
+    public void testGetMembershipIdpMismatch() throws Exception {
+        User user = getUserManager(root).getAuthorizable(USER_ID, User.class);
+        assertNotNull(user);
+
+        // alter the rep:externalId property of the synced user to point to a different IDP
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(user);
+        ExternalIdentityRef newRef = new ExternalIdentityRef(ref.getId(), "different");
+        user.setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, getValueFactory().createValue(newRef.getString()));
 
         Iterator<Group> groups = principalProvider.getMembership(user, true);
         assertFalse(groups.hasNext());

@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
 
@@ -51,7 +54,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         // Now we test for 250 < nodes < 500
 
-        for (int i = 250 ; i < 300 ; i ++) {
+        for (int i = 250; i < 300; i++) {
             test.addChild("a" + i).setProperty("propa", "foo" + i);
         }
         root.commit();
@@ -140,4 +143,67 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
                 containsString("elasticsearch:test1")));
     }
 
+
+    @Test
+    public void inOperandStringValues() throws Exception {
+        String query = "select [jcr:path] from [nt:base] where [propa] in(\"a\", \"e\", \"i\")";
+        createIndexOfType("String");
+
+        Tree test = root.getTree("/").addChild("test");
+        for (char ch = 'a'; ch <= 'z'; ch++) {
+            test.addChild("node-" + ch).setProperty("propa", Character.toString(ch));
+        }
+        root.commit();
+        assertEventually(() -> {
+            assertThat(explain(query), containsString("{\"terms\":{\"propa\":[\"a\",\"e\",\"i\"]}}"));
+            assertQuery(query, SQL2, ImmutableList.of("/test/node-a", "/test/node-e", "/test/node-i"));
+        });
+    }
+
+    @Test
+    public void inOperandLongValues() throws Exception {
+        String query = "select [jcr:path] from [nt:base] where [propa] in(2, 3, 5, 7)";
+        createIndexOfType("Long");
+
+        Tree test = root.getTree("/").addChild("test");
+        for (int i = 0; i < 10; i++) {
+            test.addChild("node-" + i).setProperty("propa", Integer.toString(i));
+        }
+        root.commit();
+
+        assertEventually(() -> {
+            assertThat(explain(query), containsString("{\"terms\":{\"propa\":[2,3,5,7]}}"));
+            assertQuery(query, SQL2, ImmutableList.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
+        });
+    }
+
+    @Test
+    public void inOperandDoubleValues() throws Exception {
+        String query = "select [jcr:path] from [nt:base] where [propa] in(2.0, 3.0, 5.0, 7.0)";
+
+        createIndexOfType("Double");
+
+        Tree test = root.getTree("/").addChild("test");
+        for (int i = 0; i < 10; i++) {
+            test.addChild("node-" + i).setProperty("propa", (double)i);
+        }
+        root.commit();
+
+        assertEventually(() -> {
+            assertThat(explain(query), containsString("{\"terms\":{\"propa\":[2.0,3.0,5.0,7.0]}}"));
+            assertQuery(query, SQL2, ImmutableList.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
+        });
+    }
+
+    private void createIndexOfType(String type) throws CommitFailedException {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        builder.noAsync();
+        builder.indexRule("nt:base")
+                .property("propa")
+                .propertyIndex()
+                .type(type);
+
+        setIndex("test", builder);
+        root.commit();
+    }
 }

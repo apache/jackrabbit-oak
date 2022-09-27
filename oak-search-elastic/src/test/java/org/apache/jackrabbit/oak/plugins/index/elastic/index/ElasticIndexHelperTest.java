@@ -16,26 +16,35 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import co.elastic.clients.elasticsearch._types.analysis.TokenFilter;
+import co.elastic.clients.elasticsearch._types.analysis.TokenFilterDefinition;
+import co.elastic.clients.elasticsearch._types.analysis.WordDelimiterGraphTokenFilter;
+import co.elastic.clients.elasticsearch._types.mapping.Property;
+import co.elastic.clients.elasticsearch._types.mapping.TextProperty;
+import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
+import co.elastic.clients.json.JsonData;
+import jakarta.json.JsonValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticIndexHelperTest {
 
     @Test
-    public void multiRulesWithSamePropertyNames() throws IOException {
+    public void multiRulesWithSamePropertyNames() {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         IndexDefinitionBuilder.IndexRule indexRuleA = builder.indexRule("typeA");
         indexRuleA.property("foo").type("String");
@@ -48,32 +57,75 @@ public class ElasticIndexHelperTest {
 
         CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> jsonMap = mapper.readValue(request.mappings().streamInput(), Map.class);
+        TypeMapping fooPropertyMappings = request.mappings();
+        assertThat(fooPropertyMappings, notNullValue());
+        Property fooProperty = fooPropertyMappings.properties().get("foo");
+        assertThat(fooProperty, is(notNullValue()));
+        assertThat(fooProperty._kind(), is(Property.Kind.Text));
+        TextProperty fooTextProperty = fooProperty.text();
 
-        Map fooMapping = (Map) ((Map) jsonMap.get("properties")).get("foo");
-        assertThat(fooMapping.get("type"), is("text"));
-        Map fooKeywordMapping = (Map) ((Map) fooMapping.get("fields")).get("keyword");
-        assertThat(fooKeywordMapping.get("type"), is("keyword"));
+        Property keywordField = fooTextProperty.fields().get("keyword");
+        assertThat(keywordField, is(notNullValue()));
+        assertThat(keywordField._kind(), is(Property.Kind.Keyword));
     }
 
     @Test(expected = IllegalStateException.class)
-    public void multiRulesWithSamePropertyNamesDifferentTypes() throws IOException {
+    public void multiRulesWithSamePropertyNamesDifferentTypes() {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         IndexDefinitionBuilder.IndexRule indexRuleA = builder.indexRule("typeA");
         indexRuleA.property("foo").type("String");
         IndexDefinitionBuilder.IndexRule indexRuleB = builder.indexRule("typeB");
         indexRuleB.property("foo").type("Boolean");
         NodeState nodeState = builder.build();
-
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
-
         ElasticIndexHelper.createIndexRequest("prefix.path", definition);
     }
 
+    @Test()
+    public void indexSettingsAreCorrectlySet() {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("idxRule");
+        indexRule.property("foo").type("String").useInSimilarity();
+
+        final String expectedNumberOfShards = "2";
+        final boolean expectedIndexOriginalTerm = true;
+        final boolean expectedSplitOnCaseChange = true;
+        final boolean expectedSplitOnNumerics = true;
+
+        Tree analyzer = builder.getBuilderTree().addChild("analyzers");
+        analyzer.setProperty(ElasticIndexDefinition.INDEX_ORIGINAL_TERM, expectedIndexOriginalTerm);
+        analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_CASE_CHANGE, expectedSplitOnCaseChange);
+        analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_NUMERICS, expectedSplitOnNumerics);
+
+        NodeState nodeState = builder.build();
+
+        @NotNull NodeState defn = nodeState.builder()
+                .setProperty(ElasticIndexDefinition.NUMBER_OF_SHARDS, expectedNumberOfShards)
+                .getNodeState();
+
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, defn, "path", "prefix");
+        CreateIndexRequest req = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+
+        IndexSettings indexSettings = req.settings().index();
+        assertThat(expectedNumberOfShards, is(indexSettings.numberOfShards()));
+
+        WordDelimiterGraphTokenFilter wdgfDef = req.settings()
+                .analysis()
+                .filter().get("oak_word_delimiter_graph_filter")
+                .definition()
+                .wordDelimiterGraph();
+        assertThat(wdgfDef.preserveOriginal(), is(expectedIndexOriginalTerm));
+        assertThat(wdgfDef.splitOnCaseChange(), is(expectedSplitOnCaseChange));
+        assertThat(wdgfDef.splitOnNumerics(), is(expectedSplitOnNumerics));
+
+        Map<String, JsonData> otherSettings = req.settings().otherSettings();
+        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).toJson(), is(JsonValue.TRUE));
+    }
+
     @Test
-    public void oakAnalyzer() throws IOException {
+    public void oakAnalyzer() {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("type");
         indexRule.property("foo").type("String").analyzed();
@@ -86,23 +138,30 @@ public class ElasticIndexHelperTest {
 
         CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
 
-        assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("false"));
+        checkAnalyzerPreservesOriginalTerm(request, false);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> jsonMappings = mapper.readValue(request.mappings().streamInput(), Map.class);
-        Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get("foo");
-        assertThat(fooMapping.get("analyzer"), is("oak_analyzer"));
-        Map barMapping = (Map) ((Map) jsonMappings.get("properties")).get("bar");
-        assertThat(barMapping.get("analyzer"), nullValue());
+        TypeMapping fooMappings = request.mappings();
+        assertThat(fooMappings, notNullValue());
+        Property fooProperty = fooMappings.properties().get("foo");
+        assertThat(fooProperty, is(notNullValue()));
+        TextProperty textProperty = fooProperty.text();
+        assertThat(textProperty.analyzer(), is("oak_analyzer"));
+        Property keywordField = textProperty.fields().get("keyword");
+        assertThat(keywordField._kind(), is(Property.Kind.Keyword));
+
+        TypeMapping barMappings = request.mappings();
+        assertThat(barMappings, notNullValue());
+        Property barProperty = barMappings.properties().get("bar");
+        assertThat(barProperty._kind(), is(Property.Kind.Keyword));
     }
 
     @Test
-    public void oakAnalyzerWithOriginalTerm() throws IOException {
+    public void oakAnalyzerWithOriginalTerm() {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("type");
         indexRule.property("foo").type("String").analyzed();
         Tree analyzer = builder.getBuilderTree().addChild("analyzers");
-        analyzer.setProperty("indexOriginalTerm", "true");
+        analyzer.setProperty(ElasticIndexDefinition.INDEX_ORIGINAL_TERM, "true");
 
         NodeState nodeState = builder.build();
 
@@ -110,8 +169,19 @@ public class ElasticIndexHelperTest {
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
         CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
-
-        assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("true"));
+        checkAnalyzerPreservesOriginalTerm(request, true);
     }
 
+    private void checkAnalyzerPreservesOriginalTerm(CreateIndexRequest request, boolean expected) {
+        IndexSettings requestSettings = request.settings();
+        assertThat(requestSettings, notNullValue());
+        IndexSettingsAnalysis analysisSettings = requestSettings.analysis();
+        assertThat(analysisSettings, notNullValue());
+        TokenFilter filter = analysisSettings.filter().get("oak_word_delimiter_graph_filter");
+        assertThat(filter, notNullValue());
+        TokenFilterDefinition tokenFilterDefinition = filter.definition();
+        assertThat(tokenFilterDefinition._kind(), is(TokenFilterDefinition.Kind.WordDelimiterGraph));
+        WordDelimiterGraphTokenFilter wdg = tokenFilterDefinition.wordDelimiterGraph();
+        assertThat(wdg.preserveOriginal(), is(expected));
+    }
 }

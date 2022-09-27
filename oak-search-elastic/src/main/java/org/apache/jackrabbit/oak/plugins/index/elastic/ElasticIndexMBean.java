@@ -57,11 +57,14 @@ class ElasticIndexMBean implements IndexMBean {
                 try {
                     indexNode = indexTracker.acquireIndexNode(path);
                     if (indexNode != null) {
-                        long size = indexNode.getIndexStatistics().size();
+                        long primaryStoreSize = indexNode.getIndexStatistics().primaryStoreSize();
+                        long storeSize = indexNode.getIndexStatistics().storeSize();
                         Object[] values = new Object[]{
                                 path,
-                                IOUtils.humanReadableByteCount(size),
-                                size,
+                                IOUtils.humanReadableByteCount(primaryStoreSize),
+                                primaryStoreSize,
+                                IOUtils.humanReadableByteCount(storeSize),
+                                storeSize,
                                 indexNode.getIndexStatistics().numDocs(),
                                 indexNode.getIndexStatistics().luceneNumDocs(),
                                 indexNode.getIndexStatistics().luceneNumDeletedDocs()
@@ -85,7 +88,7 @@ class ElasticIndexMBean implements IndexMBean {
         ElasticIndexNode indexNode = indexTracker.acquireIndexNode(indexPath);
         if (indexNode != null) {
             try {
-                return String.valueOf(indexNode.getIndexStatistics().size());
+                return String.valueOf(indexNode.getIndexStatistics().primaryStoreSize());
             } finally {
                 indexNode.release();
             }
@@ -112,6 +115,8 @@ class ElasticIndexMBean implements IndexMBean {
                 "path",
                 "indexSizeStr",
                 "indexSize",
+                "indexSizeWithReplicasStr",
+                "indexSizeWithReplicas",
                 "numDocs",
                 "luceneNumDoc",
                 "luceneNumDeletedDocs"
@@ -121,6 +126,8 @@ class ElasticIndexMBean implements IndexMBean {
                 "Path",
                 "Index size in human readable format",
                 "Index size in bytes",
+                "Index size, including replicas, in human readable format",
+                "Index size, including replicas, in bytes",
                 "Number of documents in this index",
                 "Number of low-level lucene documents in this index, including nested ones",
                 "Number of deleted low-level lucene documents in this index, including nested ones"
@@ -129,6 +136,8 @@ class ElasticIndexMBean implements IndexMBean {
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
                 SimpleType.STRING,
+                SimpleType.STRING,
+                SimpleType.LONG,
                 SimpleType.STRING,
                 SimpleType.LONG,
                 SimpleType.INTEGER,

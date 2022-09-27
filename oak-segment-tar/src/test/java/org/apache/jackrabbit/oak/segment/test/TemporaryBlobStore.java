@@ -28,17 +28,24 @@ public class TemporaryBlobStore extends ExternalResource {
 
     private final TemporaryFolder folder;
 
+    private final String name;
+
     private DataStoreBlobStore store;
 
     public TemporaryBlobStore(TemporaryFolder folder) {
+        this(folder, null);
+    }
+
+    public TemporaryBlobStore(TemporaryFolder folder, String name) {
         this.folder = folder;
+        this.name = name;
     }
 
     @Override
     protected void before() throws Throwable {
         FileDataStore fds = new FileDataStore();
         configureDataStore(fds);
-        fds.init(folder.newFolder().getAbsolutePath());
+        fds.init((name == null ? folder.newFolder() : folder.newFolder(name)).getAbsolutePath());
         store = new DataStoreBlobStore(fds);
     }
 

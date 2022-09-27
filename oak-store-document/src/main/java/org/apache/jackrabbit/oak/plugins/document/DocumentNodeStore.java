@@ -38,6 +38,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExt
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.apache.jackrabbit.oak.spi.observation.ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 
 import java.io.Closeable;
@@ -597,7 +598,7 @@ public final class DocumentNodeStore
         }
         this.clusterId = clusterNodeInfo.getId();
 
-        if (builder.isThrottlingEnabled()) {
+        if (isThrottlingEnabled(builder)) {
             s = new ThrottlingDocumentStoreWrapper(s);
         }
 

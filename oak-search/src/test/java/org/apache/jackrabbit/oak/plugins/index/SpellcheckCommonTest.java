@@ -53,7 +53,7 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
 
         String indexName = UUID.randomUUID().toString();
         IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
-        builder.noAsync();
+        builder.noAsync().evaluatePathRestrictions();
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
 
         indexRule.property("cons").propertyIndex();
@@ -172,7 +172,7 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
     }
 
     private static void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, 3000 * 3);
+        TestUtil.assertEventually(r, 3000 * 3);
     }
 
 }

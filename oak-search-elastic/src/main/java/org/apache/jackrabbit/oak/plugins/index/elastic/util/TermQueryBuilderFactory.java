@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.jetbrains.annotations.NotNull;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.json.JsonData;
 
@@ -94,12 +93,29 @@ public class TermQueryBuilderFactory {
         }));
     }
 
-    private static <R> Query newInQuery(String field, List<R> values) {
-        BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
-        for (R value : values) {
-            bqBuilder.should(newRangeQuery(field, value, value, true, true));
+    private static <R> FieldValue toFieldValue(R value) {
+        if (value instanceof Long) {
+            Long asLong = (Long) value;
+            return FieldValue.of(asLong);
+        } else if (value instanceof Double) {
+            Double asDouble = (Double) value;
+            return FieldValue.of(asDouble);
+        } else if (value instanceof Boolean) {
+            Boolean asBoolean = (Boolean) value;
+            return FieldValue.of(asBoolean);
+        } else {
+            return FieldValue.of(value.toString());
         }
-        return Query.of(q -> q.bool(bqBuilder.build()));
+    }
+
+    private static <R> Query newInQuery(String field, List<R> values) {
+        List<FieldValue> fieldValues = values.stream()
+                .map(TermQueryBuilderFactory::toFieldValue)
+                .collect(Collectors.toList());
+        return Query.of(q -> q.terms(tq -> tq
+                .field(field)
+                .terms(t -> t.value(fieldValues)))
+        );
     }
 
     public static <R> Query newPropertyRestrictionQuery(String propertyName, Filter.PropertyRestriction pr,

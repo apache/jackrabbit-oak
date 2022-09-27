@@ -26,9 +26,11 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
@@ -38,9 +40,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Defau
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitorImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.Monitor;
@@ -54,13 +58,16 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
 import javax.jcr.ValueFactory;
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -68,6 +75,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest {
 
@@ -249,7 +259,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         ContentSession cs = root.getContentSession();
         String workspaceName = cs.getWorkspaceName();
         
-        // upon registering a synchhandler with dynamic-membership the dynamic-group-validator must be present as well
+        // upon registering a sync-handler with dynamic-membership the dynamic-group-validator must be present as well
         registerSyncHandler(true, true);
 
         List<? extends ValidatorProvider> validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, cs.getAuthInfo().getPrincipals(), new MoveTracker());
@@ -263,6 +273,37 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         validatorProviders = externalPrincipalConfiguration.getValidators(workspaceName, cs.getAuthInfo().getPrincipals(), new MoveTracker());
         assertEquals(3, validatorProviders.size());
         assertTrue(validatorProviders.get(1) instanceof DynamicGroupValidatorProvider);
+    }
+    
+    @Test
+    public void testGetValidatorsMissingActivate() throws Exception {
+        ConfigurationParameters config = ConfigurationParameters.of(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDENTITIES, ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN);
+        
+        SecurityProvider sp = mock(SecurityProvider.class);
+        when(sp.getParameters(PrincipalConfiguration.NAME)).thenReturn(config);
+        when(sp.getParameters(UserConfiguration.NAME)).thenReturn(ConfigurationParameters.EMPTY);
+        
+        ExternalPrincipalConfiguration epc = new ExternalPrincipalConfiguration(sp);
+        epc.setRootProvider(getRootProvider());
+        epc.setTreeProvider(getTreeProvider());
+        
+        List<? extends ValidatorProvider> vps = epc.getValidators(root.getContentSession().getWorkspaceName(), Collections.singleton(EveryonePrincipal.getInstance()), new MoveTracker());
+        assertEquals(2, vps.size());
+        
+        Optional<? extends ValidatorProvider> optional = vps.stream().filter((Predicate<ValidatorProvider>) validatorProvider1 -> validatorProvider1 instanceof ExternalUserValidatorProvider).findFirst();
+        if (optional.isPresent()) {
+            ExternalUserValidatorProvider validatorProvider = (ExternalUserValidatorProvider) optional.get();
+            assertNotNull(validatorProvider);
+            assertDefaultProtectionConfig(validatorProvider);
+        } else {
+            fail("ExternalUserValidatorProvider expected to be present");
+        }
+    }
+    
+    private static void assertDefaultProtectionConfig(@NotNull ExternalUserValidatorProvider vp) throws Exception {
+        Field f = ExternalUserValidatorProvider.class.getDeclaredField("protectionConfig");
+        f.setAccessible(true);
+        assertSame(ProtectionConfig.DEFAULT, f.get(vp));
     }
     
     @Test

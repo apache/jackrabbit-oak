@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch._types.mapping.FieldMapping;
+import co.elastic.clients.elasticsearch._types.mapping.Property;
+import co.elastic.clients.elasticsearch.indices.GetFieldMappingResponse;
+import co.elastic.clients.elasticsearch.indices.get_field_mapping.TypeFieldMappings;
+import jakarta.json.JsonObject;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -23,9 +28,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.indices.GetFieldMappingsRequest;
-import org.elasticsearch.client.indices.GetFieldMappingsResponse;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -134,7 +136,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         String nativeQueryStringWithStopWords = "select [jcr:path] from [nt:base] where " +
                 "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.stopwords=Hello,bye')";
 
-        String nativeQueryStringWithoutStopWords =  "select [jcr:path] from [nt:base] where " +
+        String nativeQueryStringWithoutStopWords = "select [jcr:path] from [nt:base] where " +
                 "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.minshouldmatch=20%')";
 
         Tree test = root.getTree("/").addChild("test");
@@ -185,8 +187,8 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         createIndex(false);
         Tree test = root.getTree("/").addChild("test");
         Tree longPath = test.addChild("a");
-        for (int i = 0; i < 258; i ++) {
-            longPath = longPath.addChild("a"+i);
+        for (int i = 0; i < 258; i++) {
+            longPath = longPath.addChild("a" + i);
         }
         longPath.setProperty("text", "Hello World Hello World");
         test.addChild("b").setProperty("text", "Hello World");
@@ -243,22 +245,23 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         setIndex(indexName, builder);
         root.commit();
 
-        // TODO: migrate when https://github.com/elastic/elasticsearch-java/issues/249 gets fixed
-        String alias =  ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), "/oak:index/" + indexName);
-        GetFieldMappingsRequest fieldMappingsRequest = new GetFieldMappingsRequest();
-        fieldMappingsRequest.indices(alias).fields(similarityFieldName1);
-        GetFieldMappingsResponse mappingsResponse = esConnection.getOldClient().indices().
-                getFieldMapping(fieldMappingsRequest, RequestOptions.DEFAULT);
-        final Map<String, Map<String, GetFieldMappingsResponse.FieldMappingMetadata>> mappings =
-                mappingsResponse.mappings();
-        assertEquals("More than one index found", 1, mappings.keySet().size());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> map1 = (Map<String, Object>)(((Map<String, Object>)mappings.entrySet().iterator().next().getValue().
-                get(similarityFieldName1).sourceAsMap().get(similarityFieldName1)).get("elastiknn"));
-        assertEquals("Dense vector size doesn't match", 2048, (int)map1.get("dims"));
-        assertEquals("Similarity doesn't match", "cosine", map1.get("similarity"));
-        assertEquals("Similarity doesn't match", 10, map1.get("L"));
-        assertEquals("Similarity doesn't match", 12, map1.get("k"));
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), "/oak:index/" + indexName);
+        GetFieldMappingResponse mappingsResponse = esConnection.getClient()
+                .indices()
+                .getFieldMapping(b -> b
+                        .index(alias)
+                        .fields(similarityFieldName1)
+                );
+
+        Map<String, TypeFieldMappings> mappings = mappingsResponse.result();
+        assertEquals("More than one index found", 1, mappings.size());
+        Map<String, FieldMapping> typeFieldMappings = mappings.entrySet().iterator().next().getValue().mappings();
+        Property v = typeFieldMappings.get(similarityFieldName1).mapping().get(similarityFieldName1);
+        JsonObject map1 = v._custom().toJson().asJsonObject().get("elastiknn").asJsonObject();
+        assertEquals("Dense vector size doesn't match", 2048, map1.getInt("dims"));
+        assertEquals("Similarity doesn't match", "cosine", map1.getString("similarity"));
+        assertEquals("Similarity doesn't match", 10, map1.getInt("L"));
+        assertEquals("Similarity doesn't match", 12, map1.getInt("k"));
     }
 
     @Test
@@ -358,7 +361,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
                     found.add(next);
                     resultNum++;
                 }
-                double per = (expectedList.stream().filter(found::contains).count() * 100.0)/expectedList.size();
+                double per = (expectedList.stream().filter(found::contains).count() * 100.0) / expectedList.size();
                 assertEquals("expected: " + expectedList + " got: " + found, expected, per, delta);
             });
         }

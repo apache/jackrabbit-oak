@@ -33,7 +33,7 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.version>7.17.3</elasticsearch.version>
+    <elasticsearch.version>7.17.6</elasticsearch.version>
   </properties>
 
   <build>
@@ -131,7 +131,7 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>${jackson.databind.version}</version>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch</groupId>
@@ -349,6 +349,11 @@
       <groupId>com.github.stefanbirkner</groupId>
       <artifactId>system-rules</artifactId>
       <version>1.19.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
       <scope>test</scope>
     </dependency>
 

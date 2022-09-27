@@ -67,4 +67,11 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
         name = "Azure Blob Endpoint URL (optional)",
         description = "Blob Endpoint URL used to connect to the Azure Storage")
     String blobEndpoint() default "";
+
+    @AttributeDefinition(
+            name = "Role",
+            description = "The role of this persistence. It should be unique and may be used to filter " +
+                    "services in order to create services composed of multiple persistence instances. " +
+                    "E.g. a SplitPersistence composed of a TAR persistence and an Azure persistence.")
+    String role() default "";
 }
