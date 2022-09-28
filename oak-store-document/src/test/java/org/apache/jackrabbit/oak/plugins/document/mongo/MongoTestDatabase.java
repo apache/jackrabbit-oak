@@ -37,7 +37,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 
-class MongoTestDatabase implements MongoDatabase {
+public class MongoTestDatabase implements MongoDatabase {
 
     private final MongoDatabase db;
 
@@ -45,7 +45,7 @@ class MongoTestDatabase implements MongoDatabase {
     private final AtomicReference<String> beforeUpdateException;
     private final AtomicReference<String> afterUpdateException;
 
-    MongoTestDatabase(MongoDatabase db,
+    public MongoTestDatabase(MongoDatabase db,
                       AtomicReference<String> beforeQueryException,
                       AtomicReference<String> beforeUpdateException,
                       AtomicReference<String> afterUpdateException) {

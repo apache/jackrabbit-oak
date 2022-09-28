@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -82,6 +83,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     private final MongoDocumentStore store;
 
     private final BasicDBObject hint;
+
+    /** keeps track of the sweepRev of the last (successful) deletion */
+    private RevisionVector lastDefaultNoBranchDeletionRevs;
+
     /**
      * The batch size for the query of possibly deleted docs.
      */
@@ -197,7 +202,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             if (DEFAULT_NO_BRANCH != type) {
                 orClauses.add(Filters.eq(SD_TYPE, type.typeCode()));
             } else {
-                result.add(queryForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
+                result.addAll(queriesForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
             }
         }
         // OAK-8351: this (last) query only contains SD_TYPE and SD_MAX_REV_TIME_IN_SECS
@@ -211,11 +216,23 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     @NotNull
-    private Bson queryForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
+    private List<Bson> queriesForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
         // default_no_branch split type is special because we can
         // only remove those older than sweep rev
-        List<Bson> orClauses = Lists.newArrayList();
+        List<Bson> result = Lists.newArrayList();
         for (Revision r : sweepRevs) {
+            if (lastDefaultNoBranchDeletionRevs != null) {
+                Revision dr = lastDefaultNoBranchDeletionRevs.getRevision(r.getClusterId());
+                if (dr != null) {
+                    if (dr.getTimestamp() == r.getTimestamp()) {
+                        // implies for this clusterNodeId the sweepRev is in control wrt RGC
+                        // and we've already deleted up to that point.
+                        // and meanwhile the sweepRev for that clusterNodeId hasn't changed.
+                        // so we can skip it
+                        continue;
+                    }
+                }
+            }
             String idSuffix = Utils.getPreviousIdFor(Path.ROOT, r, 0);
             idSuffix = idSuffix.substring(idSuffix.lastIndexOf('-'));
 
@@ -229,16 +246,14 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                     )
             );
 
-            orClauses.add(Filters.and(
-                    idPathClause,
-                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(r.getTimestamp()))
-            ));
+            long minMaxRevTimeInSecs = Math.min(maxRevTimeInSecs, getModifiedInSecs(r.getTimestamp()));
+            result.add(Filters.and(
+                    Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
+                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
+                    idPathClause
+                    ));
         }
-        return Filters.and(
-                Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
-                Filters.lt(SD_MAX_REV_TIME_IN_SECS, maxRevTimeInSecs),
-                Filters.or(orClauses)
-                );
+        return result;
     }
 
     private void logSplitDocIdsTobeDeleted(Bson query) {
@@ -301,6 +316,18 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             for (Bson query : queries) {
                 cnt += getNodeCollection().deleteMany(query).getDeletedCount();
             }
+            // remember the revisions up to which deletion happened
+            Set<Revision> deletionRevs = new HashSet<>();
+            for (Revision r : sweepRevs) {
+                if (r.getTimestamp() <= oldestRevTimeStamp) {
+                    // then sweepRev of this clusterNodeId was taking effect: we could only delete up to sweepRev
+                    deletionRevs.add(r);
+                } else {
+                    // then sweepRev is newer than oldestRevTimeStamp, so we could delete up to oldestRevTimeStamp
+                    deletionRevs.add(new Revision(oldestRevTimeStamp, 0, r.getClusterId()));
+                }
+            }
+            MongoVersionGCSupport.this.lastDefaultNoBranchDeletionRevs = new RevisionVector(deletionRevs);
             return cnt;
         }
     }
