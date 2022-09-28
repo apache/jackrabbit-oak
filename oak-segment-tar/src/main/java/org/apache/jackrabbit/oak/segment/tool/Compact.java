@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -77,6 +78,8 @@ public class Compact {
         private long gcLogInterval = 150000;
 
         private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+
+        private GCType gcType = GCType.FULL;
 
         private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
 
@@ -161,6 +164,16 @@ public class Compact {
          */
         public Builder withGCLogInterval(long gcLogInterval) {
             this.gcLogInterval = gcLogInterval;
+            return this;
+        }
+
+        /**
+         * The garbage collection type used. If not specified it defaults to full compaction
+         * @param gcType the GC type
+         * @return this builder
+         */
+        public Builder withGCType(GCType gcType) {
+            this.gcType = gcType;
             return this;
         }
 
@@ -277,6 +290,8 @@ public class Compact {
 
     private final long gcLogInterval;
 
+    private final GCType gcType;
+
     private final CompactorType compactorType;
 
     private final int concurrency;
@@ -288,6 +303,7 @@ public class Compact {
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
+        this.gcType = builder.gcType;
         this.compactorType = builder.compactorType;
         this.concurrency = builder.concurrency;
     }
@@ -303,7 +319,17 @@ public class Compact {
         Stopwatch watch = Stopwatch.createStarted();
 
         try (FileStore store = newFileStore()) {
-            if (!store.compactFull()) {
+            boolean success = false;
+            switch (gcType) {
+                case FULL:
+                    success = store.compactFull();
+                    break;
+                case TAIL:
+                    success = store.compactTail();
+                    break;
+            }
+
+            if (!success) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }

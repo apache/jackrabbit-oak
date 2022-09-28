@@ -823,14 +823,16 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact [--force] [--mmap] [--compactor] [--threads] SOURCE [--target-path DESTINATION] [--persistent-cache-path PERSISTENT_CACHE_PATH] [--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>]
+java -jar oak-run.jar compact [--force] [--mmap] [--tail] [--compactor] [--threads] SOURCE [--target-path DESTINATION] [--persistent-cache-path PERSISTENT_CACHE_PATH] [--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>]
 ```
 
 The `compact` command performs offline compaction of the local/remote Segment Store at `SOURCE`. 
 `SOURCE` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store and AWS Segment Store the supported remote Segment Stores. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
-If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non-matching Segment Store version. *CAUTION*: this will upgrade the Segment Store to the 
+With the optional `--tail` flag, only tail compaction is performed instead of the full repository.
+
+If the optional `--force` flag is set, the tool ignores a non-matching Segment Store version. *CAUTION*: this will upgrade the Segment Store to the 
 latest version, which is incompatible with older versions. *There is no way to downgrade 
 an accidentally upgraded Segment Store*.  
 
