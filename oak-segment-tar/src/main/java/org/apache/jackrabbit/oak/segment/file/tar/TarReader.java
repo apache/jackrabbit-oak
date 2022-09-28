@@ -458,7 +458,7 @@ public class TarReader implements Closeable {
      * TarReader}.
      * <p>
      * If none of the above conditions apply, this method returns a new {@link
-     * TarReader} instance tha points to a TAR file that doesn't contain the
+     * TarReader} instance that points to a TAR file that doesn't contain the
      * removed segments. The returned {@link TarReader} will belong to the next
      * generation of this {@link TarReader}. In this case, the {@code reclaimed}
      * set will be updated to contain the identifiers of the segments that were

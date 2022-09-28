@@ -34,6 +34,7 @@ import com.google.common.io.Files;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
@@ -72,6 +73,8 @@ public class AwsCompact {
         private long gcLogInterval = 150000;
 
         private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+
+        private GCType gcType = GCType.FULL;
 
         private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
 
@@ -134,6 +137,16 @@ public class AwsCompact {
         }
 
         /**
+         * The garbage collection type used. If not specified it defaults to full compaction
+         * @param gcType the GC type
+         * @return this builder
+         */
+        public Builder withGCType(GCType gcType) {
+            this.gcType = gcType;
+            return this;
+        }
+
+        /**
          * The compactor type to be used by compaction. If not specified it defaults to
          * "parallel" compactor
          * @param compactorType the compactor type
@@ -173,6 +186,8 @@ public class AwsCompact {
 
     private final long gcLogInterval;
 
+    private final GCType gcType;
+
     private final CompactorType compactorType;
 
     private final int concurrency;
@@ -182,6 +197,7 @@ public class AwsCompact {
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
+        this.gcType = builder.gcType;
         this.compactorType = builder.compactorType;
         this.concurrency = builder.concurrency;
     }
@@ -206,7 +222,17 @@ public class AwsCompact {
 
         try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
                 gcLogInterval, compactorType, concurrency)) {
-            if (!store.compactFull()) {
+            boolean success = false;
+            switch (gcType) {
+                case FULL:
+                    success = store.compactFull();
+                    break;
+                case TAIL:
+                    success = store.compactTail();
+                    break;
+            }
+
+            if (!success) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }
