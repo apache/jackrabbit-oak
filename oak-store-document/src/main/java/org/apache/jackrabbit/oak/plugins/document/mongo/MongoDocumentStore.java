@@ -355,7 +355,6 @@ public class MongoDocumentStore implements DocumentStore {
                 throttler = exponentialThrottler(DEFAULT_THROTTLING_THRESHOLD, oplogWindow, DEFAULT_THROTTLING_TIME_MS);
                 throttlingMetricsUpdater = new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow);
                 throttlingMetricsUpdater.scheduleUpdateMetrics();
-                stats.setThrottler(throttler);
                 LOG.info("Started MongoDB throttling metrics with threshold {}, throttling time {}",
                         DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME_MS);
             } else {

@@ -145,6 +145,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private BlobStoreStats blobStoreStats;
     private CacheStats blobStoreCacheStats;
     private DocumentStoreStatsCollector documentStoreStatsCollector;
+    private ThrottlingStatsCollector throttlingStatsCollector;
     private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
     private Map<String, PersistentCacheStats> persistentCacheStats = new HashMap<>();
     private boolean bundlingDisabled;
@@ -523,6 +524,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public T setDocumentStoreStatsCollector(DocumentStoreStatsCollector documentStoreStatsCollector) {
         this.documentStoreStatsCollector = documentStoreStatsCollector;
+        return thisBuilder();
+    }
+
+    public ThrottlingStatsCollector getThrottlingStatsCollector() {
+        return throttlingStatsCollector;
+    }
+
+    public T setThrottlingStatsCollector(final ThrottlingStatsCollector throttlingStatsCollector) {
+        this.throttlingStatsCollector = throttlingStatsCollector;
         return thisBuilder();
     }
 

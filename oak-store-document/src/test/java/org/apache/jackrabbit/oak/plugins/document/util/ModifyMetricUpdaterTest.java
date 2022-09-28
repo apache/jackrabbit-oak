@@ -24,7 +24,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.getStatsConsumer;
+import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getStatsConsumer;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 import static org.junit.Assert.assertEquals;
