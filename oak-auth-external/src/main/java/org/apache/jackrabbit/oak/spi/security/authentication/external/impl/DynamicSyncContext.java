@@ -280,18 +280,18 @@ public class DynamicSyncContext extends DefaultSyncContext {
         if (authorizable == null) {
             return false;
         } else if (!authorizable.isGroup()) {
-            log.warn("Existing user '{}' collides with external group.", authorizable.getID());
+            log.warn("Existing user '{}' collides with external group defined by IDP '{}'.", authorizable.getID(), idp.getName());
             return true;
         } else if (!isSameIDP(authorizable)) {
             // there exists a group with the same id or principal name but it doesn't belong to the same IDP
             // in consistency with DefaultSyncContext don't sync this very membership into the repository
             // and log a warning about the collision instead.
-            log.warn("Existing authorizable with id '{}' and principal name '{}' is not a group from this IDP '{}'.", authorizable.getID(), principalName, idp.getName());
+            log.warn("Existing group with id '{}' and principal name '{}' is not defined by IDP '{}'.", authorizable.getID(), authorizable.getPrincipal().getName(), idp.getName());
             return true;
         } else if (!principalName.equals(authorizable.getPrincipal().getName())) {
             // there exists a group with matching ID but principal-mismatch, don't sync this very membership into the 
             // repository and log a warning about the collision instead.
-            log.warn("Existing authorizable with id '{}' doesn't have matching principal name. found '{}', expected '{}'.", authorizable.getID(), authorizable.getPrincipal().getName(), principalName);
+            log.warn("Existing group with id '{}' doesn't have matching principal name. found '{}', expected '{}', IDP '{}'.", authorizable.getID(), authorizable.getPrincipal().getName(), principalName, idp.getName());
             return true;            
         } else {
             // group has been synced before (same IDP, same principal-name)
