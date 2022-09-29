@@ -282,7 +282,8 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
                 getSecurityProvider(),
                 Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH,
                 null,
-                false);
+                false,
+                true);
     }
 
 
