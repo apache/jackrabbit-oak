@@ -24,6 +24,10 @@ import java.util.concurrent.TimeUnit;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.plugins.document.util.CreateMetricUpdater;
+import org.apache.jackrabbit.oak.plugins.document.util.UpsertMetricUpdater;
+import org.apache.jackrabbit.oak.plugins.document.util.ModifyMetricUpdater;
+import org.apache.jackrabbit.oak.plugins.document.util.RemoveMetricUpdater;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -34,6 +38,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.isNodesCollectionUpdated;
+import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getJournalStatsConsumer;
+import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getStatsConsumer;
+import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getCreateStatsConsumer;
+import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.perfLog;
 
 /**
  * Document Store statistics helper class.
@@ -115,6 +126,10 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     private final TimerStats removeNodesTimer;
     private final MeterStats prefetchNodes;
     private final TimerStats prefetchNodesTimer;
+    private final RemoveMetricUpdater removeMetricUpdater;
+    private final CreateMetricUpdater createMetricUpdater;
+    private final UpsertMetricUpdater upsertMetricUpdater;
+    private final ModifyMetricUpdater modifyMetricUpdater;
 
     public DocumentStoreStats(StatisticsProvider provider) {
         statisticsProvider = checkNotNull(provider);
@@ -157,6 +172,16 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
         prefetchNodes = provider.getMeter(NODES_PREFETCH, StatsOptions.DEFAULT);
         prefetchNodesTimer = provider.getTimer(NODES_PREFETCH_TIMER, StatsOptions.METRICS_ONLY);
+
+        removeMetricUpdater = new RemoveMetricUpdater(removeNodes, removeNodesTimer);
+
+        createMetricUpdater = new CreateMetricUpdater(createNodeMeter, createSplitNodeMeter, createNodeTimer, createJournal,
+                createJournalTimer);
+
+        upsertMetricUpdater = new UpsertMetricUpdater(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer);
+
+        modifyMetricUpdater = new ModifyMetricUpdater(createNodeUpsertMeter, createNodeUpsertTimer, updateNodeMeter,
+                updateNodeTimer, updateNodeRetryCountMeter, updateNodeFailureMeter);
     }
 
     //~------------------------------------------< DocumentStoreStatsCollector >
@@ -195,7 +220,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
             }
         }
 
-        perfLog(timeTakenNanos, "findUncached on key={}, isSlaveOk={}", key, isSlaveOk);
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findUncached on key={}, isSlaveOk={}", key, isSlaveOk);
     }
 
     @Override
@@ -228,77 +253,42 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
             queryJournal.mark(resultSize);
             queryJournalTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
         }
-        perfLog(timeTakenNanos, "query for children from [{}] to [{}], lock:{}", fromKey, toKey, lockTime);
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "query for children from [{}] to [{}], lock:{}", fromKey, toKey, lockTime);
     }
 
     @Override
     public void doneCreate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess) {
-        if (collection == Collection.NODES && insertSuccess){
-            for (String id : ids){
-                createNodeMeter.mark();
-                if (Utils.isPreviousDocId(id)){
-                    createSplitNodeMeter.mark();
-                }
-            }
-            createNodeTimer.update(timeTakenNanos / ids.size(), TimeUnit.NANOSECONDS);
-        } else if (collection == Collection.JOURNAL){
-            createJournal.mark(ids.size());
-            createJournalTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
-        }
-        perfLog(timeTakenNanos, "create");
+
+        createMetricUpdater.update(collection, timeTakenNanos, ids, insertSuccess, isNodesCollectionUpdated(), getCreateStatsConsumer(),
+                c -> c == JOURNAL, getJournalStatsConsumer());
+
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "create");
     }
 
     @Override
-    public void doneCreateOrUpdate(long timeTakenNanos,
-                                   Collection<? extends Document> collection,
-                                   List<String> ids) {
-        if (collection == Collection.NODES) {
-            for (String id : ids){
-                createNodeUpsertMeter.mark();
-                if (Utils.isPreviousDocId(id)){
-                    createSplitNodeMeter.mark();
-                }
-            }
-            createNodeUpsertTimer.update(timeTakenNanos / ids.size(), TimeUnit.NANOSECONDS);
-        }
-        perfLog(timeTakenNanos, "createOrUpdate {}", ids);
+    public void doneCreateOrUpdate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids) {
+
+        upsertMetricUpdater.update(collection, timeTakenNanos, ids, isNodesCollectionUpdated(), getCreateStatsConsumer());
+
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "createOrUpdate {}", ids);
     }
 
     @Override
     public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key, boolean newEntry,
                                   boolean success, int retryCount) {
-        if (collection == Collection.NODES){
-            if (success) {
-                if (newEntry) {
-                    createNodeUpsertMeter.mark();
-                    createNodeUpsertTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
-                } else {
-                    updateNodeMeter.mark();
-                    updateNodeTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
-                }
 
-                if (retryCount > 0){
-                    updateNodeRetryCountMeter.mark(retryCount);
-                }
-            } else {
-                updateNodeRetryCountMeter.mark(retryCount);
-                updateNodeFailureMeter.mark();
-            }
-        }
-        perfLog(timeTakenNanos, "findAndModify [{}]", key);
+        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, newEntry, c -> c == NODES, getStatsConsumer(),
+                getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findAndModify [{}]", key);
     }
 
     @Override
-    public void doneRemove(long timeTakenNanos,
-                           Collection<? extends Document> collection,
-                           int removeCount) {
-        if (collection == Collection.NODES) {
-            if (removeCount > 0) {
-                removeNodes.mark(removeCount);
-                removeNodesTimer.update(timeTakenNanos / removeCount, TimeUnit.NANOSECONDS);
-            }
-        }
-        perfLog(timeTakenNanos, "remove [{}]", removeCount);
+    public void doneRemove(long timeTakenNanos, Collection<? extends Document> collection, int removeCount) {
+
+        removeMetricUpdater.update(collection, removeCount, timeTakenNanos, isNodesCollectionUpdated(), getStatsConsumer());
+
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "remove [{}]", removeCount);
     }
 
     @Override
@@ -309,24 +299,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
             prefetchNodes.mark(ids.size());
             prefetchNodesTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
         }
-        perfLog(timeTakenNanos, "prefetch {}", ids);
-    }
-
-    private void perfLog(long timeTakenNanos, String logMessagePrefix, Object... arguments){
-        if (!perfLog.isDebugEnabled()){
-            return;
-        }
-
-        final long diff = TimeUnit.NANOSECONDS.toMillis(timeTakenNanos);
-        if (perfLog.isTraceEnabled()) {
-            // if log level is TRACE, then always log - and do that on TRACE
-            // then:
-            perfLog.trace(logMessagePrefix + " [took " + diff + "ms]",
-                    (Object[]) arguments);
-        } else if (diff > PERF_LOG_THRESHOLD) {
-            perfLog.debug(logMessagePrefix + " [took " + diff + "ms]",
-                    (Object[]) arguments);
-        }
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "prefetch {}", ids);
     }
 
     //~--------------------------------------------< DocumentStoreStatsMBean >

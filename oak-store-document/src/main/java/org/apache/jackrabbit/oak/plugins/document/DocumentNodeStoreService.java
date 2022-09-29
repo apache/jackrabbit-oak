@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -512,6 +513,11 @@ public class DocumentNodeStoreService {
             checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
                     "initialized", CUSTOM_BLOB_STORE);
             builder.setBlobStore(blobStore);
+        }
+
+        // set throttling stats collector only if throttling is enabled
+        if (isThrottlingEnabled(builder)) {
+            builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
     }
 
