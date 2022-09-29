@@ -67,6 +67,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.ofInstance;
+import static java.util.Objects.isNull;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
@@ -527,11 +528,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
+    @NotNull
     public ThrottlingStatsCollector getThrottlingStatsCollector() {
+        if (isNull(throttlingStatsCollector)) {
+            throttlingStatsCollector = new ThrottlingStatsCollectorImpl(statisticsProvider);
+        }
         return throttlingStatsCollector;
     }
 
-    public T setThrottlingStatsCollector(final ThrottlingStatsCollector throttlingStatsCollector) {
+    public T setThrottlingStatsCollector(final @NotNull ThrottlingStatsCollector throttlingStatsCollector) {
         this.throttlingStatsCollector = throttlingStatsCollector;
         return thisBuilder();
     }

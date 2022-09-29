@@ -273,7 +273,7 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
             // log message every 10 secs once to reduce noise
             // (decaseconds since 1970 - overflows roughly in year 2650)
             final int currentDecaSecond = (int) (currentTimeMillis() / 10_000);
-            if (currentDecaSecond - lastLogTime >= 10) {
+            if (currentDecaSecond > lastLogTime) {
                 lastLogTime = currentDecaSecond;
                 LOG.warn("Throttling the system for {} ms for {} collection", throttleTime, collection);
             }
