@@ -88,6 +88,7 @@ public class Jcr {
 
     private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
     private boolean fastQueryResultSize;
+    private boolean createSessionMBeans;
 
     private ContentRepository contentRepository;
     private Repository repository;
@@ -96,7 +97,7 @@ public class Jcr {
 
     public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
-
+        createSessionMBeans = true; // by default every (long-living) session will register an MBean
         if (initialize) {
             OakDefaultComponents defs = new OakDefaultComponents();
             with(defs.securityProvider());
@@ -294,6 +295,17 @@ public class Jcr {
         return this;
     }
 
+    /**
+     * Disables registration of MBeans for every open Session in the repository.
+     * This gets rid of some overhead for cases where MBeans are not leveraged.
+     * @return the Jcr object
+     */
+    @NotNull
+    public Jcr withoutSessionMBeans() {
+        createSessionMBeans = false;
+        return this;
+    }
+
     private void setUpOak() {
         // whiteboard
         if (whiteboard != null) {
@@ -387,7 +399,8 @@ public class Jcr {
                     securityProvider,
                     observationQueueLength,
                     commitRateLimiter,
-                    fastQueryResultSize);
+                    fastQueryResultSize,
+                    createSessionMBeans);
         }
         return repository;
     }
