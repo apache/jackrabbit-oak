@@ -136,6 +136,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.descriptors.AggregatingDescriptors;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -577,10 +578,10 @@ public class Oak {
             newSettings.setLimitReads(this.queryEngineSettings.getLimitReads());
             this.queryEngineSettings = new AnnotatedQueryEngineSettings(newSettings);
         }
-        if (queryEngineSettings != null) {
+        if (this.queryEngineSettings != null) {
             Feature prefetchFeature = Feature.newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
             closer.register(prefetchFeature);
-            queryEngineSettings.setPrefetchFeature(prefetchFeature);
+            this.queryEngineSettings.setPrefetchFeature(prefetchFeature);
         }
 
         return this;
@@ -972,6 +973,10 @@ public class Oak {
 
         public void setStrictPathRestriction(String strictPathRestriction) {
             settings.setStrictPathRestriction(strictPathRestriction);
+        }
+
+        public void setPrefetchFeature(@Nullable Feature prefetch) {
+            settings.setPrefetchFeature(prefetch);
         }
 
         @Override
