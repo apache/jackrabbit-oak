@@ -108,7 +108,7 @@ public class DataStoreCopyCommand implements Command {
                     LOG.info("Elapsed Time (Seconds): {}", TimeUnit.MILLISECONDS.toSeconds(totalTime));
                 }
                 LOG.info("Number of File Transfers: {}", success.size());
-                LOG.info("TotalBytesTransferred: {}", totalBytes);
+                LOG.info("TotalBytesTransferred: {}[{}]", totalBytes, IOUtils.humanReadableByteCount(totalBytes));
                 if (totalBytes > 10_000_000) {
                     LOG.info("Speed (MB/sec): {}", (totalBytes / (1024 * 1024) / ((double) totalTime / 1000)));
                 } else {
