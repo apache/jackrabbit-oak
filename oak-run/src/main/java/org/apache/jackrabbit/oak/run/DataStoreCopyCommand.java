@@ -131,7 +131,7 @@ public class DataStoreCopyCommand implements Command {
 
         // options available for get-blobs only
         OptionSpec<String> sourceRepoOpt = parser.accepts("source-repo", "The source repository url")
-                .withRequiredArg().ofType(String.class);
+                .withRequiredArg().ofType(String.class).required();
         OptionSpec<String> includePathOpt = parser.accepts("include-path",
                         "Include only these paths when copying (separated by semicolon)")
                 .withRequiredArg().ofType(String.class);
@@ -141,7 +141,7 @@ public class DataStoreCopyCommand implements Command {
         OptionSpec<String> sasTokenOpt = parser.accepts("sas-token", "The SAS token to access Azure Storage")
                 .withRequiredArg().ofType(String.class);
         OptionSpec<String> outDirOpt = parser.accepts("out-dir",
-                "Path where to store the blobs (Optional). Otherwise, blobs will be stored in the current directory.")
+                "Path where to store the blobs. Otherwise, blobs will be stored in the current directory.")
                 .withRequiredArg().ofType(String.class).defaultsTo(System.getProperty("user.dir") + FILE_SEPARATOR.value() + "blobs");
         OptionSpec<Integer> concurrencyOpt = parser.accepts("concurrency",
                         "Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores)")

@@ -719,8 +719,29 @@ The config files should be formatted according to the OSGi configuration admin s
     cat > org.apache.jackrabbit.oak.plugins.FileDataStore.config << EOF 
     path="/data/datastore"
     EOF        
-    
 
+Oak DataStoreCopy
+-------------------
+
+Command to concurrently download blobs from an Azure datastore using sas token authentication.
+
+    $ java -jar oak-run-*.jar datastore-copy \
+            [--source-repo <source_repository_url>] \
+            [--include-path <paths_to_include>] \
+            [--file-include-path <file_with_paths_to_include>] \
+            [--sas-token <authentication_token>] \
+            [--out-dir <output_path>] \
+            [--concurrency <max_requests>]
+
+The following options are available:
+
+    --source-repo           - The source Azure repository url.
+    --include-path          - Include only these paths when copying (separated by semicolon).
+    --file-include-path     - Include only the paths specified in the file (separated by newline). Useful when the number of blobs
+                                is big to avoid command prompt limitations.
+    --sas-token             - The SAS token to access Azure Storage.
+    --out-dir               - Path where to store the blobs (Optional). Otherwise, blobs will be stored in the current directory.
+    --concurrency           - Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores).
 
 Reset Cluster Id
 ---------------
