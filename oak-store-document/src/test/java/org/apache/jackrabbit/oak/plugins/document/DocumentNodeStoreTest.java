@@ -385,11 +385,13 @@ public class DocumentNodeStoreTest {
     @Test
     public void throttlingWrapperCreatedWhenThrottlingIsEnabled() {
         DocumentStore documentStore = new MemoryDocumentStore();
+        ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
         Feature docStoreThrottlingFeature = mock(Feature.class);
         when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
         DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
                 .setLeaseCheckMode(DISABLED).setThrottlingEnabled(true)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature).getNodeStore();
+                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
+                .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
         assertTrue("Throttling wrapper has been created when throttling is enabled via config",
                 store instanceof ThrottlingDocumentStoreWrapper);
@@ -398,11 +400,13 @@ public class DocumentNodeStoreTest {
     @Test
     public void throttlingWrapperCreatedWhenThrottlingIsEnabled_2() {
         DocumentStore documentStore = new MemoryDocumentStore();
+        ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
         Feature docStoreThrottlingFeature = mock(Feature.class);
         when(docStoreThrottlingFeature.isEnabled()).thenReturn(true);
         DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
                 .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature).getNodeStore();
+                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
+                .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
         assertTrue("Throttling wrapper has been created when throttling is enabled via feature toggle",
                 store instanceof ThrottlingDocumentStoreWrapper);

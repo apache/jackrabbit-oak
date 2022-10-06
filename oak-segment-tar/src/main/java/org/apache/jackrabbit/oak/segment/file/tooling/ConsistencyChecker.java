@@ -348,6 +348,19 @@ public class ConsistencyChecker {
         boolean binaries,
         Integer revisionsCount
     ) {
+        return checkConsistency(store, journal, head, checkpoints, paths, binaries, revisionsCount, false);
+    }
+
+    public final ConsistencyCheckResult checkConsistency(
+        ReadOnlyFileStore store,
+        Iterator<JournalEntry> journal,
+        boolean head,
+        Set<String> checkpoints,
+        Set<String> paths,
+        boolean binaries,
+        Integer revisionsCount,
+        boolean failFast
+    ) {
         List<PathToCheck> headPaths = new ArrayList<>();
         Map<String, List<PathToCheck>> checkpointPaths = new HashMap<>();
 
@@ -391,6 +404,8 @@ public class ConsistencyChecker {
 
                 if (overall) {
                     lastValidJournalEntry = journalEntry;
+                } else if (failFast) {
+                    break;
                 }
 
                 // If every PathToCheck is assigned to a JournalEntry, stop
@@ -407,6 +422,9 @@ public class ConsistencyChecker {
                 }
             } catch (IllegalArgumentException | SegmentNotFoundException e) {
                 onCheckRevisionError(revision, e);
+                if (failFast) {
+                    break;
+                }
             }
         }
 

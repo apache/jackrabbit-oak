@@ -67,7 +67,7 @@ public class MongoTestCollection<TDocument> implements MongoCollection<TDocument
     private final AtomicReference<String> beforeUpdateException;
     private final AtomicReference<String> afterUpdateException;
 
-    protected MongoTestCollection(MongoCollection<TDocument> collection,
+    public MongoTestCollection(MongoCollection<TDocument> collection,
                         AtomicReference<String> beforeQueryException,
                         AtomicReference<String> beforeUpdateException,
                         AtomicReference<String> afterUpdateException) {

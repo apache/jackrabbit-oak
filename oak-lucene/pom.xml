@@ -456,5 +456,11 @@
       <artifactId>lz4-java</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 </project>

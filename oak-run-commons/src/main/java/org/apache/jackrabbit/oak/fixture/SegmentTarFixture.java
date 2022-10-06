@@ -81,6 +81,7 @@ public class SegmentTarFixture extends OakFixture {
         private int maxFileSize;
         private int segmentCacheSize;
         private boolean memoryMapping;
+        public int binariesInlineThreshold;
         private boolean useBlobStore;
         private int dsCacheSize;
 
@@ -114,6 +115,11 @@ public class SegmentTarFixture extends OakFixture {
         
         public SegmentTarFixtureBuilder withMemoryMapping(boolean memoryMapping) {
             this.memoryMapping = memoryMapping;
+            return this;
+        }
+
+        public SegmentTarFixtureBuilder withBinariesInlineThreshold(int binariesInlineThreshold) {
+            this.binariesInlineThreshold = binariesInlineThreshold;
             return this;
         }
         
@@ -151,6 +157,7 @@ public class SegmentTarFixture extends OakFixture {
     private final int maxFileSize;
     private final int segmentCacheSize;
     private final boolean memoryMapping;
+    private final int binariesInlineThreshold;
     private final boolean useBlobStore;
     private final int dsCacheSize;
     
@@ -197,6 +204,7 @@ public class SegmentTarFixture extends OakFixture {
         this.maxFileSize = builder.maxFileSize;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.memoryMapping = builder.memoryMapping;
+        this.binariesInlineThreshold = builder.binariesInlineThreshold;
         this.useBlobStore = builder.useBlobStore;
         this.dsCacheSize = builder.dsCacheSize;
 
@@ -296,7 +304,9 @@ public class SegmentTarFixture extends OakFixture {
             fileStoreBuilder.withBlobStore(blobStore);
         }
         
-        FileStore fs = fileStoreBuilder.build();
+        FileStore fs = fileStoreBuilder
+            .withBinariesInlineThreshold(binariesInlineThreshold)
+            .build();
         Oak oak = newOak(SegmentNodeStoreBuilders.builder(fs).build());
         if (blobStore != null) {
             oak.getWhiteboard()
@@ -346,6 +356,7 @@ public class SegmentTarFixture extends OakFixture {
                     .withSegmentCacheSize(segmentCacheSize)
                     .withMemoryMapping(memoryMapping)
                     .withStrictVersionCheck(true)
+                    .withBinariesInlineThreshold(binariesInlineThreshold)
                     .build();
             
             if (withColdStandby) {

@@ -54,7 +54,7 @@ public interface DocumentProcessor {
     /**
      * @return the current time as an ISO-8601 formatted string.
      */
-    default String nowAsISO8601() {
+    static String nowAsISO8601() {
         return ISO8601.format(System.currentTimeMillis());
     }
 }

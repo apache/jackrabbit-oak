@@ -24,6 +24,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 
 import static java.util.Arrays.asList;
@@ -48,6 +49,7 @@ public class BenchmarkOptions {
     private final OptionSpec<String> azureContainerName;
     private final OptionSpec<String> azureRootPath;
     private final OptionSpec<Boolean> mmap;
+    private final OptionSpec<Integer> binariesInlineThreshold;
     private final OptionSpec<Integer> cache;
     private final OptionSpec<Integer> fdsCache;
     private final OptionSpec<File> wikipedia;
@@ -176,6 +178,10 @@ public class BenchmarkOptions {
 
     public OptionSpec<Boolean> getMmap() {
         return mmap;
+    }
+
+    public OptionSpec<Integer> getBinariesInlineThreshold() {
+        return binariesInlineThreshold;
     }
 
     public OptionSpec<Integer> getCache() {
@@ -402,6 +408,11 @@ public class BenchmarkOptions {
         mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
+
+        binariesInlineThreshold = parser.accepts("binariesInlineThreshold", "TarMK binaries inline threshold")
+            .withOptionalArg().ofType(Integer.class)
+            .defaultsTo(Segment.MEDIUM_LIMIT);
+        
         cache = parser.accepts("cache", "cache size (MB)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(100);
         fdsCache = parser.accepts("blobCache", "cache size (MB)")

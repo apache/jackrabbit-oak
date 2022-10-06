@@ -20,10 +20,14 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
@@ -34,6 +38,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 
 class DynamicGroupUtil {
 
@@ -82,5 +88,42 @@ class DynamicGroupUtil {
     static boolean isMembersType(@NotNull Tree tree) {
         String primaryType = TreeUtil.getPrimaryTypeName(tree);
         return primaryType != null && MEMBERS_TYPES.contains(primaryType);
+    }
+
+    @Nullable
+    static String getIdpName(@NotNull Tree userTree) {
+        PropertyState ps = userTree.getProperty(REP_EXTERNAL_ID);
+        if (ps != null) {
+            return ExternalIdentityRef.fromString(ps.getValue(Type.STRING)).getProviderName();
+        } else {
+            return null;
+        }
+    }
+
+    @Nullable
+    static String getIdpName(@NotNull ResultRow row) {
+        return getIdpName(row.getTree(null));
+    }
+
+    @Nullable
+    static String getIdpName(@NotNull Authorizable authorizable) throws RepositoryException {
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(authorizable);
+        return (ref == null) ? null : ref.getProviderName();
+    }
+    
+    static boolean isSameIDP(@NotNull Authorizable group, @NotNull Authorizable member) throws RepositoryException {
+        String groupIdpName = getIdpName(group);
+        if (groupIdpName == null) {
+            log.warn("Referenced dynamic group '{}' not associated with an external IDP.", group.getID());
+            return false; 
+        }
+
+        String idpName = getIdpName(member);
+        if (groupIdpName.equals(idpName)) {
+            return true;
+        } else {
+            log.warn("IDP mismatch between dynamic group '{}' and member '{}'.", groupIdpName, idpName);
+            return false;
+        }
     }
 }

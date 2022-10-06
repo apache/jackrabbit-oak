@@ -28,17 +28,22 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import com.google.common.io.Closer;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.oak.plugins.document.check.Result.END;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreCheckHelper.getAllNodeDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreCheckHelper.getEstimatedDocumentCount;
@@ -63,9 +68,15 @@ public class DocumentStoreCheck {
 
     private final int numThreads;
 
+    private final ExecutorService executorService;
+
     private final String output;
 
     private final boolean orphan;
+
+    private final boolean baseVersion;
+
+    private final boolean versionHistory;
 
     private DocumentStoreCheck(DocumentNodeStore ns,
                                DocumentStore store,
@@ -75,7 +86,9 @@ public class DocumentStoreCheck {
                                boolean summary,
                                int numThreads,
                                String output,
-                               boolean orphan) {
+                               boolean orphan,
+                               boolean baseVersion,
+                               boolean versionHistory) {
         this.ns = ns;
         this.store = store;
         this.closer = closer;
@@ -83,8 +96,16 @@ public class DocumentStoreCheck {
         this.silent = silent;
         this.summary = summary;
         this.numThreads = numThreads;
+        this.executorService = new ThreadPoolExecutor(
+                numThreads, numThreads, 1, TimeUnit.MINUTES,
+                new LinkedBlockingQueue<>(1000),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+        this.closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MINUTES));
         this.output = output;
         this.orphan = orphan;
+        this.baseVersion = baseVersion;
+        this.versionHistory = versionHistory;
     }
 
     public void run() throws Exception {
@@ -97,8 +118,25 @@ public class DocumentStoreCheck {
         }
         processor.end(results);
 
-        results.put(END);
+        shutdownExecutorService(results);
 
+        results.put(END);
+    }
+
+    private void shutdownExecutorService(BlockingQueue<Result> results)
+            throws InterruptedException {
+        executorService.shutdown();
+        if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
+            String msg = "Checks still not finished after the last one has been submitted 5 minutes ago";
+            results.put(() -> {
+                JsopBuilder json = new JsopBuilder();
+                json.object();
+                json.key("time").value(DocumentProcessor.nowAsISO8601());
+                json.key("info").value(msg);
+                json.endObject();
+                return json.toString();
+            });
+        }
     }
 
     private void scheduleResultWriter(BlockingQueue<Result> results)
@@ -138,9 +176,13 @@ public class DocumentStoreCheck {
             processors.add(p);
         }
         if (orphan) {
-            OrphanedNodeCheck onc = new OrphanedNodeCheck(ns, ns.getHeadRevision(), numThreads);
-            closer.register(onc);
-            processors.add(onc);
+            processors.add(new OrphanedNodeCheck(ns, ns.getHeadRevision(), executorService));
+        }
+        if (versionHistory) {
+            processors.add(new ReferenceCheck(JCR_VERSIONHISTORY, ns, ns.getHeadRevision(), executorService));
+        }
+        if (baseVersion) {
+            processors.add(new ReferenceCheck(JCR_BASEVERSION, ns, ns.getHeadRevision(), executorService));
         }
         return CompositeDocumentProcessor.compose(processors);
     }
@@ -172,6 +214,10 @@ public class DocumentStoreCheck {
         private String output;
 
         private boolean orphan;
+
+        private boolean baseVersion;
+
+        private boolean versionHistory;
 
         public Builder(DocumentNodeStore ns,
                        DocumentStore store,
@@ -211,8 +257,20 @@ public class DocumentStoreCheck {
             return this;
         }
 
+        public Builder withBaseVersion(boolean enable) {
+            this.baseVersion = enable;
+            return this;
+        }
+
+        public Builder withVersionHistory(boolean enable) {
+            this.versionHistory = enable;
+            return this;
+        }
+
         public DocumentStoreCheck build() {
-            return new DocumentStoreCheck(ns, store, closer, progress, silent, summary, numThreads, output, orphan);
+            return new DocumentStoreCheck(ns, store, closer, progress, silent,
+                    summary, numThreads, output, orphan, baseVersion,
+                    versionHistory);
         }
     }
 

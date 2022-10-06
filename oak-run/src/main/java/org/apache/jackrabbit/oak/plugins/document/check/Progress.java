@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.jackrabbit.oak.plugins.document.check.DocumentProcessor.nowAsISO8601;
+
 /**
  * <code>Progress</code>...
  */
@@ -43,7 +45,7 @@ public class Progress implements DocumentProcessor {
         return new ProgressResult(numDocs, path);
     }
 
-    class ProgressResult implements Result {
+    static class ProgressResult implements Result {
 
         protected final String msg;
 
