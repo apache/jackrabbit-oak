@@ -52,7 +52,7 @@ public class DownloaderTest {
         FileUtils.cleanDirectory(destinationFolder.getRoot());
         // create sparse files
         try (RandomAccessFile file1 = new RandomAccessFile(sourceFolder.newFile("file1.txt"), "rw");
-                RandomAccessFile file2 = new RandomAccessFile(sourceFolder.newFile("file2.txt"), "rw")) {
+             RandomAccessFile file2 = new RandomAccessFile(sourceFolder.newFile("file2.txt"), "rw")) {
             file1.setLength(1024);
             file2.setLength(1024 * 1024);
         }

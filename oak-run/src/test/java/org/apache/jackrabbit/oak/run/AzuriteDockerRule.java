@@ -24,8 +24,10 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
+
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
 import org.junit.rules.TestRule;

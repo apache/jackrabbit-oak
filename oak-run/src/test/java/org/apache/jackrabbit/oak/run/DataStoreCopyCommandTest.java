@@ -136,8 +136,8 @@ public class DataStoreCopyCommandTest {
         );
 
         long files = Files.walk(outDir.getRoot().toPath())
-                        .filter(p -> p.toFile().isFile())
-                        .count();
+                .filter(p -> p.toFile().isFile())
+                .count();
         assertEquals(2, files);
     }
 

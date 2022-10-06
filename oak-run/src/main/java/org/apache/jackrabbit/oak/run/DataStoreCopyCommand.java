@@ -38,7 +38,7 @@ import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
 
 /**
  * Command to concurrently download blobs from an azure datastore using sas token authentication.
- *
+ * <p>
  * Blobs are stored in a specific folder following the datastore structure format.
  */
 public class DataStoreCopyCommand implements Command {
@@ -124,7 +124,6 @@ public class DataStoreCopyCommand implements Command {
                 throw new IllegalStateException("Errors while downloading blobs");
             }
         }
-
     }
 
     private void parseCommandLineParams(String... args) {
@@ -145,7 +144,7 @@ public class DataStoreCopyCommand implements Command {
         OptionSpec<String> sasTokenOpt = parser.accepts("sas-token", "The SAS token to access Azure Storage")
                 .withRequiredArg().ofType(String.class);
         OptionSpec<String> outDirOpt = parser.accepts("out-dir",
-                "Path where to store the blobs. Otherwise, blobs will be stored in the current directory.")
+                        "Path where to store the blobs. Otherwise, blobs will be stored in the current directory.")
                 .withRequiredArg().ofType(String.class).defaultsTo(System.getProperty("user.dir") + FILE_SEPARATOR.value() + "blobs");
         OptionSpec<Integer> concurrencyOpt = parser.accepts("concurrency",
                         "Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores)")
