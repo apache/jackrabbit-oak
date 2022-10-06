@@ -62,6 +62,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         return Lists.newArrayList(
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, false, "Membership-Nesting-Depth=0" },
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, false, "Membership-Nesting-Depth=1" },
+                // NOTE: shortcut for PrincipalNameResolver is ignored if dynamic-groups are enabled
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, true, "Membership-Nesting-Depth=1, IDP implements PrincipalNameResolver" },
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+2, false, "Membership-Nesting-Depth=2" });
     }
@@ -83,7 +84,6 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             return super.createIDP();
         }
     }
-
 
     @Override
     protected @NotNull DefaultSyncConfig createSyncConfig() {

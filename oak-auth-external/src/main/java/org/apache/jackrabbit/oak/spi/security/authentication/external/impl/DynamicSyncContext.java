@@ -51,6 +51,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Extension of the {@code DefaultSyncContext} that doesn't synchronize group
  * membership of new external users into the user management of the repository.
@@ -162,7 +164,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 // if dynamic-group option is enabled -> sync groups without member-information
                 // in case group-membership has been synched before -> clear it
                 if (hasDynamicGroups() && depth > 0) {
-                    createDynamicGroups(map);
+                    createDynamicGroups(map.values());
                 }
                 
                 // clean up any other membership
@@ -220,7 +222,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
      * @throws ExternalIdentityException If an error occurs while resolving the the external group references.
      */
     private void collectSyncEntries(@NotNull Iterable<ExternalIdentityRef> declaredGroupRefs, long depth, @NotNull Map<ExternalIdentityRef, SyncEntry> map) throws ExternalIdentityException, RepositoryException {
-        boolean shortcut = (depth <= 1 && idp instanceof PrincipalNameResolver);
+        boolean shortcut = shortcut(depth);
         for (ExternalIdentityRef ref : Iterables.filter(declaredGroupRefs, this::isSameIDP)) {
             String principalName = null;
             Authorizable a = null;
@@ -232,8 +234,9 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 // get group from the IDP
                 externalGroup = getExternalGroupFromRef(ref);
                 if (externalGroup != null) {
+                    // only set principal-name if the ref can be resolved to a valid external group
                     principalName = externalGroup.getPrincipalName();
-                    a = userManager.getAuthorizable(new PrincipalImpl(principalName));
+                    a = userManager.getAuthorizable(externalGroup.getId());
 
                     // recursively apply further membership until the configured depth is reached
                     if (depth > 1) {
@@ -246,6 +249,18 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 map.put(ref, new SyncEntry(principalName, externalGroup, (Group) a));
             }
         }
+    }
+
+    /**
+     * Evaluate if looking up the external group from the IDP can be omitted (i.e. no nesting and IDP implements PrincipalNameResolver.
+     * Finally, the shortcut does not make sense if 'dynamic group' option is enabled, as the external group is needed
+     * for the subsequent group sync.
+     * 
+     * @param depth The configured membership nesting depth.
+     * @return {@code true} if looking up the external group on IDP can be avoided; {@code false} otherwise.
+     */
+    private boolean shortcut(long depth) {
+        return depth <= 1 && idp instanceof PrincipalNameResolver && !hasDynamicGroups();
     }
     
     /**
@@ -265,38 +280,39 @@ public class DynamicSyncContext extends DefaultSyncContext {
         if (authorizable == null) {
             return false;
         } else if (!authorizable.isGroup()) {
-            log.warn("Existing user '{}' collides with external group.", authorizable.getID());
+            log.warn("Existing user '{}' collides with external group defined by IDP '{}'.", authorizable.getID(), idp.getName());
             return true;
         } else if (!isSameIDP(authorizable)) {
-            // there exists a user or group with that principal name but it doesn't belong to the same IDP
+            // there exists a group with the same id or principal name but it doesn't belong to the same IDP
             // in consistency with DefaultSyncContext don't sync this very membership into the repository
             // and log a warning about the collision instead.
-            log.warn("Existing authorizable with principal name '{}' is not a group from this IDP '{}'.", principalName, idp.getName());
+            log.warn("Existing group with id '{}' and principal name '{}' is not defined by IDP '{}'.", authorizable.getID(), authorizable.getPrincipal().getName(), idp.getName());
             return true;
+        } else if (!principalName.equals(authorizable.getPrincipal().getName())) {
+            // there exists a group with matching ID but principal-mismatch, don't sync this very membership into the 
+            // repository and log a warning about the collision instead.
+            log.warn("Existing group with id '{}' doesn't have matching principal name. found '{}', expected '{}', IDP '{}'.", authorizable.getID(), authorizable.getPrincipal().getName(), principalName, idp.getName());
+            return true;            
         } else {
             // group has been synced before (same IDP, same principal-name)
             return false;
         }
     }
-    
-    private void createDynamicGroups(@NotNull Map<ExternalIdentityRef, SyncEntry> map) throws RepositoryException {
-        for (Map.Entry<ExternalIdentityRef, SyncEntry> entry : map.entrySet()) {
-            ExternalIdentityRef groupRef = entry.getKey();
-            SyncEntry syncEntry = entry.getValue();
+
+    private void createDynamicGroups(@NotNull Iterable<SyncEntry> syncEntries) throws RepositoryException {
+        for (SyncEntry syncEntry : syncEntries) {
+            // since 'shortcut' is omitted if dynamic groups are enabled, there is no need to test if 'external-group' is 
+            // null, nor trying to retrieve external group again. if it could not be resolved during 'collectSyncEntries'
+            // before it didn't got added to the map
+            checkNotNull(syncEntry.externalGroup, "Cannot create dynamic group from null ExternalIdentity.");
             
-            // get external identity from IDP if it has not been resolved before (see 'shortcut' in 'collectSyncEntries').
-            ExternalGroup externalGroup = (syncEntry.externalGroup != null) ? syncEntry.externalGroup : getExternalGroupFromRef(groupRef);
-            if (externalGroup != null) {
-                // lookup of existing group by principal-name has been performed already 
-                // NOTE: if none exists no attempt is made to lookup again by ID as this may lead to inconsistencies 
-                // between rep:externalPrincipalNames and the dynamic group in case there existed a group with the same 
-                // ID but has a different principal name. in this case the sync will fail (conflict with ID).
-                Group gr = syncEntry.group;
-                if (gr == null) {
-                    gr = createGroup(externalGroup);
-                }
-                syncGroup(externalGroup, gr);
+            // lookup of existing group by ID has been performed already including check for conflicting authorizable 
+            // type or principal name
+            Group gr = syncEntry.group;
+            if (gr == null) {
+                gr = createGroup(syncEntry.externalGroup);
             }
+            syncGroup(syncEntry.externalGroup, gr);
         }
     }
     
