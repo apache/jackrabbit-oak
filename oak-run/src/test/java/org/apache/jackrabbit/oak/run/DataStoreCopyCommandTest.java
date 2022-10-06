@@ -163,6 +163,23 @@ public class DataStoreCopyCommandTest {
         assertEquals(2, files);
     }
 
+    @Test
+    public void destinationFromBlobId() throws Exception {
+        DataStoreCopyCommand cmd = new DataStoreCopyCommand();
+        cmd.parseCommandLineParams(
+                "--source-repo",
+                container.getUri().toURL().toString(),
+                "--include-path",
+                BLOB1,
+                "--out-dir",
+                outDir.getRoot().getAbsolutePath()
+        );
+        assertEquals(
+                outDir.getRoot().getAbsolutePath() + "/88/97/b9/8897b9025dc534d4a9fa5920569b373cd714c8cfe5d030ca3f5edb25004894a5",
+                cmd.getDestinationFromId(BLOB1)
+        );
+    }
+
     private CloudBlobContainer createBlobContainer() throws Exception {
         container = AZURITE.getContainer("blobstore");
         for (String blob : BLOBS) {

@@ -77,16 +77,7 @@ public class DataStoreCopyCommand implements Command {
                 if (sasToken != null) {
                     item.source += "?" + sasToken;
                 }
-                // Rename the blob names to match expected datastore cache format (remove the "-" in the name)
-                String blobName = id.replaceAll("-", "");
-                if (id.length() < 6) {
-                    LOG.warn("Blob with name {} is less than 6 chars. Cannot create data folder structure. Storing in the root folder", blobName);
-                    item.destination = outDir + FILE_SEPARATOR.value() + blobName;
-                } else {
-                    item.destination = outDir + FILE_SEPARATOR.value()
-                            + blobName.substring(0, 2) + FILE_SEPARATOR.value() + blobName.substring(2, 4) + FILE_SEPARATOR.value()
-                            + blobName.substring(4, 6) + FILE_SEPARATOR.value() + blobName;
-                }
+               item.destination = getDestinationFromId(id);
                 return item;
             }).collect(Collectors.toList()));
             long totalTime = System.currentTimeMillis() - start;
@@ -103,13 +94,9 @@ public class DataStoreCopyCommand implements Command {
                 }
 
                 long totalBytes = success.stream().mapToLong(s -> s.size).sum();
-                if (totalTime > 60000) {
-                    LOG.info("Elapsed Time (Minutes): {}", TimeUnit.MILLISECONDS.toMinutes(totalTime));
-                } else {
-                    LOG.info("Elapsed Time (Seconds): {}", TimeUnit.MILLISECONDS.toSeconds(totalTime));
-                }
+                LOG.info("Elapsed Time (Seconds): {}", TimeUnit.MILLISECONDS.toSeconds(totalTime));
                 LOG.info("Number of File Transfers: {}", success.size());
-                LOG.info("TotalBytesTransferred: {}[{}]", totalBytes, IOUtils.humanReadableByteCount(totalBytes));
+                LOG.info("Total Bytes Transferred: {}[{}]", totalBytes, IOUtils.humanReadableByteCount(totalBytes));
                 if (totalBytes > 10_000_000) {
                     LOG.info("Speed (MB/sec): {}", (totalBytes / (1024 * 1024) / ((double) totalTime / 1000)));
                 } else {
@@ -126,7 +113,20 @@ public class DataStoreCopyCommand implements Command {
         }
     }
 
-    private void parseCommandLineParams(String... args) {
+    protected String getDestinationFromId(String id) {
+        // Rename the blob names to match expected datastore cache format (remove the "-" in the name)
+        String blobName = id.replaceAll("-", "");
+        if (id.length() < 6) {
+            LOG.warn("Blob with name {} is less than 6 chars. Cannot create data folder structure. Storing in the root folder", blobName);
+            return outDir + FILE_SEPARATOR.value() + blobName;
+        } else {
+            return outDir + FILE_SEPARATOR.value()
+                    + blobName.substring(0, 2) + FILE_SEPARATOR.value() + blobName.substring(2, 4) + FILE_SEPARATOR.value()
+                    + blobName.substring(4, 6) + FILE_SEPARATOR.value() + blobName;
+        }
+    }
+
+    protected void parseCommandLineParams(String... args) {
         OptionParser parser = new OptionParser();
 
         // options available for get-blobs only
