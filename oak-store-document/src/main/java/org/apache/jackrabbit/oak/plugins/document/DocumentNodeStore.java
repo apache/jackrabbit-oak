@@ -599,7 +599,7 @@ public final class DocumentNodeStore
         this.clusterId = clusterNodeInfo.getId();
 
         if (isThrottlingEnabled(builder)) {
-            s = new ThrottlingDocumentStoreWrapper(s);
+            s = new ThrottlingDocumentStoreWrapper(s, builder.getThrottlingStatsCollector());
         }
 
         clusterNodeInfo.setLeaseCheckMode(builder.getLeaseCheckMode());
