@@ -49,6 +49,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -57,6 +59,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.Stack;
 import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -64,6 +67,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class FlatFileSplitterTest {
@@ -392,6 +396,84 @@ public class FlatFileSplitterTest {
         assertEquals(flatFile, flatFileList.get(0));
     }
 
+    @Test
+    public void updateNodeTypeStackAndCanSplitTest()
+        throws IOException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        Set<String> splitNodeTypeNames = new HashSet<>();
+        splitNodeTypeNames.add("no-split-1");
+        splitNodeTypeNames.add("no-split-2");
+        splitNodeTypeNames.add("no-split-3");
+        splitNodeTypeNames.add("no-split-4");
+        File flatFile = new File(classLoader.getResource("multiple-node-type-simple-split-with-nested-parent.json").getFile());
+
+        // use reflection to call updateNodeTypeStack & canSplit
+        Method updateNodeTypeStackMethod = FlatFileSplitter.class.getDeclaredMethod(
+            "updateNodeTypeStack",
+            Stack.class, String.class, NodeStateEntryReader.class);
+        updateNodeTypeStackMethod.setAccessible(true);
+
+        Method canSplitMethod = FlatFileSplitter.class.getDeclaredMethod(
+            "canSplit",
+            Set.class, Stack.class);
+        canSplitMethod.setAccessible(true);
+        
+        List<String> nodes = FileUtils.readLines(flatFile, StandardCharsets.UTF_8);
+        Stack<String> nodeTypeNameStack = new Stack<>();
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(0), entryReader);
+        assertEquals("no-split-1", nodeTypeNameStack.peek());
+        assertEquals(1, nodeTypeNameStack.size());
+        boolean canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertTrue(canSplit); // Create 1st split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(1), entryReader);
+        assertEquals("split", nodeTypeNameStack.peek());
+        assertEquals(2, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertFalse(canSplit); // Add to the first split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(2), entryReader);
+        assertEquals("no-split-2", nodeTypeNameStack.peek());
+        assertEquals(1, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertTrue(canSplit); // Create a new 2nd split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(3), entryReader);
+        assertEquals("split", nodeTypeNameStack.peek());
+        assertEquals(2, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertFalse(canSplit); // Add to second split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(4), entryReader);
+        assertEquals("no-split-3", nodeTypeNameStack.peek());
+        assertEquals(3, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertFalse(canSplit); // Add to second split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(5), entryReader);
+        assertEquals("split", nodeTypeNameStack.peek());
+        assertEquals(3, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertFalse(canSplit); // Add to second split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(6), entryReader);
+        assertEquals("split", nodeTypeNameStack.peek());
+        assertEquals(1, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertTrue(canSplit); // Create 3rd split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(7), entryReader);
+        assertEquals("no-split-4", nodeTypeNameStack.peek());
+        assertEquals(2, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertTrue(canSplit); // Create 4th split
+
+        updateNodeTypeStackMethod.invoke(null, nodeTypeNameStack, nodes.get(8), entryReader);
+        assertEquals("split", nodeTypeNameStack.peek());
+        assertEquals(3, nodeTypeNameStack.size());
+        canSplit = (boolean) canSplitMethod.invoke(null, splitNodeTypeNames, nodeTypeNameStack);
+        assertFalse(canSplit); // Add to 4th split
+    }
+    
     public FlatFileSplitter createTestSplitter(File flatFile, int minimumSplitThreshold, int splitSize, boolean useCompression, Set<String> splitNodeTypeNames) throws IOException, IllegalAccessException {
         File workDir = temporaryFolder.newFolder();
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD,

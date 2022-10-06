@@ -138,7 +138,7 @@ public class FlatFileSplitter {
             int lineCount = 0;
             Stack<String> nodeTypeNameStack = new Stack<>();
             while ((line = reader.readLine()) != null) {
-                updateNodeTypeStack(nodeTypeNameStack, line);
+                updateNodeTypeStack(nodeTypeNameStack, line, entryReader);
                 boolean shouldSplit = (readPos > splitThreshold);
                 if (shouldSplit && canSplit(splitNodeTypesName, nodeTypeNameStack)) {
                     writer.close();
@@ -169,13 +169,14 @@ public class FlatFileSplitter {
         return splitFlatFiles;
     }
 
-    private void updateNodeTypeStack(Stack<String> parentNodeTypeNames, String line) {
+    private static void updateNodeTypeStack(Stack<String> parentNodeTypeNames, String line,
+        NodeStateEntryReader entryReader) {
         NodeStateHolder ns = new SimpleNodeStateHolder(line);
         List<String> pathElements = ns.getPathElements();
         int currentLineDepth = pathElements.size();
         int parentTypesDepth = parentNodeTypeNames.size();
         if (currentLineDepth > parentTypesDepth) {
-            parentNodeTypeNames.add(getJCRPrimaryType(line));
+            parentNodeTypeNames.add(getJCRPrimaryType(line, entryReader));
         } else {
             int popSize = parentTypesDepth - currentLineDepth + 1;
             if (parentTypesDepth > 0) {
@@ -183,11 +184,11 @@ public class FlatFileSplitter {
                     parentNodeTypeNames.pop();
                 }
             }
-            parentNodeTypeNames.add(getJCRPrimaryType(line));
+            parentNodeTypeNames.add(getJCRPrimaryType(line, entryReader));
         }
     }
 
-    private String getJCRPrimaryType(String line) {
+    private static String getJCRPrimaryType(String line, NodeStateEntryReader entryReader) {
         NodeStateEntry nse = entryReader.read(line);
         PropertyState property = nse.getNodeState().getProperty(JCR_PRIMARYTYPE);
         if (property == null) {
@@ -200,7 +201,7 @@ public class FlatFileSplitter {
         return "";
     }
 
-    private boolean canSplit(Set<String> nodeTypes, Stack<String> nodeTypeNameStack) {
+    private static boolean canSplit(Set<String> nodeTypes, Stack<String> nodeTypeNameStack) {
         if (nodeTypeNameStack.contains("")) {
             return false;
         }
