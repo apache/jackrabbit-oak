@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.run;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import joptsimple.OptionSpecBuilder;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.slf4j.Logger;
@@ -132,12 +133,15 @@ public class DataStoreCopyCommand implements Command {
         // options available for get-blobs only
         OptionSpec<String> sourceRepoOpt = parser.accepts("source-repo", "The source repository url")
                 .withRequiredArg().ofType(String.class).required();
-        OptionSpec<String> includePathOpt = parser.accepts("include-path",
-                        "Include only these paths when copying (separated by semicolon)")
-                .withRequiredArg().ofType(String.class);
-        OptionSpec<File> fileIncludePathOpt = parser.accepts("file-include-path",
-                "Include only the paths specified in the file (separated by newline)").availableUnless(includePathOpt)
-                .withRequiredArg().ofType(File.class);
+
+        OptionSpecBuilder includePathBuilder = parser.accepts("include-path",
+                "Include only these paths when copying (separated by semicolon)");
+        OptionSpecBuilder fileIncludePathBuilder = parser.accepts("file-include-path",
+                "Include only the paths specified in the file (separated by newline)");
+        parser.mutuallyExclusive(includePathBuilder, fileIncludePathBuilder);
+        OptionSpec<String> includePathOpt = includePathBuilder.withRequiredArg().ofType(String.class);
+        OptionSpec<File> fileIncludePathOpt = fileIncludePathBuilder.withRequiredArg().ofType(File.class);
+
         OptionSpec<String> sasTokenOpt = parser.accepts("sas-token", "The SAS token to access Azure Storage")
                 .withRequiredArg().ofType(String.class);
         OptionSpec<String> outDirOpt = parser.accepts("out-dir",
