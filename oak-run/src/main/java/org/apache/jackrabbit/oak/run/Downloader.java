@@ -119,11 +119,13 @@ public class Downloader implements Closeable {
         @Override
         public ItemResponse call() {
             ItemResponse response  = new ItemResponse(item);
-            long t0 = System.currentTimeMillis();
+            long t0 = System.nanoTime();
             try {
                 URL sourceUrl = new URL(item.source);
                 File destinationFile = new File(item.destination);
-                destinationFile.getParentFile().mkdirs();
+                if (!destinationFile.getParentFile().mkdirs()) {
+                    throw new IllegalStateException("Unable to create destination folder structure: " + destinationFile);
+                }
                 try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.openStream());
                      FileOutputStream outputStream = new FileOutputStream(destinationFile)) {
                     response.size = outputStream.getChannel()
@@ -133,7 +135,7 @@ public class Downloader implements Closeable {
                 response.failed = true;
                 response.throwable = e;
             } finally {
-                response.time = System.currentTimeMillis() - t0;
+                response.time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
             }
             return response;
         }
