@@ -90,7 +90,7 @@ public class Downloader implements Closeable {
                 try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
                      FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
                     response.size = outputStream.getChannel()
-                            .transferFrom(byteChannel, 0, sourceUrl.getContentLengthLong());
+                            .transferFrom(byteChannel, 0, Long.MAX_VALUE);
                 }
             } catch (Exception e) {
                 LOG.error("Error downloading " + item.source + ": " + e.getMessage());
