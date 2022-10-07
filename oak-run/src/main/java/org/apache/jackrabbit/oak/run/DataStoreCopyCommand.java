@@ -24,9 +24,11 @@ import joptsimple.util.PathConverter;
 import joptsimple.util.PathProperties;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -46,6 +48,8 @@ public class DataStoreCopyCommand implements Command {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataStoreCopyCommand.class);
 
+    public static final String NAME = "datastore-copy";
+
     private String sourceRepo;
     private String includePath;
     private Path fileIncludePath;
@@ -58,6 +62,7 @@ public class DataStoreCopyCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         parseCommandLineParams(args);
+        setupLogging();
 
         Stream<String> ids = null;
         try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout)) {
@@ -114,6 +119,7 @@ public class DataStoreCopyCommand implements Command {
             if (ids != null) {
                 ids.close();
             }
+            shutdownLogging();
         }
     }
 
@@ -172,5 +178,12 @@ public class DataStoreCopyCommand implements Command {
         this.concurrency = optionSet.valueOf(concurrencyOpt);
         this.connectTimeout = optionSet.valueOf(connectTimeoutOpt);
         this.readTimeout = optionSet.valueOf(readTimeoutOpt);
+    }
+
+    protected static void setupLogging() throws IOException {
+        new LoggingInitializer(Files.createTempDirectory("oak-run_datastore-copy").toFile(), NAME, false).init();
+    }
+    private static void shutdownLogging() {
+        LoggingInitializer.shutdownLogging();
     }
 }
