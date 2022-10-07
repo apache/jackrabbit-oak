@@ -742,6 +742,9 @@ The following options are available:
     --sas-token             - The SAS token to access Azure Storage.
     --out-dir               - Path where to store the blobs (Optional). Otherwise, blobs will be stored in the current directory.
     --concurrency           - Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores).
+    --connect-timeout       - Sets a specific timeout value, in milliseconds, to be used when opening a connection for a
+                                single blob (default 60_000ms[1m])
+    --read-timeout          - Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])
 
 Reset Cluster Id
 ---------------

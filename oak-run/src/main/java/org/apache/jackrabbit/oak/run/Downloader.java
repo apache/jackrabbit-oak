@@ -49,9 +49,13 @@ public class Downloader implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(Downloader.class);
 
     private final ExecutorService executorService;
+    private final int connectTimeoutMs;
+    private final int readTimeoutMs;
 
-    public Downloader(int concurrency) {
+    public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
         LOG.info("Initializing Downloader with max number of concurrent requests={}", concurrency);
+        this.connectTimeoutMs = connectTimeoutMs;
+        this.readTimeoutMs = readTimeoutMs;
         this.executorService = new ThreadPoolExecutor(
                 (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
@@ -111,7 +115,7 @@ public class Downloader implements Closeable {
         }
     }
 
-    private static class DownloadWorker implements Callable<ItemResponse> {
+    private class DownloadWorker implements Callable<ItemResponse> {
 
         private final Item item;
 
@@ -125,8 +129,8 @@ public class Downloader implements Closeable {
             long t0 = System.nanoTime();
             try {
                 URLConnection sourceUrl = new URL(item.source).openConnection();
-                sourceUrl.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(60));
-                sourceUrl.setReadTimeout((int) TimeUnit.MINUTES.toMillis(60));
+                sourceUrl.setConnectTimeout(Downloader.this.connectTimeoutMs);
+                sourceUrl.setReadTimeout(Downloader.this.readTimeoutMs);
 
                 Path destinationPath = Paths.get(item.destination);
                 Files.createDirectories(destinationPath.getParent());

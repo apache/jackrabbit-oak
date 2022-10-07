@@ -52,13 +52,15 @@ public class DataStoreCopyCommand implements Command {
     private String sasToken;
     private String outDir;
     private int concurrency;
+    private int connectTimeout;
+    private int readTimeout;
 
     @Override
     public void execute(String... args) throws Exception {
         parseCommandLineParams(args);
 
         Stream<String> ids = null;
-        try (Downloader downloader = new Downloader(concurrency)) {
+        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout)) {
             if (fileIncludePath != null) {
                 ids = Files.lines(fileIncludePath);
             } else {
@@ -150,6 +152,13 @@ public class DataStoreCopyCommand implements Command {
                         "Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(16 * Runtime.getRuntime().availableProcessors());
 
+        OptionSpec<Integer> connectTimeoutOpt = parser.accepts("connect-timeout",
+                        "Sets a specific timeout value, in milliseconds, to be used when opening a connection for a single blob (default 60_000ms[1 min])")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(60_000);
+        OptionSpec<Integer> readTimeoutOpt = parser.accepts("read-timeout",
+                        "Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_00);
+
         OptionSet optionSet = parser.parse(args);
 
         this.sourceRepo = optionSet.valueOf(sourceRepoOpt);
@@ -158,5 +167,7 @@ public class DataStoreCopyCommand implements Command {
         this.sasToken = optionSet.valueOf(sasTokenOpt);
         this.outDir = optionSet.valueOf(outDirOpt);
         this.concurrency = optionSet.valueOf(concurrencyOpt);
+        this.connectTimeout = optionSet.valueOf(connectTimeoutOpt);
+        this.readTimeout = optionSet.valueOf(readTimeoutOpt);
     }
 }

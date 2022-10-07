@@ -59,15 +59,15 @@ public class DownloaderTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void downloadInvalidConcurrency() throws IOException {
-        try (Downloader downloader = new Downloader(0)) {
+    public void invalidConfigurations() throws IOException {
+        try (Downloader downloader = new Downloader(0, 1000, 10000)) {
             downloader.download(Collections.emptyList());
         }
     }
 
     @Test
     public void downloadSingle() throws IOException {
-        try (Downloader downloader = new Downloader(4)) {
+        try (Downloader downloader = new Downloader(4, 1000, 10000)) {
             List<Downloader.ItemResponse> responses = downloader
                     .download(Collections.singletonList(createItem("file1.txt", "dest-file1.txt")));
             assertEquals(1, responses.size());
@@ -86,7 +86,7 @@ public class DownloaderTest {
         List<Downloader.Item> items = new ArrayList<>(2);
         items.add(createItem("file1.txt", "file1.txt"));
         items.add(createItem("file2.txt", "file2.txt"));
-        try (Downloader downloader = new Downloader(4)) {
+        try (Downloader downloader = new Downloader(4, 1000, 10000)) {
             List<Downloader.ItemResponse> responses = downloader.download(items);
             assertEquals(2, responses.size());
         }
@@ -98,7 +98,7 @@ public class DownloaderTest {
         items.add(createItem("file1.txt", "file1.txt"));
         items.add(createItem("file2.txt", "file2.txt"));
         items.add(createItem("file3.txt", "file3.txt"));
-        try (Downloader downloader = new Downloader(4)) {
+        try (Downloader downloader = new Downloader(4, 1000, 10000)) {
             List<Downloader.ItemResponse> responses = downloader.download(items);
             assertEquals(3, responses.size());
 
