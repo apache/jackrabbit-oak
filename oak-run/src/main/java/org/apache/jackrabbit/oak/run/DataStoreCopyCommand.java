@@ -160,7 +160,7 @@ public class DataStoreCopyCommand implements Command {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(60_000);
         OptionSpec<Integer> readTimeoutOpt = parser.accepts("read-timeout",
                         "Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_00);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_000);
 
         OptionSet optionSet = parser.parse(args);
 
