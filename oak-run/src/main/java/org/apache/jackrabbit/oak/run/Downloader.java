@@ -53,6 +53,12 @@ public class Downloader implements Closeable {
     private final int readTimeoutMs;
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
+        if (concurrency <= 0 || concurrency > 1000) {
+            throw new IllegalArgumentException("concurrency range must be between 1 and 1000");
+        }
+        if (connectTimeoutMs < 0 || readTimeoutMs < 0) {
+            throw new IllegalArgumentException("connect and/or read timeouts can not be negative");
+        }
         LOG.info("Initializing Downloader with max number of concurrent requests={}", concurrency);
         this.connectTimeoutMs = connectTimeoutMs;
         this.readTimeoutMs = readTimeoutMs;

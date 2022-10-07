@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class DownloaderTest {
@@ -58,11 +59,23 @@ public class DownloaderTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void invalidConfigurations() throws IOException {
-        try (Downloader downloader = new Downloader(0, 1000, 10000)) {
-            downloader.download(Collections.emptyList());
-        }
+    @Test
+    public void invalidConfigurations() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            try (Downloader downloader = new Downloader(0, 1000, 10000)) {
+                downloader.download(Collections.emptyList());
+            }
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            try (Downloader downloader = new Downloader(100, -1000, 10000)) {
+                downloader.download(Collections.emptyList());
+            }
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            try (Downloader downloader = new Downloader(100, 1000, -10000)) {
+                downloader.download(Collections.emptyList());
+            }
+        });
     }
 
     @Test
