@@ -27,13 +27,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -80,10 +75,10 @@ public class DownloaderTest {
     public void downloadSingle() throws IOException {
         try (Downloader downloader = new Downloader(4, 1000, 10000)) {
             downloader.offer(createItem("file1.txt", "dest-file1.txt"));
-            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
-            assertEquals(1, responses.size());
-            assertFalse(responses.get(0).failed);
-            assertEquals(1024, responses.get(0).size);
+            Downloader.DownloadReport report = downloader.waitUntilComplete();
+            assertEquals(1, report.successes);
+            assertEquals(0, report.failures);
+            assertEquals(1024, report.totalBytesTransferred);
 
             File f = new File(destinationFolder.getRoot(), "dest-file1.txt");
             assertTrue(f.exists());
@@ -97,8 +92,10 @@ public class DownloaderTest {
         try (Downloader downloader = new Downloader(4, 1000, 10000)) {
             downloader.offer(createItem("file1.txt", "file1.txt"));
             downloader.offer(createItem("file2.txt", "file2.txt"));
-            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
-            assertEquals(2, responses.size());
+            Downloader.DownloadReport report = downloader.waitUntilComplete();
+            assertEquals(2, report.successes);
+            assertEquals(0, report.failures);
+            assertEquals(1049600, report.totalBytesTransferred);
         }
     }
 
@@ -108,17 +105,10 @@ public class DownloaderTest {
             downloader.offer(createItem("file1.txt", "file1.txt"));
             downloader.offer(createItem("file2.txt", "file2.txt"));
             downloader.offer(createItem("file3.txt", "file3.txt"));
-            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
-            assertEquals(3, responses.size());
-
-            Map<Boolean, List<Downloader.ItemResponse>> partitioned =
-                    responses.stream().collect(Collectors.partitioningBy(ir -> ir.failed));
-
-            List<Downloader.ItemResponse> success = partitioned.get(false);
-            assertEquals(2, success.size());
-
-            List<Downloader.ItemResponse> failures = partitioned.get(true);
-            assertNotNull(failures.get(0).throwable);
+            Downloader.DownloadReport report = downloader.waitUntilComplete();
+            assertEquals(2, report.successes);
+            assertEquals(1, report.failures);
+            assertEquals(1049600, report.totalBytesTransferred);
         }
     }
 

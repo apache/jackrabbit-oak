@@ -32,9 +32,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
@@ -58,6 +55,7 @@ public class DataStoreCopyCommand implements Command {
     private int concurrency;
     private int connectTimeout;
     private int readTimeout;
+    private int slowLogThreshold;
 
     @Override
     public void execute(String... args) throws Exception {
@@ -65,7 +63,7 @@ public class DataStoreCopyCommand implements Command {
         setupLogging();
 
         Stream<String> ids = null;
-        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout)) {
+        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout, slowLogThreshold)) {
             if (fileIncludePath != null) {
                 ids = Files.lines(fileIncludePath);
             } else {
@@ -84,35 +82,24 @@ public class DataStoreCopyCommand implements Command {
                 downloader.offer(item);
             });
 
-            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
+            Downloader.DownloadReport report = downloader.waitUntilComplete();
             double totalTimeSeconds = (double) (System.nanoTime() - startNano) / 1_000_000_000;
 
-            Map<Boolean, List<Downloader.ItemResponse>> partitioned =
-                    responses.stream().collect(Collectors.partitioningBy(ir -> ir.failed));
-
-            List<Downloader.ItemResponse> success = partitioned.get(false);
-            if (!success.isEmpty()) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("The following blobs were successfully downloaded:");
-                    success.forEach(s -> LOG.debug("{} [{}] downloaded in {} ms", s.item.source,
-                            IOUtils.humanReadableByteCount(s.size), s.time));
-                }
-
-                long totalBytes = success.stream().mapToLong(s -> s.size).sum();
-                LOG.info("Elapsed Time (Seconds): {}", totalTimeSeconds);
-                LOG.info("Number of File Transfers: {}", success.size());
-                LOG.info("Total Bytes Transferred: {}[{}]", totalBytes, IOUtils.humanReadableByteCount(totalBytes));
-                if (totalBytes > 10_000_000) {
-                    LOG.info("Speed (MB/sec): {}", ((double) totalBytes / (1024 * 1024)) / totalTimeSeconds);
-                } else {
-                    LOG.info("Speed (KB/sec): {}", ((double) totalBytes / (1024)) / totalTimeSeconds);
-                }
+            LOG.info("Elapsed Time (Seconds): {}", totalTimeSeconds);
+            LOG.info("Number of File Transfers: {}", report.successes);
+            LOG.info("Number of FAILED Transfers: {}", report.failures);
+            LOG.info("Total Bytes Transferred: {}[{}]", report.totalBytesTransferred,
+                    IOUtils.humanReadableByteCount(report.totalBytesTransferred));
+            if (report.totalBytesTransferred > 10_000_000) {
+                LOG.info("Speed (MB/sec): {}",
+                        ((double) report.totalBytesTransferred / (1024 * 1024)) / totalTimeSeconds);
+            } else {
+                LOG.info("Speed (KB/sec): {}",
+                        ((double) report.totalBytesTransferred / (1024)) / totalTimeSeconds);
             }
 
-            List<Downloader.ItemResponse> failures = partitioned.get(true);
-            if (!failures.isEmpty()) {
-                LOG.error("The following blobs threw an error:");
-                failures.forEach(f -> LOG.error(f.item.source, f.throwable));
+            if (report.failures > 0) {
+                LOG.error("{} failures detected. Failing command", report.failures);
                 throw new IllegalStateException("Errors while downloading blobs");
             }
         } finally {
@@ -167,6 +154,9 @@ public class DataStoreCopyCommand implements Command {
         OptionSpec<Integer> readTimeoutOpt = parser.accepts("read-timeout",
                         "Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_000);
+        OptionSpec<Integer> slowLogThresholdOpt = parser.accepts("slow-log-threshold",
+                        "Threshold to log a WARN message for blobs taking considerable time (default 30_000ms[30s])")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_000);
 
         OptionSet optionSet = parser.parse(args);
 
@@ -178,6 +168,7 @@ public class DataStoreCopyCommand implements Command {
         this.concurrency = optionSet.valueOf(concurrencyOpt);
         this.connectTimeout = optionSet.valueOf(connectTimeoutOpt);
         this.readTimeout = optionSet.valueOf(readTimeoutOpt);
+        this.slowLogThreshold = optionSet.valueOf(slowLogThresholdOpt);
     }
 
     protected static void setupLogging() throws IOException {

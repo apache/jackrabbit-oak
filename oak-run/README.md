@@ -731,7 +731,10 @@ Command to concurrently download blobs from an Azure datastore using sas token a
             [--file-include-path <file_with_paths_to_include>] \
             [--sas-token <authentication_token>] \
             [--out-dir <output_path>] \
-            [--concurrency <max_requests>]
+            [--concurrency <max_requests>] \
+            [--connect-timeout <milliseconds>] \
+            [--read-timeout <milliseconds>] \
+            [--slow-log-threshold <milliseconds>]
 
 The following options are available:
 
@@ -745,6 +748,7 @@ The following options are available:
     --connect-timeout       - Sets a specific timeout value, in milliseconds, to be used when opening a connection for a
                                 single blob (default 60_000ms[1m])
     --read-timeout          - Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])
+    --slow-log-threshold    - Threshold to log a WARN message for blobs taking considerable time (default 30_000ms[30s])
 
 Reset Cluster Id
 ---------------

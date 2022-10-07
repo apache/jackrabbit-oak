@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,9 +54,14 @@ public class Downloader implements Closeable {
     private final ExecutorService executorService;
     private final int connectTimeoutMs;
     private final int readTimeoutMs;
+    private final int slowLogThreshold;
     private final List<Future<ItemResponse>> responses;
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
+        this(concurrency, connectTimeoutMs, readTimeoutMs, 10_000);
+    }
+
+    public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int slowLogThreshold) {
         if (concurrency <= 0 || concurrency > 1000) {
             throw new IllegalArgumentException("concurrency range must be between 1 and 1000");
         }
@@ -65,6 +71,7 @@ public class Downloader implements Closeable {
         LOG.info("Initializing Downloader with max number of concurrent requests={}", concurrency);
         this.connectTimeoutMs = connectTimeoutMs;
         this.readTimeoutMs = readTimeoutMs;
+        this.slowLogThreshold = slowLogThreshold;
         this.executorService = new ThreadPoolExecutor(
                 (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
@@ -78,7 +85,7 @@ public class Downloader implements Closeable {
 
     public void offer(Item item) {
         Callable<ItemResponse> callableTask = () -> {
-            ItemResponse response = new ItemResponse(item);
+            ItemResponse response = new ItemResponse();
             long t0 = System.nanoTime();
             try {
                 URLConnection sourceUrl = new URL(item.source).openConnection();
@@ -92,20 +99,23 @@ public class Downloader implements Closeable {
                     response.size = outputStream.getChannel()
                             .transferFrom(byteChannel, 0, Long.MAX_VALUE);
                 }
+                long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                if (elapsed >= slowLogThreshold) {
+                    LOG.warn("{} [{}] downloaded in {} ms", item.source, IOUtils.humanReadableByteCount(response.size), elapsed);
+                } else {
+                    LOG.debug("{} [{}] downloaded in {} ms", item.source, IOUtils.humanReadableByteCount(response.size), elapsed);
+                }
             } catch (Exception e) {
                 LOG.error("Error downloading " + item.source + ": " + e.getMessage());
                 response.failed = true;
-                response.throwable = e;
-            } finally {
-                response.time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
             }
             return response;
         };
         responses.add(this.executorService.submit(callableTask));
     }
 
-    public List<ItemResponse> waitUntilComplete() {
-        return responses.stream()
+    public DownloadReport waitUntilComplete() {
+        List<ItemResponse> itemResponses = responses.stream()
                 .map(itemResponseFuture -> {
                     try {
                         return itemResponseFuture.get();
@@ -113,6 +123,12 @@ public class Downloader implements Closeable {
                         throw new RuntimeException(e);
                     }
                 }).collect(Collectors.toList());
+
+        return new DownloadReport(
+                itemResponses.stream().filter(r -> !r.failed).count(),
+                itemResponses.stream().filter(r -> r.failed).count(),
+                itemResponses.stream().mapToLong(r -> r.size).sum()
+        );
     }
 
     @Override
@@ -133,15 +149,20 @@ public class Downloader implements Closeable {
         }
     }
 
-    public static class ItemResponse {
-        public final Item item;
+    private static class ItemResponse {
         public boolean failed;
         public long size;
-        public long time;
-        public Throwable throwable;
+    }
 
-        public ItemResponse(Item item) {
-            this.item = item;
+    public static class DownloadReport {
+        public final long successes;
+        public final long failures;
+        public final long totalBytesTransferred;
+
+        public DownloadReport(long successes, long failures, long totalBytesTransferred) {
+            this.successes = successes;
+            this.failures = failures;
+            this.totalBytesTransferred = totalBytesTransferred;
         }
     }
 
