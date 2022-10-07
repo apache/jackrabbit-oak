@@ -19,7 +19,7 @@
   -->
 <configuration scan="true" scanPeriod="1 second">
 
-  <appender name="datastore" class="ch.qos.logback.core.FileAppender">
+  <appender name="datastore-copy" class="ch.qos.logback.core.FileAppender">
     <file>${oak.workDir}/datastore.log</file>
     <encoder>
       <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n</pattern>
