@@ -93,6 +93,7 @@ public class Downloader implements Closeable {
                             .transferFrom(byteChannel, 0, sourceUrl.getContentLengthLong());
                 }
             } catch (Exception e) {
+                LOG.error("Error downloading " + item.source + ": " + e.getMessage());
                 response.failed = true;
                 response.throwable = e;
             } finally {
