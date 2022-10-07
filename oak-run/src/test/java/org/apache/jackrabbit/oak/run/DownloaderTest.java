@@ -27,8 +27,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -63,17 +61,17 @@ public class DownloaderTest {
     public void invalidConfigurations() {
         assertThrows(IllegalArgumentException.class, () -> {
             try (Downloader downloader = new Downloader(0, 1000, 10000)) {
-                downloader.download(Collections.emptyList());
+                downloader.waitUntilComplete();
             }
         });
         assertThrows(IllegalArgumentException.class, () -> {
             try (Downloader downloader = new Downloader(100, -1000, 10000)) {
-                downloader.download(Collections.emptyList());
+                downloader.waitUntilComplete();
             }
         });
         assertThrows(IllegalArgumentException.class, () -> {
             try (Downloader downloader = new Downloader(100, 1000, -10000)) {
-                downloader.download(Collections.emptyList());
+                downloader.waitUntilComplete();
             }
         });
     }
@@ -81,8 +79,8 @@ public class DownloaderTest {
     @Test
     public void downloadSingle() throws IOException {
         try (Downloader downloader = new Downloader(4, 1000, 10000)) {
-            List<Downloader.ItemResponse> responses = downloader
-                    .download(Collections.singletonList(createItem("file1.txt", "dest-file1.txt")));
+            downloader.offer(createItem("file1.txt", "dest-file1.txt"));
+            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
             assertEquals(1, responses.size());
             assertFalse(responses.get(0).failed);
             assertEquals(1024, responses.get(0).size);
@@ -96,23 +94,21 @@ public class DownloaderTest {
 
     @Test
     public void downloadMulti() throws IOException {
-        List<Downloader.Item> items = new ArrayList<>(2);
-        items.add(createItem("file1.txt", "file1.txt"));
-        items.add(createItem("file2.txt", "file2.txt"));
         try (Downloader downloader = new Downloader(4, 1000, 10000)) {
-            List<Downloader.ItemResponse> responses = downloader.download(items);
+            downloader.offer(createItem("file1.txt", "file1.txt"));
+            downloader.offer(createItem("file2.txt", "file2.txt"));
+            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
             assertEquals(2, responses.size());
         }
     }
 
     @Test
     public void downloadMultiWithMissingOne() throws IOException {
-        List<Downloader.Item> items = new ArrayList<>(2);
-        items.add(createItem("file1.txt", "file1.txt"));
-        items.add(createItem("file2.txt", "file2.txt"));
-        items.add(createItem("file3.txt", "file3.txt"));
         try (Downloader downloader = new Downloader(4, 1000, 10000)) {
-            List<Downloader.ItemResponse> responses = downloader.download(items);
+            downloader.offer(createItem("file1.txt", "file1.txt"));
+            downloader.offer(createItem("file2.txt", "file2.txt"));
+            downloader.offer(createItem("file3.txt", "file3.txt"));
+            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
             assertEquals(3, responses.size());
 
             Map<Boolean, List<Downloader.ItemResponse>> partitioned =

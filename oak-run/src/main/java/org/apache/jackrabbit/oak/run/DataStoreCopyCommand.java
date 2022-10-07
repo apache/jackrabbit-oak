@@ -68,15 +68,18 @@ public class DataStoreCopyCommand implements Command {
             }
 
             long startNano = System.nanoTime();
-            List<Downloader.ItemResponse> responses = downloader.download(ids.map(id -> {
+
+            ids.forEach(id -> {
                 Downloader.Item item = new Downloader.Item();
                 item.source = sourceRepo + "/" + id;
                 if (sasToken != null) {
                     item.source += "?" + sasToken;
                 }
-               item.destination = getDestinationFromId(id);
-                return item;
-            }).collect(Collectors.toList()));
+                item.destination = getDestinationFromId(id);
+                downloader.offer(item);
+            });
+
+            List<Downloader.ItemResponse> responses = downloader.waitUntilComplete();
             double totalTimeSeconds = (double) (System.nanoTime() - startNano) / 1_000_000_000;
 
             Map<Boolean, List<Downloader.ItemResponse>> partitioned =

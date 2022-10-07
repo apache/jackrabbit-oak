@@ -32,10 +32,12 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +53,7 @@ public class Downloader implements Closeable {
     private final ExecutorService executorService;
     private final int connectTimeoutMs;
     private final int readTimeoutMs;
+    private final List<Future<ItemResponse>> responses;
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
         if (concurrency <= 0 || concurrency > 1000) {
@@ -70,25 +73,45 @@ public class Downloader implements Closeable {
                         .setDaemon(true)
                         .build()
         );
+        this.responses = new ArrayList<>();
     }
 
-    public List<ItemResponse> download(List<Item> items) {
-        LOG.debug("Preparing to download {} items.\n{}", items.size(), items);
-        try {
-            return executorService
-                    .invokeAll(items.stream().map(DownloadWorker::new).collect(Collectors.toList()))
-                    .stream()
-                    .map(itemResponseFuture -> {
-                        try {
-                            return itemResponseFuture.get();
-                        } catch (InterruptedException | ExecutionException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .collect(Collectors.toList());
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    public void offer(Item item) {
+        Callable<ItemResponse> callableTask = () -> {
+            ItemResponse response = new ItemResponse(item);
+            long t0 = System.nanoTime();
+            try {
+                URLConnection sourceUrl = new URL(item.source).openConnection();
+                sourceUrl.setConnectTimeout(Downloader.this.connectTimeoutMs);
+                sourceUrl.setReadTimeout(Downloader.this.readTimeoutMs);
+
+                Path destinationPath = Paths.get(item.destination);
+                Files.createDirectories(destinationPath.getParent());
+                try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
+                     FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
+                    response.size = outputStream.getChannel()
+                            .transferFrom(byteChannel, 0, sourceUrl.getContentLengthLong());
+                }
+            } catch (Exception e) {
+                response.failed = true;
+                response.throwable = e;
+            } finally {
+                response.time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            }
+            return response;
+        };
+        responses.add(this.executorService.submit(callableTask));
+    }
+
+    public List<ItemResponse> waitUntilComplete() {
+        return responses.stream()
+                .map(itemResponseFuture -> {
+                    try {
+                        return itemResponseFuture.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).collect(Collectors.toList());
     }
 
     @Override
@@ -118,40 +141,6 @@ public class Downloader implements Closeable {
 
         public ItemResponse(Item item) {
             this.item = item;
-        }
-    }
-
-    private class DownloadWorker implements Callable<ItemResponse> {
-
-        private final Item item;
-
-        DownloadWorker(Item item) {
-            this.item = item;
-        }
-
-        @Override
-        public ItemResponse call() {
-            ItemResponse response  = new ItemResponse(item);
-            long t0 = System.nanoTime();
-            try {
-                URLConnection sourceUrl = new URL(item.source).openConnection();
-                sourceUrl.setConnectTimeout(Downloader.this.connectTimeoutMs);
-                sourceUrl.setReadTimeout(Downloader.this.readTimeoutMs);
-
-                Path destinationPath = Paths.get(item.destination);
-                Files.createDirectories(destinationPath.getParent());
-                try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
-                     FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
-                    response.size = outputStream.getChannel()
-                            .transferFrom(byteChannel, 0, sourceUrl.getContentLengthLong());
-                }
-            } catch (Exception e) {
-                response.failed = true;
-                response.throwable = e;
-            } finally {
-                response.time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-            }
-            return response;
         }
     }
 
