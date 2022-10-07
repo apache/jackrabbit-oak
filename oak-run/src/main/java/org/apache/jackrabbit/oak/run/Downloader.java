@@ -23,12 +23,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -121,15 +124,16 @@ public class Downloader implements Closeable {
             ItemResponse response  = new ItemResponse(item);
             long t0 = System.nanoTime();
             try {
-                URL sourceUrl = new URL(item.source);
-                File destinationFile = new File(item.destination);
-                if (!destinationFile.getParentFile().mkdirs()) {
-                    throw new IllegalStateException("Unable to create destination folder structure: " + destinationFile);
-                }
-                try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.openStream());
-                     FileOutputStream outputStream = new FileOutputStream(destinationFile)) {
+                URLConnection sourceUrl = new URL(item.source).openConnection();
+                sourceUrl.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(60));
+                sourceUrl.setReadTimeout((int) TimeUnit.MINUTES.toMillis(60));
+
+                Path destinationPath = Paths.get(item.destination);
+                Files.createDirectories(destinationPath.getParent());
+                try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
+                     FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
                     response.size = outputStream.getChannel()
-                            .transferFrom(byteChannel, 0, Long.MAX_VALUE);
+                            .transferFrom(byteChannel, 0, sourceUrl.getContentLengthLong());
                 }
             } catch (Exception e) {
                 response.failed = true;
