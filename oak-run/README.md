@@ -748,7 +748,7 @@ The following options are available:
     --connect-timeout       - Sets a specific timeout value, in milliseconds, to be used when opening a connection for a
                                 single blob (default 60_000ms[1m])
     --read-timeout          - Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])
-    --slow-log-threshold    - Threshold to log a WARN message for blobs taking considerable time (default 30_000ms[30s])
+    --slow-log-threshold    - Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s])
 
 Reset Cluster Id
 ---------------

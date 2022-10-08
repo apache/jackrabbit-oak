@@ -155,8 +155,8 @@ public class DataStoreCopyCommand implements Command {
                         "Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_000);
         OptionSpec<Integer> slowLogThresholdOpt = parser.accepts("slow-log-threshold",
-                        "Threshold to log a WARN message for blobs taking considerable time (default 30_000ms[30s])")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_000);
+                        "Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s])")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(10_000);
 
         OptionSet optionSet = parser.parse(args);
 
