@@ -55,6 +55,8 @@ public class DataStoreCopyCommand implements Command {
     private int concurrency;
     private int connectTimeout;
     private int readTimeout;
+    private int maxRetries;
+    private boolean failOnError;
     private int slowLogThreshold;
 
     @Override
@@ -63,7 +65,7 @@ public class DataStoreCopyCommand implements Command {
         setupLogging();
 
         Stream<String> ids = null;
-        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout, slowLogThreshold)) {
+        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout, maxRetries, failOnError, slowLogThreshold)) {
             if (fileIncludePath != null) {
                 ids = Files.lines(fileIncludePath);
             } else {
@@ -90,13 +92,8 @@ public class DataStoreCopyCommand implements Command {
             LOG.info("Number of FAILED Transfers: {}", report.failures);
             LOG.info("Total Bytes Transferred: {}[{}]", report.totalBytesTransferred,
                     IOUtils.humanReadableByteCount(report.totalBytesTransferred));
-            if (report.totalBytesTransferred > 10_000_000) {
-                LOG.info("Speed (MB/sec): {}",
-                        ((double) report.totalBytesTransferred / (1024 * 1024)) / totalTimeSeconds);
-            } else {
-                LOG.info("Speed (KB/sec): {}",
-                        ((double) report.totalBytesTransferred / (1024)) / totalTimeSeconds);
-            }
+            LOG.info("Speed (MB/sec): {}",
+                    ((double) report.totalBytesTransferred / (1024 * 1024)) / totalTimeSeconds);
 
             if (report.failures > 0) {
                 LOG.error("{} failures detected. Failing command", report.failures);
@@ -149,14 +146,19 @@ public class DataStoreCopyCommand implements Command {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(16 * Runtime.getRuntime().availableProcessors());
 
         OptionSpec<Integer> connectTimeoutOpt = parser.accepts("connect-timeout",
-                        "Sets a specific timeout value, in milliseconds, to be used when opening a connection for a single blob (default 60_000ms[1 min])")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(60_000);
+                        "Sets a specific timeout value, in milliseconds, to be used when opening a connection for a single blob (default 0, no timeout)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         OptionSpec<Integer> readTimeoutOpt = parser.accepts("read-timeout",
-                        "Sets the read timeout, in milliseconds when reading a single blob (default 3_600_000ms[1h])")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(3_600_000);
+                        "Sets the read timeout, in milliseconds when reading a single blob (default 0, no timeout)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         OptionSpec<Integer> slowLogThresholdOpt = parser.accepts("slow-log-threshold",
                         "Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s])")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(10_000);
+        OptionSpec<Integer> maxRetriesOpt = parser.accepts("max-retries", "Max number of retries when a blob download fails (default 3)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(3);
+        OptionSpec<Boolean> failOnErrorOpt = parser.accepts("fail-on-error",
+                        "If true fails the execution immediately after the first error, otherwise it continues processing all the blobs (default false)")
+                .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
 
         OptionSet optionSet = parser.parse(args);
 
@@ -169,11 +171,15 @@ public class DataStoreCopyCommand implements Command {
         this.connectTimeout = optionSet.valueOf(connectTimeoutOpt);
         this.readTimeout = optionSet.valueOf(readTimeoutOpt);
         this.slowLogThreshold = optionSet.valueOf(slowLogThresholdOpt);
+        this.maxRetries = optionSet.valueOf(maxRetriesOpt);
+        this.fileIncludePath = optionSet.valueOf(fileIncludePathOpt);
+        this.failOnError = optionSet.valueOf(failOnErrorOpt);
     }
 
     protected static void setupLogging() throws IOException {
         new LoggingInitializer(Files.createTempDirectory("oak-run_datastore-copy").toFile(), NAME, false).init();
     }
+
     private static void shutdownLogging() {
         LoggingInitializer.shutdownLogging();
     }

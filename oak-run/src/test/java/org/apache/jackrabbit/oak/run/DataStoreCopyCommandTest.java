@@ -38,6 +38,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.stream.Stream;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
@@ -135,10 +136,9 @@ public class DataStoreCopyCommandTest {
                 outDir.getRoot().getAbsolutePath()
         );
 
-        long files = Files.walk(outDir.getRoot().toPath())
-                .filter(p -> p.toFile().isFile())
-                .count();
-        assertEquals(2, files);
+        try (Stream<Path> files = Files.walk(outDir.getRoot().toPath()).filter(p -> p.toFile().isFile())) {
+            assertEquals(2, files.count());
+        }
     }
 
     @Test
@@ -157,10 +157,28 @@ public class DataStoreCopyCommandTest {
                 outDir.getRoot().getAbsolutePath()
         ));
         // command failed but existing blobs were successfully downloaded
-        long files = Files.walk(outDir.getRoot().toPath())
-                .filter(p -> p.toFile().isFile())
-                .count();
-        assertEquals(2, files);
+        try (Stream<Path> files = Files.walk(outDir.getRoot().toPath()).filter(p -> p.toFile().isFile())) {
+            assertEquals(2, files.count());
+        }
+    }
+
+    @Test
+    public void allBlobsPlusMissingOneWithFailOnError() throws Exception {
+        Path blobs = Files.createTempFile("blobs", "txt");
+        IOUtils.write(BLOB1 + "\n" + BLOB2 + "\n" + "foo", Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
+        DataStoreCopyCommand cmd = new DataStoreCopyCommand();
+        assertThrows(RuntimeException.class, () -> cmd.execute(
+                "--source-repo",
+                container.getUri().toURL().toString(),
+                "--file-include-path",
+                blobs.toString(),
+                "--sas-token",
+                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                "--out-dir",
+                outDir.getRoot().getAbsolutePath(),
+                "--fail-on-error",
+                "true"
+        ));
     }
 
     @Test
