@@ -95,9 +95,10 @@ public class DataStoreCopyCommand implements Command {
             LOG.info("Speed (MB/sec): {}",
                     ((double) report.totalBytesTransferred / (1024 * 1024)) / totalTimeSeconds);
 
-            if (report.failures > 0) {
-                LOG.error("{} failures detected. Failing command", report.failures);
-                throw new IllegalStateException("Errors while downloading blobs");
+            // if failOnError=true the command already failed in case of errors. Here we are handling the failOnError=false case
+            if (report.successes <= 0 && report.failures > 0) {
+                LOG.error("No downloads succeeded. {} failures detected. Failing command", report.failures);
+                throw new RuntimeException("Errors while downloading blobs");
             }
         } finally {
             if (ids != null) {

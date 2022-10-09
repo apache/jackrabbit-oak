@@ -748,12 +748,12 @@ The following options are available:
     --out-dir               - Path where to store the blobs (Optional). Otherwise, blobs will be stored in the current directory.
     --concurrency           - Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores).
     --connect-timeout       - Sets a specific timeout value, in milliseconds, to be used when opening a connection for a
-                                single blob (default 0, no timeout)
-    --read-timeout          - Sets the read timeout, in milliseconds when reading a single blob (default 0, no timeout)
-    --max-retries           - Max number of retries when a blob download fails (default 3)
+                                single blob (default 0, no timeout).
+    --read-timeout          - Sets the read timeout, in milliseconds when reading a single blob (default 0, no timeout).
+    --max-retries           - Max number of retries when a blob download fails (default 3).
     --fail-on-error         - If true fails the execution immediately after the first error, otherwise it continues processing 
-                                all the blobs (default false)
-    --slow-log-threshold    - Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s])
+                                all the blobs. When false, the command will fail only if no blobs were downloaded (default false).
+    --slow-log-threshold    - Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s]).
 
 Reset Cluster Id
 ---------------

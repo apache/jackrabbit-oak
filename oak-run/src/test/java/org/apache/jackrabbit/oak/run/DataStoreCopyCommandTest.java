@@ -82,7 +82,7 @@ public class DataStoreCopyCommandTest {
         );
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = RuntimeException.class)
     public void unauthenticated() throws Exception {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
@@ -146,7 +146,28 @@ public class DataStoreCopyCommandTest {
         Path blobs = Files.createTempFile("blobs", "txt");
         IOUtils.write(BLOB1 + "\n" + BLOB2 + "\n" + "foo", Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
-        assertThrows(IllegalStateException.class, () -> cmd.execute(
+        cmd.execute(
+                "--source-repo",
+                container.getUri().toURL().toString(),
+                "--file-include-path",
+                blobs.toString(),
+                "--sas-token",
+                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                "--out-dir",
+                outDir.getRoot().getAbsolutePath()
+        );
+
+        try (Stream<Path> files = Files.walk(outDir.getRoot().toPath()).filter(p -> p.toFile().isFile())) {
+            assertEquals(2, files.count());
+        }
+    }
+
+    @Test
+    public void onlyFailures() throws Exception {
+        Path blobs = Files.createTempFile("blobs", "txt");
+        IOUtils.write("foo" + "\n" + "bar", Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
+        DataStoreCopyCommand cmd = new DataStoreCopyCommand();
+        assertThrows(RuntimeException.class, () -> cmd.execute(
                 "--source-repo",
                 container.getUri().toURL().toString(),
                 "--file-include-path",
@@ -156,10 +177,6 @@ public class DataStoreCopyCommandTest {
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         ));
-        // command failed but existing blobs were successfully downloaded
-        try (Stream<Path> files = Files.walk(outDir.getRoot().toPath()).filter(p -> p.toFile().isFile())) {
-            assertEquals(2, files.count());
-        }
     }
 
     @Test
