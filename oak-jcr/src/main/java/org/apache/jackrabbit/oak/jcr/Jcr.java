@@ -89,7 +89,7 @@ public class Jcr {
 
     private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
     private boolean fastQueryResultSize;
-    private boolean createSessionMBeans;
+    private boolean createSessionMBeans = true; // by default every (long-living) session will register an MBean
 
     private ContentRepository contentRepository;
     private Repository repository;
@@ -98,7 +98,6 @@ public class Jcr {
 
     public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
-        createSessionMBeans = true; // by default every (long-living) session will register an MBean
         if (initialize) {
             OakDefaultComponents defs = new OakDefaultComponents();
             with(defs.securityProvider());
