@@ -31,7 +31,7 @@ public class ParallelCompactorExternalBlobTest extends AbstractCompactorExternal
     protected ParallelCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
-                .withWriterPool()
+                .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(fileStore);
 
         return new ParallelCompactor(
