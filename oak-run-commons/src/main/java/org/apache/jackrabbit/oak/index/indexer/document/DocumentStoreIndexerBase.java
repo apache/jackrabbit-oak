@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -277,16 +276,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         List<Future> futureList = new ArrayList<>();
 
         for (FlatFileStore item : storeList) {
-            Future future = service.submit(new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws IOException, CommitFailedException {
-                    for (NodeStateEntry entry : item) {
-                        reportDocumentRead(entry.getPath(), progressReporter);
-                        log.trace("Indexing : {}", entry.getPath());
-                        indexer.index(entry);
-                    }
-                    return true;
+            Future future = service.submit(() -> {
+                for (NodeStateEntry entry : item) {
+                    reportDocumentRead(entry.getPath(), progressReporter);
+                    log.trace("Indexing : {}", entry.getPath());
+                    indexer.index(entry);
                 }
+                return true;
             });
             futureList.add(future);
         }
