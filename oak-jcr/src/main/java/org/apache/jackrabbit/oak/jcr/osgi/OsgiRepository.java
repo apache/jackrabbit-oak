@@ -41,7 +41,7 @@ public class OsgiRepository extends RepositoryImpl {
                           CommitRateLimiter commitRateLimiter,
                           boolean fastQueryResultSize) {
         super(repository, whiteboard, securityProvider, observationQueueLength, 
-                commitRateLimiter, fastQueryResultSize);
+                commitRateLimiter, fastQueryResultSize, true);
     }
 
     @Override
