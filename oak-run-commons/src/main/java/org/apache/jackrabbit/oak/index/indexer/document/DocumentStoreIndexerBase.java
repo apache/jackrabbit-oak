@@ -271,7 +271,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
-    private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter) {
+    private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
+        throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(IndexerConfiguration.indexThreadPoolSize());
         List<Future> futureList = new ArrayList<>();
 
@@ -296,7 +297,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             }
             log.info("All {} indexing jobs are done", storeList.size());
         } catch (InterruptedException | ExecutionException e) {
-            log.error("Failure getting indexing job result", e);
+            String errMsg = "Failure getting indexing job result";
+            log.error(errMsg, e);
+            throw new IOException(errMsg, e);
         } finally {
             new ExecutorCloser(service).close();
         }
