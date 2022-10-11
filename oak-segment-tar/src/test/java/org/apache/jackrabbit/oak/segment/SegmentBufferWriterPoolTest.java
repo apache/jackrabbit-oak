@@ -29,7 +29,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -40,10 +41,12 @@ import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class SegmentBufferWriterPoolTest {
     private final MemoryStore store = new MemoryStore();
 
@@ -51,17 +54,21 @@ public class SegmentBufferWriterPoolTest {
 
     private GCGeneration gcGeneration = GCGeneration.NULL;
 
-    private final SegmentBufferWriterPool pool = new SegmentBufferWriterPool(
-            store.getSegmentIdProvider(),
-            store.getReader(),
-            "",
-            () -> gcGeneration
-    );
+    private final SegmentBufferWriterPool pool;
 
     private final ExecutorService[] executors = new ExecutorService[] {
         newSingleThreadExecutor(), newSingleThreadExecutor(), newSingleThreadExecutor()};
 
-    public SegmentBufferWriterPoolTest() throws IOException { }
+    @Parameterized.Parameters
+    public static List<SegmentBufferWriterPool.PoolType> poolTypes() {
+        return Arrays.asList(SegmentBufferWriterPool.PoolType.values());
+    }
+
+    public SegmentBufferWriterPoolTest(SegmentBufferWriterPool.PoolType poolType) throws IOException {
+        pool = SegmentBufferWriterPool.factory(
+                store.getSegmentIdProvider(), store.getReader(), "", () -> gcGeneration)
+                .newPool(poolType);
+    }
 
     @After
     public void tearDown() {
