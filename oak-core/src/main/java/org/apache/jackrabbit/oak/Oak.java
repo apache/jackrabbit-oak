@@ -136,6 +136,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.descriptors.AggregatingDescriptors;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -563,22 +564,24 @@ public class Oak {
     @NotNull
     public Oak with(@NotNull Whiteboard whiteboard) {
         this.whiteboard = checkNotNull(whiteboard);
-        QueryEngineSettings queryEngineSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
-        if (queryEngineSettings != null) {
-            this.queryEngineSettings = new AnnotatedQueryEngineSettings(queryEngineSettings);
+        QueryEngineSettings whiteboardSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
+        if (whiteboardSettings != null) {
+            queryEngineSettings = new AnnotatedQueryEngineSettings(whiteboardSettings);
         }
         StatisticsProvider statisticsProvider = WhiteboardUtils.getService(whiteboard, StatisticsProvider.class);
         if (statisticsProvider != null) {
             QueryEngineSettings newSettings = new QueryEngineSettings(statisticsProvider);
-            newSettings.setFullTextComparisonWithoutIndex(this.queryEngineSettings.settings.getFullTextComparisonWithoutIndex());
-            newSettings.setFailTraversal(this.queryEngineSettings.getFailTraversal());
-            newSettings.setFastQuerySize(this.queryEngineSettings.isFastQuerySize());
-            newSettings.setLimitInMemory(this.queryEngineSettings.getLimitInMemory());
-            newSettings.setLimitReads(this.queryEngineSettings.getLimitReads());
-            this.queryEngineSettings = new AnnotatedQueryEngineSettings(newSettings);
+            newSettings.setFullTextComparisonWithoutIndex(queryEngineSettings.settings.getFullTextComparisonWithoutIndex());
+            newSettings.setFailTraversal(queryEngineSettings.getFailTraversal());
+            newSettings.setFastQuerySize(queryEngineSettings.isFastQuerySize());
+            newSettings.setLimitInMemory(queryEngineSettings.getLimitInMemory());
+            newSettings.setLimitReads(queryEngineSettings.getLimitReads());
+            queryEngineSettings = new AnnotatedQueryEngineSettings(newSettings);
         }
+
         if (queryEngineSettings != null) {
             Feature prefetchFeature = Feature.newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
+            LOG.info("Registered Prefetch feature: " + QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES);
             closer.register(prefetchFeature);
             queryEngineSettings.setPrefetchFeature(prefetchFeature);
         }
@@ -972,6 +975,10 @@ public class Oak {
 
         public void setStrictPathRestriction(String strictPathRestriction) {
             settings.setStrictPathRestriction(strictPathRestriction);
+        }
+
+        public void setPrefetchFeature(@Nullable Feature prefetch) {
+            settings.setPrefetchFeature(prefetch);
         }
 
         @Override
