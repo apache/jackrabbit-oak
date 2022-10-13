@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.12
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.13
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.12 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.13 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,18 +15,19 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.12
+Changes in Oak 1.22.13
 ---------------------
 
 Bug
 
-    [OAK-9773] - DefaultSyncContext#syncMembership() compares external ids case-sensitively
+    [OAK-9535] - Support recovery of large branch merge
+    [OAK-9891] - Removal (purge) of version of a node does not remove associated labels
 
-Improvement
+Task
 
-    [OAK-9404] - Missing nullability annotations in org.apache.jackrabbit.oak.plugins.tree
-    [OAK-9405] - Reduce complexity of TreeUtil
-    [OAK-9527] - Typos in security related API
+    [OAK-9720] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.5
+    [OAK-9828] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.6
+    [OAK-9925] - update MongoDB Java Driver dependency to 3.12.11
 
 
 In addition to the above-mentioned changes, this release contains
