@@ -112,18 +112,16 @@ public abstract class ReadOnlyVersionManager {
      * @return whether the tree is checked out or not.
      */
     public boolean isCheckedOut(@NotNull Tree tree) {
-        if (checkNotNull(tree).exists()) {
-            PropertyState p = tree.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
-            if (p != null) {
-                return p.getValue(Type.BOOLEAN);
-            }
-        } else {
-            // FIXME: this actually means access to the tree is restricted
-            // and may result in wrong isCheckedOut value. This should never
-            // be the case in a commit hook because it operates on non-access-
-            // controlled NodeStates. This means consistency is not at risk
-            // but it may mean oak-jcr sees a node as checked out even though
-            // it is in fact read-only because of a checked-in ancestor.
+        // NOTE: if the given tree does not exist it mean that it is a non-accessible ancestor
+        // in this case it may result in wrong isCheckedOut value. This should never
+        // be the case in a commit hook because it operates on non-access-
+        // controlled NodeStates. This means consistency is not at risk
+        // but it may mean oak-jcr sees a node as checked out even though
+        // it is in fact read-only because of a checked-in (but non-accessible) ancestor.
+        // if this turns out to be an issue see NodeImpl#getReadOnlyTree for an potential fix
+        PropertyState p = tree.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
+        if (p != null) {
+            return p.getValue(Type.BOOLEAN);
         }
         if (tree.isRoot()) {
             return true;
