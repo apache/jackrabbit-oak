@@ -686,8 +686,8 @@ public class SessionImpl implements JackrabbitSession {
             }
 
             boolean isNode = ((ItemImpl<?>) target).isNode();
-            Node parent = (isNode) ? (Node) target : ((ItemImpl<?>) target).getParent();
-            if (!parent.isCheckedOut()) {
+            NodeImpl parent = (NodeImpl) ((isNode) ? target : ((ItemImpl<?>) target).getParent());
+            if (!parent.internalIsCheckedOut()) {
                 return false;
             }
             boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED)

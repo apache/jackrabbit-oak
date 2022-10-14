@@ -83,10 +83,12 @@ import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -956,7 +958,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut()) {
+                if (!internalIsCheckedOut()) {
                     throw new VersionException(format("Cannot set primary type. Node [%s] is checked in.", getNodePath()));
                 }
             }
@@ -978,7 +980,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut()) {
+                if (!internalIsCheckedOut()) {
                     throw new VersionException(format(
                             "Cannot add mixin type. Node [%s] is checked in.", getNodePath()));
                 }
@@ -997,7 +999,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut()) {
+                if (!internalIsCheckedOut()) {
                     throw new VersionException(format(
                             "Cannot remove mixin type. Node [%s] is checked in.", getNodePath()));
                 }
@@ -1030,7 +1032,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 return sessionContext.getAccessManager().hasPermissions(
                     node.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
                         && !node.isProtected()
-                        && getVersionManager().isCheckedOut(toJcrPath(dlg.getPath())) // TODO: avoid nested calls
+                        && getVersionManager().isCheckedOut(node)
                         && node.canAddMixin(oakTypeName);
             }
         });
@@ -1140,13 +1142,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      */
     @Override
     public boolean isCheckedOut() throws RepositoryException {
-        try {
-            return getVersionManager().isCheckedOut(getPath());
-        } catch (UnsupportedRepositoryOperationException ex) {
-            // when versioning is not supported all nodes are considered to be
-            // checked out
-            return true;
-        }
+        final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
+        return sessionDelegate.perform(new SessionOperation<Boolean>("isCheckedOut") {
+            @NotNull
+            @Override
+            public Boolean perform() throws RepositoryException {
+                return internalIsCheckedOut();
+            }
+        });
     }
 
     /**
@@ -1295,6 +1298,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     //------------------------------------------------------------< internal >---
+    public boolean internalIsCheckedOut() throws RepositoryException {
+        return getVersionManager().isCheckedOut(dlg);
+    }
+    
     @Nullable
     private String getPrimaryTypeName(@NotNull Tree tree) {
         return TreeUtil.getPrimaryTypeName(tree, getReadOnlyTree(tree));
@@ -1392,7 +1399,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
+                if (!internalIsCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
@@ -1438,7 +1445,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
+                if (!internalIsCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
@@ -1484,7 +1491,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 super.checkPreconditions();
                 PropertyDelegate property = dlg.getPropertyOrNull(oakName);
                 if (property != null &&
-                        !isCheckedOut() &&
+                        !internalIsCheckedOut() &&
                         getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot remove property. Node [%s] is checked in.", getNodePath()));
@@ -1611,7 +1618,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut()) {
+                if (!internalIsCheckedOut()) {
                     throw new VersionException(format("Cannot set mixin types. Node [%s] is checked in.", getNodePath()));
                 }
 
