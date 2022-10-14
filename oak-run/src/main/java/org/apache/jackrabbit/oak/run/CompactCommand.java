@@ -60,10 +60,10 @@ class CompactCommand implements Command {
                         "the repository into smaller parts and compacts them concurrently. If not specified, \"parallel\" compactor is used.")
                 .withRequiredArg().ofType(String.class);
         OptionSpec<Integer> nThreads = parser.accepts("threads", "Specify the number of threads used" +
-                "for compaction. This is only applicable to the \"parallel\" compactor. Defaults to the number of available processors.")
+                "for compaction. This is only applicable to the \"parallel\" compactor. Defaults to 1.")
                 .withRequiredArg()
                 .ofType(Integer.class)
-                .defaultsTo(-1);
+                .defaultsTo(1);
         OptionSpec<String> targetPath = parser.accepts("target-path", "Path/URI to TAR/remote segment store where " +
                 "resulting archives will be written")
                 .withRequiredArg()

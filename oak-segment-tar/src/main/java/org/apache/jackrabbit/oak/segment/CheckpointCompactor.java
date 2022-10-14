@@ -18,7 +18,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
@@ -26,7 +25,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.ClassicCompactor.getStableIdBytes;
+import static org.apache.jackrabbit.oak.segment.CompactorUtils.getStableIdBytes;
 
 import java.io.IOException;
 import java.util.Date;
@@ -34,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
@@ -141,7 +141,8 @@ public class CheckpointCompactor implements Compactor {
             childBuilder.setChildNode(getName(path), state);
         }
 
-        return nodeWriter.writeNode(builder.getNodeState(), checkNotNull(getStableIdBytes(uncompacted)));
+        return nodeWriter.writeNode(builder.getNodeState(),
+                Objects.requireNonNull(getStableIdBytes(uncompacted)));
     }
 
     @NotNull

@@ -169,6 +169,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
             }
         }
 
+        @NotNull
         private SegmentBufferWriter getWriter(@NotNull Thread thread, @NotNull GCGeneration gcGeneration) {
             SimpleImmutableEntry<?,?> key = new SimpleImmutableEntry<>(thread, gcGeneration);
             SegmentBufferWriter writer = writers.get(key);
@@ -300,6 +301,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
          * a fresh writer at any time. Callers need to return a writer before
          * borrowing it again. Failing to do so leads to undefined behaviour.
          */
+        @NotNull
         private SegmentBufferWriter borrowWriter(@NotNull Object key, @NotNull GCGeneration gcGeneration) {
             poolMonitor.enter();
             try {
@@ -339,10 +341,12 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
         return gcGeneration.get();
     }
 
+    @NotNull
     protected SegmentBufferWriter newWriter(@NotNull GCGeneration gcGeneration) {
         return new SegmentBufferWriter(idProvider, reader, getWriterId(), gcGeneration);
     }
 
+    @NotNull
     protected String getWriterId() {
         if (++writerId > 9999) {
             writerId = 0;

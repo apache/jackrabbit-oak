@@ -28,7 +28,8 @@ import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.createBlob;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpoint;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;

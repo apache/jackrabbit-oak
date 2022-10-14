@@ -18,17 +18,15 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Random;
 
-import com.google.common.base.Supplier;
-import com.google.common.cache.CacheStats;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.junit.Before;
-import org.junit.Test;
+import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
+import static org.junit.Assert.assertEquals;
 
 public class RecordCacheStatsTest {
     private static final String NAME = "cache stats";
@@ -37,7 +35,7 @@ public class RecordCacheStatsTest {
     private final Random rnd = new Random();
     private final MemoryStore store = new MemoryStore();
 
-    private final RecordCache<Integer> cache = newRecordCache(KEYS * 4 / 3);
+    private final RecordCache<Integer> cache = newRecordCache(KEYS);
     private final RecordCacheStats cacheStats =
             new RecordCacheStats(NAME, cache::getStats, cache::size, cache::estimateCurrentWeight);
 
@@ -55,7 +53,7 @@ public class RecordCacheStatsTest {
             cache.put(k, newRecordId());
         }
 
-        for (int k = 0; k < 100; k++) {
+        for (int k = 0; k < KEYS; k++) {
             if (cache.get(4 * k) != null) {
                 hits++;
             }

@@ -105,7 +105,7 @@ public class NodeRecordTest {
 
             SegmentWriter writer = defaultSegmentWriterBuilder("test")
                     .withGeneration(generation)
-                    .withWriterPool(SegmentBufferWriterPool.PoolType.GLOBAL)
+                    .withWriterPool()
                     .with(nodesOnlyCache())
                     .build(store);
 

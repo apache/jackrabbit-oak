@@ -27,10 +27,7 @@ import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.checkGenerati
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpoint;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -83,7 +80,7 @@ public abstract class AbstractCompactorTest {
         SegmentNodeState uncompacted1 = fileStore.getHead();
         SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE, Canceller.newCanceller());
         assertNotNull(compacted1);
-        assertFalse(uncompacted1 == compacted1);
+        assertNotSame(uncompacted1, compacted1);
         checkGeneration(compacted1, compactedGeneration);
 
         assertSameStableId(uncompacted1, compacted1);
@@ -100,7 +97,7 @@ public abstract class AbstractCompactorTest {
         SegmentNodeState uncompacted2 = fileStore.getHead();
         SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1, Canceller.newCanceller());
         assertNotNull(compacted2);
-        assertFalse(uncompacted2 == compacted2);
+        assertNotSame(uncompacted2, compacted2);
         checkGeneration(compacted2, compactedGeneration);
 
         assertTrue(fileStore.getRevisions().setHead(uncompacted2.getRecordId(), compacted2.getRecordId()));

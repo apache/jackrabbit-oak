@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -47,7 +48,7 @@ import static java.util.Arrays.fill;
  * this cache is successfully looked up its cost is incremented by one, unless it has reached
  * its maximum cost of {@link Byte#MAX_VALUE} already.
  * <p>
- * Additionally this cache tracks a generation for mappings. Mappings of later generations
+ * Additionally, this cache tracks a generation for mappings. Mappings of later generations
  * always take precedence over mappings of earlier generations. That is, putting a mapping of
  * a later generation into the cache can cause any mapping of an earlier generation to be evicted
  * regardless of its cost.
@@ -65,12 +66,12 @@ public class PriorityCache<K, V> {
     private final AtomicInteger[] costs;
     private final AtomicInteger[] evictions;
 
-    private final AtomicLong hitCount = new AtomicLong();
-    private final AtomicLong missCount = new AtomicLong();
-    private final AtomicLong loadCount = new AtomicLong();
-    private final AtomicLong loadExceptionCount = new AtomicLong();
-    private final AtomicLong evictionCount = new AtomicLong();
-    private final AtomicLong size = new AtomicLong();
+    private final LongAdder hitCount = new LongAdder();
+    private final LongAdder missCount = new LongAdder();
+    private final LongAdder loadCount = new LongAdder();
+    private final LongAdder loadExceptionCount = new LongAdder();
+    private final LongAdder evictionCount = new LongAdder();
+    private final LongAdder size = new LongAdder();
 
     private static class Segment extends ReentrantLock {}
 
@@ -142,7 +143,7 @@ public class PriorityCache<K, V> {
      *                  smaller than {@code 32 - numberOfTrailingZeros(size)}.
      */
     PriorityCache(int size, int rehash) {
-        this(size, rehash, CacheWeights.<K, V> noopWeigher());
+        this(size, rehash, CacheWeights.noopWeigher());
     }
 
     /**
@@ -164,7 +165,9 @@ public class PriorityCache<K, V> {
      * @param rehash      Number of rehashes. Must be greater or equal to {@code 0} and
      *                    smaller than {@code 32 - numberOfTrailingZeros(size)}.
      * @param weigher     Needed to provide an estimation of the cache weight in memory
-     * @param numSegments Number of separately locked segments
+     * @param numSegments Number of separately locked segments. The implementation assumes an equal
+     *                    number of entries in each segment, requiring numSegments to divide size.
+     *                    Powers of 2 are a safe choice, see @param size.
      */
     public PriorityCache(int size, int rehash, @NotNull Weigher<K, V> weigher, int numSegments) {
         checkArgument(bitCount(size) == 1);
@@ -176,7 +179,9 @@ public class PriorityCache<K, V> {
         this.weigher = checkNotNull(weigher);
 
         numSegments = Math.min(numSegments, size);
-        checkArgument((size % numSegments) == 0);
+        checkArgument((size % numSegments) == 0,
+                "Cache size is not a multiple of its segment count.");
+
         segments = new Segment[numSegments];
         for (int s = 0; s < numSegments; s++) {
             segments[s] = new Segment();
@@ -216,7 +221,7 @@ public class PriorityCache<K, V> {
      * @return  the number of mappings in this cache.
      */
     public long size() {
-        return size.get();
+        return size.sum();
     }
 
     /**
@@ -230,74 +235,80 @@ public class PriorityCache<K, V> {
     public boolean put(@NotNull K key, @NotNull V value, int generation, byte initialCost) {
         int hashCode = key.hashCode();
         byte cheapest = initialCost;
-        int index;
-        boolean eviction;
+        int index = -1;
+        boolean eviction = false;
 
         Segment lockedSegment = null;
 
-        for (int k = 0; k <= rehash; k++) {
-            int i = project(hashCode, k);
-            Segment segment = getSegment(i);
-            if (segment != lockedSegment) {
-                if (lockedSegment != null) {
-                    lockedSegment.unlock();
+        try {
+            for (int k = 0; k <= rehash; k++) {
+                int i = project(hashCode, k);
+                Segment segment = getSegment(i);
+                if (segment != lockedSegment) {
+                    if (lockedSegment != null) {
+                        lockedSegment.unlock();
+                    }
+                    lockedSegment = segment;
+                    lockedSegment.lock();
                 }
-                lockedSegment = segment;
-                lockedSegment.lock();
+
+                Entry<?, ?> entry = entries[i];
+                if (entry == Entry.NULL) {
+                    // Empty slot -> use this index
+                    index = i;
+                    eviction = false;
+                    break;
+                } else if (entry.generation <= generation && key.equals(entry.key)) {
+                    // Key exists and generation is greater or equal -> use this index and boost the cost
+                    index = i;
+                    initialCost = entry.cost;
+                    if (initialCost < Byte.MAX_VALUE) {
+                        initialCost++;
+                    }
+                    eviction = false;
+                    break;
+                } else if (entry.generation < generation) {
+                    // Old generation -> use this index
+                    index = i;
+                    eviction = false;
+                    break;
+                } else if (entry.cost < cheapest) {
+                    // Candidate slot, keep on searching for even cheaper slots
+                    cheapest = entry.cost;
+                    index = i;
+                    eviction = true;
+                }
             }
 
-            Entry<?, ?> entry = entries[i];
-            if (entry == Entry.NULL) {
-                // Empty slot -> use this index
-                index = i;
-                eviction = false;
-            } else if (entry.generation <= generation && key.equals(entry.key)) {
-                // Key exists and generation is greater or equal -> use this index and boost the cost
-                index = i;
-                initialCost = entry.cost;
-                if (initialCost < Byte.MAX_VALUE) {
-                    initialCost++;
+            if (index >= 0) {
+                Entry<?, ?> oldEntry = entries[index];
+                Entry<?, ?> newEntry = new Entry<>(key, value, generation, initialCost);
+                entries[index] = newEntry;
+                loadCount.increment();
+                costs[initialCost - Byte.MIN_VALUE].incrementAndGet();
+
+                if (oldEntry != Entry.NULL) {
+                    costs[oldEntry.cost - Byte.MIN_VALUE].decrementAndGet();
+                    if (eviction) {
+                        evictions[oldEntry.cost - Byte.MIN_VALUE].incrementAndGet();
+                        evictionCount.increment();
+                    }
+                    weight.addAndGet(-weighEntry(oldEntry));
+                } else {
+                    size.increment();
                 }
-                eviction = false;
-            } else if (entry.generation < generation) {
-                // Old generation -> use this index
-                index = i;
-                eviction = false;
-            } else if (entry.cost < cheapest) {
-                // Candidate slot, keep on searching for even cheaper slots
-                cheapest = entry.cost;
-                index = i;
-                eviction = true;
-                if (k < rehash) {
-                    continue;
-                }
-            } else {
-                continue;
+
+                weight.addAndGet(weighEntry(newEntry));
+                return true;
             }
 
-            Entry<?, ?> old = entries[index];
-            Entry<?, ?> newE = new Entry<>(key, value, generation, initialCost);
-            entries[index] = newE;
-            loadCount.incrementAndGet();
-            costs[initialCost - Byte.MIN_VALUE].incrementAndGet();
-            if (old != Entry.NULL) {
-                costs[old.cost - Byte.MIN_VALUE].decrementAndGet();
-                if (eviction) {
-                    evictions[old.cost - Byte.MIN_VALUE].incrementAndGet();
-                    evictionCount.incrementAndGet();
-                }
-                weight.addAndGet(-weighEntry(old)) ;
-            } else {
-                size.incrementAndGet();
+            loadExceptionCount.increment();
+            return false;
+        } finally {
+            if (lockedSegment != null) {
+                lockedSegment.unlock();
             }
-            weight.addAndGet(weighEntry(newE));
-            lockedSegment.unlock();
-            return true;
         }
-
-        checkNotNull(lockedSegment).unlock();
-        loadExceptionCount.incrementAndGet();
-        return false;
     }
 
     /**
@@ -315,21 +326,23 @@ public class PriorityCache<K, V> {
             int i = project(hashCode, k);
             Segment segment = getSegment(i);
             segment.lock();
-            Entry<?, ?> entry = entries[i];
-            if (generation == entry.generation && key.equals(entry.key)) {
-                if (entry.cost < Byte.MAX_VALUE) {
-                    costs[entry.cost - Byte.MIN_VALUE].decrementAndGet();
-                    entry.cost++;
-                    costs[entry.cost - Byte.MIN_VALUE].incrementAndGet();
+
+            try {
+                Entry<?, ?> entry = entries[i];
+                if (generation == entry.generation && key.equals(entry.key)) {
+                    if (entry.cost < Byte.MAX_VALUE) {
+                        costs[entry.cost - Byte.MIN_VALUE].decrementAndGet();
+                        entry.cost++;
+                        costs[entry.cost - Byte.MIN_VALUE].incrementAndGet();
+                    }
+                    hitCount.increment();
+                    return (V) entry.value;
                 }
-                hitCount.incrementAndGet();
-                V value = (V) entry.value;
+            } finally {
                 segment.unlock();
-                return value;
             }
-            segment.unlock();
         }
-        missCount.incrementAndGet();
+        missCount.increment();
         return null;
     }
 
@@ -343,16 +356,19 @@ public class PriorityCache<K, V> {
         int entriesPerSegment = entries.length / numSegments;
         for (int s = 0; s < numSegments; s++) {
             segments[s].lock();
-            for (int i = 0; i < entriesPerSegment; i++) {
-                int j = i + s * entriesPerSegment;
-                Entry<?, ?> entry = entries[j];
-                if (entry != Entry.NULL && purge.apply(entry.generation)) {
-                    entries[j] = Entry.NULL;
-                    size.decrementAndGet();
-                    weight.addAndGet(-weighEntry(entry));
+            try {
+                for (int i = 0; i < entriesPerSegment; i++) {
+                    int j = i + s * entriesPerSegment;
+                    Entry<?, ?> entry = entries[j];
+                    if (entry != Entry.NULL && purge.apply(entry.generation)) {
+                        entries[j] = Entry.NULL;
+                        size.decrement();
+                        weight.addAndGet(-weighEntry(entry));
+                    }
                 }
+            } finally {
+                segments[s].unlock();
             }
-            segments[s].unlock();
         }
     }
 
@@ -385,8 +401,8 @@ public class PriorityCache<K, V> {
      */
     @NotNull
     public CacheStats getStats() {
-        return new CacheStats(hitCount.get(), missCount.get(), loadCount.get(),
-                loadExceptionCount.get(), 0, evictionCount.get());
+        return new CacheStats(hitCount.sum(), missCount.sum(), loadCount.sum(),
+                loadExceptionCount.sum(), 0, evictionCount.sum());
     }
 
     public long estimateCurrentWeight() {

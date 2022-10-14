@@ -26,9 +26,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
@@ -60,10 +68,52 @@ public class RecordCacheTest {
     }
 
     @Test
+    public void concurrentPutAndGet() throws ExecutionException, InterruptedException {
+        final int SIZE = 16384;
+
+        RecordCache<String> cache = newRecordCache(SIZE);
+        HashMap<String, RecordId> values = new HashMap<>(SIZE);
+        List<Integer> indices = new ArrayList<>(SIZE);
+
+        for (int k = 0; k < SIZE; k ++) {
+            String key = "key-" + k;
+            RecordId value = newRecordId(idProvider, rnd);
+            values.put(key, value);
+            indices.add(k);
+        }
+
+        Collections.shuffle(indices);
+        ExecutorService executor = Executors.newFixedThreadPool(16);
+        List<Future<String>> putFutures = new ArrayList<>(SIZE);
+        List<Future<Void>> getFutures = new ArrayList<>(SIZE);
+
+        for (int k = 0; k < SIZE; k ++) {
+            int idx = k;
+            putFutures.add(executor.submit(() -> {
+                String key = "key-" + idx;
+                cache.put(key, values.get(key));
+                return key;
+            }));
+        }
+
+        for (Future<String> future : putFutures) {
+            getFutures.add(executor.submit(() -> {
+                String key = future.get();
+                assertEquals(values.get(key), cache.get(key));
+                return null;
+            }));
+        }
+
+        for (Future<Void> future : getFutures) {
+            future.get();
+        }
+    }
+
+    @Test
     public void invalidate() {
-        RecordCache<String> cache = newRecordCache(10);
+        RecordCache<String> cache = newRecordCache(100);
         Map<String, RecordId> keys = newLinkedHashMap();
-        for (int k = 0; k < 10; k ++) {
+        for (int k = 0; k < 100; k ++) {
             String key = "key-" + k;
             RecordId value = newRecordId(idProvider, rnd);
             keys.put(key, value);

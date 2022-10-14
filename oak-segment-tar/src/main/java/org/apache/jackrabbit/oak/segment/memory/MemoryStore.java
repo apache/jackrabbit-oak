@@ -27,9 +27,19 @@ import java.util.concurrent.ConcurrentMap;
 import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.*;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.Revisions;
+import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.SegmentReader;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
+import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.stats.NoopStats;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,9 +72,7 @@ public class MemoryStore implements SegmentStore {
         });
         this.revisions = new MemoryStoreRevisions();
         this.segmentReader = new CachingSegmentReader(this::getWriter, null, 16, 2, NoopStats.INSTANCE);
-        this.segmentWriter = defaultSegmentWriterBuilder("sys")
-                .withWriterPool(SegmentBufferWriterPool.PoolType.GLOBAL)
-                .build(this);
+        this.segmentWriter = defaultSegmentWriterBuilder("sys").withWriterPool().build(this);
         revisions.bind(this);
         segmentWriter.flush();
     }

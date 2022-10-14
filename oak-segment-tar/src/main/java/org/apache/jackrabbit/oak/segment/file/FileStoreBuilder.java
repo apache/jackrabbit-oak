@@ -625,21 +625,11 @@ public class FileStoreBuilder {
         }
 
         void evictOldGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation < newGeneration;
-                }
-            });
+            evictCaches(generation -> generation < newGeneration);
         }
 
         void evictGeneration(final int newGeneration) {
-            evictCaches(new Predicate<Integer>() {
-                @Override
-                public boolean apply(Integer generation) {
-                    return generation == newGeneration;
-                }
-            });
+            evictCaches(generation -> generation == newGeneration);
         }
     }
 }

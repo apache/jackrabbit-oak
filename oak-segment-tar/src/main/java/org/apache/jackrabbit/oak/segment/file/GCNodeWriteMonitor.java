@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Monitors the compaction cycle and keeps a compacted nodes counter, in order
@@ -59,12 +60,12 @@ public class GCNodeWriteMonitor {
     /**
      * Number of compacted properties
      */
-    private final AtomicLong properties = new AtomicLong();
+    private final LongAdder properties = new LongAdder();
 
     /**
      * Number of compacted binaries
      */
-    private final AtomicLong binaries = new AtomicLong();
+    private final LongAdder binaries = new LongAdder();
 
     private volatile boolean running = false;
 
@@ -93,8 +94,8 @@ public class GCNodeWriteMonitor {
             gcMonitor.info("unable to estimate number of nodes for compaction, missing gc history.");
         }
         nodes.set(0);
-        properties.set(0);
-        binaries.set(0);
+        properties.reset();
+        binaries.reset();
         start = System.currentTimeMillis();
         running = true;
     }
@@ -108,11 +109,11 @@ public class GCNodeWriteMonitor {
     }
 
     public void onProperty() {
-        properties.incrementAndGet();
+        properties.increment();
     }
 
     public void onBinary() {
-        binaries.incrementAndGet();
+        binaries.increment();
     }
 
     public void finished() {

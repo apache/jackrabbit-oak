@@ -20,12 +20,14 @@
 package org.apache.jackrabbit.oak.segment;
 
 import com.google.common.base.Supplier;
-import com.google.common.cache.*;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheStats;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.Weigher;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.Objects;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Partial mapping of keys of type {@code K} to values of type {@link RecordId}. This is
@@ -81,7 +83,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         if (size <= 0) {
             return Empty.emptyFactory();
         } else {
-            return Default.defaultFactory(size, checkNotNull(weigher));
+            return Default.defaultFactory(size, Objects.requireNonNull(weigher));
         }
     }
 
@@ -101,7 +103,8 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     }
 
     private static class Empty<T> extends RecordCache<T> {
-        private final AtomicLong missCount = new AtomicLong();
+        @NotNull
+        private final LongAdder missCount = new LongAdder();
 
         static final <T> Supplier<RecordCache<T>> emptyFactory() {
             return Empty::new;
@@ -109,7 +112,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
         @Override
         public @NotNull CacheStats getStats() {
-            return new CacheStats(0, missCount.get(), 0, 0, 0, 0);
+            return new CacheStats(0, missCount.sum(), 0, 0, 0, 0);
         }
 
         @Override
@@ -117,7 +120,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
         @Override
         public RecordId get(@NotNull T key) {
-            missCount.incrementAndGet();
+            missCount.increment();
             return null;
         }
 
@@ -135,37 +138,34 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     private static class Default<K> extends RecordCache<K> {
         @NotNull
         private final com.google.common.cache.Cache<K, RecordId> cache;
-
         @NotNull
         private final Weigher<K, RecordId> weigher;
-
         @NotNull
-        private final AtomicLong weight = new AtomicLong();
-
+        private final LongAdder weight = new LongAdder();
         @NotNull
-        private final AtomicLong loadCount = new AtomicLong();
+        private final LongAdder loadCount = new LongAdder();
 
         @Override
         public @NotNull CacheStats getStats() {
             CacheStats internalStats = cache.stats();
             // any addition to the cache counts as load by our definition
             return new CacheStats(internalStats.hitCount(), internalStats.missCount(),
-                    loadCount.get(), 0, 0,  internalStats.evictionCount());
+                    loadCount.sum(), 0, 0,  internalStats.evictionCount());
         }
 
         static <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
-            return () -> new Default<>(size, checkNotNull(weigher));
+            return () -> new Default<>(size, Objects.requireNonNull(weigher));
         }
 
         Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {
             this.cache = CacheBuilder.newBuilder()
-                    .maximumSize(size)
+                    .maximumSize(size * 4L / 3)
                     .initialCapacity(size)
                     .concurrencyLevel(4)
                     .recordStats()
                     .removalListener((RemovalListener<K, RecordId>) removal -> {
                         int removedWeight = weigher.weigh(removal.getKey(), removal.getValue());
-                        weight.addAndGet(-removedWeight);
+                        weight.add(-removedWeight);
                     })
                     .build();
             this.weigher = weigher;
@@ -174,8 +174,8 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         @Override
         public void put(@NotNull K key, @NotNull RecordId value) {
             cache.put(key, value);
-            loadCount.incrementAndGet();
-            weight.addAndGet(weigher.weigh(key, value));
+            loadCount.increment();
+            weight.add(weigher.weigh(key, value));
         }
 
         @Override
@@ -190,7 +190,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
         @Override
         public long estimateCurrentWeight() {
-            return weight.get();
+            return weight.sum();
         }
     }
 }

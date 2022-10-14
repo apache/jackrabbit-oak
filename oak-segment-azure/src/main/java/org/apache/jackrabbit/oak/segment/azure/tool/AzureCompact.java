@@ -81,7 +81,7 @@ public class AzureCompact {
 
         private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
 
-        private int concurrency = -1;
+        private int concurrency = 1;
 
         private String persistentCachePath;
 

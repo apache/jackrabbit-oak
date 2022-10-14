@@ -19,19 +19,18 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static java.lang.Integer.valueOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
-
-import java.util.Random;
-
-import com.google.common.base.Predicate;
 import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.junit.Test;
+
+import java.util.Random;
+
+import static java.lang.Integer.valueOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 public class PriorityCacheTest {
 
@@ -80,7 +79,7 @@ public class PriorityCacheTest {
 
     @Test
     public void readWrite() {
-        PriorityCache<String, Integer> cache = new PriorityCache<String, Integer>(128, 0);
+        PriorityCache<String, Integer> cache = new PriorityCache<>(128, 0);
         for (int k = 0; k < 128; k++) {
             if (cache.put("key-" + k, k, 0, (byte) 0)) {
                 assertEquals(Integer.valueOf(k), cache.get("key-" + k, 0));
@@ -100,7 +99,7 @@ public class PriorityCacheTest {
 
     @Test
     public void updateKey() {
-        PriorityCache<String, Integer> cache = new PriorityCache<String, Integer>(1, 0);
+        PriorityCache<String, Integer> cache = new PriorityCache<>(1, 0);
 
         assertTrue(cache.put("one", 1, 0, (byte) 0));
 
@@ -117,7 +116,7 @@ public class PriorityCacheTest {
 
     @Test
     public void updateWithNewGeneration() {
-        PriorityCache<String, Integer> cache = new PriorityCache<String, Integer>(1, 0);
+        PriorityCache<String, Integer> cache = new PriorityCache<>(1, 0);
         assertTrue(cache.put("one", 1, 0, (byte) 0));
 
         // Cache is full but we can still put a key of a higher generation
@@ -133,24 +132,18 @@ public class PriorityCacheTest {
 
     @Test
     public void generationPurge() {
-        PriorityCache<String, Integer> cache = new PriorityCache<String, Integer>(65536);
+        PriorityCache<String, Integer> cache = new PriorityCache<>(65536);
 
         for (int gen = 4; gen >= 0; gen--) {
             // Backward iteration avoids earlier generations are replaced with later ones
             for (int k = 0; k < 100; k++) {
-                if (!cache.put("key-" + gen + "-" + k, 0, gen, (byte) 0)) {
-                    assumeTrue("All test keys are in the cache", false);
-                }
+                assumeTrue("All test keys are in the cache",
+                        cache.put("key-" + gen + "-" + k, 0, gen, (byte) 0));
             }
         }
 
         assertEquals(500, cache.size());
-        cache.purgeGenerations(new Predicate<Integer>() {
-            @Override
-            public boolean apply(Integer generation) {
-                return generation <= 2;
-            }
-        });
+        cache.purgeGenerations(generation -> generation <= 2);
         assertEquals(200, cache.size());
     }
 

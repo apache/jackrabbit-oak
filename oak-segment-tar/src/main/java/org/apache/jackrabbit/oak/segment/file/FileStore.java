@@ -40,7 +40,14 @@ import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.*;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.ShutDown.ShutDownCloser;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
@@ -140,7 +147,7 @@ public class FileStore extends AbstractFileStore {
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
                 .withGeneration(() -> getGcGeneration().nonGC())
-                .withWriterPool(SegmentBufferWriterPool.PoolType.GLOBAL)
+                .withWriterPool()
                 .with(builder.getCacheManager()
                         .withAccessTracking("WRITE", statsProvider))
                 .build(this);

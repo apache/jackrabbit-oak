@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
+import org.apache.jackrabbit.oak.plugins.index.ApproximateCounter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
@@ -35,12 +35,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.ClassicCompactor.getStableIdBytes;
+import static org.apache.jackrabbit.oak.segment.CompactorUtils.getStableIdBytes;
 
 /**
  * This compactor implementation leverages the tree structure of the repository for concurrent compaction.
@@ -116,25 +120,18 @@ public class ParallelCompactor extends CheckpointCompactor {
     private class CompactionTree implements NodeStateDiff {
         @NotNull
         private final NodeState before;
-
         @NotNull
         private final NodeState after;
-
         @NotNull
         private final NodeState onto;
-
         @NotNull
         private final HashMap<String, CompactionTree> modifiedChildren = new HashMap<>();
-
         @NotNull
         private final List<Property> modifiedProperties = new ArrayList<>();
-
         @NotNull
         private final List<String> removedChildNames = new ArrayList<>();
-
         @NotNull
         private final List<String> removedPropertyNames = new ArrayList<>();
-
         /**
          * Stores result of asynchronous compaction.
          */
@@ -364,7 +361,7 @@ public class ParallelCompactor extends CheckpointCompactor {
     ) throws IOException {
         if (numWorkers <= 0) {
             gcListener.info("using sequential compaction.");
-            return compactor.compact(before, after, onto, canceller);
+            return super.compactWithDelegate(before, after, onto, canceller);
         } else if (executorService == null || executorService.isShutdown()) {
             executorService = Executors.newFixedThreadPool(numWorkers);
         }
