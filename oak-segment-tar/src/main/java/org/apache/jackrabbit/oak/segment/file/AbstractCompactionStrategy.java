@@ -29,7 +29,13 @@ import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
 import com.google.common.base.Function;
 
-import org.apache.jackrabbit.oak.segment.*;
+import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.Compactor;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.ClassicCompactor;
+import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
+import org.apache.jackrabbit.oak.segment.ParallelCompactor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.cancel.Cancellation;

@@ -123,15 +123,6 @@ public class ClassicCompactor implements Compactor {
         return new CompactDiff(onto, canceller).diff(before, after);
     }
 
-    @Nullable
-    protected static Buffer getStableIdBytes(@NotNull NodeState state) {
-        if (state instanceof SegmentNodeState) {
-            return ((SegmentNodeState) state).getStableIdBytes();
-        } else {
-            return null;
-        }
-    }
-
     protected SegmentNodeState writeNodeState(NodeState nodeState, Buffer stableIdBytes) throws IOException {
         RecordId nodeId = writer.writeNode(nodeState, stableIdBytes);
         compactionMonitor.onNode();
@@ -175,7 +166,7 @@ public class ClassicCompactor implements Compactor {
             } else if (success) {
                 NodeState nodeState = builder.getNodeState();
                 checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
-                return writeNodeState(nodeState, getStableIdBytes(after));
+                return writeNodeState(nodeState, CompactorUtils.getStableIdBytes(after));
             } else {
                 return null;
             }

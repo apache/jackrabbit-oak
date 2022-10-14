@@ -23,10 +23,28 @@ import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 
+@RunWith(Parameterized.class)
 public class ParallelCompactorTest extends AbstractCompactorTest {
+
+    private final int concurrency;
+
+    @Parameterized.Parameters
+    public static List<Integer> concurrencyLevels() {
+        return Arrays.asList(1, 2, 4, 8, 16);
+    }
+
+    public ParallelCompactorTest(int concurrency) {
+        this.concurrency = concurrency;
+    }
+
     @Override
     protected ParallelCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
@@ -40,6 +58,6 @@ public class ParallelCompactorTest extends AbstractCompactorTest {
                 writer,
                 fileStore.getBlobStore(),
                 GCNodeWriteMonitor.EMPTY,
-                4);
+                concurrency);
     }
 }

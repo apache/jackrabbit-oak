@@ -34,8 +34,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Builder for building {@link DefaultSegmentWriter} instances.
- * The returned instances are thread safe if {@link #withWriterPool(PoolType)}
- * was specified and <em>not</em> thread sage if {@link #withoutWriterPool()}
+ * The returned instances are thread-safe if {@link #withWriterPool(PoolType)}
+ * was specified and <em>not</em> thread-safe if {@link #withoutWriterPool()}
  * was specified (default).
  * <p>
  * <em>Default:</em> calling one of the {@code build()} methods without previously
@@ -101,6 +101,11 @@ public final class DefaultSegmentWriterBuilder {
     public DefaultSegmentWriterBuilder withGeneration(@NotNull GCGeneration generation) {
         this.generation = Suppliers.ofInstance(checkNotNull(generation));
         return this;
+    }
+
+    @NotNull
+    public DefaultSegmentWriterBuilder withWriterPool() {
+        return withWriterPool(PoolType.GLOBAL);
     }
 
     /**
