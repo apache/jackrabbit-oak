@@ -189,13 +189,13 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         DocumentNodeStore dns = getNodeStore();
         fixture = new RepositoryFixture(temporaryFolder.getRoot(), dns);
         
-        createTestData("/testNodea/test/a", "foo", 50, "oak:Unstructured", true);
-        createTestData("/testNodeb/test/b", "foo", 50, "oak:Unstructured", true);
-        createTestData("/testNodec/test/c", "foo", 50, "oak:Unstructured", true);
+        createTestData("/testNodea/test/a", "foo", 40, "oak:Unstructured", true);
+        createTestData("/testNodeb/test/b", "foo", 40, "oak:Unstructured", true);
+        createTestData("/testNodec/test/c", "foo", 40, "oak:Unstructured", true);
         
         fixture.getAsyncIndexUpdate("async").run();
         int fooCount = getFooCount(fixture, "foo");
-        assertEquals("async index wrong count", 150, fooCount);
+        assertEquals("async index wrong count", 120, fooCount);
         
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
         fixture.close();
