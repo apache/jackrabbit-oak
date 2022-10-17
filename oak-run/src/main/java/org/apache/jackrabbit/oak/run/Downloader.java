@@ -184,7 +184,7 @@ public class Downloader implements Closeable {
             while (true) {
                 try {
                     return callable.call();
-                } catch (Exception e) {
+                } catch (IOException e) {
                     retried++;
                     exceptions.add(e);
 
@@ -200,6 +200,8 @@ public class Downloader implements Closeable {
                     } else {
                         LOG.warn("Callable " + callable + ". Retrying statement; number of times failed: " + retried + "; exception\n:" + e);
                     }
+                } catch (Exception e) {
+                    throw new RuntimeException("Callable " + callable + " threw an unrecoverable exception", e);
                 }
             }
         }
