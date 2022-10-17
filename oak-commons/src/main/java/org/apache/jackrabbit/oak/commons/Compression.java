@@ -18,9 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import net.jpountz.lz4.LZ4FrameInputStream;
-import net.jpountz.lz4.LZ4FrameOutputStream;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,27 +26,28 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * This class provides a common list of support compression algorithms and some utility functions.
+ * This interface provides a default list of support compression algorithms and some utility functions.
  * It is mainly used by intermediate stored files in {@link org.apache.jackrabbit.oak.commons.sort.ExternalSort} and
  * sort/index utilities in {@link org.apache.jackrabbit.oak.index.indexer.document.flatfile}.
+ *
+ * Other compression algorithms can be supported by implementing the methods.
  */
-public enum Compression {
-
-    LZ4 {
-        @Override
+public interface Compression {
+    Compression NONE = new Compression() {
         public InputStream getInputStream(InputStream in) throws IOException {
-            return new LZ4FrameInputStream(in);
+            return in;
         }
-        @Override
+
         public OutputStream getOutputStream(OutputStream out) throws  IOException {
-            return new LZ4FrameOutputStream(out);
+            return out;
         }
-        @Override
+
         public String addSuffix(String filename) {
-            return filename + ".lz4";
+            return filename;
         }
-    },
-    GZIP {
+    };
+
+    Compression GZIP = new Compression() {
         @Override
         public InputStream getInputStream(InputStream in) throws IOException {
             return new GZIPInputStream(in, 2048);
@@ -66,19 +64,9 @@ public enum Compression {
         public String addSuffix(String filename) {
             return filename + ".gz";
         }
-    },
-    NONE,
-    ;
+    };
 
-    public InputStream getInputStream(InputStream in) throws IOException {
-        return in;
-    }
-
-    public OutputStream getOutputStream(OutputStream out) throws  IOException {
-        return out;
-    }
-
-    public String addSuffix(String filename) {
-        return filename;
-    }
+    InputStream getInputStream(InputStream in) throws IOException;
+    OutputStream getOutputStream(OutputStream out) throws  IOException ;
+    String addSuffix(String filename);
 }

@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
@@ -72,7 +71,6 @@ public class FlatFileSplitter {
     private final Set<IndexDefinition> indexDefinitions;
     private Set<String> splitNodeTypeNames;
     private boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
 
     public FlatFileSplitter(File flatFile, File workdir, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader,
             Set<IndexDefinition> indexDefinitions) {
@@ -86,8 +84,6 @@ public class FlatFileSplitter {
         Compression algorithm = Compression.GZIP;
         if (!useCompression) {
             algorithm = Compression.NONE;
-        } else if (useLZ4) {
-            algorithm = Compression.LZ4;
         }
         this.algorithm = algorithm;
     }

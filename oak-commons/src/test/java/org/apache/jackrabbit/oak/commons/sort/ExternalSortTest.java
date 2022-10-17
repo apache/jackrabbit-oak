@@ -359,7 +359,6 @@ public class ExternalSortTest {
     @Test
     public void testCSVSorting() throws Exception {
         testCSVSortingWithParams(Compression.NONE);
-        testCSVSortingWithParams(Compression.LZ4);
         testCSVSortingWithParams(Compression.GZIP);
     }
 
@@ -411,7 +410,7 @@ public class ExternalSortTest {
     /**
      * Sample case to sort csv file.
      * 
-     * @param algorithm use lz4 or gzip as compression algorithm
+     * @param algorithm use gzip as compression algorithm
      * @throws Exception
      * 
      */

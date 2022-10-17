@@ -161,24 +161,17 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
     }
 
     @Test
-    public void parallelReindexWithoutLZ4() throws Exception {
-        LOG.info("Starting parallelReindexWithoutLZ4");
-        parallelReindex();
-        LOG.info("Finished parallelReindexWithoutLZ4");
-    }
-    @Test
-    public void parallelReindexWithLZ4() throws Exception {
-        LOG.info("Starting parallelReindexWithLZ4");
-        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4, "true");
-        parallelReindex();
-        LOG.info("Finished parallelReindexWithLZ4");
+    public void parallelReindex() throws Exception {
+        LOG.info("Starting parallelReindex");
+        parallelReindexInternal();
+        LOG.info("Finished parallelReindex");
     }
 
     /**
      * Test parallel indexing 
      * @throws Exception
      */
-    private void parallelReindex() throws Exception {
+    private void parallelReindexInternal() throws Exception {
         System.setProperty("oak.indexer.minMemoryForWork", "1");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_PARALLEL_INDEX, "true");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD, "0");

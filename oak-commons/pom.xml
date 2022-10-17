@@ -58,9 +58,6 @@
               org.apache.jackrabbit.oak.commons.sort,
               org.apache.jackrabbit.oak.commons.properties
             </Export-Package>
-            <Embed-Dependency>
-              lz4-java;scope=compile|runtime
-            </Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>
@@ -84,10 +81,6 @@
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.annotation</artifactId>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.lz4</groupId>
-      <artifactId>lz4-java</artifactId>
     </dependency>
 
     <!-- logging -->
