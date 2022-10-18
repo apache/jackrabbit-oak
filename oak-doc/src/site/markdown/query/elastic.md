@@ -33,6 +33,9 @@ however there are differences:
 * Indexes are NOT automatically built when needed: 
   They can be built by setting the `reindex` property to `true` or by using the `oak-run` tool.
   We recommend to build them using the `oak-run` tool.
+* `evaluatePathRestrictions` is only checked at query time (to keep the compatibility with Lucene). The parent paths are
+  always indexed. Changing this flag won't require a reindex then. It's strongly suggested to enable it. This control
+  might be removed in the future.
 * `codec` is ignored.
 * `compatVersion` is ignored.
 * `useIfExists` is ignored.
@@ -45,5 +48,9 @@ however there are differences:
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
 * The behavior for `dynamicBoost` is slightly different: 
   For Lucene indexes, boosting is done in indexing, while for Elastic it is done at query time.
+* The behavior for `suggest` is slightly different:
+  For Lucene indexes, the suggestor is updated every 10 minutes by default and the frequency
+  can be changed by `suggestUpdateFrequencyMinutes` property in suggestion node under the index definition node.
+  In Elastic indexes, there is no such delay and thus no need for the above config property. This is an improvement in ES over lucene.
 
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html

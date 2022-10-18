@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -81,7 +82,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
@@ -311,6 +311,7 @@ public class DocumentNodeStoreService {
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
+            builder.setCollectionCompressionType(config.collectionCompressionType());
             mkBuilder = builder;
 
             log.info("Connected to database '{}'", db);
@@ -509,6 +510,11 @@ public class DocumentNodeStoreService {
             checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
                     "initialized", CUSTOM_BLOB_STORE);
             builder.setBlobStore(blobStore);
+        }
+
+        // set throttling stats collector only if throttling is enabled
+        if (isThrottlingEnabled(builder)) {
+            builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
     }
 

@@ -46,14 +46,14 @@ public class ElasticMetricHandler {
 
     private static final String INDEX_DOCUMENTS = "ELASTIC_INDEX_DOCUMENTS";
     private static final String INDEX_SIZE = "ELASTIC_INDEX_SIZE";
+    private static final String INDEX_WITH_REPLICAS_SIZE = "ELASTIC_INDEX_WITH_REPLICAS_SIZE";
 
     private final BiFunction<String, Map<String, String>, MeterStats> meter;
     private final BiFunction<String, Map<String, String>, HistogramStats> histogram;
     private final BiFunction<String, Map<String, String>, TimerStats> timer;
-    private final StatsProviderUtil statsProviderUtil;
 
     public ElasticMetricHandler(StatisticsProvider sp) {
-        statsProviderUtil = new StatsProviderUtil(sp);
+        StatsProviderUtil statsProviderUtil = new StatsProviderUtil(sp);
         meter = statsProviderUtil.getMeterStats();
         histogram = statsProviderUtil.getHistoStats();
         timer = statsProviderUtil.getTimerStats();
@@ -123,11 +123,13 @@ public class ElasticMetricHandler {
     /**
      * Tracks the size of an index
      *
-     * @param index the index passed as metric label
-     * @param size the total size in bytes. The value includes potential replicas
+     * @param index         the index passed as metric label
+     * @param primarySize   the primary shards size
+     * @param storeSize     the total size in bytes. The value includes potential replicas
      */
-    public void markSize(String index, long size) {
+    public void markSize(String index, long primarySize, long storeSize) {
         Map<String, String> labels = Collections.singletonMap("index", index);
-        histogram.apply(INDEX_SIZE, labels).update(size);
+        histogram.apply(INDEX_SIZE, labels).update(primarySize);
+        histogram.apply(INDEX_WITH_REPLICAS_SIZE, labels).update(storeSize);
     }
 }

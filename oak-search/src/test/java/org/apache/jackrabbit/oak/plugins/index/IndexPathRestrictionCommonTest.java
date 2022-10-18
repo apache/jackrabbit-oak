@@ -525,7 +525,7 @@ public abstract class IndexPathRestrictionCommonTest {
     }
 
     private void validateEstimatedCount(Filter f, long expectedCount) {
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             List<QueryIndex.IndexPlan> plans = index.getPlans(f, null, root);
             assertEquals("Only one plan must show up", 1, plans.size());
             QueryIndex.IndexPlan plan = plans.get(0);
@@ -567,7 +567,7 @@ public abstract class IndexPathRestrictionCommonTest {
 
         QueryIndex.IndexPlan plan = plans.get(0);
 
-        TestUtils.assertEventually(() -> {
+        TestUtil.assertEventually(() -> {
             try {
                 customLogs.starting();
                 Cursor cursor = index.query(plan, root);

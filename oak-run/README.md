@@ -15,6 +15,7 @@ The following runmodes are currently available:
     * datastorecheck  : Consistency checker for data store 
     * datastore       : Maintenance operations for the for data store 
     * debug           : Print status information about an Oak repository
+    * documentstore-check : Check a DocumentStore for inconsistencies
     * explore         : Starts a GUI browser based on java swing
     * export          : Export repository content as json
     * frozennoderefsbyscanning : Scan for nt:frozenNode references via query
@@ -129,6 +130,39 @@ You can also load external script at launch time via passing an extra argument a
 below
 
     $ java -jar oak-run-*.jar console mongodb://host ":load /path/to/script.groovy"
+
+DocumentStore Check
+-------------------
+
+The `documentstore-check` command runs a consistency check on a DocumentStore
+based repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar documentstore-check [options] mongodb://host:port/database
+
+(or, for RDBMK instances, use "jdbc:...").
+
+The following options are currently supported:
+
+    Option                     Description
+    ------                     -----------
+    -?, -h, --help              show help
+    --baseVersion [Boolean]     Check base version reference (default: true)
+    --cacheSize <Integer>       cache size (default: 0)
+    --numThreads <Integer>      Use this number of threads to check consistency
+                                  (default: 12)
+    --orphan [Boolean]          Check for orphaned nodes (default: true)
+    --out <String>              Write output to this file
+    --progress [Boolean]        Write periodic progress messages (default: true)
+    --rdbjdbcpasswd [String]    RDB JDBC password (default: )
+    --rdbjdbcuser [String]      RDB JDBC user (default: )
+    --rdbtableprefix [String]   RDB table prefix
+    --silent                    Do not write output to stdout
+    --summary [Boolean]         Write a summary message at the end (default: true)
+    --versionHistory [Boolean]  Check version history reference (default: true)
+
+The command uses a pool of threads to check consistency of the repository. The
+size of the pool is determined by the number of available cores, unless specified
+explicitly with the `--numThreads` option. 
 
 Explore
 -------

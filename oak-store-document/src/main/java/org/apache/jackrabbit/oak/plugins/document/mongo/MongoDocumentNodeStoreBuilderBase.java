@@ -45,6 +45,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private int leaseSocketTimeout = 0;
     private String uri;
     private String name;
+    private String collectionCompressionType;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -153,6 +154,11 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return thisBuilder();
     }
 
+    public T setCollectionCompressionType(String compressionType) {
+        this.collectionCompressionType = compressionType;
+        return thisBuilder();
+    }
+
     @Override
     public VersionGCSupport createVersionGCSupport() {
         DocumentStore store = getDocumentStore();
@@ -181,6 +187,11 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         } else {
             return super.createMissingLastRevSeeker();
         }
+    }
+
+
+    public String getCollectionCompressionType(){
+        return collectionCompressionType;
     }
 
     /**

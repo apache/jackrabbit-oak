@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.google.common.collect.ImmutableList;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -37,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.google.common.collect.Lists.partition;
 
 public class AzureJournalFile implements JournalFile {
 
@@ -153,7 +156,7 @@ public class AzureJournalFile implements JournalFile {
 
         private CloudAppendBlob currentBlob;
 
-        private int blockCount;
+        private int lineCount;
 
         public AzureJournalWriter() throws IOException {
             List<CloudAppendBlob> blobs = getJournalBlobs();
@@ -173,8 +176,8 @@ public class AzureJournalFile implements JournalFile {
             } catch (StorageException e) {
                 throw new IOException(e);
             }
-            Integer bc = currentBlob.getProperties().getAppendBlobCommittedBlockCount();
-            blockCount = bc == null ? 0 : bc;
+            String lc = currentBlob.getMetadata().get("lineCount");
+            lineCount = lc == null ? 0 : Integer.parseInt(lc);
         }
 
         @Override
@@ -192,24 +195,40 @@ public class AzureJournalFile implements JournalFile {
 
         @Override
         public void writeLine(String line) throws IOException {
-            if (blockCount >= lineLimit) {
-                int parsedSuffix = parseCurrentSuffix();
-                createNextFile(parsedSuffix);
-            }
-            try {
-                currentBlob.appendText(line + "\n");
-                currentBlob.getMetadata().put("lastEntry", line);
-                currentBlob.uploadMetadata();
-                blockCount++;
-            } catch (StorageException e) {
-                throw new IOException(e);
-            }
+            batchWriteLines(ImmutableList.of(line));
         }
 
         @Override
         public void batchWriteLines(List<String> lines) throws IOException {
-            for (String line : lines) {
-                this.writeLine(line);
+            if (lines.isEmpty()) {
+                return;
+            }
+            int firstBlockSize = Math.min(lineLimit - lineCount, lines.size());
+            List<String> firstBlock = lines.subList(0, firstBlockSize);
+            List<List<String>> remainingBlocks = partition(lines.subList(firstBlockSize, lines.size()), lineLimit);
+            List<List<String>> allBlocks = ImmutableList.<List<String>>builder()
+                .addAll(firstBlock.isEmpty() ? ImmutableList.of() : ImmutableList.of(firstBlock))
+                .addAll(remainingBlocks)
+                .build();
+            
+            for (List<String> entries : allBlocks) {
+                if (lineCount >= lineLimit) {
+                    int parsedSuffix = parseCurrentSuffix();
+                    createNextFile(parsedSuffix);
+                }
+                StringBuilder text = new StringBuilder();
+                for (String line : entries) {
+                    text.append(line).append("\n");
+                }
+                try {
+                    currentBlob.appendText(text.toString());
+                    currentBlob.getMetadata().put("lastEntry", entries.get(entries.size() - 1));
+                    lineCount += entries.size();
+                    currentBlob.getMetadata().put("lineCount", Integer.toString(lineCount));
+                    currentBlob.uploadMetadata();
+                } catch (StorageException e) {
+                    throw new IOException(e);
+                }
             }
         }
 
@@ -217,7 +236,7 @@ public class AzureJournalFile implements JournalFile {
             try {
                 currentBlob = directory.getAppendBlobReference(getJournalFileName(suffix + 1));
                 currentBlob.createOrReplace();
-                blockCount = 0;
+                lineCount = 0;
             } catch (URISyntaxException | StorageException e) {
                 throw new IOException(e);
             }

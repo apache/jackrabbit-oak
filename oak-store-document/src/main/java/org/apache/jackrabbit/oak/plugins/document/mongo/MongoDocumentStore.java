@@ -51,6 +51,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.ReadPreference;
 
+import com.mongodb.client.model.CreateCollectionOptions;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -193,6 +194,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final MongoDBConnection connection;
     private final MongoDBConnection clusterNodesConnection;
+    private final Map<String, String> mongoStorageOptions = new HashMap<>();
 
     private final NodeDocumentCache nodesCache;
 
@@ -327,6 +329,7 @@ public class MongoDocumentStore implements DocumentStore {
         clusterNodes = this.clusterNodesConnection.getCollection(Collection.CLUSTER_NODES.toString());
         settings = this.connection.getCollection(Collection.SETTINGS.toString());
         journal = this.connection.getCollection(Collection.JOURNAL.toString());
+        initializeMongoStorageOptions(builder);
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
@@ -334,7 +337,7 @@ public class MongoDocumentStore implements DocumentStore {
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
         if (!readOnly) {
-            ensureIndexes(status);
+            ensureIndexes(db, status);
         }
 
         this.nodeLocks = new StripedNodeDocumentLocks();
@@ -370,6 +373,13 @@ public class MongoDocumentStore implements DocumentStore {
                 db.getWriteConcern(), status.getServerDetails(), throttlingEnabled);
     }
 
+    // constructs storage options from config
+    private void initializeMongoStorageOptions(MongoDocumentNodeStoreBuilderBase<?> builder) {
+        if (builder.getCollectionCompressionType() != null) {
+            this.mongoStorageOptions.put(MongoDBConfig.COLLECTION_COMPRESSION_TYPE, builder.getCollectionCompressionType());
+        }
+    }
+
     @NotNull
     private MongoDBConnection getOrCreateClusterNodesConnection(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
         MongoDBConnection mc;
@@ -383,16 +393,17 @@ public class MongoDocumentStore implements DocumentStore {
         return mc;
     }
 
-    private void ensureIndexes(@NotNull MongoStatus mongoStatus) {
+    private void ensureIndexes(@NotNull MongoDatabase db, @NotNull MongoStatus mongoStatus) {
         // reading documents in the nodes collection and checking
         // existing indexes is performed against the MongoDB primary
         // this ensures the information is up-to-date and accurate
         boolean emptyNodesCollection = execute(session -> MongoUtils.isCollectionEmpty(nodes, session), Collection.NODES);
-
+        createCollection(db, Collection.NODES.toString(), mongoStatus);
         // compound index on _modified and _id
         if (emptyNodesCollection) {
             // this is an empty store, create a compound index
             // on _modified and _id (OAK-3071)
+
             createIndex(nodes, new String[]{NodeDocument.MODIFIED_IN_SECS, Document.ID},
                     new boolean[]{true, true}, false, false);
         } else if (!hasIndex(nodes.withReadPreference(ReadPreference.primary()),
@@ -441,6 +452,18 @@ public class MongoDocumentStore implements DocumentStore {
 
         // index on _modified for journal entries
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
+    }
+
+    private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
+        CreateCollectionOptions options = new CreateCollectionOptions();
+
+        if (mongoStatus.isVersion(4, 2)) {
+            options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions(mongoStorageOptions));
+            if (!Iterables.tryFind(db.listCollectionNames(), s -> Objects.equals(collectionName, s)).isPresent()) {
+                db.createCollection(collectionName, options);
+                LOG.info("Creating Collection {}, with collection storage options", collectionName);
+            }
+        }
     }
 
     public boolean isReadOnly() {

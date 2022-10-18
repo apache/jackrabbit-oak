@@ -37,13 +37,16 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,6 +63,7 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS_LIST;
@@ -326,6 +330,116 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         collectGroupPrincipals(expected, externalUser.getDeclaredGroups(), Long.MAX_VALUE);
 
         assertEquals(expected, pNames);
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflict() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        
+        // create a local group that collides with the external group membership
+        // i.e. doesn't have an rep:externalId set
+        ExternalIdentity externalGroup = idp.getIdentity(externalUser.getDeclaredGroups().iterator().next());
+        assertNotNull(externalGroup);
+
+        assertIgnored(externalUser, externalGroup, externalGroup.getId(), externalGroup.getPrincipalName(), null);    
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflictDifferentIDP() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+
+        // create a local group that collides with the external group membership
+        // i.e. belongs to a different IDP
+        ExternalIdentityRef ref = externalUser.getDeclaredGroups().iterator().next();
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        assertNotNull(externalGroup);
+
+        assertIgnored(externalUser, externalGroup, externalGroup.getId(), externalGroup.getPrincipalName(), 
+                new ExternalIdentityRef(ref.getId(), ref.getProviderName()+"_mod"));
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflictPrincipalNameMismatch() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+
+        ExternalIdentityRef ref = externalUser.getDeclaredGroups().iterator().next();
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        assertNotNull(externalGroup);
+
+        // create a local group that has the same ID but a mismatching principal name
+        // and verify that the group is ignored;
+        assertIgnored(externalUser, externalGroup, externalGroup.getId(), externalGroup.getPrincipalName()+"mismatch", ref);
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflictPrincipalNameCaseMismatch() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+
+        ExternalIdentityRef ref = externalUser.getDeclaredGroups().iterator().next();
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        assertNotNull(externalGroup);
+
+        // create a local group that has the same ID but a mismatching principal name (only case)
+        // and verify that the group is ignored;
+        assertIgnored(externalUser, externalGroup, externalGroup.getId(), externalGroup.getPrincipalName().toUpperCase(), ref);
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflictIdCaseMismatch() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        
+        ExternalIdentityRef ref = externalUser.getDeclaredGroups().iterator().next();
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        assertNotNull(externalGroup);
+
+        // create a local group that has the case-mismatch in ID/principal name
+        // and verify that the external group is ignored;
+        assertIgnored(externalUser, externalGroup, externalGroup.getId().toUpperCase(), externalGroup.getPrincipalName(), null);
+    }
+    
+    private void assertIgnored(@NotNull ExternalUser externalUser, @NotNull ExternalIdentity externalGroup, 
+                               @NotNull String existingId, @NotNull String existingPrincipalName, @Nullable ExternalIdentityRef existingGroupRef) throws Exception {
+        
+        Group g = userManager.createGroup(existingId, new PrincipalImpl(existingPrincipalName), null);
+        if (existingGroupRef != null) {
+            g.setProperty(REP_EXTERNAL_ID, getValueFactory().createValue(existingGroupRef.getString()));
+        }
+        r.commit();
+
+        // sync the user with dynamic membership enabled
+        sync(externalUser, SyncResult.Status.ADD);
+
+        // retrieve rep:externalPrincipalNames
+        Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+        assertNotNull(extPrincipalNames);
+
+        // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
+        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
+    }
+
+    @Test
+    public void testSyncExternalUserGroupConflictWithUser() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+
+        // create a local user that collides with the first external group ref
+        ExternalIdentityRef ref = externalUser.getDeclaredGroups().iterator().next();
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        User collision = userManager.createUser(externalGroup.getId(), null, new PrincipalImpl(externalGroup.getPrincipalName()), null);
+        r.commit();
+
+        // sync the user with dynamic membership enabled
+        sync(externalUser, SyncResult.Status.ADD);
+
+        // retrieve rep:externalPrincipalNames
+        Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+        assertNotNull(extPrincipalNames);
+
+        // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
+        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 
     @Test
@@ -617,6 +731,9 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
         Set<ExternalIdentityRef> groupRefs = getExpectedSyncedGroupRefs(syncConfig.user().getMembershipNestingDepth(), idp, testuser);
 
+        // verify that the conflicting user has not been synced before
+        assertNull(userManager.getAuthorizable(ID_SECOND_USER));
+        
         ExternalUser second = idp.getUser(ID_SECOND_USER);
         testuser.withGroups(second.getExternalId());
         assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
@@ -630,6 +747,28 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
         for (Value v : extPrincipalNames) {
             assertNotEquals(second.getPrincipalName(), v.getString());
+        }
+    }
+
+    @Test
+    public void testSyncMembershipWithUserConflict() throws Exception {
+        TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
+        Set<ExternalIdentityRef> groupRefs = getExpectedSyncedGroupRefs(syncConfig.user().getMembershipNestingDepth(), idp, testuser);
+
+        // in contrast to 'testSyncMembershipWithUserRef' the conflicting group-ref refers to a user in the repository
+        // and the conflict is spotted as the existing synched identity is not a group.
+        testuser.withGroups(previouslySyncedUser.getExternalId());
+        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+
+        sync(testuser, SyncResult.Status.ADD);
+
+        Authorizable a = userManager.getAuthorizable(ID_TEST_USER);
+        assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+
+        assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+        for (Value v : extPrincipalNames) {
+            assertNotEquals(previouslySyncedUser.getPrincipalName(), v.getString());
         }
     }
 

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
@@ -56,20 +57,34 @@ import static org.junit.Assert.assertTrue;
 @RunWith(Parameterized.class)
 public class DynamicGroupsTest extends DynamicSyncContextTest {
 
-    @Parameterized.Parameters(name = "name={1}")
+    @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, "Membership-Nesting-Depth=0" },
-                new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, "Membership-Nesting-Depth=1" },
-                new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+2, "Membership-Nesting-Depth=2" });
+                new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, false, "Membership-Nesting-Depth=0" },
+                new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, false, "Membership-Nesting-Depth=1" },
+                // NOTE: shortcut for PrincipalNameResolver is ignored if dynamic-groups are enabled
+                new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, true, "Membership-Nesting-Depth=1, IDP implements PrincipalNameResolver" },
+                new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+2, false, "Membership-Nesting-Depth=2" });
     }
     
     private final long membershipNestingDepth;
+    private final boolean isPrincipalNameResolver;
 
-    public DynamicGroupsTest(long membershipNestingDepth, @NotNull String name) {
+    public DynamicGroupsTest(long membershipNestingDepth, boolean isPrincipalNameResolver, @NotNull String name) {
         this.membershipNestingDepth = membershipNestingDepth;
+        this.isPrincipalNameResolver = isPrincipalNameResolver;
     }
-    
+
+    @Override
+    @NotNull
+    protected ExternalIdentityProvider createIDP() {
+        if (isPrincipalNameResolver) {
+            return new PrincipalResolutionTest.PrincipalResolvingIDP();
+        } else {
+            return super.createIDP();
+        }
+    }
+
     @Override
     protected @NotNull DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig config = super.createSyncConfig();

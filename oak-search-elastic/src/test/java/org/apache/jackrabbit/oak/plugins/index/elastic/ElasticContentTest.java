@@ -70,7 +70,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         assertTrue(exists(index));
         assertThat(0L, equalTo(countDocuments(index)));
         // there are no updates, so metrics won't be refreshed
-        verify(spyMetricHandler, never()).markSize(anyString(), anyLong());
+        verify(spyMetricHandler, never()).markSize(anyString(), anyLong(), anyLong());
         verify(spyMetricHandler, never()).markDocuments(anyString(), anyLong());
 
         reset(spyMetricHandler);
@@ -79,7 +79,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         content.addChild("not-indexed").setProperty("b", "foo");
         root.commit();
 
-        verify(spyMetricHandler).markSize(eq(indexNameWithPrefix), geq(0L));
+        verify(spyMetricHandler).markSize(eq(indexNameWithPrefix), geq(0L), geq(0L));
         verify(spyMetricHandler).markDocuments(eq(indexNameWithPrefix), geq(0L));
         assertEventually(() -> assertThat(countDocuments(index), equalTo(1L)));
 
