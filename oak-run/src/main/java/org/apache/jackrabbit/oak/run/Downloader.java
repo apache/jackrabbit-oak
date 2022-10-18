@@ -34,7 +34,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -111,6 +113,7 @@ public class Downloader implements Closeable {
                         if (failOnError) {
                             throw new RuntimeException("execution failed, e");
                         } else {
+                            LOG.error("Failure downloading item", e);
                             return ItemResponse.FAILURE;
                         }
                     }
@@ -178,8 +181,8 @@ public class Downloader implements Closeable {
 
         public V call() {
             int retried = 0;
-            // Save exceptions that are thrown after each failure, so they can be printed if all retries fail
-            List<Throwable> exceptions = new ArrayList<>();
+            // Save exceptions messages that are thrown after each failure, so they can be printed if all retries fail
+            Map<String, Integer> exceptions = new HashMap<>();
 
             // Loop until it doesn't throw an exception or max number of tries is reached
             while (true) {
@@ -187,17 +190,19 @@ public class Downloader implements Closeable {
                     return callable.call();
                 } catch (IOException e) {
                     retried++;
-                    exceptions.add(e);
+                    exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
+                            (key, val) -> val == null ? 1 : val + 1
+                    );
 
                     // Throw exception if number of tries has been reached
                     if (retried == Downloader.this.maxRetries) {
                         // Get a string of all exceptions that were thrown
-                        StringBuilder exceptionsString = new StringBuilder();
-                        for (int i = 0; i < exceptions.size(); i++) {
-                            exceptionsString.append("\nFailure ").append(i + 1).append(": ").append(exceptions.get(i));
+                        StringBuilder summary = new StringBuilder();
+                        for (Map.Entry<String, Integer> entry: exceptions.entrySet()) {
+                            summary.append("\n\t").append(entry.getValue()).append("x: ").append(entry.getKey());
                         }
 
-                        throw new RetryException(retried, exceptionsString.toString(), e);
+                        throw new RetryException(retried, summary.toString(), e);
                     } else {
                         // simple exponential backoff mechanism
                         long waitTime = (long) (Math.pow(2, retried) * Downloader.this.retryInitialInterval);
@@ -225,7 +230,7 @@ public class Downloader implements Closeable {
 
         @Override
         public String toString() {
-            return "Tried " + tries + "times: \n" + super.toString();
+            return "Tried " + tries + " times: \n" + super.toString();
         }
     }
 
