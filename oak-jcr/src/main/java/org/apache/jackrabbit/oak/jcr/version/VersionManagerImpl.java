@@ -252,7 +252,7 @@ public class VersionManagerImpl implements VersionManager {
     @Override
     public boolean isCheckedOut(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        return sessionDelegate.perform(new SessionOperation<Boolean>("isCheckoutOut") {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("isCheckedOut") {
             @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
@@ -261,20 +261,7 @@ public class VersionManagerImpl implements VersionManager {
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                boolean isCheckedOut = versionManagerDelegate.isCheckedOut(nodeDelegate);
-                if (!isCheckedOut) {
-                    // check OPV
-                    ReadWriteNodeTypeManager ntMgr = sessionContext.getWorkspace().getNodeTypeManager();
-                    NodeDelegate parent = nodeDelegate.getParent();
-                    NodeDefinition definition;
-                    if (parent == null) {
-                        definition = ntMgr.getRootDefinition();
-                    } else {
-                        definition = ntMgr.getDefinition(parent.getTree(), nodeDelegate.getTree());
-                    }
-                    isCheckedOut = definition.getOnParentVersion() == OnParentVersionAction.IGNORE;
-                }
-                return isCheckedOut;
+                return isCheckedOut(nodeDelegate);
             }
         });
     }
@@ -380,6 +367,23 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     //----------------------------< internal >----------------------------------
+
+    public boolean isCheckedOut(final @NotNull NodeDelegate nodeDelegate) throws RepositoryException {
+        boolean isCheckedOut = versionManagerDelegate.isCheckedOut(nodeDelegate);
+        if (!isCheckedOut) {
+            // check OPV
+            ReadWriteNodeTypeManager ntMgr = sessionContext.getWorkspace().getNodeTypeManager();
+            NodeDelegate parent = nodeDelegate.getParent();
+            NodeDefinition definition;
+            if (parent == null) {
+                definition = ntMgr.getRootDefinition();
+            } else {
+                definition = ntMgr.getDefinition(parent.getTree(), nodeDelegate.getTree());
+            }
+            isCheckedOut = definition.getOnParentVersion() == OnParentVersionAction.IGNORE;
+        }
+        return isCheckedOut;
+    }
 
     private void checkPendingChangesForRestore(SessionDelegate sessionDelegate)
             throws InvalidItemStateException {
