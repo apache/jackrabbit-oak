@@ -167,6 +167,14 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         LOG.info("Finished parallelReindex");
     }
 
+    @Test
+    public void parallelReindexWithLZ4() throws Exception {
+        LOG.info("Starting parallelReindexWithLZ4");
+        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4, "true");
+        parallelReindexInternal();
+        LOG.info("Finished parallelReindexWithLZ4");
+    }
+
     /**
      * Test parallel indexing 
      * @throws Exception

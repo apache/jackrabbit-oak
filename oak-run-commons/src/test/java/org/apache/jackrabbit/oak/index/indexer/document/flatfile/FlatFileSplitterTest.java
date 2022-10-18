@@ -482,7 +482,7 @@ public class FlatFileSplitterTest {
 
         FlatFileSplitter splitter = new FlatFileSplitter(flatFile, workDir, null, entryReader, null);
         FieldUtils.writeField(splitter, "splitNodeTypeNames", splitNodeTypeNames, true);
-        FieldUtils.writeField(splitter, "algorithm", useCompression ? Compression.GZIP : Compression.NONE, true);
+        FieldUtils.writeField(splitter, "algorithm", useCompression ? new LZ4Compression() : Compression.NONE, true);
         return splitter;
     }
 
@@ -514,7 +514,7 @@ public class FlatFileSplitterTest {
 
     public void compress(File src, File dest) throws IOException {
         try (BufferedReader r = new BufferedReader(createReader(src, Compression.NONE));
-             BufferedWriter w = new BufferedWriter(createWriter(dest, Compression.GZIP))) {
+             BufferedWriter w = new BufferedWriter(createWriter(dest, new LZ4Compression()))) {
             String line;
             while ((line = r.readLine()) != null) {
                 w.write(line);
@@ -524,7 +524,7 @@ public class FlatFileSplitterTest {
     }
 
     public void uncompress(File src, File dest) throws IOException {
-        try (BufferedReader r = new BufferedReader(createReader(src, Compression.GZIP));
+        try (BufferedReader r = new BufferedReader(createReader(src, new LZ4Compression()));
              BufferedWriter w = new BufferedWriter(createWriter(dest, Compression.NONE))) {
             String line;
             while ((line = r.readLine()) != null) {
