@@ -56,14 +56,16 @@ public class Downloader implements Closeable {
     private final int readTimeoutMs;
     private final int slowLogThreshold;
     private final int maxRetries;
+    private final long retryInitialInterval;
     private final boolean failOnError;
     private final List<Future<ItemResponse>> responses;
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
-        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, false, 10_000);
+        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000);
     }
 
-    public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int maxRetries, boolean failOnError, int slowLogThreshold) {
+    public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int maxRetries, long retryInitialInterval,
+                      boolean failOnError, int slowLogThreshold) {
         if (concurrency <= 0 || concurrency > 1000) {
             throw new IllegalArgumentException("concurrency range must be between 1 and 1000");
         }
@@ -78,6 +80,7 @@ public class Downloader implements Closeable {
         this.readTimeoutMs = readTimeoutMs;
         this.slowLogThreshold = slowLogThreshold;
         this.maxRetries = maxRetries;
+        this.retryInitialInterval = retryInitialInterval;
         this.failOnError = failOnError;
         this.executorService = new ThreadPoolExecutor(
                 (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
@@ -92,7 +95,7 @@ public class Downloader implements Closeable {
 
     public void offer(Item item) {
         responses.add(
-                this.executorService.submit(new RetryingCallable<>(maxRetries, new DownloaderWorker(item)))
+                this.executorService.submit(new RetryingCallable<>(new DownloaderWorker(item)))
         );
     }
 
@@ -166,12 +169,10 @@ public class Downloader implements Closeable {
         }
     }
 
-    private static class RetryingCallable<V> implements Callable<V> {
+    private class RetryingCallable<V> implements Callable<V> {
         private final Callable<V> callable;
-        private final int retries;
 
-        public RetryingCallable(int retries, Callable<V> callable) {
-            this.retries = retries;
+        public RetryingCallable(Callable<V> callable) {
             this.callable = callable;
         }
 
@@ -189,7 +190,7 @@ public class Downloader implements Closeable {
                     exceptions.add(e);
 
                     // Throw exception if number of tries has been reached
-                    if (retried == retries) {
+                    if (retried == Downloader.this.maxRetries) {
                         // Get a string of all exceptions that were thrown
                         StringBuilder exceptionsString = new StringBuilder();
                         for (int i = 0; i < exceptions.size(); i++) {
@@ -198,7 +199,13 @@ public class Downloader implements Closeable {
 
                         throw new RetryException(retried, exceptionsString.toString(), e);
                     } else {
-                        LOG.warn("Callable " + callable + ". Retrying statement; number of times failed: " + retried + "; exception\n:" + e);
+                        // simple exponential backoff mechanism
+                        long waitTime = (long) (Math.pow(2, retried) * Downloader.this.retryInitialInterval);
+                        LOG.warn("Callable {}. Retrying statement after {} ms; number of times failed: {}",
+                                callable, waitTime, retried, e);
+                        try {
+                            Thread.sleep(waitTime);
+                        } catch (InterruptedException ignore) {}
                     }
                 } catch (Exception e) {
                     throw new RuntimeException("Callable " + callable + " threw an unrecoverable exception", e);

@@ -735,6 +735,7 @@ Command to concurrently download blobs from an Azure datastore using sas token a
             [--connect-timeout <milliseconds>] \
             [--read-timeout <milliseconds>] \
             [--max-retries <retries>] \
+            [--retry-interval <milliseconds>] \
             [--fail-on-error <boolean>] \
             [--slow-log-threshold <milliseconds>]
 
@@ -751,6 +752,7 @@ The following options are available:
                                 single blob (default 0, no timeout).
     --read-timeout          - Sets the read timeout, in milliseconds when reading a single blob (default 0, no timeout).
     --max-retries           - Max number of retries when a blob download fails (default 3).
+    --retry-interval        - The initial retry interval in milliseconds (default 100).
     --fail-on-error         - If true fails the execution immediately after the first error, otherwise it continues processing 
                                 all the blobs. When false, the command will fail only if no blobs were downloaded (default false).
     --slow-log-threshold    - Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s]).

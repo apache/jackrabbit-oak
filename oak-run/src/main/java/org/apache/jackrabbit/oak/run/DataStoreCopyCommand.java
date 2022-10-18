@@ -56,6 +56,7 @@ public class DataStoreCopyCommand implements Command {
     private int connectTimeout;
     private int readTimeout;
     private int maxRetries;
+    private long retryInitialInterval;
     private boolean failOnError;
     private int slowLogThreshold;
 
@@ -65,7 +66,8 @@ public class DataStoreCopyCommand implements Command {
         setupLogging();
 
         Stream<String> ids = null;
-        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout, maxRetries, failOnError, slowLogThreshold)) {
+        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout, maxRetries,
+                retryInitialInterval, failOnError, slowLogThreshold)) {
             if (fileIncludePath != null) {
                 ids = Files.lines(fileIncludePath);
             } else {
@@ -157,6 +159,8 @@ public class DataStoreCopyCommand implements Command {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(10_000);
         OptionSpec<Integer> maxRetriesOpt = parser.accepts("max-retries", "Max number of retries when a blob download fails (default 3)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(3);
+        OptionSpec<Long> retryInitialIntervalOpt = parser.accepts("retry-interval", "The initial retry interval in milliseconds (default 100)")
+                .withRequiredArg().ofType(Long.class).defaultsTo(100L);
         OptionSpec<Boolean> failOnErrorOpt = parser.accepts("fail-on-error",
                         "If true fails the execution immediately after the first error, otherwise it continues processing all the blobs (default false)")
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
@@ -173,6 +177,7 @@ public class DataStoreCopyCommand implements Command {
         this.readTimeout = optionSet.valueOf(readTimeoutOpt);
         this.slowLogThreshold = optionSet.valueOf(slowLogThresholdOpt);
         this.maxRetries = optionSet.valueOf(maxRetriesOpt);
+        this.retryInitialInterval = optionSet.valueOf(retryInitialIntervalOpt);
         this.fileIncludePath = optionSet.valueOf(fileIncludePathOpt);
         this.failOnError = optionSet.valueOf(failOnErrorOpt);
     }
