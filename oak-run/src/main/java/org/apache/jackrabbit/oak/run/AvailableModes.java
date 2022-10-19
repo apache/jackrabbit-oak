@@ -38,6 +38,7 @@ public final class AvailableModes {
             .put("composite-prepare", new CompositePrepareCommand())
             .put("console", new ConsoleCommand())
             .put(DataStoreCommand.NAME, new DataStoreCommand())
+            .put(DataStoreCopyCommand.NAME, new DataStoreCopyCommand())
             .put("datastorecacheupgrade", new DataStoreCacheUpgradeCommand())
             .put("datastorecheck", new DataStoreCheckCommand())
             .put("debug", new DebugCommand())
