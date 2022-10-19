@@ -305,6 +305,10 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfGroups().value(options),
                                 benchmarkOptions.getReport().value(options),
                                 benchmarkOptions.getEvalutionType().value(options)),
+                        new IsCheckedOutAddMixinSetPropertyTest(
+                                benchmarkOptions.getRunAsAdmin().value(options), 
+                                benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getReport().value(options)),
                         new ConcurrentReadDeepTreeTest(
                                 benchmarkOptions.getRunAsAdmin().value(options),
                                 benchmarkOptions.getItemsToRead().value(options),
