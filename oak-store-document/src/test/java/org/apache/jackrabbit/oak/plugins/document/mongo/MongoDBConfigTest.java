@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.MongoClientSettings;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConfig.CollectionCompressor;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
@@ -39,7 +39,7 @@ public class MongoDBConfigTest {
     @Test
     public void defaultCollectionStorageOptions() {
         Bson bson = getCollectionStorageOptions(Collections.emptyMap());
-        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
+        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClientSettings.getDefaultCodecRegistry());
         String  configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE).getString(STORAGE_CONFIG).getValue();
         assertTrue(configuredCompressor.indexOf(CollectionCompressor.SNAPPY.getName()) > 0);
 
@@ -54,7 +54,7 @@ public class MongoDBConfigTest {
     @Test
     public void overrideDefaultCollectionStorageOptions() {
         Bson bson = getCollectionStorageOptions(Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "zstd"));
-        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
+        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClientSettings.getDefaultCodecRegistry());
         String  configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE).getString(STORAGE_CONFIG).getValue();
 
         assertTrue(configuredCompressor.indexOf(CollectionCompressor.ZSTD.getName()) > 0);
