@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
-import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
@@ -100,7 +99,7 @@ public class VersionManagerImpl implements VersionManager {
                 // check for pending changes
                 checkPendingChangesForRestore(sessionDelegate);
                 // check lock status
-                checkNotLocked(parent.getPath());
+                checkNotLocked(parent);
                 // check for existing nodes
                 List<NodeDelegate> existing = getExisting(version,
                         Collections.<String>emptySet());
@@ -180,7 +179,7 @@ public class VersionManagerImpl implements VersionManager {
                             "No versionable node with identifier: " + versionableId);
                 }
                 // check lock status
-                checkNotLocked(n.getPath());
+                checkNotLocked(n);
                 // check for existing nodes
                 List<NodeDelegate> existing = getExisting(version,
                         Collections.singleton(n.getPath()));
@@ -338,7 +337,7 @@ public class VersionManagerImpl implements VersionManager {
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                checkNotLocked(absPath);
+                checkNotLocked(nodeDelegate);
                 versionManagerDelegate.checkout(nodeDelegate);
             }
         });
@@ -393,16 +392,13 @@ public class VersionManagerImpl implements VersionManager {
         }
     }
 
-    private void checkNotLocked(String absPath) throws RepositoryException {
+    private void checkNotLocked(@NotNull NodeDelegate nodeDelegate) throws RepositoryException {
         if (!LockDeprecation.isLockingSupported()) {
             return;
         }
-        // TODO: avoid nested calls
-        LockManagerImpl lockManager = sessionContext.getWorkspace().getLockManager();
-        if (lockManager.isLocked(absPath)) {
-            NodeDelegate node = sessionContext.getSessionDelegate().getNode(absPath);
-            if (!lockManager.canUnlock(node)) {
-                throw new LockException("Node at " + absPath + " is locked");
+        if (nodeDelegate.isLocked()) {
+            if (!sessionContext.getWorkspace().getLockManager().canUnlock(nodeDelegate)) {
+                throw new LockException("Node at " + nodeDelegate.getPath() + " is locked");
             }
         }
     }

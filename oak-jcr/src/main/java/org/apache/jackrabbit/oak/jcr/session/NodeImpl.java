@@ -1237,7 +1237,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         if (!LockDeprecation.isLockingSupported()) {
             return false;
         }
-        return getLockManager().isLocked(getPath());
+        // don't call LockManager.isLocked(String) to avoid duplicate tree resolution
+        return sessionDelegate.perform(new SessionOperation<Boolean>("isLocked") {
+            @NotNull
+            @Override
+            public Boolean perform() {
+                return dlg.isLocked();
+            }
+        });
     }
 
     @Override
