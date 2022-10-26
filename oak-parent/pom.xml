@@ -65,7 +65,7 @@
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.13.4</jackson.version>
+    <jackson.version>2.13.4.1</jackson.version>
     <testcontainers.version>1.17.5</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <java.version>1.8</java.version>
