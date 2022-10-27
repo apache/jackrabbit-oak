@@ -282,7 +282,8 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
                 getSecurityProvider(),
                 Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH,
                 null,
-                false);
+                false,
+                true);
     }
 
 
@@ -469,6 +470,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
                 getSecurityProvider(),
                 Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH,
                 null,
+                false,
                 false);
 
         Session adminSession = jcrRepository.login(getAdminCredentials(), null);

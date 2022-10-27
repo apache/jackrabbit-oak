@@ -107,6 +107,7 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     protected final Whiteboard whiteboard;
     protected final boolean fastQueryResultSize;
+    private final boolean createSessionMBeans;
     private final GenericDescriptors descriptors;
     private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
@@ -147,7 +148,7 @@ public class RepositoryImpl implements JackrabbitRepository {
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter) {
         this(contentRepository, whiteboard, securityProvider, 
-                observationQueueLength, commitRateLimiter, false);
+                observationQueueLength, commitRateLimiter, false, true);
     }
     
     public RepositoryImpl(@NotNull ContentRepository contentRepository,
@@ -155,7 +156,8 @@ public class RepositoryImpl implements JackrabbitRepository {
                           @NotNull SecurityProvider securityProvider,
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter,
-                          boolean fastQueryResultSize) {
+                          boolean fastQueryResultSize,
+                          boolean createSessionMBeans) {
         this.contentRepository = checkNotNull(contentRepository);
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
@@ -166,6 +168,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.clock = new Clock.Fast(scheduledExecutor);
         this.gcMonitorRegistration = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
         this.fastQueryResultSize = fastQueryResultSize;
+        this.createSessionMBeans = createSessionMBeans;
         this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
         this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
         this.frozenNodeLogger = new FrozenNodeLogger(clock, whiteboard);
@@ -318,10 +321,11 @@ public class RepositoryImpl implements JackrabbitRepository {
         return new SessionDelegate(
                 contentSession, securityProvider, refreshStrategy,
                 threadSaveCount, statisticManager, clock) {
+            
             // Defer session MBean registration to avoid cluttering the
             // JMX name space with short lived sessions
-            RegistrationTask registrationTask = new RegistrationTask(getSessionStats(), whiteboard);
-            ScheduledFuture<?> scheduledTask = scheduledExecutor.schedule(registrationTask, 1, TimeUnit.MINUTES);
+            final RegistrationTask registrationTask = createSessionMBeans ? new RegistrationTask(getSessionStats(), whiteboard) : null;
+            final ScheduledFuture<?> scheduledTask = createSessionMBeans ? scheduledExecutor.schedule(registrationTask, 1, TimeUnit.MINUTES) : null;
 
             @Override
             protected void treeLookedUpByIdentifier(@NotNull Tree tree) {
@@ -331,9 +335,11 @@ public class RepositoryImpl implements JackrabbitRepository {
             @Override
             public void logout() {
                 refreshOnGC.close();
-                // Cancel session MBean registration
-                registrationTask.cancel();
-                scheduledTask.cancel(false);
+                if (registrationTask != null) {
+                    // Cancel session MBean registration
+                    registrationTask.cancel();
+                    scheduledTask.cancel(false);
+                }
                 super.logout();
             }
         };

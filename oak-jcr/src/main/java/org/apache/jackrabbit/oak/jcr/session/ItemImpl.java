@@ -40,7 +40,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.jetbrains.annotations.NotNull;
@@ -349,8 +349,8 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     @NotNull
-    VersionManager getVersionManager() throws RepositoryException {
-        return sessionContext.getWorkspace().getVersionManager();
+    VersionManagerImpl getVersionManager() {
+        return sessionContext.getWorkspace().internalGetVersionManager();
     }
 
     @NotNull

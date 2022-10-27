@@ -35,7 +35,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
-import javax.jcr.version.VersionManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -48,10 +47,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.WorkspaceImpl;
+import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -143,12 +144,13 @@ public class ImporterImpl implements Importer {
         }
 
         WorkspaceImpl wsp = sessionContext.getWorkspace();
-        VersionManager vMgr = wsp.getVersionManager();
-        if (!vMgr.isCheckedOut(absPath)) {
+        VersionManagerImpl vMgr = wsp.internalGetVersionManager();
+        NodeDelegate nd = new NodeDelegate(sd, importTargetTree); 
+        if (!vMgr.isCheckedOut(nd)) {
             throw new VersionException("Target node is checked in.");
         }
         boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean();
-        if (importTargetTree.getStatus() != Tree.Status.NEW && hasLocking && wsp.getLockManager().isLocked(absPath)) {
+        if (importTargetTree.getStatus() != Tree.Status.NEW && hasLocking && nd.isLocked()) {
             throw new LockException("Target node is locked.");
         }
         effectiveNodeTypeProvider = wsp.getNodeTypeManager();

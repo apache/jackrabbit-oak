@@ -30,6 +30,7 @@ import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -88,6 +89,7 @@ public class Jcr {
 
     private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
     private boolean fastQueryResultSize;
+    private boolean createSessionMBeans = true; // by default every (long-living) session will register an MBean
 
     private ContentRepository contentRepository;
     private Repository repository;
@@ -96,7 +98,6 @@ public class Jcr {
 
     public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
-
         if (initialize) {
             OakDefaultComponents defs = new OakDefaultComponents();
             with(defs.securityProvider());
@@ -294,6 +295,18 @@ public class Jcr {
         return this;
     }
 
+    /**
+     * Disables registration of {@link SessionMBean} for every open Session in the repository.
+     * This gets rid of some overhead for cases where MBeans are not leveraged.
+     * @return the Jcr object
+     * @since 1.46
+     */
+    @NotNull
+    public Jcr withoutSessionMBeans() {
+        createSessionMBeans = false;
+        return this;
+    }
+
     private void setUpOak() {
         // whiteboard
         if (whiteboard != null) {
@@ -387,7 +400,8 @@ public class Jcr {
                     securityProvider,
                     observationQueueLength,
                     commitRateLimiter,
-                    fastQueryResultSize);
+                    fastQueryResultSize,
+                    createSessionMBeans);
         }
         return repository;
     }

@@ -268,6 +268,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
                 ", fullTextComparisonWithoutIndex=" + fullTextComparisonWithoutIndex +
                 ", sql2Optimisation=" + sql2Optimisation +
                 ", fastQuerySize=" + fastQuerySize +
+                ", prefetchCount=" + prefetchCount +
                 ", classNamesIgnoredInCallTrace=" + Arrays.toString(classNamesIgnoredInCallTrace) +
                 '}';
     }

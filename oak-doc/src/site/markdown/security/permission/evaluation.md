@@ -39,7 +39,7 @@ The order of precedence is as follows:
     - their order in the access control list
     - their position in the node hierarchy
 - within a given type of principal (user vs. group principal) the order of executing is
-    - order of entries as specified originally (the index of the permission entry)
+    - reverse order of entries as specified originally (the index of the permission entry)
     - entries associated with the target tree take precedence over inherited entries
 
 ##### Examples
