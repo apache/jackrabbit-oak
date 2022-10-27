@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -71,7 +72,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final NodeStateEntryTraverser nodeStates;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
-    private final boolean compressionEnabled;
+    private final Compression algorithm;
     private final Comparator<NodeStateHolder> comparator;
     private long entryCount;
     private long memoryUsed;
@@ -111,7 +112,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private Predicate<String> pathPredicate = path -> true;
 
     TraverseAndSortTask(MongoDocumentTraverser.TraversingRange range, Comparator<NodeStateHolder> comparator,
-                        BlobStore blobStore, File storeDir, boolean compressionEnabled,
+                        BlobStore blobStore, File storeDir, Compression algorithm,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                         MemoryManager memoryManager, long dumpThreshold, BlockingQueue parentSortedFiles,
@@ -123,7 +124,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         this.blobStore = blobStore;
         this.entryWriter = new NodeStateEntryWriter(blobStore);
         this.storeDir = storeDir;
-        this.compressionEnabled = compressionEnabled;
+        this.algorithm = algorithm;
         this.comparator = comparator;
         this.completedTasks = completedTasks;
         this.newTasksQueue = newTasksQueue;
@@ -267,7 +268,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
                 newTasksQueue.add(new TraverseAndSortTask(new MongoDocumentTraverser.TraversingRange(
                         new LastModifiedRange(splitPoint, this.lastModifiedUpperBound), null),
-                        comparator, blobStore, storeDir, compressionEnabled, completedTasks,
+                        comparator, blobStore, storeDir, algorithm, completedTasks,
                         newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager,
                         dumpThreshold, parentSortedFiles, pathPredicate));
                 this.lastModifiedUpperBound = splitPoint;
@@ -316,7 +317,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
         long size = entryBatch.size();
-        try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
+        try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, algorithm)) {
             // no concurrency issue with this traversal because addition to this list is only done in #addEntry which, for
             // a given TraverseAndSortTask object will only be called from same thread
             while (!entryBatch.isEmpty()) {

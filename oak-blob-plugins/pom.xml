@@ -203,6 +203,6 @@
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.annotation</artifactId>
     </dependency>
-  </dependencies>
 
+  </dependencies>
 </project>

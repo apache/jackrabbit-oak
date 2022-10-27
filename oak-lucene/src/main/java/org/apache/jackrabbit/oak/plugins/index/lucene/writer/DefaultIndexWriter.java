@@ -19,12 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
+
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -47,9 +50,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
+import com.google.common.io.Closer;
 
 class DefaultIndexWriter implements LuceneIndexWriter {
     private static final Logger log = LoggerFactory.getLogger(DefaultIndexWriter.class);
@@ -63,7 +64,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private final String suggestDirName;
     private final boolean reindex;
     private final LuceneIndexWriterConfig writerConfig;
-    private IndexWriter writer;
+    private volatile IndexWriter writer;
     private Directory directory;
     private long genAtStart = -1;
     private boolean indexUpdated = false;
@@ -159,19 +160,25 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     }
 
     //~----------------------------------------< internal >
-
+    // in order to support parallel indexing, also for better performance. use localRef as below which reference from: https://en.wikipedia.org/wiki/Double-checked_locking
     IndexWriter getWriter() throws IOException {
-        if (writer == null) {
-            final long start = PERF_LOGGER.start();
-            directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
-            IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
-            config.setMergePolicy(definition.getMergePolicy());
-            writer = new IndexWriter(directory, config);
-            genAtStart = getLatestGeneration(directory);
-            log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
-            PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
+        IndexWriter localRefWriter = writer;
+        if (localRefWriter == null) {
+            synchronized (this) {
+                localRefWriter = writer;
+                if (localRefWriter == null) {
+                    final long start = PERF_LOGGER.start();
+                    directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
+                    IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
+                    config.setMergePolicy(definition.getMergePolicy());
+                    writer = localRefWriter = new IndexWriter(directory, config);
+                    genAtStart = getLatestGeneration(directory);
+                    log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
+                    PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
+                }
+            }
         }
-        return writer;
+        return localRefWriter;
     }
 
     /**
@@ -180,25 +187,26 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * @param analyzer the analyzer used to update the suggester
      */
     private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
-        final Closer closer = Closer.create();
+        synchronized (this) {
+            final Closer closer = Closer.create();
 
-        NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
-        DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
-        final Directory suggestDirectory =
-            directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
-        // updateSuggester would close the directory (directly or via lookup)
-        // closer.register(suggestDirectory);
-        boolean updated = false;
-        try {
-            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
-            suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
-            updated = true;
-        } catch (Throwable e) {
-            log.warn("could not update suggester", e);
-        } finally {
-            closer.close();
+            NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
+            DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
+            final Directory suggestDirectory = directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
+            // updateSuggester would close the directory (directly or via lookup)
+            // closer.register(suggestDirectory);
+            boolean updated = false;
+            try {
+                SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
+                suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
+                updated = true;
+            } catch (Throwable e) {
+                log.warn("could not update suggester", e);
+            } finally {
+                closer.close();
+            }
+            return updated;
         }
-        return updated;
     }
 
     /**

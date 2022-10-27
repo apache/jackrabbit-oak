@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.comparator.SizeFileComparator;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,7 +121,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 public class MergeRunner implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(MergeRunner.class);
     private final Charset charset = UTF_8;
-    private final boolean compressionEnabled;
+    private final Compression algorithm;
     private final ArrayList<File> mergedFiles = Lists.newArrayList();
     private final ArrayList<File> unmergedFiles = Lists.newArrayList();
     private ExecutorService executorService;
@@ -167,14 +168,14 @@ public class MergeRunner implements Runnable {
     /**
      * Constructor.
      * @param sortedFiles thread safe list containing files to be merged.
-     * @param comparator comparator used to help with sorting of node state entries.
      * @param mergeDir directory where sorted files will be created.
-     * @param compressionEnabled if true, the created files would be compressed
+     * @param comparator comparator used to help with sorting of node state entries.
+     * @param algorithm string representation of the compression algorithm, use "none" for disable compression.
      */
     MergeRunner(File sortedFile, BlockingQueue<File> sortedFiles, File mergeDir, Comparator<NodeStateHolder> comparator,
-                Phaser phaser, int batchMergeSize, int threadPoolSize, boolean compressionEnabled) {
+                Phaser phaser, int batchMergeSize, int threadPoolSize, Compression algorithm) {
         this.mergeDir = mergeDir;
-        this.compressionEnabled = compressionEnabled;
+        this.algorithm = algorithm;
         this.sortedFiles = sortedFiles;
         this.sortedFile = sortedFile;
         this.throwables = new ConcurrentLinkedQueue<>();
@@ -187,7 +188,7 @@ public class MergeRunner implements Runnable {
 
     private boolean merge(List<File> files, File outputFile) {
         log.debug("performing merge for {} with size {} {}", outputFile.getName(), files.size(), files);
-        try (BufferedWriter writer = createWriter(outputFile, compressionEnabled)) {
+        try (BufferedWriter writer = createWriter(outputFile, algorithm)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(files,
@@ -195,7 +196,7 @@ public class MergeRunner implements Runnable {
                     comparator,
                     charset,
                     true, //distinct
-                    compressionEnabled, //useZip
+                    algorithm,
                     func2,
                     func1
             );
