@@ -18,31 +18,9 @@ package org.apache.jackrabbit.oak.query.stats;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.TreeSet;
-
 import org.junit.Test;
 
-import com.google.common.io.LineReader;
-
 public class QueryRecorderTest {
-    
-    public static void main(String... args) throws IOException {
-        LineReader r = new LineReader(new FileReader("/Users/mueller/temp/queryRecorder.txt"));
-        TreeSet<String> set = new TreeSet<>();
-        while(true) {
-            String l = r.readLine();
-            if (l == null) {
-                break;
-            }
-            String s = QueryRecorder.simplify(l);
-            set.add(s);
-        }
-        for (String x : set) {
-            System.out.println(x);
-        }
-    }
 
     @Test
     public void simplify() {
