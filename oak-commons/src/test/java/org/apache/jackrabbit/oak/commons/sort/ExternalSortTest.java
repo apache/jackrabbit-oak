@@ -415,7 +415,7 @@ public class ExternalSortTest {
     /**
      * Sample case to sort csv file.
      * 
-     * @param algorithm use lz4 or gzip as compression algorithm
+     * @param algorithm the compression algorithm to use
      * @throws Exception
      * 
      */
