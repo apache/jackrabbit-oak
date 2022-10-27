@@ -18,12 +18,48 @@ package org.apache.jackrabbit.oak.query.stats;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.TreeSet;
+
 import org.junit.Test;
+
+import com.google.common.io.LineReader;
 
 public class QueryRecorderTest {
     
+    public static void main(String... args) throws IOException {
+        LineReader r = new LineReader(new FileReader("/Users/mueller/temp/queryRecorder.txt"));
+        TreeSet<String> set = new TreeSet<>();
+        while(true) {
+            String l = r.readLine();
+            if (l == null) {
+                break;
+            }
+            String s = QueryRecorder.simplify(l);
+            set.add(s);
+        }
+        for (String x : set) {
+            System.out.println(x);
+        }
+    }
+
     @Test
     public void simplify() {
+        // special cases
+        assertEquals("SELECT * FROM [nt:unstructured] AS node WHERE [id]='x'",
+                QueryRecorder.simplify("SELECT * FROM [nt:unstructured] AS node WHERE [id]='Joes''s'"));
+        assertEquals("SELECT * FROM [nt:unstructured] AS node WHERE [id]=1",
+                QueryRecorder.simplify("SELECT * FROM [nt:unstructured] AS node WHERE [id]=1002877501"));
+        assertEquals("SELECT p.* FROM [cq:Page] AS p WHERE isdescendantnode('x')", QueryRecorder
+                .simplify("SELECT p.* FROM [cq:Page] AS p WHERE isdescendantnode(p,[/content/kaufland/hr/hr/home])"));
+        assertEquals("SELECT p.* FROM [cq:Page] AS p WHERE ISDESCENDANTNODE('x')", QueryRecorder
+                .simplify("SELECT p.* FROM [cq:Page] AS p WHERE ISDESCENDANTNODE(p,[/content/kaufland/hr/hr/home])"));
+        assertEquals("SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE(\"x\") AND [cq:template] like \"x\"", QueryRecorder
+                .simplify("SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE(\"/test\") AND [cq:template] like \"abc\""));
+        assertEquals("(/jcr:root/a/b/.../* | /jcr:root/d/e/.../*)",
+                QueryRecorder.simplify("(/jcr:root/a/b/c/d//* | /jcr:root/d/e/f/g//*)"));
+
         // SQL-2
         // dummy
         assertEquals("SELECT sling:alias FROM nt:base WHERE sling:alias IS NOT NULL", 
