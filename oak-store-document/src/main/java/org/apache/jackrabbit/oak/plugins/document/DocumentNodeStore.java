@@ -2357,11 +2357,19 @@ public final class DocumentNodeStore
      */
     boolean renewClusterIdLease() {
         Stopwatch sw = Stopwatch.createStarted();
-        boolean renewed = clusterNodeInfo.renewLease();
-        if (renewed) {
-            nodeStoreStatsCollector.doneLeaseUpdate(sw.elapsed(MICROSECONDS));
+        boolean renewedOrException = true;
+        try {
+            renewedOrException = clusterNodeInfo.renewLease();
+        } finally {
+            // we need to collect the stats if,
+            // 1. Either lease had been renewed
+            // 2. or there is exception while renewing the lease i.e lease renewal failed/timed out
+            // In case lease is not renewed (can happen if it had not expired), we don't collect the stats
+            if (renewedOrException) {
+                nodeStoreStatsCollector.doneLeaseUpdate(sw.elapsed(MICROSECONDS));
+            }
         }
-        return renewed;
+        return renewedOrException;
     }
 
     /**
