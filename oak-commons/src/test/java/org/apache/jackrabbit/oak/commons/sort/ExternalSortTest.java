@@ -20,6 +20,8 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
+import net.jpountz.lz4.LZ4FrameInputStream;
+import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.junit.After;
 import org.junit.Before;
@@ -33,6 +35,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -359,6 +363,7 @@ public class ExternalSortTest {
     @Test
     public void testCSVSorting() throws Exception {
         testCSVSortingWithParams(Compression.NONE);
+        testCSVSortingWithParams(LZ4());
         testCSVSortingWithParams(Compression.GZIP);
     }
 
@@ -410,7 +415,7 @@ public class ExternalSortTest {
     /**
      * Sample case to sort csv file.
      * 
-     * @param algorithm use gzip as compression algorithm
+     * @param algorithm the compression algorithm to use
      * @throws Exception
      * 
      */
@@ -557,6 +562,23 @@ public class ExternalSortTest {
         } finally {
             out.close();
         }
+    }
+    
+    private static Compression LZ4() {
+        return new Compression() {
+            @Override
+            public InputStream getInputStream(InputStream in) throws IOException {
+                return new LZ4FrameInputStream(in);
+            }
+            @Override
+            public OutputStream getOutputStream(OutputStream out) throws  IOException {
+                return new LZ4FrameOutputStream(out);
+            }
+            @Override
+            public String addSuffix(String filename) {
+                return filename + ".lz4";
+            }
+        };
     }
 
 }
