@@ -152,7 +152,9 @@ public class Persistence {
 
     @Nullable
     public NodeStore getCompositeNodestore() {
-        // returns null if Persistence object is not created in composite mode
+        if (compositeNodestore == null) {
+            throw new IllegalStateException("persistence object was not opened in composite mode");
+        }
         return compositeNodestore;
     }
 

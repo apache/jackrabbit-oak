@@ -155,6 +155,7 @@ public class IndexUtils {
         }
     }
 
+    // Could throw NPE, but we don't care as it's a test
     public static boolean isIndexDisabledAndHiddenNodesDeleted(NodeStore store, String path) {
         NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), path);
         if (!nodeState.getProperty("type").getValue(Type.STRING).equals("disabled")) {
