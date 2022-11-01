@@ -171,7 +171,7 @@ public class IndexUtils {
         return true;
     }
 
-    public static boolean isIndexEnabledAndHiddenNodesPreset(NodeStore store, String path) {
+    public static boolean isIndexEnabledAndHiddenNodesPresent(NodeStore store, String path) {
         NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), path);
         if (!nodeState.getProperty("type").getValue(Type.STRING).equals("lucene")
                 && !nodeState.getProperty("type").getValue(Type.STRING).equals("elastic")) {

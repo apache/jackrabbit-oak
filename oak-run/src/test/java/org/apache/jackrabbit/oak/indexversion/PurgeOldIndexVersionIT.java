@@ -77,7 +77,7 @@ public class PurgeOldIndexVersionIT {
         Assert.assertEquals(1, purgeOldIndexVersionLogger.getLogs().size());
         Assert.assertEquals(purgeLog, purgeOldIndexVersionLogger.getLogs().get(0).toString());
         Assert.assertTrue(IndexUtils.isIndexDisabledAndHiddenNodesDeleted(n, "/oak:index/test-1"));
-        Assert.assertTrue(IndexUtils.isIndexEnabledAndHiddenNodesPreset(n, "/oak:index/test-2"));
+        Assert.assertTrue(IndexUtils.isIndexEnabledAndHiddenNodesPresent(n, "/oak:index/test-2"));
     }
 
     private void initGlobal() throws Exception {
