@@ -49,7 +49,8 @@ public class PurgeOldIndexVersionIT {
 
     @Before
     public void setup() {
-        purgeOldIndexVersionLogger = LogCustomizer.forLogger(PurgeOldIndexVersion.class.getName()).enable(Level.INFO).contains("Found some index need to be purged over base").create();
+        purgeOldIndexVersionLogger = LogCustomizer.forLogger(PurgeOldIndexVersion.class.getName())
+                .enable(Level.INFO).contains("Found some index need to be purged over base").create();
     }
 
     @After
@@ -111,7 +112,6 @@ public class PurgeOldIndexVersionIT {
         IndexUtils.createIndex(p, "test-1", "foo", 10);
         IndexUtils.createIndex(p, "test-2", "foo", 20);
 
-        // the new index must be used in the new version (with libs2)
         IndexUtils.assertQueryUsesIndexAndReturns(p,
                 "/jcr:root//*[@foo] order by @jcr:path",
                 "test-2",
@@ -121,7 +121,7 @@ public class PurgeOldIndexVersionIT {
 
     private void createFolders() throws IOException {
         globalDir = tempDir.newFolder("global");
-        libsDir = tempDir.newFolder("libs2");
+        libsDir = tempDir.newFolder("libs");
         datastoreDir = tempDir.newFolder("datastore");
         indexDir = tempDir.newFolder("index");
     }
