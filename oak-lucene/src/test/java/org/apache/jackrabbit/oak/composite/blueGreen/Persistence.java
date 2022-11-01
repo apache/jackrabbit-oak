@@ -108,6 +108,7 @@ import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility class to open a repository.
@@ -149,10 +150,9 @@ public class Persistence {
         return result;
     }
 
-    public NodeStore getCompositeNodestore() throws Exception {
-        if (compositeNodestore == null){
-            throw new Exception("persistence object was not opened in composite mode");
-        }
+    @Nullable
+    public NodeStore getCompositeNodestore() {
+        // returns null if Persistence object is not created in composite mode
         return compositeNodestore;
     }
 

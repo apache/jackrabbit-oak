@@ -76,7 +76,7 @@ public class PurgeOldIndexVersionIT {
         String purgeLog = "Found some index need to be purged over base'/oak:index/test':" +
                 " '[/oak:index/test-1 base=/oak:index/test versioned product=1 custom=0 operation:DELETE_HIDDEN_AND_DISABLE]'";
         Assert.assertEquals(1, purgeOldIndexVersionLogger.getLogs().size());
-        Assert.assertEquals(purgeLog, purgeOldIndexVersionLogger.getLogs().get(0).toString());
+        Assert.assertEquals(purgeLog, purgeOldIndexVersionLogger.getLogs().get(0));
         Assert.assertTrue(IndexUtils.isIndexDisabledAndHiddenNodesDeleted(n, "/oak:index/test-1"));
         Assert.assertTrue(IndexUtils.isIndexEnabledAndHiddenNodesPresent(n, "/oak:index/test-2"));
     }

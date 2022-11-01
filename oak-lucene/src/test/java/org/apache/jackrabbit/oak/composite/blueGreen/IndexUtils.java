@@ -155,7 +155,7 @@ public class IndexUtils {
         }
     }
 
-    public static boolean isIndexDisabledAndHiddenNodesDeleted(NodeStore store, String path) throws CommitFailedException {
+    public static boolean isIndexDisabledAndHiddenNodesDeleted(NodeStore store, String path) {
         NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), path);
         if (!nodeState.getProperty("type").getValue(Type.STRING).equals("disabled")) {
             return false;
