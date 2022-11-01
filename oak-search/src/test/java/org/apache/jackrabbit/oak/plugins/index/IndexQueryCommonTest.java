@@ -61,12 +61,12 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
     private LogCustomizer logCustomizer;
-    private final String nativeWarnLog = "native queries are deprecated. query:";
+    private final String nativeWarnLog = "Native queries are deprecated. Query:";
 
     @Before
     public void setupLogger(){
         logCustomizer = LogCustomizer.forLogger(SQL2Parser.class.getName()).enable(Level.WARN)
-                        .contains("native queries are deprecated. query:").create();
+                        .contains(nativeWarnLog).create();
         logCustomizer.starting();
     }
 
