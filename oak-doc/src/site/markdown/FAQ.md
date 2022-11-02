@@ -40,6 +40,9 @@ Debugging merge conflict errors is now possible by enabling `DEBUG` logs on
 `org.apache.jackrabbit.oak.plugins.commit.ConflictValidator`. 
 This option is available via [OAK-3057](https://issues.apache.org/jira/browse/OAK-3057) since Oak 1.0.17, 1.2.3, 1.3.3. 
 
+## Questions about External Authentication
+See the dedicated [FAQ](security/authentication/external/faq.html)
+
 ## My question is not listed here
 
 Search the [Oak dev list](http://jackrabbit.markmail.org/search/+list:org.apache.jackrabbit.oak-dev)
