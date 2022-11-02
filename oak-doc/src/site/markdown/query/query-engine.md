@@ -516,7 +516,7 @@ The SimpleExcerptProvider is also used for queries that don't use
 a Lucene index, or if the query uses a Lucene index, but excerpts are not configured there.
 
 ### Native Queries
-
+`@deprecated Oak 1.46`
 To take advantage of features that are available in full-text index implementations
 such as Apache Lucene and Apache Lucene Solr, so called `native` constraints are supported.
 Such constraints are passed directly to the full-text index. This is supported
