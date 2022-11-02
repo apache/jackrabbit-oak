@@ -108,6 +108,7 @@ import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility class to open a repository.
@@ -118,6 +119,8 @@ public class Persistence {
 
     private final ArrayList<FileStore> fileStores = new ArrayList<>();
     private JackrabbitRepository repository;
+    private NodeStore compositeNodestore;
+
     public Session session;
 
     public static Persistence open(File directory, Config config) throws Exception {
@@ -138,13 +141,21 @@ public class Persistence {
         FileStore globalFileStore = openFileStore(globalDir, config.blobStore);
         result.fileStores.add(globalFileStore);
         SegmentNodeStore globalStore = openSegmentStore(globalFileStore);
-        NodeStore cn = new CompositeNodeStore.Builder(
+        result.compositeNodestore = new CompositeNodeStore.Builder(
                 MOUNT_INFO_PROVIDER,
                 globalStore).addMount("libs", libsStore).
                 setPartialReadOnly(true).build();
-        result.repository = openRepsitory(cn, config.indexDir);
+        result.repository = openRepsitory(result.compositeNodestore, config.indexDir);
         result.session = result.repository.login(createCredentials());
         return result;
+    }
+
+    @Nullable
+    public NodeStore getCompositeNodestore() {
+        if (compositeNodestore == null) {
+            throw new IllegalStateException("persistence object was not opened in composite mode");
+        }
+        return compositeNodestore;
     }
 
     public void close() {
