@@ -636,6 +636,7 @@ public class SQL2Parser {
                 }
             }
         } else if ("NATIVE".equalsIgnoreCase(functionName)) {
+            LOG.warn("Native queries are deprecated. Query:{}", statement);
             String selectorName;
             if (currentTokenType == IDENTIFIER) {
                 selectorName = readName();

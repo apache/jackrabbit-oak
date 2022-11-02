@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -68,7 +69,7 @@ public class TraverseAndSortTaskTest {
 
         Queue<Callable<List<File>>> newTaskQueue = new LinkedList<>();
         File store = new File("target/" + this.getClass().getSimpleName() + "-" + System.currentTimeMillis());
-        TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, store, true,
+        TraverseAndSortTask tst = new TraverseAndSortTask(traversingRange, null, null, store, Compression.GZIP,
                 new LinkedList<>(Collections.singletonList("1")), newTaskQueue, phaser, new NodeStateEntryTraverserFactoryImpl(), mockMemManager,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, new LinkedBlockingQueue<File>(), path -> true);
 

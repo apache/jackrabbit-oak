@@ -28,10 +28,19 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
@@ -48,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitiali
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -61,10 +71,15 @@ import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.junit.After;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+import org.junit.rules.TestRule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -75,8 +90,10 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -84,20 +101,34 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
 
 public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
+    private final Logger LOG = LoggerFactory.getLogger(getClass());
+
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
+    @Rule
+    public final TestRule restoreSystemProperties = new RestoreSystemProperties();
+
     @BeforeClass
     public static void checkMongoDbAvailable() {
         Assume.assumeTrue(MongoUtils.isAvailable());
     }
 
+    DocumentNodeStore dns;
+    
+    @After
+    public void tear() {
+        if (dns != null) {
+            dns.dispose();
+        }
+    }
+    
     @Test
     public void indexMongoRepo() throws Exception{
-        DocumentNodeStore dns = getNodeStore();
+        dns = getNodeStore();
         fixture = new RepositoryFixture(temporaryFolder.getRoot(), dns);
         createTestData(false);
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
@@ -129,6 +160,128 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         assertEquals(1, idxDirs.size());
     }
 
+    @Test
+    public void parallelReindex() throws Exception {
+        LOG.info("Starting parallelReindex");
+        parallelReindexInternal();
+        LOG.info("Finished parallelReindex");
+    }
+
+    @Test
+    public void parallelReindexWithLZ4() throws Exception {
+        LOG.info("Starting parallelReindexWithLZ4");
+        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4, "true");
+        parallelReindexInternal();
+        LOG.info("Finished parallelReindexWithLZ4");
+    }
+
+    /**
+     * Test parallel indexing 
+     * @throws Exception
+     */
+    private void parallelReindexInternal() throws Exception {
+        System.setProperty("oak.indexer.minMemoryForWork", "1");
+        System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_PARALLEL_INDEX, "true");
+        System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD, "0");
+        System.setProperty(IndexerConfiguration.PROP_SPLIT_STORE_SIZE, "6");
+        System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_THREAD_POOL_SIZE, "2");
+        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "true");
+
+        DocumentNodeStore dns = getNodeStore();
+        fixture = new RepositoryFixture(temporaryFolder.getRoot(), dns);
+        
+        createTestData("/testNodea/test/a", "foo", 40, "oak:Unstructured", true);
+        createTestData("/testNodeb/test/b", "foo", 40, "oak:Unstructured", true);
+        createTestData("/testNodec/test/c", "foo", 40, "oak:Unstructured", true);
+        
+        fixture.getAsyncIndexUpdate("async").run();
+        int fooCount = getFooCount(fixture, "foo");
+        assertEquals("async index wrong count", 120, fooCount);
+        
+        String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
+        fixture.close();
+
+        IndexCommand command = new IndexCommand();
+        File outDir = temporaryFolder.newFolder();
+        String[] args = {
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir="  + outDir.getAbsolutePath(),
+            "--index-paths=/oak:index/fooIndex",
+            "--doc-traversal-mode",
+            "--checkpoint="+checkpoint,
+            "--reindex",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            MongoUtils.URL
+        };
+
+        command.execute(args);
+        
+        File indexes = new File(outDir, IndexerSupport.LOCAL_INDEX_ROOT_DIR);
+        assertTrue(indexes.exists());
+
+        IndexRootDirectory idxRoot = new IndexRootDirectory(indexes);
+        List<LocalIndexDir> idxDirs = idxRoot.getAllLocalIndexes();
+
+        assertEquals(1, idxDirs.size());
+        
+        //~-----------------------------------------
+        //Phase 2 - Import the indexes
+        IndexCommand command2 = new IndexCommand();
+        File indexDir = new File(outDir, IndexerSupport.LOCAL_INDEX_ROOT_DIR);
+        String[] args3 = {
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir="  + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-import-dir="  + indexDir.getAbsolutePath(),
+            "--index-import",
+            "--read-write",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            MongoUtils.URL
+        };
+        command2.execute(args3);
+
+        //~-----------------------------------------
+        //Phase 3 - Validate the import
+        RepositoryFixture fixture3 = new RepositoryFixture(temporaryFolder.getRoot(), dns);
+        int foo3Count = getFooCount(fixture3, "foo");
+
+        //new count should be same as previous
+        assertEquals(fooCount, foo3Count);
+
+        //Checkpoint must be released
+        assertNull(fixture3.getNodeStore().retrieve(checkpoint));
+
+        //Lock should also be released
+        ClusterNodeStoreLock clusterLock = new ClusterNodeStoreLock(fixture3.getNodeStore());
+        assertFalse(clusterLock.isLocked("async"));
+        
+        fixture3.close();
+        dns.dispose();
+    }
+
+    private int getFooCount(RepositoryFixture fixture, String propName) throws IOException, RepositoryException {
+        Session session = fixture.getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String explanation = getQueryPlan(fixture, "select * from [oak:Unstructured] where ["+propName+"] is not null");
+        assertThat(explanation, containsString("/oak:index/fooIndex"));
+
+        Query q = qm.createQuery("select * from [oak:Unstructured] where [foo] is not null", Query.JCR_SQL2);
+        QueryResult result = q.execute();
+        int size = Iterators.size(result.getNodes());
+        session.logout();
+        return size;
+    }
+
+    private static String getQueryPlan(RepositoryFixture fixture, String query) throws RepositoryException, IOException {
+        Session session = fixture.getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Query explain = qm.createQuery("explain "+query, Query.JCR_SQL2);
+        QueryResult explainResult = explain.execute();
+        Row explainRow = explainResult.getRows().nextRow();
+        String explanation = explainRow.getValue("plan").getString();
+        session.logout();
+        return explanation;
+    }
+    
     @Test
     public void indexMongoRepo_WithCompressionDisabled() throws Exception{
         System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "false");
@@ -214,12 +367,19 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
     }
 
+    @Test
+    public void testParallelIndexing() throws Exception {
+        System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_PARALLEL_INDEX, "true");
+        System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_THREAD_POOL_SIZE, "2");
+        bundling();
+    }
+
     private void configureIndex(DocumentNodeStore store) throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder idxb = childBuilder(builder, TEST_INDEX_PATH);
 
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder(idxb);
-        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.indexRule("oak:Unstructured").property("foo").propertyIndex();
         defnb.build();
 
         merge(store, builder);

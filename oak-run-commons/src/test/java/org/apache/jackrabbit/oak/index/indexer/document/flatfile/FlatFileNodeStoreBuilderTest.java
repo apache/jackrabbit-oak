@@ -18,17 +18,27 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.jackrabbit.oak.index.IndexHelper;
+import org.apache.jackrabbit.oak.index.IndexerSupport;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.util.Collections;
-
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_TRAVERSE_WITH_SORT;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class FlatFileNodeStoreBuilderTest {
 
@@ -89,5 +99,21 @@ public class FlatFileNodeStoreBuilderTest {
         }
     }
 
-
+    @Test
+    public void testBuildList() throws CompositeException, IOException {
+        try {
+            File flatFile = new File(getClass().getClassLoader().getResource("simple-split.json").getFile());
+            System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, flatFile.getAbsolutePath());
+            FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot()).withNodeStateEntryTraverserFactory(
+                    nodeStateEntryTraverserFactory);
+            IndexHelper indexHelper = mock(IndexHelper.class);
+            IndexerSupport indexerSupport = mock(IndexerSupport.class);
+            NodeState rootState = mock(NodeState.class);
+            when(indexerSupport.retrieveNodeStateForCheckpoint()).thenReturn(rootState);
+            List<FlatFileStore> storeList = builder.buildList(indexHelper, indexerSupport, null);
+            assertEquals(1, storeList.size());
+        } finally {
+            System.clearProperty(OAK_INDEXER_SORTED_FILE_PATH);
+        }
+    }
 }

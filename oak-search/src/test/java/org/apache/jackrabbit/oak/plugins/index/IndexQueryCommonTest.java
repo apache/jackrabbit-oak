@@ -21,10 +21,17 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.event.Level;
+
 import java.text.ParseException;
 import java.util.*;
 
@@ -53,6 +60,21 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     private Tree indexDefn;
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
+    private LogCustomizer logCustomizer;
+    private final String nativeWarnLog = "Native queries are deprecated. Query:";
+
+    @Before
+    public void setupLogger(){
+        logCustomizer = LogCustomizer.forLogger(SQL2Parser.class.getName()).enable(Level.WARN)
+                        .contains(nativeWarnLog).create();
+        logCustomizer.starting();
+    }
+
+    @After
+    public void closeLogger(){
+        logCustomizer.finished();
+    }
+
 
     @Override
     protected void createTestIndexNode() throws Exception {
@@ -366,6 +388,9 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             assertEquals("/test/a", result.next());
             assertFalse(result.hasNext());
         });
+        Assert.assertNotEquals(0, logCustomizer.getLogs().size());
+        Assert.assertTrue("native query WARN message is not present, message in Logger is "
+                +  logCustomizer.getLogs(), logCustomizer.getLogs().get(0).contains(nativeQueryString));
     }
 
     @Test
@@ -385,6 +410,9 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             assertEquals("/test/b", result.next());
             assertFalse(result.hasNext());
         });
+        Assert.assertNotEquals(0, logCustomizer.getLogs().size());
+        Assert.assertTrue("native query WARN message is not present, message in Logger is "
+                +  logCustomizer.getLogs(), logCustomizer.getLogs().get(0).contains(nativeWarnLog));
     }
 
     @Test
