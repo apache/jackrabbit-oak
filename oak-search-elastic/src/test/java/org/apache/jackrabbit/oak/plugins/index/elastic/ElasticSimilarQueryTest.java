@@ -276,7 +276,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
         File file = new File(uri);
 
-        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+        for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
             String[] split = line.split(",");
             List<Double> values = Arrays.stream(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
