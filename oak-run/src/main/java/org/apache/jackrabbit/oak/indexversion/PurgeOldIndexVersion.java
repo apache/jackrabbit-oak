@@ -46,7 +46,7 @@ public class PurgeOldIndexVersion {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeOldIndexVersion.class);
 
     /**
-     * Execute purging index based on the index version naming and last time index time
+     * Execute purging index based on the index version naming and last time index time. This will purge base index.
      *
      * @param nodeStore             the node store
      * @param isReadWriteRepository bool to indicate if it's read write repository, if yes, the purge index will not execute
@@ -58,7 +58,23 @@ public class PurgeOldIndexVersion {
      */
     public void execute(NodeStore nodeStore, boolean isReadWriteRepository, long purgeThresholdMillis, List<String> indexPaths) throws
             IOException, CommitFailedException {
-        List<IndexVersionOperation> purgeIndexList = getPurgeIndexes(nodeStore, purgeThresholdMillis, indexPaths);
+        execute(nodeStore, isReadWriteRepository, purgeThresholdMillis, indexPaths, true);
+    }
+    /**
+     * Execute purging index based on the index version naming and last time index time
+     *
+     * @param nodeStore             the node store
+     * @param isReadWriteRepository bool to indicate if it's read write repository, if yes, the purge index will not execute
+     * @param purgeThresholdMillis  the threshold of time length since last time index time to determine, will purge if exceed that
+     * @param indexPaths            the index path or parent path
+     * @param shouldPurgeBaseIndex  If set to true, will apply purge operations on active base index i.e. DELETE or DELETE_HIDDEN_AND_DISABLE
+     *
+     * @throws IOException
+     * @throws CommitFailedException
+     */
+    public void execute(NodeStore nodeStore, boolean isReadWriteRepository, long purgeThresholdMillis, List<String> indexPaths, boolean shouldPurgeBaseIndex) throws
+            IOException, CommitFailedException {
+        List<IndexVersionOperation> purgeIndexList = getPurgeIndexes(nodeStore, purgeThresholdMillis, indexPaths, shouldPurgeBaseIndex);
         if (!purgeIndexList.isEmpty()) {
             if (isReadWriteRepository) {
                 LOG.info("Found indexes for purging: '{}'", purgeIndexList);
@@ -73,7 +89,7 @@ public class PurgeOldIndexVersion {
         }
     }
 
-    public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths) throws IOException, CommitFailedException {
+    public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths, boolean shouldPurgeBaseIndex ) throws IOException, CommitFailedException {
         List<IndexVersionOperation> purgeIndexList = new ArrayList<>();
         LOG.info("Getting indexes to purge over index paths '{}'", indexPaths);
         List<String> sanitisedIndexPaths = sanitiseUserIndexPaths(indexPaths);
@@ -85,7 +101,7 @@ public class PurgeOldIndexVersion {
             List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
             LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath, indexNameObjectList);
             List<IndexVersionOperation> toDeleteIndexNameObjectList = IndexVersionOperation.generateIndexVersionOperationList(
-                    nodeStore.getRoot(), parentPath, indexNameObjectList, purgeThresholdMillis);
+                    nodeStore.getRoot(), parentPath, indexNameObjectList, purgeThresholdMillis, shouldPurgeBaseIndex);
             toDeleteIndexNameObjectList.removeIf(item -> (item.getOperation() == IndexVersionOperation.Operation.NOOP));
             if (!toDeleteIndexNameObjectList.isEmpty()) {
                 LOG.info("Found some index need to be purged over base'{}': '{}'", baseIndexPath, toDeleteIndexNameObjectList);
@@ -95,6 +111,11 @@ public class PurgeOldIndexVersion {
             }
         }
         return purgeIndexList;
+    }
+
+    // Purge operations will also be performed on base index i.e. DELETE or DELETE_HIDDEN_AND_DISABLE
+    public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths) throws IOException, CommitFailedException {
+        return getPurgeIndexes(nodeStore, purgeThresholdMillis, indexPaths, true);
     }
 
     /**
