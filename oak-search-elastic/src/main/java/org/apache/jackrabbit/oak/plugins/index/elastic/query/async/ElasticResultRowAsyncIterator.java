@@ -252,7 +252,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     }
             );
 
-
             LOG.trace("Kicking initial search for query {}", searchReq);
             semaphore.tryAcquire();
 
