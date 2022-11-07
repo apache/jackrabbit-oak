@@ -72,6 +72,10 @@ NodeStore it might hit some size limit restriction also. For e.g. with
 DocumentMK the MVP would be stored in the backing Document which on Mongo has a 
 16MB limit.
 
+More efficient alternatives to large MVPs include:
+* store the list of values in a binary property
+* use a [PropertySequence](https://jackrabbit.apache.org/api/trunk/org/apache/jackrabbit/commons/flat/PropertySequence.html) available in jackrabbit-commons (JCR-2688)
+
 ### Inlining large binaries
 
 Most of the `BlobStore` provide an option to inline small binary content as part of 
