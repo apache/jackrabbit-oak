@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.OakInitializer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -49,17 +50,20 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -88,7 +92,8 @@ public class FlatFileSplitterTest {
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(1, flatFileList.size());
-        assertEquals(flatFile, flatFileList.get(0));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
     }
 
     @Test
@@ -99,7 +104,8 @@ public class FlatFileSplitterTest {
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(1, flatFileList.size());
-        assertEquals(flatFile, flatFileList.get(0));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
     }
 
     @Test
@@ -111,7 +117,8 @@ public class FlatFileSplitterTest {
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(1, flatFileList.size());
-        assertEquals(flatFile.length(), flatFileList.get(0).length());
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
     }
 
     @Test
@@ -122,10 +129,10 @@ public class FlatFileSplitterTest {
         FileUtils.copyFile(flatFile, copied);
         FlatFileSplitter splitter = createTestSplitter(copied, 0, Integer.MAX_VALUE, false, splitNodeTypeNames);
 
-        long originalSize = flatFile.length();
         List<File> flatFileList = splitter.split();
 
-        assertEquals(originalSize, getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
         assertTrue(flatFile.exists());
         assertTrue(!copied.exists());
     }
@@ -143,7 +150,8 @@ public class FlatFileSplitterTest {
         assertEquals(1, countLines(flatFileList.get(0)));
         assertEquals(1, countLines(flatFileList.get(1)));
         assertEquals(1, countLines(flatFileList.get(2)));
-        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList)); 
     }
 
     @Test
@@ -160,7 +168,8 @@ public class FlatFileSplitterTest {
         assertEquals("no-split", startLineType(flatFileList.get(0)));
         assertEquals(4, countLines(flatFileList.get(1)));
         assertEquals("no-split", startLineType(flatFileList.get(1)));
-        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
     }
 
     @Test
@@ -181,7 +190,8 @@ public class FlatFileSplitterTest {
         assertEquals("split", startLineType(flatFileList.get(2)));
         assertEquals(2, countLines(flatFileList.get(3)));
         assertEquals("no-split", startLineType(flatFileList.get(3)));
-        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
     }
 
     @Test
@@ -201,7 +211,8 @@ public class FlatFileSplitterTest {
         assertEquals("no-split-2", startLineType(flatFileList.get(1)));
         assertEquals(1, countLines(flatFileList.get(2)));
         assertEquals(1, countLines(flatFileList.get(3)));
-        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
     }
 
     @Test
@@ -225,7 +236,8 @@ public class FlatFileSplitterTest {
         assertEquals("split", startLineType(flatFileList.get(2)));
         assertEquals(2, countLines(flatFileList.get(3)));
         assertEquals("no-split-4", startLineType(flatFileList.get(3)));
-        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
     }
 
     @Test
@@ -241,7 +253,8 @@ public class FlatFileSplitterTest {
         List<File> flatFileList = splitter.split(false);
 
         assertEquals(expectedSplitSize, flatFileList.size());
-        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
         assertEquals(startLine(flatFile), startLine(flatFileList.get(0)));
         for (int i = 1; i < flatFileList.size(); i++) {
             assertEquals(assetNodeType, startLineType(flatFileList.get(i)));
@@ -270,7 +283,8 @@ public class FlatFileSplitterTest {
         List<File> flatFileList = splitter.split(false);
 
         assertTrue(expectedSplitSize <= flatFileList.size());
-        assertEquals(flatFile.length(), getTotalSize(flatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(flatFile)),
+            readAllFilesAsSet(flatFileList));
         assertEquals(startLineType(flatFile), startLineType(flatFileList.get(0)));
         String expectedSplitPoint = "/etc|{\"jcr:primaryType\":\"nam:sling:Folder\"}";
         assertEquals(expectedSplitPoint, startLine(flatFileList.get(1)));
@@ -307,7 +321,8 @@ public class FlatFileSplitterTest {
         }
 
         assertTrue(expectedSplitSize <= flatFileList.size());
-        assertEquals(rawFlatFile.length(), getTotalSize(rawFlatFileList));
+        assertEquals(readAllFilesAsSet(Collections.singletonList(rawFlatFile)),
+            readAllFilesAsSet(rawFlatFileList));
     }
 
     @Test
@@ -532,5 +547,16 @@ public class FlatFileSplitterTest {
                 w.newLine();
             }
         }
+    }
+    
+    private static Set<String> readAllFilesAsSet(List<File> files) {
+        Set<String> set = files.stream().flatMap(file -> {
+            try ( InputStream is = Files.newInputStream(file.toPath())) {
+                return FileIOUtils.readStringsAsSet(is, false).stream();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toSet());
+        return set;
     }
 }
