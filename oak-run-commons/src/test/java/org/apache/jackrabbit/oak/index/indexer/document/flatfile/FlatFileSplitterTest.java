@@ -561,7 +561,7 @@ public class FlatFileSplitterTest {
     
     private static Set<String> readAllFilesAsSet(List<File> files) {
         Set<String> set = files.stream().flatMap(file -> {
-            try ( InputStream is = Files.newInputStream(file.toPath())) {
+            try (InputStream is = Files.newInputStream(file.toPath())) {
                 return FileIOUtils.readStringsAsSet(is, false).stream();
             } catch (IOException e) {
                 throw new RuntimeException(e);
