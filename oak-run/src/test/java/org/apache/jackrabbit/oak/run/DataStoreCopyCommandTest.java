@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
@@ -209,8 +210,8 @@ public class DataStoreCopyCommandTest {
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         );
-        assertEquals(
-                outDir.getRoot().getAbsolutePath() + "/88/97/b9/8897b9025dc534d4a9fa5920569b373cd714c8cfe5d030ca3f5edb25004894a5",
+        assertEquals(Joiner.on(File.separator).join(outDir.getRoot().getAbsolutePath(), "88",
+                        "97", "b9","8897b9025dc534d4a9fa5920569b373cd714c8cfe5d030ca3f5edb25004894a5"),
                 cmd.getDestinationFromId(BLOB1)
         );
     }
