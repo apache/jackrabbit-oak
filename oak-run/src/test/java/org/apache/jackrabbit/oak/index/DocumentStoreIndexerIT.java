@@ -73,6 +73,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -118,6 +119,15 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
     }
 
     DocumentNodeStore dns;
+
+    @Before
+    public void setup() throws IOException {
+        try {
+            System.setProperty("java.io.tmpdir", temporaryFolder.newFolder("systemp").getAbsolutePath());
+        } catch (IOException e) {
+            throw e;
+        }
+    }
     
     @After
     public void tear() {
