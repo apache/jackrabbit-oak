@@ -405,11 +405,33 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         // Mark all used references
         iterateNodeTree(fs, false);
-
+        
+        // Get size
+        sizeBlobStoreReferences(fs, stats);
+        
         // Move the marked references file to the data store meta area if applicable
         GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId, uniqueSuffix);
 
         LOG.debug("Ending mark phase of the garbage collector");
+    }
+
+    private static void sizeBlobStoreReferences(GarbageCollectorFileState fs, GarbageCollectionOperationStats stats)
+        throws IOException {
+        try (LineIterator lineIterator = new LineIterator(new FileReader(fs.getMarkedRefs()))) {
+            lineIterator.forEachRemaining(line -> {
+                String id = line.split(DELIM)[0];
+                long length = DataStoreBlobStore.BlobId.of(id).getLength();
+                LOG.info("Blob {} has size {}", id, length);
+
+                stats.getCollector().updateNumBlobReferences(1);
+
+                if (length != -1) {
+                    stats.getCollector().updateSizeBlobReferences(length);
+                }
+            });
+        }
+        LOG.info("Blob references found : {} with size : {}", stats.numBlobReferences(),
+            stats.sizeBlobReferences());
     }
 
     /**
@@ -526,7 +548,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         if (checkConsistencyAfterGc) {
-            BlobCollectionType.get(blobStore).checkConsistencyAfterGC(blobStore, fs, consistencyStatsCollector, new File(root));
+            BlobCollectionType.get(blobStore).checkConsistencyAfterGC(blobStore, fs, consistencyStats, new File(root));
         }
         BlobCollectionType.get(blobStore).handleRemoves(blobStore, fs.getGarbage(), fs.getMarkedRefs());
 
@@ -717,6 +739,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     merge(files, fs.getMarkedRefs(), comparing(s -> s.split(DELIM)[0]));
                 }
             }
+
+            // Get size
+            sizeBlobStoreReferences(fs, consistencyStats);
 
             LOG.trace("Starting difference phase of the consistency check");
             FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
@@ -1076,8 +1101,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         void checkConsistencyAfterGC(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
-            OperationStatsCollector consistencyStatsCollector, File root) throws IOException {
-            consistencyStatsCollector.start();
+            GarbageCollectionOperationStats stats, File root) throws IOException {
+            stats.getCollector().start();
             Stopwatch sw = Stopwatch.createStarted();
 
             try {
@@ -1111,12 +1136,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     }
                     LOG.warn(
                         "Consistency check failure in the the blob store after GC : {}", blobStore);
-                    consistencyStatsCollector.finishFailure();
-                    consistencyStatsCollector.updateNumDeleted(candidates);
+                    stats.getCollector().finishFailure();
+                    stats.getCollector().updateNumDeleted(candidates);
                 }
+                
+                // Update the size of the referenced blobs
+                sizeBlobStoreReferences(fs, stats);
             } finally {
                 sw.stop();
-                consistencyStatsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+                stats.getCollector().updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             }
         }
 
@@ -1156,6 +1184,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         static final String NUM_BLOBS_DELETED = "NUM_BLOBS_DELETED";
         static final String TOTAL_SIZE_DELETED = "TOTAL_SIZE_DELETED";
         static final String NUM_CANDIDATES = "NUM_CANDIDATES";
+        
+        static final String NUM_BLOB_REFERENCES = "NUM_BLOB_REFERENCES";
+
+        static final String BLOB_REFERENCES_SIZE = "BLOB_REFERENCES_SIZE";
 
         private final String typeName;
 
@@ -1164,6 +1196,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         private CounterStats numDeletedCounter;
         private CounterStats totalSizeDeletedCounter;
         private CounterStats numCandidatesCounter;
+        private CounterStats numBlobReferencesCounter;
+        private CounterStats blobReferencesSizeCounter;
         private TimerStats duration;
         private final TimerStats markDuration;
         private final TimerStats sweepDuration;
@@ -1177,6 +1211,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             this.numDeletedCounter = sp.getCounterStats(getMetricName(NUM_BLOBS_DELETED), StatsOptions.METRICS_ONLY);
             this.totalSizeDeletedCounter = sp.getCounterStats(getMetricName(TOTAL_SIZE_DELETED), StatsOptions.METRICS_ONLY);
             this.numCandidatesCounter = sp.getCounterStats(getMetricName(NUM_CANDIDATES), StatsOptions.METRICS_ONLY);
+            this.numBlobReferencesCounter = sp.getCounterStats(getMetricName(NUM_BLOB_REFERENCES), StatsOptions.METRICS_ONLY);
+            this.blobReferencesSizeCounter = sp.getCounterStats(getMetricName(BLOB_REFERENCES_SIZE), StatsOptions.METRICS_ONLY);
             this.duration = sp.getTimer(getMetricName(DURATION), StatsOptions.METRICS_ONLY);
             this.markDuration = sp.getTimer(getMetricName(MARK_DURATION), StatsOptions.METRICS_ONLY);
             this.sweepDuration = sp.getTimer(getMetricName(SWEEP_DURATION), StatsOptions.METRICS_ONLY);
@@ -1207,6 +1243,16 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     totalSizeDeletedCounter.inc(size);
                 }
 
+                @Override
+                public void updateNumBlobReferences(long num) {
+                    numBlobReferencesCounter.inc(num);
+                }
+
+                @Override
+                public void updateSizeBlobReferences(long size) {
+                    blobReferencesSizeCounter.inc(size);
+                }
+                
                 @Override
                 public void updateDuration(long time, TimeUnit timeUnit) {
                     duration.update(time, timeUnit);
@@ -1261,6 +1307,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         @Override public long sizeDeleted() {
             return totalSizeDeletedCounter.getCount();
+        }
+
+        @Override public long numBlobReferences() {
+            return numBlobReferencesCounter.getCount();
+        }
+
+        @Override public long sizeBlobReferences() {
+            return blobReferencesSizeCounter.getCount();
         }
     }
 
