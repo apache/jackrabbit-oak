@@ -238,7 +238,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
 
             List<String> logs = custom.getLogs();
             assertThat("custom fooIndex don't have product version ", logs.toString(),
-                    containsString("IndexVersionOperation List is not valid for index"));
+                    containsString("Repository don't have base index:"));
         } finally {
             custom.finished();
         }
