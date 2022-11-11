@@ -112,6 +112,10 @@ public class IndexVersionOperation {
             if (activeIndexNameObject == null) {
                 LOG.warn("Cannot find any active index from the list: {}", reverseSortedIndexNameList);
             } else {
+                if (!isSameProductVersionBaseIndexPresent(reverseSortedIndexNameList, activeIndexNameObject)) {
+                    LOG.warn("Repository don't have base index:{} with product version same as active index:{}",
+                            activeIndexNameObject.getBaseName() + "-" + activeIndexNameObject.getProductVersion(), activeIndexNameObject.toString());
+                }
                 NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
                 boolean isActiveIndexOldEnough = isActiveIndexOldEnough(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
                 int activeProductVersion = activeIndexNameObject.getProductVersion();
@@ -156,6 +160,12 @@ public class IndexVersionOperation {
             indexVersionOperationList = Collections.emptyList();
         }
         return indexVersionOperationList;
+    }
+
+    private static boolean isSameProductVersionBaseIndexPresent(List<IndexName> reverseSortedIndexNameList, IndexName activeIndexNameObject) {
+        return reverseSortedIndexNameList.stream().filter(n -> (n.getBaseName().equals(activeIndexNameObject.getBaseName())
+                && n.getProductVersion() == activeIndexNameObject.getProductVersion()
+                && n.getCustomerVersion() == 0)).findFirst().isPresent();
     }
 
     // iterate all indexes from high version to lower version to find the active index, then remove it from the reverseSortedIndexNameList
