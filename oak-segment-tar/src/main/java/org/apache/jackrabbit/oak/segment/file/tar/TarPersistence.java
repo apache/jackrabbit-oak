@@ -25,6 +25,7 @@ import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Collection;
 
+import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.file.LocalGCJournalFile;
 import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
@@ -37,8 +38,11 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TarPersistence implements SegmentNodeStorePersistence {
+    private static final Logger log = LoggerFactory.getLogger(TarPersistence.class);
 
     private static final String LOCK_FILE_NAME = "repo.lock";
 
@@ -87,19 +91,35 @@ public class TarPersistence implements SegmentNodeStorePersistence {
     public ManifestFile getManifestFile() {
         return new LocalManifestFile(directory, MANIFEST_FILE_NAME);
     }
-
+    
     @Override
     public RepositoryLock lockRepository() throws IOException {
+        return lockRepository(lockStatus -> {});
+    }
+
+    @Override
+    public RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException {
         RandomAccessFile lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
         try {
             FileLock lock = lockFile.getChannel().lock();
+            notifyLockStatusChange(lockStatusChangedCallback, LockStatus.ACQUIRED);
             return () -> {
                 lock.release();
                 lockFile.close();
+                notifyLockStatusChange(lockStatusChangedCallback, LockStatus.RELEASED);
             };
         } catch (OverlappingFileLockException ex) {
+            notifyLockStatusChange(lockStatusChangedCallback, LockStatus.ACQUIRE_FAILED);
             throw new IllegalStateException(directory.getAbsolutePath() + " is in use by another store.", ex);
         }
     }
 
+    private static void notifyLockStatusChange(Consumer<LockStatus> lockStatusChangedCallback, LockStatus status) {
+        try {
+            lockStatusChangedCallback.accept(status);
+        } catch (Exception e) {
+            /// Log but don't propagate exceptions thrown by the callback
+            log.warn("Exception in lock status change callback", e);
+        }
+    }
 }

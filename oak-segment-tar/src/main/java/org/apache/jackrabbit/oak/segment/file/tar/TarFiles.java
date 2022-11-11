@@ -411,26 +411,38 @@ public class TarFiles implements Closeable {
 
     @Override
     public void close() throws IOException {
-        shutdown = true;
-
-        TarWriter w;
-        Node head;
-
-        lock.writeLock().lock();
-        try {
-            w = writer;
-            head = readers;
-        } finally {
-            lock.writeLock().unlock();
+        if (shutdown) {
+            return;
         }
-
+        shutdown = true;
+        Node head;
         IOException exception = null;
-
-        if (w != null) {
+        if (suspended) {
+            // No need to lock when suspended, as writes are already blocked
+            if (writer != null) {
+                try {
+                    writer.unsafeClose();
+                } catch (IOException e) {
+                    exception = e;
+                }
+            }
+            head = readers;
+        } else {
+            TarWriter w;
+            lock.writeLock().lock();
             try {
-                w.close();
-            } catch (IOException e) {
-                exception = e;
+                w = writer;
+                head = readers;
+            } finally {
+                lock.writeLock().unlock();
+            }
+
+            if (w != null) {
+                try {
+                    w.close();
+                } catch (IOException e) {
+                    exception = e;
+                }
             }
         }
 
@@ -449,6 +461,31 @@ public class TarFiles implements Closeable {
         if (exception != null) {
             throw exception;
         }
+    }
+    
+    private volatile boolean suspended = false;
+
+    public void suspend() {
+        if (suspended) {
+            return;
+        }
+        lock.writeLock().lock();
+        try {
+            writer.suspendWrites();
+            suspended = true;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+    
+    public void resume() {
+        if (!suspended) {
+            return;
+        }
+        // Cannot use write lock here, because while writes are suspended, the lock may be held by 'writeSegment()'. It's anyway unnecessary
+        // as in suspended mode no writes can happen, therefore no new TarWriter can be created concurrently.
+        writer.resumeWrites();
+        suspended = false;
     }
 
     @Override

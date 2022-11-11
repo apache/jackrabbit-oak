@@ -54,8 +54,11 @@ public class SegmentWriteQueue implements Closeable {
     private volatile boolean shutdown;
 
     private final Object brokenMonitor = new Object();
+    
+    private final Object suspendedMonitor = new Object();
 
     private volatile boolean broken;
+    private volatile boolean suspended;
 
     public SegmentWriteQueue(SegmentConsumer writer) {
         this(writer, QUEUE_SIZE, THREADS);
@@ -77,6 +80,7 @@ public class SegmentWriteQueue implements Closeable {
     private void mainLoop() {
         while (!shutdown) {
             try {
+                waitWhileSuspended();
                 waitWhileBroken();
                 if (shutdown) {
                     break;
@@ -128,6 +132,7 @@ public class SegmentWriteQueue implements Closeable {
     private void emergencyLoop() {
         while (!shutdown) {
             waitUntilBroken();
+            waitWhileSuspended();
             if (shutdown) {
                 break;
             }
@@ -159,6 +164,7 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     public void addToQueue(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
+        waitWhileSuspended();
         waitWhileBroken();
         if (shutdown) {
             throw new IllegalStateException("Can't accept the new segment - shutdown in progress");
@@ -264,6 +270,40 @@ public class SegmentWriteQueue implements Closeable {
                 }
             }
         }
+    }
+
+    public void suspend() {
+        setSuspended(true);
+    }
+
+    public void resume() {
+        setSuspended(false);
+    }
+
+    private void setSuspended(boolean suspended) {
+        synchronized (suspendedMonitor) {
+            this.suspended = suspended;
+            suspendedMonitor.notifyAll();
+        }
+    }
+
+    private void waitWhileSuspended() {
+        if (!suspended) {
+            return;
+        }
+        synchronized (suspendedMonitor) {
+            while (suspended && !shutdown) {
+                try {
+                    suspendedMonitor.wait(100);
+                } catch (InterruptedException e) {
+                    log.warn("Interrupted", e);
+                }
+            }
+        }
+    }
+
+    public boolean isSuspended() {
+        return suspended;
     }
 
     public interface SegmentConsumer {

@@ -34,6 +34,7 @@ import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,10 +125,21 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AzureRepositoryLock(getBlockBlob("repo.lock"), () -> {
-            log.warn("Lost connection to the Azure. The client will be closed.");
-            // TODO close the connection
-        }).lock();
+        return lockRepository(lockStatus -> {
+            if (lockStatus == LockStatus.LOST) {
+                log.warn("Lost connection to the Azure. The client will be closed.");
+            }
+        });
+    }
+
+    @Override
+    public RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException {
+        return new AzureRepositoryLock(getLockBlob(), lockStatusChangedCallback).lock();
+    }
+
+    @NotNull
+    protected CloudBlockBlob getLockBlob() throws IOException {
+        return getBlockBlob("repo.lock");
     }
 
     private CloudBlockBlob getBlockBlob(String path) throws IOException {

@@ -24,6 +24,7 @@ import java.util.Date;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 
+import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.segment.file.GcJournalTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -106,6 +107,11 @@ public class AwsGCJournalFileTest extends GcJournalTest {
 
         @Override
         public RepositoryLock lockRepository() throws IOException {
+            throw new IOException();
+        }
+
+        @Override
+        public RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException {
             throw new IOException();
         }
 

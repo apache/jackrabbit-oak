@@ -227,6 +227,11 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
+    public void unsafeClose() throws IOException {
+        access.close();
+    }
+
+    @Override
     public boolean isCreated() {
         return access != null;
     }
@@ -239,6 +244,21 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     @Override
     public String getName() {
         return file.getName();
+    }
+
+    @Override
+    public void suspendWrites() {
+        SegmentArchiveWriter.super.suspendWrites();
+    }
+
+    @Override
+    public void resumeWrites() {
+        SegmentArchiveWriter.super.resumeWrites();
+    }
+
+    @Override
+    public boolean isWritesSuspended() {
+        return SegmentArchiveWriter.super.isWritesSuspended();
     }
 
     private static byte[] newEntryHeader(String name, int size) {

@@ -107,9 +107,11 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     }
 
     public void writeDataFile(byte[] data, String extension) throws IOException {
-        doWriteDataFile(data, extension);
-        totalLength += data.length;
-        monitor.written(data.length);
+        if (!suspended) {
+            doWriteDataFile(data, extension);
+            totalLength += data.length;
+            monitor.written(data.length);
+        }
     }
 
     @Override
@@ -124,9 +126,20 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
 
     @Override
     public void close() throws IOException {
+        doClose(true);
+    }
+
+    @Override
+    public void unsafeClose() throws IOException {
+        doClose(false);
+    }
+
+    private void doClose(boolean flush) throws IOException {
         if (queue.isPresent()) { // required to handle IOException
             SegmentWriteQueue q = queue.get();
-            q.flush();
+            if (flush) {
+                q.flush();
+            }
             q.close();
         }
 
@@ -148,6 +161,25 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
             queue.get().flush();
             afterQueueFlushed();
         }
+    }
+
+    private volatile boolean suspended = false;
+    
+    @Override
+    public void suspendWrites() {
+        queue.ifPresent(SegmentWriteQueue::suspend);
+        suspended = true;
+    }
+
+    @Override
+    public void resumeWrites() {
+        queue.ifPresent(SegmentWriteQueue::resume);
+        suspended = false;
+    }
+
+    @Override
+    public boolean isWritesSuspended() {
+        return queue.filter(SegmentWriteQueue::isSuspended).isPresent();
     }
 
     /**

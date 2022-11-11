@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.IOException;
 
+import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -83,7 +84,38 @@ public interface SegmentNodeStorePersistence {
      * required to run the process again.
      * @return the acquired repository lock
      * @throws IOException
+     * @deprecated use {@link #lockRepository(Consumer)} instead.
      */
-    RepositoryLock lockRepository() throws IOException;
+    @Deprecated
+    RepositoryLock lockRepository() throws IOException ;
 
+    /**
+     * Acquire the lock on the repository. During the lock lifetime it shouldn't
+     * be possible to acquire it again, either by a local or by a remote process.
+     * <p>
+     * The lock can be released manually by calling {@link RepositoryLock#unlock()}.
+     * If the segment node store is shut down uncleanly (eg. the process crashes),
+     * it should be released automatically, so no extra maintenance tasks are
+     * required to run the process again.
+     * <p>
+     * The {@code lockStatusChangedCallback} callback is called whenever the lock
+     * status changes. In particular, make sure to react appropriately to the 
+     * LOST and RENEWAL_FAILED statuses, as the NodeStore can be corrupted if 
+     * writes are persisted while the lock is not held.
+     * 
+     * @param lockStatusChangedCallback callback run when the lock status changes
+     * @return the acquired repository lock
+     * @throws IOException 
+     */
+    RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException;
+
+    enum LockStatus {
+        ACQUIRED,
+        ACQUIRE_FAILED,
+        LOST,
+        RENEWAL,
+        RENEWAL_SUCCEEDED,
+        RENEWAL_FAILED, 
+        RELEASED
+    }
 }

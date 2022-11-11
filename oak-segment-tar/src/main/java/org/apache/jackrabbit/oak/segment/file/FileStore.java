@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -141,7 +142,7 @@ public class FileStore extends AbstractFileStore {
         super(builder);
 
         SegmentNodeStorePersistence persistence = builder.getPersistence();
-        repositoryLock = persistence.lockRepository();
+        repositoryLock = persistence.lockRepository(this::onLockStatusChanged);
         StatisticsProvider statsProvider = builder.getStatsProvider();
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
@@ -235,6 +236,26 @@ public class FileStore extends AbstractFileStore {
             newPrintableBytes(size)
         );
         log.debug("TAR files: {}", tarFiles);
+    }
+
+    private void onLockStatusChanged(LockStatus lockStatus) {
+        switch (lockStatus) {
+            case LOST:
+                try {
+                    if (tarFiles != null) {
+                        tarFiles.close();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to unsafely close TarFiles after lock was lost", e);
+                }
+                break;
+            case RENEWAL_FAILED:
+                tarFiles.suspend();
+                break;
+            case RENEWAL_SUCCEEDED:
+                tarFiles.resume();
+                break;
+        }
     }
 
     FileStore bind(TarRevisions revisions) throws IOException {
