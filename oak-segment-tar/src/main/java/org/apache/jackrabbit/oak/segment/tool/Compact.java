@@ -280,8 +280,6 @@ public class Compact {
 
     private final File path;
 
-    private final File journal;
-
     private final FileAccessMode fileAccessMode;
 
     private final int segmentCacheSize;
@@ -298,7 +296,6 @@ public class Compact {
 
     private Compact(Builder builder) {
         this.path = builder.path;
-        this.journal = new File(builder.path, "journal.log");
         this.fileAccessMode = newFileAccessMode(builder.mmap, builder.os);
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
@@ -329,12 +326,13 @@ public class Compact {
                     break;
             }
 
+            System.out.println("    -> cleaning up");
+            store.cleanup();
+
             if (!success) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }
-            System.out.printf("    -> cleaning up\n");
-            store.cleanup();
             JournalFile journal = new LocalJournalFile(path, "journal.log");
             String head;
             try (JournalReader journalReader = new JournalReader(journal)) {

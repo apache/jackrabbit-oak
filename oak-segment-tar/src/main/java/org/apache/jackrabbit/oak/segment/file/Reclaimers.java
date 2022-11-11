@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Predicate;
 
 /**
  * Helper class exposing static factories for reclaimers. A reclaimer
@@ -33,6 +34,13 @@ class Reclaimers {
 
     private Reclaimers() {
         // Prevent instantiation.
+    }
+
+    /**
+     * Create a reclaimer that will never reclaim a segment.
+     */
+    static Predicate<GCGeneration> newEmptyReclaimer() {
+        return generation -> false;
     }
 
     /**
@@ -78,7 +86,7 @@ class Reclaimers {
         return new Predicate<GCGeneration>() {
 
             @Override
-            public boolean apply(GCGeneration generation) {
+            public boolean test(GCGeneration generation) {
                 return isOldFull(generation) || (isOld(generation) && !generation.isCompacted());
             }
 
@@ -108,7 +116,7 @@ class Reclaimers {
         return new Predicate<GCGeneration>() {
 
             @Override
-            public boolean apply(GCGeneration generation) {
+            public boolean test(GCGeneration generation) {
                 return isOld(generation) && !sameCompactedTail(generation);
             }
 
@@ -137,13 +145,13 @@ class Reclaimers {
     /**
      * Create an exact reclaimer. An exact reclaimer reclaims only segment of on single generation.
      * @param referenceGeneration  the generation to collect.
-     * @return  an new instance of an exact reclaimer for segments with their generation
+     * @return  a new instance of an exact reclaimer for segments with their generation
      *          matching {@code referenceGeneration}.
      */
     static Predicate<GCGeneration> newExactReclaimer(@NotNull final GCGeneration referenceGeneration) {
         return new Predicate<GCGeneration>() {
             @Override
-            public boolean apply(GCGeneration generation) {
+            public boolean test(GCGeneration generation) {
                 return generation.equals(referenceGeneration);
             }
             @Override

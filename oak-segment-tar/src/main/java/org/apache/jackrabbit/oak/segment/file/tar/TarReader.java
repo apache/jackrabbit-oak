@@ -34,13 +34,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
@@ -209,7 +209,7 @@ public class TarReader implements Closeable {
      * so we want to prevent the data from being accidentally removed or
      * overwritten.
      *
-     * @param file File to backup.
+     * @param file File to back up.
      * @param recoveredEntries
      */
     private static void backupSafely(SegmentArchiveManager archiveManager, String file, Set<UUID> recoveredEntries) throws IOException {
@@ -223,7 +223,7 @@ public class TarReader implements Closeable {
      * Fine next available generation number so that a generated file doesn't
      * overwrite another existing file.
      *
-     * @param name The file to backup.
+     * @param name The file to back up.
      * @param ext  The extension of the backed up file.
      */
     private static String findAvailGen(String name, String ext, SegmentArchiveManager archiveManager) {
@@ -244,7 +244,7 @@ public class TarReader implements Closeable {
                 SegmentArchiveReader reader = openStrategy.open(archiveManager, name);
                 if (reader != null) {
                     for (String other : archives) {
-                        if (other != name) {
+                        if (!Objects.equals(other, name)) {
                             log.info("Removing unused tar file {}", other);
                             archiveManager.delete(other);
                         }
@@ -264,8 +264,6 @@ public class TarReader implements Closeable {
     private final SegmentArchiveReader archive;
 
     private final Set<UUID> segmentUUIDs;
-
-    private volatile boolean hasGraph;
 
     private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveReader archive) {
         this.archiveManager = archiveManager;
@@ -325,7 +323,7 @@ public class TarReader implements Closeable {
     @NotNull
     SegmentArchiveEntry[] getEntries() {
         List<SegmentArchiveEntry> entryList = archive.listSegments();
-        return entryList.toArray(new SegmentArchiveEntry[entryList.size()]);
+        return entryList.toArray(new SegmentArchiveEntry[0]);
     }
 
     /**
@@ -371,7 +369,7 @@ public class TarReader implements Closeable {
         }
 
         references.forEach((generation, full, compacted, segment, reference) -> {
-            if (skipGeneration.apply(newGCGeneration(generation, full, compacted))) {
+            if (skipGeneration.test(newGCGeneration(generation, full, compacted))) {
                 return;
             }
             collector.accept(reference);
@@ -383,8 +381,8 @@ public class TarReader implements Closeable {
      * <p>
      * A data segment is reclaimable iff its generation is in the {@code
      * reclaimGeneration} predicate. A bulk segment is reclaimable if it is not
-     * in {@code bulkRefs} or if it is transitively reachable through a non
-     * reclaimable data segment.
+     * in {@code references} or if it is transitively reachable through a
+     * non-reclaimable data segment.
      * <p>
      * The algorithm implemented by this method uses a couple of supporting data
      * structures.
@@ -415,9 +413,9 @@ public class TarReader implements Closeable {
         Map<UUID, List<UUID>> graph = getGraph();
         SegmentArchiveEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
-            // A bulk segments is *always* written before any data segment referencing it.
+            // A bulk segment is *always* written before any data segment referencing it.
             // Backward iteration ensures we see all references to bulk segments before
-            // we see the bulk segment itself. Therefore we can remove a bulk reference
+            // we see the bulk segment itself. Therefore, we can remove a bulk reference
             // from the bulkRefs set once we encounter it, which save us some memory and
             // CPU on subsequent look-ups.
             SegmentArchiveEntry entry = entries[i];

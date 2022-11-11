@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool.PoolType;
 
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
@@ -64,7 +64,7 @@ public final class DefaultSegmentWriterBuilder {
     private WriterCacheManager cacheManager = new WriterCacheManager.Default();
 
     private DefaultSegmentWriterBuilder(@NotNull String name) {
-        this.name = checkNotNull(name);
+        this.name = requireNonNull(name);
     }
 
     /**
@@ -89,7 +89,7 @@ public final class DefaultSegmentWriterBuilder {
      */
     @NotNull
     public DefaultSegmentWriterBuilder withGeneration(@NotNull Supplier<GCGeneration> generation) {
-        this.generation = checkNotNull(generation);
+        this.generation = requireNonNull(generation);
         return this;
     }
 
@@ -99,7 +99,7 @@ public final class DefaultSegmentWriterBuilder {
      */
     @NotNull
     public DefaultSegmentWriterBuilder withGeneration(@NotNull GCGeneration generation) {
-        this.generation = () -> checkNotNull(generation);
+        this.generation = () -> requireNonNull(generation);
         return this;
     }
 
@@ -133,7 +133,7 @@ public final class DefaultSegmentWriterBuilder {
      */
     @NotNull
     public DefaultSegmentWriterBuilder with(WriterCacheManager cacheManager) {
-        this.cacheManager = checkNotNull(cacheManager);
+        this.cacheManager = requireNonNull(cacheManager);
         return this;
     }
 
@@ -153,7 +153,7 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull FileStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
+                requireNonNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
@@ -171,29 +171,30 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull ReadOnlyFileStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
+                requireNonNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
                 new WriteOperationHandler() {
+                    private static final String READONLY_MSG = "Cannot write to read-only store.";
 
                     @Override
                     @NotNull
                     public GCGeneration getGCGeneration() {
-                        throw new UnsupportedOperationException("Cannot write to read-only store");
+                        throw new UnsupportedOperationException(READONLY_MSG);
                     }
 
                     @NotNull
                     @Override
                     public RecordId execute(@NotNull GCGeneration gcGeneration,
                                             @NotNull WriteOperation writeOperation) {
-                        throw new UnsupportedOperationException("Cannot write to read-only store");
+                        throw new UnsupportedOperationException(READONLY_MSG);
                     }
 
                     @Override
                     public void flush(@NotNull SegmentStore store) {
-                        throw new UnsupportedOperationException("Cannot write to read-only store");
+                        throw new UnsupportedOperationException(READONLY_MSG);
                     }
                 },
                 store.getBinariesInlineThreshold()
@@ -206,7 +207,7 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull MemoryStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
+                requireNonNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),

@@ -57,7 +57,7 @@ for each revision.
 To avoid making a special case of the root node and therefore to make it
 easy to write algorithms that can recursively process each subtree as a
 standalone content tree, a node state is _unnamed_ and does not contain
-information about it's location within a larger content tree. Instead each
+information about its location within a larger content tree. Instead each
 property and child node state is uniquely named within a parent node state.
 An algorithm that needs to know the path of a node can construct it from
 the encountered names as it descends the tree structure.
@@ -172,7 +172,7 @@ NodeBuilder fooBuilder = rootBuilder.getChildNode("foo");
 NodeBuilder barBuilder = fooBuilder.getChildNode("bar");
 
 assert !barBuilder.getBoolean("x");
-fooBuilder.getNodeChild("bar").setProperty("x", Boolean.TRUE);
+fooBuilder.getChildNode("bar").setProperty("x", Boolean.TRUE);
 assert barBuilder.getBoolean("x");
 
 assert barBuilder.exists();

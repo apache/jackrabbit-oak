@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -32,7 +31,7 @@ import static org.mockito.Mockito.mock;
 public class CancelableDiffTest {
 
     @Test
-    public void testPropertyAddedInterruptible() throws Throwable {
+    public void testPropertyAddedInterruptible() {
         PropertyState after = mock(PropertyState.class);
 
         NodeStateDiff wrapped = mock(NodeStateDiff.class);
@@ -43,7 +42,7 @@ public class CancelableDiffTest {
     }
 
     @Test
-    public void testPropertyChangedInterruptible() throws Throwable {
+    public void testPropertyChangedInterruptible() {
         PropertyState before = mock(PropertyState.class);
         PropertyState after = mock(PropertyState.class);
 
@@ -55,7 +54,7 @@ public class CancelableDiffTest {
     }
 
     @Test
-    public void testPropertyDeletedInterruptible() throws Throwable {
+    public void testPropertyDeletedInterruptible() {
         PropertyState before = mock(PropertyState.class);
 
         NodeStateDiff wrapped = mock(NodeStateDiff.class);
@@ -66,7 +65,7 @@ public class CancelableDiffTest {
     }
 
     @Test
-    public void testChildNodeAddedInterruptible() throws Throwable {
+    public void testChildNodeAddedInterruptible() {
         NodeState after = mock(NodeState.class);
 
         NodeStateDiff wrapped = mock(NodeStateDiff.class);
@@ -77,7 +76,7 @@ public class CancelableDiffTest {
     }
 
     @Test
-    public void testChildNodeChangedInterruptible() throws Throwable {
+    public void testChildNodeChangedInterruptible() {
         NodeState before = mock(NodeState.class);
         NodeState after = mock(NodeState.class);
 
@@ -89,7 +88,7 @@ public class CancelableDiffTest {
     }
 
     @Test
-    public void testChildNodeDeletedInterruptible() throws Throwable {
+    public void testChildNodeDeletedInterruptible() {
         NodeState before = mock(NodeState.class);
 
         NodeStateDiff wrapped = mock(NodeStateDiff.class);
@@ -100,7 +99,7 @@ public class CancelableDiffTest {
     }
 
     private NodeStateDiff newCancelableDiff(NodeStateDiff wrapped, boolean cancel) {
-        return new CancelableDiff(wrapped, Suppliers.ofInstance(cancel));
+        return new CancelableDiff(wrapped, () -> cancel);
     }
 
 }

@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -64,12 +63,7 @@ public class MemoryStore implements SegmentStore {
             Maps.newConcurrentMap();
 
     public MemoryStore() throws IOException {
-        this.tracker = new SegmentTracker(new SegmentIdFactory() {
-            @Override @NotNull
-            public SegmentId newSegmentId(long msb, long lsb) {
-                return new SegmentId(MemoryStore.this, msb, lsb);
-            }
-        });
+        this.tracker = new SegmentTracker((msb, lsb) -> new SegmentId(MemoryStore.this, msb, lsb));
         this.revisions = new MemoryStoreRevisions();
         this.segmentReader = new CachingSegmentReader(this::getWriter, null, 16, 2, NoopStats.INSTANCE);
         this.segmentWriter = defaultSegmentWriterBuilder("sys").withWriterPool().build(this);

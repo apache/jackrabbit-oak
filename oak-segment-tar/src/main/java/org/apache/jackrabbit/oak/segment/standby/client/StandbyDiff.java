@@ -19,14 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
-import java.io.IOException;
-import java.io.InputStream;
-
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -39,6 +31,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Supplier;
+
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 class StandbyDiff implements NodeStateDiff {
 
@@ -157,14 +155,7 @@ class StandbyDiff implements NodeStateDiff {
     }
 
     private Supplier<Boolean> newCanceledSupplier() {
-        return new Supplier<Boolean>() {
-
-            @Override
-            public Boolean get() {
-                return !running.get();
-            }
-
-        };
+        return () -> !running.get();
     }
 
     private PropertyState processBinary(PropertyState property) {

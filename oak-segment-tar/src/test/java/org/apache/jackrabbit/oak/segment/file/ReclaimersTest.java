@@ -31,8 +31,8 @@ import static org.junit.Assert.fail;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Predicate;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Test;
@@ -75,7 +75,7 @@ public class ReclaimersTest {
     private static void assertReclaim(Predicate<GCGeneration> reclaimer, String... reclaims) {
         Set<String> toReclaim = newHashSet(reclaims);
         for (Entry<String, GCGeneration> generation : gcHistory.entrySet()) {
-            if (reclaimer.apply(generation.getValue())) {
+            if (reclaimer.test(generation.getValue())) {
                 assertTrue(
                     reclaimer + " should not reclaim " + generation.getKey(),
                     toReclaim.remove(generation.getKey()));
@@ -194,9 +194,9 @@ public class ReclaimersTest {
     @Test
     public void testExactReclaimer() {
         Predicate<GCGeneration> reclaimer = newExactReclaimer(newGCGeneration(3, 3, false));
-        assertTrue(reclaimer.apply(newGCGeneration(3, 3, false)));
-        assertFalse(reclaimer.apply(newGCGeneration(3, 3, true)));
-        assertFalse(reclaimer.apply(newGCGeneration(3, 2, false)));
-        assertFalse(reclaimer.apply(newGCGeneration(2, 3, false)));
+        assertTrue(reclaimer.test(newGCGeneration(3, 3, false)));
+        assertFalse(reclaimer.test(newGCGeneration(3, 3, true)));
+        assertFalse(reclaimer.test(newGCGeneration(3, 2, false)));
+        assertFalse(reclaimer.test(newGCGeneration(2, 3, false)));
     }
 }

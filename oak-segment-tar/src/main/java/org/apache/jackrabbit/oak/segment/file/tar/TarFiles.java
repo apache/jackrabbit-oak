@@ -43,10 +43,10 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -59,7 +59,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.NoopStats;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -265,38 +264,28 @@ public class TarFiles implements Closeable {
     }
 
     private static Iterable<TarReader> iterable(final Node head) {
-        return new Iterable<TarReader>() {
+        return () -> new Iterator<TarReader>() {
+            private Node next = head;
 
-            @NotNull
             @Override
-            public Iterator<TarReader> iterator() {
-                return new Iterator<TarReader>() {
-
-                    private Node next = head;
-
-                    @Override
-                    public boolean hasNext() {
-                        return next != null;
-                    }
-
-                    @Override
-                    public TarReader next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException();
-                        }
-                        Node current = next;
-                        next = current.next;
-                        return current.reader;
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException("not implemented");
-                    }
-
-                };
+            public boolean hasNext() {
+                return next != null;
             }
 
+            @Override
+            public TarReader next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Node current = next;
+                next = current.next;
+                return current.reader;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException("not implemented");
+            }
         };
     }
 

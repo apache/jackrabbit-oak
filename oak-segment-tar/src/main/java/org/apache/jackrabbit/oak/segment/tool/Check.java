@@ -473,7 +473,7 @@ public class Check {
             }
 
             @Override
-            protected void onCheckChekpoints() {
+            protected void onCheckCheckpoints() {
                 print("\nChecking checkpoints");
             }
 
