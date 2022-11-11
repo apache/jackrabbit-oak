@@ -32,8 +32,12 @@ class ShortCircuitCanceller extends Canceller {
     }
 
     @Override
+    public boolean isCancelable() {
+        return parent.isCancelable();
+    }
+
+    @Override
     public Cancellation check() {
         return cancellation.updateAndGet(prev -> prev != null && prev.isCancelled() ? prev : parent.check());
     }
-
 }

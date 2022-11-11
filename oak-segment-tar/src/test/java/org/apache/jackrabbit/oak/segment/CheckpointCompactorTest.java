@@ -19,25 +19,33 @@
 package org.apache.jackrabbit.oak.segment;
 
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.GCIncrement;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
 
+@RunWith(Parameterized.class)
 public class CheckpointCompactorTest extends AbstractCompactorTest {
+    public CheckpointCompactorTest(@NotNull SimpleCompactorFactory compactorFactory) {
+        super(compactorFactory);
+    }
+
     @Override
-    protected CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
-        SegmentWriter writer = defaultSegmentWriterBuilder("c")
+    protected CheckpointCompactor createCompactor(
+            @NotNull FileStore fileStore,
+            @NotNull GCIncrement increment,
+            @NotNull GCNodeWriteMonitor compactionMonitor
+    ) {
+        SegmentWriterFactory writerFactory = generation ->  defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
                 .build(fileStore);
-
-        return new CheckpointCompactor(
-                GCMonitor.EMPTY,
-                fileStore.getReader(),
-                writer,
-                fileStore.getBlobStore(),
-                GCNodeWriteMonitor.EMPTY);
+        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), increment, writerFactory);
+        return new CheckpointCompactor(GCMonitor.EMPTY, compactionWriter, compactionMonitor);
     }
 }
