@@ -401,7 +401,7 @@ var oak = (function(global){
      * @method removeCollisions
      * @param {string} path the path of a document
      * @param {number} clusterId collision markers for this clusterId will be removed.
-     * @param {number} (optional) limit maximum number of collision markers to remove.
+     * @param {number} (optional) limit maximum number of collision markers to remove, default is 1000000.
      * @returns {object} the result of the MongoDB update.
      */
     api.removeCollisions = function(path, clusterId, limit) {
