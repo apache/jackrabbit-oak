@@ -401,9 +401,10 @@ var oak = (function(global){
      * @method removeCollisions
      * @param {string} path the path of a document
      * @param {number} clusterId collision markers for this clusterId will be removed.
+     * @param {number} (optional) limit maximum number of collision markers to remove.
      * @returns {object} the result of the MongoDB update.
      */
-    api.removeCollisions = function(path, clusterId) {
+    api.removeCollisions = function(path, clusterId, limit) {
         if (path === undefined) {
             print("No path specified");
             return;
@@ -411,6 +412,9 @@ var oak = (function(global){
         if (clusterId === undefined) {
             print("No clusterId specified");
             return;
+        }
+        if (limit === undefined) {
+            limit = 1000000;
         }
         // refuse to remove when clusterId is marked active
         var clusterNode = db.clusterNodes.findOne({_id: clusterId.toString()});
@@ -432,6 +436,9 @@ var oak = (function(global){
             if (new Revision(r).getClusterId() == clusterId) {
                 unset["_collisions." + r] = "";
                 num++;
+            }
+            if (num >= limit) {
+                break;
             }
         }
         if (num > 0) {
