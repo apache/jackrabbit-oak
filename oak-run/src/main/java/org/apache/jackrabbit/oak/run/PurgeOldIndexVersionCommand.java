@@ -39,6 +39,7 @@ public class PurgeOldIndexVersionCommand implements Command {
     private List<String> indexPaths;
     private long DEFAULT_PURGE_THRESHOLD = TimeUnit.DAYS.toMillis(5); // 5 days in millis
     private final static String DEFAULT_INDEX_PATH = "/oak:index";
+    private boolean shouldPurgeBaseIndex;
 
     @Override
     public void execute(String... args) throws Exception {
@@ -47,7 +48,7 @@ public class PurgeOldIndexVersionCommand implements Command {
             if (!opts.getCommonOpts().isReadWrite()) {
                 LOG.info("Repository connected in read-only mode. Use '--read-write' for write operations");
             }
-            new PurgeOldIndexVersion().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths);
+            new PurgeOldIndexVersion().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths, shouldPurgeBaseIndex);
         }
     }
 
@@ -58,10 +59,13 @@ public class PurgeOldIndexVersionCommand implements Command {
         OptionSpec<String> indexPathsOption = parser.accepts("index-paths", "Comma separated list of index paths for which the " +
                 "selected operations need to be performed")
                 .withOptionalArg().ofType(String.class).withValuesSeparatedBy(",").defaultsTo(DEFAULT_INDEX_PATH);
+        OptionSpec<Void> donotPurgeBaseIndexOption = parser.accepts("donot-purge-base-index", "Don't disable base index");
+
         Options opts = new Options();
         OptionSet optionSet = opts.parseAndConfigure(parser, args);
         this.threshold = optionSet.valueOf(thresholdOption);
         this.indexPaths = optionSet.valuesOf(indexPathsOption);
+        this.shouldPurgeBaseIndex = !optionSet.has(donotPurgeBaseIndexOption);
         return opts;
     }
 }

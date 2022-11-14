@@ -64,7 +64,7 @@ public class IndexVersionOperation {
     }
 
     /**
-     * Generate list of index version operation over a list of indexes have same index base.
+     * Generate list of index version operation over a list of indexes have same index base. This will purge base index.
      *
      * @param rootNode             NodeState of root
      * @param parentPath           parent path of baseIndex
@@ -74,7 +74,23 @@ public class IndexVersionOperation {
      * @return This method returns an IndexVersionOperation list i.e indexNameObjectList marked with operations
      */
     public static List<IndexVersionOperation> generateIndexVersionOperationList(NodeState rootNode, String parentPath,
-            List<IndexName> indexNameObjectList, long purgeThresholdMillis) {
+                                                                                List<IndexName> indexNameObjectList, long purgeThresholdMillis) {
+        return generateIndexVersionOperationList(rootNode, parentPath, indexNameObjectList, purgeThresholdMillis, true);
+    }
+
+    /**
+     * Generate list of index version operation over a list of indexes have same index base.
+     *
+     * @param rootNode             NodeState of root
+     * @param parentPath           parent path of baseIndex
+     * @param indexNameObjectList  This is a list of IndexName Objects with same baseIndexName on which operations will be applied.
+     * @param purgeThresholdMillis after which a fully functional index is eligible for purge operations
+     * @param shouldPurgeBaseIndex If set to true, will apply purge operations on active base index i.e. DELETE or DELETE_HIDDEN_AND_DISABLE
+     *
+     * @return This method returns an IndexVersionOperation list i.e indexNameObjectList marked with operations
+     */
+    public static List<IndexVersionOperation> generateIndexVersionOperationList(NodeState rootNode, String parentPath,
+            List<IndexName> indexNameObjectList, long purgeThresholdMillis, boolean shouldPurgeBaseIndex) {
         NodeState indexDefParentNode = NodeStateUtils.getNode(rootNode, parentPath);
         List<IndexName> reverseSortedIndexNameList = getReverseSortedIndexNameList(indexNameObjectList);
         List<IndexVersionOperation> indexVersionOperationList = new LinkedList<>();
@@ -96,6 +112,10 @@ public class IndexVersionOperation {
             if (activeIndexNameObject == null) {
                 LOG.warn("Cannot find any active index from the list: {}", reverseSortedIndexNameList);
             } else {
+                if (!isSameProductVersionBaseIndexPresent(reverseSortedIndexNameList, activeIndexNameObject)) {
+                    LOG.warn("Repository don't have base index:{} with product version same as active index:{}",
+                            activeIndexNameObject.getBaseName() + "-" + activeIndexNameObject.getProductVersion(), activeIndexNameObject.toString());
+                }
                 NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
                 boolean isActiveIndexOldEnough = isActiveIndexOldEnough(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
                 int activeProductVersion = activeIndexNameObject.getProductVersion();
@@ -110,7 +130,11 @@ public class IndexVersionOperation {
                     // if active index not long enough, NOOP for all indexes
                     if (isActiveIndexOldEnough) {
                         if (indexNameObject.getProductVersion() == activeProductVersion && indexNameObject.getCustomerVersion() == 0) {
-                            indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
+                            if (shouldPurgeBaseIndex) {
+                                indexVersionOperation.setOperation(Operation.DELETE_HIDDEN_AND_DISABLE);
+                            } else {
+                                indexVersionOperation.setOperation(Operation.NOOP);
+                            }
                         } else if (indexNameObject.getProductVersion() <= activeProductVersion ) {
                             // the check hidden oak mount logic only works when passing through the proper composite store
                             if (isHiddenOakMountExists(indexNode)) {
@@ -131,11 +155,17 @@ public class IndexVersionOperation {
                 }
             }
         }
-        if (indexVersionOperationList.isEmpty() || !isValidIndexVersionOperationList(indexVersionOperationList)) {
+        if (indexVersionOperationList.isEmpty()) {
             LOG.info("Not valid version operation list: '{}', skip all", indexNameObjectList);
             indexVersionOperationList = Collections.emptyList();
         }
         return indexVersionOperationList;
+    }
+
+    private static boolean isSameProductVersionBaseIndexPresent(List<IndexName> reverseSortedIndexNameList, IndexName activeIndexNameObject) {
+        return reverseSortedIndexNameList.stream().filter(n -> (n.getBaseName().equals(activeIndexNameObject.getBaseName())
+                && n.getProductVersion() == activeIndexNameObject.getProductVersion()
+                && n.getCustomerVersion() == 0)).findFirst().isPresent();
     }
 
     // iterate all indexes from high version to lower version to find the active index, then remove it from the reverseSortedIndexNameList
@@ -199,41 +229,6 @@ public class IndexVersionOperation {
         return reverseSortedIndexNameObjectList;
     }
 
-    /**
-     * @param indexVersionOperations
-     * @return true if the IndexVersionOperation list passes following criteria.
-     * For merging indexes we need baseIndex and latest custom index.
-     * So we first validate that if there are custom indexes than OOTB index with same product must be marked with DELETE_HIDDEN_AND_DISABLE
-     */
-    private static boolean isValidIndexVersionOperationList(List<IndexVersionOperation> indexVersionOperations) {
-        boolean isValid = false;
-        IndexVersionOperation lastNoopOperationIndexVersion = null;
-        IndexVersionOperation indexWithDeleteHiddenOp = null;
-        for (IndexVersionOperation indexVersionOperation : indexVersionOperations) {
-            if (indexVersionOperation.getOperation() == Operation.NOOP) {
-                if (lastNoopOperationIndexVersion == null) {
-                    lastNoopOperationIndexVersion = indexVersionOperation;
-                }
-            }
-            if (indexVersionOperation.getOperation() == Operation.DELETE_HIDDEN_AND_DISABLE) {
-                if (indexWithDeleteHiddenOp == null) {
-                    indexWithDeleteHiddenOp = indexVersionOperation;
-                }
-            }
-        }
-        if (lastNoopOperationIndexVersion.getIndexName().getCustomerVersion() == 0) {
-            isValid = true;
-        } else if (lastNoopOperationIndexVersion.getIndexName().getCustomerVersion() != 0) {
-            if (indexWithDeleteHiddenOp != null
-                    && lastNoopOperationIndexVersion.getIndexName().getProductVersion() == indexWithDeleteHiddenOp.getIndexName().getProductVersion()) {
-                isValid = true;
-            }
-        }
-        if (!isValid) {
-            LOG.info("IndexVersionOperation List is not valid for index {}", lastNoopOperationIndexVersion.getIndexName().getNodeName());
-        }
-        return isValid;
-    }
 
     private static List<IndexName> removeDisabledCustomIndexesFromList(NodeState indexDefParentNode,
                                                             List<IndexName> indexNameObjectList) {
