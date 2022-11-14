@@ -445,6 +445,7 @@ var oak = (function(global){
             var update = {};
             update["$inc"] = {_modCount: NumberLong(1)};
             update["$unset"] = unset;
+            print("Removing " + num + " collisions for clusterId " + clusterId);
             return db.nodes.update({_id: pathDepth(path) + ":" + path}, update);
         } else {
             print("No collisions found for clusterId " + clusterId);
