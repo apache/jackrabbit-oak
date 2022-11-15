@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -33,6 +32,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.osgi.framework.ServiceRegistration;
+
+import com.google.common.collect.Iterators;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -100,7 +101,7 @@ public class DynamicMembershipTrackerTest extends AbstractSecurityTest {
 
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.getMembership(eq(a), anyBoolean())).thenReturn(Iterators.singletonIterator(gr));
-        when(dmp.getMembership(eq(testUser), anyBoolean())).thenReturn(Iterators.emptyIterator());
+        when(dmp.getMembership(eq(testUser), anyBoolean())).thenReturn(Collections.emptyIterator());
         
         when(dmp.isMember(eq(gr), eq(a), anyBoolean())).thenReturn(true);
         when(dmp.coversAllMembers(gr)).thenReturn(true);
