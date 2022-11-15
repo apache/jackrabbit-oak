@@ -396,6 +396,8 @@ var oak = (function(global){
      * Removes all collision markers on the document with the given path and
      * clusterId. This method will only remove collisions when the clusterId
      * is inactive.
+     * This corresponds to DocumentNodeStore.cleanRootCollisions(), which is
+     * part of a startup and normal background update.
      *
      * @memberof oak
      * @method removeCollisions
@@ -456,6 +458,8 @@ var oak = (function(global){
      * Removes all unmerged branches on the document with the given path and
      * clusterId. This method will only remove unmerged branches when the
      * clusterId is inactive.
+     * This corresponds to DocumentNodeStore.cleanOrphanedBranches(), which is
+     * part of a startup and normal background update.
      *
      * @memberof oak
      * @method removeUnmergedBranches
