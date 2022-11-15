@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -82,7 +81,7 @@ public interface AutoMembershipConfig {
 
         @Override
         public Iterator<Authorizable> getAutoMembers(@NotNull UserManager userManager, @NotNull Group group) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
     };
     

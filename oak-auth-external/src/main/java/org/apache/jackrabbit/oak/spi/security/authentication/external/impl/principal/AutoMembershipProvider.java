@@ -282,7 +282,7 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         private Iterator<Group> getNextInheritedIterator() {
             if (inherited.isEmpty()) {
                 // no more inherited groups to retrieve
-                return Iterators.emptyIterator();
+                return Collections.emptyIterator();
             } else {
                 // no need to verify if the inherited iterator has any elements as this has been asserted before
                 // adding it to the list.

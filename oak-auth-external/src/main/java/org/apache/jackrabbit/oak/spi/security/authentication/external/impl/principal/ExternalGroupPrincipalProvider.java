@@ -160,7 +160,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
         
         Result result = findPrincipals(principalName, true);
-        Iterator<? extends ResultRow> rows = (result == null) ? Iterators.emptyIterator() : result.getRows().iterator();
+        Iterator<? extends ResultRow> rows = (result == null) ? Collections.emptyIterator() : result.getRows().iterator();
         if (rows.hasNext()) {
             return new ExternalGroupPrincipal(principalName, getIdpName(rows.next()));
         }
@@ -257,7 +257,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @Override
     public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) throws RepositoryException {
         if (!isDynamic(group)) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } else {
             Result result = findPrincipals(group.getPrincipal().getName(), true);
             if (result != null) {
@@ -286,11 +286,11 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @Override
     public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
         if (authorizable.isGroup() || !isDynamic(authorizable)) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } else {
             Value[] vs = authorizable.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (vs == null || vs.length == 0) {
-                return Iterators.emptyIterator();
+                return Collections.emptyIterator();
             }
             
             Set<Value> valueSet = ImmutableSet.copyOf(vs);
