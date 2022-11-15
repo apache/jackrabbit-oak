@@ -23,9 +23,6 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
@@ -35,6 +32,8 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,8 +42,6 @@ import java.util.stream.Collectors;
  * Provides utility functions around Elasticsearch indexing
  */
 class ElasticIndexHelper {
-
-    private static final String ES_DENSE_VECTOR_DIM_PROP = "dims";
 
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
@@ -124,7 +121,7 @@ class ElasticIndexHelper {
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
         if (indexDefinition.getSimilarityProperties().size() > 0) {
-            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(JsonValue.TRUE));
+            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
         }
         builder.index(indexBuilder -> indexBuilder
                         // static setting: cannot be changed after the index gets created
@@ -241,20 +238,21 @@ class ElasticIndexHelper {
             for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
                 ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
                 int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
-                JsonObject value = Json.createObjectBuilder()
-                        .add("type", "elastiknn_dense_float_vector")
-                        .add("elastiknn",
-                                Json.createObjectBuilder()
-                                        .add(ES_DENSE_VECTOR_DIM_PROP, denseVectorSize)
-                                        .add("model", "lsh")
-                                        .add("similarity", pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction())
-                                        .add("L", pd.getSimilaritySearchParameters().getL())
-                                        .add("k", pd.getSimilaritySearchParameters().getK())
-                                        .add("w", pd.getSimilaritySearchParameters().getW())
-                                        .build()
-                        ).build();
-                builder.properties(FieldNames.createSimilarityFieldName(pd.name),
-                        b1 -> b1._custom("elastiknn_dense_float_vector", value));
+
+                Reader eknnConfig = new StringReader(
+                        "{" +
+                                "  \"type\": \"elastiknn_dense_float_vector\"," +
+                                "  \"elastiknn\": {" +
+                                "    \"dims\": " + denseVectorSize + "," +
+                                "    \"model\": \"lsh\"," +
+                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
+                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
+                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
+                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() + "" +
+                                "  }" +
+                                "}");
+
+                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
             }
 
             builder.properties(ElasticIndexDefinition.SIMILARITY_TAGS,

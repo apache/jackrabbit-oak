@@ -20,6 +20,7 @@ import static com.google.common.collect.ImmutableList.of;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -49,7 +50,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.management.ManagementFactory;
@@ -412,6 +417,63 @@ public class DocumentNodeStoreTest {
                 store instanceof ThrottlingDocumentStoreWrapper);
     }
     // END -- OAK-9909
+
+    // OAK-9967
+    @Test
+    public void renewClusterIdLeaseTrue() throws IllegalAccessException {
+        DocumentStore documentStore = new MemoryDocumentStore();
+
+        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
+
+        ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
+        when(clusterNodeInfo.renewLease()).thenReturn(true);
+
+        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
+                .setDocumentStore(documentStore).getNodeStore();
+        writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
+
+        assertTrue(nodeStore.renewClusterIdLease());
+        verify(statsCollector, times(1)).doneLeaseUpdate(anyLong());
+    }
+
+    @Test(expected = DocumentStoreException.class)
+    public void renewClusterIdLeaseException() throws IllegalAccessException {
+        DocumentStore documentStore = new MemoryDocumentStore();
+
+        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
+
+        ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
+        when(clusterNodeInfo.renewLease()).thenThrow(DocumentStoreException.class);
+
+        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
+                .setDocumentStore(documentStore).getNodeStore();
+        writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
+
+        nodeStore.renewClusterIdLease(); // should throw an exception
+        verify(statsCollector, times(1)).doneLeaseUpdate(anyLong());
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void renewClusterIdLeaseFalse() throws IllegalAccessException {
+        DocumentStore documentStore = new MemoryDocumentStore();
+
+        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
+
+        ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
+        when(clusterNodeInfo.renewLease()).thenReturn(false);
+
+        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
+                .setDocumentStore(documentStore).getNodeStore();
+        writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
+
+        assertFalse(nodeStore.renewClusterIdLease());
+        verify(statsCollector, times(0)).doneLeaseUpdate(anyLong());
+    }
+    // END -- OAK-9967
 
     // OAK-1662
     @Test

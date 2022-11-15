@@ -24,13 +24,15 @@ that allows enabling dynamic group membership resolution for external users.
 
 Enabling dynamic membership in the [DefaultSyncConfig] will change the way external
 groups are synchronized (see [OAK-4101]) and how automatic group membership 
-is being handled (see [OAK-4087])
+is being handled (see [OAK-4087]).
 
 The key benefits of dynamic membership resolution are:
 
 - avoiding duplicate user management effort wrt to membership handling both in the external IDP and the repository
 - avoid storing/updating auto-membership which is assigned to all external users
 - ease principal resolution upon repository login
+
+See also [FAQ](faq.html#Dynamic_Sync) for frequently asked questions about thes dynamic sync.
 
 ### SyncContext with Dynamic Membership
 

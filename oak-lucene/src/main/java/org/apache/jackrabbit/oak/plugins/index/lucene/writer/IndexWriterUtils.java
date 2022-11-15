@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +35,13 @@ import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.shingle.ShingleAnalyzerWrapper;
+import org.apache.lucene.index.ConcurrentMergeScheduler;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-
 public class IndexWriterUtils {
+    private static final int INDEX_WRITER_MAX_MERGE = Integer.getInteger("oak.indexer.writerMaxMerges", 1);
+    private static final int INDEX_WRITER_MAX_THREAD = Integer.getInteger("oak.indexer.writerMaxThreads", 1);
 
     public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean remoteDir){
         return getIndexWriterConfig(definition, remoteDir, new LuceneIndexWriterConfig());
@@ -70,6 +73,10 @@ public class IndexWriterUtils {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             if (remoteDir) {
                 config.setMergeScheduler(new SerialMergeScheduler());
+            } else {
+                ConcurrentMergeScheduler concurrentMergeScheduler = new ConcurrentMergeScheduler();
+                concurrentMergeScheduler.setMaxMergesAndThreads(INDEX_WRITER_MAX_MERGE, INDEX_WRITER_MAX_THREAD);
+                config.setMergeScheduler(concurrentMergeScheduler);
             }
             if (definition.getCodec() != null) {
                 config.setCodec(definition.getCodec());

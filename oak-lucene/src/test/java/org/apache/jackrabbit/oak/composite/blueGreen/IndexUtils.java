@@ -18,11 +18,17 @@
  */
 package org.apache.jackrabbit.oak.composite.blueGreen;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
-import java.util.ArrayList;
-import java.util.Arrays;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Assert;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -33,12 +39,14 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
-import org.junit.Assert;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 /**
  * Utilities for indexing and query tests.
@@ -145,6 +153,41 @@ public class IndexUtils {
         } catch (RepositoryException e) {
             // expected
         }
+    }
+
+    // Could throw NPE, but we don't care as it's a test
+    public static boolean isIndexDisabledAndHiddenNodesDeleted(NodeStore store, String path) {
+        NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), path);
+        if (!nodeState.getProperty("type").getValue(Type.STRING).equals("disabled")) {
+            return false;
+        }
+        Iterable<String> childNodeNames = nodeState.getChildNodeNames();
+        for (String childNodeName : childNodeNames) {
+            if (NodeStateUtils.isHidden(childNodeName)) {
+                if (!childNodeName.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static boolean isIndexEnabledAndHiddenNodesPresent(NodeStore store, String path) {
+        NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), path);
+        if (!nodeState.getProperty("type").getValue(Type.STRING).equals("lucene")
+                && !nodeState.getProperty("type").getValue(Type.STRING).equals("elastic")) {
+            return false;
+        }
+        Iterable<String> childNodeNames = nodeState.getChildNodeNames();
+        Set<String> indexHiddenNodes = new HashSet<>();
+        for (String childNodeName : childNodeNames) {
+            if (NodeStateUtils.isHidden(childNodeName)) {
+                indexHiddenNodes.add(childNodeName);
+            }
+        }
+        List<String> defaultHiddenNodes = Arrays.asList(":data", ":status",
+                ":index-definition", ":oak:mount-libs-index-data");
+        return indexHiddenNodes.containsAll(defaultHiddenNodes);
     }
 
 }

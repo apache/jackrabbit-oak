@@ -179,17 +179,14 @@ codec
 : Name of the [Lucene codec](#codec) to use
 
 compatVersion
-: Required integer property and should be set to 2
-: By default Oak uses older Lucene index implementation which does not
-  support property restrictions, index time aggregation etc.
-  To make use of this feature set it to 2.
-  Please note for full text indexing with compatVersion 2,
+: Required integer property, needs to be set to 2
+: Version 1 is deprecated, and new indexes should always use version 2.
+  Version 1 doesn't support property restrictions and index time aggregation.
+  A compatVersion 2 full text index is usually faster to run queries.
+  For full text indexing with compatVersion 2,
   at query time, only the access right of the parent (aggregate) node is checked,
   and the access right of the child nodes is not checked.
-  If this is a security concern, then compatVersion should not be set,
-  so that query time aggregation is used, in which case the access right
-  of the relevant child is also checked.
-  A compatVersion 2 full text index is usually faster to run queries.
+  If this is a concern, then aggregation should not be used.
 
 evaluatePathRestrictions
 : Optional boolean property defaults to `false`.
@@ -1191,6 +1188,7 @@ See also [OAK-8971][OAK-8971].
 
 
 ### <a name="native-query"></a>Native Query and Index Selection
+`@deprecated Oak 1.46`
 
 Oak query engine supports native queries like
 

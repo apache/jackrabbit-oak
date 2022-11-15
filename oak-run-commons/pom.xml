@@ -147,7 +147,11 @@
             <artifactId>h2</artifactId>
             <version>${h2.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+            <version>1.8.0</version>
+        </dependency>
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
@@ -182,6 +186,12 @@
         <dependency>
             <groupId>com.arakelian</groupId>
             <artifactId>docker-junit-rule</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-rules</artifactId>
+            <version>1.19.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

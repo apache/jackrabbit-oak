@@ -26,7 +26,6 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
-import jakarta.json.JsonValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -121,7 +120,7 @@ public class ElasticIndexHelperTest {
         assertThat(wdgfDef.splitOnNumerics(), is(expectedSplitOnNumerics));
 
         Map<String, JsonData> otherSettings = req.settings().otherSettings();
-        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).toJson(), is(JsonValue.TRUE));
+        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).to(Boolean.class), is(true));
     }
 
     @Test

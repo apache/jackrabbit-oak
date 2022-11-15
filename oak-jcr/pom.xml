@@ -40,6 +40,8 @@
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc               <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest              <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
+      org.apache.jackrabbit.test.api.NameTest#testExpandedNameNodeUnmappedNamespace                    <!-- OAK-9956 -->
+      org.apache.jackrabbit.test.api.NodeTest#testAddNodeLackingMandatoryChildNode                     <!-- OAK-9621 -->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
       org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn <!-- OAK-118 -->

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.indexversion;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.RecursiveDelete;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -64,6 +65,9 @@ public class PurgeOldVersionUtils {
         Iterable<String> childNodeNames = nodeState.getChildNodeNames();
         for (String childNodeName : childNodeNames) {
             if (NodeStateUtils.isHidden(childNodeName)) {
+                if (childNodeName.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
+                    continue;
+                }
                 RecursiveDelete recursiveDelete = new RecursiveDelete(store, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY);
                 recursiveDelete.run(path + "/" + childNodeName);
             }

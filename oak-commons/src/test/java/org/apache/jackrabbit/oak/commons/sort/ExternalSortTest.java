@@ -16,11 +16,18 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-import static com.google.common.collect.Iterables.transform;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.io.Files;
+import com.google.common.primitives.Ints;
+import net.jpountz.lz4.LZ4FrameInputStream;
+import net.jpountz.lz4.LZ4FrameOutputStream;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +35,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -38,16 +47,11 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
-import com.google.common.primitives.Ints;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static com.google.common.collect.Iterables.transform;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for simple App.
@@ -358,8 +362,9 @@ public class ExternalSortTest {
      */
     @Test
     public void testCSVSorting() throws Exception {
-        testCSVSortingWithParams(false);
-        testCSVSortingWithParams(true);
+        testCSVSortingWithParams(Compression.NONE);
+        testCSVSortingWithParams(LZ4());
+        testCSVSortingWithParams(Compression.GZIP);
     }
 
     @Test
@@ -410,11 +415,11 @@ public class ExternalSortTest {
     /**
      * Sample case to sort csv file.
      * 
-     * @param usegzip use compression for temporary files
+     * @param algorithm the compression algorithm to use
      * @throws Exception
      * 
      */
-    public void testCSVSortingWithParams(boolean usegzip) throws Exception {
+    public void testCSVSortingWithParams(Compression algorithm) throws Exception {
 
         File out = folder.newFile();
 
@@ -433,16 +438,16 @@ public class ExternalSortTest {
         // write to the file
         writeStringToFile(out, head + "\n");
 
-        // omit the first line, which is the header..
+        // omit the first line, which is the header
         List<File> listOfFiles = ExternalSort.sortInBatch(this.csvFile, cmp,
-                ExternalSort.DEFAULTMAXTEMPFILES, 
+                ExternalSort.DEFAULTMAXTEMPFILES,
                 ExternalSort.DEFAULT_MAX_MEM_BYTES,
                 Charset.defaultCharset(),
-                null, false, 1, usegzip);
+                null, false, 1, algorithm);
 
         // now merge with append
         ExternalSort.mergeSortedFiles(listOfFiles, out, cmp,
-                Charset.defaultCharset(), false, true, usegzip);
+                Charset.defaultCharset(), false, true, algorithm);
 
         ArrayList<String> result = readLines(out);
 
@@ -557,6 +562,23 @@ public class ExternalSortTest {
         } finally {
             out.close();
         }
+    }
+    
+    private static Compression LZ4() {
+        return new Compression() {
+            @Override
+            public InputStream getInputStream(InputStream in) throws IOException {
+                return new LZ4FrameInputStream(in);
+            }
+            @Override
+            public OutputStream getOutputStream(OutputStream out) throws  IOException {
+                return new LZ4FrameOutputStream(out);
+            }
+            @Override
+            public String addSuffix(String filename) {
+                return filename + ".lz4";
+            }
+        };
     }
 
 }

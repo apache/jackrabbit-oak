@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
@@ -83,7 +84,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, Compression.NONE);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 
@@ -171,7 +172,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, Compression.NONE);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 

@@ -117,9 +117,16 @@ General Security
 Using the Exercise Module
 -------------------------
 
-TODO
+The exercise module consists of training material in the form of test-cases that are to be 'fixed' based on the 
+instructions in the description and the test-method (EXERCISE comments).
+In addition the module comes with examples for customizations and extensions that can be adjusted and plugged 
+into an test repository for advanced learners.
 
 How to Verify your Solutions
 ----------------------------
 
-TODO
+The instructions and the EXERCISE comments indicate how the tests need to be adjusted. 
+Run the tests in your IDE and verify that they pass to check if your solution is correct.
+
+NOTE: The module by default skips test execution. Enable test verification if you intend to verify your solutions with 
+'mvn clean install'.
