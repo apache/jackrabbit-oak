@@ -47,6 +47,7 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
+              <!-- OAK-7182 -->${guava.osgi.import},
               !jdk.net.*,
               !org.apache.avalon.framework.logger.*,
               !org.apache.log.*,
@@ -251,6 +252,13 @@
       <artifactId>oak-jcr</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
+    </dependency>
+
+    <!-- General utility libraries -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Logging -->
