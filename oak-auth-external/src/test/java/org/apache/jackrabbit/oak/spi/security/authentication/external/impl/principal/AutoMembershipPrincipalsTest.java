@@ -65,7 +65,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         amp = new AutoMembershipPrincipals(userManager, MAPPING, getAutoMembershipConfigMapping());
         
         when(amConfig.getAutoMembership(authorizable)).thenReturn(ImmutableSet.of(automembershipGroup3.getID()));
-        when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Iterators.emptyIterator());
+        when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Collections.emptyIterator());
         when(amConfig.getAutoMembers(userManager, automembershipGroup3)).thenReturn(Iterators.singletonIterator(authorizable));
     }
 

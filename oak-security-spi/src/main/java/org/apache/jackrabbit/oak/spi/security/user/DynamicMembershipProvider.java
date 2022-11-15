@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.RepositoryException;
+
+import java.util.Collections;
 import java.util.Iterator;
 
 public interface DynamicMembershipProvider {
@@ -63,7 +64,7 @@ public interface DynamicMembershipProvider {
      * @throws RepositoryException If an error occurs.
      */
     @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException;
-    
+
     DynamicMembershipProvider EMPTY = new DynamicMembershipProvider() {
 
         @Override
@@ -73,7 +74,7 @@ public interface DynamicMembershipProvider {
 
         @Override
         public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
 
         @Override
@@ -83,7 +84,7 @@ public interface DynamicMembershipProvider {
 
         @Override
         public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
     };
 }
