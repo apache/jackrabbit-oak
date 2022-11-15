@@ -133,6 +133,13 @@
       <artifactId>commons-io</artifactId>
     </dependency>
 
+    <!-- General utility libraries -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- Required to route OSGi LogEvents to Slf4j-->
     <dependency>
       <groupId>org.apache.sling</groupId>
