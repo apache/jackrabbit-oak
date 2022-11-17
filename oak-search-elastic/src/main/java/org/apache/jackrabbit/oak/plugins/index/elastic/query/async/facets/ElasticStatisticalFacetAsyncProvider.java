@@ -95,7 +95,7 @@ public class ElasticStatisticalFacetAsyncProvider extends ElasticSecureFacetAsyn
         for (String field : facetFields) {
             List<StringTermsBucket> buckets = aggregations.get(field).sterms().buckets().array();
             facetMap.put(field, buckets.stream()
-                    .map(b -> new FulltextIndex.Facet(b.key(), (int) b.docCount()))
+                    .map(b -> new FulltextIndex.Facet(b.key().stringValue(), (int) b.docCount()))
                     .collect(Collectors.toList())
             );
         }
