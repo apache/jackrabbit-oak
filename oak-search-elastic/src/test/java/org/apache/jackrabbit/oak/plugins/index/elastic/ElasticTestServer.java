@@ -41,7 +41,6 @@ import java.util.Map;
 import static org.junit.Assume.assumeNotNull;
 
 public class ElasticTestServer implements AutoCloseable {
-
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
     private static final Map<String, String> PLUGIN_OFFICIAL_RELEASES_DIGEST_MAP = ImmutableMap.<String, String>builder()
             .put("7.17.3.0", "5e3b40bb72b2813f927be9bf6ecdf88668d89d2ef20c7ebafaa51ab8407fd179")
