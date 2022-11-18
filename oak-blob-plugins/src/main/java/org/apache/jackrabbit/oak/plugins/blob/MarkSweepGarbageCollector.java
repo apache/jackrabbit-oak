@@ -711,6 +711,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             // Mark all used blob references
             iterateNodeTree(fs, true);
+            // Move the marked references file to the data store meta area if applicable
+            String uniqueSuffix = UUID.randomUUID().toString();
+            GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId, uniqueSuffix);
             consistencyStatsCollector.updateMarkDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
 
             try {
@@ -725,6 +728,21 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 // Retrieve all other marked present in the datastore
                 List<DataRecord> refFiles =
                     ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+
+                // Get all the repositories registered
+                List<DataRecord> repoFiles =
+                    ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
+                LOG.info("Repositories registered {}", repoFiles);
+
+                // Retrieve repos for which reference files have not been created
+                Set<String> unAvailRepos =
+                    SharedDataStoreUtils.refsNotAvailableFromRepos(repoFiles, refFiles);
+                LOG.info("Repositories with unavailable references {}", unAvailRepos);
+                
+                if (!unAvailRepos.isEmpty()) {
+                    throw new NotAllRepositoryMarkedException("Not all repositories have marked references available");
+                }
+                
                 if (refFiles.size() > 0) {
                     File temp = new File(root, repoId + UUID.randomUUID().toString());
                     copyFile(fs.getMarkedRefs(), temp);

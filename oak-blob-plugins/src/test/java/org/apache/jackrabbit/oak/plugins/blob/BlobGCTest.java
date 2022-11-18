@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.NotAllRepositoryMarkedException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -81,6 +82,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.internal.util.collections.Iterables;
 import org.slf4j.Logger;
@@ -94,6 +96,9 @@ public class BlobGCTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+    
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
 
     protected Whiteboard wb;
 
@@ -499,6 +504,21 @@ public class BlobGCTest {
         assertStats(secondCluster.statsProvider, 1, 1, 1, 0, totalPresent,
             cluster.blobSize, CONSISTENCY_NAME);
         assertStatsBean(globalCollector.getConsistencyOperationStats(), 1, 1, 1);
+    }
+
+    @Test
+    public void checkConsistencyFailureNotAllMarked() throws Exception {
+        log.info("Staring checkConsistencyFailureNotAllMarked()");
+        expectedEx.expect(NotAllRepositoryMarkedException.class);
+
+        // Setup a different cluster/repository sharing the blob store
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+        closer.register(secondCluster);
+
+        // Execute mark on the default cluster
+        MarkSweepGarbageCollector globalCollector = cluster.getCollector(0, true, false);
+        globalCollector.checkConsistency();
     }
 
     @Test
