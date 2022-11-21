@@ -193,7 +193,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         System.setProperty("oak.indexer.minMemoryForWork", "1");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_PARALLEL_INDEX, "true");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD, "0");
-        System.setProperty(IndexerConfiguration.PROP_SPLIT_STORE_SIZE, "6");
+        System.setProperty(IndexerConfiguration.PROP_SPLIT_STORE_SIZE, "2");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_THREAD_POOL_SIZE, "2");
         System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "true");
 
