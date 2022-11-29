@@ -33,14 +33,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Stopwatch;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.TestUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
@@ -215,11 +217,14 @@ public class ReplicaSetResilienceIT {
             for (MongodProcess p : executables.values()) {
                 seeds.add(p.getAddress());
             }
-            try (MongoClient c = new MongoClient(seeds,
-                    new MongoClientOptions.Builder().requiredReplicaSetName("rs").build())) {
+            try (MongoClient c = MongoClients.create(MongoClientSettings.builder()
+                    .applyToClusterSettings(builder -> builder
+                        .hosts(seeds)
+                        .requiredReplicaSetName("rs"))
+                    .build())) {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
-                    address = c.getReplicaSetStatus().getMaster();
+                    address = MongoConnection.getPrimaryAddress(c);
                     if (address == null) {
                         LOG.info("Primary unavailable. Waiting one second...");
                         try {

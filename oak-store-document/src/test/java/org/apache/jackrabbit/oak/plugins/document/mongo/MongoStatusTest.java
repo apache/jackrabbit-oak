@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCommandException;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
@@ -199,12 +200,13 @@ public class MongoStatusTest {
             }
 
             private void unauthorizedIfServerStatus(Bson command) {
-                if (command.toBsonDocument(BasicDBObject.class, getDefaultCodecRegistry()).containsKey("serverStatus")) {
+                if (command.toBsonDocument(BasicDBObject.class, MongoClientSettings.getDefaultCodecRegistry()).containsKey("serverStatus")) {
                     BsonDocument response = new BsonDocument("ok", new BsonDouble(0.0));
                     response.put("errmsg", new BsonString("command serverStatus requires authentication"));
                     response.put("code", new BsonInt32(13));
                     response.put("codeName", new BsonString("Unauthorized"));
-                    ServerAddress address = getAddress();
+                    ServerAddress address = MongoConnection.getAddress(this);
+
                     if (address == null) {
                         // OAK-8459: use dummy/default address instead
                         address = new ServerAddress();

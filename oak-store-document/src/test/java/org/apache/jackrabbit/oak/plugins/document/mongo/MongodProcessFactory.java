@@ -27,7 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Joiner;
-import com.mongodb.MongoClient;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 import org.bson.Document;
 import org.junit.rules.ExternalResource;
@@ -145,7 +147,8 @@ public class MongodProcessFactory extends ExternalResource {
         }
         Document config = new Document("_id", rs);
         config.append("members", members);
-        try (MongoClient c = new MongoClient(localhost(), ports[0])) {
+        ConnectionString mongoURI = new ConnectionString(localhost(ports[0]));
+        try (MongoClient c = MongoClients.create(mongoURI)) {
             c.getDatabase("admin").runCommand(
                     new Document("replSetInitiate", config));
         }

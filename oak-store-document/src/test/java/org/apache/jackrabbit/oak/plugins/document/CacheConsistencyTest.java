@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;

@@ -28,8 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
 
 /**
@@ -102,14 +101,14 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection(String dbName) {
-        MongoClientURI clientURI;
+        ConnectionString clientURI;
         try {
-            clientURI = new MongoClientURI(URL);
+            clientURI = new ConnectionString(URL);
         } catch (IllegalArgumentException e) {
             // configured URL is invalid
             return null;
         }
-        StringBuilder uri = new StringBuilder("mongodb://");
+        StringBuilder uri = new StringBuilder(MongoConnection.MONGODB_PREFIX);
         String separator = "";
         for (String host : clientURI.getHosts()) {
             uri.append(separator);
@@ -136,20 +135,6 @@ public class MongoUtils {
             dropCollections(c.getDatabase());
         } finally {
             c.close();
-        }
-    }
-
-    /**
-     * Drop all user defined collections. System collections are not dropped.
-     *
-     * @param db the connection
-     * @deprecated use {@link #dropCollections(MongoDatabase)} instead.
-     */
-    public static void dropCollections(DB db) {
-        for (String name : db.getCollectionNames()) {
-            if (!name.startsWith("system.")) {
-                db.getCollection(name).drop();
-            }
         }
     }
 
@@ -214,7 +199,7 @@ public class MongoUtils {
         try {
             mongoConnection = new MongoConnection(url);
             mongoConnection.getDatabase().runCommand(new BasicDBObject("ping", 1));
-            // dropCollections(mongoConnection.getDB());
+            // dropCollections(mongoConnection.getDatabase());
         } catch (Exception e) {
             exceptions.put(url, e);
             mongoConnection = null;

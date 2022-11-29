@@ -17,11 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -29,6 +30,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
@@ -61,16 +64,19 @@ final class MongoDBConnection {
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
                                                   @NotNull String name,
                                                   @NotNull MongoClock clock,
-                                                  int socketTimeout,
-                                                  boolean socketKeepAlive) {
+                                                  int socketTimeout) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
-        MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.addServerMonitorListener(serverMonitorListener);
-        options.socketKeepAlive(socketKeepAlive);
+        MongoClientSettings.Builder options = MongoConnection.getDefaultBuilder();
+        options.applyToServerSettings(builder ->
+            builder.addServerMonitorListener(serverMonitorListener)
+        );
         if (socketTimeout > 0) {
-            options.socketTimeout(socketTimeout);
+            options.applyToSocketSettings(builder ->
+                builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS)
+            );
         }
-        MongoClient client = new MongoClient(new MongoClientURI(uri, options));
+        options.applyConnectionString(new ConnectionString(uri));
+        MongoClient client = MongoClients.create(options.build());
         MongoStatus status = new MongoStatus(client, name);
         serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);

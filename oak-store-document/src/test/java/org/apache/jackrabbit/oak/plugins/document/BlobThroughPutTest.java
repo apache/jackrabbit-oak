@@ -30,9 +30,10 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -60,13 +61,12 @@ public class BlobThroughPutTest {
 
     static {
         BiMap<WriteConcern,String> bimap = HashBiMap.create();
-        bimap.put(WriteConcern.FSYNC_SAFE,"FSYNC_SAFE");
-        bimap.put(WriteConcern.JOURNAL_SAFE,"JOURNAL_SAFE");
+        // FSYNC_SAFE, JOURNAL_SAFE, REPLICAS_SAFE and SAFE doesn't exist anymore
+        bimap.put(WriteConcern.JOURNALED,"JOURNALED");
 //        bimap.put(WriteConcern.MAJORITY,"MAJORITY");
         bimap.put(WriteConcern.UNACKNOWLEDGED,"UNACKNOWLEDGED");
-        bimap.put(WriteConcern.NORMAL,"NORMAL");
-//        bimap.put(WriteConcern.REPLICAS_SAFE,"REPLICAS_SAFE");
-        bimap.put(WriteConcern.SAFE,"SAFE");
+//        bimap.put(WriteConcern.W2,"W2");
+        bimap.put(WriteConcern.ACKNOWLEDGED,"ACKNOWLEDGED");
         namedConcerns = Maps.unmodifiableBiMap(bimap);
     }
 
@@ -76,8 +76,8 @@ public class BlobThroughPutTest {
     @Ignore
     @Test
     public void performBenchMark() throws InterruptedException {
-        MongoClient local = new MongoClient(new MongoClientURI(localServer));
-        MongoClient remote = new MongoClient(new MongoClientURI(remoteServer));
+        MongoClient local = MongoClients.create(new ConnectionString(localServer));
+        MongoClient remote = MongoClients.create(new ConnectionString(remoteServer));
 
         run(local, false, false);
         run(local, true, false);
@@ -90,7 +90,7 @@ public class BlobThroughPutTest {
     @Ignore
     @Test
     public void performBenchMark_WriteConcern() throws InterruptedException {
-        MongoClient mongo = new MongoClient(new MongoClientURI(remoteServer));
+        MongoClient mongo = MongoClients.create(new ConnectionString(remoteServer));
         final MongoDatabase db = mongo.getDatabase(TEST_DB1);
         final MongoCollection<BasicDBObject> nodes = db.getCollection("nodes", BasicDBObject.class);
         final MongoCollection<BasicDBObject> blobs = db.getCollection("blobs", BasicDBObject.class);
@@ -128,7 +128,7 @@ public class BlobThroughPutTest {
             for (int writers : WRITERS) {
                 prepareDB(nodes, blobs);
                 final Benchmark b = new Benchmark(nodes, blobs);
-                Result r = b.run(readers, writers, remote, WriteConcern.SAFE);
+                Result r = b.run(readers, writers, remote, WriteConcern.ACKNOWLEDGED);
                 results.add(r);
             }
         }

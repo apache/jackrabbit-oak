@@ -19,12 +19,16 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.google.common.collect.Maps;
-import com.mongodb.MongoClient;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.internal.MongoClientImpl;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
@@ -150,18 +154,6 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
-    public void keepAlive() throws Exception {
-        Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
-        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
-        MockOsgi.activate(service, context.bundleContext());
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
-    }
-
-    @Test
     public void continuousRGCDefault() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
@@ -207,36 +199,31 @@ public class DocumentNodeStoreServiceTest {
     public void preset() throws Exception {
         MockOsgi.setConfigForPid(context.bundleContext(),
                 Configuration.PRESET_PID,
-                DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
+                DocumentNodeStoreServiceConfiguration.PROP_UPDATE_LIMIT, 145000);
         MockOsgi.activate(preset, context.bundleContext());
 
         MockOsgi.setConfigForPid(context.bundleContext(), PID, newConfig(repoHome));
         MockOsgi.activate(service, context.bundleContext());
 
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        assertNotNull(mds);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
+        assertEquals(145000, store.getUpdateLimit());
     }
 
     @Test
     public void presetOverride() throws Exception {
         MockOsgi.setConfigForPid(context.bundleContext(),
                 Configuration.PRESET_PID,
-                DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
+                DocumentNodeStoreServiceConfiguration.PROP_UPDATE_LIMIT, 123000);
         MockOsgi.activate(preset, context.bundleContext());
 
         Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, false);
+        config.put(DocumentNodeStoreServiceConfiguration.PROP_UPDATE_LIMIT, 178000);
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
 
         MockOsgi.activate(service, context.bundleContext());
 
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertFalse(client.getMongoClientOptions().isSocketKeepAlive());
+        assertEquals(178000, store.getUpdateLimit());
     }
 
     @Test

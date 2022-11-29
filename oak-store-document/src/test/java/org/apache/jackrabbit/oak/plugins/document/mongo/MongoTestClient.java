@@ -16,29 +16,134 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ClientSessionOptions;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.ChangeStreamIterable;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.ListDatabasesIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
-
+import com.mongodb.client.MongoIterable;
+import com.mongodb.connection.ClusterDescription;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 
-class MongoTestClient extends MongoClient {
+class MongoTestClient implements MongoClient {
 
     private AtomicReference<String> beforeQueryException = new AtomicReference<>();
     private AtomicReference<String> beforeUpdateException = new AtomicReference<>();
     private AtomicReference<String> afterUpdateException = new AtomicReference<>();
 
+    private final MongoClient client;
+
     MongoTestClient(String uri) {
-        super(new MongoClientURI(uri));
+        client = MongoClients.create(
+                MongoConnection.getDefaultBuilder()
+                        .applyConnectionString(new ConnectionString(uri))
+                        .build());
     }
 
     @NotNull
     @Override
     public MongoDatabase getDatabase(String databaseName) {
-        return new MongoTestDatabase(super.getDatabase(databaseName),
+        return new MongoTestDatabase(client.getDatabase(databaseName),
                 beforeQueryException, beforeUpdateException, afterUpdateException);
+    }
+
+    @Override
+    public ClientSession startSession() {
+        return client.startSession();
+    }
+
+    @Override
+    public ClientSession startSession(ClientSessionOptions clientSessionOptions) {
+        return client.startSession(clientSessionOptions);
+    }
+
+    @Override
+    public void close() {
+        client.close();
+    }
+
+    @Override
+    public MongoIterable<String> listDatabaseNames() {
+        return client.listDatabaseNames();
+    }
+
+    @Override
+    public MongoIterable<String> listDatabaseNames(ClientSession clientSession) {
+        return client.listDatabaseNames(clientSession);
+    }
+
+    @Override
+    public ListDatabasesIterable<Document> listDatabases() {
+        return client.listDatabases();
+    }
+
+    @Override
+    public ListDatabasesIterable<Document> listDatabases(ClientSession clientSession) {
+        return client.listDatabases(clientSession);
+    }
+
+    @Override
+    public <TResult> ListDatabasesIterable<TResult> listDatabases(Class<TResult> var1) {
+        return client.listDatabases(var1);
+    }
+
+    @Override
+    public <TResult> ListDatabasesIterable<TResult> listDatabases(ClientSession clientSession, Class<TResult> var1) {
+        return client.listDatabases(clientSession, var1);
+    }
+
+    @Override
+    public ChangeStreamIterable<Document> watch() {
+        return client.watch();
+    }
+
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(Class<TResult> var1) {
+        return client.watch(var1);
+    }
+
+    @Override
+    public ChangeStreamIterable<Document> watch(List<? extends Bson> list) {
+        return client.watch(list);
+    }
+
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(List<? extends Bson> list, Class<TResult> var1) {
+        return client.watch(list, var1);
+    }
+
+    @Override
+    public ChangeStreamIterable<Document> watch(ClientSession clientSession) {
+        return client.watch(clientSession);
+    }
+
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(ClientSession clientSession, Class<TResult> var1) {
+        return client.watch(clientSession, var1);
+    }
+
+    @Override
+    public ChangeStreamIterable<Document> watch(ClientSession clientSession, List<? extends Bson> list) {
+        return client.watch(clientSession, list);
+    }
+
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(ClientSession clientSession, List<? extends Bson> list, Class<TResult> var1) {
+        return client.watch(clientSession, list, var1);
+    }
+
+    @Override
+    public ClusterDescription getClusterDescription() {
+        return client.getClusterDescription();
     }
 
     void setExceptionBeforeQuery(String msg) {

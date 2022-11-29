@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
@@ -53,9 +52,9 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -65,6 +64,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -75,6 +75,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
@@ -188,9 +189,9 @@ public class DataStoreCheckCommand implements Command {
             NodeStore nodeStore = null;
             if (options.has(store)) {
                 String source = options.valueOf(store);
-                if (source.startsWith(MongoURI.MONGODB_PREFIX)) {
-                    MongoClientURI uri = new MongoClientURI(source);
-                    MongoClient client = new MongoClient(uri);
+                if (StringUtils.startsWith(source, MongoConnection.MONGODB_PREFIX)) {
+                    ConnectionString uri = new ConnectionString(source);
+                    MongoClient client = MongoClients.create(uri);
                     DocumentNodeStore docNodeStore =
                         newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
                     closer.register(Utils.asCloseable(docNodeStore));

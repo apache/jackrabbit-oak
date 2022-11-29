@@ -23,7 +23,6 @@ import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,7 @@ public class MongoDockerRule extends DockerRule {
 
     private static final String CONFIG_NAME = "MongoDB-" + UUID.randomUUID().toString().substring(0, 8);
 
-    private static final String VERSION = System.getProperty("mongo.version", "3.6");
+    private static final String VERSION = System.getProperty("mongo.version", "4.2");
 
     private static final String IMAGE = "mongo:" + VERSION;
 

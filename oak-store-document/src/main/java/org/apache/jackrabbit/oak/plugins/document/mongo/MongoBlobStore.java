@@ -22,9 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.mongodb.ReadPreference;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.result.UpdateResult;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -38,12 +35,15 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
+import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 
 import static com.mongodb.ReadPreference.primary;
 import static java.util.stream.StreamSupport.stream;
@@ -68,7 +68,7 @@ public class MongoBlobStore extends CachingBlobStore {
 
     private static final CodecRegistry CODEC_REGISTRY = fromRegistries(
             fromCodecs(new MongoBlobCodec()),
-            MongoClient.getDefaultCodecRegistry()
+            MongoClientSettings.getDefaultCodecRegistry()
     );
 
     private final ReadPreference defaultReadPreference;

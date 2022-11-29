@@ -201,7 +201,7 @@ public class MongoDbTest {
 
     private static BasicDBObject explain(MongoCollection<BasicDBObject> collection,
                                          Bson query) {
-        return collection.find(query).modifiers(new BasicDBObject("$explain", true)).first();
+        return collection.find(query).explain(BasicDBObject.class);
     }
 
     private static void log(String msg) {

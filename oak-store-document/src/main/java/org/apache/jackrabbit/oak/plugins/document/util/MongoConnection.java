@@ -16,34 +16,45 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadConcernLevel;
+import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoClusterListener;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
  */
 public class MongoConnection {
 
+    public static final String MONGODB_PREFIX = "mongodb://";
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoConnection.class);
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
     private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
-    private final MongoClientURI mongoURI;
+    private final ConnectionString mongoURI;
     private final MongoClient mongo;
 
     /**
@@ -65,10 +76,10 @@ public class MongoConnection {
      * @param builder the client option defaults.
      * @throws MongoException if there are failures
      */
-    public MongoConnection(String uri, MongoClientOptions.Builder builder)
+    public MongoConnection(String uri, MongoClientSettings.Builder builder)
             throws MongoException {
-        mongoURI = new MongoClientURI(uri, builder);
-        mongo = new MongoClient(mongoURI);
+        mongoURI = new ConnectionString(uri);
+        mongo = MongoClients.create(builder.applyConnectionString(mongoURI).build());
     }
 
     /**
@@ -91,7 +102,7 @@ public class MongoConnection {
      * @param client the already connected client.
      */
     public MongoConnection(String uri, MongoClient client) {
-        mongoURI = new MongoClientURI(uri, MongoConnection.getDefaultBuilder());
+        mongoURI = new ConnectionString(uri);
         mongo = client;
     }
 
@@ -142,26 +153,41 @@ public class MongoConnection {
      *
      * @return builder with default options set
      */
-    public static MongoClientOptions.Builder getDefaultBuilder() {
-        return new MongoClientOptions.Builder()
-                .description("MongoConnection for Oak DocumentMK")
-                .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
-                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .threadsAllowedToBlockForConnectionMultiplier(100);
+    public static MongoClientSettings.Builder getDefaultBuilder() {
+        return MongoClientSettings.builder()
+                .applicationName("Oak DocumentMK")
+                .applyToConnectionPoolSettings(builder ->
+                    builder.maxWaitTime(DEFAULT_MAX_WAIT_TIME, MILLISECONDS)
+                )
+                .applyToServerSettings(builder ->
+                    builder.heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS, MILLISECONDS)
+                )
+                .applyToClusterSettings(builder ->
+                    builder.addClusterListener(new MongoClusterListener())
+                );
     }
 
-    public static String toString(MongoClientOptions opts) {
+    public static String toString(MongoClientSettings opts) {
         return Objects.toStringHelper(opts)
-                .add("connectionsPerHost", opts.getConnectionsPerHost())
-                .add("connectTimeout", opts.getConnectTimeout())
-                .add("socketTimeout", opts.getSocketTimeout())
-                .add("socketKeepAlive", opts.isSocketKeepAlive())
-                .add("maxWaitTime", opts.getMaxWaitTime())
-                .add("heartbeatFrequency", opts.getHeartbeatFrequency())
-                .add("threadsAllowedToBlockForConnectionMultiplier",
-                        opts.getThreadsAllowedToBlockForConnectionMultiplier())
+                .add("connectionsPerHost", opts.getConnectionPoolSettings().getMaxSize())
+                .add("connectTimeout", opts.getSocketSettings().getConnectTimeout(MILLISECONDS))
+                .add("socketTimeout", opts.getSocketSettings().getReadTimeout(MILLISECONDS))
+                .add("maxWaitTime", opts.getConnectionPoolSettings().getMaxWaitTime(MILLISECONDS))
+                .add("heartbeatFrequency", opts.getServerSettings().getHeartbeatFrequency(MILLISECONDS))
                 .add("readPreference", opts.getReadPreference().getName())
                 .add("writeConcern", opts.getWriteConcern())
+                .toString();
+    }
+
+    public static String toString(ConnectionString connectionString) {
+        return Objects.toStringHelper(connectionString)
+                .add("connectionsPerHost", connectionString.getMaxConnecting())
+                .add("connectTimeout", connectionString.getConnectTimeout())
+                .add("socketTimeout", connectionString.getSocketTimeout())
+                .add("maxWaitTime", connectionString.getMaxWaitTime())
+                .add("heartbeatFrequency", connectionString.getHeartbeatFrequency())
+                .add("readPreference", connectionString.getReadPreference())
+                .add("writeConcern", connectionString.getWriteConcern())
                 .toString();
     }
 
@@ -172,11 +198,8 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasWriteConcern(@NotNull String uri) {
-        MongoClientOptions.Builder builder = MongoClientOptions.builder();
-        builder.writeConcern(WC_UNKNOWN);
-        WriteConcern wc = new MongoClientURI(checkNotNull(uri), builder)
-                .getOptions().getWriteConcern();
-        return !WC_UNKNOWN.equals(wc);
+        WriteConcern wc = new ConnectionString(checkNotNull(uri)).getWriteConcern();
+        return wc != null && !WC_UNKNOWN.equals(wc);
     }
 
     /**
@@ -186,9 +209,8 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasReadConcern(@NotNull String uri) {
-        ReadConcern rc = new MongoClientURI(checkNotNull(uri))
-                .getOptions().getReadConcern();
-        return readConcernLevel(rc) != null;
+        ReadConcern rc = new ConnectionString(checkNotNull(uri)).getReadConcern();
+        return rc != null && readConcernLevel(rc) != null;
     }
 
     /**
@@ -203,7 +225,8 @@ public class MongoConnection {
      */
     public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
         WriteConcern w;
-        if (client.getReplicaSetStatus() != null) {
+
+        if (isReplicaSet(client)) {
             w = WriteConcern.MAJORITY;
         } else {
             w = WriteConcern.ACKNOWLEDGED;
@@ -224,7 +247,7 @@ public class MongoConnection {
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
                                                     @NotNull MongoDatabase db) {
         ReadConcern r;
-        if (checkNotNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
+        if (isReplicaSet(client) && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
         } else {
             r = ReadConcern.LOCAL;
@@ -267,7 +290,7 @@ public class MongoConnection {
             throw new IllegalArgumentException(
                     "Unknown write concern: " + wc);
         }
-        if (client.getReplicaSetStatus() != null) {
+        if (isReplicaSet(client)) {
             return w >= 2;
         } else {
             return w >= 1;
@@ -286,7 +309,8 @@ public class MongoConnection {
     public static boolean isSufficientReadConcern(@NotNull MongoClient client,
                                                   @NotNull ReadConcern rc) {
         ReadConcernLevel r = readConcernLevel(checkNotNull(rc));
-        if (client.getReplicaSetStatus() == null) {
+
+        if (!isReplicaSet(client)) {
             return true;
         } else {
             return REPLICA_RC.contains(r);
@@ -299,5 +323,60 @@ public class MongoConnection {
         } else {
             return ReadConcernLevel.fromString(readConcern.asDocument().getString("level").getValue());
         }
+    }
+
+    /**
+     * Returns {@code true} if the MongoDB server is part of a Replica Set,
+     * {@code false} otherwise. The Replica Set Status is achieved by the
+     * ReplicaSetStatusListener, which is triggered whenever the cluster
+     * description changes.
+     *
+     * @param client the mongo client.
+     * @return {@code true} if part of Replica Set, {@code false} otherwise.
+     */
+    public static boolean isReplicaSet(@NotNull MongoClient client) {
+        return getOakClusterListener(client).map(MongoClusterListener::isReplicaSet)
+                .orElseGet(() -> {
+                    LOG.warn("Method isReplicaSet called for a MongoClient without any OakClusterListener");
+                    return false;
+                });
+    }
+
+    /**
+     * Returns the {@ServerAddress} of the MongoDB cluster.
+     *
+     * @param client the mongo client.
+     * @return {@ServerAddress} of the cluster. {@null} if not connected or no listener was available.
+     */
+    @Nullable
+    public static ServerAddress getAddress(@NotNull MongoClient client) {
+        return getOakClusterListener(client).map(MongoClusterListener::getServerAddress)
+                .orElseGet(() -> {
+                    LOG.warn("Method getAddress called for a MongoClient without any OakClusterListener");
+                    return null;
+                });
+    }
+
+    /**
+     * Returns the {@ServerAddress} of the MongoDB cluster primary node.
+     *
+     * @param client the mongo client.
+     * @return {@ServerAddress} of the primary. {@null} if not connected or no listener was available.
+     */
+    @Nullable
+    public static ServerAddress getPrimaryAddress(@NotNull MongoClient client) {
+        return getOakClusterListener(client).map(MongoClusterListener::getPrimaryAddress)
+                .orElseGet(() -> {
+                    LOG.warn("Method getPrimaryAddress called for a MongoClient without any OakClusterListener");
+                    return null;
+                });
+    }
+
+    private static Optional<MongoClusterListener> getOakClusterListener(@NotNull MongoClient client) {
+        return client.getClusterDescription().getClusterSettings()
+                .getClusterListeners().stream()
+                .filter(clusterListener -> clusterListener instanceof MongoClusterListener)
+                .map(clusterListener -> (MongoClusterListener) clusterListener)
+                .findFirst();
     }
 }

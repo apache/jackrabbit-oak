@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.concurrent.TimeUnit;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -39,7 +39,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         extends DocumentNodeStoreBuilder<T> {
 
     private final MongoClock mongoClock = new MongoClock();
-    private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
     private boolean clientSessionDisabled = false;
@@ -99,22 +98,15 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
-     * Enables or disables the socket keep-alive option for MongoDB. The default
-     * is enabled.
+     * This method is now deprecated and has no effect. MongoDB keep-alive
+     * is always enabled.
      *
-     * @param enable whether to enable or disable it.
+     * @param enable this parameter has no effect.
      * @return this
      */
+    @Deprecated
     public T setSocketKeepAlive(boolean enable) {
-        this.socketKeepAlive = enable;
         return thisBuilder();
-    }
-
-    /**
-     * @return whether socket keep-alive is enabled.
-     */
-    public boolean isSocketKeepAlive() {
-        return socketKeepAlive;
     }
 
     /**
@@ -224,7 +216,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         if (uri == null || name == null) {
             throw new IllegalStateException("Cannot create MongoDB client without 'uri' or 'name'");
         }
-        return newMongoDBConnection(uri, name, mongoClock, socketTimeout, socketKeepAlive);
+        return newMongoDBConnection(uri, name, mongoClock, socketTimeout);
     }
 
     private T setMongoDB(@NotNull MongoDBConnection client,

@@ -60,14 +60,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "can be overridden via framework property 'oak.mongo.db'")
     String db() default DocumentNodeStoreService.DEFAULT_DB;
 
-
-    @AttributeDefinition(
-            name = "MongoDB socket keep-alive option",
-            description = "Whether socket keep-alive should be enabled for " +
-                    "connections to MongoDB. Note that this value can be " +
-                    "overridden via framework property 'oak.mongo.socketKeepAlive'")
-    boolean socketKeepAlive() default DocumentNodeStoreService.DEFAULT_SO_KEEP_ALIVE;
-
     @AttributeDefinition(
             name = "MongoDB socket timeout for lease update operations",
             description = "Socket timeout for lease update operations in " +

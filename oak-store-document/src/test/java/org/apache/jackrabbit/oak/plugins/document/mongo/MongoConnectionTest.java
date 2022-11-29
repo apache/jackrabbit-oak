@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.ReadConcern;
-import com.mongodb.ReplicaSetStatus;
 import com.mongodb.WriteConcern;
-
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import com.mongodb.client.MongoClient;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ClusterSettings;
+import com.mongodb.event.ClusterListener;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -52,25 +53,15 @@ public class MongoConnectionTest {
         sufficientWriteConcernReplicaSet(WriteConcern.ACKNOWLEDGED, false);
         sufficientWriteConcernReplicaSet(WriteConcern.JOURNALED, false);
         sufficientWriteConcernReplicaSet(WriteConcern.MAJORITY, true);
-        sufficientWriteConcernReplicaSet(WriteConcern.FSYNC_SAFE, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.FSYNCED, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.JOURNAL_SAFE, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.NORMAL, false);
-        sufficientWriteConcernReplicaSet(WriteConcern.REPLICA_ACKNOWLEDGED, true);
-        sufficientWriteConcernReplicaSet(WriteConcern.REPLICAS_SAFE, true);
-        sufficientWriteConcernReplicaSet(WriteConcern.SAFE, false);
+        sufficientWriteConcernReplicaSet(WriteConcern.W1, false);
+        sufficientWriteConcernReplicaSet(WriteConcern.W2, true);
+        sufficientWriteConcernReplicaSet(WriteConcern.W3, true);
         sufficientWriteConcernReplicaSet(WriteConcern.UNACKNOWLEDGED, false);
 
         sufficientWriteConcernSingleNode(WriteConcern.ACKNOWLEDGED, true);
         sufficientWriteConcernSingleNode(WriteConcern.JOURNALED, true);
         sufficientWriteConcernSingleNode(WriteConcern.MAJORITY, true);
-        sufficientWriteConcernSingleNode(WriteConcern.FSYNC_SAFE, true);
-        sufficientWriteConcernSingleNode(WriteConcern.FSYNCED, true);
-        sufficientWriteConcernSingleNode(WriteConcern.JOURNAL_SAFE, true);
-        sufficientWriteConcernSingleNode(WriteConcern.NORMAL, false);
-        sufficientWriteConcernSingleNode(WriteConcern.REPLICA_ACKNOWLEDGED, true);
-        sufficientWriteConcernSingleNode(WriteConcern.REPLICAS_SAFE, true);
-        sufficientWriteConcernSingleNode(WriteConcern.SAFE, true);
+        sufficientWriteConcernSingleNode(WriteConcern.W1, true);
         sufficientWriteConcernSingleNode(WriteConcern.UNACKNOWLEDGED, false);
     }
 
@@ -83,26 +74,6 @@ public class MongoConnectionTest {
         sufficientReadConcernSingleNode(ReadConcern.DEFAULT, true);
         sufficientReadConcernSingleNode(ReadConcern.LOCAL, true);
         sufficientReadConcernSingleNode(ReadConcern.MAJORITY, true);
-    }
-
-    @Test
-    public void socketKeepAlive() throws Exception {
-        assumeTrue(MongoUtils.isAvailable());
-        MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.socketKeepAlive(false);
-        MongoConnection c = new MongoConnection(MongoUtils.URL, options);
-        try {
-            assertFalse(c.getMongoClient().getMongoClientOptions().isSocketKeepAlive());
-        } finally {
-            c.close();
-        }
-        // default is with keep-alive (starting with 3.6 driver)
-        c = new MongoConnection(MongoUtils.URL);
-        try {
-            assertTrue(c.getMongoClient().getMongoClientOptions().isSocketKeepAlive());
-        } finally {
-            c.close();
-        }
     }
 
     private void sufficientWriteConcernReplicaSet(WriteConcern w,
@@ -139,14 +110,18 @@ public class MongoConnectionTest {
     }
 
     private MongoClient mockMongoClient(boolean replicaSet) {
-        ReplicaSetStatus status;
-        if (replicaSet) {
-            status = mock(ReplicaSetStatus.class);
-        } else {
-            status = null;
-        }
+        MongoClusterListener mockListener = mock(MongoClusterListener.class);
+        when(mockListener.isReplicaSet()).thenReturn(replicaSet);
+
+        List<ClusterListener> listenerList = new ArrayList<>();
+        listenerList.add(mockListener);
+
         MongoClient client = mock(MongoClient.class);
-        when(client.getReplicaSetStatus()).thenReturn(status);
+        ClusterDescription clusterDescription = mock(ClusterDescription.class);
+        ClusterSettings clusterSettings = mock(ClusterSettings.class);
+        when(client.getClusterDescription()).thenReturn(clusterDescription);
+        when(client.getClusterDescription().getClusterSettings()).thenReturn(clusterSettings);
+        when(client.getClusterDescription().getClusterSettings().getClusterListeners()).thenReturn(listenerList);
         return client;
     }
 }

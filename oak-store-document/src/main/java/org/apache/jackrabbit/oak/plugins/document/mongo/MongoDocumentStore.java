@@ -46,11 +46,9 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.mongodb.Block;
+import com.mongodb.ConnectionString;
 import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 
 import com.mongodb.client.model.CreateCollectionOptions;
@@ -77,6 +75,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.ModificationStamp;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -96,6 +95,7 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -1589,7 +1589,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         nodes.withReadPreference(ReadPreference.primary())
                 .find(Filters.in(Document.ID, keys)).projection(fields)
-                .forEach((Block<BasicDBObject>) obj -> {
+                .forEach(obj -> {
                     String id = (String) obj.get(Document.ID);
                     Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
                     if (modCount == null) {
@@ -1947,16 +1947,16 @@ public class MongoDocumentStore implements DocumentStore {
             if(!readWriteMode.startsWith("mongodb://")){
                 rwModeUri = String.format("mongodb://localhost/?%s", readWriteMode);
             }
-            MongoClientURI uri = new MongoClientURI(rwModeUri);
-            ReadPreference readPref = uri.getOptions().getReadPreference();
+            ConnectionString uri = new ConnectionString(rwModeUri);
+            ReadPreference readPref = uri.getReadPreference();
 
-            if (!readPref.equals(nodes.getReadPreference())) {
+            if (Objects.nonNull(readPref) && !Objects.equals(readPref, nodes.getReadPreference())) {
                 nodes = nodes.withReadPreference(readPref);
                 LOG.info("Using ReadPreference {} ", readPref);
             }
 
-            WriteConcern writeConcern = uri.getOptions().getWriteConcern();
-            if (!writeConcern.equals(nodes.getWriteConcern())) {
+            WriteConcern writeConcern = uri.getWriteConcern();
+            if (Objects.nonNull(writeConcern) && !Objects.equals(writeConcern, nodes.getWriteConcern())) {
                 nodes = nodes.withWriteConcern(writeConcern);
                 LOG.info("Using WriteConcern " + writeConcern);
             }
@@ -2071,7 +2071,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private boolean secondariesWithinAcceptableLag() {
-        return getClient().getReplicaSetStatus() == null
+        return !MongoConnection.isReplicaSet(connection.getClient())
                 || connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 
