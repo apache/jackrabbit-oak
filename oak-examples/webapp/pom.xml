@@ -309,6 +309,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
+          <skipITs>true</skipITs>
           <systemPropertyVariables>
             <java.util.logging.config.file>
               src/test/resources/logging.properties
