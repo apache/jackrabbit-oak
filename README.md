@@ -1,5 +1,6 @@
-Jackrabbit Oak - the next generation content repository
+Jackrabbit Oak - the next generation  content repository
 =======================================================
+
 
 Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
