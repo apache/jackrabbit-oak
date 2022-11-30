@@ -42,9 +42,9 @@ import org.mockito.junit.MockitoRule;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class ExternalIndexObserverTest {
@@ -69,20 +69,20 @@ public class ExternalIndexObserverTest {
     @Test
     public void internalChange() throws Exception {
         observer.contentChanged(INITIAL_CONTENT, CommitInfo.EMPTY);
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
     public void externalChangeNullContext() throws Exception {
         observer.contentChanged(INITIAL_CONTENT, CommitInfo.EMPTY_EXTERNAL);
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
     public void emptyCommitContext() throws Exception {
         CommitInfo ci = newCommitInfo();
         observer.contentChanged(INITIAL_CONTENT, ci);
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class ExternalIndexObserverTest {
         CommitInfo ci = newCommitInfo();
 
         observer.contentChanged(INITIAL_CONTENT, ci);
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class ExternalIndexObserverTest {
         CommitInfo ci = newCommitInfo();
         when(tracker.getIndexDefinition("/oak:index/foo")).thenReturn(createNRTIndex("nt:base"));
         observer.contentChanged(INITIAL_CONTENT, ci);
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
@@ -126,7 +126,7 @@ public class ExternalIndexObserverTest {
         nb.child("a");
         observer.contentChanged(nb.getNodeState(), ci);
 
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
@@ -144,7 +144,7 @@ public class ExternalIndexObserverTest {
         nb.child("a");
         observer.contentChanged(nb.getNodeState(), ci);
 
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
@@ -178,7 +178,7 @@ public class ExternalIndexObserverTest {
                 new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.sameThreadExecutor(), 10);
         Observer o = builder.build();
         o.contentChanged(INITIAL_CONTENT, CommitInfo.EMPTY_EXTERNAL);
-        verifyZeroInteractions(queue);
+        verifyNoInteractions(queue);
     }
 
     @Test
