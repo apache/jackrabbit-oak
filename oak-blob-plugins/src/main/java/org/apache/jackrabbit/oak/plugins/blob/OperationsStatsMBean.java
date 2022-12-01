@@ -70,11 +70,11 @@ public interface OperationsStatsMBean {
      * Returns the number of blob references
      * @return
      */
-    long numBlobReferences();
+    long getNumBlobReferences();
 
     /**
-     * Returns the cummulative size of the blob references
+     * Returns the cumulative size of the blob references
      * @return
      */
-    long sizeBlobReferences();
+    long getBlobReferencesSize();
 }

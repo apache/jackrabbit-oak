@@ -46,7 +46,7 @@ public interface OperationStatsCollector {
         }
 
         @Override
-        public void updateSizeBlobReferences(long size) {
+        public void updateBlobReferencesSize(long size) {
         }
 
         @Override public void updateDuration(long time, TimeUnit timeUnit) {
@@ -97,7 +97,7 @@ public interface OperationStatsCollector {
      * Update the size of blob references
      * @param size
      */
-    public void updateSizeBlobReferences(long size);
+    public void updateBlobReferencesSize(long size);
     
     /**
      * Increment the duration timer

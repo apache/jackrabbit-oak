@@ -407,7 +407,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         iterateNodeTree(fs, false);
         
         // Get size
-        sizeBlobStoreReferences(fs, stats);
+        getBlobReferencesSize(fs, stats);
         
         // Move the marked references file to the data store meta area if applicable
         GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId, uniqueSuffix);
@@ -415,7 +415,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         LOG.debug("Ending mark phase of the garbage collector");
     }
 
-    private static void sizeBlobStoreReferences(GarbageCollectorFileState fs, GarbageCollectionOperationStats stats)
+    private static void getBlobReferencesSize(GarbageCollectorFileState fs, GarbageCollectionOperationStats stats)
         throws IOException {
         try (LineIterator lineIterator = new LineIterator(new FileReader(fs.getMarkedRefs()))) {
             lineIterator.forEachRemaining(line -> {
@@ -426,12 +426,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 stats.getCollector().updateNumBlobReferences(1);
 
                 if (length != -1) {
-                    stats.getCollector().updateSizeBlobReferences(length);
+                    stats.getCollector().updateBlobReferencesSize(length);
                 }
             });
         }
-        LOG.info("Blob references found : {} with size : {}", stats.numBlobReferences(),
-            stats.sizeBlobReferences());
+        LOG.info("Blob references found : {} with size : {}", stats.getNumBlobReferences(),
+            stats.getBlobReferencesSize());
     }
 
     /**
@@ -548,7 +548,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         if (checkConsistencyAfterGc) {
-            BlobCollectionType.get(blobStore).checkConsistencyAfterGC(blobStore, fs, consistencyStats, new File(root));
+            BlobCollectionType.get(blobStore).checkConsistencyAfterGC(blobStore, fs, consistencyStats);
         }
         BlobCollectionType.get(blobStore).handleRemoves(blobStore, fs.getGarbage(), fs.getMarkedRefs());
 
@@ -759,7 +759,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             }
 
             // Get size
-            sizeBlobStoreReferences(fs, consistencyStats);
+            getBlobReferencesSize(fs, consistencyStats);
 
             LOG.trace("Starting difference phase of the consistency check");
             FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
@@ -1119,7 +1119,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         void checkConsistencyAfterGC(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
-            GarbageCollectionOperationStats stats, File root) throws IOException {
+            GarbageCollectionOperationStats stats) throws IOException {
             stats.getCollector().start();
             Stopwatch sw = Stopwatch.createStarted();
 
@@ -1159,7 +1159,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
                 
                 // Update the size of the referenced blobs
-                sizeBlobStoreReferences(fs, stats);
+                getBlobReferencesSize(fs, stats);
             } finally {
                 sw.stop();
                 stats.getCollector().updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
@@ -1267,7 +1267,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 @Override
-                public void updateSizeBlobReferences(long size) {
+                public void updateBlobReferencesSize(long size) {
                     blobReferencesSizeCounter.inc(size);
                 }
                 
@@ -1327,11 +1327,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             return totalSizeDeletedCounter.getCount();
         }
 
-        @Override public long numBlobReferences() {
+        @Override public long getNumBlobReferences() {
             return numBlobReferencesCounter.getCount();
         }
 
-        @Override public long sizeBlobReferences() {
+        @Override public long getBlobReferencesSize() {
             return blobReferencesSizeCounter.getCount();
         }
     }
