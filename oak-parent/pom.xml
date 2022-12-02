@@ -80,10 +80,14 @@
    <!-- whether skip the surefire unit testing during the integration testing. 
       Override with -Dsurefire.skip.ut=true when needed -->
     <surefire.skip.ut>false</surefire.skip.ut>
-
     <!-- refresh interval in seconds for elastic stats cache (default is 60 seconds).
      Lower interval is needed for tests to execute faster. So setting to 10 seconds using a system property-->
     <oak.elastic.statsRefreshSeconds>10</oak.elastic.statsRefreshSeconds>
+    <sonar.coverage.jacoco.xmlReportPaths>
+      ${project.reporting.outputDirectory}/jacoco-ut/jacoco.xml
+    </sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.organization>apache</sonar.organization>
+    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
   </properties>
 
   <issueManagement>
