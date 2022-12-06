@@ -270,7 +270,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     @Override @NotNull
     public Node addNode(final String relPath, String primaryNodeTypeName)
             throws RepositoryException {
-        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        final String oakPath;
+
+        try {
+            oakPath = getOakPathOrThrowNotFound(relPath);
+        } catch (PathNotFoundException ex) {
+            throw new RepositoryException("cannot determine oak path for: " + relPath, ex);
+        }
+
         final String oakTypeName;
         if (primaryNodeTypeName != null) {
             oakTypeName = getOakName(primaryNodeTypeName);
