@@ -172,28 +172,24 @@ public class ValidNamesTest extends AbstractRepositoryTest {
         unsupportedNameTest("foo/bar", PathNotFoundException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedPipe() {
-        unsupportedNameTest("foo|bar", PathNotFoundException.class);
+        unsupportedNameTest("foo|bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedStar() {
-        unsupportedNameTest("foo*bar", PathNotFoundException.class);
+        unsupportedNameTest("foo*bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedOpenBracket() {
-        unsupportedNameTest("foo[bar", PathNotFoundException.class);
+        unsupportedNameTest("foo[bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedCloseBracket() {
-        unsupportedNameTest("foo]bar", PathNotFoundException.class);
+        unsupportedNameTest("foo]bar", RepositoryException.class);
     }
 
     // TODO: questionable exception
