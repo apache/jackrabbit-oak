@@ -134,15 +134,13 @@ when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](htt
 ### Avoid or minimize conflicts
 To reduce the possiblity of having errors like `OakState0001: Unresolved conflicts in ...`:
 
-1. Try to keep the JCR sessions as short as possible. i.e. create the session, make your changes, call session.save() and then session.logout(). If you need to do 
-something additional in the repository, a few lines after (maybe after some processing that could take some time), create the session again and repeat.
+1. Make sure you always release the session by calling session.logout(). If possible, avoid long-running sessions. If they are required (e.g. for observation) make sure 
+to always call session.refresh(false) before applying changes or session.refresh(true) before saving the changes. 
 
-2. Try to use session.refresh(true) before saving, if you think that some significant time can pass between the login() and the save() call.
-
-3. Enable the DEBUG level for `org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff` and `org.apache.jackrabbit.oak.plugins.commit.ConflictValidator` loggers if you want 
+2. Enable the DEBUG level for `org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff` and `org.apache.jackrabbit.oak.plugins.commit.ConflictValidator` loggers if you want 
 to have more information on the circumstances of a conflict that happened in a point of time.
 
-4. Write your own conflict handler and add it when configuring your Oak or WhiteBoard instances. Only if you know what you are doing (i.e. you know how to resolve 
+3. Write your own conflict handler and add it when configuring your Oak or WhiteBoard instances. Only if you know what you are doing (i.e. you know how to resolve 
 the conflict in each one of the possible situations). By default, the [AnnotatingConflictHandler](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/commit/AnnotatingConflictHandler.html) instance will discard your changes 
-and your commit will fail. The worst that will happen is that your changes will not be saved (if you are ok with that).
-Please check the source code of [JcrLastModifiedConflictHandler](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/commit/JcrLastModifiedConflictHandler.html). It seems like a good example to follow.
+and your commit will fail. If persisting changes fails with a conflict and you cannot lose them, refactor your code such that you can retry after having called session.refresh(false).
+Check the source code of [JcrLastModifiedConflictHandler](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/commit/JcrLastModifiedConflictHandler.html) for an example of a conflict handler.
