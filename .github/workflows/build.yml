@@ -25,6 +25,7 @@ on:
 jobs:
   build:
     name: Build and analyze
+    if: github.repository == 'apache/jackrabbit-oak'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
