@@ -117,7 +117,8 @@
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>
           <execution>
-            <phase>package</phase>
+            <!-- ensure this comes after execution "create-oak" from maven-assembly-plugin -->
+            <phase>pre-integration-test</phase>
             <configuration>
               <target>
                 <!--
