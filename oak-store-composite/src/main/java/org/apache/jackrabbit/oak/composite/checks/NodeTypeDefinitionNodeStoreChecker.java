@@ -75,11 +75,6 @@ public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreCheck
         NodeBuilder rootBuilder = new ReadOnlyBuilder(root); // prevent accidental changes
         
         String primary = root.getName(JCR_PRIMARYTYPE);
-        // workaround until https://issues.apache.org/jira/browse/OAK-9863 is fixed
-        if (primary == null) {
-            // no primary type for root node found (probably empty segment store used for testing)
-            return false;
-        }
         Iterable<String> mixins = root.getNames(JCR_MIXINTYPES);
         try {
             Set<String> checkNodeTypeNames = context.getAllNodeTypeNames();
