@@ -47,6 +47,7 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
+                <version>1.5</version>
                 <executions>
                     <execution>
                         <goals>
@@ -54,8 +55,8 @@
                             <goal>addTestSources</goal>
                             <goal>generateStubs</goal>
                             <goal>compile</goal>
-                            <goal>generateTestStubs</goal>
-                            <goal>compileTests</goal>
+                            <goal>testGenerateStubs</goal>
+                            <goal>testCompile</goal>
                             <goal>removeStubs</goal>
                             <goal>removeTestStubs</goal>
                         </goals>
@@ -86,15 +87,16 @@
                             <descriptors>
                                 <descriptor>src/main/assembly/oak-run-elastic.xml</descriptor>
                             </descriptors>
-			    <!-- use the new assembly as main artifact (i.e replace the original jar -->
-			    <appendAssemblyId>false</appendAssemblyId>
-		        </configuration>
+                  			    <!-- use the new assembly as main artifact (i.e replace the original jar -->
+                  			    <appendAssemblyId>false</appendAssemblyId>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M2</version>
                 <executions>
                     <execution>
                         <id>enforce-file-size</id>
