@@ -88,7 +88,6 @@ Improvement
 
     [OAK-9670] - Log an WARN when a fulltext query cannot find an appropriate index
     [OAK-9679] - Oak Segment AWS: Test failures on Apple Silicon for tests leveraging DynamoDBEmbedded
-    [OAK-9800] - Update Maven Plugins and Apache Parent POM to version 27
     [OAK-9803] - Extend DynamicSyncHandler to allow for dynamic groups
     [OAK-9834] - Improve documentation for repository representation of default access control
     [OAK-9844] - Nullness annotations must not be used on primitive types
@@ -160,6 +159,7 @@ Task
     [OAK-10029] - Disable Sonar checks on PRs from forks
 
 Documentation
+
     [OAK-9972] - Create FAQ for dynamic sync
     [OAK-9974] - permission eval: entries are evaluated in reverse order
 
