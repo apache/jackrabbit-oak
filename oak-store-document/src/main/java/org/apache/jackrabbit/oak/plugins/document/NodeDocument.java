@@ -64,7 +64,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.mergeSorted;
+import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -563,42 +565,52 @@ public final class NodeDocument extends Document {
      * {@link Utils#isCommitted(String)} returns false.
      *
      * <p>
-     *     <bold>Note</bold> - This method should only be invoked upon startup
-     *     as then only we can safely assume that these revisions would not be
-     *     committed
+     * <bold>Note</bold> - This method should only be invoked upon startup
+     * as then only we can safely assume that these revisions would not be
+     * committed
      * </p>
      *
-     * @param context the revision context.
+     * @param context                   the revision context.
+     * @param batchSize                 the batch size to purge uncommitted revisions
      * @return count of the revision entries purged
      */
-    int purgeUncommittedRevisions(RevisionContext context) {
+    int purgeUncommittedRevisions(RevisionContext context, int batchSize) {
         // only look at revisions in this document.
         // uncommitted revisions are not split off
         Map<Revision, String> localRevisions = getLocalRevisions();
-        UpdateOp op = new UpdateOp(getId(), false);
+
         Set<Revision> uniqueRevisions = new HashSet<>();
-        for (Map.Entry<Revision, String> commit : localRevisions.entrySet()) {
-            if (!Utils.isCommitted(commit.getValue())) {
-                Revision r = commit.getKey();
-                if (r.getClusterId() == context.getClusterId()) {
-                    uniqueRevisions.add(r);
-                    removeRevision(op, r);
-                }
+
+        for (List<Entry<Revision, String>> localRevisionsList : partition(localRevisions.entrySet(), batchSize)) {
+            UpdateOp op = new UpdateOp(requireNonNull(getId()), false);
+            localRevisionsList.stream()
+                    .filter(commit -> !Utils.isCommitted(commit.getValue()))
+                    .map(Entry::getKey)
+                    .filter(r -> r.getClusterId() == context.getClusterId())
+                    .forEach(r -> {
+                        uniqueRevisions.add(r);
+                        removeRevision(op, r);
+                    });
+
+            if (op.hasChanges()) {
+                store.findAndUpdate(Collection.NODES, op);
             }
         }
-        for (Revision r : getLocalBranchCommits()) {
-            String commitValue = localRevisions.get(r);
-            if (!Utils.isCommitted(commitValue)) {
-                if (r.getClusterId() == context.getClusterId()) {
+
+        for (List<Revision> revisions : partition(getLocalBranchCommits(), batchSize)) {
+            UpdateOp op = new UpdateOp(requireNonNull(getId()), false);
+            for (Revision r : revisions) {
+                String commitValue = localRevisions.get(r);
+                if (!Utils.isCommitted(commitValue) && r.getClusterId() == context.getClusterId()) {
                     uniqueRevisions.add(r);
                     removeBranchCommit(op, r);
                 }
             }
+            if (op.hasChanges()) {
+                store.findAndUpdate(Collection.NODES, op);
+            }
         }
 
-        if (op.hasChanges()) {
-            store.findAndUpdate(Collection.NODES, op);
-        }
         return uniqueRevisions.size();
     }
 
@@ -606,24 +618,28 @@ public final class NodeDocument extends Document {
      * Purge collision markers with the local clusterId on this document. Use
      * only on start when there are no ongoing or pending commits.
      *
-     * @param context the revision context.
+     * @param context                   the revision context.
+     * @param batchSize the batch size to purge collision markers
      * @return the number of removed collision markers.
      */
-    int purgeCollisionMarkers(RevisionContext context) {
+    int purgeCollisionMarkers(RevisionContext context, int batchSize) {
         Map<Revision, String> valueMap = getLocalMap(COLLISIONS);
-        UpdateOp op = new UpdateOp(getId(), false);
         int purgeCount = 0;
-        for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
-            Revision r = commit.getKey();
-            if (r.getClusterId() == context.getClusterId()) {
-                purgeCount++;
-                removeCollision(op, r);
+
+        for (List<Entry<Revision, String>> collisionsList : partition(valueMap.entrySet(), batchSize)) {
+            UpdateOp op = new UpdateOp(requireNonNull(getId()), false);
+            for (Map.Entry<Revision, String> commit : collisionsList) {
+                Revision r = commit.getKey();
+                if (r.getClusterId() == context.getClusterId()) {
+                    purgeCount++;
+                    removeCollision(op, r);
+                }
+            }
+            if (op.hasChanges()) {
+                store.findAndUpdate(Collection.NODES, op);
             }
         }
 
-        if (op.hasChanges()) {
-            store.findAndUpdate(Collection.NODES, op);
-        }
         return purgeCount;
     }
 

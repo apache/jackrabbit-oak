@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -47,9 +49,12 @@ import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
@@ -64,6 +69,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link NodeDocument}.
@@ -299,6 +309,52 @@ public class NodeDocumentTest {
             previous = r;
         }
         ns.dispose();
+    }
+
+    @Test
+    public void testPurgeUncommittedRevisions() throws IllegalAccessException {
+
+        final SortedMap<Revision, String> localRevisionMap = Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        for (int i = 0; i < 140; i++) {
+            localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
+        }
+
+        RevisionContext revisionContext = mock(RevisionContext.class);
+        when(revisionContext.getClusterId()).thenReturn(1);
+
+        DocumentStore store = mock(DocumentStore.class);
+
+        NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
+        nodeDocument.data.put(REVISIONS, localRevisionMap);
+        nodeDocument.data.put("_bc", localRevisionMap);
+        nodeDocument.put(ID, "_id");
+
+        final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(revisionContext, 50);
+        verify(store, times(6)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        assertEquals(140, uncommittedRevisions);
+
+    }
+
+    @Test
+    public void testPurgeCollisionMarkers() {
+
+        final SortedMap<Revision, String> collisions = Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        for (int i = 0; i < 140; i++) {
+            collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
+        }
+
+        RevisionContext revisionContext = mock(RevisionContext.class);
+        when(revisionContext.getClusterId()).thenReturn(1);
+
+        DocumentStore store = mock(DocumentStore.class);
+
+        NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
+        nodeDocument.put(COLLISIONS, collisions);
+        nodeDocument.put(ID, "_id");
+
+        int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(revisionContext, 50);
+        verify(store, times(3)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        assertEquals(140, uncommittedRevisions);
     }
 
     @Test

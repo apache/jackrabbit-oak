@@ -64,10 +64,11 @@ class UnmergedBranches {
      * Initialize with un-merged branches from <code>store</code> for this
      * <code>clusterId</code>.
      *
-     * @param store the document store.
-     * @param context the revision context.
+     * @param store                     the document store.
+     * @param context                   the revision context.
+     * @param batchSize                 the batch size to purge uncommitted revisions & collisions
      */
-    void init(DocumentStore store, RevisionContext context) {
+    void init(DocumentStore store, RevisionContext context, int batchSize) {
         if (!initialized.compareAndSet(false, true)) {
             throw new IllegalStateException("already initialized");
         }
@@ -75,11 +76,11 @@ class UnmergedBranches {
         if (doc == null) {
             return;
         }
-        int purgeCount = doc.purgeUncommittedRevisions(context);
+        int purgeCount = doc.purgeUncommittedRevisions(context, batchSize);
         if (purgeCount > 0) {
             log.info("Purged [{}] uncommitted branch revision entries", purgeCount);
         }
-        purgeCount = doc.purgeCollisionMarkers(context);
+        purgeCount = doc.purgeCollisionMarkers(context, batchSize);
         if (purgeCount > 0) {
             log.info("Purged [{}] collision markers", purgeCount);
         }
