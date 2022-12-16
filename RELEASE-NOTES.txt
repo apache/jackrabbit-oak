@@ -157,6 +157,7 @@ Task
     [OAK-10021] - upgrade jackson-databind to 2.13.4.2
     [OAK-10023] - oak-search-mt: eliminate transitive log4j dependency
     [OAK-10029] - Disable Sonar checks on PRs from forks
+    [OAK-10032] - get rid of ant-run plugin dependency
 
 Documentation
 
