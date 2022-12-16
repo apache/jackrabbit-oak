@@ -400,6 +400,35 @@ public class AzureArchiveManagerTest {
         assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
     }
 
+    @Test
+    public void testCollectBlobReferencesForReadOnlyFileStore() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
+        AzurePersistence rwPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+        NodeBuilder builder = segmentNodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        rwFileStore.flush();
+
+        assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+        // create read-only FS
+        AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly();
+
+        PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
+                .getRoot()
+                .getProperty("foo");
+
+        assertThat(fooProperty, not(nullValue()));
+        assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
+
+        roFileStore.collectBlobReferences(s -> {});
+
+        roFileStore.close();
+
+        rwFileStore.close();
+    }
+
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override

@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.function.BiConsumer;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
@@ -140,4 +142,18 @@ public interface SegmentArchiveWriter {
      */
     @NotNull
     String getName();
+
+    /**
+     * This method allows the caller to perform additional operations after {@link #flush()} has been finished.
+     * Can be used for remote segment store implementations to invoke {@link #writeBinaryReferences(byte[])} and {@link #writeGraph(byte[])}
+     * so that all necessary metadata is available for another Oak process concurrently accessing the storage.
+     *
+     * Default implementation invokes {@link #flush()} without invoking callback method afterwards
+     *
+     * @param onSuccess
+     * @throws IOException
+     */
+    default void flush(Runnable onSuccess) throws IOException {
+        flush();
+    }
 }

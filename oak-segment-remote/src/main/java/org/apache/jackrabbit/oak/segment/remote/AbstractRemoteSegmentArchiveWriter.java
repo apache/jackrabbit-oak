@@ -150,6 +150,12 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
         }
     }
 
+    @Override
+    public void flush(Runnable callback) throws IOException {
+        flush();
+        callback.run();
+    }
+
     /**
      * Writes a segment to the remote storage.
      * @param indexEntry, the archive index entry to write
