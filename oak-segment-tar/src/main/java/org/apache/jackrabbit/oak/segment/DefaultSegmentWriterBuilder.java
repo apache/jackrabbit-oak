@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool.PoolType;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -31,6 +29,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Supplier;
 
 /**
  * Builder for building {@link DefaultSegmentWriter} instances.
@@ -56,7 +56,7 @@ public final class DefaultSegmentWriterBuilder {
     private final String name;
 
     @NotNull
-    private Supplier<GCGeneration> generation = Suppliers.ofInstance(GCGeneration.NULL);
+    private Supplier<GCGeneration> generation = () -> GCGeneration.NULL;
 
     private PoolType poolType = null;
 
@@ -99,7 +99,7 @@ public final class DefaultSegmentWriterBuilder {
      */
     @NotNull
     public DefaultSegmentWriterBuilder withGeneration(@NotNull GCGeneration generation) {
-        this.generation = Suppliers.ofInstance(checkNotNull(generation));
+        this.generation = () -> checkNotNull(generation);
         return this;
     }
 

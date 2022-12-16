@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.Monitor;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
@@ -32,14 +31,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Thread.currentThread;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
@@ -93,10 +93,10 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
                 @NotNull SegmentReader reader,
                 @NotNull String wid,
                 @NotNull Supplier<GCGeneration> gcGeneration) {
-            this.idProvider = checkNotNull(idProvider);
-            this.reader = checkNotNull(reader);
-            this.wid = checkNotNull(wid);
-            this.gcGeneration = checkNotNull(gcGeneration);
+            this.idProvider = requireNonNull(idProvider);
+            this.reader = requireNonNull(reader);
+            this.wid = requireNonNull(wid);
+            this.gcGeneration = requireNonNull(gcGeneration);
         }
 
         @NotNull
@@ -172,12 +172,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
         @NotNull
         private SegmentBufferWriter getWriter(@NotNull Thread thread, @NotNull GCGeneration gcGeneration) {
             SimpleImmutableEntry<?,?> key = new SimpleImmutableEntry<>(thread, gcGeneration);
-            SegmentBufferWriter writer = writers.get(key);
-            if (writer == null) {
-                writer = newWriter(gcGeneration);
-                writers.put(key, writer);
-            }
-            return writer;
+            return writers.computeIfAbsent(key, f -> newWriter(gcGeneration));
         }
     }
 
