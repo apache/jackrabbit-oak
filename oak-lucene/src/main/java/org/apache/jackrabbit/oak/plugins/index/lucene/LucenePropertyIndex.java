@@ -1223,8 +1223,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
-                    // not null. For date lower bound of zero can be used
-                    return NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true);
+                    // not null. As we are indexing generic dates which can be beyond epoch. So using complete numeric range
+                    return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
                     BooleanQuery bool = new BooleanQuery();
