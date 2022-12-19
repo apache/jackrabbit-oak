@@ -33,7 +33,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -48,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
@@ -55,6 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
@@ -312,9 +313,9 @@ public class NodeDocumentTest {
     }
 
     @Test
-    public void testPurgeUncommittedRevisions() throws IllegalAccessException {
+    public void testPurgeUncommittedRevisions() {
 
-        final SortedMap<Revision, String> localRevisionMap = Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
         for (int i = 0; i < 140; i++) {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
@@ -338,7 +339,7 @@ public class NodeDocumentTest {
     @Test
     public void testPurgeCollisionMarkers() {
 
-        final SortedMap<Revision, String> collisions = Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
         for (int i = 0; i < 140; i++) {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }

@@ -64,9 +64,9 @@ class UnmergedBranches {
      * Initialize with un-merged branches from <code>store</code> for this
      * <code>clusterId</code>.
      *
-     * @param store                     the document store.
-     * @param context                   the revision context.
-     * @param batchSize                 the batch size to purge uncommitted revisions & collisions
+     * @param store the document store.
+     * @param context the revision context.
+     * @param batchSize the batch size to purge uncommitted revisions & collisions
      */
     void init(DocumentStore store, RevisionContext context, int batchSize) {
         if (!initialized.compareAndSet(false, true)) {
