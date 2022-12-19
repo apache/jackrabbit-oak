@@ -51,8 +51,8 @@ public class LogSilencer {
     /**
      * Create a new LogSilencer
      * @param silenceMillis milliseconds after which the silences herein should time out.
-     * If the value is <0 it means no timeout, if it is ==0 it is silenced only
-     * for the very same millisecond, and >0 the silence is active for that specified
+     * If the value is &lt;0 it means no timeout, if it is ==0 it is silenced only
+     * for the very same millisecond, and &gt;0 the silence is active for that specified
      * amount of time.
      * @param cacheSize the size of the cache held by the LogSilencer. The cache is
      * used to store the keys and timeout values for each of them.
