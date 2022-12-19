@@ -31,13 +31,13 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryBlobStore serverBlobStore = new TemporaryBlobStore(folder);
+    private TemporaryBlobStore serverBlobStore = new TemporaryBlobStore(folder, "server-blob-store");
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore, false);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore, false, "server-file-store");
 
-    private TemporaryBlobStore clientBlobStore = new TemporaryBlobStore(folder);
+    private TemporaryBlobStore clientBlobStore = new TemporaryBlobStore(folder, "client-blob-store");
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore, true);
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore, true, "client-file-store");
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
