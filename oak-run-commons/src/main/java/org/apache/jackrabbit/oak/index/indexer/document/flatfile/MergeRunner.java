@@ -58,11 +58,11 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  * </ol>
  * Strategy -
  * <ol>
- *      <li>Wait for n files</li>
- *      <li>construct new list of files to be merged by checking if its already merged</li>
+ *      <li>Wait for n files
+ *      <li>construct new list of files to be merged by checking if its already merged
  *    and create intermediate merge file
  *    (if final merge) merge all intermediate merge files and create sorted file
- *      <li>add all merged files to merged list</li>
+ *      <li>add all merged files to merged list
  * </ol>
  *
  * <h3>Merge task explanation -</h3>
@@ -106,14 +106,14 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  *
  * <h3>Force Stop Explanation -</h3>
  * <ol>
- *     <li>On receiving MERGE_FORCE_STOP_POISON_PILL in SORTED_FILE_QUEUE from parent thread, all un-started tasks will be skipped.</li>
- *     <li>No more tasks will be created on MERGE_FORCE_STOP_POISON_PILL message is received.</li>
- *     <li>Running merge will continue to finish.</li>
- *     <li>Final merge will not be performed.</li>
- *     <li>This will not result in lose of data under conditions that -</li>
+ *     <li>On receiving MERGE_FORCE_STOP_POISON_PILL in SORTED_FILE_QUEUE from parent thread, all un-started tasks will be skipped.
+ *     <li>No more tasks will be created on MERGE_FORCE_STOP_POISON_PILL message is received.
+ *     <li>Running merge will continue to finish.
+ *     <li>Final merge will not be performed.
+ *     <li>This will not result in lose of data under conditions that -
  *          <ol>
- *              <li>Files will not be removed until merge task is completed. Parent thread should add unmerged files to the SORTED_FILE_QUEUE on retry.</li>
- *              <li>Merged files will still be under the merge folder. Parent thread should add those files to the SORTED_FILE_QUEUE on retry.</li>
+ *              <li>Files will not be removed until merge task is completed. Parent thread should add unmerged files to the SORTED_FILE_QUEUE on retry.
+ *              <li>Merged files will still be under the merge folder. Parent thread should add those files to the SORTED_FILE_QUEUE on retry.
  *          </ol>
  *     </li>
  * </ol>

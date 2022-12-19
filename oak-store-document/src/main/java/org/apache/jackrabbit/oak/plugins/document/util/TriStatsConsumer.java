@@ -25,9 +25,6 @@ import java.util.List;
 
 /**
  * {@link FunctionalInterface} to consume Metric Stats for create/upsert operation
- * @param <T> the type of the first argument to the consumer
- * @param <U> the type of the second argument to the consumer
- * @param <V> the type of the third argument to the consumer
  */
 public interface TriStatsConsumer {
 
