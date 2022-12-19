@@ -21,13 +21,14 @@ import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -39,41 +40,58 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
 
-    private static final int INTERVAL = 60;
+    private static final int INTERVAL_SEC = 60;
 
     private final Consumer<LockStatus> lockStatusChangedCallback;
 
     private final CloudBlockBlob blob;
 
-    private final ExecutorService executor;
+    private final ScheduledExecutorService refreshLeaseExecutor;
 
     private final int timeoutSec;
 
-    private final int renewalInterval;
+    private final int renewalIntervalInSec;
+    
+    private final int leaseTimeInSecs;
     
     private String leaseId;
 
-    private volatile boolean doUpdate;
+    private volatile boolean unlocked;
+    private final BlobRequestOptions renewLeaseRequestOptions;
 
     public AzureRepositoryLock(CloudBlockBlob blob, Consumer<LockStatus> lockStatusChangedCallback) {
-        this(blob, lockStatusChangedCallback, TIMEOUT_SEC, INTERVAL / 2);
+        this(blob, lockStatusChangedCallback, TIMEOUT_SEC, INTERVAL_SEC / 2);
     }
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Consumer<LockStatus> lockStatusChangedCallback, int timeoutSec, int renewalInterval) {
-        this.lockStatusChangedCallback = lockStatusChangedCallback;
-        this.blob = blob;
-        this.executor = Executors.newSingleThreadExecutor();
-        this.timeoutSec = timeoutSec;
-        this.renewalInterval = renewalInterval;
+    public AzureRepositoryLock(CloudBlockBlob blob, Consumer<LockStatus> lockStatusChangedCallback, int timeoutSec, int renewalIntervalInSec) {
+        this(blob, lockStatusChangedCallback, timeoutSec, renewalIntervalInSec, INTERVAL_SEC);
     }
     
+    public AzureRepositoryLock(CloudBlockBlob blob, Consumer<LockStatus> lockStatusChangedCallback, int timeoutSec, int renewalIntervalInSec, 
+        int leaseTimeInSecs) {
+        this.lockStatusChangedCallback = lockStatusChangedCallback;
+        this.blob = blob;
+        this.refreshLeaseExecutor = Executors.newSingleThreadScheduledExecutor();
+        this.timeoutSec = timeoutSec;
+        this.renewalIntervalInSec = Math.min(Math.max(renewalIntervalInSec, 0), INTERVAL_SEC / 2);
+        this.leaseTimeInSecs = leaseTimeInSecs;
+        this.unlocked = false;
+        
+        // Set default request options for `renewLease()` call, as we cannot rely on the default options.
+        // In case of network issues, the `renewLease()` call should time out at least 1 second before the current lease expires. 
+        renewLeaseRequestOptions = new BlobRequestOptions();
+        int maxAllowedTimeToRenewBeforeLeaseExpiration = leaseTimeInSecs - renewalIntervalInSec - 1;
+        renewLeaseRequestOptions.setMaximumExecutionTimeInMs(maxAllowedTimeToRenewBeforeLeaseExpiration * 1000);
+        renewLeaseRequestOptions.setTimeoutIntervalInMs(5000);
+    }
+
     public AzureRepositoryLock lock() throws IOException {
         long start = System.currentTimeMillis();
         Exception ex = null;
         do {
             try {
                 blob.openOutputStream().close();
-                leaseId = blob.acquireLease(INTERVAL, null);
+                leaseId = blob.acquireLease(leaseTimeInSecs, null);
                 log.info("Acquired lease {}", leaseId);
                 notifyLockStatusChange(LockStatus.ACQUIRED);
             } catch (StorageException | IOException e) {
@@ -94,41 +112,41 @@ public class AzureRepositoryLock implements RepositoryLock {
         } while (leaseId == null);
         if (leaseId == null) {
             log.error("Can't acquire the lease in {}s.", timeoutSec);
+            notifyLockStatusChange(LockStatus.ACQUIRE_FAILED);
             throw new IOException(ex);
         } else {
-            executor.submit(this::refreshLease);
+            scheduleRefreshLease(renewalIntervalInSec);
             return this;
         }
     }
 
     private void refreshLease() {
-        doUpdate = true;
-        long lastUpdate = System.currentTimeMillis();
-        while (doUpdate) {
-            try {
-                long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
-                if (timeSinceLastUpdate > renewalInterval) {
-                    notifyLockStatusChange(LockStatus.RENEWAL);
-                    doRenewLease();
-                    lastUpdate = System.currentTimeMillis();
-                    notifyLockStatusChange(LockStatus.RENEWAL_SUCCEEDED);
-                }
-            } catch (StorageException e) {
-                if (e.getErrorCode().equals(StorageErrorCodeStrings.OPERATION_TIMED_OUT)) {
-                    log.warn("Could not renew the lease due to the operation timeout. Retry in progress ...", e);
-                    notifyLockStatusChange(LockStatus.RENEWAL_FAILED);
-                } else {
-                    log.error("Can't renew the lease", e);
-                    doUpdate = false;
-                    notifyLockStatusChange(LockStatus.LOST);
-                    return;
-                }
+        if (unlocked) {
+            return;
+        }
+        try {
+            notifyLockStatusChange(LockStatus.RENEWAL);
+            doRenewLease();
+            scheduleRefreshLease(renewalIntervalInSec);
+            notifyLockStatusChange(LockStatus.RENEWAL_SUCCEEDED);
+        } catch (StorageException e) {
+            if (e.getErrorCode().equals(StorageErrorCodeStrings.OPERATION_TIMED_OUT)) {
+                log.warn("Could not renew the lease due to the operation timeout. Retry in progress ...", e);
+                // re-schedule immediately
+                scheduleRefreshLease(0);
+                notifyLockStatusChange(LockStatus.RENEWAL_FAILED);
+            } else {
+                log.error("Can't renew the lease", e);
+                notifyLockStatusChange(LockStatus.LOST);
             }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                log.error("Interrupted the lease renewal loop", e);
-            }
+        }
+    }
+
+    private void scheduleRefreshLease(int delayInSecs) {
+        try {
+            refreshLeaseExecutor.schedule(this::refreshLease, delayInSecs, TimeUnit.SECONDS);
+        } catch (RejectedExecutionException e) {
+            throw new RuntimeException("Cannot schedule lock refresh task as this lock was unlocked");
         }
     }
 
@@ -136,23 +154,21 @@ public class AzureRepositoryLock implements RepositoryLock {
         try {
             lockStatusChangedCallback.accept(renewal);
         } catch (RuntimeException e) {
+            // Log but don't propagate exceptions thrown by the callback
             log.warn("Exception in lock status change callback", e);
         }
     }
 
     void doRenewLease() throws StorageException {
-        BlobRequestOptions blobRequestOptions = new BlobRequestOptions();
-        blobRequestOptions.setMaximumExecutionTimeInMs(Math.max(INTERVAL - renewalInterval - 1, INTERVAL / 2 - 1));
-        blobRequestOptions.setTimeoutIntervalInMs(5); //TODO: extract field
-        blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), blobRequestOptions, null);
+        blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), renewLeaseRequestOptions, null);
     }
 
     @Override
     public void unlock() throws IOException {
-        doUpdate = false;
-        executor.shutdown();
+        unlocked = true;
+        refreshLeaseExecutor.shutdownNow();
         try {
-            executor.awaitTermination(1, TimeUnit.MINUTES);
+            refreshLeaseExecutor.awaitTermination(1, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             throw new IOException(e);
         } finally {
