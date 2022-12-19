@@ -31,10 +31,11 @@ import java.util.function.BiFunction;
 
 /**
  * Util class to generate a name for Stats implementations that can be used for creating labels in prometheus.
- * Usage - StatsProviderUtil(<StatisticsProvider Object>).getHistoStats().apply(metricName, labels)
+ * <p>
+ * Usage - {@code StatsProviderUtil(<StatisticsProvider Object>).getHistoStats().apply(metricName, labels)}
  * where metricName is a String to denote the metric name and labels is map of label values.
  * Resultant metric will be created with a name as follows -
- * metricName;labelName1=labelValue1;labelName2=labelValue2
+ * {@code metricName;labelName1=labelValue1;labelName2=labelValue2}.
  * This can then be translated by a consuming alerting system like prometheus into metric name and labels separately.
  */
 public class StatsProviderUtil {
