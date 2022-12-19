@@ -28,7 +28,7 @@ import java.util.zip.GZIPOutputStream;
 /**
  * This interface provides a default list of support compression algorithms and some utility functions.
  * It is mainly used by intermediate stored files in {@link org.apache.jackrabbit.oak.commons.sort.ExternalSort} and
- * sort/index utilities in {@link org.apache.jackrabbit.oak.index.indexer.document.flatfile}.
+ * sort/index utilities in {@code org.apache.jackrabbit.oak.index.indexer.document.flatfile}.
  *
  * Other compression algorithms can be supported by implementing the methods.
  */
