@@ -422,7 +422,12 @@ public class AzureArchiveManagerTest {
         assertThat(fooProperty, not(nullValue()));
         assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
 
-        roFileStore.collectBlobReferences(s -> {});
+        //exception should not be thrown
+        try {
+            roFileStore.collectBlobReferences(s -> {});
+        } catch (Exception e){
+            fail();
+        }
 
         roFileStore.close();
 
