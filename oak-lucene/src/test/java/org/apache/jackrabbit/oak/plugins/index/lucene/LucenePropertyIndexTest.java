@@ -1193,29 +1193,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void rangeQueriesWithBeforeEpoch() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", createCal("14/02/1768"));
-        test.addChild("b").setProperty("propa", createCal("14/03/1769"));
-        test.addChild("c").setProperty("propa", createCal("14/04/1770"));
-        test.addChild("c").setProperty("propb", "foo");
-        test.addChild("d").setProperty("propb", "foo");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/1768"), asList("/test/b", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/1769"), asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/1769"), asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <> " + dt("14/03/1769"), asList("/test/a", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] > "+ dt("15/02/1768") + " and [propa] < " + dt("13/04/1770"), asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
-    }
-
-    @Test
     public void nativeQueries() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
         idx.addChild(PROP_NODE).addChild("propa");
