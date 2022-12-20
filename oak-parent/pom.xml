@@ -270,11 +270,6 @@
           <version>1.13.1</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.gmavenplus</groupId>
-          <artifactId>gmavenplus-plugin</artifactId>
-          <version>1.13.1</version>
-        </plugin>
-        <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
           <configuration>
             <skip>${skip.deployment}</skip>
