@@ -144,16 +144,12 @@ public interface SegmentArchiveWriter {
     String getName();
 
     /**
-     * This method allows the caller to perform additional operations after {@link #flush()} has been finished.
-     * Can be used for remote segment store implementations to invoke {@link #writeBinaryReferences(byte[])} and {@link #writeGraph(byte[])}
-     * so that all necessary metadata is available for another Oak process concurrently accessing the storage.
+     * This method returns {@code true} if the storage is accessed via a network protocol, not tight to the traditional storage technology,
+     * for example, HTTP. Based on that info, for instance, calling classes can decide to update archive metadata (graph, binary references, index) more frequently,
+     * and not only when the archive is being closed. With that multiple Oak processes can access the storage simultaneously, with one process in read-write mode and
+     * one or more processes in read-only mode.
      *
-     * Default implementation invokes {@link #flush()} without invoking callback method afterwards
-     *
-     * @param onSuccess
-     * @throws IOException
+     * @return
      */
-    default void flush(Runnable onSuccess) throws IOException {
-        flush();
-    }
+    boolean isRemote();
 }

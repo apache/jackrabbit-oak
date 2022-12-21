@@ -151,9 +151,8 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     }
 
     @Override
-    public void flush(Runnable callback) throws IOException {
-        flush();
-        callback.run();
+    public boolean isRemote() {
+        return true;
     }
 
     /**
