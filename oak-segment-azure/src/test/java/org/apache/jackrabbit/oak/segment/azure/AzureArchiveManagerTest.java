@@ -411,8 +411,8 @@ public class AzureArchiveManagerTest {
             rwFileStore.flush();
 
             // file with binary references has been created
-
             assertTrue(container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
+
             // create read-only FS
             AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
             try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
@@ -424,6 +424,7 @@ public class AzureArchiveManagerTest {
                 assertThat(fooProperty, not(nullValue()));
                 assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
 
+                // no exception should be thrown
                 roFileStore.collectBlobReferences(s -> {
                 });
 
