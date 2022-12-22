@@ -101,7 +101,6 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     private static final String REF_KEY = "reference.key";
     private static final String LAST_MODIFIED_KEY = "lastModified";
-    private static final String SECONDARY_STORAGE_ACCOUNT_REDUNDANCY_NAME = "oak.blobstore.enable.secondary.storage.location";
 
     private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
     static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
@@ -125,7 +124,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private String downloadDomainOverride = null;
     private boolean createBlobContainer = true;
     private boolean presignedDownloadURIVerifyExists = true;
-    private String secondaryRedundancy = null;
+    private boolean enableSecondaryLocation = AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT;
 
     private Cache<String, URI> httpDownloadURICache;
 
@@ -144,7 +143,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             requestOptions.setTimeoutIntervalInMs(requestTimeout);
         }
         requestOptions.setConcurrentRequestCount(concurrentRequestCount);
-        if (null != secondaryRedundancy) {
+        if (enableSecondaryLocation) {
             requestOptions.setLocationMode(LocationMode.PRIMARY_THEN_SECONDARY);
         }
 
@@ -235,7 +234,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     getOrCreateReferenceKey();
                 }
 
-                secondaryRedundancy = properties.getProperty(SECONDARY_STORAGE_ACCOUNT_REDUNDANCY_NAME, null);
+                enableSecondaryLocation = PropertiesUtil.toBoolean(
+                        properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
+                        AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
+                );
             }
             catch (StorageException e) {
                 throw new DataStoreException(e);
