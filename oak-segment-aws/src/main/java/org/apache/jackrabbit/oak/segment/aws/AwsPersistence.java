@@ -81,11 +81,11 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AwsRepositoryLock(awsContext.dynamoDBClient, awsContext.getPath("repo.lock")).lock();
+        return lockRepository(s -> {});
     }
 
     @Override
     public RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException {
-        return lockRepository();
+        return new AwsRepositoryLock(awsContext.dynamoDBClient, awsContext.getPath("repo.lock"), lockStatusChangedCallback).lock();
     }
 }

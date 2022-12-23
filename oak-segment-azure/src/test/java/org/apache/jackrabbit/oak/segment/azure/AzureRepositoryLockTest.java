@@ -26,8 +26,6 @@ import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Semaphore;
@@ -45,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.ACQUIRED;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.ACQUIRE_FAILED;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.LOST;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RELEASED;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RENEWAL;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RENEWAL_FAILED;
 import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RENEWAL_SUCCEEDED;
@@ -80,12 +79,12 @@ public class AzureRepositoryLockTest {
     @Test
     public void testWaitingLock() throws URISyntaxException, IOException, StorageException, InterruptedException {
         CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
-        List<LockStatus> statusHistory1 = new ArrayList<>();
-        List<LockStatus> statusHistory2 = new ArrayList<>();
+        AtomicReference<LockStatus> status1 = new AtomicReference<>();
+        AtomicReference<LockStatus> status2 = new AtomicReference<>();
         Semaphore s = new Semaphore(0);
         new Thread(() -> {
             try {
-                RepositoryLock lock = new AzureRepositoryLock(blob, statusHistory1::add, 10, 10).lock();
+                RepositoryLock lock = new AzureRepositoryLock(blob, status1::set, 10, 10).lock();
                 s.release();
                 Thread.sleep(1000);
                 lock.unlock();
@@ -95,10 +94,10 @@ public class AzureRepositoryLockTest {
         }).start();
 
         s.acquire();
-        assertEquals(ImmutableList.of(ACQUIRED), statusHistory1);
-        new AzureRepositoryLock(blob, statusHistory2::add, 10, 10).lock();
-        assertEquals(ImmutableList.of(ACQUIRED, LockStatus.RELEASED), statusHistory1);
-        assertEquals(ImmutableList.of(ACQUIRED), statusHistory2);
+        assertEquals(ACQUIRED, status1.get());
+        new AzureRepositoryLock(blob, status2::set, 10, 10).lock();
+        assertEquals(RELEASED, status1.get());
+        assertEquals(ACQUIRED, status2.get());
     }
 
     @Test

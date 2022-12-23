@@ -18,20 +18,23 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static org.junit.Assert.fail;
-
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import java.io.IOException;
 import java.util.Date;
 import java.util.concurrent.Semaphore;
-
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.ACQUIRED;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RELEASED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 public class AwsRepositoryLockTest {
 
@@ -51,21 +54,24 @@ public class AwsRepositoryLockTest {
 
     @Test
     public void testFailingLock() throws IOException {
-        new AwsRepositoryLock(dynamoDBClient, lockName, 0).lock();
-        try {
-            new AwsRepositoryLock(dynamoDBClient, lockName, 0).lock();
-            fail("The second lock should fail.");
-        } catch (IOException e) {
-            // it's fine
-        }
+        AtomicReference<LockStatus> status = new AtomicReference<>();
+        new AwsRepositoryLock(dynamoDBClient, lockName, status::set, 0, 5).lock();
+        assertEquals(LockStatus.ACQUIRED, status.get());
+
+        assertThrows("The second lock should fail", IOException.class, () -> 
+            new AwsRepositoryLock(dynamoDBClient, lockName, status::set, 0, 5).lock()
+        );
+        assertEquals(LockStatus.ACQUIRE_FAILED, status.get());
     }
 
     @Test
     public void testWaitingLock() throws InterruptedException, IOException {
+        AtomicReference<LockStatus> status1 = new AtomicReference<>();
+        AtomicReference<LockStatus> status2 = new AtomicReference<>();
         Semaphore s = new Semaphore(0);
         new Thread(() -> {
             try {
-                RepositoryLock lock = new AwsRepositoryLock(dynamoDBClient, lockName, 0).lock();
+                RepositoryLock lock = new AwsRepositoryLock(dynamoDBClient, lockName, status1::set, 0, 5).lock();
                 s.release();
                 Thread.sleep(1000);
                 lock.unlock();
@@ -75,6 +81,9 @@ public class AwsRepositoryLockTest {
         }).start();
 
         s.acquire();
-        new AwsRepositoryLock(dynamoDBClient, lockName, 10).lock();
+        assertEquals(ACQUIRED, status1.get());
+        new AwsRepositoryLock(dynamoDBClient, lockName, status2::set, 10, 5).lock();
+        assertEquals(RELEASED, status1.get());
+        assertEquals(ACQUIRED, status2.get());
     }
 }

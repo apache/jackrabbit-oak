@@ -57,6 +57,7 @@ public class AzureRepositoryLock implements RepositoryLock {
     private String leaseId;
 
     private volatile boolean unlocked;
+    
     private final BlobRequestOptions renewLeaseRequestOptions;
 
     public AzureRepositoryLock(CloudBlockBlob blob, Consumer<LockStatus> lockStatusChangedCallback) {
