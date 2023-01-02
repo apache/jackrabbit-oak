@@ -102,7 +102,6 @@
               <goal>single</goal>
             </goals>
             <configuration>
-              <attach>false</attach>
               <descriptors>
                 <descriptor>src/main/assembly/oak-run.xml</descriptor>
               </descriptors>
