@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -28,12 +29,14 @@ import org.jetbrains.annotations.NotNull;
  * the {@link org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler}.
  */
 public class DefaultSyncConfig {
+    
+    public static final String DEFAULT_NAME = "default";
 
     private final User user = new User();
 
     private final Group group = new Group();
 
-    private String name = "default";
+    private String name = DEFAULT_NAME;
 
     /**
      * Configures the name of this configuration
@@ -78,7 +81,7 @@ public class DefaultSyncConfig {
      * Base config class for users and groups
      */
     public abstract static class Authorizable {
-
+        
         private long expirationTime;
 
         private Set<String> autoMembership;
@@ -88,6 +91,8 @@ public class DefaultSyncConfig {
         private String pathPrefix;
 
         private boolean applyRFC7613UsernameCaseMapped;
+
+        private AutoMembershipConfig autoMembershipConfig = AutoMembershipConfig.EMPTY;
 
         /**
          * Returns the duration in milliseconds until a synced authorizable gets expired. An expired authorizable will
@@ -132,12 +137,17 @@ public class DefaultSyncConfig {
         }
 
         /**
-         * Defines the set of group names that are automatically added to synced authorizable.
-         * @return set of group names.
+         * Returns the values configured with {@link #setAutoMembership(String...)}. 
+         * 
+         * Note that this method only takes group names into account that have been configured using {@link #setAutoMembership(String...)}.
+         * In order to take advantage of the conditional auto-membership as defined with {@link #setAutoMembershipConfig(AutoMembershipConfig)},
+         * use {@link #getAutoMembership(org.apache.jackrabbit.api.security.user.Authorizable)} instead.
+         * 
+         * @return set of group names as defined with {@link #setAutoMembership(String...)}
          */
         @NotNull
         public Set<String> getAutoMembership() {
-            return autoMembership == null ? Collections.<String>emptySet() : autoMembership;
+            return autoMembership == null ? Collections.emptySet() : autoMembership;
         }
 
         /**
@@ -157,6 +167,45 @@ public class DefaultSyncConfig {
                 }
             }
             return this;
+        }
+
+        /**
+         * Gets the {@code AutoMembershipConfig} that applies to this configuration.
+         * 
+         * @return {@code this}
+         * @see #setAutoMembershipConfig(AutoMembershipConfig) 
+         * @see #getAutoMembership(org.apache.jackrabbit.api.security.user.Authorizable) 
+         */
+        @NotNull
+        public AutoMembershipConfig getAutoMembershipConfig() {
+            return autoMembershipConfig;
+        }
+
+        /**
+         * Sets the {@code AutoMembershipConfiguration} that applies to this configuration.
+         *
+         * @return {@code this}
+         * @see #getAutoMembershipConfig()
+         * @see #getAutoMembership(org.apache.jackrabbit.api.security.user.Authorizable)
+         */
+        @NotNull
+        public Authorizable setAutoMembershipConfig(@NotNull AutoMembershipConfig autoMembershipConfig) {
+            this.autoMembershipConfig = autoMembershipConfig;
+            return this;
+        }
+        
+        /**
+         * Defines the set of group ids a synchronized external user/group is automatically member of. In contrast to
+         * {@link #getAutoMembership()} this method respects both values configured with {@link #setAutoMembership(String...)} 
+         * and with {@link #setAutoMembershipConfig(AutoMembershipConfig)}.
+         * 
+         * @return set of group ids.
+         */
+        @NotNull
+        public Set<String> getAutoMembership(@NotNull org.apache.jackrabbit.api.security.user.Authorizable authorizable) {
+            return ImmutableSet.<String>builder().
+                    addAll(autoMembershipConfig.getAutoMembership(authorizable)).
+                    addAll(getAutoMembership()).build();
         }
 
         /**
@@ -180,7 +229,7 @@ public class DefaultSyncConfig {
          */
         @NotNull
         public Map<String, String> getPropertyMapping() {
-            return propertyMapping == null ? Collections.<String, String>emptyMap() : propertyMapping;
+            return propertyMapping == null ? Collections.emptyMap() : propertyMapping;
         }
 
         /**
@@ -228,6 +277,8 @@ public class DefaultSyncConfig {
         private long membershipNestingDepth;
 
         private boolean dynamicMembership;
+        
+        private boolean enforceDynamicMembership;
 
         private boolean disableMissing;
 
@@ -294,7 +345,7 @@ public class DefaultSyncConfig {
         }
 
         /**
-         * Enable or disable the dynamic group membership. If turned external
+         * Enable or disable the dynamic group membership. If turned on external
          * identities and their group membership will be synchronized such that the
          * membership information is generated dynamically. External groups may
          * or may not be synchronized into the repository if this option is turned
@@ -311,6 +362,29 @@ public class DefaultSyncConfig {
             return this;
         }
 
+        /**
+         * Returns {@code true} if a dynamic group membership must be enforced for users that have been synchronized
+         * previously. Note that this option has no effect if {@link #getDynamicMembership()} returns {@code false}.
+         *
+         * @return {@code true} if dynamic group membership for external user identities must be enforced for previously 
+         * synced users; {@code false} otherwise. This option only takes effect if {@link #getDynamicMembership()} is enabled.
+         */
+        public boolean getEnforceDynamicMembership() {
+            return enforceDynamicMembership;
+        }
+
+        /**
+         * Enable or disable the enforcement of dynamic group membership.
+         *
+         * @param enforceDynamicMembership Boolean flag to define if dynamic group management is enforced for previously synced users. 
+         * @return {@code this}
+         * @see #getEnforceDynamicMembership() () for details.
+         */
+        public User setEnforceDynamicMembership(boolean enforceDynamicMembership) {
+            this.enforceDynamicMembership = enforceDynamicMembership;
+            return this;
+        }
+        
         /**
          * Controls the behavior for users that no longer exist on the external provider. The default is to delete the repository users
          * if they no longer exist on the external provider. If set to true, they will be disabled instead, and re-enabled once they appear
@@ -333,6 +407,38 @@ public class DefaultSyncConfig {
      * Group specific config
      */
     public static class Group extends Authorizable {
+        
+        private boolean dynamicGroups;
 
+        /**
+         * <p>Returns {@code true} if external group identities are being synchronized into the repository as dynamic groups.
+         * In this case a dedicated {@link org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider} must be 
+         * present in order to have group membership reflected through User Management API.</p>
+         * 
+         * <p>Note, that currently this option only takes effect if it is enabled together with dynamic membership 
+         * (i.e. {@link User#getDynamicMembership()} returns true). In this case a dedicated 
+         * {@link org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider} based on the 
+         * {@code ExternalGroupPrincipalProvider} will be registered.</p>
+         *
+         * @return {@code true} if external groups should be synchronized as dynamic groups (i.e. without having their
+         * members added); {@code false} otherwise. Note, that this option currently only takes effect if {@link User#getDynamicMembership()} is enabled.
+         */
+        public boolean getDynamicGroups() {
+            return dynamicGroups;
+        }
+
+        /**
+         * Enable or disable the dynamic group option. If turned on together with {@link User#getDynamicMembership()} 
+         * external group identities will be synchronized into the repository but without storing their members. 
+         * In other words, group membership is generated dynamically.
+         *
+         * @param dynamicGroups Boolean flag to enable or disable synchronization of dynamic groups.
+         * @return {@code this}
+         * @see #getDynamicGroups() for details.
+         */
+        public @NotNull Group setDynamicGroups(boolean dynamicGroups) {
+            this.dynamicGroups = dynamicGroups;
+            return this;
+        }
     }
 }

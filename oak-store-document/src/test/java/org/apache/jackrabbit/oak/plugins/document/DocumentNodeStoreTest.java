@@ -20,12 +20,14 @@ import static com.google.common.collect.ImmutableList.of;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.TRANSIENT;
+import static org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode.DISABLED;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
@@ -48,6 +50,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -103,6 +111,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.ThrottlingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -119,6 +128,7 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.hamcrest.number.OrderingComparison;
 import org.jetbrains.annotations.NotNull;
@@ -353,6 +363,117 @@ public class DocumentNodeStoreTest {
         assertNull("document with id " + id + " must not have _deletedOnce despite rollback",
                 doc.get(NodeDocument.DELETED_ONCE));
     }
+
+    // OAK-9909
+    @Test
+    public void noThrottlingWrapperCreatedByDefault() {
+        DocumentStore documentStore = new MemoryDocumentStore();
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
+                .setLeaseCheckMode(DISABLED).getNodeStore();
+        DocumentStore store = documentNodeStore.getDocumentStore();
+        assertTrue("No Throttling wrapper has been created by default", store instanceof MemoryDocumentStore);
+    }
+
+    @Test
+    public void noThrottlingWrapperCreatedWhenThrottlingIsDisabled() {
+        DocumentStore documentStore = new MemoryDocumentStore();
+        Feature docStoreThrottlingFeature = mock(Feature.class);
+        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
+                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false)
+                .setDocStoreThrottlingFeature(docStoreThrottlingFeature).getNodeStore();
+        DocumentStore store = documentNodeStore.getDocumentStore();
+        assertTrue("No Throttling wrapper has been created when throttling is disabled",
+                store instanceof MemoryDocumentStore);
+    }
+
+    @Test
+    public void throttlingWrapperCreatedWhenThrottlingIsEnabled() {
+        DocumentStore documentStore = new MemoryDocumentStore();
+        ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
+        Feature docStoreThrottlingFeature = mock(Feature.class);
+        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
+                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(true)
+                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
+                .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
+        DocumentStore store = documentNodeStore.getDocumentStore();
+        assertTrue("Throttling wrapper has been created when throttling is enabled via config",
+                store instanceof ThrottlingDocumentStoreWrapper);
+    }
+
+    @Test
+    public void throttlingWrapperCreatedWhenThrottlingIsEnabled_2() {
+        DocumentStore documentStore = new MemoryDocumentStore();
+        ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
+        Feature docStoreThrottlingFeature = mock(Feature.class);
+        when(docStoreThrottlingFeature.isEnabled()).thenReturn(true);
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
+                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false)
+                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
+                .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
+        DocumentStore store = documentNodeStore.getDocumentStore();
+        assertTrue("Throttling wrapper has been created when throttling is enabled via feature toggle",
+                store instanceof ThrottlingDocumentStoreWrapper);
+    }
+    // END -- OAK-9909
+
+    // OAK-9967
+    @Test
+    public void renewClusterIdLeaseTrue() throws IllegalAccessException {
+        DocumentStore documentStore = new MemoryDocumentStore();
+
+        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
+
+        ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
+        when(clusterNodeInfo.renewLease()).thenReturn(true);
+
+        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
+                .setDocumentStore(documentStore).getNodeStore();
+        writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
+
+        assertTrue(nodeStore.renewClusterIdLease());
+        verify(statsCollector, times(1)).doneLeaseUpdate(anyLong());
+    }
+
+    @Test(expected = DocumentStoreException.class)
+    public void renewClusterIdLeaseException() throws IllegalAccessException {
+        DocumentStore documentStore = new MemoryDocumentStore();
+
+        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
+
+        ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
+        when(clusterNodeInfo.renewLease()).thenThrow(DocumentStoreException.class);
+
+        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
+                .setDocumentStore(documentStore).getNodeStore();
+        writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
+
+        nodeStore.renewClusterIdLease(); // should throw an exception
+        verify(statsCollector, times(1)).doneLeaseUpdate(anyLong());
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void renewClusterIdLeaseFalse() throws IllegalAccessException {
+        DocumentStore documentStore = new MemoryDocumentStore();
+
+        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
+
+        ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
+        when(clusterNodeInfo.renewLease()).thenReturn(false);
+
+        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
+                .setDocumentStore(documentStore).getNodeStore();
+        writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
+
+        assertFalse(nodeStore.renewClusterIdLease());
+        verify(statsCollector, times(0)).doneLeaseUpdate(anyLong());
+    }
+    // END -- OAK-9967
 
     // OAK-1662
     @Test

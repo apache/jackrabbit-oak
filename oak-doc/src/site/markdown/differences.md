@@ -15,33 +15,40 @@
    limitations under the License.
   -->
 
+# Differences to Jackrabbit 2
+
 <!-- MACRO{toc} -->
 
-Backward compatibility
-======================
+## Backward compatibility
 
 Oak implements the JCR API and we expect most applications to work out of the box. However, the Oak
-code base is very young and not yet on par with Jackrabbit 2. Some of the more obscure parts of JCR
-are not (yet) implemented. If you encounter a problem running your application on Oak, please cross
+code base is a rewrite from scratch and therefore differs from Jackrabbit 2 in some aspects. Some of the more obscure parts of JCR are not (yet) implemented. If you encounter a problem running your application on Oak, please cross
 check against Jackrabbit 2 before reporting an issue against Oak.
 
-Reporting issues
-================
+## Reporting issues
 
 If you encounter a problem where functionality is missing or Oak does not behave as expected please
 check whether this is a [known change in behaviour](https://issues.apache.org/jira/browse/OAK-14) or
 a [known issue](https://issues.apache.org/jira/browse/OAK). If in doubt ask on the [Oak dev list]
 (http://oak.markmail.org/). Otherwise create a [new issue](https://issues.apache.org/jira/browse/OAK).
 
-Notable changes
-===============
+## Notable changes
 
 This section gives a brief overview of the most notable changes in Oak with respect to Jackrabbit 2.
 These changes are generally caused by overall design decisions carefully considering the benefits
 versus the potential backward compatibility issues.
 
-Session state and refresh behaviour
------------------------------------
+### Names and Unicode String values
+
+The limitations are described in [Constraints](./constraints.html).
+
+#### Node Name Length Limit
+
+With the document storage backend (MongoDB, RDBMS), there is currently 
+a limit of 150 UTF-8 bytes on the length of the node names.
+See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644).
+
+### Session state and refresh behaviour
 
 In Jackrabbit 2 sessions always reflects the latest state of the repository. With Oak a session
 reflects a stable view of the repository from the time the session was acquired ([MVCC model]
@@ -76,8 +83,7 @@ case no fall back to `Session#save()` will happen but an `UnsupportedRepositoryE
 if the sub-tree rooted at the respective item does not contain all transient changes. See
 [OAK-993](https://issues.apache.org/jira/browse/OAK-993) for details.
 
-Query
------
+### Query
 
 Oak does not index as much content by default as does Jackrabbit 2. You need to create custom indexes when
 necessary, much like in traditional RDBMSs. If there is no index for a specific query then the
@@ -90,8 +96,8 @@ See the [query overview page](query/query.html) for details.
 In Oak, the method `QueryManager.createQuery` does not 
 return an object of type `QueryObjectModel`.
 
-Observation
------------
+### Observation
+
 * `Event.getInfo()` contains the primary and mixin node types of the associated parent node of the 
   event. The key `jcr:primaryType` maps to the primary type and the key `jcr:mixinTypes` maps to an 
   array containing the mixin types.
@@ -194,8 +200,7 @@ Observation
 </tr>
 </table>
 
-Binary streams
---------------
+### Binary streams
 
 In Jackrabbit 2 binary values were often (though not always) stored in
 or spooled into a file in the local file system, and methods like
@@ -216,8 +221,7 @@ bytes in the stream, or that the return value is zero only at the end of the
 stream. Neither assumption is correctly based on the `InputStream` API
 contract, so such client code needs to be fixed to avoid problems with Oak.
 
-Locking
--------
+### Locking
 
 Oak does not support the strict locking semantics of Jackrabbit 2.x. Instead
 a "fuzzy locking" approach is used with lock information stored as normal
@@ -233,8 +237,7 @@ level tool, for example a human author could use a lock to mark a document as
 locked for a few hours or days during which other users will not be able to
 modify the document.
 
-Same name siblings
-------------------
+### Same name siblings
 
 Same name siblings (SNS) are deprecated in Oak. We figured that the actual benefit supporting same
 name siblings as mandated by JCR is dwarfed by the additional implementation complexity. Instead
@@ -243,11 +246,10 @@ there are ideas to implement a feature for automatic [disambiguation of node nam
 In the meanwhile we have [basic support](https://issues.apache.org/jira/browse/OAK-203) for same
 name siblings but that might not cover all cases.
 
-XML Import
-----------
+### XML Import
 
 The import behavior for
-[`IMPORT_UUID_CREATE_NEW`](https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW)
+[`IMPORT_UUID_CREATE_NEW`](https://s.apache.org/jcr-2.0-javadoc/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW)
 in Oak is implemented slightly different compared to Jackrabbit. Jackrabbit 2.x only creates a new
 UUID when it detects an existing conflicting node with the same UUID. Oak always creates a new UUID,
 even if there is no conflicting node. The are mainly two reasons why this is done in Oak:
@@ -259,8 +261,9 @@ collisions never occur.*
 very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a
 session, an existing node with a conflicting UUID may not be visible until commit.
 
-Identifiers
------------
+In contrast to Jackrabbit 2 [expanded names][5] are not supported in System View documents for neither nodes nor properties ([OAK-9586](https://issues.apache.org/jira/browse/OAK-9586)).
+
+### Identifiers
 
 In contrast to Jackrabbit 2.x, only referenceable nodes in Oak have a UUID assigned. With Jackrabbit
 2.x the UUID is only visible in content when the node is referenceable and exposes the UUID as a
@@ -272,8 +275,7 @@ Manually adding a property with the name `jcr:uuid` to a non referenceable node 
 unexpected effects as Oak maintains an unique index on `jcr:uuid` properties. As the namespace
 `jcr` is reserved, doing so is strongly discouraged.
 
-Namespaces
-----------
+### Namespaces
 
 JCR namespace support is mostly compatible with Jackrabbit 2.x. However, Oak
 does not support remapping an existing namespace URI to a different prefix in
@@ -283,8 +285,7 @@ anymore. The mapping *can* be changed on a per session level, but this remapping
 is only visible to the current session and bound to the session lifetime. See
 [`Session.setNamespacePrefix(String, String)`][0].
 
-Versioning
-----------
+### Versioning
 
 * Because of the different identifier implementation in Oak, the value of a `jcr:frozenUuid` property
 on a frozen node will not always be a UUID (see also section about Identifiers). The property
@@ -298,8 +299,7 @@ baselines (`OPTION_BASELINES_SUPPORTED`).
 * Oak does currently not implement the various variants of `VersionManager.merge` but throws an
 `UnsupportedRepositoryOperationException` if such a method is called.
 
-Security
---------
+### Security
 
 * [Authentication](security/authentication/differences.html)
 * [Access Control Management](security/accesscontrol/differences.html)
@@ -308,20 +308,11 @@ Security
 * [Principal Management](security/principal/differences.html)
 * [User Management](security/user/differences.html)
 
-Workspaces
-----------
+### Workspaces
 
 An Oak repository only has one default workspace.
 
-Node Name Length Limit
-----------------------
-
-With the document storage backend (MongoDB, RDBMS), there is currently 
-a limit of 150 UTF-8 bytes on the length of the node names.
-See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644).
-
-MongoDB Document Limit
-----------------------
+### MongoDB Document Limit
 
 MongoDB has a document size limit of 16 MB. When using the document storage
 backend on MongoDB, adding a node with large String properties may fail because
@@ -333,8 +324,7 @@ This limitation can also be hit when a node has many orderable child nodes
 because Oak internally stores the sequence of child node names in a hidden
 property. See also [do's and don'ts](dos_and_donts.html).
 
-Session Attributes
-------------------
+### Session Attributes
 
 Oak exposes the following attributes via [`Session.getAttribute(...)`][1] and [`Session.getAttributeNames()`][2] in addition to the ones set through [Credentials][3]' attributes passed to [Repository.login(...)][4].
 
@@ -344,8 +334,9 @@ Attribute Name | Attribute Value Type | Description
 `oak.relaxed-locking` | `Boolean` | Whether relaxed locking behaviour is enabled for the session. See [OAK-1329](https://issues.apache.org/jira/browse/OAK-1329).
 `oak.bound-principals` | `Set<Principal>` | The principals associated with the JCR session. See [OAK-9415](https://issues.apache.org/jira/browse/OAK-9415)
 
-[0]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
-[1]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttribute(java.lang.String)
-[2]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#getAttributeNames()
-[3]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Credentials.html
-[4]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)
+[0]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
+[1]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#getAttribute(java.lang.String)
+[2]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#getAttributeNames()
+[3]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Credentials.html
+[4]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)
+[5]: https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form

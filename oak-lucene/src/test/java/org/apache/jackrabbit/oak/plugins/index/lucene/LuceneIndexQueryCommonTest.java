@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,4 +52,34 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
         executorService.shutdown();
     }
 
+    @Override
+    public String getContainsValueForEqualityQuery_native() {
+        return "+:ancestors:/test +propa:bar";
+    }
+
+    @Override
+    public String getContainsValueForInequalityQuery_native() {
+        return "+:ancestors:/test +propa:[* TO *] -propa:bar";
+    }
+
+    @Override
+    public String getContainsValueForInequalityQueryWithoutAncestorFilter_native() {
+        return "+propa:[* TO *] -propa:bar";
+    }
+
+    @Override
+    public String getContainsValueForEqualityInequalityCombined_native() {
+        return "+:ancestors:/test +propb:world +propa:[* TO *] -propa:bar";
+    }
+
+    @Override
+    public String getContainsValueForNotNullQuery_native() {
+        return "+:ancestors:/test +propa:[* TO *]";
+    }
+
+    @Override
+    public String getExplainValueForDescendantTestWithIndexTagExplain() {
+        return "[nt:base] as [nt:base] /* lucene:test-index(/oak:index/test-index) :ancestors:/test" +
+                " where isdescendantnode([nt:base], [/test]) */";
+    }
 }

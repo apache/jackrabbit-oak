@@ -19,17 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -41,10 +43,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Iterables.toArray;
-import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -53,10 +53,10 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -71,7 +71,7 @@ public class AggregateTest {
     //~---------------------------------< Node Includes >
 
     @Test
-    public void oneLevelAll() throws Exception{
+    public void oneLevelAll() {
         Aggregate ag = new Aggregate("nt:base", of(ni("*")));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").child("c");
@@ -83,7 +83,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void oneLevelNamed() throws Exception{
+    public void oneLevelNamed() {
         Aggregate ag = new Aggregate("nt:base", of(ni("a")));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a");
@@ -95,7 +95,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void noOfChildNodeRead() throws Exception{
+    public void noOfChildNodeRead() {
         Aggregate ag = new Aggregate("nt:base", of(ni("a")));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a");
@@ -106,13 +106,10 @@ public class AggregateTest {
         NodeState state = nb.getNodeState();
         final AtomicInteger counter = new AtomicInteger();
         Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(),
-                new Function<ChildNodeEntry, ChildNodeEntry>() {
-            @Override
-            public ChildNodeEntry apply(ChildNodeEntry input) {
-                counter.incrementAndGet();
-                return input;
-            }
-        });
+                (Function<ChildNodeEntry, ChildNodeEntry>) input -> {
+                    counter.incrementAndGet();
+                    return input;
+                });
         NodeState mocked = spy(state);
         doReturn(countingIterator).when(mocked).getChildNodeEntries();
         ag.collectAggregates(mocked, col);
@@ -122,7 +119,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void oneLevelTyped() throws Exception{
+    public void oneLevelTyped() {
         Aggregate ag = new Aggregate("nt:base", of(ni("nt:resource","*", false)));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").setProperty(JCR_PRIMARYTYPE,"nt:resource");
@@ -134,7 +131,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void oneLevelTypedMixin() throws Exception{
+    public void oneLevelTypedMixin() {
         Aggregate ag = new Aggregate("nt:base", of(ni("mix:title","*", false)));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES);
@@ -146,7 +143,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void multiLevelAll() throws Exception{
+    public void multiLevelAll() {
         Aggregate ag = new Aggregate("nt:base", of(ni("*"), ni("*/*")));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").child("c");
@@ -159,7 +156,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void multiLevelNamed() throws Exception{
+    public void multiLevelNamed() {
         Aggregate ag = new Aggregate("nt:base", of(ni("a"), ni("d/e")));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").child("c");
@@ -172,7 +169,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void multiLevelTyped() throws Exception{
+    public void multiLevelTyped() {
         Aggregate ag = new Aggregate("nt:base", of(ni("a"),
                 ni("nt:resource", "d/*/*", false)));
         NodeBuilder nb = newNode("nt:base");
@@ -188,7 +185,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void multiLevelNamedSubAll() throws Exception{
+    public void multiLevelNamedSubAll() {
         Aggregate ag = new Aggregate("nt:base", of(ni("a"), ni("d/*/*")));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").child("c");
@@ -205,7 +202,7 @@ public class AggregateTest {
     //~---------------------------------< Node include recursive >
 
     @Test
-    public void multiAggregateMapping() throws Exception{
+    public void multiAggregateMapping() {
         Aggregate ag = new Aggregate("nt:base", of(ni("*")));
 
         Aggregate agFile = new Aggregate("nt:file", of(ni("*"), ni("*/*")));
@@ -223,7 +220,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void recursionEnabled() throws Exception{
+    public void recursionEnabled() {
         Aggregate agFile = new Aggregate("nt:file", of(ni("*")), 5);
         mapper.add("nt:file", agFile);
 
@@ -239,12 +236,12 @@ public class AggregateTest {
     }
 
     @Test
-    public void recursionEnabledWithLimitCheck() throws Exception{
+    public void recursionEnabledWithLimitCheck() {
         int limit = 5;
         Aggregate agFile = new Aggregate("nt:file", of(ni("*")), limit);
         mapper.add("nt:file", agFile);
 
-        List<String> expectedPaths = Lists.newArrayList();
+        List<String> expectedPaths = new ArrayList<>();
         NodeBuilder nb = newNode("nt:file");
         nb.child("a").child("c");
 
@@ -268,12 +265,11 @@ public class AggregateTest {
     }
 
     @Test
-    public void includeMatches() throws Exception{
+    public void includeMatches() {
         Aggregate ag = new Aggregate("nt:base", of(ni(null, "*", true), ni(null, "*/*", true)));
         assertTrue(ag.hasRelativeNodeInclude("foo"));
         assertTrue(ag.hasRelativeNodeInclude("foo/bar"));
         assertFalse(ag.hasRelativeNodeInclude("foo/bar/baz"));
-
 
         Aggregate ag2 = new Aggregate("nt:base", of(ni(null, "foo", true), ni(null, "foo/*", true)));
         assertTrue(ag2.hasRelativeNodeInclude("foo"));
@@ -283,7 +279,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void testReaggregate() throws Exception{
+    public void testReaggregate() {
         //Enable relative include for all child nodes of nt:folder
         //So indexing would create fulltext field for each relative nodes
         Aggregate agFolder = new Aggregate("nt:folder", of(ni("nt:file", "*", true)));
@@ -309,7 +305,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void testReaggregateMixin() throws Exception{
+    public void testReaggregateMixin() {
         //A variant of testReaggregation but using mixin
         //instead of normal nodetype. It abuses mix:title
         //and treat it like nt:file. Test check if reaggregation
@@ -340,7 +336,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void testRelativeNodeInclude() throws Exception{
+    public void testRelativeNodeInclude() {
         //Enable relative include for all child nodes of nt:folder
         //So indexing would create fulltext field for each relative nodes
         Aggregate agContent = new Aggregate("app:Page", of(ni(null, "jcr:content", true)));
@@ -367,7 +363,7 @@ public class AggregateTest {
     }
 
     private static void createFileMixin(NodeBuilder nb, String fileName, String content){
-        //Abusing mix:title as its registered by default
+        //Abusing mix:title as it's registered by default
         nb.child(fileName).setProperty(JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES)
                 .child("jcr:content").setProperty("jcr:data", content.getBytes());
     }
@@ -375,7 +371,7 @@ public class AggregateTest {
     //~---------------------------------< Prop Includes >
 
     @Test
-    public void propOneLevelNamed() throws Exception{
+    public void propOneLevelNamed() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         child(rules, "nt:folder/properties/p1")
@@ -395,7 +391,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void propOneLevelRegex() throws Exception{
+    public void propOneLevelRegex() {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         child(rules, "nt:folder/properties/p1")
@@ -416,10 +412,33 @@ public class AggregateTest {
         assertThat(col.getPropPaths(), hasItems("a/foo1", "a/foo2"));
     }
 
+    @Test
+    public void regexWithHiddenElements() {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        child(rules, "nt:folder/properties/p1")
+                .setProperty(FulltextIndexConstants.PROP_NAME, "a/.*")
+                .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
+
+        NodeBuilder nb = newNode("nt:folder");
+        nb.child("a").setProperty("foo1", "foo");
+        nb.child("a").setProperty("foo2", "foo");
+        nb.child("a").setProperty(":hiddenProperty", "foo");
+        nb.child("b").setProperty("p2", "foo");
+        nb.child("a").child(":hiddenNode").setProperty("foo3", "foo");
+
+        ag.collectAggregates(nb.getNodeState(), col);
+        assertEquals(2, col.getPropPaths().size());
+        assertThat(col.getPropPaths(), hasItems("a/foo1", "a/foo2"));
+    }
+
     //~---------------------------------< IndexingConfig >
 
     @Test
-    public void simpleAggregateConfig() throws Exception{
+    public void simpleAggregateConfig() {
         NodeBuilder aggregates = builder.child(FulltextIndexConstants.AGGREGATES);
         NodeBuilder aggFolder = aggregates.child("nt:folder");
         aggFolder.child("i1").setProperty(FulltextIndexConstants.AGG_PATH, "*");
@@ -431,7 +450,7 @@ public class AggregateTest {
     }
 
     @Test
-    public void aggregateConfig2() throws Exception{
+    public void aggregateConfig2() {
         NodeBuilder aggregates = builder.child(FulltextIndexConstants.AGGREGATES);
         NodeBuilder aggFolder = aggregates.child("nt:folder");
         aggFolder.setProperty(FulltextIndexConstants.AGG_RECURSIVE_LIMIT, 42);
@@ -455,7 +474,7 @@ public class AggregateTest {
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(Objects.requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;
@@ -471,7 +490,7 @@ public class AggregateTest {
 
     private static class TestCollector implements Aggregate.ResultCollector {
         final ListMultimap<String, NodeIncludeResult> nodeResults = ArrayListMultimap.create();
-        final Map<String, PropertyIncludeResult> propResults = newHashMap();
+        final Map<String, PropertyIncludeResult> propResults = new HashMap<>();
         @Override
         public void onResult(NodeIncludeResult result) {
             nodeResults.put(result.nodePath, result);
@@ -497,7 +516,7 @@ public class AggregateTest {
         }
 
         public List<NodeIncludeResult> getRelativeNodeResults(String path, String rootIncludePath){
-            List<NodeIncludeResult> result = Lists.newArrayList();
+            List<NodeIncludeResult> result = new ArrayList<>();
 
             for (NodeIncludeResult nr : nodeResults.get(path)){
                 if (rootIncludePath.equals(nr.rootIncludePath)){
@@ -510,7 +529,7 @@ public class AggregateTest {
     }
 
     private static class SimpleMapper implements Aggregate.AggregateMapper {
-        final Map<String, Aggregate> mapping = newHashMap();
+        final Map<String, Aggregate> mapping = new HashMap<>();
 
         @Override
         public Aggregate getAggregate(String nodeTypeName) {

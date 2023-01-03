@@ -19,7 +19,7 @@ Oak Documentation
 =================
 
 The Oak documentation lives as Markdown files in `src/site/markdown` such
-that it easy to view e.g. from GitHub. Alternatively the Maven site plugin
+that it's easy to view e.g. from GitHub. Alternatively the Maven site plugin
 can be used to build and deploy a web site as follows:
 
 From the reactor do
@@ -37,7 +37,7 @@ to build the site **without** Javadoc, and optionally
 
 to add Javadoc. 
 
-   mvn site -Pdoc,javadoc
+    mvn site -Pdoc,javadoc
 
 to generate **both** site and javadocs. Review the site at
 `oak-doc/target/site`.

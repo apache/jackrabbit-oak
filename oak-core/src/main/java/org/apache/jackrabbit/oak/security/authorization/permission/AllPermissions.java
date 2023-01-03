@@ -73,6 +73,11 @@ final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
+    public boolean isGranted(@NotNull String path, boolean isProperty, long permissions) {
+        return true;
+    }
+
+    @Override
     public boolean isGranted(@NotNull String path, long permissions) {
         return true;
     }

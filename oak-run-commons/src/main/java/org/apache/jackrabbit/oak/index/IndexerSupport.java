@@ -62,14 +62,24 @@ public class IndexerSupport {
      */
     private static final String REINDEX_LANE = "offline-reindex-async";
     private Map<String, String> checkpointInfo = Collections.emptyMap();
-    private final IndexHelper indexHelper;
+    protected final IndexHelper indexHelper;
     private File localIndexDir;
     private File indexDefinitions;
     private String checkpoint;
+    private File existingDataDumpDir;
 
     public IndexerSupport(IndexHelper indexHelper, String checkpoint) {
         this.indexHelper = indexHelper;
         this.checkpoint = checkpoint;
+    }
+
+    public IndexerSupport withExistingDataDumpDir(File existingDataDumpDir) {
+        this.existingDataDumpDir = existingDataDumpDir;
+        return this;
+    }
+
+    public File getExistingDataDumpDir() {
+        return existingDataDumpDir;
     }
 
     public File getLocalIndexDir() throws IOException {
@@ -103,13 +113,13 @@ public class IndexerSupport {
         return checkpointedState;
     }
 
-    private void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
+    public void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
         if (indexDefinitions != null) {
             new IndexDefinitionUpdater(indexDefinitions).apply(rootBuilder);
         }
     }
 
-    private void dumpIndexDefinitions(NodeStore nodeStore) throws IOException, CommitFailedException {
+    protected void dumpIndexDefinitions(NodeStore nodeStore) throws IOException {
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore, indexHelper.getIndexPathService());
         printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
         PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
@@ -140,7 +150,7 @@ public class IndexerSupport {
         dumpIndexDefinitions(copyOnWriteStore);
     }
 
-    private void switchIndexLanesBack(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+    protected void switchIndexLanesBack(NodeStore copyOnWriteStore) throws CommitFailedException {
         NodeState root = copyOnWriteStore.getRoot();
         NodeBuilder builder = root.builder();
 

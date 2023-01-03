@@ -144,8 +144,12 @@ public class DataStoreCommand implements Command {
         boolean success = false;
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
             opts.setTempDirectory(dataStoreOpts.getWorkDir().getAbsolutePath());
+
+            log.info("Creating Node Store fixture");
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+            log.info("Registering Node Store fixture");
             closer.register(fixture);
+            log.info("Node Store fixture created and registered");
 
             if (!checkParameters(dataStoreOpts, opts, fixture, parser)) {
                 return;
@@ -193,6 +197,7 @@ public class DataStoreCommand implements Command {
             metricsCloser.register(metricsExporterFixture);
 
             if (dataStoreOpts.dumpRefs()) {
+                log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
                 final BufferedWriter writer = Files.newWriter(referencesTemp, UTF_8);
 
@@ -239,6 +244,7 @@ public class DataStoreCommand implements Command {
                     Closeables.close(writer, threw);
                 }
             } else if (dataStoreOpts.dumpIds()) {
+                log.info("Initiating dump of data store IDs");
                 final File blobidsTemp = File.createTempFile("blobidstemp", null, new File(opts.getTempDirectory()));
 
                 retrieveBlobIds((GarbageCollectableBlobStore) fixture.getBlobStore(), blobidsTemp);
@@ -254,6 +260,7 @@ public class DataStoreCommand implements Command {
                     FileUtils.copyFile(blobidsTemp, ids);
                 }
             } else if (dataStoreOpts.getMetadata()) {
+                log.info("Initiating dump of data store metadata");
 
                 List<String> data = getMetadata(fixture);
                 File outDir = opts.getOptionBean(DataStoreOptions.class).getOutDir();

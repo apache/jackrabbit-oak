@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import java.security.Principal;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -29,22 +23,30 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
-import org.mockito.Mockito;
+import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Set;
+
+import static org.mockito.Mockito.mock;
 
 public abstract class AbstractAccessControlTest {
 
-    final Root root = Mockito.mock(Root.class);
+    final Root root = mock(Root.class);
 
     Principal testPrincipal = new PrincipalImpl("testPrincipal");
 
-    PrivilegeBitsProvider getBitsProvider() {
+    protected PrivilegeBitsProvider getBitsProvider() {
         return new PrivilegeBitsProvider(root);
     }
 
-    NamePathMapper getNamePathMapper() {
+    protected NamePathMapper getNamePathMapper() {
         return NamePathMapper.DEFAULT;
     }
-
+    
     ACE createEntry(boolean isAllow, String... privilegeName)
             throws RepositoryException {
         if (privilegeName.length == 1) {
@@ -72,6 +74,11 @@ public abstract class AbstractAccessControlTest {
         @Override
         public Privilege[] getPrivileges() {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            return getBitsProvider();
         }
     }
 }

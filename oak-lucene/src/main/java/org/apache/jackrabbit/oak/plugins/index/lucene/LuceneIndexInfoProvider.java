@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
@@ -85,8 +83,10 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         LuceneIndexInfo info = new LuceneIndexInfo(indexPath);
         computeSize(idxState, info);
         computeIndexDefinitionChange(idxState, info);
-        computeLastUpdatedTime(idxState, info);
+        computeStatusNodeInfo(idxState, info);
         computeAsyncIndexInfo(idxState, indexPath, info);
+        checkIfHiddenNodesExists(idxState, info);
+        computeCreationTimestamp(idxState, info);
         return info;
     }
 
@@ -121,21 +121,58 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     private void computeSize(NodeState idxState, LuceneIndexInfo info) throws IOException {
         LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
         for (String dirName : idxState.getChildNodeNames()) {
-            if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)) {
-                try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {
-                    info.numEntries += DirectoryUtils.getNumDocs(dir);
-                    info.size = DirectoryUtils.dirSize(dir);
+            if (NodeStateUtils.isHidden(dirName)) {
+                // This is true for both read-write index data dir (:data) and the read-only mount (:oak-libs-mount-index-data)
+                if (MultiplexersLucene.isIndexDirName(dirName)) {
+                    try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {
+                        info.numEntries += DirectoryUtils.getNumDocs(dir);
+                        info.size += DirectoryUtils.dirSize(dir);
+                    }
+                } else if (MultiplexersLucene.isSuggestIndexDirName(dirName)) {
+                    try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {
+                        info.suggestSize += DirectoryUtils.dirSize(dir);
+                    }
                 }
             }
         }
     }
 
-    private static void computeLastUpdatedTime(NodeState idxState, LuceneIndexInfo info) {
+    private static void computeStatusNodeInfo(NodeState idxState, LuceneIndexInfo info) {
         NodeState status = idxState.getChildNode(IndexDefinition.STATUS_NODE);
-        if (status.exists()){
+        if (status.exists()) {
             PropertyState updatedTime = status.getProperty(IndexDefinition.STATUS_LAST_UPDATED);
             if (updatedTime != null) {
                 info.lastUpdatedTime = ISO8601.parse(updatedTime.getValue(Type.DATE)).getTimeInMillis();
+            }
+
+            PropertyState reindexCompletionTime = status.getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
+            if (reindexCompletionTime != null) {
+                info.reindexCompletionTimestamp = ISO8601.parse(reindexCompletionTime.getValue(Type.DATE)).getTimeInMillis();
+            }
+        }
+    }
+
+    private static void computeCreationTimestamp(NodeState idxState, LuceneIndexInfo info) {
+        NodeState indexDef = idxState.getChildNode(INDEX_DEFINITION_NODE);
+        if (indexDef.exists()) {
+            PropertyState creationTime = indexDef.getProperty(IndexDefinition.CREATION_TIMESTAMP);
+            if (creationTime != null) {
+                info.creationTimestamp = ISO8601.parse(creationTime.getValue(Type.DATE)).getTimeInMillis();
+            }
+        }
+    }
+
+    private static void checkIfHiddenNodesExists(NodeState idxState, LuceneIndexInfo info) {
+        // Check for hidden oak libs mount node that has indexed content for read only repo in composite store
+        // Also check for hidden property index node :property-index - present in case of hybrid indexes
+        info.hasHiddenOakLibsMount = false;
+        info.hasPropertyIndexNode = false;
+
+        for(String c : idxState.getChildNodeNames()) {
+            if (c.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
+                info.hasHiddenOakLibsMount = true;
+            } else if (c.equals(IndexDefinition.PROPERTY_INDEX)) {
+                info.hasPropertyIndexNode = true;
             }
         }
     }
@@ -160,6 +197,11 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         long lastUpdatedTime;
         boolean indexDefinitionChanged;
         String indexDiff;
+        boolean hasHiddenOakLibsMount;
+        boolean hasPropertyIndexNode;
+        long suggestSize;
+        long creationTimestamp;
+        long reindexCompletionTimestamp;
 
         public LuceneIndexInfo(String indexPath) {
             this.indexPath = indexPath;
@@ -209,6 +251,31 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         public String getIndexDefinitionDiff() {
             return indexDiff;
         }
+
+        @Override
+        public boolean hasHiddenOakLibsMount() {
+            return hasHiddenOakLibsMount;
+        }
+
+        @Override
+        public boolean hasPropertyIndexNode() {
+            return hasPropertyIndexNode;
+        }
+
+        @Override
+        public long getSuggestSizeInBytes() {
+            return suggestSize;
+        }
+
+        @Override
+        public long getCreationTimestamp() {
+            return creationTimestamp;
+        }
+
+        @Override
+        public long getReindexCompletionTimestamp() {
+            return reindexCompletionTimestamp;
+        }
     }
 
     static class FilteringEqualsDiff extends EqualsDiff {
@@ -223,10 +290,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (ignoredProp(before.getName())){
-                return true;
-            }
-            return false;
+            return ignoredProp(before.getName());
         }
 
         @Override

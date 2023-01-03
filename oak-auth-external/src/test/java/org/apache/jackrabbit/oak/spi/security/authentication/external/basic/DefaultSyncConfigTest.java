@@ -16,21 +16,27 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DefaultSyncConfigTest {
 
-    private DefaultSyncConfig config = new DefaultSyncConfig();
+    private final DefaultSyncConfig config = new DefaultSyncConfig();
 
     private static void assertAuthorizableConfig(@NotNull DefaultSyncConfig.Authorizable authorizableConfig) {
         assertEquals("", authorizableConfig.getPathPrefix());
@@ -63,7 +69,7 @@ public class DefaultSyncConfigTest {
 
     @Test
     public void testName() {
-        assertEquals("default", config.getName());
+        assertEquals(DefaultSyncConfig.DEFAULT_NAME, config.getName());
 
         assertSame(config, config.setName("name"));
         assertEquals("name", config.getName());
@@ -88,6 +94,19 @@ public class DefaultSyncConfigTest {
         assertEquals(5, userConfig.getMembershipNestingDepth());
         assertEquals(0, userConfig.setMembershipExpirationTime(0).getMembershipExpirationTime());
     }
+    
+    @Test
+    public void testUserDynamicMembership() {
+        DefaultSyncConfig.User userConfig = config.user();
+
+        assertFalse(userConfig.getDynamicMembership());
+        assertSame(userConfig, userConfig.setDynamicMembership(true));
+        assertTrue(userConfig.getDynamicMembership());
+
+        assertFalse(userConfig.getEnforceDynamicMembership());
+        assertSame(userConfig, userConfig.setEnforceDynamicMembership(true));
+        assertTrue(userConfig.getEnforceDynamicMembership());
+    }
 
     @Test
     public void testGroupConfig() {
@@ -95,5 +114,53 @@ public class DefaultSyncConfigTest {
 
         assertNotNull(groupConfig);
         assertAuthorizableConfig(groupConfig);
+        
+        assertFalse(groupConfig.getDynamicGroups());
+        assertSame(groupConfig, groupConfig.setDynamicGroups(true));
+        assertTrue(groupConfig.getDynamicGroups());
+        assertSame(groupConfig, groupConfig.setDynamicGroups(false));
+        assertFalse(groupConfig.getDynamicGroups());
+    }
+    
+    @Test
+    public void testAutoMembershipConfig() {
+        // not set yet
+        assertSame(AutoMembershipConfig.EMPTY, config.group().getAutoMembershipConfig());
+        assertSame(AutoMembershipConfig.EMPTY, config.user().getAutoMembershipConfig());
+        
+        // set AutoMembershipConfig
+        AutoMembershipConfig acm = mock(AutoMembershipConfig.class);
+        config.group().setAutoMembershipConfig(acm);
+        assertSame(acm, config.group().getAutoMembershipConfig());
+
+        config.user().setAutoMembershipConfig(acm);
+        assertSame(acm, config.user().getAutoMembershipConfig());
+    }
+
+    @Test
+    public void testAutoMembership() {
+        Set<String> globalGroupIds = ImmutableSet.of("gr1", "gr2");
+        Set<String> configGroupIds = ImmutableSet.of("gr3", "gr4");
+        
+        Group gr = mock(Group.class);
+        User user = mock(User.class);
+        
+        AutoMembershipConfig acm = mock(AutoMembershipConfig.class);
+        when(acm.getAutoMembership(gr)).thenReturn(Collections.emptySet());
+        when(acm.getAutoMembership(user)).thenReturn(configGroupIds);
+      
+        DefaultSyncConfig.Authorizable dscA = config.user();
+        dscA.setAutoMembership(globalGroupIds.toArray(new String[0]));
+        dscA.setAutoMembershipConfig(acm);
+
+        // only global ids for getAutoMembership()
+        assertEquals(globalGroupIds, dscA.getAutoMembership());
+        // only global ids for getAutoMembership(Authorizable) as no specific config for 'gr'
+        assertEquals(globalGroupIds, dscA.getAutoMembership(gr));
+        // for 'user' the combine set of global and conditional config is returned
+        Set<String> expected = ImmutableSet.<String>builder()
+                .addAll(globalGroupIds)
+                .addAll(configGroupIds).build();
+        assertEquals(expected, dscA.getAutoMembership(user));
     }
 }

@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class IndexHelper implements Closeable{
+public class IndexHelper implements Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
     protected final NodeStore store;
     protected final File outputDir;
@@ -67,7 +67,7 @@ public class IndexHelper implements Closeable{
     protected final List<String> indexPaths;
     private final Whiteboard whiteboard;
     private Executor executor;
-    private final Closer closer = Closer.create();
+    protected final Closer closer = Closer.create();
     private final BlobStore blobStore;
     private final StatisticsProvider statisticsProvider;
     private IndexInfoServiceImpl indexInfoService;

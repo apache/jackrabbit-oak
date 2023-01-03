@@ -65,4 +65,16 @@ public interface OperationsStatsMBean {
      * @return
      */
     long sizeDeleted();
+
+    /**
+     * Returns the number of blob references
+     * @return
+     */
+    long getNumBlobReferences();
+
+    /**
+     * Returns the cumulative size of the blob references
+     * @return
+     */
+    long getBlobReferencesSize();
 }

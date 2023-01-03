@@ -91,7 +91,7 @@ public class StandbyStoreService {
             name = "Sync interval (seconds)",
             description = "Sync interval in seconds (standby mode only)"
         )
-        int interval() default 5;
+        long interval() default 5;
 
         @AttributeDefinition(
             name = "Allowed IP-Ranges",
@@ -198,7 +198,7 @@ public class StandbyStoreService {
             .withFileStore(fileStore)
             .withBlobChunkSize(BLOB_CHUNK_SIZE)
             .withAllowedClientIPRanges(ranges)
-            .withSecureConnection(true)
+            .withSecureConnection(secure)
             .withSSLKeyFile(sslKeyFile)
             .withSSLChainFile(sslChainFile)
             .withSSLClientValidation(sslValidateClient)

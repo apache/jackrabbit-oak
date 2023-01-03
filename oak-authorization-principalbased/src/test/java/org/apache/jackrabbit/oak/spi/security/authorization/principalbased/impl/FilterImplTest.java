@@ -67,7 +67,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testCanHandleEmptySet() throws Exception  {
+    public void testCanHandleEmptySet()  {
         assertFalse(filter.canHandle(Collections.emptySet()));
     }
 
@@ -187,7 +187,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
 
     /**
      * Test that the filter can deal with principals that have been accessed with a different {@code NamePathMapper}.
-     * This might actually occure with {@code AbstractAccessControlManager#hasPrivilege} and {@code AbstractAccessControlManager#getPrivileges},
+     * This might occur with {@code AbstractAccessControlManager#hasPrivilege} and {@code AbstractAccessControlManager#getPrivileges},
      * when a {@code PermissionProvider} is built from the principal set passed to the Jackrabbit API methods (and not from
      * principals obtained on the system level when populating the {@code Subject}.
      */
@@ -201,7 +201,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testCanHandlePathMapperMismatchUnknownPrincipal() throws Exception {
+    public void testCanHandlePathMapperMismatchUnknownPrincipal() {
         Principal principal = new TestPrincipal("name", PathUtils.concat(supportedPath, "oak:path/to/oak:principal"));
 
         // create filter with a different NamePathMapper than was used to build the principal
@@ -234,7 +234,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testCanHandlePopulatesCacheUnsupportedSystemUser() throws Exception  {
+    public void testCanHandlePopulatesCacheUnsupportedSystemUser() {
         Principal unsupported = (SystemUserPrincipal) () -> "unsupported";
 
         PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(unsupported.getName())).thenReturn(unsupported).getMock();
@@ -277,7 +277,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testGetPathInvalidSystemUserPrincipal() throws Exception {
+    public void testGetPathInvalidSystemUserPrincipal() {
         filter.getOakPath((SystemUserPrincipal) () -> "name");
     }
 

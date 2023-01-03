@@ -40,6 +40,7 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
@@ -127,30 +128,44 @@ public final class Utils {
         String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
         String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
         String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
+        String accountKey = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "");
 
         if (!connectionString.isEmpty()) {
             return connectionString;
         }
 
         if (!sasUri.isEmpty()) {
-            return getConnectionStringForSas(sasUri, blobEndpoint);
+            return getConnectionStringForSas(sasUri, blobEndpoint, accountName);
         }
 
         return getConnectionString(
-            properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""),
-            properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""));
+                accountName,
+                accountKey, 
+                blobEndpoint);
     }
 
-    private static String getConnectionStringForSas(String sasUri, String blobEndpoint) {
-        return String.format("BlobEndpoint=%s;SharedAccessSignature=%s", blobEndpoint, sasUri);
+    private static String getConnectionStringForSas(String sasUri, String blobEndpoint, String accountName) {
+        if (StringUtils.isEmpty(blobEndpoint)) {
+            return String.format("AccountName=%s;SharedAccessSignature=%s", accountName, sasUri);
+        } else {
+            return String.format("BlobEndpoint=%s;SharedAccessSignature=%s", blobEndpoint, sasUri);
+        }
     }
 
     public static String getConnectionString(final String accountName, final String accountKey) {
-        return String.format(
-            "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s",
-            accountName,
-            accountKey
-        );
+        return getConnectionString(accountName, accountKey, null);
+    }
+    
+    public static String getConnectionString(final String accountName, final String accountKey, String blobEndpoint) {
+        StringBuilder connString = new StringBuilder("DefaultEndpointsProtocol=https");
+        connString.append(";AccountName=").append(accountName);
+        connString.append(";AccountKey=").append(accountKey);
+        
+        if (!Strings.isNullOrEmpty(blobEndpoint)) {
+            connString.append(";BlobEndpoint=").append(blobEndpoint);
+        }
+        return connString.toString();
     }
 
     /**

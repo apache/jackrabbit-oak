@@ -31,6 +31,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -46,12 +48,12 @@ import static org.junit.Assert.fail;
 public class GroupImportTest extends AbstractImportTest {
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return GROUPPATH;
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @Nullable String getImportBehavior() {
         return null;
     }
 

@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.state.ReadyOnlyBuilderException;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -179,7 +180,7 @@ public class SessionDelegate {
      * @return  synchronized iterator
      */
     public <T> Iterator<T> sync(Iterator<T> iterator) {
-        return new SynchronizedIterator<T>(iterator, lock);
+        return new SynchronizedIterator<>(iterator, lock);
     }
 
     /**
@@ -212,6 +213,8 @@ public class SessionDelegate {
             } finally {
                 postPerform(sessionOperation, t0);
             }
+        } catch (ReadyOnlyBuilderException e) {
+            throw new ConstraintViolationException(e);
         } finally {
             lock.unlock();
         }
@@ -247,6 +250,8 @@ public class SessionDelegate {
             } finally {
                 postPerform(sessionOperation, t0);
             }
+        } catch (ReadyOnlyBuilderException e) {
+            throw new ConstraintViolationException(e);
         } finally {
             lock.unlock();
         }
@@ -277,6 +282,8 @@ public class SessionDelegate {
             } finally {
                 postPerform(sessionOperation, t0);
             }
+        } catch (ReadyOnlyBuilderException e) {
+            throw new ConstraintViolationException(e);
         } finally {
             lock.unlock();
         }
@@ -293,9 +300,29 @@ public class SessionDelegate {
      * @return  the result of {@code sessionOperation.perform()}
      * @see #getRoot()
      */
+    @NotNull
     public <T> T safePerform(SessionOperation<T> sessionOperation) {
         try {
             return perform(sessionOperation);
+        } catch (RepositoryException e) {
+            throw new RuntimeException("Unexpected exception thrown by operation " + sessionOperation, e);
+        }
+    }
+
+    /**
+     * Same as {@link #performNullable(SessionOperation)} unless this method expects
+     * {@link SessionOperation#performNullable} <em>not</em> to throw a {@code RepositoryException}.
+     * Such exceptions will be wrapped into a {@code RuntimeException} and rethrown as they
+     * are considered an internal error.
+     *
+     * @param sessionOperation  the {@code SessionOperation} to perform
+     * @param <T>  return type of {@code sessionOperation}
+     * @return  the result of {@code sessionOperation.performNullable()}
+     */
+    @Nullable
+    public <T> T safePerformNullable(SessionOperation<T> sessionOperation) {
+        try {
+            return performNullable(sessionOperation);
         } catch (RepositoryException e) {
             throw new RuntimeException("Unexpected exception thrown by operation " + sessionOperation, e);
         }

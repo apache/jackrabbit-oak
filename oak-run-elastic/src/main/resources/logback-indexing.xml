@@ -40,6 +40,9 @@
   <logger name="org.apache.jackrabbit.oak.plugins.index.importer" level="INFO">
     <appender-ref ref="STDOUT" />
   </logger>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate" level="DEBUG">
+    <appender-ref ref="index" />
+  </logger>
   <logger name="org.apache.jackrabbit.oak.plugins.index.IndexUpdate" level="INFO">
     <appender-ref ref="STDOUT" />
   </logger>

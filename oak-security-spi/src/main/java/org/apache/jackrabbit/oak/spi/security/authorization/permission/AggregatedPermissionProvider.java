@@ -69,7 +69,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * @param tree The tree for which the permissions will be evaluated or {@code null}
      * for repository level privileges.
      * @param property The target property or {@code null}.
-     * @param permissions The permisisons to be tested
+     * @param permissions The permissions to be tested
      * @return The subset of the given {@code permissions} that are supported and
      * evaluated by the implementation for the given item.
      */
@@ -86,7 +86,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * {@link AggregatedPermissionProvider#isGranted(TreeLocation, long)}.
      *
      * @param location The tree location for which the permissions will be evaluated.
-     * @param permissions The permisisons to be tested
+     * @param permissions The permissions to be tested
      * @return The subset of the given {@code permissions} that are supported and
      * evaluated by the implementation for the given location.
      */
@@ -104,7 +104,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      *
      * @param treePermission The target tree permission.
      * @param property The target property or {@code null}.
-     * @param permissions The permisisons to be tested
+     * @param permissions The permissions to be tested
      * @return The subset of the given {@code permissions} that are supported and
      * evaluated by the implementation for the given tree permissions.
      */

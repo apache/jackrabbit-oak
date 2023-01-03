@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 
 public class ElasticInsecureFacetSearchTest extends ElasticFacetSearchTest {

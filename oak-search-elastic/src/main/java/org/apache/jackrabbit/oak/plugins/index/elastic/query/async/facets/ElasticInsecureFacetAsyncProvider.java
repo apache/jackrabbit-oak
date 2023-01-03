@@ -16,17 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * An {@link ElasticFacetProvider} that subscribes to Elastic Aggregation events.
@@ -37,7 +37,7 @@ class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider, Elastic
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticInsecureFacetAsyncProvider.class);
 
-    private Map<String, ElasticResponseHandler.AggregationBuckets> aggregations;
+    private Map<String, Aggregate> aggregations;
 
     private final CountDownLatch latch = new CountDownLatch(1);
 
@@ -51,18 +51,15 @@ class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider, Elastic
         }
         LOG.trace("Reading facets for {} from aggregations {}", columnName, aggregations);
         if (aggregations != null) {
-            final String facetProp = FulltextIndex.parseFacetField(columnName);
-            ElasticResponseHandler.AggregationBuckets terms = aggregations.get(facetProp);
-            List<FulltextIndex.Facet> facets = new ArrayList<>(terms.buckets.length);
-            for (ElasticResponseHandler.AggregationBucket bucket : terms.buckets) {
-                facets.add(new FulltextIndex.Facet(bucket.key.toString(), bucket.count));
-            }
-            return facets;
+            Aggregate aggregate = aggregations.get(FulltextIndex.parseFacetField(columnName));
+            return aggregate.sterms().buckets().array().stream()
+                    .map(term -> new FulltextIndex.Facet(term.key().stringValue(), (int) term.docCount()))
+                    .collect(Collectors.toList());
         } else return null;
     }
 
     @Override
-    public void on(Map<String, ElasticResponseHandler.AggregationBuckets> aggregations) {
+    public void on(Map<String, Aggregate> aggregations) {
         this.aggregations = aggregations;
         this.endData();
     }

@@ -19,10 +19,8 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock;
@@ -33,25 +31,19 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 
-class IndexImporterSupport {
+class IndexImporterSupport extends IndexImporterSupportBase {
+
     private final ExtendedIndexHelper extendedIndexHelper;
-    private final NodeStore nodeStore;
 
     public IndexImporterSupport(ExtendedIndexHelper extendedIndexHelper) {
+        super(extendedIndexHelper);
         this.extendedIndexHelper = extendedIndexHelper;
-        this.nodeStore = extendedIndexHelper.getNodeStore();
     }
 
-    public void importIndex(File importDir) throws IOException, CommitFailedException {
-        IndexImporter importer = new IndexImporter(nodeStore, importDir, createIndexEditorProvider(), createLock());
-        addImportProviders(importer);
-        importer.importIndex();
-    }
-
-    private void addImportProviders(IndexImporter importer) {
+    @Override
+    protected void addImportProviders(IndexImporter importer) {
         importer.addImporterProvider(new LuceneIndexImporter(extendedIndexHelper.getGCBlobStore()));
     }
 
@@ -64,7 +56,8 @@ class IndexImporterSupport {
         return AsyncIndexerLock.NOOP_LOCK;
     }
 
-    private IndexEditorProvider createIndexEditorProvider() throws IOException {
+    @Override
+    protected IndexEditorProvider createIndexEditorProvider() throws IOException {
         MountInfoProvider mip = extendedIndexHelper.getMountInfoProvider();
         //Later we can add support for property index and other indexes here
         return new CompositeIndexEditorProvider(

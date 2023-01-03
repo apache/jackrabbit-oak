@@ -44,34 +44,15 @@ public class IndexDefMergerTest {
         }
     }
 
-    @Test
-    public void mergeIndexes() throws IOException, CommitFailedException {
-        String s = readFromResource("mergeIndexes.txt");
-        JsonObject json = JsonObject.fromJson(s, true);
-        for(JsonObject e : array(json.getProperties().get("tests"))) {
-            mergeIndexes(e);
-        }
-    }
-
-    private void mergeIndexes(JsonObject e) {
-        JsonObject all = e.getChildren().get("all");
-        JsonObject newDefs = e.getChildren().get("new");
-        JsonObject expectedNew = e.getChildren().get("expectedNew");
-        IndexDefMergerUtils.merge(newDefs, all);
-        assertEquals(
-                expectedNew.toString(),
-                newDefs.toString());
-    }
-
     private void merge(JsonObject e) {
         JsonObject ancestor = e.getChildren().get("ancestor");
         JsonObject custom = e.getChildren().get("custom");
         JsonObject product = e.getChildren().get("product");
         try {
             JsonObject got = IndexDefMergerUtils.merge(
-                    "/oak:index/test-1", ancestor,
+                    "", ancestor,
                     "/oak:index/test-1-custom-1", custom,
-                    product);
+                    product, "/oak:index/test-2");
             JsonObject expected = e.getChildren().get("expected");
             assertEquals(expected.toString(), got.toString());
         } catch (UnsupportedOperationException e2) {

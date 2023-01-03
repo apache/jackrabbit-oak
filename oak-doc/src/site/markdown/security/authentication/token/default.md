@@ -298,7 +298,7 @@ for an example.
 
 <!-- references -->
 
-[TokenCredentials]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authentication/token/TokenCredentials.java
+[TokenCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authentication/token/TokenCredentials.html
 [AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html
 [ContentSession]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ContentSession.html
 [TokenProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenProvider.html

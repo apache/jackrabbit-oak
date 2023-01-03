@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -47,6 +48,8 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
@@ -166,6 +169,13 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
                 return new PrivilegeBitsProvider(root).getBits(privileges, getNamePathMapper());
             }
         };
+    }
+    
+    static JackrabbitAccessControlEntry mockAccessControlEntry(@NotNull Principal principal, @NotNull Privilege[] privs) {
+        JackrabbitAccessControlEntry ace = mock(JackrabbitAccessControlEntry.class);
+        when(ace.getPrincipal()).thenReturn(principal);
+        when(ace.getPrivileges()).thenReturn(privs);
+        return ace;
     }
     
     static void assertPolicies(@Nullable AccessControlPolicy[] policies, long expectedSize) {

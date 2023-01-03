@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +44,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -142,6 +144,17 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public static final String STATUS_NODE = ":status";
 
     /**
+     * Hidden node under index definition that contains indexed data for read only
+     * part of composite node store.
+     */
+    public static final String HIDDEN_OAK_MOUNT_PREFIX = ":oak:mount-";
+
+    /**
+     * Node name under which all property indexes are created
+     */
+    public static final String PROPERTY_INDEX = ":property-index";
+
+    /**
      * Property on status node which refers to the date when the index was lastUpdated
      * This may not be the same time as when index was closed but the time of checkpoint
      * upto which index is upto date (OAK-6194)
@@ -181,6 +194,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      */
     public static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
             OrderEntry.Order.DESCENDING);
+
+    private boolean indexSimilarityBinaries;
+    private boolean indexSimilarityStrings;
 
     /**
      * Dynamic boost uses index time boosting. This requires to have a separate field for each unique term that needs to
@@ -276,6 +292,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     private final String[] indexTags;
 
+    @Nullable
+    private final String indexSelectionPolicy;
+
     private final boolean syncPropertyIndexes;
 
     private final String useIfExists;
@@ -290,6 +309,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      * See {@link FulltextIndexConstants#PROP_VALUE_REGEX}
      */
     private final Pattern propertyRegex;
+
+    /**
+     * See {@link FulltextIndexConstants#PROP_QUERY_FILTER_REGEX}
+     */
+    private final Pattern queryFilterRegex;
 
     public boolean isTestMode() {
         return testMode;
@@ -383,9 +407,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.indexPath = checkNotNull(indexPath);
             this.indexName = indexPath;
             this.indexTags = getOptionalValues(defn, IndexConstants.INDEX_TAGS, Type.STRINGS, String.class);
+            this.indexSelectionPolicy
+                    = getOptionalValue(defn, IndexConstants.INDEX_SELECTION_POLICY, null);
             this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
-
-            this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
+            this.blobSize = Math.max(1024, getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE));
 
             this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
 
@@ -405,6 +430,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 this.propertyRegex = Pattern.compile(getOptionalValue(defn, PROP_VALUE_REGEX, ""));
             } else {
                 this.propertyRegex = null;
+            }
+            if (defn.hasProperty(PROP_QUERY_FILTER_REGEX)) {
+                this.queryFilterRegex = Pattern.compile(getOptionalValue(defn, PROP_QUERY_FILTER_REGEX, ""));
+            } else {
+                this.queryFilterRegex = null;
             }
             String functionName = getOptionalValue(defn, FulltextIndexConstants.FUNC_NAME, null);
             if (fullTextEnabled && functionName == null) {
@@ -462,11 +492,27 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                     defn.getProperty(TYPE_PROPERTY_NAME) != null &&
                             DYNAMIC_BOOST_LITE.contains(defn.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING))
             );
+            this.indexSimilarityBinaries = getSimilarityDefaultValue(defn, INDEX_SIMILARITY_BINARIES);
+            this.indexSimilarityStrings = getSimilarityDefaultValue(defn, INDEX_SIMILARITY_STRINGS);
         } catch (IllegalStateException e) {
             log.error("Config error for index definition at {} . Please correct the index definition "
                     + "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
             throw new IllegalStateException(e);
         }
+    }
+
+    private boolean getSimilarityDefaultValue(NodeState defn, String propertyKey) {
+        return defn.getProperty(propertyKey) == null // = true in case this property is not defined
+                || (defn.getProperty(TYPE_PROPERTY_NAME) != null && isPresent(defn.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING), defn.getProperty(propertyKey).getValue(Type.STRINGS).iterator()));
+    }
+
+    private <T> boolean isPresent(T key, Iterator<T> iterator) {
+        while (iterator.hasNext()){
+            if (key.equals(iterator.next())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public NodeState getDefinitionNodeState() {
@@ -491,6 +537,14 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return true;
+    }
+
+    public boolean shouldIndexSimilarityBinaries() {
+        return indexSimilarityBinaries;
+    }
+
+    public boolean shouldIndexSimilarityStrings() {
+        return indexSimilarityStrings;
     }
 
     public boolean isDynamicBoostLiteEnabled() {
@@ -605,6 +659,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return indexTags;
     }
 
+    public String getIndexSelectionPolicy() {
+        return indexSelectionPolicy;
+    }
+
     public int getMaxExtractLength() {
         return maxExtractLength;
     }
@@ -704,6 +762,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return aggregates.get(nodeType);
     }
 
+    @Nullable
+    public Map<String, Aggregate> getAggregates() {
+        return aggregates;
+    }
+
     private Map<String, Aggregate> collectAggregates(NodeState defn) {
         Map<String, Aggregate> aggregateMap = newHashMap();
 
@@ -733,9 +796,18 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     //~---------------------------------------------------< IndexRule >
 
-    public boolean hasMatchingNodeTypeReg(NodeState root){
-        return this.root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES)
-                .equals(root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES));
+    public boolean hasMatchingNodeTypeReg(NodeState root) {
+        try {
+            return this.root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES)
+                    .equals(root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES));
+        } catch (IllegalRepositoryStateException e) {
+            // the root might be so old that a SegmentNotFoundException
+            // is thrown - in which case we can't be sure
+            // that the node type registry wasn't changed
+            log.warn("Possibly old root: {}", e.toString());
+            log.debug("Possibly old root", e);
+            return false;
+        }
     }
 
 
@@ -871,6 +943,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public Pattern getPropertyRegex() {
         return propertyRegex;
+    }
+
+    public Pattern getQueryFilterRegex() {
+        return queryFilterRegex;
     }
 
     public boolean isSuggestEnabled() {

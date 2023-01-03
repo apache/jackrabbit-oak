@@ -26,9 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -37,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
 
 public class IndexingProgressReporter implements NodeTraversalCallback {
     private static final String REINDEX_MSG = "Reindexing";
@@ -161,7 +163,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     }
 
     public boolean somethingIndexed() {
-        return indexUpdateStates.values().stream().anyMatch(st -> st.updateCount > 0);
+        return indexUpdateStates.values().stream().anyMatch(st -> st.updateCount.get() > 0);
     }
 
     public void setTraversalRateEstimator(TraversalRateEstimator traversalRate) {
@@ -208,7 +210,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
             if (!log.isDebugEnabled() && !st.reindex) {
                 continue;
             }
-            if (st.updateCount > 0 || st.reindex) {
+            if (st.updateCount.get() > 0 || st.reindex) {
                 pw.printf("    - %s%n", st);
             }
         }
@@ -220,7 +222,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         final boolean reindex;
         final long estimatedCount;
         final Stopwatch watch = Stopwatch.createStarted();
-        long updateCount;
+        AtomicLong updateCount = new AtomicLong(0);
 
         public IndexUpdateState(String indexPath, boolean reindex, long estimatedCount) {
             this.indexPath = indexPath;
@@ -229,10 +231,12 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         }
 
         public void indexUpdate() throws CommitFailedException {
-            updateCount++;
-            if (updateCount % 10000 == 0) {
-                log.info("{} => Indexed {} nodes in {} ...", indexPath, updateCount, watch);
-                watch.reset().start();
+            long count = updateCount.incrementAndGet();
+            if (count % 10000 == 0) {
+                synchronized (this) {
+                    log.info("{} => Indexed {} nodes in {} ...", indexPath, count, watch);
+                    watch.reset().start();
+                }
             }
             updateCallback.indexUpdate();
         }

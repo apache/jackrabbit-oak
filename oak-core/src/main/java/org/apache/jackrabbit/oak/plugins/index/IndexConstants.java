@@ -115,6 +115,11 @@ public interface IndexConstants {
     String INDEX_TAGS = "tags";
 
     /**
+     * The property to indicate the index selection policy.
+     */
+    String INDEX_SELECTION_POLICY = "selectionPolicy";
+
+    /**
      * The index name hint (when using "option(index abc)", this is "abc")
      */
     String INDEX_NAME_OPTION = ":indexName";

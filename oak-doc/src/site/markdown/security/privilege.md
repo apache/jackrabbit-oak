@@ -37,6 +37,10 @@ by the extensions defined by the Jackrabbit API. It consists of a single interfa
     - `getRegisteredPrivileges()`
     - `getPrivilege(String)`
     - `registerPrivilege(String, boolean, String[])
+- [PrivilegeCollection]: Wraps around a set of privileges allowing for testing if one or multiple privilege 
+names are part of the given set without having to manually resolve the aggregation. Since Oak 1.42.0. For additional details
+see [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494) as well as
+`JackrabbitAccessControlManager.getPrivilegeCollection(String)` and `JackrabbitAccessControlManager.getPrivilegeCollection(String,Set)`.
 
 ##### Examples
 
@@ -115,4 +119,5 @@ of the default access control and permission evaluation.
 [PrivilegeConstants]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConstants.html
 [PrivilegeBitsProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeBitsProvider.html
 [PrivilegeBits]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeBits.html
-[PrivilegeManager]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authorization/PrivilegeManager.java
+[PrivilegeManager]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authorization/PrivilegeManager.java
+[PrivilegeCollection]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authorization/PrivilegeCollection.java

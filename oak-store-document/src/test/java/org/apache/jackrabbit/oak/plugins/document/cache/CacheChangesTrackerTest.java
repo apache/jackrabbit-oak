@@ -66,13 +66,13 @@ public class CacheChangesTrackerTest {
         assertFalse(tracker.mightBeenAffected("xyz"));
         assertFalse(tracker.mightBeenAffected("abc"));
 
-        tracker.putDocument("xyz");
+        tracker.invalidateDocument("xyz");
         assertTrue(tracker.mightBeenAffected("xyz"));
 
         tracker.invalidateDocument("abc");
         assertTrue(tracker.mightBeenAffected("abc"));
 
-        tracker.putDocument("ignored");
+        tracker.invalidateDocument("ignored");
         tracker.invalidateDocument("ignored");
         assertFalse(tracker.mightBeenAffected("ignored"));
 

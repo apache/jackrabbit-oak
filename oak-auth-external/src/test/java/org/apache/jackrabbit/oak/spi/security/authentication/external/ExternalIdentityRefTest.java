@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -35,9 +36,9 @@ public class ExternalIdentityRefTest {
     private static final String USERID = "user%id";
     private static final String PROVIDER_NAME = "provider;Name";
 
-    private ExternalIdentityRef refNullProvider = new ExternalIdentityRef(USERID, null);
-    private ExternalIdentityRef refEmptyProvider = new ExternalIdentityRef(USERID, "");
-    private ExternalIdentityRef ref = new ExternalIdentityRef(USERID, PROVIDER_NAME);
+    private final ExternalIdentityRef refNullProvider = new ExternalIdentityRef(USERID, null);
+    private final ExternalIdentityRef refEmptyProvider = new ExternalIdentityRef(USERID, "");
+    private final ExternalIdentityRef ref = new ExternalIdentityRef(USERID, PROVIDER_NAME);
 
     @Test
     public void testGetId() {
@@ -57,12 +58,12 @@ public class ExternalIdentityRefTest {
     public void testGetString() {
         String s = refNullProvider.getString();
         assertNotNull(s);
-        assertFalse(USERID.equals(s));
+        assertNotEquals(USERID, s);
         assertEquals("user%25id", s);
 
         s = refEmptyProvider.getString();
         assertNotNull(s);
-        assertFalse(USERID.equals(s));
+        assertNotEquals(USERID, s);
         assertEquals("user%25id", s);
 
         s = ref.getString();
@@ -119,10 +120,8 @@ public class ExternalIdentityRefTest {
             ExternalIdentityRef r1 = entry.getKey();
             ExternalIdentityRef r2 = entry.getValue();
 
-            assertFalse(r1.equals(r2));
-            if (r2 != null) {
-                assertFalse(r2.equals(r1));
-            }
+            assertNotEquals(r1, r2);
+            assertNotEquals(r2, r1);
         }
     }
 
@@ -172,5 +171,12 @@ public class ExternalIdentityRefTest {
         for (ExternalIdentityRef r : ImmutableList.of(ref, refEmptyProvider, refEmptyProvider)) {
             assertEquals("ExternalIdentityRef{" + "id='" + r.getId() + '\'' + ", providerName='" + r.getProviderName() + '\'' + '}', r.toString());
         }
+    }
+    
+    @Test
+    public void testDeprecatedGroupRef() {
+        ExternalGroupRef ref = new ExternalGroupRef(USERID, PROVIDER_NAME);
+        assertEquals(USERID, ref.getId());
+        assertEquals(PROVIDER_NAME, ref.getProviderName());
     }
 }

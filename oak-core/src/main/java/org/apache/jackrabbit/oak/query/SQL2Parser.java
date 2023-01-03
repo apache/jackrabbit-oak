@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -169,7 +170,15 @@ public class SQL2Parser {
             read("BY");
             orderings = parseOrder();
         }
-        QueryOptions options = new QueryOptions();
+
+        QueryOptions defaultOptions = settings.getAutomaticQueryOptions().getDefaultValues(query);
+        QueryOptions options = new QueryOptions(defaultOptions);
+        if (options.limit.isPresent()) {
+            q.setLimit(options.limit.get());
+        }
+        if (options.offset.isPresent()) {
+            q.setLimit(options.offset.get());
+        }
         if (readIf("OPTION")) {
             read("(");
             while (true) {
@@ -182,6 +191,21 @@ public class SQL2Parser {
                     } else if (readIf("TAG")) {
                         options.indexTag = readLabel();
                     }
+                } else if (readIf("OFFSET")) {
+                    q.setOffset(readNumber());
+                } else if (readIf("LIMIT")) {
+                    q.setLimit(readNumber());
+                } else if (readIf("PREFETCHES")) {
+                    options.prefetchCount = Optional.of((int) readNumber());
+                } else if (readIf("PREFETCH")) {
+                    read("(");
+                    ArrayList<String> list = new ArrayList<String>();
+                    do {
+                        String x = readString().getValue(Type.STRING);
+                        list.add(x);
+                    } while (readIf(","));
+                    read(")");
+                    options.prefetch = list;
                 } else {
                     break;
                 }
@@ -289,6 +313,15 @@ public class SQL2Parser {
         }
 
         return factory.selector(nodeTypeInfo, selectorName);
+    }
+
+    private long readNumber() throws ParseException {
+        String label = readName();
+        try {
+            return Long.parseLong(label);
+        } catch (NumberFormatException nfe) {
+            throw getSyntaxError("0-9");
+        }
     }
     
     private String readLabel() throws ParseException {
@@ -603,6 +636,7 @@ public class SQL2Parser {
                 }
             }
         } else if ("NATIVE".equalsIgnoreCase(functionName)) {
+            LOG.warn("Native queries are deprecated. Query:{}", statement);
             String selectorName;
             if (currentTokenType == IDENTIFIER) {
                 selectorName = readName();
@@ -676,6 +710,12 @@ public class SQL2Parser {
             } else {
                 op = factory.nodeLocalName(readName());
             }
+        } else if ("PATH".equalsIgnoreCase(functionName)) {
+            if (isToken(")")) {
+                op = factory.path(getOnlySelectorName());
+            } else {
+                op = factory.path(readName());
+            }
         } else if ("SCORE".equalsIgnoreCase(functionName)) {
             if (isToken(")")) {
                 op = factory.fullTextSearchScore(getOnlySelectorName());
@@ -687,6 +727,8 @@ public class SQL2Parser {
             read(",");
             DynamicOperandImpl op2 = parseDynamicOperand();
             op = factory.coalesce(op1, op2);
+        } else if ("FIRST".equalsIgnoreCase(functionName)) {
+            op = factory.first(parseDynamicOperand());
         } else if ("LOWER".equalsIgnoreCase(functionName)) {
             op = factory.lowerCase(parseDynamicOperand());
         } else if ("UPPER".equalsIgnoreCase(functionName)) {
@@ -696,7 +738,7 @@ public class SQL2Parser {
             read(",");
             op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
         } else {
-            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
         }
         read(")");
         return op;

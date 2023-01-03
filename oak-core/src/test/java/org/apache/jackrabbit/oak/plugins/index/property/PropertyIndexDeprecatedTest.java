@@ -106,7 +106,7 @@ public class PropertyIndexDeprecatedTest {
         propertyIndex.query(f, root);
         assertEquals("[[WARN] This index is deprecated: foo; " + 
                 "it is used for query Filter(query=" + 
-                "SELECT * FROM [nt:base], path=*, property=[foo=[x10]]). " + 
+                "SELECT * FROM [nt:base], path=*, property=[foo=[x10]]) called by (<function not configured>). " + 
                 "Please change the query or the index definitions.]", appender.list.toString());
         
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");

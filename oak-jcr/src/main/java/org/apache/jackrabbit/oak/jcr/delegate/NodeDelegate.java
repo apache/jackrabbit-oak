@@ -193,14 +193,14 @@ public class NodeDelegate extends ItemDelegate {
         return false;
     }
 
-    boolean isProtected(String property) throws InvalidItemStateException {
+    boolean isProtected(String propertyName, Type<?> propertyType) throws InvalidItemStateException {
         Tree tree = getTree();
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
         List<Tree> types = TreeUtil.getEffectiveType(tree, typeRoot);
 
         boolean protectedResidual = false;
         for (Tree type : types) {
-            if (contains(TreeUtil.getNames(type, REP_PROTECTED_PROPERTIES), property)) {
+            if (contains(TreeUtil.getNames(type, REP_PROTECTED_PROPERTIES), propertyName)) {
                 return true;
             } else if (!protectedResidual) {
                 protectedResidual = TreeUtil.getBoolean(
@@ -209,17 +209,12 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         // Special case: There are one or more protected *residual*
-        // child node definitions. Iterate through them to check whether
+        // property definitions. Iterate through them to check whether
         // there's a matching, protected one.
         if (protectedResidual) {
-            for (Tree type : types) {
-                Tree definitions = type.getChild(REP_RESIDUAL_PROPERTY_DEFINITIONS);
-                for (Tree definition : definitions.getChildren()) {
-                    // TODO: check for matching property type?
-                    if (TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
-                        return true;
-                    }
-                }
+            Tree definition = findMatchingResidualPropertyDefinition(types, propertyType);
+            if (definition != null && TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
+                return true;
             }
         }
 
@@ -617,6 +612,19 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         // Then look through any residual property definitions
+        return findMatchingResidualPropertyDefinition(fuzzyMatch, types, propertyType.isArray(), definedType, undefinedType, exactTypeMatch);
+    }
+
+    private Tree findMatchingResidualPropertyDefinition(List<Tree> types, Type<?> propertyType) {
+        String definedType = propertyType.toString();
+        String undefinedType = UNDEFINED.toString();
+        if (propertyType.isArray()) {
+            undefinedType = UNDEFINEDS.toString();
+        }
+        return findMatchingResidualPropertyDefinition(null, types, propertyType.isArray(), definedType, undefinedType, true);
+    }
+
+    private Tree findMatchingResidualPropertyDefinition(Tree fuzzyMatch, List<Tree> types, boolean isMultiValue, String definedType, String undefinedType, boolean exactTypeMatch) {
         for (Tree type : types) {
             Tree definitions = type.getChild(REP_RESIDUAL_PROPERTY_DEFINITIONS);
             Tree definition = definitions.getChild(definedType);
@@ -629,7 +637,7 @@ public class NodeDelegate extends ItemDelegate {
             }
             if (!exactTypeMatch && fuzzyMatch == null) {
                 for (Tree def : definitions.getChildren()) {
-                    if (propertyType.isArray() == TreeUtil.getBoolean(def, JCR_MULTIPLE)) {
+                    if (isMultiValue == TreeUtil.getBoolean(def, JCR_MULTIPLE)) {
                         fuzzyMatch = def;
                         break;
                     }

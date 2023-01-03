@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -187,22 +186,13 @@ class ClusterView {
         builder.key("id").value(clusterId);
         builder.key("me").value(localId);
         builder.key("active").array();
-        for (Iterator<Integer> it = activeIds.iterator(); it.hasNext();) {
-            Integer anInstance = it.next();
-            builder.value(anInstance);
-        }
+        activeIds.stream().sorted().forEachOrdered(builder::value);
         builder.endArray();
         builder.key("deactivating").array();
-        for (Iterator<Integer> it = deactivatingIds.iterator(); it.hasNext();) {
-            Integer anInstance = it.next();
-            builder.value(anInstance);
-        }
+        deactivatingIds.stream().sorted().forEachOrdered(builder::value);
         builder.endArray();
         builder.key("inactive").array();
-        for (Iterator<Integer> it = inactiveIds.iterator(); it.hasNext();) {
-            Integer anInstance = it.next();
-            builder.value(anInstance);
-        }
+        inactiveIds.stream().sorted().forEachOrdered(builder::value);
         builder.endArray();
         builder.endObject();
         return builder.toString();

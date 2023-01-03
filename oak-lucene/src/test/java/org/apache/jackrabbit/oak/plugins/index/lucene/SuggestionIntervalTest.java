@@ -87,7 +87,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         String indexName = "lucene-suggest";
         Tree def = root.getTree("/" + INDEX_DEFINITIONS_NAME)
             .addChild(indexName);
-        def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE);
+        def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", indexName);

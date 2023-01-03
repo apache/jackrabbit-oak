@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import javax.jcr.PropertyType;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlManager;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
@@ -33,91 +24,49 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.security.AccessControlManager;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class ItemNameRestrictionTest extends AbstractSecurityTest {
-
-    private ValueFactory vf;
-    private ContentSession testSession;
-
-    private Principal testPrincipal;
-    private Group testGroup;
+public class ItemNameRestrictionTest extends AbstractRestrictionTest {
 
     @Override
-    public void before() throws Exception {
-        super.before();
-
-        Tree rootTree = root.getTree("/");
-
-        // "/a/d/b/e/c/f"
-        Tree a = TreeUtil.addChild(rootTree, "a", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        Tree d = TreeUtil.addChild(a, "d", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        Tree b = TreeUtil.addChild(d, "b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        Tree e = TreeUtil.addChild(b, "e", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        Tree c = TreeUtil.addChild(e, "c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        Tree f = TreeUtil.addChild(c, "f", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        c.setProperty("prop", "value");
-        c.setProperty("a", "value");
-
-        testPrincipal = getTestUser().getPrincipal();
-
-        AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a");
-
-        vf = new ValueFactoryImpl(root, NamePathMapper.DEFAULT);
-        acl.addEntry(testPrincipal,
+    boolean addEntry(@NotNull JackrabbitAccessControlList acl) throws RepositoryException {
+        return acl.addEntry(testPrincipal,
                 privilegesFromNames(
                         PrivilegeConstants.JCR_READ,
                         PrivilegeConstants.REP_ADD_PROPERTIES,
                         PrivilegeConstants.JCR_ADD_CHILD_NODES,
                         PrivilegeConstants.JCR_REMOVE_NODE), true,
-                Collections.<String, Value>emptyMap(),
+                Collections.emptyMap(),
                 ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                         vf.createValue("a", PropertyType.NAME),
                         vf.createValue("b", PropertyType.NAME),
                         vf.createValue("c", PropertyType.NAME)}));
-        acMgr.setPolicy(acl.getPath(), acl);
-
-        UserManager uMgr = getUserManager(root);
-        testGroup = uMgr.createGroup("testGroup" + UUID.randomUUID());
-
-        root.commit();
-        testSession = createTestSession();
     }
-
-    @Override
-    public void after() throws Exception {
-        try {
-            testSession.close();
-            root.refresh();
-            Tree a = root.getTree("/a");
-            if (a.exists()) {
-                a.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
-    }
-
+    
     @Test
     public void testRead() {
         Root testRoot = testSession.getLatestRoot();
@@ -238,14 +187,17 @@ public class ItemNameRestrictionTest extends AbstractSecurityTest {
 
     @Test
     public void testModifyMembersOnly() throws Exception {
+        Group testGroup = getUserManager(root).createGroup("testGroup" + UUID.randomUUID());
+        root.commit();
+        
         AccessControlManager acMgr = getAccessControlManager(root);
         String path = PathUtils.getAncestorPath(UserConstants.DEFAULT_USER_PATH, 1);
         try {
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true,
-                    Collections.<String,Value>emptyMap(),
-                    ImmutableMap.<String,Value[]>of (AccessControlConstants.REP_ITEM_NAMES, new Value[] {
+                    Collections.emptyMap(),
+                    ImmutableMap.of (AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                                             vf.createValue(UserConstants.REP_MEMBERS, PropertyType.NAME)}));
             acMgr.setPolicy(acl.getPath(), acl);
             root.commit();

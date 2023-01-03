@@ -30,9 +30,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-class ElasticIndexPlanner extends FulltextIndexPlanner {
+public class ElasticIndexPlanner extends FulltextIndexPlanner {
 
-    ElasticIndexPlanner(IndexNode indexNode, String indexPath, Filter filter, List<QueryIndex.OrderEntry> sortOrder) {
+    public ElasticIndexPlanner(IndexNode indexNode, String indexPath, Filter filter, List<QueryIndex.OrderEntry> sortOrder) {
         super(indexNode, indexPath, filter, sortOrder);
     }
 
@@ -57,14 +57,12 @@ class ElasticIndexPlanner extends FulltextIndexPlanner {
                 // support for path ordering in both directions
                 orderEntries.add(o);
             }
-            // TODO: add support for function-based sorting
-//            for (PropertyDefinition functionIndex : rule.getFunctionRestrictions()) {
-//                if (functionIndex.ordered && o.getPropertyName().equals(functionIndex.function)) {
-//                    // can manage any order desc/asc
-//                    orderEntries.add(o);
-//                    result.sortedProperties.add(functionIndex);
-//                }
-//            }
+            for (PropertyDefinition functionIndex : rule.getFunctionRestrictions()) {
+                if (functionIndex.ordered && o.getPropertyName().equals(functionIndex.function)) {
+                    // can manage any order desc/asc
+                    orderEntries.add(o);
+                }
+            }
         }
 
         //TODO Should we return order entries only when all order clauses are satisfied

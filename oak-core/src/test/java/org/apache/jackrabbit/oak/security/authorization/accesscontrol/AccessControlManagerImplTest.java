@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -52,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -89,11 +91,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LOCK_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_VERSION_MANAGEMENT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_NODES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_PROPERTIES;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -1326,7 +1333,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void testSetPolicyWithRestrictions() throws Exception {
         ACL acl = TestUtility.getApplicablePolicy(acMgr, testPath);
         acl.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("/a/b", valueFactory));
-        acl.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("/c/d", valueFactory));
+        acl.addEntry(testPrincipal, testPrivileges, true, null, Collections.singletonMap(REP_GLOBS, new Value[] {valueFactory.createValue("/c/d")}));
         acMgr.setPolicy(testPath, acl);
         root.commit();
 
@@ -1738,12 +1745,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
         ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
 
-        ResultRow row = when(mock(ResultRow.class).getPath()).thenReturn(ace.getPath()).getMock();
-        Iterable rows = ImmutableList.of(row);
-        Result res = mock(Result.class);
-        when(res.getRows()).thenReturn(rows).getMock();
-        QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(res);
+        QueryEngine qe = mockQueryEngine(ace);
         when(r.getQueryEngine()).thenReturn(qe);
 
         AccessControlManagerImpl mgr = createAccessControlManager(r, getNamePathMapper());
@@ -1763,17 +1765,22 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
         ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
 
-        ResultRow row = when(mock(ResultRow.class).getPath()).thenReturn(ace.getPath()).getMock();
-        Iterable rows = ImmutableList.of(row);
-        Result res = mock(Result.class);
-        when(res.getRows()).thenReturn(rows).getMock();
-        QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(res);
+        QueryEngine qe = mockQueryEngine(ace);
         when(r.getQueryEngine()).thenReturn(qe);
 
         AccessControlManagerImpl mgr = createAccessControlManager(r, getNamePathMapper());
         AccessControlPolicy[] policies = mgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
         assertPolicies(policies, 0);
+    }
+    
+    private static QueryEngine mockQueryEngine(@NotNull Tree aceTree) throws Exception {
+        ResultRow row = when(mock(ResultRow.class).getTree(null)).thenReturn(aceTree).getMock();
+        Iterable rows = ImmutableList.of(row);
+        Result res = mock(Result.class);
+        when(res.getRows()).thenReturn(rows).getMock();
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(res);
+        return qe;
     }
 
     @Test(expected = RepositoryException.class)
@@ -1976,6 +1983,11 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT);
         acl.getEntries().add(new ACE(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false, Collections.emptySet(), getNamePathMapper()) {
             @Override
+            protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+                return AccessControlManagerImplTest.this.getBitsProvider();
+            }
+
+            @Override
             public Privilege[] getPrivileges() {
                 return privs;
             }
@@ -2069,6 +2081,31 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         AccessControlPolicy[] repoLevelPolicies = acMgr.getPolicies((String)null);
         assertEquals(0, repoLevelPolicies.length);
+    }
+
+    //------------------------------------< privilegeCollectionFromNames() >---
+    @Test
+    public void testPrivilegeCollectionFromNames() throws Exception {
+        PrivilegeCollection pc = acMgr.privilegeCollectionFromNames(Privilege.JCR_READ, Privilege.JCR_WRITE, Privilege.JCR_VERSION_MANAGEMENT);
+        
+        assertEquals(pc, acMgr.privilegeCollectionFromNames(Privilege.JCR_READ, Privilege.JCR_WRITE, Privilege.JCR_VERSION_MANAGEMENT));
+        assertEquals(pc, acMgr.privilegeCollectionFromNames(JCR_READ, PrivilegeConstants.JCR_WRITE, JCR_VERSION_MANAGEMENT));
+        assertEquals(pc, acMgr.privilegeCollectionFromNames(REP_READ_NODES, REP_READ_PROPERTIES, PrivilegeConstants.JCR_WRITE, JCR_VERSION_MANAGEMENT));
+        
+        assertNotEquals(pc, acMgr.privilegeCollectionFromNames());
+        assertNotEquals(pc, acMgr.privilegeCollectionFromNames(JCR_READ));
+        assertNotEquals(pc, acMgr.privilegeCollectionFromNames(JCR_ALL));
+        assertNotEquals(pc, acMgr.privilegeCollectionFromNames(JCR_READ, PrivilegeConstants.JCR_WRITE));
+        assertNotEquals(pc, acMgr.privilegeCollectionFromNames(JCR_READ, JCR_VERSION_MANAGEMENT));
+        
+        assertTrue(pc.includes());
+        assertTrue(pc.includes(Privilege.JCR_READ, Privilege.JCR_WRITE));
+        assertTrue(pc.includes(PrivilegeConstants.JCR_WRITE, Privilege.JCR_VERSION_MANAGEMENT));
+        assertTrue(pc.includes(REP_READ_NODES, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        
+        assertFalse(pc.includes(PrivilegeConstants.JCR_ALL));
+        assertFalse(pc.includes(PrivilegeConstants.REP_WRITE));
+        assertFalse(pc.includes(PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_ALTER_PROPERTIES));
     }
 
     private final static class TestACL extends AbstractAccessControlList {

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -55,15 +56,16 @@ public class ElasticIndexerTest {
 
         NodeBuilder builder = root.builder();
 
-        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, true);
+        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(mock(ElasticConnection.class),
+                mock(ElasticIndexTracker.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, false);
         ElasticIndexer indexer = new ElasticIndexer(idxDefn, mock(FulltextBinaryTextExtractor.class), builder,
                 mock(IndexingProgressReporter.class), indexWriter, mock(ElasticIndexEditorProvider.class), mock(IndexHelper.class));
 
         NodeState testNode = EMPTY_NODE.builder().setProperty("foo", "bar").getNodeState();
 
-        assertTrue(indexer.index(new NodeStateEntry(testNode, "/content/x")));
-        assertFalse(indexer.index(new NodeStateEntry(testNode, "/x")));
-        assertFalse(indexer.index(new NodeStateEntry(testNode, "/")));
+        assertTrue(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/content/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/x").build()));
+        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/").build()));
     }
 
 }

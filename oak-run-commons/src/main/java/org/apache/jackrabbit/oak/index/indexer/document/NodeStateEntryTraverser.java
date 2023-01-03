@@ -19,12 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -36,34 +30,52 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.transform;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 
 public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closeable {
     private final Closer closer = Closer.create();
     private final RevisionVector rootRevision;
     private final DocumentNodeStore documentNodeStore;
     private final MongoDocumentStore documentStore;
+    /**
+     * Traverse only those node states which have been modified on or after lower limit
+     * and before the upper limit of this range.
+     */
+    private final TraversingRange traversingRange;
 
     private Consumer<String> progressReporter = id -> {};
-    private Predicate<String> pathPredicate = path -> true;
 
-    public NodeStateEntryTraverser(DocumentNodeStore documentNodeStore,
+    private final String id;
+
+    public NodeStateEntryTraverser(String id, DocumentNodeStore documentNodeStore,
                                    MongoDocumentStore documentStore) {
-        this(documentNodeStore.getHeadRevision(), documentNodeStore, documentStore);
+        this(id, documentNodeStore.getHeadRevision(), documentNodeStore, documentStore,
+                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null));
     }
 
-    public NodeStateEntryTraverser(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                   MongoDocumentStore documentStore) {
+    public NodeStateEntryTraverser(String id, RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
+                                   MongoDocumentStore documentStore, TraversingRange traversingRange) {
+        this.id = id;
         this.rootRevision = rootRevision;
         this.documentNodeStore = documentNodeStore;
         this.documentStore = documentStore;
+        this.traversingRange = traversingRange;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @NotNull
@@ -74,11 +86,6 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     public NodeStateEntryTraverser withProgressCallback(Consumer<String> progressReporter) {
         this.progressReporter = progressReporter;
-        return this;
-    }
-
-    public NodeStateEntryTraverser withPathPredicate(Predicate<String> pathPredicate) {
-        this.pathPredicate = pathPredicate;
         return this;
     }
 
@@ -95,10 +102,15 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     }
 
     private boolean includeDoc(NodeDocument doc) {
-        String path = doc.getPath().toString();
-        return !doc.isSplitDocument()
-                && !NodeStateUtils.isHiddenPath(path)
-                && pathPredicate.test(path);
+        return !doc.isSplitDocument();
+    }
+
+    /**
+     * Returns the modification range corresponding to node states which are traversed by this.
+     * @return {@link LastModifiedRange}
+     */
+    public TraversingRange getDocumentTraversalRange() {
+        return traversingRange;
     }
 
     @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
@@ -115,7 +127,14 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         return transform(
                 concat(singleton(nodeState),
                     nodeState.getAllBundledNodesStates()),
-                dns -> new NodeStateEntry(dns, dns.getPath().toString())
+                dns -> {
+                    NodeStateEntry.NodeStateEntryBuilder builder =  new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
+                    if (doc.getModified() != null) {
+                        builder.withLastModified(doc.getModified());
+                    }
+                    builder.withID(doc.getId());
+                    return builder.build();
+                }
         );
     }
 
@@ -127,31 +146,12 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, id -> includeId(id));
+                .getAllDocuments(Collection.NODES, traversingRange, this::reportProgress);
     }
 
-    private boolean includeId(String id) {
+    private boolean reportProgress(String id) {
         progressReporter.accept(id);
-        //Cannot interpret long paths as they are hashed. So let them
-        //be included
-        if (Utils.isIdFromLongPath(id)){
-            return true;
-        }
-
-        //Not easy to determine path for previous docs
-        //Given there count is pretty low compared to others
-        //include them all so that they become part of cache
-        if (Utils.isPreviousDocId(id)){
-            return true;
-        }
-
-        String path = Utils.getPathFromId(id);
-
-        //Exclude hidden nodes from index data
-        if (NodeStateUtils.isHiddenPath(path)){
-            return false;
-        }
-
-        return pathPredicate.test(path);
+        // always returning true here and do the path predicate and hidden node filter when iterating.
+        return true;
     }
 }

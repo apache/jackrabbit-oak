@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -38,13 +37,15 @@ import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvid
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
     private final ElasticConnection esConnection;
-    private final int asyncIndexingTimeInSeconds = 5;
+    private final ElasticIndexTracker indexTracker;
+    private final int asyncIndexingTimeInSeconds = 1;
 
     public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
+        this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = getIndexEditorProvider();
-        this.indexProvider = new ElasticIndexProvider(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        this.indexProvider = new ElasticIndexProvider(indexTracker);
         this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
                 editorProvider,
                 new NodeCounterEditorProvider()
@@ -58,7 +59,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 .with(initialContent)
                 .with(securityProvider)
                 .with(editorProvider)
-                .with((Observer) indexProvider)
+                .with(indexTracker)
                 .with(indexProvider)
                 .with(indexEditorProvider)
                 .with(queryIndexProvider)
@@ -70,7 +71,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
     }
 
     private IndexEditorProvider getIndexEditorProvider() {
-        return new ElasticIndexEditorProvider(esConnection,
+        return new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
     }
 }

@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -373,6 +374,33 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         logMethod("determineServerTimeDifferenceMillis", "start");
         long result = store.determineServerTimeDifferenceMillis();
         logMethod("determineServerTimeDifferenceMillis", "end", result);
+        return result;
+    }
+
+    /**
+     * Return the size limit for node name based on the document store implementation
+     *
+     * @return node name size limit
+     */
+    @Override
+    public int getNodeNameLimit() {
+        logMethod("getNodeNameLimit", "start");
+        final int result = store.getNodeNameLimit();
+        logMethod("getNodeNameLimit", "end", result);
+        return result;
+    }
+
+    /**
+     * Return the {@link Throttler} for the underlying store
+     * Default is no throttling
+     *
+     * @return throttler for document store
+     */
+    @Override
+    public Throttler throttler() {
+        logMethod("throttler", "start");
+        final Throttler result = store.throttler();
+        logMethod("throttler", "end", result);
         return result;
     }
 

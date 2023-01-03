@@ -53,22 +53,20 @@ import static org.junit.Assert.assertTrue;
 
 public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
 
-    private Principal testPrincipal;
     private PrincipalBasedPermissionProvider permissionProvider;
 
     private String contentPath;
-    private String childPath;
     private String grandchildPath;
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        testPrincipal = getTestSystemUser().getPrincipal();
+        Principal testPrincipal = getTestSystemUser().getPrincipal();
         setupContentTrees(TEST_OAK_PATH);
 
         contentPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 3);
-        childPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 2);
+        String childPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 2);
         grandchildPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 1);
 
         // setup permissions on childPath + TEST_OAK_PATH
@@ -312,7 +310,7 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testHasPrivileges() throws Exception {
+    public void testHasPrivileges() {
         assertFalse(permissionProvider.hasPrivileges(getVersionTree(contentPath, false), JCR_READ));
         assertFalse(permissionProvider.hasPrivileges(getVersionTree(grandchildPath, true), JCR_VERSION_MANAGEMENT));
         assertFalse(permissionProvider.hasPrivileges(getVersionTree(TEST_OAK_PATH, false), JCR_READ, JCR_LOCK_MANAGEMENT));

@@ -19,16 +19,13 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import javax.jcr.AccessDeniedException;
-import javax.jcr.NamespaceException;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
 
 /**
  * This implementation of {@code PrivilegeManager} delegates back to a
@@ -37,10 +34,11 @@ import org.jetbrains.annotations.Nullable;
  * @see SessionDelegate#perform(SessionOperation)
  */
 public class PrivilegeManagerDelegator implements PrivilegeManager {
+    
     private final PrivilegeManager pm;
     private final SessionDelegate delegate;
 
-    public PrivilegeManagerDelegator(SessionDelegate delegate, PrivilegeManager pm) {
+    public PrivilegeManagerDelegator(@NotNull SessionDelegate delegate, @NotNull PrivilegeManager pm) {
         this.pm = pm;
         this.delegate = delegate;
     }
@@ -49,9 +47,8 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
     @Override
     public Privilege[] getRegisteredPrivileges() throws RepositoryException {
         return delegate.perform(new SessionOperation<Privilege[]>("getRegisteredPrivileges") {
-            @NotNull
             @Override
-            public Privilege[] perform() throws RepositoryException {
+            public Privilege @NotNull [] perform() throws RepositoryException {
                 return pm.getRegisteredPrivileges();
             }
         });
@@ -59,7 +56,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @NotNull
     @Override
-    public Privilege getPrivilege(@NotNull final String privilegeName) throws AccessControlException, RepositoryException {
+    public Privilege getPrivilege(@NotNull final String privilegeName) throws RepositoryException {
         return delegate.perform(new SessionOperation<Privilege>("getPrivilege") {
             @NotNull
             @Override
@@ -71,7 +68,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @NotNull
     @Override
-    public Privilege registerPrivilege(@NotNull final String privilegeName, final boolean isAbstract, @Nullable final String[] declaredAggregateNames) throws AccessDeniedException, NamespaceException, RepositoryException {
+    public Privilege registerPrivilege(@NotNull final String privilegeName, final boolean isAbstract, @Nullable final String[] declaredAggregateNames) throws RepositoryException {
         return delegate.perform(new SessionOperation<Privilege>("registerPrivilege", true) {
             @NotNull
             @Override

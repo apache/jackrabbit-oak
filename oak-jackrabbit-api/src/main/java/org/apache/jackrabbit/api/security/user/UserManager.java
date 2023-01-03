@@ -36,7 +36,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * Note that all <code>create</code> calls will modify the session associated
  * with the {@linkplain UserManager} (whether this is the current session or not
  * depends on the repository configuration). If the user manager is <em>not</em>
- * in "autosave" mode (see {@link UserManager#isAutoSave()}), problems like
+ * in auto-save mode (see {@link UserManager#isAutoSave()}), problems like
  * overlapping creation of intermediate nodes may only surface upon a subsequent
  * {@link Session#save()} operation; callers should be prepared to repeat them
  * in case this happens.
@@ -102,7 +102,7 @@ public interface UserManager {
      *
      * @param path The path to an authorizable.
      * @return Authorizable or <code>null</code>, if not present.
-     * @throws UnsupportedRepositoryOperationException If this implementation does
+     * @throws UnsupportedRepositoryOperationException If this implementation does not
      * support to retrieve authorizables by path.
      * @throws RepositoryException If another error occurs.
      * @see org.apache.jackrabbit.api.security.user.Authorizable#getPath()

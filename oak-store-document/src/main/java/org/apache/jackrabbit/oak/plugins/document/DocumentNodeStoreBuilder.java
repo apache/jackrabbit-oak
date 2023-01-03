@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.EvictionListener;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
+import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
@@ -55,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -65,6 +67,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.ofInstance;
+import static java.util.Objects.isNull;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
@@ -119,6 +122,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
+    private Feature prefetchFeature;
+    private Feature docStoreThrottlingFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -141,6 +146,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private BlobStoreStats blobStoreStats;
     private CacheStats blobStoreCacheStats;
     private DocumentStoreStatsCollector documentStoreStatsCollector;
+    private ThrottlingStatsCollector throttlingStatsCollector;
     private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
     private Map<String, PersistentCacheStats> persistentCacheStats = new HashMap<>();
     private boolean bundlingDisabled;
@@ -155,6 +161,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             LoggerFactory.getLogger(VersionGarbageCollector.class));
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
+    private boolean throttlingEnabled;
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -268,6 +275,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return leaseCheck;
     }
 
+    public T setThrottlingEnabled(boolean b) {
+        this.throttlingEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isThrottlingEnabled() {
+        return this.throttlingEnabled;
+    }
+
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
         return thisBuilder();
@@ -275,6 +291,26 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean getReadOnlyMode() {
         return isReadOnlyMode;
+    }
+
+    public T setPrefetchFeature(@Nullable Feature prefetch) {
+        this.prefetchFeature = prefetch;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getPrefetchFeature() {
+        return prefetchFeature;
+    }
+
+    public T setDocStoreThrottlingFeature(@Nullable Feature docStoreThrottling) {
+        this.docStoreThrottlingFeature = docStoreThrottling;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getDocStoreThrottlingFeature() {
+        return docStoreThrottlingFeature;
     }
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
@@ -489,6 +525,19 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public T setDocumentStoreStatsCollector(DocumentStoreStatsCollector documentStoreStatsCollector) {
         this.documentStoreStatsCollector = documentStoreStatsCollector;
+        return thisBuilder();
+    }
+
+    @NotNull
+    public ThrottlingStatsCollector getThrottlingStatsCollector() {
+        if (isNull(throttlingStatsCollector)) {
+            throttlingStatsCollector = new ThrottlingStatsCollectorImpl(statisticsProvider);
+        }
+        return throttlingStatsCollector;
+    }
+
+    public T setThrottlingStatsCollector(final @NotNull ThrottlingStatsCollector throttlingStatsCollector) {
+        this.throttlingStatsCollector = throttlingStatsCollector;
         return thisBuilder();
     }
 

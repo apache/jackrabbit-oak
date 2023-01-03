@@ -42,7 +42,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     /**
      * @see #getName()
      */
-    public static final String PARAM_NAME_DEFAULT = "default";
+    public static final String PARAM_NAME_DEFAULT = DefaultSyncConfig.DEFAULT_NAME;
 
     /**
      * @see #getName()
@@ -175,6 +175,24 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
             boolValue = PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT
     )
     public static final String PARAM_USER_DYNAMIC_MEMBERSHIP = "user.dynamicMembership";
+    
+    /**
+     * @see DefaultSyncConfig.User#getEnforceDynamicMembership()
+     */
+    public static final boolean PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT = false;
+
+    /**
+     * Configuration option to enforce dynamic group membership upon user sync. If enabled the
+     * implementation will clean up previous synchronized membership information that is not yet dynamic.
+     *
+     * @see DefaultSyncConfig.User#getDynamicMembership()
+     */
+    @Property(
+            label = "User Enforce Dynamic Membership",
+            description = "If enabled dynamic membership will be enforced for previously synchronized users. Note, that this option has no effect if 'dynamic membership' is disabled.",
+            boolValue = PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT
+    )
+    public static final String PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP = "user.enforceDynamicMembership";
 
     /**
      * @see User#getDisableMissing()
@@ -255,6 +273,23 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_GROUP_PATH_PREFIX = "group.pathPrefix";
 
     /**
+     * @see DefaultSyncConfig.Group#getDynamicGroups()
+     */
+    public static final boolean PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT = false;
+    
+    /**
+     * @see DefaultSyncConfig.Group#getDynamicGroups()
+     */
+    @Property(
+            label = "Dynamic Groups",
+            description = "If enabled external identity groups are synchronized as dynamic groups i.e. members/membership " +
+                    "is resolved dynamically by a DynamicMembershipProvider. Note: currently this option only takes effect " +
+                    "if 'User Dynamic Membership' is enabled.",
+            boolValue = PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT
+    )
+    public static final String PARAM_GROUP_DYNAMIC_GROUPS = "group.dynamicGroups";
+
+    /**
      * Default value for {@link #PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE}
      */
     public static final boolean PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT = false;
@@ -287,6 +322,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
                 .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
                 .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP, PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
+                .setEnforceDynamicMembership(params.getConfigValue(PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP, PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT))
                 .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setApplyRFC7613UsernameCaseMapped(params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
                 .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))
@@ -295,6 +331,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
                         params.getConfigValue(PARAM_USER_PROPERTY_MAPPING, PARAM_USER_PROPERTY_MAPPING_DEFAULT)));
 
         cfg.group()
+                .setDynamicGroups(params.getConfigValue(PARAM_GROUP_DYNAMIC_GROUPS, PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT))
                 .setExpirationTime(getMilliSeconds(params, PARAM_GROUP_EXPIRATION_TIME, PARAM_GROUP_EXPIRATION_TIME_DEFAULT, ONE_DAY))
                 .setApplyRFC7613UsernameCaseMapped(params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
                 .setPathPrefix(params.getConfigValue(PARAM_GROUP_PATH_PREFIX, PARAM_GROUP_PATH_PREFIX_DEFAULT))

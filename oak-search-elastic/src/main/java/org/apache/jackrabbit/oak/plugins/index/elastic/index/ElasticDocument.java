@@ -22,18 +22,18 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
 
@@ -44,8 +44,6 @@ public class ElasticDocument {
     private final Set<String> fulltext;
     private final Set<String> suggest;
     private final Set<String> spellcheck;
-    private final List<String> notNullProps;
-    private final List<String> nullProps;
     private final Map<String, List<Object>> properties;
     private final Map<String, Object> similarityFields;
     private final Map<String, Map<String, Double>> dynamicBoostFields;
@@ -56,8 +54,6 @@ public class ElasticDocument {
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
-        this.notNullProps = new ArrayList<>();
-        this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
         this.similarityFields = new HashMap<>();
         this.dynamicBoostFields = new HashMap<>();
@@ -78,14 +74,6 @@ public class ElasticDocument {
 
     void addSpellcheck(String value) {
         spellcheck.add(value);
-    }
-
-    void notNullProp(String propName) {
-        notNullProps.add(propName);
-    }
-
-    void nullProp(String propName) {
-        nullProps.add(propName);
     }
 
     // ES for String values (that are not interpreted as date or numbers etc) would analyze in the same
@@ -125,6 +113,18 @@ public class ElasticDocument {
             builder.startObject();
             {
                 builder.field(FieldNames.PATH, path);
+                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
+                    builder.startArray(f.getKey());
+                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
+                        builder.startObject();
+                        builder.field("value", v.getKey());
+                        builder.field("boost", v.getValue());
+                        builder.endObject();
+                        // also add into fulltext field
+                        addFulltext(v.getKey());
+                    }
+                    builder.endArray();
+                }
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
@@ -138,27 +138,11 @@ public class ElasticDocument {
                 if (spellcheck.size() > 0) {
                     builder.field(FieldNames.SPELLCHECK, spellcheck);
                 }
-                if (notNullProps.size() > 0) {
-                    builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
-                }
-                if (nullProps.size() > 0) {
-                    builder.field(FieldNames.NULL_PROPS, nullProps);
-                }
                 for (Map.Entry<String, Object> simProp: similarityFields.entrySet()) {
                     builder.field(simProp.getKey(), simProp.getValue());
                 }
                 for (Map.Entry<String, List<Object>> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue().size() == 1 ? prop.getValue().get(0) : prop.getValue());
-                }
-                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
-                    builder.startArray(f.getKey());
-                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
-                        builder.startObject();
-                        builder.field("value", v.getKey());
-                        builder.field("boost", v.getValue());
-                        builder.endObject();
-                    }
-                    builder.endArray();
                 }
                 if (!similarityTags.isEmpty()) {
                     builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);
@@ -168,9 +152,8 @@ public class ElasticDocument {
 
             ret = Strings.toString(builder);
         } catch (IOException e) {
-            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, " +
-                            "notNullProps: {}, nullProps: {}",
-                    path, properties, fulltext, suggest, notNullProps, nullProps, e);
+            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}",
+                    path, properties, fulltext, suggest, e);
             ret = null;
         }
 

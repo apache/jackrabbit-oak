@@ -19,9 +19,12 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -29,6 +32,7 @@ import org.osgi.annotation.versioning.ProviderType;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 
@@ -165,7 +169,7 @@ public interface QueryIndex {
     }
 
     /**
-     * An query index that may support using multiple access orders
+     * A query index that may support using multiple access orders
      * (returning the rows in a specific order), and that can provide detailed
      * information about the cost.
      */
@@ -275,7 +279,7 @@ public interface QueryIndex {
          * Whether the cursor is able to read all properties from a node.
          * If yes, then the query engine will not have to read the data itself.
          *
-         * @return wheter node data is returned
+         * @return whether node data is returned
          */
         boolean includesNodeData();
 
@@ -354,6 +358,16 @@ public interface QueryIndex {
         }
 
         /**
+         * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
+         * The messages are returned as a map whose key indicates log level and value is a list of messages against that
+         * log level.
+         * @return map containing log messages.
+         */
+        default Map<Level, List<String>> getAdditionalMessages() {
+            return Collections.emptyMap();
+        }
+
+        /**
          * A builder for index plans.
          */
         class Builder {
@@ -374,6 +388,7 @@ public interface QueryIndex {
             protected String planName;
             protected boolean deprecated;
             protected boolean logWarningForPathFilterMismatch;
+            protected final Map<Level, List<String>> additionalMessages = new HashMap<>();
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -399,7 +414,18 @@ public interface QueryIndex {
                 this.isDelayed = isDelayed;
                 return this;
             }
-            
+
+            public Builder addAdditionalMessage(Level level, String s) {
+                this.additionalMessages.compute(level, (k,v) -> {
+                    if (v == null) {
+                        v = new ArrayList<>();
+                    }
+                    v.add(s);
+                    return v;
+                });
+                return this;
+            }
+
             public Builder setLogWarningForPathFilterMismatch(boolean value) {
                 this.logWarningForPathFilterMismatch = value;
                 return this;
@@ -491,6 +517,13 @@ public interface QueryIndex {
                     private final boolean deprecated =
                             Builder.this.deprecated;
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
+                    private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
+
+                    private String getAdditionalMessageString() {
+                        return additionalMessages.entrySet().stream()
+                                .map(e -> e.getKey() + " : " + e.getValue())
+                                .collect(Collectors.joining(", "));
+                    }
 
                     @Override
                     public String toString() {
@@ -507,7 +540,8 @@ public interface QueryIndex {
                             + " propertyRestriction : %s,"
                             + " pathPrefix : %s,"
                             + " deprecated : %s,"
-                            + " supportsPathRestriction : %s," 
+                            + " supportsPathRestriction : %s,"
+                            + " additionalMessage : %s,"
                             + " logWarningForPathFilterMismatch : %s }",
                             costPerExecution,
                             costPerEntry,
@@ -522,6 +556,7 @@ public interface QueryIndex {
                             pathPrefix,
                             deprecated,
                             supportsPathRestriction,
+                            getAdditionalMessageString(),
                             logWarningForPathFilterMismatch
                             );
                     }
@@ -623,6 +658,11 @@ public interface QueryIndex {
                     @Override
                     public boolean logWarningForPathFilterMismatch() {
                         return logWarningForPathFilterMismatch;
+                    }
+
+                    @Override
+                    public Map<Level, List<String>> getAdditionalMessages() {
+                        return additionalMessages;
                     }
 
                 };

@@ -89,8 +89,8 @@ simpleName [ ASC | DESC ]
 "Grammar","Dynamic Operand","
 [ selectorName . ] propertyName
     | LENGTH( dynamicOperand )
-    | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
-    | { LOWER | UPPER } ( dynamicOperand )
+    | { NAME | LOCALNAME | PATH | SCORE } ( [ selectorName ] )
+    | { LOWER | UPPER | FRIST } ( dynamicOperand )
     | COALESCE ( dynamicOperand, dynamicOperand )
     | PROPERTY ( propertyName, type )
 ","
@@ -127,7 +127,9 @@ simpleName
 "Grammar","Options","
 OPTION( {
     TRAVERSAL { OK | WARN | FAIL | DEFAULT } |
-    INDEX TAG tagName
+    INDEX TAG tagName |
+    OFFSET number |
+    LIMIT number
     } [ , ... ] )
 ","
 "

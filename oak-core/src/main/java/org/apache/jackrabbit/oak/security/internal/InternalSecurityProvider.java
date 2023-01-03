@@ -60,7 +60,7 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
         return securityConfiguration.getParameters();
     }
 
-    private SecurityConfiguration getSecurityConfigurationByName(String name) {
+    private @Nullable SecurityConfiguration getSecurityConfigurationByName(String name) {
         if (AuthenticationConfiguration.NAME.equals(name)) {
             return authenticationConfiguration;
         }
@@ -138,7 +138,7 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
     }
 
     @Override
-    public Whiteboard getWhiteboard() {
+    public @Nullable Whiteboard getWhiteboard() {
         return whiteboard;
     }
 

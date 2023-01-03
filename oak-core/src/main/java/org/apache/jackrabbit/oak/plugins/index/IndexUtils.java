@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROP
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import javax.jcr.RepositoryException;
 
@@ -240,5 +241,38 @@ public final class IndexUtils {
             return Iterables.getOnlyElement(asyncNames);
         }
         return null;
+    }
+
+    /**
+     * Retrieves the calling class and method from the call stack; this is determined by unwinding
+     * the stack until it finds a combination of full qualified classname + method (separated by ".") which
+     * do not start with any of the values provided by the ignoredJavaPackages parameters. If the provided
+     * parameters cover all stack frames, the whole query is considered to be internal, where the 
+     * actual caller doesn't matter (or cannot be determined clearly). In this case a short message
+     * indicating this is returned.
+     *
+     * If the ignoredJavaPackages parameter is null or empty, the caller is not looked up, but
+     * instead it is assumed, that the feature is not configured; in that case a short messages
+     * is returned indicating that the feature is not configured.
+     *
+     * @param ignoredJavaPackages the java packages or class names
+     * @return the calling class or another non-null value
+     */
+    @NotNull
+    public static String getCaller(@Nullable String[] ignoredJavaPackages) {
+        if (ignoredJavaPackages == null || ignoredJavaPackages.length == 0) {
+            return "(<function not configured>)";
+        }
+
+        // With java9 we would use https://docs.oracle.com/javase/9/docs/api/java/lang/StackWalker.html
+        final StackTraceElement[] callStack = Thread.currentThread().getStackTrace();
+        for (StackTraceElement stackFrame : callStack) {
+            final String classAndMethod = stackFrame.getClassName() + "." + stackFrame.getMethodName();
+            if (Stream.of(ignoredJavaPackages).noneMatch(classAndMethod::startsWith)) {
+                return classAndMethod;
+            }
+        }
+        // if every element is ignored, we assume it's an internal request
+        return "(internal)";
     }
 }

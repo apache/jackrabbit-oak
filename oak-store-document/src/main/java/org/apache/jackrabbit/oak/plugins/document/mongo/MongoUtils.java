@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
@@ -31,8 +33,11 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
+import com.mongodb.connection.ServerVersion;
+import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -178,7 +183,8 @@ class MongoUtils {
                 || t instanceof MongoNotPrimaryException) {
             type = Type.TRANSIENT;
         } else if (t instanceof MongoCommandException
-                || t instanceof WriteConcernException) {
+                || t instanceof WriteConcernException
+                || t instanceof MongoWriteConcernWithResponseException) {
             int code = ((MongoException) t).getCode();
             if (code == 11600               // InterruptedAtShutdown
                     || code == 11601        // Interrupted
@@ -187,5 +193,16 @@ class MongoUtils {
             }
         }
         return type;
+    }
+
+    /**
+     * Util method to get node size limit for MongoDB server version from the
+     * MongoDB status.
+     *
+     * @param status the MongoDB status
+     * @return size limit based on MongoDB version.
+     */
+    static int getNodeNameLimit(final @NotNull MongoStatus status) {
+        return status.isVersion(4, 2) ? Integer.MAX_VALUE : Utils.NODE_NAME_LIMIT;
     }
 }

@@ -309,6 +309,6 @@ a utility class provided by the jcr-commons module present with Jackrabbit.
 
 <!-- hidden references -->
 
-[QueryBuilder]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/QueryBuilder.java
-[Query]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Query.java
+[QueryBuilder]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/QueryBuilder.html
+[Query]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Query.html
 [org.apache.jackrabbit.commons.jackrabbit.user.AuthorizableQueryManager]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-commons/src/main/java/org/apache/jackrabbit/commons/jackrabbit/user/AuthorizableQueryManager.java

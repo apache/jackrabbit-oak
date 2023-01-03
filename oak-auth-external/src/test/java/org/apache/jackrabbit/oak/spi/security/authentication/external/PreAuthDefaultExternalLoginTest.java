@@ -46,7 +46,7 @@ import static org.junit.Assert.assertNull;
  */
 public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
 
-    private Map<String, Object> preAuthOptions = new HashMap<>();
+    private final Map<String, Object> preAuthOptions = new HashMap<>();
 
     @Before
     public void before() throws Exception {

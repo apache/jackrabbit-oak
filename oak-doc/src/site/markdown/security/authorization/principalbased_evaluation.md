@@ -118,7 +118,7 @@ The result then depends on the `CompositionType`:
 | disabled          | -                   | `jcr:read`, `jcr:lockManagement` |
  
 ##### Example 6: Subject with principals _'service-B'_, _'service-C'_
-Both 'service-B' is supported by principal-based authorization and no unsupported principal is present in the Subject.
+Both 'service-B' and 'service-C' are supported by principal-based authorization and no unsupported principal is present in the Subject.
 Therefore, principal-based permission evaluation takes effect. Since the `AggregationFilter` is enabled in the configuration
 described above, permission evaluation stops and does not continue evaluating path-based permissions.
 

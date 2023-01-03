@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
-import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
@@ -100,7 +99,7 @@ public class VersionManagerImpl implements VersionManager {
                 // check for pending changes
                 checkPendingChangesForRestore(sessionDelegate);
                 // check lock status
-                checkNotLocked(parent.getPath());
+                checkNotLocked(parent);
                 // check for existing nodes
                 List<NodeDelegate> existing = getExisting(version,
                         Collections.<String>emptySet());
@@ -180,7 +179,7 @@ public class VersionManagerImpl implements VersionManager {
                             "No versionable node with identifier: " + versionableId);
                 }
                 // check lock status
-                checkNotLocked(n.getPath());
+                checkNotLocked(n);
                 // check for existing nodes
                 List<NodeDelegate> existing = getExisting(version,
                         Collections.singleton(n.getPath()));
@@ -252,7 +251,7 @@ public class VersionManagerImpl implements VersionManager {
     @Override
     public boolean isCheckedOut(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        return sessionDelegate.perform(new SessionOperation<Boolean>("isCheckoutOut") {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("isCheckedOut") {
             @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
@@ -261,20 +260,7 @@ public class VersionManagerImpl implements VersionManager {
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                boolean isCheckedOut = versionManagerDelegate.isCheckedOut(nodeDelegate);
-                if (!isCheckedOut) {
-                    // check OPV
-                    ReadWriteNodeTypeManager ntMgr = sessionContext.getWorkspace().getNodeTypeManager();
-                    NodeDelegate parent = nodeDelegate.getParent();
-                    NodeDefinition definition;
-                    if (parent == null) {
-                        definition = ntMgr.getRootDefinition();
-                    } else {
-                        definition = ntMgr.getDefinition(parent.getTree(), nodeDelegate.getTree());
-                    }
-                    isCheckedOut = definition.getOnParentVersion() == OnParentVersionAction.IGNORE;
-                }
-                return isCheckedOut;
+                return isCheckedOut(nodeDelegate);
             }
         });
     }
@@ -351,7 +337,7 @@ public class VersionManagerImpl implements VersionManager {
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                checkNotLocked(absPath);
+                checkNotLocked(nodeDelegate);
                 versionManagerDelegate.checkout(nodeDelegate);
             }
         });
@@ -381,6 +367,23 @@ public class VersionManagerImpl implements VersionManager {
 
     //----------------------------< internal >----------------------------------
 
+    public boolean isCheckedOut(final @NotNull NodeDelegate nodeDelegate) throws RepositoryException {
+        boolean isCheckedOut = versionManagerDelegate.isCheckedOut(nodeDelegate);
+        if (!isCheckedOut) {
+            // check OPV
+            ReadWriteNodeTypeManager ntMgr = sessionContext.getWorkspace().getNodeTypeManager();
+            NodeDelegate parent = nodeDelegate.getParent();
+            NodeDefinition definition;
+            if (parent == null) {
+                definition = ntMgr.getRootDefinition();
+            } else {
+                definition = ntMgr.getDefinition(parent.getTree(), nodeDelegate.getTree());
+            }
+            isCheckedOut = definition.getOnParentVersion() == OnParentVersionAction.IGNORE;
+        }
+        return isCheckedOut;
+    }
+
     private void checkPendingChangesForRestore(SessionDelegate sessionDelegate)
             throws InvalidItemStateException {
         if (sessionDelegate.hasPendingChanges()) {
@@ -389,16 +392,13 @@ public class VersionManagerImpl implements VersionManager {
         }
     }
 
-    private void checkNotLocked(String absPath) throws RepositoryException {
+    private void checkNotLocked(@NotNull NodeDelegate nodeDelegate) throws RepositoryException {
         if (!LockDeprecation.isLockingSupported()) {
             return;
         }
-        // TODO: avoid nested calls
-        LockManagerImpl lockManager = sessionContext.getWorkspace().getLockManager();
-        if (lockManager.isLocked(absPath)) {
-            NodeDelegate node = sessionContext.getSessionDelegate().getNode(absPath);
-            if (!lockManager.canUnlock(node)) {
-                throw new LockException("Node at " + absPath + " is locked");
+        if (nodeDelegate.isLocked()) {
+            if (!sessionContext.getWorkspace().getLockManager().canUnlock(nodeDelegate)) {
+                throw new LockException("Node at " + nodeDelegate.getPath() + " is locked");
             }
         }
     }

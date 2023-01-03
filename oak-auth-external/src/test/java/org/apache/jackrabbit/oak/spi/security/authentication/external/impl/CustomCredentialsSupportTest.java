@@ -64,13 +64,10 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
     public void testLogin() throws Exception {
         TestCredentials creds = new TestCredentials("testUser");
 
-        ContentSession cs = login(creds);
-        try {
+        try (ContentSession cs = login(creds)) {
             AuthInfo info = cs.getAuthInfo();
             assertEquals("testUser", info.getUserID());
             assertAttributes(getCredentialsSupport().getAttributes(creds), info);
-        } finally {
-            cs.close();
         }
     }
 
@@ -203,7 +200,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
         @NotNull
         @Override
         public Set<Class> getCredentialClasses() {
-            return ImmutableSet.<Class>of(TestCredentials.class);
+            return ImmutableSet.of(TestCredentials.class);
         }
 
         @Nullable

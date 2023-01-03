@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -41,6 +42,9 @@ import static org.mockito.Mockito.when;
 public class ElasticIndexWriterTest {
 
     @Mock
+    private ElasticIndexTracker indexTrackerMock;
+
+    @Mock
     private ElasticConnection elasticConnectionMock;
 
     @Mock
@@ -54,8 +58,8 @@ public class ElasticIndexWriterTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        when(indexDefinitionMock.getRemoteIndexAlias()).thenReturn("test-index");
-        indexWriter = new ElasticIndexWriter(elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
+        when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
+        indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
     }
 
     @Test

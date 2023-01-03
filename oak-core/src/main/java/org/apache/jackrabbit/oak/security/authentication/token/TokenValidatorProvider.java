@@ -127,7 +127,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         }
 
         @Override
-        public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
+        public @Nullable Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
             Tree tree = parentAfter.getChild(name);
             if (isTokenTree(tree)) {
                 validateTokenTree(tree);

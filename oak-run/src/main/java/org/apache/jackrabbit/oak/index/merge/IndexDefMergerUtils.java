@@ -41,43 +41,44 @@ public class IndexDefMergerUtils {
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
             "reindex", "refresh", "seed", "reindexCount"));
     private static HashSet<String> USE_PRODUCT_PROPERTY = new HashSet<>(Arrays.asList(
-            "jcr:created", "jcr:lastModified", "jcr:uuid"));
+            "jcr:created", "jcr:lastModified", "jcr:uuid", "jcr:createdBy", "jcr:lastModifiedBy", "jcr:createdBy"));
     private static HashSet<String> USE_PRODUCT_CHILD_LEVEL_0 = new HashSet<>(Arrays.asList(
             "tika"));
 
     /**
      * Merge index definition changes.
      *
-     * @param ancestorName the name of the node of the ancestor index (e.g. /oak:index/lucene-1)
+     * @param path the path of the change itself (e.g.  /oak:index/lucene-1/indexRules/acme)
      * @param ancestor the common ancestor (the old product index, e.g. lucene)
      * @param customName the name of the node of the customized index (e.g. /oak:index/lucene-1-custom-1)
      * @param custom the latest customized version (e.g. lucene-1-custom-1)
      * @param product the latest product index (e.g. lucene-2)
+     * @param productName the name of the node of the latest product index (e.g. /oak:index/lucene-2)
      * @return the merged index definition (e.g. lucene-2-custom-1)
      */
-    public static JsonObject merge(String ancestorName, JsonObject ancestor, String customName, JsonObject custom, JsonObject product) {
+    public static JsonObject merge(String path, JsonObject ancestor, String customName, JsonObject custom, JsonObject product, String productName) {
         ArrayList<String> conflicts = new ArrayList<>();
-        JsonObject merged = merge(0, ancestor, custom, product, conflicts);
+        JsonObject merged = merge(path, 0, ancestor, custom, product, conflicts);
         if (!conflicts.isEmpty()) {
             throw new UnsupportedOperationException("Conflicts detected: " + conflicts);
         }
         merged.getProperties().put("merges", "[" +
-                JsopBuilder.encode(ancestorName) + ", " +
+                JsopBuilder.encode(productName) + ", " +
                 JsopBuilder.encode(customName) + "]");
         return merged;
     }
 
-    private static JsonObject merge(int level, JsonObject ancestor, JsonObject custom, JsonObject product,
+    private static JsonObject merge(String path, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
             ArrayList<String> conflicts) {
         Objects.requireNonNull(conflicts);
-        return mergeNoNull(level,
+        return mergeNoNull(path, level,
                         ancestor == null ? new JsonObject() : ancestor,
                         custom == null ? new JsonObject() : custom,
                         product == null ? new JsonObject() : product,
                         conflicts);
     }
 
-    private static JsonObject mergeNoNull(int level, JsonObject ancestor, JsonObject custom, JsonObject product,
+    private static JsonObject mergeNoNull(String path, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
             ArrayList<String> conflicts) {
         Objects.requireNonNull(ancestor);
         Objects.requireNonNull(custom);
@@ -99,7 +100,7 @@ public class IndexDefMergerUtils {
                 // ignore hidden properties
                 continue;
             }
-            String result = mergeProperty(k, ancestor, custom, product, conflicts);
+            String result = mergeProperty(path, k, ancestor, custom, product, conflicts);
             if (result != null) {
                 merged.getProperties().put(k, result);
             }
@@ -114,7 +115,7 @@ public class IndexDefMergerUtils {
                 // ignore hidden nodes
                 continue;
             }
-            JsonObject result = mergeChild(k, level, ancestor, custom, product, conflicts);
+            JsonObject result = mergeChild(path + "/" + k, k, level, ancestor, custom, product, conflicts);
             if (result != null) {
                 merged.getChildren().put(k, result);
             }
@@ -135,7 +136,7 @@ public class IndexDefMergerUtils {
         }
     }
 
-    private static String mergeProperty(String property, JsonObject ancestor, JsonObject custom, JsonObject product,
+    private static String mergeProperty(String path, String property, JsonObject ancestor, JsonObject custom, JsonObject product,
             ArrayList<String> conflicts) {
         if (USE_PRODUCT_PROPERTY.contains(property)) {
             return product.getProperties().get(property);
@@ -148,13 +149,13 @@ public class IndexDefMergerUtils {
         } else if (Objects.equals(ap, cp)) {
             return pp;
         } else {
-            conflicts.add("Could not merge value; property=" + property + "; ancestor=" + ap + "; custom=" + cp
+            conflicts.add("Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap + "; custom=" + cp
                     + "; product=" + pp);
             return ap;
         }
     }
 
-    private static JsonObject mergeChild(String child, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
+    private static JsonObject mergeChild(String path, String child, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
             ArrayList<String> conflicts) {
         JsonObject a = ancestor.getChildren().get(child);
         JsonObject c = custom.getChildren().get(child);
@@ -162,12 +163,14 @@ public class IndexDefMergerUtils {
         if (level == 0 && USE_PRODUCT_CHILD_LEVEL_0.contains(child)) {
             return p;
         }
-        if (isSameJson(a, p) || isSameJson(c, p)) {
+        if (c == null && p != null) {
+            return p; // restore child nodes in product index if removed in custom index
+        } else if (isSameJson(a, p) || isSameJson(c, p)) {
             return c;
         } else if (isSameJson(a, c)) {
             return p;
         } else {
-            return merge(level + 1, a, c, p, conflicts);
+            return merge(path, level + 1, a, c, p, conflicts);
         }
     }
 
@@ -219,9 +222,9 @@ public class IndexDefMergerUtils {
                     JsonObject newProduct = newIndexes.getChildren().get(n.getNodeName());
                     try {
                         JsonObject merged = merge(
-                                ancestor.getNodeName(), latestAncestor,
+                                "", latestAncestor,
                                 latest.getNodeName(), latestCustomized,
-                                newProduct);
+                                newProduct, n.getNodeName());
                         mergedMap.put(n.nextCustomizedName(), merged);
                     } catch (UnsupportedOperationException e) {
                         throw new UnsupportedOperationException("Index: " + n.getNodeName() + ": " + e.getMessage(), e);

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -27,6 +28,10 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class DocumentNodeStoreMBeanTest {
 
@@ -41,6 +46,8 @@ public class DocumentNodeStoreMBeanTest {
 
     private Clock clock;
 
+    private DocumentStore store;
+
     private DocumentNodeStore ns;
 
     private DocumentNodeStoreMBean bean;
@@ -49,9 +56,11 @@ public class DocumentNodeStoreMBeanTest {
     public void init() throws Exception {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
+        store = spy(new MemoryDocumentStore());
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         ns = builderProvider.newBuilder()
+                .setDocumentStore(store)
                 .setRevisionGCMaxAge(REVISION_GC_MAX_AGE_MILLIS)
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .clock(clock)
@@ -110,5 +119,20 @@ public class DocumentNodeStoreMBeanTest {
         String result = bean.createCheckpoint(revisionString, ONE_HOUR, false);
         String checkpoint = result.substring(result.indexOf("[") + 1, result.indexOf("]"));
         assertNotNull(ns.retrieve(checkpoint));
+    }
+
+    @Test
+    public void cleanAllCaches() {
+        verify(store, never()).invalidateCache();
+        bean.cleanAllCaches();
+        verify(store, times(1)).invalidateCache();
+    }
+
+    @Test
+    public void cleanIndividualCache() {
+        bean.cleanIndividualCache("NODE");
+        verify(store, never()).invalidateCache();
+        bean.cleanIndividualCache("DOCUMENT");
+        verify(store, times(1)).invalidateCache();
     }
 }

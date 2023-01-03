@@ -15,13 +15,13 @@
    limitations under the License.
 -->
 
-Permission Evaluation in Detail
+Default Permission Evaluation in Detail
 --------------------------------------------------------------------------------
 
 <a name="permissionentries"></a>
 ### Order and Evaluation of Permission Entries
 
-In order to evaluate the permissions for a given item, the `PermissionProvider`
+In order to evaluate the permissions for a given item, the default `PermissionProvider`
 lazily builds an iterator of `PermissionsEntry` representing the rep:Permission
 present in the permission store that take effect for the given set of principals
 at the given node (or property).
@@ -39,7 +39,7 @@ The order of precedence is as follows:
     - their order in the access control list
     - their position in the node hierarchy
 - within a given type of principal (user vs. group principal) the order of executing is
-    - order of entries as specified originally (the index of the permission entry)
+    - reverse order of entries as specified originally (the index of the permission entry)
     - entries associated with the target tree take precedence over inherited entries
 
 ##### Examples

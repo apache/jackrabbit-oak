@@ -17,26 +17,39 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import org.apache.jackrabbit.oak.indexversion.PurgeOldIndexVersion;
-import org.apache.jackrabbit.oak.run.cli.Options;
-import org.apache.jackrabbit.oak.run.commons.Command;
-
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.indexversion.PurgeOldIndexVersion;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
+import org.apache.jackrabbit.oak.run.cli.Options;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+
 public class PurgeOldIndexVersionCommand implements Command {
+    private static final Logger LOG = LoggerFactory.getLogger(PurgeOldIndexVersionCommand.class);
+
     private long threshold;
     private List<String> indexPaths;
     private long DEFAULT_PURGE_THRESHOLD = TimeUnit.DAYS.toMillis(5); // 5 days in millis
     private final static String DEFAULT_INDEX_PATH = "/oak:index";
+    private boolean shouldPurgeBaseIndex;
 
     @Override
     public void execute(String... args) throws Exception {
         Options opts = parseCommandLineParams(args);
-        new PurgeOldIndexVersion().execute(opts, threshold, indexPaths);
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
+            if (!opts.getCommonOpts().isReadWrite()) {
+                LOG.info("Repository connected in read-only mode. Use '--read-write' for write operations");
+            }
+            new PurgeOldIndexVersion().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths, shouldPurgeBaseIndex);
+        }
     }
 
     private Options parseCommandLineParams(String... args) throws Exception {
@@ -46,10 +59,13 @@ public class PurgeOldIndexVersionCommand implements Command {
         OptionSpec<String> indexPathsOption = parser.accepts("index-paths", "Comma separated list of index paths for which the " +
                 "selected operations need to be performed")
                 .withOptionalArg().ofType(String.class).withValuesSeparatedBy(",").defaultsTo(DEFAULT_INDEX_PATH);
+        OptionSpec<Void> donotPurgeBaseIndexOption = parser.accepts("donot-purge-base-index", "Don't disable base index");
+
         Options opts = new Options();
         OptionSet optionSet = opts.parseAndConfigure(parser, args);
         this.threshold = optionSet.valueOf(thresholdOption);
         this.indexPaths = optionSet.valuesOf(indexPathsOption);
+        this.shouldPurgeBaseIndex = !optionSet.has(donotPurgeBaseIndexOption);
         return opts;
     }
 }

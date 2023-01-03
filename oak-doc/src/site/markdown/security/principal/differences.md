@@ -37,7 +37,7 @@ See section [Pluggability](../principal.html#pluggability) for an example.
 
 <!-- references -->
 
-[org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/principal/PrincipalManager.java
+[org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/PrincipalProvider.html
 [CompositePrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/CompositePrincipalProvider.html
 [org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/AdminPrincipal.html
 [org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html

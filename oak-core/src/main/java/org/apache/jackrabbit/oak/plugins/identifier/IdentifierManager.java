@@ -24,7 +24,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
@@ -133,17 +132,27 @@ public class IdentifierManager {
 
             checkArgument(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
 
-            String basePath = resolveUUID(uuid);
-            if (basePath == null) {
+            Tree tree = resolveUUIDToTree(createPropertyValue(uuid));
+            if (tree == null) {
                 return null;
             } else if (k == -1) {
-                return root.getTree(basePath);
+                return tree;
             } else {
-                return root.getTree(PathUtils.concat(basePath, identifier.substring(k + 1)));
+                Iterable<String> subpath = PathUtils.elements(identifier.substring(k + 1));
+                for (String element : subpath) {
+                    tree = tree.getChild(element);
+                }
+                return tree;
             }
         }
     }
 
+    @Nullable
+    public Tree getTree(@NotNull PropertyValue referenceValue) {
+        checkType(referenceValue.getType());
+        return resolveUUIDToTree(referenceValue);
+    }
+    
     /**
      * The path of the tree identified by the specified {@code identifier} or {@code null}.
      *
@@ -169,12 +178,8 @@ public class IdentifierManager {
      */
     @Nullable
     public String getPath(PropertyState referenceValue) {
-        int type = referenceValue.getType().tag();
-        if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
-            return resolveUUID(referenceValue);
-        } else {
-            throw new IllegalArgumentException("Invalid value type");
-        }
+        checkType(referenceValue.getType());
+        return resolveUUID(PropertyValues.create(referenceValue));
     }
 
     /**
@@ -187,12 +192,8 @@ public class IdentifierManager {
      */
     @Nullable
     public String getPath(PropertyValue referenceValue) {
-        int type = referenceValue.getType().tag();
-        if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
-            return resolveUUID(referenceValue);
-        } else {
-            throw new IllegalArgumentException("Invalid value type");
-        }
+        checkType(referenceValue.getType());
+        return resolveUUID(referenceValue);
     }
 
     /**
@@ -296,11 +297,11 @@ public class IdentifierManager {
      * @param propertyName The name of the reference properties.
      * @param ntName The node type name to be used for the query.
      * @param weak if {@code true} only weak references are returned. Otherwise on hard references are returned.
-     * @return A set of oak paths of those reference properties referring to the
+     * @return A set of oak trees containing reference properties referring to the
      *         specified {@code tree} and matching the constraints.
      */
     @NotNull
-    public Iterable<String> getReferences(@NotNull Tree tree, @NotNull final String propertyName,
+    public Iterable<Tree> getReferences(@NotNull Tree tree, @NotNull final String propertyName,
                                           @NotNull String ntName, boolean weak) {
         if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
@@ -317,18 +318,8 @@ public class IdentifierManager {
                             QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, bindings, NO_MAPPINGS);
 
-            Iterable<String> resultPaths = Iterables.transform(result.getRows(), new Function<ResultRow, String>() {
-                @Override
-                public String apply(ResultRow row) {
-                    return PathUtils.concat(row.getPath(), propertyName);
-                }
-            });
-            return Iterables.filter(resultPaths, new Predicate<String>() {
-                        @Override
-                        public boolean apply(String path) {
-                            return !path.startsWith(VersionConstants.VERSION_STORE_PATH);
-                        }
-                    }
+            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), (Function<ResultRow, Tree>) row -> row.getTree(null));
+            return Iterables.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
             );
         } catch (ParseException e) {
             log.error("query failed", e);
@@ -338,14 +329,17 @@ public class IdentifierManager {
 
     @Nullable
     public String resolveUUID(String uuid) {
-        return resolveUUID(StringPropertyState.stringProperty("", uuid));
+        return resolveUUID(createPropertyValue(uuid));
+    }
+    
+    @Nullable
+    private String resolveUUID(@NotNull PropertyValue uuid) {
+        Tree tree = resolveUUIDToTree(uuid);
+        return (tree == null) ? null : tree.getPath();
     }
 
-    private String resolveUUID(PropertyState uuid) {
-        return resolveUUID(PropertyValues.create(uuid));
-    }
-
-    private String resolveUUID(PropertyValue uuid) {
+    @Nullable
+    private Tree resolveUUIDToTree(@NotNull PropertyValue uuid) {
         try {
             Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
@@ -355,20 +349,31 @@ public class IdentifierManager {
                     Query.JCR_SQL2,
                     bindings, NO_MAPPINGS);
 
-            String path = null;
+            Tree tree = null;
             for (ResultRow rr : result.getRows()) {
-                if (path != null) {
-                    log.error("multiple results for identifier lookup: " + path + " vs. " + rr.getPath());
+                if (tree != null) {
+                    log.error("multiple results for identifier lookup: " + tree.getPath() + " vs. " + rr.getPath());
                     return null;
                 } else {
-                    path = rr.getPath();
+                    tree = rr.getTree(null);
                 }
             }
-            return path;
+            return tree;
         } catch (ParseException ex) {
             log.error("query failed", ex);
             return null;
         }
     }
-
+    
+    @NotNull
+    private static PropertyValue createPropertyValue(@NotNull String uuid) {
+        return PropertyValues.create(StringPropertyState.stringProperty("", uuid));
+    }
+    
+    private static void checkType(@NotNull Type propertyType) {
+        int type = propertyType.tag();
+        if (!(type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE)) {
+            throw new IllegalArgumentException("Invalid value type");
+        }
+    }
 }

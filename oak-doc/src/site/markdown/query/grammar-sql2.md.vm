@@ -257,11 +257,16 @@ Example: the condition `property(*, Reference) = $uuid` will search for any prop
 
 "lower", "upper", "length": Indexes on functions are supported `@since Oak 1.6`, see OAK-3574.
 
+"first", "path": Supported `@since Oak 1.42`, see OAK-9625.
+
 Examples:
 
     lower([firstName])
     coalesce([lastName], name())
     length(coalesce([lastName], name()))
+    first([alias])
+    name()
+    path()
     [jcr:content/title]
 
 ---
@@ -286,6 +291,10 @@ The traversal option can be used to change the behavior of the given query:
 To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of choice,
 and specify this tag in the query.
 See <a href="query-engine.html#Query_Option_Index_Tag">Query Option Index Tag</a>.
+
+"offset" / "limit": sets the offset / limit at the time of parsing the query
+See <a href="query-engine.html#Query_Option_Offset__Limit">Query Option Offset / Limit</a>.
+
 
 Examples:
 

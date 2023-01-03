@@ -107,6 +107,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * Name of service property which determines the name of Async task
      */
     public static final String PROP_ASYNC_NAME = "oak.async";
+    private static final String CONCURRENT_EXCEPTION_MSG ="Another copy of the index update is already running; skipping this update. ";
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
 
@@ -150,7 +151,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     /**
      * Set of reindexed definitions updated between runs because a single diff
-     * can report less definitions than there really are. Used in coordination
+     * can report fewer definitions than there really are. Used in coordination
      * with the switchOnSync flag, so we know which def need to be updated after
      * a run with no changes.
      */
@@ -487,6 +488,14 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private void runWhenPermitted() {
         if (indexStats.isPaused()) {
+            if (indexStats.forcedLeaseRelease){
+                try {
+                    clearLease();
+                } catch (CommitFailedException e) {
+                    log.warn("Unable to release lease, please try again", e);
+                }
+                indexStats.forcedLeaseRelease = false;
+            }
             log.debug("[{}] Ignoring the run as indexing is paused", name);
             return;
         }
@@ -501,7 +510,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             long currentTime = System.currentTimeMillis();
             if (leaseEndTime > currentTime) {
                 long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
-                String err = String.format("Another copy of the index update is already running; skipping this update. " +
+                String err = String.format(CONCURRENT_EXCEPTION_MSG +
                         "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
                 indexStats.failed(new Exception(err, newConcurrentUpdateException()));
                 return;
@@ -623,6 +632,23 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 postAsyncRunStatsStatus(indexStats);
             }
         }
+    }
+
+    private void clearLease() throws CommitFailedException {
+        NodeState root = store.getRoot();
+        NodeState async = root.getChildNode(ASYNC);
+        String beforeCheckpoint = async.getString(name);
+        String leaseName= leasify(name);
+        if (async.hasProperty(leaseName)) {
+            NodeBuilder builder = root.builder();
+            builder.child(ASYNC).removeProperty(leaseName);
+            mergeWithConcurrencyCheck(store, validatorProviders,
+                    builder, beforeCheckpoint, null, name);
+            log.info("Lease property removed for lane: {}", name);
+        } else {
+            log.info("No Lease property present for lane: {}", name);
+        }
+
     }
 
     private boolean shouldProceed() {
@@ -1010,6 +1036,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         private Set<String> tempCps = new HashSet<String>();
 
         private volatile boolean isPaused;
+        private volatile boolean forcedLeaseRelease;
         private volatile long updates;
         private volatile long nodesRead;
         private final Stopwatch watch = Stopwatch.createUnstarted();
@@ -1050,6 +1077,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void failed(Exception e) {
+            boolean isConcurrentUpdateException = (e.getMessage() != null)
+                    && (e.getMessage().startsWith(CONCURRENT_EXCEPTION_MSG));
             if (e == INTERRUPTED){
                 status = STATUS_INTERRUPTED;
                 log.info("[{}] The index update interrupted", name);
@@ -1066,13 +1095,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 // reusing value so value display is consistent
                 failingSince = latestErrorTime;
                 latestErrorWarn = System.currentTimeMillis();
-                log.warn("[{}] The index update failed", name, e);
+                if (isConcurrentUpdateException) {
+                    log.info("[{}]", name,  e.getMessage());
+                } else {
+                    log.warn("[{}] The index update failed", name, e);
+                }
             } else {
                 // subsequent occurrences
                 boolean warn = System.currentTimeMillis() - latestErrorWarn > ERROR_WARN_INTERVAL;
                 if (warn) {
                     latestErrorWarn = System.currentTimeMillis();
-                    log.warn("[{}] The index update is still failing", name, e);
+                    if (isConcurrentUpdateException) {
+                        log.info("[{}]", name,  e.getMessage());
+                    } else {
+                        log.warn("[{}] The index update is still failing", name, e);
+                    }
                 } else {
                     log.debug("[{}] The index update is still failing", name, e);
                 }
@@ -1150,12 +1187,22 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
+        public String releaseLeaseForPausedLane() {
+            if (this.isPaused()){
+                this.forcedLeaseRelease = true;
+                return "LeaseRelease flag set";
+            }
+            return "Please pause the lane to release lease";
+        }
+
+        @Override
         public void resume() {
             log.debug("[{}] Resuming the async indexer", name);
             this.isPaused = false;
 
             //Clear the forcedStop flag as fail safe
             forcedStopFlag.set(false);
+            this.forcedLeaseRelease = false;
         }
 
         @Override

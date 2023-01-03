@@ -96,9 +96,7 @@ public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<Ld
      * {@inheritDoc}
      */
     public LdapConnection create() throws LdapException {
-        LdapNetworkConnection connection = config.isUseTls()
-                ? new TlsGuardingConnection(config)
-                : new LdapNetworkConnection(config);
+        LdapNetworkConnection connection = new LdapNetworkConnection(config);
         connection.connect();
         log.debug("creating new connection: {}", connection);
         return connection;
@@ -123,29 +121,5 @@ public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<Ld
         boolean valid = validator == null || validator.validate(connection);
         log.debug("validating connection {}: {}", connection, valid);
         return valid;
-    }
-
-    /**
-     * internal helper class that guards the original ldap connection from starting TLS if already started..
-     * this is to ensure that pooled connections can be 'bind()' several times.
-     *
-     * @see org.apache.directory.ldap.client.api.LdapNetworkConnection#bindAsync(org.apache.directory.api.ldap.model.message.BindRequest)
-     */
-    private static final class TlsGuardingConnection extends LdapNetworkConnection {
-
-        private boolean tlsStarted;
-
-        private TlsGuardingConnection(LdapConnectionConfig config) {
-            super(config);
-        }
-
-        @Override
-        public void startTls() throws LdapException {
-            if (tlsStarted) {
-                return;
-            }
-            super.startTls();
-            tlsStarted = true;
-        }
     }
 }

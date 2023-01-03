@@ -66,19 +66,53 @@ public class QueryRecorder {
         if (LOG.isTraceEnabled()) {
             LOG.trace("query:\t{}", query);
         }
+        query = simplifySafely(query);
+        record(query);
+    }
+
+    public static String simplifySafely(String query) {
         try {
-            query = simplify(query);
+            return simplify(query);
         } catch (Exception e) {
             LOG.trace("failed to simplify {}", query, e);
+            return query;
         }
-        record(query);
     }
     
     public static String simplify(String query) {
+
+        // numbers
+        query = query.replaceAll("[0-9]+", "1");
+
+        // single quoted literals
         query = query.replaceAll("'[^']*'", "'x'");
-        query = query.replaceAll("ISDESCENDANTNODE\\(\\[/[^]]*\\]\\)", "ISDESCENDANTNODE('x')");
-        int pathIndex = query.indexOf("/jcr:root/");
-        if (pathIndex >= 0) {
+        query = query.replaceAll("('x')+", "'x'");
+
+        // doubly quoted literals
+        query = query.replaceAll("\"[^\"]*\"", "\"x\"");
+        query = query.replaceAll("(\"x\")+", "\"x\"");
+
+        // replace "in('x', 'x')" with "in('x')"
+        query = query.replaceAll("'x', ", "'x',");
+        query = query.replaceAll("('x','x')+", "'x'");
+
+        // usage of [/path] inside ISDESCENDANTNODE and so on
+        // (case insensitive)
+        query = query.replaceAll(
+                "(?i)(ISDESCENDANTNODE|ISCHILDNODE|ISSAMENODE)\\s*\\(.*,\\s*\\[/[^]]*\\]\\)",
+                "$1('x')");
+        query = query.replaceAll(
+                "(?i)(ISDESCENDANTNODE|ISCHILDNODE|ISSAMENODE)\\s*\\(\\[/[^]]*\\]\\)",
+                "$1('x')");
+
+        // the beginning of xpath queries, including xpath union
+        int startIndex = 0;
+        while (true) {
+            int pathIndex = query.indexOf("/jcr:root/", startIndex);
+            if (pathIndex < 0) {
+                break;
+            }
+            startIndex = pathIndex + 1;
             int start = pathIndex + "/jcr:root/".length();
             int end = getFirstOccurance(query, start,
                     " ", "/element(", "/text(", "/*", "/(", "/jcr:deref(");

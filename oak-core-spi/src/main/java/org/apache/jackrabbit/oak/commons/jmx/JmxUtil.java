@@ -19,8 +19,14 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.jetbrains.annotations.NotNull;
+
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import java.util.Hashtable;
+import java.util.Map;
 
 /**
  * Utility methods related to JMX
@@ -73,5 +79,25 @@ public final class JmxUtil {
         return result;
     }
 
-
+    /**
+     * Constructs an immutable map with a single "jmx.objectname" key and a new {@link ObjectName} as value. The domain 
+     * of the {@link ObjectName} will be {@link WhiteboardUtils#JMX_OAK_DOMAIN}.
+     * Note that property values as well as the given type and name will get quoted according to 
+     * {@link #quoteValueIfRequired(String)}.
+     * 
+     * @param type The type of bean
+     * @param name The name of the bean
+     * @param properties A map of additional properties
+     * @return An immutable map with key "jmx.objectname" and a new {@link ObjectName} constructed from the parameters.
+     * @throws MalformedObjectNameException If constructing the {@link ObjectName} fails.
+     */
+    @NotNull
+    public static Map<String, ObjectName> createObjectNameMap(@NotNull String type, @NotNull String name,
+                                                              @NotNull Map<String, String> properties) throws MalformedObjectNameException {
+        Hashtable<String, String> table = new Hashtable<>();
+        table.put("type", quoteValueIfRequired(type));
+        table.put("name", quoteValueIfRequired(name));
+        properties.forEach((key, value) -> table.put(key, quoteValueIfRequired(value)));
+        return ImmutableMap.of("jmx.objectname", new ObjectName(WhiteboardUtils.JMX_OAK_DOMAIN, table));
+    }
 }

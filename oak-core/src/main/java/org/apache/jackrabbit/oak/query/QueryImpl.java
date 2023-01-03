@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -37,7 +38,6 @@ import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.query.ast.DescendantNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.DescendantNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.EquiJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.FirstImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchScoreImpl;
 import org.apache.jackrabbit.oak.query.ast.InImpl;
@@ -67,6 +68,7 @@ import org.apache.jackrabbit.oak.query.ast.NodeNameImpl;
 import org.apache.jackrabbit.oak.query.ast.NotImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
+import org.apache.jackrabbit.oak.query.ast.PathImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyInexistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
@@ -170,8 +172,8 @@ public class QueryImpl implements Query {
     
     private boolean explain, measure;
     private boolean distinct;
-    private long limit = Long.MAX_VALUE;
-    private long offset;
+    private Optional<Long> limit = Optional.empty();
+    private Optional<Long> offset = Optional.empty();
     private long size = -1;
     private boolean prepared;
     private ExecutionContext context;
@@ -244,6 +246,12 @@ public class QueryImpl implements Query {
 
             @Override
             public boolean visit(CoalesceImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(FirstImpl node) {
                 node.setQuery(query);
                 return super.visit(node);
             }
@@ -332,6 +340,13 @@ public class QueryImpl implements Query {
 
             @Override
             public boolean visit(NodeNameImpl node) {
+                node.setQuery(query);
+                node.bindSelector(source);
+                return true;
+            }
+
+            @Override
+            public boolean visit(PathImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return true;
@@ -460,6 +475,14 @@ public class QueryImpl implements Query {
         return constraint;
     }
 
+    public Optional<Long> getLimit() {
+        return limit;
+    }
+
+    public Optional<Long> getOffset() {
+        return offset;
+    }
+
     public OrderingImpl[] getOrderings() {
         return orderings;
     }
@@ -475,12 +498,12 @@ public class QueryImpl implements Query {
 
     @Override
     public void setLimit(long limit) {
-        this.limit = limit;
+        this.limit = Optional.of(limit);
     }
 
     @Override
     public void setOffset(long offset) {
-        this.offset = offset;
+        this.offset = Optional.of(offset);
     }
 
     @Override
@@ -526,6 +549,38 @@ public class QueryImpl implements Query {
         }
         return buff == null ? null : buff.toString();
     }
+
+    private void logAdditionalMessages() {
+        for (SelectorImpl s : selectors) {
+            if (s.getExecutionPlan() != null &&
+                    s.getExecutionPlan().getIndexPlan() != null) {
+                s.getExecutionPlan().getIndexPlan().getAdditionalMessages().forEach((level, list) -> {
+                    switch (level) {
+                        case TRACE: for (String msg : list) {
+                            LOG.trace(msg);
+                        }
+                        break;
+                        case DEBUG: for (String msg : list) {
+                            LOG.debug(msg);
+                        }
+                            break;
+                        case INFO: for (String msg : list) {
+                            LOG.info(msg);
+                        }
+                            break;
+                        case WARN: for (String msg : list) {
+                            LOG.warn(msg);
+                        }
+                        break;
+                        case ERROR: for (String msg : list) {
+                            LOG.error(msg);
+                        }
+                        break;
+                    }
+                });
+            }
+        }
+    }
     
     @Override
     public Iterator<ResultRowImpl> getRows() {
@@ -535,7 +590,7 @@ public class QueryImpl implements Query {
             LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
              "those restricted paths; query={}, plan={}", statement, warn);
         }
-        
+        logAdditionalMessages();
         if (explain) {
             String plan = getPlan();
             if (measure) {
@@ -567,8 +622,10 @@ public class QueryImpl implements Query {
         } else {
             orderBy = ResultRowImpl.getComparator(orderings);
         }
+        long localLimit = limit.orElse(Long.MAX_VALUE);
+        long localOffset = offset.orElse(0L);
         Iterator<ResultRowImpl> it =
-                FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy, settings);
+                FilterIterators.newCombinedFilter(rowIt, distinct, localLimit, localOffset, orderBy, settings);
         if (orderBy != null) {
             // this will force the rows to be read, so that the size is known
             it.hasNext();
@@ -576,9 +633,9 @@ public class QueryImpl implements Query {
             // but we also have to take limit and offset into account
             long read = rowIt.getReadCount();
             // we will ignore whatever is behind 'limit+offset'
-            read = Math.min(saturatedAdd(limit, offset), read);
+            read = Math.min(saturatedAdd(localLimit, localOffset), read);
             // and we will skip 'offset' entries
-            read = Math.max(0, read - offset);
+            read = Math.max(0, read - localOffset);
             size = read;
         }
         if (measure) {
@@ -1032,6 +1089,8 @@ public class QueryImpl implements Query {
         double almostBestCost = Double.POSITIVE_INFINITY;
         IndexPlan almostBestPlan = null;
 
+        long maxEntryCount = saturatedAdd(offset.orElse(0L), limit.orElse(Long.MAX_VALUE));
+
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
         List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
@@ -1056,15 +1115,7 @@ public class QueryImpl implements Query {
             IndexPlan indexPlan = null;
             if (index instanceof AdvancedQueryIndex) {
                 AdvancedQueryIndex advIndex = (AdvancedQueryIndex) index;
-                long maxEntryCount = limit;
-                if (offset > 0) {
-                    if (offset + limit < 0) {
-                        // long overflow
-                        maxEntryCount = Long.MAX_VALUE;
-                    } else {
-                        maxEntryCount = offset + limit;
-                    }
-                }
+
                 List<IndexPlan> ipList = advIndex.getPlans(
                         filter, sortOrder, rootState);
                 cost = Double.POSITIVE_INFINITY;
@@ -1155,7 +1206,13 @@ public class QueryImpl implements Query {
         }
 
         if (potentiallySlowTraversalQuery || bestIndex == null) {
-            LOG.debug("no proper index was found for filter {}", filter);
+            // Log warning for fulltext queries without index, since these cannot return results
+            if(!filter.getFulltextConditions().isEmpty()) { 
+                LOG.warn("Fulltext query without index for filter {}; no results will be returned", filter);
+            } else {
+                LOG.debug("no proper index was found for filter {}", filter);      
+            }
+            
             StatisticsProvider statisticsProvider = getSettings().getStatisticsProvider();
             if (statisticsProvider != null) {
                 HistogramStats histogram = statisticsProvider.getHistogram(INDEX_UNAVAILABLE, StatsOptions.METRICS_ONLY);
@@ -1358,7 +1415,7 @@ public class QueryImpl implements Query {
             // "order by" was used, so we know the size
             return size;
         }
-        return Math.min(limit, source.getSize(context.getBaseState(), precision, max));
+        return Math.min(limit.orElse(Long.MAX_VALUE), source.getSize(context.getBaseState(), precision, max));
     }
 
     @Override
@@ -1530,5 +1587,5 @@ public class QueryImpl implements Query {
     public QueryExecutionStats getQueryExecutionStats() {
         return stats;
     }
-    
+
 }

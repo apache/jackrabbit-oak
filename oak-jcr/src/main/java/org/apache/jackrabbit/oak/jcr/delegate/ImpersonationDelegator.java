@@ -38,21 +38,19 @@ import org.jetbrains.annotations.NotNull;
  * @see SessionDelegate#perform(SessionOperation)
  */
 final class ImpersonationDelegator implements Impersonation {
+    
     private final SessionDelegate sessionDelegate;
     private final Impersonation impersonationDelegate;
 
-    private ImpersonationDelegator(SessionDelegate sessionDelegate, Impersonation impersonationDelegate) {
+    private ImpersonationDelegator(@NotNull SessionDelegate sessionDelegate, @NotNull Impersonation impersonationDelegate) {
         checkArgument(!(impersonationDelegate instanceof ImpersonationDelegator));
         this.sessionDelegate = sessionDelegate;
         this.impersonationDelegate = impersonationDelegate;
     }
 
-    static Impersonation wrap(SessionDelegate sessionDelegate, Impersonation impersonation) {
-        if (impersonation == null) {
-            return null;
-        } else {
-            return new ImpersonationDelegator(sessionDelegate, impersonation);
-        }
+    @NotNull
+    static Impersonation wrap(@NotNull SessionDelegate sessionDelegate, @NotNull Impersonation impersonation) {
+        return new ImpersonationDelegator(sessionDelegate, impersonation);
     }
 
     @NotNull

@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.41-SNAPSHOT</version>
+    <version>1.47-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -32,11 +32,15 @@
   <packaging>bundle</packaging>
 
   <properties>
+    <skip.coverage>false</skip.coverage>
+    <minimum.coverage>0.72</minimum.coverage>
+    <minimum.branch.coverage>0.57</minimum.branch.coverage>
     <known.issues>
       org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings                                  <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc               <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest              <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
+      org.apache.jackrabbit.test.api.NodeTest#testAddNodeLackingMandatoryChildNode                     <!-- OAK-9621 -->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
       org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn <!-- OAK-118 -->
@@ -49,6 +53,7 @@
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked                             <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
+      org.apache.jackrabbit.oak.jcr.ValidNamesTest#testRepNamespaceUri                                 <!-- OAK-74 -->
 
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked <!-- OAK-3482 -->
@@ -365,6 +370,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -483,6 +489,12 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derby</artifactId>
+      <version>10.14.2.0</version>
       <scope>test</scope>
     </dependency>
     

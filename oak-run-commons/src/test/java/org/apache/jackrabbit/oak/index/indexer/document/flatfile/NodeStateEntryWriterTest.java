@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
@@ -50,7 +51,7 @@ public class NodeStateEntryWriterTest {
         builder.setProperty("foo", 1);
         builder.setProperty("foo2", Arrays.asList("a", "b"), Type.STRINGS);
         builder.setProperty("foo3", "text with \n new line");
-        String line = nw.toString(new NodeStateEntry(builder.getNodeState(), "/a"));
+        String line = nw.toString(new NodeStateEntryBuilder(builder.getNodeState(), "/a").build());
 
         NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
 
@@ -70,8 +71,8 @@ public class NodeStateEntryWriterTest {
         NodeBuilder b2 = EMPTY_NODE.builder();
         b2.setProperty("foo2", "bar2");
 
-        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a");
-        NodeStateEntry e2 = new NodeStateEntry(b2.getNodeState(), "/a");
+        NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/a").build();
+        NodeStateEntry e2 = new NodeStateEntryBuilder(b2.getNodeState(), "/a").build();
 
         String line1 = nw.toString(e1);
         String line2 = nw.toString(e2);
@@ -91,7 +92,7 @@ public class NodeStateEntryWriterTest {
         b1.setProperty(":childOrder", "bar");
         b1.setProperty(":hidden", "bar");
 
-        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a");
+        NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/a").build();
 
         String line = nw.toString(e1);
 
@@ -108,7 +109,7 @@ public class NodeStateEntryWriterTest {
         NodeBuilder b1 = EMPTY_NODE.builder();
         b1.setProperty("foo", "bar");
 
-        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a/b/c/d");
+        NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/a/b/c/d").build();
 
         String json = nw.asJson(e1.getNodeState());
         List<String> pathElements = copyOf(elements(e1.getPath()));
@@ -128,7 +129,7 @@ public class NodeStateEntryWriterTest {
         NodeBuilder b1 = EMPTY_NODE.builder();
         b1.setProperty("foo", "bar");
 
-        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/");
+        NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/").build();
 
         String json = nw.asJson(e1.getNodeState());
         List<String> pathElements = copyOf(elements(e1.getPath()));

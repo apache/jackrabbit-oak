@@ -23,8 +23,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Immuta
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -35,9 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 class ImmutablePrincipalPolicy extends ImmutableACL implements PrincipalAccessControlList {
-
-    private static final Logger log = LoggerFactory.getLogger(ImmutablePrincipalPolicy.class);
-
+    
     private final Principal principal;
 
     private int hashCode;

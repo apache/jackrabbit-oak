@@ -22,13 +22,11 @@ import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -37,18 +35,18 @@ import static org.junit.Assert.fail;
 public class GroupImportAbortTest extends AbstractImportTest {
 
     @Override
-    protected String getImportBehavior() {
+    protected @NotNull String getImportBehavior() {
         return ImportBehavior.NAME_ABORT;
     }
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return GROUPPATH;
     }
 
     @Test
     public void testImportNonExistingMemberAbort() throws Exception {
-        List<String> invalid = new ArrayList<String>();
+        List<String> invalid = new ArrayList<>();
         invalid.add(UUID.randomUUID().toString()); // random uuid
         invalid.add(getExistingUUID()); // uuid of non-authorizable node
 

@@ -16,31 +16,37 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
-import org.elasticsearch.action.search.MultiSearchRequest;
-import org.elasticsearch.action.search.MultiSearchResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.suggest.SuggestBuilder;
-import org.elasticsearch.search.suggest.phrase.PhraseSuggestion;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.PhraseSuggestOption;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import co.elastic.clients.elasticsearch.core.MsearchRequest;
+import co.elastic.clients.elasticsearch.core.MsearchResponse;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.msearch.MultiSearchResponseItem;
+import co.elastic.clients.elasticsearch.core.msearch.RequestItem;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 
 /**
  * This class is in charge to extract spell checked suggestions for a given query.
- *
+ * <p>
  * It requires 2 calls to Elastic:
  * <ul>
  *     <li>get all the possible spellchecked suggestions</li>
@@ -50,7 +56,16 @@ import java.util.stream.StreamSupport;
 class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSpellcheckIterator.class);
-    protected final static String SPELLCHECK_PREFIX = "spellcheck?term=";
+    protected static final String SPELLCHECK_PREFIX = "spellcheck?term=";
+
+    private static final ObjectMapper JSON_MAPPER;
+
+    static {
+        JsonFactoryBuilder factoryBuilder = new JsonFactoryBuilder();
+        factoryBuilder.disable(JsonFactory.Feature.INTERN_FIELD_NAMES);
+        JSON_MAPPER = new ObjectMapper(factoryBuilder.build());
+        JSON_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     private final ElasticIndexNode indexNode;
     private final ElasticRequestHandler requestHandler;
@@ -85,27 +100,29 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
 
     private void loadSuggestions() {
         try {
+            // spell check requires 2 calls to elastic
             final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
-            final MultiSearchRequest multiSearch = suggestions()
-                    .map(s -> {
-                        String text = s.getText().string();
-                        suggestionTexts.offer(text);
-                        return requestHandler.suggestMatchQuery(text);
+            // 1. loads the possible top 10 corrections for the input text
+            MsearchRequest.Builder multiSearch = suggestions().map(s -> {
+                        suggestionTexts.offer(s);
+                        return requestHandler.suggestMatchQuery(s);
                     })
-                    .map(query -> SearchSourceBuilder.searchSource()
-                            .query(query)
-                            .size(100)
-                            .fetchSource(FieldNames.PATH, null))
-                    .map(searchSource -> new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
-                            .source(searchSource))
-                    .reduce(new MultiSearchRequest(), MultiSearchRequest::add, (ms, ms2) -> ms);
+                    .map(query -> RequestItem.of(rib ->
+                            rib.header(hb -> hb.index(indexNode.getDefinition().getIndexAlias()))
+                                    .body(bb -> bb.query(qb -> qb.bool(query)).size(100))))
+                    .reduce(
+                            new MsearchRequest.Builder().index(indexNode.getDefinition().getIndexAlias()),
+                            MsearchRequest.Builder::searches, (ms, ms2) -> ms);
 
-            if (!multiSearch.requests().isEmpty()) {
-                MultiSearchResponse res = indexNode.getConnection().getClient().msearch(multiSearch, RequestOptions.DEFAULT);
+            // 2. executes a multi search query with the results of the previous query. For each sub query, we then check
+            // there is at least 1 accessible result. In that case the correction is returned, otherwise it's filtered out
+            if (!suggestionTexts.isEmpty()) {
+                MsearchResponse<ObjectNode> mSearchResponse = indexNode.getConnection().getClient()
+                        .msearch(multiSearch.build(), ObjectNode.class);
                 ArrayList<FulltextResultRow> results = new ArrayList<>();
-                for (MultiSearchResponse.Item response : res.getResponses()) {
-                    for (SearchHit doc : response.getResponse().getHits()) {
-                        if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
+                for (MultiSearchResponseItem<ObjectNode> r : mSearchResponse.responses()) {
+                    for (Hit<ObjectNode> hit : r.result().hits().hits()) {
+                        if (responseHandler.isAccessible(responseHandler.getPath(hit))) {
                             results.add(new FulltextResultRow(suggestionTexts.poll()));
                             break;
                         }
@@ -113,30 +130,30 @@ class ElasticSpellcheckIterator implements Iterator<FulltextResultRow> {
                 }
                 this.internalIterator = results.iterator();
             }
-
         } catch (IOException e) {
             LOG.error("Error processing suggestions for " + spellCheckQuery, e);
         }
 
     }
 
-    private Stream<PhraseSuggestion.Entry.Option> suggestions() throws IOException {
-        final SuggestBuilder suggestBuilder = new SuggestBuilder();
-        suggestBuilder.addSuggestion("oak:suggestion",
-                requestHandler.suggestQuery(spellCheckQuery));
+    private Stream<String> suggestions() throws IOException {
+        SearchRequest searchReq = SearchRequest.of(sr -> sr
+                .index(indexNode.getDefinition().getIndexAlias())
+                .suggest(sb -> sb
+                        .text(spellCheckQuery)
+                        .suggesters("oak:suggestion",
+                                fs -> fs.phrase(requestHandler.suggestQuery()))
+                ));
 
-        final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
-                .suggest(suggestBuilder);
+        ElasticsearchClient esClient = indexNode.getConnection().getClient();
 
-        final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
-                .source(searchSourceBuilder);
+        SearchResponse<ObjectNode> searchRes = esClient.search(searchReq, ObjectNode.class);
 
-        SearchResponse searchResponse = indexNode.getConnection().getClient().search(searchRequest, RequestOptions.DEFAULT);
-
-        return StreamSupport
-                .stream(searchResponse.getSuggest().spliterator(), false)
-                .map(s -> (PhraseSuggestion) s)
-                .flatMap(ps -> ps.getEntries().stream())
-                .flatMap(ps -> ps.getOptions().stream());
+        return searchRes
+                .suggest()
+                .get("oak:suggestion")
+                .stream()
+                .flatMap(node -> node.phrase().options().stream())
+                .map(PhraseSuggestOption::text);
     }
 }

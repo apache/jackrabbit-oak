@@ -73,9 +73,13 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
 
     boolean addEntry(@NotNull Tree entryTree) throws AccessControlException {
         String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
-        PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
-        Set<Restriction> restrictions = restrictionProvider.readRestrictions(oakPath, entryTree);
-        return addEntry(new EntryImpl(oakPath, bits, restrictions));
+        if (Utils.hasValidRestrictions(oakPath, entryTree, restrictionProvider)) {
+            PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
+            Set<Restriction> restrictions = Utils.readRestrictions(restrictionProvider, oakPath, entryTree);
+            return addEntry(new EntryImpl(oakPath, bits, restrictions));
+        } else {
+            return false;
+        }
     }
 
     //------------------------------------------< AbstractAccessControlList >---
@@ -217,7 +221,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     @Nullable
-    private String extractPathFromRestrictions(@Nullable Map<String, Value> restrictions, @NotNull String jcrName) throws RepositoryException {
+    private static String extractPathFromRestrictions(@Nullable Map<String, Value> restrictions, @NotNull String jcrName) throws RepositoryException {
         if (restrictions == null || !restrictions.containsKey(jcrName)) {
             throw new AccessControlException("Entries in principal based access control need to have a path specified. Add rep:nodePath restriction or use PrincipalAccessControlList.addEntry(String, Privilege[], Map, Map) instead.");
         }
@@ -274,6 +278,11 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         @Override
         @NotNull NamePathMapper getNamePathMapper() {
             return PrincipalPolicyImpl.this.getNamePathMapper();
+        }
+
+        @Override
+        protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            return privilegeBitsProvider;
         }
     }
 }

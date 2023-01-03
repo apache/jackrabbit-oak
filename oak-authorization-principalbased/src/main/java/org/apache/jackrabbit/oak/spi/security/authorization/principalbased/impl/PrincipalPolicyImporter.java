@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
+import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -156,7 +157,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
     //----------------------------------------------< ProtectedNodeImporter >---
     @Override
-    public boolean start(@NotNull Tree protectedParent) throws RepositoryException {
+    public boolean start(@NotNull Tree protectedParent) {
         checkState(initialized);
 
         // the policy node was added during the regular import (it's parent must not be protected)
@@ -248,7 +249,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 if (REP_EFFECTIVE_PATH.equals(oakName) && PropertyType.PATH == prop.getType()) {
                     effectivePath = extractEffectivePath(prop);
                 } else if (REP_PRIVILEGES.equals(oakName) && PropertyType.NAME == prop.getType()) {
-                    privs = getPrivileges(Iterables.transform(prop.getTextValues(), textValue -> textValue.getString()));
+                    privs = getPrivileges(Iterables.transform(prop.getTextValues(), TextValue::getString));
                 } else {
                     throw new ConstraintViolationException("Unsupported property '"+oakName+"' with type "+prop.getType()+" within policy entry of type rep:PrincipalEntry");
                 }

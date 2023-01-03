@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -154,6 +155,7 @@ public class CompositeCredentialsSupportTest {
             return ImmutableSet.of(TestCredentials.class);
         }
 
+        @Nullable
         @Override
         public String getUserId(@NotNull Credentials credentials) {
             if (credentials instanceof TestCredentials) {

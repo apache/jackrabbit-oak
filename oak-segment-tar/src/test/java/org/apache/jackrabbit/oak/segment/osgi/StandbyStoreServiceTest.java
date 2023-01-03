@@ -50,7 +50,7 @@ public class StandbyStoreServiceTest {
             .withValue("127.0.0.1")
             .check());
         assertTrue(cd.hasProperty("interval")
-            .withIntegerType()
+            .withLongType()
             .withValue("5")
             .check());
         assertTrue(cd.hasProperty("secure")
@@ -101,7 +101,7 @@ public class StandbyStoreServiceTest {
             .withDefaultValue("127.0.0.1")
             .check());
         assertTrue(ocd.hasAttributeDefinition("interval")
-            .withIntegerType()
+            .withLongType()
             .withDefaultValue("5")
             .check());
         assertTrue(ocd.hasAttributeDefinition("secure")

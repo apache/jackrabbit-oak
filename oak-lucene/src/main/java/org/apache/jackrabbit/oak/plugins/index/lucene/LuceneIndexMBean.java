@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
@@ -26,11 +25,10 @@ import javax.management.openmbean.TabularData;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.apache.jackrabbit.oak.api.jmx.Name;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexMBean;
 
-public interface LuceneIndexMBean {
+public interface LuceneIndexMBean extends IndexMBean {
     String TYPE = "LuceneIndex";
-
-    TabularData getIndexStats() throws IOException;
 
     TabularData getBadIndexStats();
 
@@ -38,7 +36,7 @@ public interface LuceneIndexMBean {
 
     boolean isFailing();
 
-    @Description("Determines the set of index paths upto given maxLevel. This can be used to determine the value for" +
+    @Description("Determines the set of index paths up to given maxLevel. This can be used to determine the value for" +
             "[includedPaths]. For this to work you should have [evaluatePathRestrictions] set to true in your index " +
             "definition")
     String[] getIndexedPaths(
@@ -72,6 +70,23 @@ public interface LuceneIndexMBean {
             @Name("field")
             @Description("The field name (empty for all fields)")
                     String field,
+            @Name("max")
+            @Description("The maximum number of entries to return (e.g. 100)")
+                    int max
+    ) throws IOException;
+
+    @Description("Retrieves the terms, and number of documents for each term, for an index. " +
+            "This allows to closely investigate what is stored in the index.")
+    String[] getFieldTermsInfo(
+            @Name("indexPath")
+            @Description("The index path (empty for all indexes)")
+                    String indexPath,
+            @Name("field")
+            @Description("The field name (empty for all fields)")
+                    String field,
+            @Name("fieldType")
+            @Description("The type of the field (empty for string)")
+                    String fieldType,
             @Name("max")
             @Description("The maximum number of entries to return (e.g. 100)")
                     int max
@@ -142,11 +157,5 @@ public interface LuceneIndexMBean {
 
     @Description("Fetches hybrid property index info as json for index at given path")
     String getHybridIndexInfo(@Name("indexPath") String indexPath);
-
-    @Description("Fetches index size for index at given path")
-    String getSize(@Name("indexPath") String indexPath) throws IOException;
-
-    @Description("Fetches current number of docs for index at given path")
-    String getDocCount(@Name("indexPath") String indexPath) throws IOException;
 
 }

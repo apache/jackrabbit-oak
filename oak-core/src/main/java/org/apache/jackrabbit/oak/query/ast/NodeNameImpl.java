@@ -65,12 +65,12 @@ public class NodeNameImpl extends DynamicOperandImpl {
     public boolean supportsRangeConditions() {
         return false;
     }
-    
+
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return null;
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -92,19 +92,23 @@ public class NodeNameImpl extends DynamicOperandImpl {
         if (v == null) {
             return;
         }
-        if (operator == Operator.NOT_EQUAL && v != null) {
+        if (operator == Operator.NOT_EQUAL) {
             // not supported
             return;
         }
         String name = getName(query, v);
-        if (name != null && f.getSelector().equals(selector)
-                && NodeNameImpl.supportedOperator(operator)) {
-            String localName = NodeLocalNameImpl.getLocalName(name);
-            f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
-                    operator, PropertyValues.newString(localName));
+        if (name != null && f.getSelector().equals(selector)) {
+            if (NodeNameImpl.supportedOperator(operator)) {
+                String localName = NodeLocalNameImpl.getLocalName(name);
+                f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
+                        operator, PropertyValues.newString(localName));
+            }
+            String fn = getFunction(f.getSelector());
+            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,
+                    operator, v, PropertyType.STRING);
         }
     }
-    
+
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // optimizations of type "NAME(..) IN(A, B)" are not supported
@@ -178,7 +182,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
     public DynamicOperandImpl createCopy() {
         return new NodeNameImpl(selectorName);
     }
-    
+
     @Override
     public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
         if (!s.equals(selector)) {
@@ -187,8 +191,8 @@ public class NodeNameImpl extends DynamicOperandImpl {
         }
         return new OrderEntry(
                 QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
-            Type.STRING, 
-            o.isDescending() ? 
+            Type.STRING,
+            o.isDescending() ?
             OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 

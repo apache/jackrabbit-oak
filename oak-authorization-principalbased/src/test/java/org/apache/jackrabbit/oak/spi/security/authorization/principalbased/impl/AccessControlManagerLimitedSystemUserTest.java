@@ -20,14 +20,11 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
 
-import javax.jcr.AccessDeniedException;
 import javax.security.auth.Subject;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
@@ -64,7 +61,7 @@ public class AccessControlManagerLimitedSystemUserTest extends AccessControlMana
 
     Root createTestRoot() throws Exception {
         Set<Principal> principals = ImmutableSet.of(testPrincipal);
-        AuthInfo authInfo = new AuthInfoImpl(UID, Collections.<String, Object>emptyMap(), principals);
+        AuthInfo authInfo = new AuthInfoImpl(UID, Collections.emptyMap(), principals);
         Subject subject = new Subject(true, principals, ImmutableSet.of(authInfo), ImmutableSet.of());
         return Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<Root>) () -> getContentRepository().login(null, null).getLatestRoot(), null);
     }

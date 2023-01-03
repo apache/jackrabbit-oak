@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -673,6 +674,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
             return false;
         }
 
+        @Nullable
         @Override
         public String getPath() {
             return null;

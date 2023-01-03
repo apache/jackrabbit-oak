@@ -30,7 +30,7 @@ To get started build the build the latest sources with Maven 3 and Java 6
     
 Once done you can run the application by executing
 
-    $ java -jar target/oak-standalone-*.jar
+    $ java -jar target/oak-standalone-*-exec.jar
     
 This would start an Oak based repository which uses filesystem storage. All 
 the content would be by default stored under `oak` folder. The server
@@ -96,12 +96,12 @@ Using Mongo
 By default the application uses SegmentMk for which stores the data on 
 filesystem. Instead of that it can be configured to use Mongo
 
-    $ java -jar target/oak-standalone-*.jar --mongo
+    $ java -jar target/oak-standalone-*-exec.jar --mongo
 
 It would try to connect to a Mongo server at localhost and 27017 port. One can
 specify the server detail also
 
-    $ java -jar target/oak-standalone-*.jar --mongo=mongodb://server:27017
+    $ java -jar target/oak-standalone-*-exec.jar --mongo=mongodb://server:27017
     
 
 Application Structure

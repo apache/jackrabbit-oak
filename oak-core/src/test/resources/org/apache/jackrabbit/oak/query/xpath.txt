@@ -15,16 +15,40 @@
 #
 # Syntax:
 # * lines that start with spaces belong to the previous line
-# * lines starting with "#" are remarks.
+# * lines starting with "#" are remarks
 # * lines starting with "select" are queries, followed by expected results and an empty line
 # * lines starting with "explain" are followed by expected query plan and an empty line
 # * lines starting with "sql1" are run using the sql1 language
 # * lines starting with "xpath2sql" are just converted from xpath to sql2
-# * all other lines are are committed into the microkernel (line by line)
-# * new tests are typically be added on top, after the syntax docs
-# * use ascii character only
+# * all other lines are committed into the microkernel (line by line)
+# * new tests are typically added on top, after the syntax docs
+# * use ascii characters only
 
 #
+
+xpath2sql /jcr:root/content//element(*, nt:base)[fn:path() >= $lastValue] order by fn:path()
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where path(a) >= @lastValue
+  and isdescendantnode(a, '/content')
+  order by path(a)
+  /* xpath ... */
+
+xpath2sql /jcr:root/content//element(*, nt:base)[jcr:first(@vanityPath) >= $lastValue] order by jcr:first(@vanityPath), @jcr:path
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where first([vanityPath]) >= @lastValue
+  and isdescendantnode(a, '/content')
+  order by first([vanityPath]), [jcr:path]
+  /* xpath ... */
+
+xpath2sql /jcr:root/content//element(*, nt:base)[@jcr:lastModified >= $lastModified] order by @jcr:lastModified, @jcr:path
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where [jcr:lastModified] >= @lastModified
+  and isdescendantnode(a, '/content')
+  order by [jcr:lastModified], [jcr:path]
+  /* xpath ... */
 
 xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/rep:excerpt()
 select [jcr:path], [jcr:score], [rep:excerpt]
@@ -1755,13 +1779,13 @@ xpath2sql //element(*, my:type)[@my:value = +'x']
 invalid: Query: //element(*, my:type)[@my:value = +'x'(*)]
 
 xpath2sql //element(*, my:type)[@my:value = ['x']
-invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, -, +, *, ., @, (
+invalid: Query: //element(*, my:type)[@my:value = [(*)'x']; expected: @, true, false, $, -, +, *, ., @, (
 
 xpath2sql //element(*, my:type)[jcr:strike(@title,'%Java%')]
-invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | xs:dateTime | fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck | rep:suggest
+invalid: Query: //element(*, my:type)[jcr:strike(@(*)title,'%Java%')]; expected: jcr:like | jcr:contains | jcr:score | xs:dateTime | fn:lower-case | fn:upper-case | jcr:first | fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest
 
 xpath2sql //element(*, my:type)[
-invalid: Query: //element(*, my:type)(*)[; expected: fn:not, not, (, @, true, false, -, +, *, ., @, (
+invalid: Query: //element(*, my:type)(*)[; expected: fn:not, not, (, @, true, false, $, -, +, *, ., @, (
 
 xpath2sql //element(*, my:type)[@my:value >= %]
-invalid: Query: //element(*, my:type)[@my:value >= %(*)]; expected: @, true, false, -, +, *, ., @, (
+invalid: Query: //element(*, my:type)[@my:value >= %(*)]; expected: @, true, false, $, -, +, *, ., @, (

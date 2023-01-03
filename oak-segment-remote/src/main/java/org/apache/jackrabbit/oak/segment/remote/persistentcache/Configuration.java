@@ -88,9 +88,9 @@ public @interface Configuration {
 
     @AttributeDefinition(
             name = "Redis connection timeout",
-            description = "Number of seconds to wait for redis connection to be established"
+            description = "Number of milliseconds to wait for redis connection to be established"
     )
-    int redisConnectionTimeout() default 50;
+    int redisConnectionTimeout() default 5000;
 
     @AttributeDefinition(
             name = "Redis Minimum Connections",

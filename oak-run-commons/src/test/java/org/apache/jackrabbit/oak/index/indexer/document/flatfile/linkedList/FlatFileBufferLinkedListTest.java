@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -143,10 +144,10 @@ public class FlatFileBufferLinkedListTest {
     public void memUsage() {
         Assert.assertEquals("Empty list must be estimate 0", 0, list.estimatedMemoryUsage());
 
-        list.add(new NodeStateEntry(EMPTY_NODE, "/", 20));
+        list.add(new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(20).build());
         Assert.assertEquals(20, list.estimatedMemoryUsage());
 
-        list.add(new NodeStateEntry(EMPTY_NODE, "/", 30));
+        list.add(new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(30).build());
         Assert.assertEquals(50, list.estimatedMemoryUsage());
 
         list.remove();
@@ -156,8 +157,8 @@ public class FlatFileBufferLinkedListTest {
     @Test
     public void memLimit() {
         list = new FlatFileBufferLinkedList(10);
-        NodeStateEntry e10Bytes = new NodeStateEntry(EMPTY_NODE, "/", 10);
-        NodeStateEntry e1Byte = new NodeStateEntry(EMPTY_NODE, "/", 1);
+        NodeStateEntry e10Bytes = new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(10).build();
+        NodeStateEntry e1Byte = new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(1).build();
 
         list.add(e10Bytes); //this should succeed
 
@@ -181,6 +182,6 @@ public class FlatFileBufferLinkedListTest {
     }
 
     private NodeStateEntry testNode(String n) {
-        return new NodeStateEntry(EMPTY_NODE, n);
+        return new NodeStateEntryBuilder(EMPTY_NODE, n).build();
     }
 }

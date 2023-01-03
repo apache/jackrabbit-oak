@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.41-SNAPSHOT</version>
+    <version>1.47-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -105,6 +105,8 @@
           <instructions>
             <!-- TODO: Should only provide services, not export packages  -->
             <_exportcontents>
+              !org.apache.lucene.queryparser.xml,
+              !org.apache.lucene.queryparser.xml.builders,
               org.apache.lucene.*;version=${lucene.version}
             </_exportcontents>
             <Export-Package>
@@ -140,6 +142,7 @@
             <exclude>**/test.rtf</exclude>
             <exclude>**/test.txt</exclude>
             <exclude>**/fvs.csv</exclude>
+            <exclude>src/test/resources/**/*.txt</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -208,6 +211,13 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-search</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <!-- General utility libraries -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Lucene dependencies -->
@@ -440,6 +450,17 @@
     <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-jdbc</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.stefanbirkner</groupId>
+      <artifactId>system-rules</artifactId>
+      <version>1.19.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
       <scope>test</scope>
     </dependency>
 

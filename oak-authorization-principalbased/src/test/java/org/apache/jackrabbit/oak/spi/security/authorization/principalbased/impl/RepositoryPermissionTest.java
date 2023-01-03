@@ -69,7 +69,7 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testGetRepositoryPermissionsAfterRefresh() throws Exception {
+    public void testGetRepositoryPermissionsAfterRefresh() {
         RepositoryPermission rp = permissionProvider.getRepositoryPermission();
         permissionProvider.refresh();
         assertSame(rp, permissionProvider.getRepositoryPermission());

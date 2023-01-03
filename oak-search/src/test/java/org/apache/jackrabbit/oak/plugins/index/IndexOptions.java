@@ -25,6 +25,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 
 public abstract class IndexOptions {
 
@@ -35,7 +36,7 @@ public abstract class IndexOptions {
     }
 
     protected Node setIndex(Session session, String idxName, IndexDefinitionBuilder builder) throws RepositoryException {
-        return builder.build(session.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(idxName));
+        return builder.build(session.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(idxName, INDEX_DEFINITIONS_NODE_TYPE));
     }
 
     protected Node getIndexNode(Session session, String idxName) throws RepositoryException {
@@ -43,10 +44,14 @@ public abstract class IndexOptions {
     }
 
     protected IndexDefinitionBuilder createIndex(IndexDefinitionBuilder builder, boolean isAsync, String... propNames) {
+        return createIndex(builder, "nt:base", isAsync, propNames);
+    }
+
+    protected IndexDefinitionBuilder createIndex(IndexDefinitionBuilder builder, String type, boolean isAsync, String... propNames) {
         if (!isAsync) {
             builder = builder.noAsync();
         }
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(type);
         for (String propName : propNames) {
             indexRule.property(propName).propertyIndex();
         }

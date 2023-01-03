@@ -16,7 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.security.NamedAccessControlPolicy;
+import java.util.Collection;
 
 public final class ReadPolicy implements NamedAccessControlPolicy {
 
@@ -28,5 +33,20 @@ public final class ReadPolicy implements NamedAccessControlPolicy {
     @Override
     public String getName() {
         return "Grants read access on configured trees.";
+    }
+    
+    public static boolean hasEffectiveReadPolicy(@NotNull Collection<String> readPaths, @Nullable String oakPath) {
+        if (oakPath == null) {
+            return false;
+        }
+        if (readPaths.contains(oakPath)) {
+            return true;
+        }
+        for (String rp : readPaths) {
+            if (Text.isDescendant(rp, oakPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -25,13 +25,11 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.security.Principal;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * {@code ValidatorProvider} used to assure that the system maintained properties
@@ -53,8 +51,8 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
     private final boolean isSystem;
     private final boolean protectedExternalIds;
 
-    ExternalIdentityValidatorProvider(@NotNull Set<Principal> principals, boolean protectExternalIds) {
-        isSystem = principals.contains(SystemPrincipal.INSTANCE);
+    ExternalIdentityValidatorProvider(boolean isSystem, boolean protectExternalIds) {
+        this.isSystem = isSystem;
         this.protectedExternalIds = protectExternalIds;
 
     }
@@ -143,7 +141,7 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
         }
 
         @Override
-        public Validator childNodeDeleted(String name, NodeState before) {
+        public @Nullable Validator childNodeDeleted(String name, NodeState before) {
             // removal of the parent node containing a reserved property must be possible
             return null;
         }

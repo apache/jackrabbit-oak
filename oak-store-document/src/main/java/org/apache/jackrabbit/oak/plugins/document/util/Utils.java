@@ -23,6 +23,8 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -43,6 +45,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -50,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -363,14 +367,17 @@ public class Utils {
         }
         // check if the parent path is long
         byte[] parent = PathUtils.getParentPath(path).getBytes(UTF_8);
-        if (parent.length < PATH_LONG) {
-            return false;
-        }
-        String name = PathUtils.getName(path);
-        if (name.getBytes(UTF_8).length > NODE_NAME_LIMIT) {
-            throw new IllegalArgumentException("Node name is too long: " + path);
-        }
-        return true;
+        return parent.length >= PATH_LONG;
+    }
+
+    /**
+     * Checks whether Node name is too long or not based on underlining document store
+     * @param path node path
+     * @param sizeLimit sizeLimit for node name
+     * @return true if node name is long else false
+     */
+    public static boolean isNodeNameLong(Path path, int sizeLimit) {
+        return isLongPath(path) && path.getName().getBytes(UTF_8).length > sizeLimit;
     }
 
     public static boolean isLongPath(Path path) {
@@ -384,13 +391,7 @@ public class Utils {
         if (parent == null) {
             return false;
         }
-        if (parent.toString().getBytes(UTF_8).length < PATH_LONG) {
-            return false;
-        }
-        if (path.getName().getBytes(UTF_8).length > NODE_NAME_LIMIT) {
-            throw new IllegalArgumentException("Node name is too long: " + path);
-        }
-        return true;
+        return parent.toString().getBytes(UTF_8).length >= PATH_LONG;
     }
 
     public static boolean isIdFromLongPath(String id) {
@@ -792,12 +793,7 @@ public class Utils {
      * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
      */
     public static Iterable<String> pathToId(@NotNull Iterable<String> paths) {
-        return transform(paths, new Function<String, String>() {
-            @Override
-            public String apply(String input) {
-                return getIdFromPath(input);
-            }
-        });
+        return transform(paths, input -> getIdFromPath(input));
     }
 
     /**
@@ -888,6 +884,17 @@ public class Utils {
     }
 
     /**
+     * Check whether throttling is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if throttling is enabled else false
+     */
+    public static boolean isThrottlingEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreThrottlingFeature = builder.getDocStoreThrottlingFeature();
+        return builder.isThrottlingEnabled() || (docStoreThrottlingFeature != null && docStoreThrottlingFeature.isEnabled());
+    }
+
+    /**
      * Returns true if all the revisions in the {@code a} greater or equals
      * to their counterparts in {@code b}. If {@code b} contains revisions
      * for cluster nodes that are not present in {@code a}, return false.
@@ -960,7 +967,7 @@ public class Utils {
      * @param rootDoc the root document.
      * @param clock the clock.
      * @param clusterId the local clusterId.
-     * @param warnThresholdMillis log a warning when the an external change in
+     * @param warnThresholdMillis log a warning when an external change in
      *          the future is detected with more than this time difference.
      * @throws InterruptedException if the current thread is interrupted while
      *          waiting. The interrupted status on the current thread is cleared
@@ -974,8 +981,8 @@ public class Utils {
         Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
         long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
         long localTime = clock.getTime();
-        long timeDiff = externalTime - localTime;
-        if (timeDiff > 0) {
+        if (externalTime > localTime) {
+            long timeDiff = externalTime - localTime;
             double delay = ((double) externalTime - localTime) / 1000d;
             String fmt = "Background read will be delayed by %.1f seconds. " +
                     "Please check system time on cluster nodes.";
@@ -1088,4 +1095,14 @@ public class Utils {
         result = result.min(BigInteger.valueOf(Long.MAX_VALUE));
         return result.longValue();
     }
+
+    /**
+     * Formats the epoch time in milliseconds as ISO-8601 in UTC.
+     *
+     * @param ms the time in milliseconds.
+     * @return date format for the time in milliseconds.
+     */
+    public static String asISO8601(long ms) {
+        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
+   }
 }

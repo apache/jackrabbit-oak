@@ -21,7 +21,9 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -117,8 +119,8 @@ public class ElasticIndexProviderService {
         String localTextExtractionDir();
 
         @AttributeDefinition(name = "Remote index cleanup frequency", description = "Frequency (in seconds) of running remote index deletion scheduled task." +
-                "Set this to -1 to disable the task. Default is 1 hour.")
-        int remoteIndexCleanupFrequency() default 60*60;
+                "Default is -1 (disabled)).")
+        int remoteIndexCleanupFrequency() default -1;
 
         @AttributeDefinition(name = "Remote index deletion threshold", description = "Time in seconds after which a remote index whose local index is not found gets deleted." +
                 "Default is 1 day.")
@@ -136,6 +138,9 @@ public class ElasticIndexProviderService {
     @Reference
     private NodeStore nodeStore;
 
+    @Reference
+    private AsyncIndexInfoService asyncIndexInfoService;
+
     @Reference(policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL,
             policyOption = ReferencePolicyOption.GREEDY
@@ -151,6 +156,8 @@ public class ElasticIndexProviderService {
     private File textExtractionDir;
 
     private ElasticConnection elasticConnection;
+    private ElasticMetricHandler metricHandler;
+    private ElasticIndexTracker indexTracker;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -166,6 +173,23 @@ public class ElasticIndexProviderService {
         //initializeExtractedTextCache(config, statisticsProvider);
 
         elasticConnection = getElasticConnection(config);
+        metricHandler = new ElasticMetricHandler(statisticsProvider);
+        indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler);
+
+        // register observer needed for index tracking
+        regs.add(bundleContext.registerService(Observer.class.getName(), indexTracker, null));
+
+        // register info provider for oak index stats
+        regs.add(bundleContext.registerService(IndexInfoProvider.class.getName(),
+                new ElasticIndexInfoProvider(indexTracker, asyncIndexInfoService), null));
+
+        // register mbean for detailed elastic stats and utility actions
+        ElasticIndexMBean mBean = new ElasticIndexMBean(indexTracker);
+        oakRegs.add(registerMBean(whiteboard,
+                ElasticIndexMBean.class,
+                mBean,
+                ElasticIndexMBean.TYPE,
+                "Elastic Index statistics"));
 
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
@@ -196,7 +220,8 @@ public class ElasticIndexProviderService {
             LOG.warn("The Elastic cluster at {} is not reachable. The index cleaner job has not been enabled", elasticConnection);
             return;
         }
-        if (contextConfig.remoteIndexCleanupFrequency() == -1) {
+        if (contextConfig.remoteIndexCleanupFrequency() <= 0) {
+            LOG.info("Index Cleaner disabled by configuration");
             return;
         }
         ElasticIndexCleaner task = new ElasticIndexCleaner(elasticConnection, nodeStore, contextConfig.remoteIndexDeletionThreshold());
@@ -204,10 +229,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexProvider(BundleContext bundleContext) {
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(elasticConnection, new ElasticMetricHandler(statisticsProvider));
-
-        // register observer needed for index tracking
-        regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
@@ -215,7 +237,7 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexEditor(BundleContext bundleContext) {
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(elasticConnection, extractedTextCache);
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);

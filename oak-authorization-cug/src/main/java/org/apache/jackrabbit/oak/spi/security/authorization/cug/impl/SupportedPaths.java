@@ -22,14 +22,14 @@ import org.jetbrains.annotations.NotNull;
 
 class SupportedPaths {
 
-    private final String[] supportedPaths;
-    private final String[] supportedAltPaths;
+    private final String[] paths;
+    private final String[] altPaths;
 
     private final boolean includesRootPath;
 
     SupportedPaths(@NotNull Set<String> supportedPaths) {
-        this.supportedPaths = supportedPaths.toArray(new String[0]);
-        supportedAltPaths = new String[supportedPaths.size()];
+        this.paths = supportedPaths.toArray(new String[0]);
+        altPaths = new String[supportedPaths.size()];
 
         boolean foundRootPath = false;
         int i = 0;
@@ -37,7 +37,7 @@ class SupportedPaths {
             if (PathUtils.denotesRoot(p)) {
                 foundRootPath = true;
             } else {
-                supportedAltPaths[i++] = p + '/';
+                altPaths[i++] = p + '/';
             }
         }
         includesRootPath = foundRootPath;
@@ -52,18 +52,18 @@ class SupportedPaths {
      * descendant of one of the configured supported paths.
      */
     boolean includes(@NotNull String path) {
-        if (supportedPaths.length == 0) {
+        if (paths.length == 0) {
             return false;
         }
         if (includesRootPath) {
             return true;
         }
-        for (String p : supportedAltPaths) {
+        for (String p : altPaths) {
             if (path.startsWith(p)) {
                 return true;
             }
         }
-        for (String p : supportedPaths) {
+        for (String p : paths) {
             if (path.equals(p)) {
                 return true;
             }
@@ -82,14 +82,14 @@ class SupportedPaths {
      * a descendant of the given {@code path}.
      */
     boolean mayContainCug(@NotNull String path) {
-        if (supportedPaths.length == 0) {
+        if (paths.length == 0) {
             return false;
         }
         if (includesRootPath || PathUtils.denotesRoot(path)) {
             return true;
         }
         String path2 = path + '/';
-        for (String sp : supportedPaths) {
+        for (String sp : paths) {
             if (sp.startsWith(path2)) {
                 return true;
             }

@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonFactoryBuilder;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.search.SearchHit;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import co.elastic.clients.elasticsearch.core.search.Hit;
+
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Class to process Elastic response objects.
@@ -42,42 +41,36 @@ public class ElasticResponseHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticResponseHandler.class);
 
-    private static final ObjectMapper JSON_MAPPER;
-    static {
-        // disable String.intern
-        // https://github.com/elastic/elasticsearch/issues/39890
-        // https://github.com/FasterXML/jackson-core/issues/332
-        JsonFactoryBuilder factoryBuilder = new JsonFactoryBuilder();
-        factoryBuilder.disable(JsonFactory.Feature.INTERN_FIELD_NAMES);
-        JSON_MAPPER = new ObjectMapper(factoryBuilder.build());
-        JSON_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    }
-
     private final PlanResult planResult;
     private final Filter filter;
+    private final Set<String> seenPaths = new HashSet<>();
 
     ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult, @NotNull Filter filter) {
         this.planResult = planResult;
         this.filter = filter;
     }
 
-    public String getPath(SearchResponseHit hit) {
-        return transformPath((String) hit.source.get(FieldNames.PATH));
-    }
-
-    public String getPath(SearchHit hit) {
-        Map<String, Object> sourceMap = hit.getSourceAsMap();
-        return transformPath((String) sourceMap.get(FieldNames.PATH));
+    public String getPath(Hit<? extends JsonNode> hit) {
+        return transformPath(hit.source().get(FieldNames.PATH).asText());
     }
 
     private String transformPath(String path) {
-        String transformedPath = planResult.transformPath(("".equals(path)) ? "/" : path);
+        if (!planResult.isPathTransformed()) {
+            return path;
+        }
 
+        String transformedPath = planResult.transformPath(("".equals(path)) ? "/" : path);
         if (transformedPath == null) {
             LOG.trace("Ignoring path {} : Transformation returned null", path);
             return null;
         }
 
+        // avoid duplicate entries
+        // (This reduces number of entries passed on to QueryEngine for post processing in case of transformed path field queries)
+        if (!seenPaths.add(transformedPath)) {
+            LOG.trace("Ignoring path {} : Duplicate post transformation", path);
+            return null;
+        }
         return transformedPath;
     }
 
@@ -85,91 +78,24 @@ public class ElasticResponseHandler {
         return filter.isAccessible(path);
     }
 
-    public SearchResponse parse(Response response) throws IOException {
-        return JSON_MAPPER.readValue(response.getEntity().getContent(), SearchResponse.class);
-    }
-
-    // POJO for Elastic json deserialization
-
-    public static class SearchResponse {
-
-        public final long took;
-        public final boolean timedOut;
-        public final SearchResponseHits hits;
-        public final Map<String, AggregationBuckets> aggregations;
-
-        @JsonCreator
-        public SearchResponse(@JsonProperty("took") long took, @JsonProperty("timed_out") boolean timedOut,
-                              @JsonProperty("hits") SearchResponseHits hits,
-                              @JsonProperty("aggregations") Map<String, AggregationBuckets> aggregations) {
-            this.took = took;
-            this.timedOut = timedOut;
-            this.hits = hits;
-            this.aggregations = aggregations;
+    /**
+     * Reads excerpts from elasticsearch response.
+     * rep:excerpt and rep:excerpt(.) keys are used for :fulltext
+     * rep:excerpt(PROPERTY) for other fields.
+     * Note: properties to get excerpt from must be included in the _source, which means ingested,
+     * not necessarily Elasticsearch indexed, neither included in the mapping properties.
+     */
+    public Map<String, String> excerpts(Hit<ObjectNode> searchHit) {
+        Map<String, String> excerpts = new HashMap<>();
+        for (String property : searchHit.highlight().keySet()) {
+            String excerpt = searchHit.highlight().get(property).get(0);
+            if (property.equals(":fulltext")) {
+                excerpts.put("rep:excerpt(.)", excerpt);
+                excerpts.put("rep:excerpt", excerpt);
+            } else {
+                excerpts.put("rep:excerpt(" + property + ")", excerpt);
+            }
         }
-
-    }
-
-    public static class SearchResponseHits {
-
-        public final SearchResponseHitsTotal total;
-        public final SearchResponseHit[] hits;
-
-        @JsonCreator
-        public SearchResponseHits(@JsonProperty("total") SearchResponseHitsTotal total,
-                                  @JsonProperty("hits") SearchResponseHit[] hits) {
-            this.total = total;
-            this.hits = hits;
-        }
-
-    }
-
-    public static class SearchResponseHit {
-
-        public final Map<String, Object> source;
-        public final Object[] sort;
-        public final double score;
-
-        @JsonCreator
-        public SearchResponseHit(@JsonProperty("_source") Map<String, Object> source,
-                                 @JsonProperty("sort") Object[] sort, @JsonProperty("_score") double score) {
-            this.source = source;
-            this.sort = sort;
-            this.score = score;
-        }
-
-    }
-
-    public static class SearchResponseHitsTotal {
-        public final long value;
-
-        @JsonCreator
-        public SearchResponseHitsTotal(@JsonProperty("value") long value) {
-            this.value = value;
-        }
-    }
-
-    public static class AggregationBuckets {
-
-        public final AggregationBucket[] buckets;
-
-        @JsonCreator
-        public AggregationBuckets(@JsonProperty("buckets") AggregationBucket[] buckets) {
-            this.buckets = buckets;
-        }
-
-    }
-
-    public static class AggregationBucket {
-
-        public final Object key;
-        public final int count;
-
-        @JsonCreator
-        public AggregationBucket(@JsonProperty("key") Object key, @JsonProperty("doc_count") int count) {
-            this.key = key;
-            this.count = count;
-        }
-
+        return excerpts;
     }
 }

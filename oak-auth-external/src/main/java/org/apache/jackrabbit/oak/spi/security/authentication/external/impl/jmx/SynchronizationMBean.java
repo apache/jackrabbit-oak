@@ -73,7 +73,7 @@ public interface SynchronizationMBean {
     String[] syncUsers(@NotNull String[] userIds, boolean purge);
 
     /**
-     * Synchronizes all local users with the given user ids. Note that this can be an expensive operation since all
+     * Synchronizes all local users for the given IDP. Note that this can be an expensive operation since all
      * potential users need to be examined.
      *
      * @param purge if {@code true} users that don't exist in the IDP are deleted.
@@ -115,4 +115,18 @@ public interface SynchronizationMBean {
      */
     @NotNull
     String[] purgeOrphanedUsers();
+
+    /**
+     * <p>Migrates all previously synchronized users to have dynamic membership if the {@code SyncHandler} has the dynamic 
+     * membership option enabled. Otherwise this method will have no effect.
+     * </p>
+     * Note: calling this method will only migrate existing group membership information to the dynamic persistence format. 
+     * It does not retrieve the latest membership information from the external identity provider. Membership information 
+     * will therefore only be updated upon the next synchronization.
+     * 
+     * @return result messages
+     * @see org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig.User#getDynamicMembership() 
+     */
+    @NotNull
+    String[] convertToDynamicMembership();
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -70,7 +69,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
         assertFalse(paths.isEmpty());
 
-        readablePaths = Iterators.cycle(Iterables.transform(paths, (Function<String, String>) f -> getNamePathMapper().getJcrPath(f)));
+        readablePaths = Iterators.cycle(Iterables.transform(paths, f -> getNamePathMapper().getJcrPath(f)));
         Set<String> childPaths = Sets.newHashSet();
         for (String path : paths) {
             Iterables.addAll(childPaths, Iterables.transform(root.getTree(path).getChildren(), tree -> getNamePathMapper().getJcrPath(tree.getPath())));

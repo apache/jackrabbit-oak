@@ -19,22 +19,10 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -48,10 +36,27 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.security.Permission;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import static com.google.common.base.Charsets.UTF_8;
+import static java.lang.System.getSecurityManager;
+import static java.lang.System.setSecurityManager;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -62,13 +67,23 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ReindexIT extends AbstractIndexCommandTest {
+    private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+    private final PrintStream originalErr = System.err;
 
     @Before
     public void setUp() {
         IndexCommand.setDisableExitOnError(true);
+        System.setErr(new PrintStream(errContent));
     }
+
+    @After
+    public void tearDown() {
+        System.setErr(originalErr);
+    }
+
 
     @Test
     public void reindexOutOfBand() throws Exception{
@@ -108,6 +123,23 @@ public class ReindexIT extends AbstractIndexCommandTest {
         List<LocalIndexDir> idxDirs = idxRoot.getAllLocalIndexes();
 
         assertEquals(1, idxDirs.size());
+    }
+
+    @Test
+    public void reindexIgnoreMissingTikaDepThrow() throws Exception{
+        IndexCommand command = new IndexCommand() {
+            @Override
+            public void checkTikaDependency() throws ClassNotFoundException {
+                throw new ClassNotFoundException();
+            }
+        };
+        String[] args = {
+                "--reindex",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                "test"
+        };
+        assertExits(1, () -> command.execute(args));
+        assertEquals("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue", errContent.toString("UTF-8").trim());
     }
 
     @Test
@@ -342,6 +374,49 @@ public class ReindexIT extends AbstractIndexCommandTest {
         String explanation = explainRow.getValue("plan").getString();
         session.logout();
         return explanation;
+    }
+
+    public static <E extends Throwable> void assertExits(final int expectedStatus, final ThrowingExecutable<E> executable) throws E {
+        final SecurityManager originalSecurityManager = getSecurityManager();
+        setSecurityManager(new SecurityManager() {
+            @Override
+            public void checkPermission(final Permission perm) {
+                if (originalSecurityManager != null)
+                    originalSecurityManager.checkPermission(perm);
+            }
+
+            @Override
+            public void checkPermission(final Permission perm, final Object context) {
+                if (originalSecurityManager != null)
+                    originalSecurityManager.checkPermission(perm, context);
+            }
+
+            @Override
+            public void checkExit(final int status) {
+                super.checkExit(status);
+                throw new ExitException(status);
+            }
+        });
+        try {
+            executable.run();
+            fail("Expected System.exit(" + expectedStatus + ") to be called, but it wasn't called.");
+        } catch (final ExitException e) {
+            assertEquals(expectedStatus, e.status);
+        } finally {
+            setSecurityManager(originalSecurityManager);
+        }
+    }
+
+    public interface ThrowingExecutable<E extends Throwable> {
+        void run() throws E;
+    }
+
+    private static class ExitException extends SecurityException {
+        final int status;
+
+        private ExitException(final int status) {
+            this.status = status;
+        }
     }
 
 }

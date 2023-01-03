@@ -16,22 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.stream.Collectors;
 
 /**
  * This class is in charge to extract suggestions for a given query. Suggestion is more like
@@ -76,25 +78,23 @@ class ElasticSuggestIterator implements Iterator<FulltextResultRow> {
     public FulltextResultRow next() {
         return internalIterator.next();
     }
-
+    
     private void loadSuggestions() throws IOException {
-        BoolQueryBuilder suggestionQuery = requestHandler.suggestionMatchQuery(suggestQuery);
-        SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
+        Query suggestionQuery = requestHandler.suggestionMatchQuery(suggestQuery);
+        SearchRequest sReq = SearchRequest.of(s -> s
+                .index(indexNode.getDefinition().getIndexAlias())
                 .query(suggestionQuery)
                 .size(100)
-                .fetchSource(FieldNames.PATH, null);
-        SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
-                .source(searchSourceBuilder);
-        SearchResponse res = indexNode.getConnection().getClient().search(searchRequest, RequestOptions.DEFAULT);
-        PriorityQueue<ElasticSuggestion> suggestionPriorityQueue = new PriorityQueue<>((a, b) -> Double.compare(b.score, a.score));
-        for (SearchHit doc : res.getHits()) {
-            if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
-                for (SearchHit suggestion : doc.getInnerHits().get(FieldNames.SUGGEST).getHits()) {
-                    suggestionPriorityQueue.add(new ElasticSuggestion((String) suggestion.getSourceAsMap().get("value"), suggestion.getScore()));
-                }
-            }
-        }
-        this.internalIterator = suggestionPriorityQueue.stream().distinct().iterator();
+                .source(ss -> ss.filter(f -> f.includes(FieldNames.PATH))));
+
+        SearchResponse<ObjectNode> sRes = indexNode.getConnection().getClient().search(sReq, ObjectNode.class);
+        this.internalIterator = sRes.hits().hits().stream()
+                .filter(hit -> responseHandler.isAccessible(responseHandler.getPath(hit)))
+                .map(hit -> hit.innerHits().get(FieldNames.SUGGEST).hits().hits())
+                .flatMap(Collection::stream)
+                .map(hit -> new ElasticSuggestion(hit.source().to(ObjectNode.class).get("value").asText(), hit.score()))
+                .collect(Collectors.toCollection(() -> new PriorityQueue<>((a, b) -> Double.compare(b.score, a.score))))
+                .stream().distinct().iterator();
     }
 
     private final static class ElasticSuggestion extends FulltextResultRow {

@@ -4,30 +4,28 @@
   "ancestor": {"value": 1, "a-old": 0},
   "custom": {"value": 2, "b-new": 3},
   "product": {"value": 1, "c-new": 4},
-  "expected": {"value": 2, "b-new": 3, "c-new": 4, "merges": ["/oak:index/test-1", "/oak:index/test-1-custom-1"]
+  "expected": {"value": 2, "b-new": 3, "c-new": 4, "merges": ["/oak:index/test-2", "/oak:index/test-1-custom-1"]
   }
 },
 {
   "ancestor": {"o": {"a": 1}},
   "custom": {"o": {"a": 2, "c": 10}},
   "product": {"o": {"a": 1, "p": 20}},
-  "expected": {"merges": ["/oak:index/test-1", "/oak:index/test-1-custom-1"], "o": {"a": 2, "c": 10, "p": 20 }}
+  "expected": {"merges": ["/oak:index/test-2", "/oak:index/test-1-custom-1"], "o": {"a": 2, "c": 10, "p": 20 }}
 },
 {
   "ancestor": {"o": {"a": 1}},
   "custom": {},
   "product": {"o": {"a": 2}},
-  "expected":"Conflicts detected: [Could not merge value; property=a; ancestor=1; custom=null; product=2]"
+  "expected": {"merges": ["/oak:index/test-2", "/oak:index/test-1-custom-1"],"o": {"a": 2}}
 },
 {
   "ancestor": {"a": 1},
   "custom": {"a": 2},
   "product": {"a": 3},
-  "expected": "Conflicts detected: [Could not merge value; property=a; ancestor=1; custom=2; product=3]"
+  "expected": "Conflicts detected: [Could not merge value; path= property=a; ancestor=1; custom=2; product=3]"
 },
 {
-
-
   "ancestor": {
     "jcr:primaryType": "nam:oak:QueryIndexDefinition",
     "compatVersion": 2,
@@ -68,7 +66,6 @@
       }
     }
   }
-
 
   , "custom": {
 // changed: facets
@@ -111,7 +108,6 @@
       }
     }
   }
-
 
   , "product":
 // changed: cqTags/nodeScopeIndex = false
@@ -156,7 +152,6 @@
     }
   }
 
-
   , "expected":
  {
     "jcr:primaryType": "nam:oak:QueryIndexDefinition",
@@ -197,9 +192,8 @@
         }
       }
     },
-    "merges": ["/oak:index/test-1", "/oak:index/test-1-custom-1"]
+    "merges": ["/oak:index/test-2", "/oak:index/test-1-custom-1"]
   }
-
 
 }
 ]

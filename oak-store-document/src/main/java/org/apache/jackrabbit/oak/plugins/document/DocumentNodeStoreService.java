@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -39,6 +40,7 @@ import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -66,6 +68,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBu
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreMetrics;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -79,7 +82,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
@@ -95,8 +97,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -133,6 +137,7 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
+    static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -165,6 +170,16 @@ public class DocumentNodeStoreService {
      * Default interval for taking snapshots of locally tracked blob ids.
      */
     static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
+
+    /**
+     * Feature toggle name to enable prefetch operation in DocumentStore
+     */
+    private static final String FT_NAME_PREFETCH = "FT_PREFETCH_OAK-9780";
+
+    /**
+     * Feature toggle name to enable document store throttling for Mongo Document Store
+     */
+    private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -199,6 +214,8 @@ public class DocumentNodeStoreService {
     private DocumentNodeStore nodeStore;
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
+    private Feature prefetchFeature;
+    private Feature docStoreThrottlingFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -231,6 +248,8 @@ public class DocumentNodeStoreService {
         executor.start(whiteboard);
         customBlobStore = this.config.customBlobStore();
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
+        prefetchFeature = Feature.newFeature(FT_NAME_PREFETCH, whiteboard);
+        docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -295,6 +314,7 @@ public class DocumentNodeStoreService {
             builder.setSocketKeepAlive(soKeepAlive);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
+            builder.setCollectionCompressionType(config.collectionCompressionType());
             mkBuilder = builder;
 
             log.info("Connected to database '{}'", db);
@@ -402,9 +422,34 @@ public class DocumentNodeStoreService {
             nodeStore, props);
     }
 
+    private LeaseFailureHandler createDefaultLeaseFailureHandler() {
+        return new LeaseFailureHandler() {
+            @Override
+            public void handleLeaseFailure() {
+                Bundle bundle = context.getBundleContext().getBundle();
+                String bundleName = bundle.getSymbolicName();
+                try {
+                    // plan A: try stopping oak-store-document
+                    log.error("handleLeaseFailure: stopping {}...", bundleName);
+                    bundle.stop(Bundle.STOP_TRANSIENT);
+                    log.error("handleLeaseFailure: stopped {}.", bundleName);
+                    // plan A worked, perfect!
+                } catch (BundleException e) {
+                    log.error("handleLeaseFailure: exception while stopping " + bundleName + ": " + e, e);
+                    // plan B: stop only DocumentNodeStoreService (to stop the background threads)
+                    log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
+                    context.disableComponent(DocumentNodeStoreService.class.getName());
+                    log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
+                    // plan B succeeded.
+                }
+            }
+        };
+    }
+
     private void configureBuilder(DocumentNodeStoreBuilder<?> builder) {
         String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
         String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
+        final Tracker<LeaseFailureHandler> leaseFailureHandlerTracker = whiteboard.track(LeaseFailureHandler.class);
         builder.setStatisticsProvider(statisticsProvider).
                 setExecutor(executor).
                 memoryCacheSize(config.cache() * MB).
@@ -418,25 +463,36 @@ public class DocumentNodeStoreService {
                 setBundlingDisabled(config.bundlingDisabled()).
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
+                setPrefetchFeature(prefetchFeature).
+                setDocStoreThrottlingFeature(docStoreThrottlingFeature).
+                setThrottlingEnabled(config.throttlingEnabled()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
+
+                    private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
 
                     @Override
                     public void handleLeaseFailure() {
-                        Bundle bundle = context.getBundleContext().getBundle();
-                        String bundleName = bundle.getSymbolicName();
+                        boolean handled = false;
                         try {
-                            // plan A: try stopping oak-store-document
-                            log.error("handleLeaseFailure: stopping {}...", bundleName);
-                            bundle.stop(Bundle.STOP_TRANSIENT);
-                            log.error("handleLeaseFailure: stopped {}.", bundleName);
-                            // plan A worked, perfect!
-                        } catch (BundleException e) {
-                            log.error("handleLeaseFailure: exception while stopping " + bundleName + ": " + e, e);
-                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
-                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
-                            context.disableComponent(DocumentNodeStoreService.class.getName());
-                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
-                            // plan B succeeded.
+                            if (leaseFailureHandlerTracker != null) {
+                                final List<LeaseFailureHandler> handlers = leaseFailureHandlerTracker.getServices();
+                                if (handlers != null && handlers.size() > 0) {
+                                    // go through the list, but only execute the first one
+                                    for (LeaseFailureHandler handler : handlers) {
+                                        if (handler != null) {
+                                            log.info("handleLeaseFailure: invoking handler " + handler);
+                                            handler.handleLeaseFailure();
+                                            handled = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } finally {
+                            if (!handled) {
+                                log.info("handleLeaseFailure: invoking default handler");
+                                defaultLeaseFailureHandler.handleLeaseFailure();
+                            }
                         }
                     }
                 }).
@@ -457,6 +513,11 @@ public class DocumentNodeStoreService {
             checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
                     "initialized", CUSTOM_BLOB_STORE);
             builder.setBlobStore(blobStore);
+        }
+
+        // set throttling stats collector only if throttling is enabled
+        if (isThrottlingEnabled(builder)) {
+            builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
     }
 
@@ -539,6 +600,14 @@ public class DocumentNodeStoreService {
 
         if (journalPropertyHandlerFactory != null){
             journalPropertyHandlerFactory.stop();
+        }
+
+        if (prefetchFeature != null) {
+            prefetchFeature.close();
+        }
+
+        if (docStoreThrottlingFeature != null) {
+            docStoreThrottlingFeature.close();
         }
 
         unregisterNodeStore();

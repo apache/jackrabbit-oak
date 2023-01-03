@@ -15,6 +15,7 @@ The following runmodes are currently available:
     * datastorecheck  : Consistency checker for data store 
     * datastore       : Maintenance operations for the for data store 
     * debug           : Print status information about an Oak repository
+    * documentstore-check : Check a DocumentStore for inconsistencies
     * explore         : Starts a GUI browser based on java swing
     * export          : Export repository content as json
     * frozennoderefsbyscanning : Scan for nt:frozenNode references via query
@@ -130,6 +131,39 @@ below
 
     $ java -jar oak-run-*.jar console mongodb://host ":load /path/to/script.groovy"
 
+DocumentStore Check
+-------------------
+
+The `documentstore-check` command runs a consistency check on a DocumentStore
+based repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar documentstore-check [options] mongodb://host:port/database
+
+(or, for RDBMK instances, use "jdbc:...").
+
+The following options are currently supported:
+
+    Option                     Description
+    ------                     -----------
+    -?, -h, --help              show help
+    --baseVersion [Boolean]     Check base version reference (default: true)
+    --cacheSize <Integer>       cache size (default: 0)
+    --numThreads <Integer>      Use this number of threads to check consistency
+                                  (default: 12)
+    --orphan [Boolean]          Check for orphaned nodes (default: true)
+    --out <String>              Write output to this file
+    --progress [Boolean]        Write periodic progress messages (default: true)
+    --rdbjdbcpasswd [String]    RDB JDBC password (default: )
+    --rdbjdbcuser [String]      RDB JDBC user (default: )
+    --rdbtableprefix [String]   RDB table prefix
+    --silent                    Do not write output to stdout
+    --summary [Boolean]         Write a summary message at the end (default: true)
+    --versionHistory [Boolean]  Check version history reference (default: true)
+
+The command uses a pool of threads to check consistency of the repository. The
+size of the pool is determined by the number of available cores, unless specified
+explicitly with the `--numThreads` option. 
+
 Explore
 -------
 
@@ -141,6 +175,10 @@ browsing of an existing oak repository.
 Microsoft Azure node stores are also supported using the following command.  The secret key must be supplied as an environment variable `AZURE_SECRET_KEY`.  
 
     $ java -jar oak-run-*.jar explore az:https://myaccount.blob.core.windows.net/container/repository [--skip-size-check]
+
+If using a Shared Access Signature, the SAS token has to be appended to the azure URI.
+
+    $ java -jar oak-run-*.jar explore az:https://myaccount.blob.core.windows.net/container/repository?<sas-token> [--skip-size-check]
 
 frozennoderefsbyscanning
 ------------------------
@@ -681,8 +719,43 @@ The config files should be formatted according to the OSGi configuration admin s
     cat > org.apache.jackrabbit.oak.plugins.FileDataStore.config << EOF 
     path="/data/datastore"
     EOF        
-    
 
+Oak DataStoreCopy
+-------------------
+
+Command to concurrently download blobs from an Azure datastore using sas token authentication.
+
+    $ java -jar oak-run-*.jar datastore-copy \
+            [--source-repo <source_repository_url>] \
+            [--include-path <paths_to_include>] \
+            [--file-include-path <file_with_paths_to_include>] \
+            [--sas-token <authentication_token>] \
+            [--out-dir <output_path>] \
+            [--concurrency <max_requests>] \
+            [--connect-timeout <milliseconds>] \
+            [--read-timeout <milliseconds>] \
+            [--max-retries <retries>] \
+            [--retry-interval <milliseconds>] \
+            [--fail-on-error <boolean>] \
+            [--slow-log-threshold <milliseconds>]
+
+The following options are available:
+
+    --source-repo           - The source Azure repository url.
+    --include-path          - Include only these paths when copying (separated by semicolon).
+    --file-include-path     - Include only the paths specified in the file (separated by newline). Useful when the number of blobs
+                                is big to avoid command prompt limitations.
+    --sas-token             - The SAS token to access Azure Storage.
+    --out-dir               - Path where to store the blobs (Optional). Otherwise, blobs will be stored in the current directory.
+    --concurrency           - Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores).
+    --connect-timeout       - Sets a specific timeout value, in milliseconds, to be used when opening a connection for a
+                                single blob (default 0, no timeout).
+    --read-timeout          - Sets the read timeout, in milliseconds when reading a single blob (default 0, no timeout).
+    --max-retries           - Max number of retries when a blob download fails (default 3).
+    --retry-interval        - The initial retry interval in milliseconds (default 100).
+    --fail-on-error         - If true fails the execution immediately after the first error, otherwise it continues processing 
+                                all the blobs. When false, the command will fail only if no blobs were downloaded (default false).
+    --slow-log-threshold    - Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s]).
 
 Reset Cluster Id
 ---------------

@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -69,12 +70,78 @@ public class QueryTest extends AbstractRepositoryTest {
     public QueryTest(NodeStoreFixture fixture) {
         super(fixture);
     }
-    
+
+    @Test
+    public void limitOption() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+        // grammar supports limit option
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where ischildnode('/') or [jcr:uuid] = 1 option(limit 10)"));
+       
+
+        Node testRoot = session.getNode("/").addNode("limit-test","nt:unstructured");
+        for(int count: IntStream.range(0, 100).toArray()){
+            testRoot.addNode("limit-test-child"+count,"nt:unstructured");
+        }
+        session.save();
+
+        String[] paths = getNodeList(session, "SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/limit-test]) OPTION(LIMIT 10)", Query.JCR_SQL2).split(",");
+        assertEquals(10, paths.length);
+    }
+
+    @Test
+    public void offsetOption() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+        // grammar supports offset option
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where ischildnode('/') or [jcr:uuid] = 1 option(offset 10)"));
+       
+
+        Node testRoot = session.getNode("/").addNode("offset-test","nt:unstructured");
+        for(int count: IntStream.range(0, 100).toArray()){
+            testRoot.addNode("offset-test-child"+count,"nt:unstructured");
+        }
+        session.save();
+
+        String[] paths = getNodeList(session, "SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/offset-test]) OPTION(OFFSET 80)", Query.JCR_SQL2).split(",");
+        assertEquals(20, paths.length);
+
+        paths = getNodeList(session, "SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/offset-test]) OPTION(OFFSET 80, LIMIT 10)", Query.JCR_SQL2).split(",");
+        assertEquals(10, paths.length);
+    }
+
+    @Test
+    public void testSettingsOverride() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+
+        Node testRoot = session.getNode("/").addNode("settings-override-test","nt:unstructured");
+        for(int count: IntStream.range(0, 100).toArray()){
+            testRoot.addNode("settings-override-test-child"+count,"nt:unstructured");
+        }
+        session.save();
+
+        Query q = qm.createQuery("SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/settings-override-test]) OPTION(OFFSET 10)", Query.JCR_SQL2);
+        q.setLimit(90);
+        NodeIterator it = q.execute().getNodes();
+        int count = 0;
+        while(it.hasNext()){
+            count++;
+            it.next();
+        }
+        assertEquals(90, count);
+    }
+
     @Test
     public void traversalOption() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        
+
         // for union queries:
         // both subqueries use an index
         assertTrue(isValidQuery(qm, Query.JCR_SQL2,
@@ -88,22 +155,22 @@ public class QueryTest extends AbstractRepositoryTest {
         // first one does, second one does not
         assertFalse(isValidQuery(qm, Query.JCR_SQL2,
                 "select * from [nt:base] where [x] = 2 or [jcr:uuid] = 1 option(traversal fail)"));
-        
+
         // queries that possibly use traversal (depending on the join order)
         assertTrue(isValidQuery(qm, "xpath",
                 "/jcr:root/content//*/jcr:content[@jcr:uuid='1'] option(traversal fail)"));
         assertTrue(isValidQuery(qm, "xpath",
                 "/jcr:root/content/*/jcr:content[@jcr:uuid='1'] option(traversal fail)"));
         assertTrue(isValidQuery(qm, Query.JCR_SQL2,
-                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(b, a) " + 
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(b, a) " +
                 "where [a].[jcr:uuid] = 1 option(traversal fail)"));
         assertTrue(isValidQuery(qm, Query.JCR_SQL2,
-                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " + 
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " +
                 "where [a].[jcr:uuid] = 1 option(traversal fail)"));
 
         // union with joins
         assertTrue(isValidQuery(qm, Query.JCR_SQL2,
-                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " + 
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " +
                 "where ischildnode([a], '/') or [a].[jcr:uuid] = 1 option(traversal fail)"));
 
         assertFalse(isValidQuery(qm, "xpath",
@@ -118,7 +185,7 @@ public class QueryTest extends AbstractRepositoryTest {
                 "select * from [nt:base] option(traversal ok)"));
         assertTrue(isValidQuery(qm, Query.JCR_SQL2,
                 "select * from [nt:base] option(traversal warn)"));
-        
+
         // the following is not really traversal, it is just listing child nodes:
         assertTrue(isValidQuery(qm, "xpath",
                 "/jcr:root/*[@test] option(traversal fail)"));
@@ -127,7 +194,7 @@ public class QueryTest extends AbstractRepositoryTest {
                 "/jcr:root/oak:index[@test] option(traversal fail)"));
 
     }
-    
+
     private static boolean isValidQuery(QueryManager qm, String language, String query) throws RepositoryException {
         try {
             qm.createQuery(query, language).execute();
@@ -137,7 +204,7 @@ public class QueryTest extends AbstractRepositoryTest {
             return false;
         }
     }
-    
+
     @Test
     public void firstSelector() throws Exception {
         Session session = getAdminSession();
@@ -167,80 +234,118 @@ public class QueryTest extends AbstractRepositoryTest {
         // b.setProperty("join", a.getProperty("jcr:uuid").getString(), PropertyType.STRING);
         session.save();
         assertEquals("/a",
-                getNodeList(session, 
-                        "select [a].* from [nt:unstructured] as [a] "+ 
-                                "inner join [nt:unstructured] as [b] " + 
+                getNodeList(session,
+                        "select [a].* from [nt:unstructured] as [a] "+
+                                "inner join [nt:unstructured] as [b] " +
                                 "on [a].[jcr:uuid] = [b].[join] where issamenode([a], '/a')",
                         Query.JCR_SQL2));
         assertEquals("/a",
-                getNodeList(session, 
-                        "select [a].* from [nt:unstructured] as [a] "+ 
-                                "inner join [nt:unstructured] as [b] " + 
+                getNodeList(session,
+                        "select [a].* from [nt:unstructured] as [a] "+
+                                "inner join [nt:unstructured] as [b] " +
                                 "on [b].[join] = [a].[jcr:uuid] where issamenode([a], '/a')",
                         Query.JCR_SQL2));
     }
-    
+
     @Test
     public void typeConversion() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();
-        
+
         Node test = root.addNode("test");
         test.addNode("a", "oak:Unstructured").setProperty("time", "2001-01-01T00:00:00.000Z", PropertyType.DATE);
         test.addNode("b", "oak:Unstructured").setProperty("time", "2010-01-01T00:00:00.000Z", PropertyType.DATE);
         test.addNode("c", "oak:Unstructured").setProperty("time", "2020-01-01T00:00:00.000Z", PropertyType.DATE);
         session.save();
-        
+
         assertEquals("/test/c",
-                getNodeList(session, 
+                getNodeList(session,
                 "select [jcr:path] " +
-                "from [nt:base] " + 
+                "from [nt:base] " +
                 "where [time] > '2011-01-01T00:00:00.000z'", Query.JCR_SQL2));
 
     }
-    
+
+    @Test
+    public void first() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured").setProperty("test", new String[] {"a", "b"}, PropertyType.STRING);
+        test.addNode("b", "oak:Unstructured").setProperty("test", new String[] {"b", "a"}, PropertyType.STRING);
+        test.addNode("c", "oak:Unstructured").setProperty("test", "a");
+        test.addNode("d", "oak:Unstructured").setProperty("test", "b");
+        session.save();
+
+        assertEquals("/test/a, /test/c",
+                getNodeList(session,
+                "select [jcr:path] " +
+                "from [nt:base] " +
+                "where first([test]) = 'a'", Query.JCR_SQL2));
+    }
+
+    @Test
+    public void path() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured");
+        test.addNode("b", "oak:Unstructured");
+        test.addNode("c", "oak:Unstructured");
+        session.save();
+
+        assertEquals("/test/c, /test/b",
+                getNodeList(session,
+                "select [jcr:path] " +
+                "from [nt:base] " +
+                "where path() >= '/test/b' " +
+                "order by path() desc", Query.JCR_SQL2));
+    }
+
     @Test
     public void twoSelectors() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();
-        
+
         Node test = root.addNode("test");
         test.addNode("testNode", "oak:Unstructured");
         session.save();
-        
+
         assertEquals("/test/testNode",
-                getNodeList(session, 
+                getNodeList(session,
                 "select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* " +
                 "from [nt:base] as a " +
-                "inner join [nt:base] as b " + 
+                "inner join [nt:base] as b " +
                 "on ischildnode(b, a) " +
                 "where issamenode(a, '/test')", Query.JCR_SQL2));
 
         assertEquals("/test/testNode",
-                getNodeList(session, 
+                getNodeList(session,
                 "select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* " +
                 "from [nt:base] as b " +
-                "inner join [nt:base] as a " + 
+                "inner join [nt:base] as a " +
                 "on ischildnode(b, a) " +
                 "where issamenode(b, '/test/testNode')", Query.JCR_SQL2));
 
         assertEquals("/test",
-                getNodeList(session, 
+                getNodeList(session,
                 "select a.[jcr:path] as [jcr:path], a.[jcr:score] as [jcr:score], a.* " +
                 "from [nt:base] as a " +
-                "inner join [nt:base] as b " + 
+                "inner join [nt:base] as b " +
                 "on ischildnode(b, a) " +
                 "where issamenode(a, '/test')", Query.JCR_SQL2));
-        
+
         assertEquals("/test",
-                getNodeList(session, 
+                getNodeList(session,
                 "select a.[jcr:path] as [jcr:path], a.[jcr:score] as [jcr:score], a.* " +
                 "from [nt:base] as b " +
-                "inner join [nt:base] as a " + 
+                "inner join [nt:base] as a " +
                 "on ischildnode(b, a) " +
                 "where issamenode(b, '/test/testNode')", Query.JCR_SQL2));
     }
-    
+
     private static String getNodeList(Session session, String query, String language) throws RepositoryException {
         QueryResult r = session.getWorkspace().getQueryManager()
                 .createQuery(query, language).execute();
@@ -250,16 +355,16 @@ public class QueryTest extends AbstractRepositoryTest {
             if (buff.length() > 0) {
                 buff.append(", ");
             }
-            buff.append(it.nextNode().getPath());        
+            buff.append(it.nextNode().getPath());
         }
         return buff.toString();
     }
-    
+
     @Test
     public void noDeclaringNodeTypesIndex() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();
-        
+
         // set declaringNodeTypes to an empty array
         Node nodeTypeIndex = root.getNode("oak:index").getNode("nodetype");
         nodeTypeIndex.setProperty("declaringNodeTypes", new String[] {
@@ -279,7 +384,7 @@ public class QueryTest extends AbstractRepositoryTest {
         assertTrue(it.hasNext());
         assertEquals("/test/testNode", it.nextNode().getPath());
     }
-    
+
     @Test
     public void propertyIndexWithDeclaringNodeTypeAndRelativQuery() throws RepositoryException {
         Session session = getAdminSession();
@@ -290,26 +395,26 @@ public class QueryTest extends AbstractRepositoryTest {
         r = session.getWorkspace().getQueryManager()
                 .createQuery("explain " + query, "xpath").execute();
         rit = r.getRows();
-        assertEquals("[rep:Authorizable] as [a] /* property principalName = admin " + 
-                "where [a].[rep:principalName] = 'admin' */", 
+        assertEquals("[rep:Authorizable] as [a] /* property principalName = admin " +
+                "where [a].[rep:principalName] = 'admin' */",
                 rit.nextRow().getValue("plan").getString());
-        
+
         query = "//element(*, rep:Authorizable)[admin/@rep:principalName = 'admin']";
         r = session.getWorkspace().getQueryManager()
                 .createQuery("explain " + query, "xpath").execute();
         rit = r.getRows();
-        assertEquals("[rep:Authorizable] as [a] /* nodeType " + 
-                "Filter(query=explain select [jcr:path], [jcr:score], * " + 
-                "from [rep:Authorizable] as a " + 
-                "where [admin/rep:principalName] = 'admin' " + 
-                "/* xpath: //element(*, rep:Authorizable)[" + 
-                "admin/@rep:principalName = 'admin'] */, path=*, " + 
-                "property=[admin/rep:principalName=[admin]]) " + 
-                "where [a].[admin/rep:principalName] = 'admin' */", 
+        assertEquals("[rep:Authorizable] as [a] /* nodeType " +
+                "Filter(query=explain select [jcr:path], [jcr:score], * " +
+                "from [rep:Authorizable] as a " +
+                "where [admin/rep:principalName] = 'admin' " +
+                "/* xpath: //element(*, rep:Authorizable)[" +
+                "admin/@rep:principalName = 'admin'] */, path=*, " +
+                "property=[admin/rep:principalName=[admin]]) " +
+                "where [a].[admin/rep:principalName] = 'admin' */",
                 rit.nextRow().getValue("plan").getString());
-        
+
     }
-    
+
     @Test
     public void date() throws Exception {
         Session session = getAdminSession();
@@ -318,7 +423,7 @@ public class QueryTest extends AbstractRepositoryTest {
         Node t2 = session.getRootNode().addNode("t2");
         t2.setProperty("x", "2007-06-22T01:02:03.000Z", PropertyType.DATE);
         session.save();
-        
+
         String query = "//*[x='a' or x='b']";
         QueryResult r = session.getWorkspace().
                 getQueryManager().createQuery(
@@ -326,18 +431,18 @@ public class QueryTest extends AbstractRepositoryTest {
         NodeIterator it = r.getNodes();
         assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void unicode() throws Exception {
         Session session = getAdminSession();
         Node content = session.getRootNode().addNode("test");
         String[][] list = {
-                {"three", "\u00e4\u00f6\u00fc"}, 
-                {"two", "123456789"}, 
-                {"one", "\u3360\u3361\u3362\u3363\u3364\u3365\u3366\u3367\u3368\u3369"}, 
+                {"three", "\u00e4\u00f6\u00fc"},
+                {"two", "123456789"},
+                {"one", "\u3360\u3361\u3362\u3363\u3364\u3365\u3366\u3367\u3368\u3369"},
         };
         for (String[] pair : list) {
-            content.addNode(pair[0]).setProperty("prop", 
+            content.addNode(pair[0]).setProperty("prop",
                     "propValue testSearch " + pair[1] + " data");
         }
         session.save();
@@ -351,9 +456,9 @@ public class QueryTest extends AbstractRepositoryTest {
             String path = it.nextNode().getPath();
             assertEquals("/test/" + pair[0], path);
             assertFalse(it.hasNext());
-        }        
+        }
     }
-    
+
     @Test
     @Ignore("OAK-1215")
     public void anyChildNodeProperty() throws Exception {
@@ -370,7 +475,7 @@ public class QueryTest extends AbstractRepositoryTest {
         String path = it.nextNode().getPath();
         assertEquals("/test/one", path);
         assertFalse(it.hasNext());
-        
+
         query = "//*[*/*/@prop = 'hello']";
         r = session.getWorkspace().getQueryManager().createQuery(
                 query, "xpath").execute();
@@ -443,16 +548,16 @@ public class QueryTest extends AbstractRepositoryTest {
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query q;
         q = qm.createQuery(
-                "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s,[/hello])", 
+                "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s,[/hello])",
                 Query.JCR_SQL2);
         assertEquals("/hello/world", getPaths(q));
         q = qm.createQuery(
-                "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s,\"/hello\")", 
+                "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s,\"/hello\")",
                 Query.JCR_SQL2);
         assertEquals("/hello/world", getPaths(q));
         try {
             q = qm.createQuery(
-                    "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s,[\"/hello\"])", 
+                    "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s,[\"/hello\"])",
                     Query.JCR_SQL2);
             getPaths(q);
             fail();
@@ -472,10 +577,10 @@ public class QueryTest extends AbstractRepositoryTest {
         session.save();
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query q;
-        
-        q = qm.createQuery("select a.[jcr:path] from [nt:base] as a " + 
+
+        q = qm.createQuery("select a.[jcr:path] from [nt:base] as a " +
                     "inner join [nt:base] as b " +
-                    "on ischildnode(a, b) " + 
+                    "on ischildnode(a, b) " +
                     "where a.x = 1 or a.x = 2 or b.x = 3 or b.x = 4", Query.JCR_SQL2);
         assertEquals("/hello", getPaths(q));
 
@@ -492,18 +597,18 @@ public class QueryTest extends AbstractRepositoryTest {
         session.save();
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query q;
-        
+
         q = qm.createQuery("/jcr:root/hel_x006c_o/*", Query.XPATH);
         assertEquals("/hello/world", getPaths(q));
-        
+
         q = qm.createQuery("//hel_x006c_o", Query.XPATH);
         assertEquals("/hello", getPaths(q));
-        
+
         q = qm.createQuery("//element(hel_x006c_o, nt:base)", Query.XPATH);
         assertEquals("/hello", getPaths(q));
 
     }
-    
+
     private static String getPaths(Query q) throws RepositoryException {
         QueryResult r = q.execute();
         RowIterator it = r.getRows();
@@ -631,7 +736,7 @@ public class QueryTest extends AbstractRepositoryTest {
             assertFalse(it.hasNext());
         }
     }
-    
+
     @Test
     public void limit() throws RepositoryException {
         Session session = getAdminSession();
@@ -661,7 +766,7 @@ public class QueryTest extends AbstractRepositoryTest {
                 assertEquals(l, r.getRows().getSize());
                 assertEquals(l, r.getNodes().getSize());
                 Row row;
-                
+
                 for (int x = offset + 1, i = 0; i < limit && x < 4; i++, x++) {
                     assertTrue(it.hasNext());
                     row = it.nextRow();
@@ -693,17 +798,17 @@ public class QueryTest extends AbstractRepositoryTest {
         assertEquals(new HashSet<String>(Arrays.asList("/folder1", "/folder2", "/folder2/folder3")),
                 paths);
     }
-    
+
     @Test
     public void noLiterals() throws RepositoryException {
         Session session = getAdminSession();
         ValueFactory vf = session.getValueFactory();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        
+
         // insecure
         try {
             Query q = qm.createQuery(
-                    "select text from [nt:base] where password = 'x'", 
+                    "select text from [nt:base] where password = 'x'",
                     Query.JCR_SQL2 + "-noLiterals");
             q.execute();
             fail();
@@ -714,7 +819,7 @@ public class QueryTest extends AbstractRepositoryTest {
 
         // secure
         Query q = qm.createQuery(
-                "select text from [nt:base] where password = $p", 
+                "select text from [nt:base] where password = $p",
                 Query.JCR_SQL2 + "-noLiterals");
         q.bindValue("p", vf.createValue("x"));
         q.execute();
@@ -814,7 +919,7 @@ public class QueryTest extends AbstractRepositoryTest {
             }
         }
     }
-    
+
     @Test
     public void testOak1128() throws RepositoryException {
         Session session = createAdminSession();
@@ -881,7 +986,7 @@ public class QueryTest extends AbstractRepositoryTest {
         assertFalse(ni.hasNext());
         session.logout();
     }
-    
+
     @Test
     public void approxCount() throws Exception {
         Session session = createAdminSession();
@@ -906,7 +1011,7 @@ public class QueryTest extends AbstractRepositoryTest {
         }
         double c = getCost(session, "//*[@x=1]");
         assertTrue("cost: " + c, c > 0 && c < 100000);
-        
+
         // *without* the counter index, the estimated cost to traverse is high
         session.getNode("/oak:index/counter").remove();
         session.save();
@@ -921,8 +1026,8 @@ public class QueryTest extends AbstractRepositoryTest {
         Session session = createAdminSession();
         String xpath = "/jcr:root//element(*,rep:User)[xyz/@jcr:primaryType]";
         assertPlan(getPlan(session, xpath), "[rep:User] as [a] /* nodeType");
-        
-        session.getNode("/oak:index/nodetype").setProperty("declaringNodeTypes", 
+
+        session.getNode("/oak:index/nodetype").setProperty("declaringNodeTypes",
                 new String[]{"oak:Unstructured"}, PropertyType.NAME);
         session.save();
 
@@ -945,7 +1050,7 @@ public class QueryTest extends AbstractRepositoryTest {
         } catch (InvalidQueryException e) {
             // expected
         }
-        
+
         session.logout();
     }
 
@@ -976,7 +1081,7 @@ public class QueryTest extends AbstractRepositoryTest {
     private static void assertPlan(String plan, String planPrefix) {
         assertTrue("Unexpected plan: " + plan, plan.startsWith(planPrefix));
     }
-    
+
     private static String getPlan(Session session, String xpath) throws RepositoryException {
         QueryManager qm = session.getWorkspace().getQueryManager();
         QueryResult qr = qm.createQuery("explain " + xpath, "xpath").execute();
@@ -984,7 +1089,7 @@ public class QueryTest extends AbstractRepositoryTest {
         String plan = r.getValue("plan").getString();
         return plan;
     }
-    
+
     private static double getCost(Session session, String xpath) throws RepositoryException {
         QueryManager qm = session.getWorkspace().getQueryManager();
         QueryResult qr = qm.createQuery("explain measure " + xpath, "xpath").execute();
@@ -995,7 +1100,7 @@ public class QueryTest extends AbstractRepositoryTest {
         double c = Double.parseDouble(json.getProperties().get("a"));
         return c;
     }
-    
+
     private static JsonObject parseJson(String json) {
         JsopTokenizer t = new JsopTokenizer(json);
         t.read('{');

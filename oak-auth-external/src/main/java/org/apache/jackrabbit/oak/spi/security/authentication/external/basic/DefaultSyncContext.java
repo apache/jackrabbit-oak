@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
@@ -486,7 +487,7 @@ public class DefaultSyncContext implements SyncContext {
                                       @NotNull Authorizable authorizable,
                                       @NotNull DefaultSyncConfig.Authorizable config) throws RepositoryException {
         syncProperties(external, authorizable, config.getPropertyMapping());
-        applyMembership(authorizable, config.getAutoMembership());
+        applyMembership(authorizable, config.getAutoMembership(authorizable));
     }
 
     /**
@@ -496,7 +497,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param external the external identity
      * @param auth the authorizable
      * @param depth recursion depth.
-     * @throws RepositoryException
+     * @throws RepositoryException If a user management specific error occurs upon synchronizing membership
      */
     protected void syncMembership(@NotNull ExternalIdentity external, @NotNull Authorizable auth, long depth)
             throws RepositoryException {
@@ -517,11 +518,13 @@ public class DefaultSyncContext implements SyncContext {
 
         // first get the set of the existing groups that are synced ones
         Map<String, Group> declaredExternalGroups = new HashMap<>();
+        List<String> declaredExternalGroupIds = new ArrayList<>();
         Iterator<Group> grpIter = auth.declaredMemberOf();
         while (grpIter.hasNext()) {
             Group grp = grpIter.next();
             if (isSameIDP(grp)) {
-                declaredExternalGroups.put(grp.getID(), grp);
+                declaredExternalGroupIds.add(grp.getID());
+                declaredExternalGroups.put(grp.getID().toLowerCase(), grp);
             }
         }
         timer.mark("reading");
@@ -529,37 +532,32 @@ public class DefaultSyncContext implements SyncContext {
         for (ExternalIdentityRef ref : externalGroups) {
             log.debug("- processing membership {}", ref.getId());
             // get group
-            ExternalGroup extGroup;
-            try {
-                ExternalIdentity extId = idp.getIdentity(ref);
-                if (extId instanceof ExternalGroup) {
-                    extGroup = (ExternalGroup) extId;
-                } else {
-                    log.warn("No external group found for ref '{}'.", ref.getString());
-                    continue;
-                }
-            } catch (ExternalIdentityException e) {
-                log.warn("Unable to retrieve external group '{}' from provider.", ref.getString(), e);
+            ExternalGroup extGroup = getExternalGroupFromRef(ref);
+            if (extGroup == null) {
                 continue;
             }
-            log.debug("- idp returned '{}'", extGroup.getId());
 
             // mark group as processed
-            Group grp = declaredExternalGroups.remove(extGroup.getId());
+            boolean idMatches = declaredExternalGroupIds.contains(extGroup.getId());
+            Group grp = declaredExternalGroups.remove(extGroup.getId().toLowerCase());
             boolean exists = grp != null;
+
+            if (exists && !idMatches) {
+                log.warn("The existing group {} and the external group {} have identifiers that only differ by case. Since the identifiers are compared case-insensitively, the existing authorizable will be considered to match the external group.", grp.getID(), extGroup.getId());
+            }
 
             if (!exists) {
                 Authorizable a = userManager.getAuthorizable(extGroup.getId());
                 if (a == null) {
                     grp = createGroup(extGroup);
-                    log.debug("- created new group");
+                    log.debug("- created new group '{}'", grp.getID());
                 } else if (a.isGroup() && isSameIDP(a)) {
                     grp = (Group) a;
                 } else {
                     log.warn("Existing authorizable '{}' is not a group from this IDP '{}'.", extGroup.getId(), idp.getName());
                     continue;
                 }
-                log.debug("- user manager returned '{}'", grp);
+                log.debug("- user manager returned '{}'", grp.getID());
             }
 
             syncGroup(extGroup, grp);
@@ -567,7 +565,7 @@ public class DefaultSyncContext implements SyncContext {
             if (!exists) {
                 // ensure membership
                 grp.addMember(auth);
-                log.debug("- added '{}' as member to '{}'", auth, grp);
+                log.debug("- added '{}' as member to '{}'", auth, grp.getID());
             }
 
             // recursively apply further membership
@@ -587,6 +585,21 @@ public class DefaultSyncContext implements SyncContext {
         }
         timer.mark("removing");
         log.debug("syncMembership({}) {}", external.getId(), timer);
+    }
+    
+    protected @Nullable ExternalGroup getExternalGroupFromRef(@NotNull ExternalIdentityRef externalGroupRef) {
+        try {
+            ExternalIdentity extId = idp.getIdentity(externalGroupRef);
+            if (extId instanceof ExternalGroup) {
+                log.debug("- idp returned '{}'", extId.getId());
+                return (ExternalGroup) extId;
+            } else {
+                log.warn("No external group found for ref '{}'.", externalGroupRef.getString());
+            }
+        } catch (ExternalIdentityException e) {
+            log.warn("Unable to retrieve external group '{}' from provider.", externalGroupRef.getString(), e);
+        }
+        return null;
     }
 
     /**
@@ -624,6 +637,9 @@ public class DefaultSyncContext implements SyncContext {
             String relPath = entry.getKey();
             String name = entry.getValue();
             Object obj = properties.get(name);
+            if (obj instanceof Supplier) {
+                obj = ((Supplier) obj).get();
+            }
             if (obj == null) {
                 int nameLen = name.length();
                 if (nameLen > 1 && name.charAt(0) == '"' && name.charAt(nameLen-1) == '"') {

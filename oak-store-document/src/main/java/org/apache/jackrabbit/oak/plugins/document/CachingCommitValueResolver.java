@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.cache.CacheBuilder.newBuilder;
 import static com.google.common.collect.ImmutableList.of;
@@ -148,7 +149,12 @@ final class CachingCommitValueResolver implements CommitValueResolver {
             // only cache committed states
             // e.g. branch commits may be merged later and
             // the commit value will change
-            commitValueCache.put(changeRevision, value);
+            try {
+                commitValueCache.put(changeRevision, value);
+            } catch (RuntimeException re) {
+                LoggerFactory.getLogger(getClass()).warn("resolve: RuntimeException with " +
+                        changeRevision + " - " + value, re);
+            }
         }
         return value;
     }

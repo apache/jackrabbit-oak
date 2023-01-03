@@ -40,6 +40,8 @@ public class TemporaryFileStore extends ExternalResource {
 
     private final boolean standby;
 
+    private final String name;
+
     private ScheduledExecutorService executor;
 
     private FileStore store;
@@ -47,28 +49,29 @@ public class TemporaryFileStore extends ExternalResource {
     private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
 
     public TemporaryFileStore(TemporaryFolder folder, boolean standby) {
-        this.folder = folder;
-        this.standby = standby;
-        this.blobStore = null;
+        this(folder, null, standby, null);
     }
 
     public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore, boolean standby) {
+        this(folder, blobStore, standby, null);
+    }
+
+    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore, boolean standby, String name) {
         this.folder = folder;
         this.blobStore = blobStore;
         this.standby = standby;
+        this.name = name;
     }
 
     public TemporaryFileStore(TemporaryFolder folder, int binariesInlineThreshold) {
-        this.folder = folder;
-        this.standby = false;
-        this.blobStore = null;
+        this(folder, null, false, null);
         this.binariesInlineThreshold = binariesInlineThreshold;
     }
 
     @Override
     protected void before() throws Throwable {
         executor = Executors.newSingleThreadScheduledExecutor();
-        FileStoreBuilder builder = fileStoreBuilder(folder.newFolder())
+        FileStoreBuilder builder = fileStoreBuilder(name == null ? folder.newFolder() : folder.newFolder(name))
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
                 .withBinariesInlineThreshold(binariesInlineThreshold)

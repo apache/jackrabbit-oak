@@ -24,6 +24,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 
 import static java.util.Arrays.asList;
@@ -48,6 +49,7 @@ public class BenchmarkOptions {
     private final OptionSpec<String> azureContainerName;
     private final OptionSpec<String> azureRootPath;
     private final OptionSpec<Boolean> mmap;
+    private final OptionSpec<Integer> binariesInlineThreshold;
     private final OptionSpec<Integer> cache;
     private final OptionSpec<Integer> fdsCache;
     private final OptionSpec<File> wikipedia;
@@ -94,11 +96,13 @@ public class BenchmarkOptions {
     private final OptionSpec<String> nonOption;
     private final OptionSpec<?> help;
     private final OptionSpec<Boolean> useAggregationFilter;
+    private final OptionSpec<String> evalType;
     private final OptionSpec<String> elasticHost;
     private final OptionSpec<String> elasticScheme;
     private final OptionSpec<Integer> elasticPort;
     private final OptionSpec<String> elasticApiKeyId;
     private final OptionSpec<String> elasticApiKeySecret;
+    private final OptionSpec<Boolean> throttlingEnabled;
 
     public OptionSpec<String> getElasticApiKeyId() {
         return elasticApiKeyId;
@@ -174,6 +178,10 @@ public class BenchmarkOptions {
 
     public OptionSpec<Boolean> getMmap() {
         return mmap;
+    }
+
+    public OptionSpec<Integer> getBinariesInlineThreshold() {
+        return binariesInlineThreshold;
     }
 
     public OptionSpec<Integer> getCache() {
@@ -359,6 +367,12 @@ public class BenchmarkOptions {
     public OptionSpec<Boolean> getUseAggregationFilter() {
         return useAggregationFilter;
     }
+    
+    public OptionSpec<String> getEvalutionType() { return evalType; }
+
+    public OptionSpec<Boolean> isThrottlingEnabled() {
+        return throttlingEnabled;
+    }
 
 
     public BenchmarkOptions(OptionParser parser) {
@@ -394,6 +408,11 @@ public class BenchmarkOptions {
         mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
+
+        binariesInlineThreshold = parser.accepts("binariesInlineThreshold", "TarMK binaries inline threshold")
+            .withOptionalArg().ofType(Integer.class)
+            .defaultsTo(Segment.MEDIUM_LIMIT);
+        
         cache = parser.accepts("cache", "cache size (MB)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(100);
         fdsCache = parser.accepts("blobCache", "cache size (MB)")
@@ -443,6 +462,8 @@ public class BenchmarkOptions {
         useAggregationFilter = parser.accepts("useAggregationFilter", "Run principal-based tests with 'AggregationFilter'")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+        evalType = parser.accepts("evalType", "Allows to switch between different evaluation types within a single benchmark")
+                .withOptionalArg().ofType(String.class);
         batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AddMembersTest.DEFAULT_BATCH_SIZE);
         importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")
@@ -516,6 +537,10 @@ public class BenchmarkOptions {
                 .ofType(String.class);
         elasticApiKeySecret = parser.accepts("elasticApiKeySecret", "Elastic generated API secret").withOptionalArg()
                 .ofType(String.class);
+        throttlingEnabled = parser
+                .accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE); // throttling is disabled by default
     }
 
 }

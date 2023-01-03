@@ -36,6 +36,8 @@ import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -69,12 +71,12 @@ public class SystemUserImportTest extends AbstractImportTest {
     }
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return USERPATH + '/' + UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @Nullable String getImportBehavior() {
         return null;
     }
 

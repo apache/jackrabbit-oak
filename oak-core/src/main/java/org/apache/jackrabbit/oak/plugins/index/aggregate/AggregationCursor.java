@@ -23,9 +23,9 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.plugins.index.cursor.AbstractCursor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.plugins.index.Cursors.AbstractCursor;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 

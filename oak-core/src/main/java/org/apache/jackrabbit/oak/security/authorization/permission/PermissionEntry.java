@@ -72,12 +72,16 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
         return restriction == RestrictionPattern.EMPTY || restriction.matches(treePath);
     }
 
+    boolean matches(@NotNull String path, boolean isProperty) {
+        return restriction == RestrictionPattern.EMPTY || restriction.matches(path, isProperty);
+    }
+
     boolean matches() {
         return restriction == RestrictionPattern.EMPTY || restriction.matches();
     }
 
     boolean matchesParent(@NotNull String parentPath) {
-        return Text.isDescendantOrEqual(path, parentPath) && (restriction == RestrictionPattern.EMPTY || restriction.matches(parentPath));
+        return Text.isDescendantOrEqual(path, parentPath) && (restriction == RestrictionPattern.EMPTY || restriction.matches(parentPath, false));
     }
 
     @Override

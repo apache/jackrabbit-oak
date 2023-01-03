@@ -19,17 +19,8 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import java.security.Principal;
-import java.util.Iterator;
-
-import javax.jcr.RepositoryException;
-
-import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
@@ -38,6 +29,12 @@ import org.apache.jackrabbit.oak.jcr.session.operation.UserManagerOperation;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.util.Iterator;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * This implementation of {@code UserManager} delegates back to a
@@ -51,7 +48,7 @@ public class UserManagerDelegator implements UserManager {
     private final UserManager userManagerDelegate;
 
     public UserManagerDelegator(final SessionDelegate sessionDelegate, UserManager userManagerDelegate) {
-        checkState(!(userManagerDelegate instanceof UserManagerDelegator));
+        checkArgument(!(userManagerDelegate instanceof UserManagerDelegator));
         this.sessionDelegate = sessionDelegate;
         this.userManagerDelegate = userManagerDelegate;
     }
@@ -114,13 +111,7 @@ public class UserManagerDelegator implements UserManager {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value);
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(Authorizable authorizable) {
-                        return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return Iterators.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
             }
         });
     }
@@ -133,13 +124,7 @@ public class UserManagerDelegator implements UserManager {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value, searchType);
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(Authorizable authorizable) {
-                        return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return Iterators.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
             }
         });
     }
@@ -152,20 +137,14 @@ public class UserManagerDelegator implements UserManager {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(query);
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(Authorizable authorizable) {
-                        return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return Iterators.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
             }
         });
     }
 
     @NotNull
     @Override
-    public User createUser(@NotNull final String userID, @Nullable final String password) throws AuthorizableExistsException, RepositoryException {
+    public User createUser(@NotNull final String userID, @Nullable final String password) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @NotNull
             @Override

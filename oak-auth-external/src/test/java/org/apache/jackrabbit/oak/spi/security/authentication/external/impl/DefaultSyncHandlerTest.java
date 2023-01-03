@@ -16,17 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -36,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContex
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
@@ -44,6 +40,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -67,7 +72,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         super.before();
 
         userManager = getUserManager(root);
-        SyncHandler sh = syncManager.getSyncHandler("default");
+        SyncHandler sh = syncManager.getSyncHandler(DefaultSyncConfig.DEFAULT_NAME);
 
         assertTrue(sh instanceof DefaultSyncHandler);
         syncHandler = (DefaultSyncHandler) sh;
@@ -292,6 +297,18 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         Iterator<SyncedIdentity> identities = syncHandler.listIdentities(um);
         assertFalse(identities.hasNext());
     }
+    
+    @Test
+    public void testListIdentitiesWithRepositoryException() throws Exception {
+        Authorizable a = when(mock(Authorizable.class).getProperty(REP_EXTERNAL_ID)).thenThrow(new RepositoryException()).getMock();
+        Iterator<Authorizable> it = Iterators.singletonIterator(a);
+
+        UserManager um = mock(UserManager.class);
+        when(um.findAuthorizables(REP_EXTERNAL_ID, null)).thenReturn(it);
+
+        Iterator<SyncedIdentity> identities = syncHandler.listIdentities(um);
+        assertFalse(identities.hasNext());
+    }
 
     @Test
     public void testLastSynced() throws Exception {
@@ -312,6 +329,24 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
         // the conflict handler needs to fix overlapping update
         root.commit();
+    }
+
+    //OAK-9773
+    @Test
+    public void testSyncMembershipCaseMismatch() throws Exception {
+        UserManager userManager = getUserManager(root);
+        User user = userManager.createUser("thirduser", "thirduser");
+        user.setProperty(REP_EXTERNAL_ID, getValueFactory().createValue("thirduser;test"));
+        Group group = userManager.createGroup("thirdgroup");
+        group.setProperty(REP_EXTERNAL_ID, getValueFactory().createValue("thirdgroup;test"));
+        assertTrue(group.addMember(user));
+        root.commit();
+        ((TestIdentityProvider) idp).addGroup(new TestIdentityProvider.TestGroup("THIRDGROUP", "test"));
+        ((TestIdentityProvider) idp).addUser(
+                new TestIdentityProvider.TestUser("THIRDUSER", "test").withGroups("THIRDGROUP"));
+
+        syncHandler.createContext(idp, userManager, getValueFactory()).sync(user.getID());
+        assertTrue(group.isMember(user));
     }
 
     @Test

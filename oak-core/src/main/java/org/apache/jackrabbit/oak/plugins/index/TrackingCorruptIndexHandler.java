@@ -94,7 +94,12 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             }
         }
         if (meter != null) {
-            meter.mark(indexes.size());
+            // indexes.size() gives us the number of remaining corrupt indices.
+            // meter.mark(indexes.size()) increments the current meter count by indexes.size(). We don't want that here.
+            // We actually want to set the the meter count to indexes.size(), the api doesn't seem to support that.
+            // So we instead add indexes.size() - meter.getCount() , which will always be <= 0. So this effectively will reduce the meter count
+            // by number of indexes fixed in this call.
+            meter.mark(indexes.size() - meter.getCount());
         }
     }
 
@@ -108,8 +113,8 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     public boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
         CorruptIndexInfo info = getOrCreateInfo(async, indexPath);
         if (info.skippedIndexing(checkNotNull(corruptSince))) {
-            log.warn("Ignoring corrupt index [{}] which has been marked as corrupt [{}]. This index " +
-                            "MUST be reindexed for indexing to work properly", indexPath,
+            log.warn("Ignoring index [{}] which has been marked as corrupt [{}]. This index " +
+                            "MUST be reindexed to work properly", indexPath,
                     info.getStats());
             return true;
         }

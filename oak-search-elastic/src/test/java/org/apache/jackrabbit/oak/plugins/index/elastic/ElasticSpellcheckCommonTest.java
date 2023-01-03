@@ -23,28 +23,17 @@ import org.junit.After;
 import org.junit.ClassRule;
 
 import javax.jcr.Repository;
-import java.io.IOException;
 
 public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
 
-    // Set this connection string as
-    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
-    // key_id and key_secret are optional in case the ES server
-    // needs authentication
-    // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
-
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+    public static final ElasticConnectionRule elasticRule =
+            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
-    /*
-   Close the ES connection after every test method execution
-    */
     @After
-    public void cleanup() throws IOException {
+    public void cleanup() {
         anonymousSession.logout();
         adminSession.logout();
-        elasticRule.closeElasticConnection();
     }
 
     protected Repository createJcrRepository() {

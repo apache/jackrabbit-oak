@@ -16,20 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.jcr.security.AccessControlPolicy;
-
-import static org.junit.Assert.assertEquals;
 
 public class UnknownPrincipalBesteffortTest extends UnknownPrincipalIgnoreTest {
 

@@ -84,6 +84,9 @@ public interface IndexStatsMBean {
             "resume indexing again")
     String abortAndPause();
 
+    @Description("Release lease for a paused lane")
+    String releaseLeaseForPausedLane();
+
     /**
      * Resumes the indexing process. All changes from the previous indexed state
      * will be indexed.

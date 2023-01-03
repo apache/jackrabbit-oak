@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,7 +52,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -129,15 +127,6 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         }
     }
 
-    private static void assertEntry(@NotNull PrincipalPolicyImpl.EntryImpl entry, @Nullable String effectivePath, @NotNull PrivilegeBits expectedBits) {
-        assertEquals(expectedBits, entry.getPrivilegeBits());
-        if (effectivePath == null) {
-            assertNull(entry.getEffectivePath());
-        } else {
-            assertEquals(effectivePath, entry.getEffectivePath());
-        }
-    }
-
     @NotNull
     private String getPolicyPath() throws Exception {
         JackrabbitAccessControlPolicy[] policies = createAccessControlManager(root).getPolicies(systemPrincipal);
@@ -192,7 +181,7 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
 
         // since default permission evaluation is in charge for 'testUser' -> access to full principal policy is now
         // granted
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies((String) testJcrPath);
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(testJcrPath);
         assertEquals(1, effective.length);
         assertTrue(effective[0] instanceof PrincipalPolicyImpl);
     }

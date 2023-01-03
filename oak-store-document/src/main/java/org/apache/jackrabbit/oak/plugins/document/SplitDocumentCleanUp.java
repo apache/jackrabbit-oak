@@ -23,6 +23,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.util.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,8 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 public class SplitDocumentCleanUp implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SplitDocumentCleanUp.class);
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer();
 
     // number of document IDs to collect before removing them in a single call
     private static final int DELETE_BATCH_SIZE = 100;
@@ -136,7 +139,8 @@ public class SplitDocumentCleanUp implements Closeable {
         checkArgument(splitDoc.getSplitDocType() == INTERMEDIATE,
                 "Illegal type: %s", splitDoc.getSplitDocType());
 
-        UpdateOp update = new UpdateOp(splitDoc.getId(), false);
+        String splitDocId = splitDoc.getId();
+        UpdateOp update = new UpdateOp(splitDocId, false);
         NodeDocument.removePrevious(update, rev);
         NodeDocument old = store.findAndUpdate(NODES, update);
         if (old != null
@@ -146,6 +150,19 @@ public class SplitDocumentCleanUp implements Closeable {
             disconnect(old);
             removeFromDocumentStore(old.getId());
             stats.intermediateSplitDocGCCount++;
+        } else if (old == null) {
+            // OAK-9601 : suspected root cause: if the "previous" entry
+            // could not be removed (tbd, maybe modCnt mismatch, race condition etc),
+            // it would not properly have done the disconnect()
+            // and perhaps that is why we get these
+            // "Document with previous revisions not found"
+            if (!LOG_SILENCER.silence(splitDocId)) {
+                LOG.warn("Split document reference could not be removed from intermediate {} -{}",
+                        splitDocId, LogSilencer.SILENCING_POSTFIX);
+            } else {
+                LOG.debug("Split document reference could not be removed from intermediate {}",
+                        splitDocId);
+            }
         }
     }
 

@@ -16,25 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.elasticsearch.client.RestHighLevelClient;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 
 public class ElasticConnectionTest {
 
     @Test
     public void uniqueClient() throws IOException {
         ElasticConnection connection = ElasticConnection.newBuilder()
-                .withIndexPrefix("test")
+                .withIndexPrefix("my+test")
                 .withDefaultConnectionParameters()
                 .build();
-
-        RestHighLevelClient client1 = connection.getClient();
-        RestHighLevelClient client2 = connection.getClient();
-
+        
+        ElasticsearchClient client1 = connection.getClient();
+        ElasticsearchClient client2 = connection.getClient();
+        
         assertEquals(client1, client2);
 
         connection.close();
@@ -43,12 +44,36 @@ public class ElasticConnectionTest {
     @Test(expected = IllegalStateException.class)
     public void alreadyClosedConnection() throws IOException {
         ElasticConnection connection = ElasticConnection.newBuilder()
-                .withIndexPrefix("test")
+                .withIndexPrefix("my.test")
                 .withDefaultConnectionParameters()
                 .build();
 
         connection.close();
 
         connection.getClient();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void emptyIndexPrefix() {
+        ElasticConnection.newBuilder()
+                .withIndexPrefix("")
+                .withDefaultConnectionParameters()
+                .build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void indexPrefixStartingWithNotAllowedChars() {
+        ElasticConnection.newBuilder()
+                .withIndexPrefix(".cannot_start_with_dot")
+                .withDefaultConnectionParameters()
+                .build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void indexPrefixWithNotAllowedChars() {
+        ElasticConnection.newBuilder()
+                .withIndexPrefix("cannot_have_*_chars")
+                .withDefaultConnectionParameters()
+                .build();
     }
 }

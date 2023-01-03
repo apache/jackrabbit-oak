@@ -92,7 +92,7 @@ public class NodeTypeMountedNodeStoreChecker implements
         
         if ( context.getTypeManager().isNodeType(tree, invalidNodeType) &&
                 !isExcluded(mountedStore, tree, context) ) {
-            errorHolder.report(mountedStore, tree.getPath(), errorLabel);
+            errorHolder.report(mountedStore, tree.getPath(), errorLabel, this);
         }
         
         return true;

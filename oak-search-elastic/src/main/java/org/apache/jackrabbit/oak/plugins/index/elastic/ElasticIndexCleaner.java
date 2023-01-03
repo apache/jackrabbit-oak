@@ -18,18 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.indices.GetIndexRequest;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import co.elastic.clients.elasticsearch._types.ExpandWildcard;
+import co.elastic.clients.elasticsearch.cat.IndicesResponse;
+import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
+import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,11 +79,14 @@ public class ElasticIndexCleaner implements Runnable {
     public void run() {
         try {
             NodeState root = nodeStore.getRoot();
-            GetIndexRequest getIndexRequest = new GetIndexRequest(elasticConnection.getIndexPrefix() + "*")
-                    .indicesOptions(IndicesOptions.lenientExpandOpen());
-            String[] remoteIndices = elasticConnection.getClient().indices()
-                    .get(getIndexRequest, RequestOptions.DEFAULT).getIndices();
-            if (remoteIndices == null || remoteIndices.length == 0) {
+
+            IndicesResponse indicesRes = elasticConnection.getClient()
+                    .cat().indices(r -> r
+                            .index(elasticConnection.getIndexPrefix() + "*")
+                            .expandWildcards(ExpandWildcard.Open));
+            String[] remoteIndices = indicesRes.valueBody()
+                    .stream().map(IndicesRecord::index).toArray(String[]::new);
+            if (remoteIndices.length == 0) {
                 LOG.debug("No remote index found with prefix {}", indexPrefix);
                 return;
             }
@@ -100,7 +105,7 @@ public class ElasticIndexCleaner implements Runnable {
                  */
                 if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) || "disabled".equals(typeValue)) {
                     String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + childNodeEntry.getName();
-                    String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
+                    String remoteIndexName = getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
                     if (remoteIndexName != null) {
                         existingIndices.add(remoteIndexName);
                     } else if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue)){
@@ -136,17 +141,32 @@ public class ElasticIndexCleaner implements Runnable {
                     danglingRemoteIndicesMap.remove(remoteIndexName);
                 }
             }
-            DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indicesToDelete.toArray(new String[]{}));
-            if (deleteIndexRequest.indices() != null && deleteIndexRequest.indices().length > 0) {
-                String indexString = Arrays.toString(deleteIndexRequest.indices());
-                AcknowledgedResponse acknowledgedResponse = elasticConnection.getClient().indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
-                LOG.info("Deleting remote indices {}", indexString);
-                if (!acknowledgedResponse.isAcknowledged()) {
-                    LOG.error("Could not delete remote indices " + indexString);
+            if(!indicesToDelete.isEmpty()) {
+                DeleteIndexResponse response = elasticConnection.getClient().indices().delete(i -> i.index(indicesToDelete));
+                LOG.info("Deleting remote indices {}", indicesToDelete);
+                if (!response.acknowledged()) {
+                    LOG.error("Could not delete remote indices " + indicesToDelete);
                 }
             }
         } catch (IOException e) {
             LOG.error("Could not delete remote indices", e);
+        }
+    }
+
+    protected static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
+        PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(nodeTypeProp.getValue(Type.STRING))) {
+            throw new IllegalArgumentException("Not an index definition node state");
+        }
+        PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
+        String typeValue = type != null ? type.getValue(Type.STRING) : "";
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
+            throw new IllegalArgumentException("Not an elastic index node");
+        }
+        try {
+            return ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, indexPath, indexNode.builder());
+        } catch (IllegalStateException ise) { // this happens when there is no seed for the index
+            return null;
         }
     }
 }

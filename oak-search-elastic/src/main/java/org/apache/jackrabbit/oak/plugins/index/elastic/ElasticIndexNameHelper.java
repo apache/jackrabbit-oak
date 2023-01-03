@@ -16,90 +16,75 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.UUID;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.elasticsearch.common.Strings.INVALID_FILENAME_CHARS;
-
 public class ElasticIndexNameHelper {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexNameHelper.class);
 
     private static final int MAX_NAME_LENGTH = 255;
 
-    private static final String INVALID_CHARS_REGEX = Pattern.quote(INVALID_FILENAME_CHARS
-            .stream()
-            .map(Object::toString)
-            .collect(Collectors.joining("")));
+    // revised version of org.elasticsearch.common.Strings.INVALID_FILENAME_CHARS with additional chars:
+    // ':' not supported in >= 7.0
+    private static final Set<Character> INVALID_NAME_CHARS =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList('\\', '/', '*', '?', '"', '<', '>', '|', ' ', ',', ':')));
 
-    public static String getIndexAlias(String indexPrefix, String indexPath) {
-        // TODO: implement advanced remote index name strategy that takes into account multiple tenants and re-index process
-        return getElasticSafeIndexName(indexPrefix + "." + indexPath);
+    private static final Pattern INVALID_CHARS_REGEX = Pattern.compile(INVALID_NAME_CHARS
+            .stream()
+            .map(c -> "(?:(?:\\" + c + "))")
+            .collect(Collectors.joining("|")));
+
+    // these chars can be part of the name but are not allowed at the beginning
+    private static final Set<Character> INVALID_NAME_START_CHARS =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList('.', '-', '_', '+')));
+
+    private static final Pattern INVALID_START_CHARS_REGEX = Pattern.compile(INVALID_NAME_START_CHARS
+            .stream()
+            .map(c -> "\\" + c)
+            .collect(Collectors.joining("", "^[", "]+")));
+
+    public static String getRemoteIndexName(String indexPrefix, String indexName, long seed) {
+        return getElasticSafeIndexName(indexPrefix, indexName + "-" + Long.toHexString(seed));
     }
 
-    public static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
-        PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(nodeTypeProp.getValue(Type.STRING))) {
-            throw new IllegalArgumentException("Not an index definition node state");
-        }
-        PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-        String typeValue = type != null ? type.getValue(Type.STRING) : "";
-        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
-            throw new IllegalArgumentException("Not an elastic index node");
-        }
-        PropertyState seedProp = indexNode.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
+    public static String getRemoteIndexName(String indexPrefix, String indexName, NodeBuilder definitionBuilder) {
+        PropertyState seedProp = definitionBuilder.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
         if (seedProp == null) {
-            LOG.debug("Could not obtain remote index name. No seed found for index {}", indexPath);
-            return null;
+            throw new IllegalStateException("Index full name cannot be computed without name seed");
         }
         long seed = seedProp.getValue(Type.LONG);
-        String indexAlias = getIndexAlias(indexPrefix, indexPath);
-        return getRemoteIndexName(indexAlias, seed);
+        return getRemoteIndexName(indexPrefix, indexName, seed);
     }
 
     /**
-     * Create a name for remote elastic index from given index definition and seed.
-     * @param indexDefinition elastic index definition to use
-     * @param seed seed to use
-     * @return remote elastic index name
-     */
-    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition, long seed) {
-        return getElasticSafeIndexName(
-                indexDefinition.getRemoteIndexAlias() + "-" + Long.toHexString(seed));
-    }
-
-    /**
-     * Create a name for remote elastic index from given index definition and a randomly generated seed.
-     * @param indexDefinition elastic index definition to use
-     * @return remote elastic index name
-     */
-    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition) {
-        return getRemoteIndexName(indexDefinition, UUID.randomUUID().getMostSignificantBits());
-    }
-
-    /**
+     * Returns a name that can be safely used as index name in Elastic.
+     *
+     * Examples:
      * <ul>
-     *     <li>abc -> abc</li>
-     *     <li>xy:abc -> xyabc</li>
-     *     <li>/oak:index/abc -> abc</li>
+     *     <li>prefix, abc -&gt; prefix.abc</li>
+     *     <li>prefix, xy:abc -&gt; prefix.xyabc</li>
+     *     <li>prefix, /oak:index/abc -&gt; prefix.abc</li>
      * </ul>
      * <p>
-     * The resulting file name would be truncated to MAX_NAME_LENGTH
+     * The resulting file name would be truncated to {@link #MAX_NAME_LENGTH}
+     *
+     * @param indexPrefix the prefix of the index. This value does not get validated at this stage since it comes from
+     *                    outside and the validation already happened in {@link ElasticConnection.Builder} when the
+     *                    entire module gets initialized.
+     * @param indexPath the path of the index that will be checked, eventually transformed and appended to the prefix
      */
-    private static String getElasticSafeIndexName(String indexPath) {
-        String name = StreamSupport
+    public static String getElasticSafeIndexName(String indexPrefix, String indexPath) {
+        String name = indexPrefix + "." + StreamSupport
                 .stream(PathUtils.elements(indexPath).spliterator(), false)
                 .limit(3) //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
                 .filter(p -> !"oak:index".equals(p))
@@ -116,11 +101,16 @@ public class ElasticIndexNameHelper {
      * Convert {@code e} to Elasticsearch safe index name.
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
-    static String getElasticSafeName(String suggestedIndexName) {
-        return suggestedIndexName.replaceAll(INVALID_CHARS_REGEX, "").toLowerCase();
+    private static String getElasticSafeName(String suggestedIndexName) {
+        return INVALID_CHARS_REGEX.matcher(suggestedIndexName).replaceAll("").toLowerCase();
     }
 
-    private static String getRemoteIndexName(String indexAlias, long seed) {
-        return getElasticSafeIndexName(indexAlias + "-" + Long.toHexString(seed));
+    static boolean isValidPrefix(@NotNull String prefix) {
+        if (!prefix.equals("")) {
+            return prefix.equals(prefix.toLowerCase()) && // it has to be lowercase
+                    !INVALID_START_CHARS_REGEX.matcher(prefix).find() && // not start with specific chars
+                    !INVALID_CHARS_REGEX.matcher(prefix).find(); // not contain specific chars
+        }
+        return false;
     }
 }

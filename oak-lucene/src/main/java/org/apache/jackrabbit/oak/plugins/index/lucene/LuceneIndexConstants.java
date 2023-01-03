@@ -142,18 +142,6 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
     String PROP_USE_IN_SIMILARITY = "useInSimilarity";
 
     /**
-     * Property definition config indicating that null check support should be
-     * enabled for this property
-     */
-    String PROP_NULL_CHECK_ENABLED = "nullCheckEnabled";
-
-    /**
-     * Property definition config indicating that this property would be used with
-     * 'IS NOT NULL' constraint
-     */
-    String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
-
-    /**
      * IndexRule level config to indicate that Node name should also be index
      * to support fn:name() queries
      */
@@ -182,5 +170,4 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
      */
     @Deprecated
     String INDEX_PATH = "indexPath";
-
 }

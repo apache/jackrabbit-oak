@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.security.Principal;
-
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
@@ -134,7 +132,7 @@ public class HiddenTest extends AbstractCugTest {
             acMgr.setPolicy("/", acl);
             root.commit();
 
-            PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot, root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+            PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
 
             assertFalse(combined.hasPrivileges(hiddenTree, PrivilegeConstants.JCR_READ));
             assertTrue(combined.getPrivileges(hiddenTree).isEmpty());

@@ -396,14 +396,17 @@ var oak = (function(global){
      * Removes all collision markers on the document with the given path and
      * clusterId. This method will only remove collisions when the clusterId
      * is inactive.
+     * This corresponds to DocumentNodeStore.cleanRootCollisions(), which is
+     * part of a startup and normal background update.
      *
      * @memberof oak
      * @method removeCollisions
      * @param {string} path the path of a document
      * @param {number} clusterId collision markers for this clusterId will be removed.
+     * @param {number} [limit=1000000] maximum number of collision markers to remove.
      * @returns {object} the result of the MongoDB update.
      */
-    api.removeCollisions = function(path, clusterId) {
+    api.removeCollisions = function(path, clusterId, limit) {
         if (path === undefined) {
             print("No path specified");
             return;
@@ -411,6 +414,9 @@ var oak = (function(global){
         if (clusterId === undefined) {
             print("No clusterId specified");
             return;
+        }
+        if (limit === undefined) {
+            limit = 1000000;
         }
         // refuse to remove when clusterId is marked active
         var clusterNode = db.clusterNodes.findOne({_id: clusterId.toString()});
@@ -433,14 +439,84 @@ var oak = (function(global){
                 unset["_collisions." + r] = "";
                 num++;
             }
+            if (num >= limit) {
+                break;
+            }
         }
         if (num > 0) {
             var update = {};
             update["$inc"] = {_modCount: NumberLong(1)};
             update["$unset"] = unset;
+            print("Removing " + num + " collisions for clusterId " + clusterId);
             return db.nodes.update({_id: pathDepth(path) + ":" + path}, update);
         } else {
             print("No collisions found for clusterId " + clusterId);
+        }
+    };
+
+    /**
+     * Removes all unmerged branches on the document with the given path and
+     * clusterId. This method will only remove unmerged branches when the
+     * clusterId is inactive.
+     * This corresponds to DocumentNodeStore.cleanOrphanedBranches(), which is
+     * part of a startup and normal background update.
+     *
+     * @memberof oak
+     * @method removeUnmergedBranches
+     * @param {string} path the path of a document
+     * @param {number} clusterId collision markers for this clusterId will be removed.
+     * @param {number} [limit=1000000] maximum number of unmerged branches to remove.
+     * @returns {object} the result of the MongoDB update.
+     */
+    api.removeUnmergedBranches = function(path, clusterId, limit) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        if (clusterId === undefined) {
+            print("No clusterId specified");
+            return;
+        }
+        if (limit === undefined) {
+            limit = 1000000;
+        }
+        // refuse to remove when clusterId is marked active
+        var clusterNode = db.clusterNodes.findOne({_id: clusterId.toString()});
+        if (clusterNode && clusterNode.state == "ACTIVE") {
+            print("Cluster node with id " + clusterId + " is active!");
+            print("Can only remove unmerged branches for inactive cluster node.");
+            return;
+        }
+
+        var doc = this.findOne(path);
+        if (!doc) {
+            print("No document for path: " + path);
+            return;
+        }
+        var unset = {};
+        var r;
+        var num = 0;
+        for (r in doc._revisions) {
+            if (new Revision(r).getClusterId() != clusterId) {
+                continue;
+            }
+            if (doc._revisions[r].startsWith("br")) {
+                unset["_revisions." + r] = "";
+                unset["_bc." + r] = "";
+                num++;
+            }
+            if (num >= limit) {
+                break;
+            }
+        }
+        if (num > 0) {
+            var update = {};
+            update["$inc"] = {_modCount: NumberLong(1)};
+            update["$unset"] = unset;
+            print("Removing " + num + " unmerged branches for clusterId " + clusterId);
+            return db.nodes.update({_id: pathDepth(path) + ":" + path}, update);
+        } else {
+            print("No unmerged branches found for clusterId " + clusterId);
         }
     };
 

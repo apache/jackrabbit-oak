@@ -260,26 +260,26 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             return TreePermission.NO_RECOURSE;
         }
 
-        TreePermission tp;
         boolean parentIsCugPermission = (parentPermission instanceof CugTreePermission);
         if (TreeType.VERSION == type) {
-            tp = createVersionPermission(immutableTree, type, parentPermission, parentIsCugPermission);
+            return createVersionPermission(immutableTree, type, parentPermission, parentIsCugPermission);
+        }
+
+        TreePermission tp;
+        if (parentIsCugPermission) {
+            tp = new CugTreePermission(immutableTree, type, parentPermission, this);
         } else {
-            if (parentIsCugPermission) {
-                tp = new CugTreePermission(immutableTree, type, parentPermission, this);
-            } else {
-                String path = immutableTree.getPath();
-                if (includes(path)) {
-                    if (topPaths.contains(path)) {
-                        tp = new CugTreePermission(immutableTree, type, parentPermission, this);
-                    } else {
-                        tp = TreePermission.NO_RECOURSE;
-                    }
-                } else if (mayContain(path) || isJcrSystemPath(immutableTree)) {
-                    tp =  new EmptyCugTreePermission(immutableTree, type, this);
+            String path = immutableTree.getPath();
+            if (includes(path)) {
+                if (topPaths.contains(path)) {
+                    tp = new CugTreePermission(immutableTree, type, parentPermission, this);
                 } else {
                     tp = TreePermission.NO_RECOURSE;
                 }
+            } else if (mayContain(path) || isJcrSystemPath(immutableTree)) {
+                tp =  new EmptyCugTreePermission(immutableTree, type, this);
+            } else {
+                tp = TreePermission.NO_RECOURSE;
             }
         }
         return tp;
@@ -398,49 +398,50 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             } else {
                 return new EmptyCugTreePermission(tree, type, this);
             }
-        } else {
-            Tree versionableTree = getVersionManager().getVersionable(tree, workspaceName);
-            if (versionableTree == null) {
-                return TreePermission.NO_RECOURSE;
-            }
-            TreeType versionableType = typeProvider.getType(versionableTree);
-            if (!isSupportedType(versionableType)) {
-                return TreePermission.NO_RECOURSE;
-            }
-
-            String path = versionableTree.getPath();
-            boolean isSupportedPath = false;
-
-            // test if the versionable node holds a cug
-            Tree cug = null;
-            if (parentIsCugPermission) {
-                cug = CugUtil.getCug(versionableTree);
-            } else if (includes(path)) {
-                isSupportedPath = true;
-                // the versionable tree might be included in a cug defined by
-                // a parent node -> need to search for inherited cugs as well.
-                Tree cugRoot = getCugRoot(versionableTree, versionableType);
-                if (cugRoot != null) {
-                    cug = CugUtil.getCug(cugRoot);
-                }
-            }
-
-            TreePermission tp;
-            if (cug != null) {
-                // backing versionable tree holds a cug
-                tp = new CugTreePermission(tree, type, parent, this, true, isAllow(cug), CugUtil.hasNestedCug(cug));
-            } else if (parentIsCugPermission) {
-                CugTreePermission ctp = (CugTreePermission) parent;
-                tp = new CugTreePermission(tree, type, parent, this, ctp.isInCug(), ctp.isAllow(), ctp.hasNestedCug());
-            } else if (isSupportedPath) {
-                tp = new CugTreePermission(tree, type, parent, this, false, false, false);
-            } else  if (mayContain(path)) {
-                tp = new EmptyCugTreePermission(tree, type, this);
-            } else {
-                tp = TreePermission.NO_RECOURSE;
-            }
-            return tp;
         }
+
+        // tree not part of version-store intermediate hierarchy
+        Tree versionableTree = getVersionManager().getVersionable(tree, workspaceName);
+        if (versionableTree == null) {
+            return TreePermission.NO_RECOURSE;
+        }
+        TreeType versionableType = typeProvider.getType(versionableTree);
+        if (!isSupportedType(versionableType)) {
+            return TreePermission.NO_RECOURSE;
+        }
+
+        String path = versionableTree.getPath();
+        boolean isSupportedPath = false;
+
+        // test if the versionable node holds a cug
+        Tree cug = null;
+        if (parentIsCugPermission) {
+            cug = CugUtil.getCug(versionableTree);
+        } else if (includes(path)) {
+            isSupportedPath = true;
+            // the versionable tree might be included in a cug defined by
+            // a parent node -> need to search for inherited cugs as well.
+            Tree cugRoot = getCugRoot(versionableTree, versionableType);
+            if (cugRoot != null) {
+                cug = CugUtil.getCug(cugRoot);
+            }
+        }
+
+        TreePermission tp;
+        if (cug != null) {
+            // backing versionable tree holds a cug
+            tp = new CugTreePermission(tree, type, parent, this, true, isAllow(cug), CugUtil.hasNestedCug(cug));
+        } else if (parentIsCugPermission) {
+            CugTreePermission ctp = (CugTreePermission) parent;
+            tp = new CugTreePermission(tree, type, parent, this, ctp.isInCug(), ctp.isAllow(), ctp.hasNestedCug());
+        } else if (isSupportedPath) {
+            tp = new CugTreePermission(tree, type, parent, this, false, false, false);
+        } else  if (mayContain(path)) {
+            tp = new EmptyCugTreePermission(tree, type, this);
+        } else {
+            tp = TreePermission.NO_RECOURSE;
+        }
+        return tp;
     }
 
     @NotNull

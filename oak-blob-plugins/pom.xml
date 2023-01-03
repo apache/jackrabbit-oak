@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.41-SNAPSHOT</version>
+    <version>1.47-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -128,6 +128,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
@@ -203,6 +204,6 @@
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.annotation</artifactId>
     </dependency>
-  </dependencies>
 
+  </dependencies>
 </project>

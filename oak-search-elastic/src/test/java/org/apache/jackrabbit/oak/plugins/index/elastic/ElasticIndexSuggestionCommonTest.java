@@ -19,31 +19,16 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
-import org.apache.jackrabbit.oak.plugins.index.TestUtils;
-import org.junit.After;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.junit.ClassRule;
 
 import javax.jcr.Repository;
-import java.io.IOException;
 
 public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
 
-    // Set this connection string as
-    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
-    // key_id and key_secret are optional in case the ES server
-    // needs authentication
-    // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static String elasticConnectionString = System.getProperty("elasticConnectionString");
     @ClassRule
-    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
-
-    /*
-    Close the ES connection after every test method execution
-     */
-    @After
-    public void cleanup() throws IOException {
-        elasticRule.closeElasticConnection();
-    }
+    public static final ElasticConnectionRule elasticRule =
+            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     protected Repository createJcrRepository() {
         indexOptions = new ElasticIndexOptions();
@@ -54,7 +39,7 @@ public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest 
     }
 
     protected void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r,
+        TestUtil.assertEventually(r,
                 ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 }

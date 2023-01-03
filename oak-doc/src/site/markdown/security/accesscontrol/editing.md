@@ -287,4 +287,4 @@ or alternatively use `AccessControlUtils`:
     }
 
 <!-- hidden references -->
-[OPTION_USER_MANAGEMENT_SUPPORTED]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/JackrabbitRepository.java
+[OPTION_USER_MANAGEMENT_SUPPORTED]: /oak/docs/apidocs/org/apache/jackrabbit/api/JackrabbitRepository.html

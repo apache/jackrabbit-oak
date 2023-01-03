@@ -22,33 +22,41 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
 
 ## The Query Engine
 
-* [Overview](#Overview)
-    * [Query Processing](#Query_Processing)
-        * [Cost Calculation](#Cost_Calculation)
-    * [Query Options](#Query_Options)
-        * [Query Option Traversal](#Query_Option_Traversal)
-        * [Query Option Index Tag](#Query_Option_Index_Tag)
-    * [Compatibility](#Compatibility)
-        * [Result Size](#Result_Size)
-        * [Quoting](#Quoting)
-        * [Equality for Path Constraints](#Equality_for_Path_Constraints)
-    * [Slow Queries and Read Limits](#Slow_Queries_and_Read_Limits)
-    * [Full-Text Queries](#Full-Text_Queries)
-    * [Excerpts and Highlighting](#Excerpts_and_Highlighting)
-    * [Native Queries](#Native_Queries)
-    * [Similarity Queries](#Similarity_Queries)
-    * [Spellchecking](#Spellchecking)
-    * [Suggestions](#Suggestions)
-    * [Facets](#Facets)
-    * [XPath to SQL-2 Transformation](#XPath_to_SQL-2_Transformation)
-    * [The Node Type Index](#The_Node_Type_Index)
-    * [Temporarily Disabling an Index](#Temporarily_Disabling_an_Index)
-    * [Deprecating Indexes](#Deprecating_Indexes)
-    * [The Deprecated Ordered Index](#The_Deprecated_Ordered_Index)
-    * [Index Storage and Manual Inspection](#Index_Storage_and_Manual_Inspection)
-    * [SQL-2 Optimisation](#SQL-2_Optimisation)
-    * [Additional XPath and SQL-2 Features](#Additional_XPath_and_SQL-2_Features)
-    * [Temporarily Blocking Queries](#Temporarily_Blocking_Queries)
+- [The Query Engine](#the-query-engine)
+- [Overview](#overview)
+  - [Query Processing](#query-processing)
+    - [Cost Calculation](#cost-calculation)
+    - [Identifying Nodes](#identifying-nodes)
+    - [Ordering](#ordering)
+    - [Iterating the Result Set](#iterating-the-result-set)
+  - [Query Options](#query-options)
+    - [Query Option Traversal](#query-option-traversal)
+    - [Query Option Offset / Limit](#query-option-offset--limit)
+    - [Query Option Index Tag](#query-option-index-tag)
+    - [Index Selection Policy](#index-selection-policy)
+  - [Compatibility](#compatibility)
+    - [Result Size](#result-size)
+    - [Quoting](#quoting)
+    - [Equality for Path Constraints](#equality-for-path-constraints)
+  - [Slow Queries and Read Limits](#slow-queries-and-read-limits)
+  - [Keyset Pagination](#keyset-pagination)
+  - [Full-Text Queries](#full-text-queries)
+  - [Excerpts and Highlighting](#excerpts-and-highlighting)
+    - [SimpleExcerptProvider](#simpleexcerptprovider)
+  - [Native Queries](#native-queries)
+  - [Similarity Queries](#similarity-queries)
+  - [Spellchecking](#spellchecking)
+  - [Suggestions](#suggestions)
+  - [Facets](#facets)
+  - [XPath to SQL-2 Transformation](#xpath-to-sql-2-transformation)
+  - [The Node Type Index](#the-node-type-index)
+  - [Temporarily Disabling an Index](#temporarily-disabling-an-index)
+  - [Deprecating Indexes](#deprecating-indexes)
+  - [The Deprecated Ordered Index](#the-deprecated-ordered-index)
+  - [Index Storage and Manual Inspection](#index-storage-and-manual-inspection)
+  - [SQL-2 Optimisation](#sql-2-optimisation)
+  - [Additional XPath and SQL-2 Features](#additional-xpath-and-sql-2-features)
+  - [Temporarily Blocking Queries](#temporarily-blocking-queries)
 
 
 ## Overview
@@ -119,10 +127,27 @@ so the method should be reasonably fast (not read any data itself, or at least n
 
 If an index implementation can not query the data, it has to return `Infinity` (`Double.POSITIVE_INFINITY`).
 
+#### Identifying Nodes
+
+If an index is selected, the query is executed against the index. The translation from the JCR Query syntax into the query language supported by the index includes as many constraints as possible which are supported by the index. Depending on the index definition this can mean that not all constraints can be resolved by the index itself. 
+In this case, the Query Engine tries to let the index handle as much constraints as possible and later executes all remaining constraints while [Iterating the Result Set](#iterating-the-result-set) by retrieving the nodes from the node store and evaluating the nodes against the constraints. Each retrieval, including non-matching nodes is counted as a traversal. This means that despite the use of an index an additional traversal can be required if not all constraints in a query are executed against the index.
+
+If no matching index is determined in the previous step, the Query Engine executes this query solely based on a traversing the Node Store and evaluating the nodes against the constraints.
+
+#### Ordering
+If a query requests an ordered result set, the Query Engine tries to get an already ordered result from the index; in case the index definition does not support the requested ordering or in case of a traversal, the Query Engine must execute the ordering itself. To achieve this the entire result set is read into memory and then sorted. This consumes memory, takes time and requires the Query Engine to read the full result set even in the case where a limit setting would otherwise limit the number of results traversed.
+
+#### Iterating the Result Set
+Query results are implemented as lazy iterators, and the result set is only read if needed. When the next result is requested, the result iterator seeks the potential nodes to find the next node matching the query. 
+During this seek process the Query Engine reads and filters the potential nodes until it finds a match. Even if the query is handled completely by an index, the Query Engine needs to check if the requesting session is allowed to read the nodes.
+
+That means that during this final step every potential node must be loaded from the node store, thus counting towards the read limit (see [Slow Queries and Read Limits](#slow-queries-and-read-limits)).
+
+
 ### Query Options
 
-With query options, you can enforce the usage of indexes (failing the query if there is no index),
-and you can limit which indexes should be considered.
+With query options, you can enforce the usage of indexes (failing the query if there is no index), 
+limit which indexes should be considered and set the limit and offset for a query.
 
 #### Query Option Traversal
 
@@ -150,6 +175,26 @@ This is supported for both XPath and SQL-2, as follows:
     where ischildnode('/oak:index')
     order by name()
     option(traversal ok)
+
+
+#### Query Option Offset / Limit
+
+`@since Oak 1.44.0 (OAK-9740)`
+
+By setting the offset / limit of a query you can set the limits and offsets set on the query object.
+Note, this setting will be overridden by any settings made via the `Query#setOffset` or `Query#setLimit` methods.
+
+The syntax is `option(limit {num}, offset {num})` at the very end of the statement, after `order by` 
+and can be used in conjunction with any other option.
+
+This is supported for both XPath and SQL-2, as follows:
+
+    /jcr:root/oak:index/*[@type='lucene'] option(limit 100)
+
+    select * from [nt:base]
+    where ischildnode('/oak:index')
+    order by name()
+    option(offset 19, limit 20)
 
 #### Query Option Index Tag
 
@@ -183,6 +228,8 @@ The syntax to limit a query to a certain tag is: `<query> option(index tag <tagN
 
 The query will only consider the indexes that contain the specified tag (that is, possibly multiple indexes).
 Each query supports one tag only.
+If a query doesn't explicitly uses this option, then all indexes are considered
+(including indexes with tags and indexes without tags).
 The tag name may only contain the characters `a-z, A-Z, 0-9, _`.
 
 Limitations:
@@ -196,8 +243,29 @@ Limitations:
 * The nodetype index only partially supports this feature: if a tag is specified in the query, then the nodetype index
   is not used. However, tags in the nodetype index itself are ignored currently.
 * There is currently no way to disable traversal that way.
-  So if the expected cost of traversal is very low, the query will traverse.
-  Note that traversal is never used for fulltext queries.
+  So if the expected cost of traversal is very low (lower than the cost of any index),
+  the query will traverse.
+  To avoid traversal, note that indexes support cost overrides,
+  and traversal is never used for fulltext queries.
+
+#### Index Selection Policy
+
+`@since Oak 1.42.0 (OAK-9587)`
+
+To ensure an index is only used if the `option(index tag <tagName>)` is specified,
+certain index types support the `selectionPolicy`.
+If set to the value `tag`, an index is only used for queries
+that specify `option(index tag x)`, where `x` is one of the tags of this index.
+
+This feature allows to safely add an index, without risking that existing queries
+that don't specify the index tag will switch to this new index.
+
+Limitations:
+
+* This is currently supported in indexes of type `lucene` compatVersion 2, and type `property`.
+* For indexes of type `lucene`, when adding or changing the property `selectionPolicy`,
+  you need to also set the property `refresh` to `true` (Boolean),
+  so that the change is applied. No indexing is required.
 
 ### Compatibility
 
@@ -307,6 +375,66 @@ For XPath queries, such conversion to `union` is always made,
 and for SQL-2 queries such a conversion is only made if the `union` query has a lower expected cost.
 When using `or` in combination with the same property, as in `a=1 or a=2`, then no conversion to `union` is made.
 
+### Keyset Pagination
+
+It is best to limit the result size to at most a few hundred entries.
+To read a large result, keyset pagination should be used.
+Note that "offset" with large values (more than a few hundred) should be avoided, as it can lead to performance and memory issues.
+Keyset pagination refers to ordering the result set by a key column, and then paginate using this column.
+It requires an ordered index on the key column. Example:
+
+    /jcr:root/content//element(*, nt:file)
+    [@jcr:lastModified >= $lastEntry]
+    order by @jcr:lastModified, @jcr:path
+
+For the first query, set `$lastEntry` to 0, and for subsequent queries,
+use the last modified time of the last result.
+
+An order index is needed for these queries to work efficiently, e.g.:
+
+    /oak:index/fileIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - includedPaths = [ "/content" ]
+      - queryPaths = [ "/content" ]
+      + indexRules
+        + nt:file
+          + properties
+            + jcrLastModified
+              - name = "jcr:lastModified"
+              - propertyIndex = true
+              - ordered = true
+
+Notice that multiple entries with the same modified date might exist.
+If your application requires that the same node is only processed once,
+then additional logic is required to skip over the entries already seen (for the same modified date).
+
+If there is no good property to use keyset pagination on, then the lowercase of the node name can be used.
+It is best to start with `$lastEntry` as an empty string, and then in each subsequent run use the lowercase version of the node name of the last entry.
+Notice that some nodes may appear in two query results, if there are multiple nodes with the same name.
+In this case, SQL-2 needs to be used, because with XPath, escaping is applied to names.
+
+    select [jcr:path], * from [nt:file] as a
+    where lower(name(a)) >= $lastEntry
+    and isdescendantnode(a, '/content')
+    order by lower(name(a)), [jcr:path]
+
+    /oak:index/fileIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - includedPaths = [ "/content" ]
+      - queryPaths = [ "/content" ]
+      + indexRules
+        + nt:file
+          + properties
+            + lowercaseName
+              - function = "lower(name())"
+              - propertyIndex = true
+              - ordered = true
+
+
 ### Full-Text Queries
 
 The full-text syntax supported by Jackrabbit Oak is a superset of the JCR specification.
@@ -388,7 +516,7 @@ The SimpleExcerptProvider is also used for queries that don't use
 a Lucene index, or if the query uses a Lucene index, but excerpts are not configured there.
 
 ### Native Queries
-
+`@deprecated Oak 1.46`
 To take advantage of features that are available in full-text index implementations
 such as Apache Lucene and Apache Lucene Solr, so called `native` constraints are supported.
 Such constraints are passed directly to the full-text index. This is supported
@@ -451,7 +579,7 @@ Clients wanting to obtain spellchecks could use the following JCR code:
     RowIterator it = result.getRows();
     String spellchecks = "";
     if (it.hasNext()) {
-        spellchecks = row.getValue("rep:spellcheck()").getString()
+        spellchecks = it.getValue("rep:spellcheck()").getString()
     }
 
 The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
@@ -466,7 +594,7 @@ The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w
     RowIterator it = result.getRows();
     List<String> spellchecks = new LinkedList<String>();
     while (it.hasNext()) {
-        spellchecks.add(row.getValue("rep:spellcheck()").getString());
+        spellchecks.add(it.getValue("rep:spellcheck()").getString());
     }
 
 If either Lucene or Solr were configured to provide the spellcheck feature, see
@@ -502,7 +630,7 @@ Clients wanting to obtain suggestions could use the following JCR code:
     RowIterator it = result.getRows();
     String suggestions = "";
     if (it.hasNext()) {
-        suggestions = row.getValue("rep:suggest()").getString()
+        suggestions = it.getValue("rep:suggest()").getString()
     }
 
 The `suggestions` String would be have the following pattern
@@ -520,7 +648,7 @@ The `suggestions` String would be have the following pattern
     RowIterator it = result.getRows();
     List<String> suggestions = new LinkedList<String>();
     while (it.hasNext()) {
-        suggestions.add(row.getValue("rep:suggest()").getString());
+        suggestions.add(it.getValue("rep:suggest()").getString());
     }
 
 If either Lucene or Solr were configured to provide the suggestions feature,

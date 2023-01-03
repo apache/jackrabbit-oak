@@ -20,12 +20,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -42,6 +38,12 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
+import com.google.common.collect.PeekingIterator;
+
 /**
  * Represents a union query.
  */
@@ -55,8 +57,8 @@ public class UnionQueryImpl implements Query {
     private OrderingImpl[] orderings;
     private boolean explain;
     private boolean measure;
-    private long limit = Long.MAX_VALUE;
-    private long offset;
+    private Optional<Long> limit = Optional.empty();
+    private Optional<Long> offset = Optional.empty();
     private long size = -1;
     private final QueryEngineSettings settings;
     private boolean isInternal;
@@ -96,18 +98,18 @@ public class UnionQueryImpl implements Query {
 
     @Override
     public void setLimit(long limit) {
-        this.limit = limit;
+        this.limit = Optional.of(limit);
         applyLimitOffset();
     }
 
     @Override
     public void setOffset(long offset) {
-        this.offset = offset;
+        this.offset = Optional.of(offset);
         applyLimitOffset();
     }
 
     private void applyLimitOffset() {
-        long subqueryLimit = QueryImpl.saturatedAdd(limit, offset);
+        long subqueryLimit = QueryImpl.saturatedAdd(limit.orElse(Long.MAX_VALUE), offset.orElse(0L));
         left.setLimit(subqueryLimit);
         right.setLimit(subqueryLimit);
     }
@@ -178,19 +180,20 @@ public class UnionQueryImpl implements Query {
     public long getSize(SizePrecision precision, long max) {
         // Note: for "unionAll == false", overlapping entries are counted twice
         // (this can result in a larger reported size, but it is not a security problem)
+        long localLimit = limit.orElse(Long.MAX_VALUE);
         long a = left.getSize(precision, max);
         if (a < 0) {
             return -1;
         }
-        if (a >= limit) {
-            return limit;
+        if (a >= localLimit) {
+            return localLimit;
         }
         long b = right.getSize(precision, max);
         if (b < 0) {
             return -1;
         }
         long total = QueryImpl.saturatedAdd(a, b);
-        return Math.min(limit, total);
+        return Math.min(localLimit, total);
     }
     
     @Override
@@ -329,7 +332,7 @@ public class UnionQueryImpl implements Query {
             it = Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy);
         }
 
-        it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, null, settings);
+        it = FilterIterators.newCombinedFilter(it, distinct, limit.orElse(Long.MAX_VALUE), offset.orElse(0L), null, settings);
 
         if (measure) {
             // return the measuring iterator for the union
@@ -514,5 +517,15 @@ public class UnionQueryImpl implements Query {
                 return endOfData();
             }
         }
+    }
+
+    @Override
+    public Optional<Long> getLimit() {
+        return limit;
+    }
+
+    @Override
+    public Optional<Long> getOffset() {
+        return offset;
     }
 }

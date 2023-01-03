@@ -21,12 +21,12 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -36,7 +36,7 @@ import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.core.TimeValue;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,19 +52,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
-import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
 
 class ElasticBulkProcessorHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
     private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger("oak.failedDocStatusLimit", 10000);
 
+    private static final int BULK_PROCESSOR_CONCURRENCY =
+        Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
     private static boolean waitForESAcknowledgement = true;
 
     protected final ElasticConnection elasticConnection;
+    protected final String indexName;
     protected final ElasticIndexDefinition indexDefinition;
     private final NodeBuilder definitionBuilder;
     protected final BulkProcessor bulkProcessor;
@@ -91,9 +94,11 @@ class ElasticBulkProcessorHandler {
     protected long totalOperations;
 
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
+                                        @NotNull String indexName,
                                         @NotNull ElasticIndexDefinition indexDefinition,
                                         @NotNull NodeBuilder definitionBuilder) {
         this.elasticConnection = elasticConnection;
+        this.indexName = indexName;
         this.indexDefinition = indexDefinition;
         this.definitionBuilder = definitionBuilder;
         this.bulkProcessor = initBulkProcessor();
@@ -106,18 +111,22 @@ class ElasticBulkProcessorHandler {
      * This option is available for sync index definitions only.
      */
     public static ElasticBulkProcessorHandler getBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
+                                                                      @NotNull String indexName,
                                                                       @NotNull ElasticIndexDefinition indexDefinition,
                                                                       @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo) {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
 
         if (async != null) {
-            // Check if this indexing call is a part of async cycle or a commit hook
+            // Check if this indexing call is a part of async cycle or a commit hook or called from oak-run for offline reindex
             // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
-            // Otherwise it's part of commit hook based indexing due to async property having a value nrt
-            if (!commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME)) {
+            // Otherwise, it's part of commit hook based indexing due to async property having a value nrt
+            // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
+            // we need to set waitForESAcknowledgement = false only in the second case i.e.
+            // when this is a part of commit hook due to async property having a value nrt
+            if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
                 waitForESAcknowledgement = false;
             }
-            return new ElasticBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder);
+            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
         }
 
         // commit-info has priority over configuration in index definition
@@ -134,16 +143,17 @@ class ElasticBulkProcessorHandler {
         }
 
         if (SYNC_RT_MODE.equals(syncMode)) {
-            return new RealTimeBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder);
+            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
         }
 
-        return new ElasticBulkProcessorHandler(elasticConnection, indexDefinition, definitionBuilder);
+        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
     }
 
     private BulkProcessor initBulkProcessor() {
         return BulkProcessor.builder(requestConsumer(),
-                new OakBulkProcessorListener())
+                new OakBulkProcessorListener(), this.indexName + "-bulk-processor")
                 .setBulkActions(indexDefinition.bulkActions)
+                .setConcurrentRequests(BULK_PROCESSOR_CONCURRENCY)
                 .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
                 .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
                 .setBackoffPolicy(BackoffPolicy.exponentialBackoff(
@@ -153,7 +163,8 @@ class ElasticBulkProcessorHandler {
     }
 
     protected BiConsumer<BulkRequest, ActionListener<BulkResponse>> requestConsumer() {
-        return (request, bulkListener) -> elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+        // TODO: migrate to ES Java client https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/indexing-bulk.html
+        return (request, bulkListener) -> elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
     }
 
     public void add(DocWriteRequest<?> request) {
@@ -201,6 +212,8 @@ class ElasticBulkProcessorHandler {
 
             // init update status
             updatesMap.put(executionId, Boolean.FALSE);
+
+            bulkRequest.timeout(TimeValue.timeValueMinutes(2));
 
             LOG.debug("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {
@@ -285,9 +298,10 @@ class ElasticBulkProcessorHandler {
         private final AtomicBoolean isDataSearchable = new AtomicBoolean(false);
 
         private RealTimeBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
+                                             @NotNull String indexName,
                                              @NotNull ElasticIndexDefinition indexDefinition,
                                              @NotNull NodeBuilder definitionBuilder) {
-            super(elasticConnection, indexDefinition, definitionBuilder);
+            super(elasticConnection, indexName, indexDefinition, definitionBuilder);
         }
 
         @Override
@@ -299,7 +313,7 @@ class ElasticBulkProcessorHandler {
                     request.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
                     isDataSearchable.set(true);
                 }
-                elasticConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
+                elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
             };
         }
 
@@ -313,11 +327,9 @@ class ElasticBulkProcessorHandler {
             if (totalOperations > 0 && !isDataSearchable.get()) {
                 LOG.debug("Forcing refresh");
                 try {
-                    this.elasticConnection.getClient()
-                            .indices()
-                            .refresh(new RefreshRequest(indexDefinition.getRemoteIndexAlias()), RequestOptions.DEFAULT);
+                	this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
-                    LOG.warn("Error refreshing index " + indexDefinition.getRemoteIndexAlias(), e);
+                    LOG.warn("Error refreshing index " + indexName, e);
                 }
             }
             return closed;

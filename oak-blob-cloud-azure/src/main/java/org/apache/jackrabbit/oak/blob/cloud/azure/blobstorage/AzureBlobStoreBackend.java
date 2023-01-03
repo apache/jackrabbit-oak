@@ -164,12 +164,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             try {
                 Utils.setProxyIfNeeded(properties);
-                containerName = (String) properties.get(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
-                createBlobContainer = PropertiesUtil.toBoolean(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER), true);
+                containerName = properties.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
+                createBlobContainer = PropertiesUtil.toBoolean(
+                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
                 connectionString = Utils.getConnectionStringFromProperties(properties);
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
-                        properties.get(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION),
+                        properties.getProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION),
                         DEFAULT_CONCURRENT_REQUEST_COUNT);
                 if (concurrentRequestCount < DEFAULT_CONCURRENT_REQUEST_COUNT) {
                     LOG.warn("Invalid setting [{}] for concurrentRequestsPerOperation (too low); resetting to {}",
@@ -184,12 +185,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 }
                 LOG.info("Using concurrentRequestsPerOperation={}", concurrentRequestCount);
 
-                retryPolicy = Utils.getRetryPolicy((String)properties.get(AzureConstants.AZURE_BLOB_MAX_REQUEST_RETRY));
+                retryPolicy = Utils.getRetryPolicy(properties.getProperty(AzureConstants.AZURE_BLOB_MAX_REQUEST_RETRY));
                 if (properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT) != null) {
                     requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
                 }
-                presignedDownloadURIVerifyExists =
-                        PropertiesUtil.toBoolean(properties.get(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
+                presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
+                    Strings.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
                 CloudBlobContainer azureContainer = getAzureContainer();
 
@@ -219,6 +220,14 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 }
                 uploadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
                 downloadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+
+                // Initialize reference key secret
+                boolean createRefSecretOnInit = PropertiesUtil.toBoolean(
+                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
+
+                if (createRefSecretOnInit) {
+                    getOrCreateReferenceKey();
+                }
             }
             catch (StorageException e) {
                 throw new DataStoreException(e);
@@ -253,11 +262,11 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             return is;
         }
         catch (StorageException e) {
-            LOG.info("Error reading blob. identifier=%s", key);
+            LOG.info("Error reading blob. identifier={}", key);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         }
         catch (URISyntaxException e) {
-            LOG.debug("Error reading blob. identifier=%s", key);
+            LOG.debug("Error reading blob. identifier={}", key);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         } finally {
             if (contextClassLoader != null) {
@@ -967,9 +976,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
             Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+            // see https://docs.microsoft.com/en-us/rest/api/storageservices/put-block#uri-parameters
             presignedURIRequestParams.put("comp", "block");
             for (long blockId = 1; blockId <= numParts; ++blockId) {
-                presignedURIRequestParams.put("blockId",
+                presignedURIRequestParams.put("blockid",
                         Base64.encode(String.format("%06d", blockId)));
                 uploadPartURIs.add(
                         createPresignedURI(key,

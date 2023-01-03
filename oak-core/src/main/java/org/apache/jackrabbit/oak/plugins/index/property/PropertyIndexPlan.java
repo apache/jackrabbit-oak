@@ -28,8 +28,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -205,11 +206,12 @@ public class PropertyIndexPlan {
     }
 
     Cursor execute() {
-        if (deprecated) {
-            LOG.warn("This index is deprecated: {}; it is used for query {}. " + 
-                    "Please change the query or the index definitions.", name, filter);
-        }
         QueryLimits settings = filter.getQueryLimits();
+        if (deprecated) {
+            final String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
+            LOG.warn("This index is deprecated: {}; it is used for query {} called by {}. " +
+                    "Please change the query or the index definitions.", name, filter, caller);
+        }
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : strategies) {
             iterables.add(s.query(filter, name, definition, values));

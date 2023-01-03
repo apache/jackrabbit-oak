@@ -32,17 +32,25 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.util.KnownIssuesIgnoreRule;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
 public class ValidNamesTest extends AbstractRepositoryTest {
 
+    @Rule
+    public KnownIssuesIgnoreRule customIgnoreRule = new KnownIssuesIgnoreRule();
+    
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final Map<NodeStoreFixture, NodeStore> STORES = Maps.newConcurrentMap();
@@ -164,28 +172,24 @@ public class ValidNamesTest extends AbstractRepositoryTest {
         unsupportedNameTest("foo/bar", PathNotFoundException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedPipe() {
-        unsupportedNameTest("foo|bar", PathNotFoundException.class);
+        unsupportedNameTest("foo|bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedStar() {
-        unsupportedNameTest("foo*bar", PathNotFoundException.class);
+        unsupportedNameTest("foo*bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedOpenBracket() {
-        unsupportedNameTest("foo[bar", PathNotFoundException.class);
+        unsupportedNameTest("foo[bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedCloseBracket() {
-        unsupportedNameTest("foo]bar", PathNotFoundException.class);
+        unsupportedNameTest("foo]bar", RepositoryException.class);
     }
 
     // TODO: questionable exception
@@ -235,6 +239,21 @@ public class ValidNamesTest extends AbstractRepositoryTest {
         assertEquals(testPrefix + ":foo", n.getName());
     }
 
+    // OAK-74 and OAK-9584
+    @Test
+    public void testRepNamespaceUri() throws RepositoryException {
+        JackrabbitSession jrSession = (JackrabbitSession)session;
+        UserManager userManager = jrSession.getUserManager();
+        User user = userManager.createUser("test", "test");
+
+        session.save();
+        Node n = session.getNode(user.getPath());
+
+        String repNamespaceUri = session.getNamespaceURI("rep");
+        assertTrue(n.hasProperty("rep:authorizableId"));
+        assertTrue(n.hasProperty("{"+repNamespaceUri+"}authorizableId"));
+    }
+ 
     // TODO: questionable exception
     @Test
     public void testValidNamespaceUriInCurlysWrongPlace() {

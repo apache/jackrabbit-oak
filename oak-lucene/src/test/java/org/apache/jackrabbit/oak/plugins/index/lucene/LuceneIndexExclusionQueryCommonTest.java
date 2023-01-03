@@ -17,52 +17,35 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexExclusionQueryCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.collect.ImmutableList.of;
-import static javax.jcr.PropertyType.TYPENAME_BINARY;
-import static javax.jcr.PropertyType.TYPENAME_STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_TYPES;
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Tests the {@link LuceneIndexProvider} exclusion settings
  */
 public class LuceneIndexExclusionQueryCommonTest extends IndexExclusionQueryCommonTest {
 
-    private static final String NOT_IN = "notincluded";
+    private ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    @Override
-    protected void createTestIndexNode() throws Exception {
-        indexOptions = new LuceneIndexOptions();
-        Tree lucene = createTestIndexNode(root.getTree("/"), TYPE_LUCENE);
-        lucene.setProperty(INCLUDE_PROPERTY_TYPES,
-                of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
-        lucene.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
-        useV2(lucene);
-        root.commit();
-    }
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Override
     protected ContentRepository createRepository() {
-        LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
-        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider())
-                .createContentRepository();
+        indexOptions = new LuceneIndexOptions();
+        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
+        luceneTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
+        repositoryOptionsUtil = luceneTestRepositoryBuilder.build();
+
+        return repositoryOptionsUtil.getOak().createContentRepository();
     }
 
 }

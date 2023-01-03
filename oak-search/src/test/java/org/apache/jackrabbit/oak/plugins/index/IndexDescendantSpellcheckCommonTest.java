@@ -22,7 +22,6 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.query.AbstractJcrTest;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.jcr.Node;
@@ -157,10 +156,6 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
         });
     }
 
-    @Ignore
-    //TODO ES Failing: this seems to be similar to
-    //https://discuss.elastic.co/t/elasticsearch-suggestion-completes-return-incorrect-number-of-suggestions/214522
-    //Even increasing the suggester query size the number of max results seems to be fixed to 5
     @Test
     public void noDescendantSuggestsAll() {
         validateSpellchecks(
@@ -176,10 +171,6 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
                 newHashSet("test2", "test3"));
     }
 
-    @Ignore
-    //TODO ES Failing: if path restriction is not enabled, all suggestions should be returned
-    // see #noDescendantSuggestsAll
-    //OAK-3994
     @Test
     public void descendantSuggestionRequirePathRestrictionIndex() throws Exception {
         Node rootIndexDef = root.getNode("oak:index/spellcheck-idx");
@@ -210,6 +201,6 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     }
 
     private static void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, 3000 * 3);
+        TestUtil.assertEventually(r, 3000 * 3);
     }
 }

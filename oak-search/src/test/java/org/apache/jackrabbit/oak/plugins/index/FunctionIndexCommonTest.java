@@ -18,8 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,22 +43,21 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import javax.jcr.PropertyType;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
+
+    protected String getIndexProvider() {
+        return "lucene:";
+    }
+
+    protected void postCommitHook(){
+        // does nothing by default
+    }
 
     @Test
     public void noIndexTest() throws Exception {
@@ -59,6 +69,7 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             up.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
         }
         root.commit();
+        postCommitHook();
 
         String query = "select [jcr:path] from [nt:base] where lower(localname()) = 'b'";
         assertThat(explain(query), containsString("traverse"));
@@ -96,21 +107,22 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             up.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
         }
         root.commit();
+        postCommitHook();
 
         String query = "select [jcr:path] from [nt:base] where lower(localname()) = 'b'";
-        assertThat(explain(query), containsString("lucene:lowerLocalName"));
+        assertThat(explain(query), containsString(getIndexProvider() + "lowerLocalName"));
         assertQuery(query, Lists.newArrayList("/test/b", "/test/B"));
 
         String queryXPath = "/jcr:root//*[fn:lower-case(fn:local-name()) = 'b']";
-        assertThat(explainXpath(queryXPath), containsString("lucene:lowerLocalName"));
+        assertThat(explainXpath(queryXPath), containsString(getIndexProvider() + "lowerLocalName"));
         assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/b", "/test/B"));
 
         queryXPath = "/jcr:root//*[fn:lower-case(fn:local-name()) > 'b']";
-        assertThat(explainXpath(queryXPath), containsString("lucene:lowerLocalName"));
+        assertThat(explainXpath(queryXPath), containsString(getIndexProvider() + "lowerLocalName"));
         assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/c", "/test/C", "/test"));
 
         query = "select [jcr:path] from [nt:base] where lower(localname()) = 'B'";
-        assertThat(explain(query), containsString("lucene:lowerLocalName"));
+        assertThat(explain(query), containsString(getIndexProvider() + "lowerLocalName"));
         assertQuery(query, Lists.<String>newArrayList());
     }
 
@@ -133,17 +145,18 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             testNode.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
         }
         root.commit();
+        postCommitHook();
 
         String query = "select [jcr:path] from [nt:base] where length(name()) = 6";
-        assertThat(explain(query), containsString("lucene:lengthName"));
+        assertThat(explain(query), containsString(getIndexProvider() + "lengthName"));
         assertQuery(query, Lists.newArrayList("/test/test10"));
 
         String queryXPath = "/jcr:root//*[fn:string-length(fn:name()) = 7]";
-        assertThat(explainXpath(queryXPath), containsString("lucene:lengthName"));
+        assertThat(explainXpath(queryXPath), containsString(getIndexProvider() + "lengthName"));
         assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/test100"));
 
         queryXPath = "/jcr:root//* order by fn:string-length(fn:name())";
-        assertThat(explainXpath(queryXPath), containsString("lucene:lengthName"));
+        assertThat(explainXpath(queryXPath), containsString(getIndexProvider() + "lengthName"));
         assertQuery(queryXPath, "xpath", Lists.newArrayList(
                 "/test", "/test/test1", "/test/test10", "/test/test100"));
     }
@@ -166,13 +179,14 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             testNode.setProperty("value", new byte[idx]);
         }
         root.commit();
+        postCommitHook();
 
         String query = "select [jcr:path] from [nt:base] where length([value]) = 100";
-        assertThat(explain(query), containsString("lucene:length"));
+        assertThat(explain(query), containsString(getIndexProvider() + "length"));
         assertQuery(query, Lists.newArrayList("/test/test100"));
 
         String queryXPath = "/jcr:root//*[fn:string-length(@value) = 10]";
-        assertThat(explainXpath(queryXPath), containsString("lucene:length"));
+        assertThat(explainXpath(queryXPath), containsString(getIndexProvider() + "length"));
         assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/test10"));
     }
 
@@ -196,14 +210,45 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             paths.add("/test/n" + idx);
         }
         root.commit();
+        postCommitHook();
 
         String query = "select [jcr:path] from [nt:unstructured] where upper([name]) = '10% FOO'";
-        assertThat(explain(query), containsString("lucene:upper"));
+        assertThat(explain(query), containsString(getIndexProvider() + "upper"));
         assertQuery(query, paths);
 
         query = "select [jcr:path] from [nt:unstructured] where upper([name]) like '10\\% FOO'";
-        assertThat(explain(query), containsString("lucene:upper"));
+        assertThat(explain(query), containsString(getIndexProvider() + "upper"));
         assertQuery(query, paths);
+    }
+
+    @Test
+    public void path() throws Exception {
+        Tree index = createIndex("pathIndex", Collections.<String>emptySet());
+        Tree func = index.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("pathFunction");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "path()");
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("hello");
+        test.addChild("world");
+        test.addChild("hello world");
+        root.commit();
+        postCommitHook();
+
+        String query = "select [jcr:path] from [nt:base] where path() = '/test/world'";
+        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertQuery(query, asList("/test/world"));
+
+        query = "select [jcr:path] from [nt:base] where path() like '%hell%'";
+        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertQuery(query, asList("/test/hello", "/test/hello world"));
+
+        query = "select [jcr:path] from [nt:base] where path() like '%ll_'";
+        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertQuery(query, asList("/test/hello"));
+
     }
 
     @Test
@@ -222,7 +267,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
-
 
         Tree a = test.addChild("n1");
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -251,22 +295,22 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
                 "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo)";
 
         root.commit();
+        postCommitHook();
 
-        assertThat(explain(query), containsString("lucene:test-index(/oak:index/test-index)"));
+        assertThat(explain(query), containsString(getIndexProvider() + "test-index(/oak:index/test-index)"));
 
         List<String> result = executeQuery(query, SQL2);
         assertEquals("Ordering doesn't match", asList("10 percent", "10%", "Hallo", "hello", "World!"), result);
 
     }
 
-
     /*
-    Test order by func(a),func(b)
-    order by func(b),func(a)
-    func(a) DESC,func(b)
-    func(a),func(b)DESC
-    where both func(a) and func(b) have ordered set = true
-    Correct ordering is effectively served by the index
+     * Test order by func(a),func(b)
+     * order by func(b),func(a)
+     * func(a) DESC,func(b)
+     * func(a),func(b)DESC
+     * where both func(a) and func(b) have ordered set = true
+     * Correct ordering is effectively served by the index
      */
     @Test
     public void testOrdering3() throws Exception {
@@ -285,12 +329,10 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         Tree upper2 = TestUtil.enableFunctionIndex(props, "upper([foo2])");
         upper2.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
 
-
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
-
 
         Tree a = test.addChild("n1");
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -317,12 +359,12 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         a.setProperty("foo", "a1");
         a.setProperty("foo2", "b1");
 
-
         String query = "select a.[foo],a.[foo2]\n" +
                 "\t  from [nt:unstructured] as a\n" +
                 "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),upper(a.foo2)";
 
         root.commit();
+        postCommitHook();
 
         List<String> result = executeQuery(query, SQL2);
 
@@ -351,16 +393,15 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         assertEquals("Ordering doesn't match", asList("a1, b3", "a1, b2", "a1, b1", "a2, b3", "a3, b1"), result);
 
-
     }
 
     /*
-    Test order by func(a),func(b)
-    order by func(b),func(a)
-    func(a) DESC,func(b)
-    func(a),func(b)DESC
-    where only func(a) is ordered by index
-    The effective ordering in this case will be done by QueryEngine
+     * Test order by func(a),func(b)
+     * order by func(b),func(a)
+     * func(a) DESC,func(b)
+     * func(a),func(b)DESC
+     * where only func(a) is ordered by index
+     * The effective ordering in this case will be done by QueryEngine
      */
     @Test
     public void testOrdering4() throws Exception {
@@ -377,12 +418,10 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         TestUtil.enableFunctionIndex(props, "upper([foo2])");
 
-
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
-
 
         Tree a = test.addChild("n1");
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -409,12 +448,12 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         a.setProperty("foo", "a1");
         a.setProperty("foo2", "b1");
 
-
         String query = "select a.[foo],a.[foo2]\n" +
                 "\t  from [nt:unstructured] as a\n" +
                 "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),upper(a.foo2)";
 
         root.commit();
+        postCommitHook();
 
         List<String> result = executeQuery(query, SQL2);
 
@@ -446,11 +485,11 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     }
 
     /*
-    Test order by func(a),b
-    order by b,func(a)
-    order by func(a) DESC,b
-    order by func(a),b DESC
-    where both b and func(a) have ordered=true
+     * Test order by func(a),b
+     * order by b,func(a)
+     * order by func(a) DESC,b
+     * order by func(a),b DESC
+     * where both b and func(a) have ordered=true
      */
     @Test
     public void testOrdering5() throws Exception {
@@ -465,16 +504,13 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         Tree upper = TestUtil.enableFunctionIndex(props, "upper([foo])");
         upper.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
 
-
         Tree upper2 = TestUtil.enablePropertyIndex(props, "foo2", false);
         upper2.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
-
 
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
-
 
         Tree a = test.addChild("n1");
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -501,15 +537,14 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         a.setProperty("foo", "a1");
         a.setProperty("foo2", "b1");
 
-
         String query = "select a.[foo],a.[foo2]\n" +
                 "\t  from [nt:unstructured] as a\n" +
                 "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),a.foo2";
 
         root.commit();
+        postCommitHook();
 
         List<String> result = executeQuery(query, SQL2);
-
 
         assertEquals("Ordering doesn't match", asList("a1, b1", "a1, b2", "a1, b3", "a2, b3", "a3, b1"), result);
 
@@ -539,11 +574,11 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     }
 
     /*
-    Test order by func(a),b
-    orrder by b,func(a)
-    order by func(a) DESC,b
-    order by func(a),b DESC
-    where func(a) does not have ordered = true
+     * Test order by func(a),b
+     * orrder by b,func(a)
+     * order by func(a) DESC,b
+     * order by func(a),b DESC
+     * where func(a) does not have ordered = true
      */
     @Test
     public void testOrdering6() throws Exception {
@@ -557,16 +592,13 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         TestUtil.enableFunctionIndex(props, "upper([foo])");
 
-
         Tree upper2 = TestUtil.enablePropertyIndex(props, "foo2", false);
         upper2.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
-
 
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
-
 
         Tree a = test.addChild("n1");
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -593,12 +625,12 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         a.setProperty("foo", "a1");
         a.setProperty("foo2", "b1");
 
-
         String query = "select a.[foo],a.[foo2]\n" +
                 "\t  from [nt:unstructured] as a\n" +
                 "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),a.foo2";
 
         root.commit();
+        postCommitHook();
 
         List<String> result = executeQuery(query, SQL2);
 
@@ -629,8 +661,8 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     }
 
     /*
-    Testing order by for
-    different function implementations
+     * Testing order by for
+     * different function implementations
      */
     @Test
     public void testOrdering7() throws Exception {
@@ -650,7 +682,8 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         fn = TestUtil.enableFunctionIndex(props, "length([foo])");
         fn.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
-        // Any function property trying to sory by length needs to explicitly set the type to Long
+        // Any function property trying to sory by length needs to explicitly set the
+        // type to Long
         fn.setProperty(FulltextIndexConstants.PROP_TYPE, "Long");
 
         fn = TestUtil.enableFunctionIndex(props, "coalesce([foo2],[foo])");
@@ -674,7 +707,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
 
-
         Tree a = test.addChild("d1");
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
         a.setProperty("foo", "c");
@@ -683,7 +715,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
         a.setProperty("foo", "bbbb");
         a.setProperty("foo2", "22");
-
 
         a = test.addChild("d3");
         a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -695,6 +726,7 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         a.setProperty("foo2", "11");
 
         root.commit();
+        postCommitHook();
 
         String query = "select [jcr:path]\n" +
                 "\t  from [nt:unstructured] as a\n" +
@@ -719,7 +751,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         result = executeQuery(query, SQL2);
 
         assertEquals("Ordering doesn't match", asList("/test/jcr:content", "/test/d1", "/test/d2", "/test/d3"), result);
-
 
         query = "select [jcr:path]\n" +
                 "\t  from [nt:unstructured] as a\n" +
@@ -761,7 +792,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         assertEquals("Ordering doesn't match", asList("/test/d1", "/test/d3", "/test/jcr:content", "/test/d2"), result);
 
-
         query = "select [jcr:path]\n" +
                 "\t  from [nt:unstructured] as a\n" +
                 "\t  where  a.[foo] is not null AND isdescendantnode(a , '/test') order by length(coalesce([foo], coalesce([foo2], localname()))), localname() DESC";
@@ -769,7 +799,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         result = executeQuery(query, SQL2);
 
         assertEquals("Ordering doesn't match", asList("/test/d1", "/test/d3", "/test/d2", "/test/jcr:content"), result);
-
 
     }
 
@@ -800,28 +829,30 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         List<String> paths = Lists.newArrayList();
         for (int idx = 0; idx < 10; idx++) {
             paths.add("/test/n" + idx);
-            if (idx % 2 == 0) continue;
+            if (idx % 2 == 0)
+                continue;
             Tree a = test.addChild("n" + idx);
             a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
             a.setProperty("foo", "bar" + idx);
 
         }
         for (int idx = 0; idx < 10; idx++) {
-            if (idx % 2 != 0) continue;
+            if (idx % 2 != 0)
+                continue;
             Tree a = test.addChild("n" + idx);
             a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
             a.setProperty("foo", "bar" + idx);
         }
         root.commit();
+        postCommitHook();
 
         String query = "/jcr:root//element(*, nt:unstructured) [jcr:like(fn:upper-case(@foo),'BAR%')] order by foo";
-        assertThat(explainXpath(query), containsString("lucene:upper"));
+        assertThat(explainXpath(query), containsString(getIndexProvider() + "upper"));
         List<String> result = assertQuery(query, "xpath", paths);
         assertEquals("Ordering doesn't match", paths, result);
 
-
         query = "/jcr:root//element(*, nt:unstructured) [jcr:like(fn:upper-case(@foo),'BAR%')] order by fn:upper-case(@foo)";
-        assertThat(explainXpath(query), containsString("lucene:upper"));
+        assertThat(explainXpath(query), containsString(getIndexProvider() + "upper"));
         List<String> result2 = assertQuery(query, "xpath", paths);
         assertEquals("Ordering doesn't match", paths, result2);
     }
@@ -850,11 +881,11 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "select [jcr:path] from [nt:unstructured] where upper([data/name]) = 'FOO'";
-        assertThat(explain(query), containsString("lucene:upper"));
+        assertThat(explain(query), containsString(getIndexProvider() + "upper"));
         assertQuery(query, paths);
 
         String queryXPath = "/jcr:root//element(*, nt:unstructured)[fn:upper-case(data/@name) = 'FOO']";
-        assertThat(explainXpath(queryXPath), containsString("lucene:upper"));
+        assertThat(explainXpath(queryXPath), containsString(getIndexProvider() + "upper"));
         assertQuery(queryXPath, "xpath", paths);
 
         for (int idx = 0; idx < 15; idx++) {
@@ -863,24 +894,23 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             b.setProperty("name", "bar");
         }
         root.commit();
+        postCommitHook();
 
         query = "select [jcr:path] from [nt:unstructured] where upper([data/name]) = 'BAR'";
-        assertThat(explain(query), containsString("lucene:upper"));
+        assertThat(explain(query), containsString(getIndexProvider() + "upper"));
         assertQuery(query, paths);
 
         queryXPath = "/jcr:root//element(*, nt:unstructured)[fn:upper-case(data/@name) = 'BAR']";
-        assertThat(explainXpath(queryXPath), containsString("lucene:upper"));
+        assertThat(explainXpath(queryXPath), containsString(getIndexProvider() + "upper"));
         assertQuery(queryXPath, "xpath", paths);
     }
-
 
     @Test
     public void coalesceOrdering() throws Exception {
 
         IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo", null).function(
-                "coalesce([jcr:content/foo2], [jcr:content/foo])"
-        ).ordered();
+                "coalesce([jcr:content/foo2], [jcr:content/foo])").ordered();
 
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
         idxb.build(idx);
@@ -894,22 +924,22 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         child.setProperty("foo2", "a1");
 
         root.commit();
+        postCommitHook();
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo])",
-                "lucene:test1(/oak:index/test1)", asList("/a", "/c", "/b"));
+                getIndexProvider() + "test1(/oak:index/test1)", asList("/a", "/c", "/b"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo]) DESC",
-                "lucene:test1(/oak:index/test1)", asList("/b", "/c", "/a"));
+                getIndexProvider() + "test1(/oak:index/test1)", asList("/b", "/c", "/a"));
     }
 
     @Test
     public void coalesce() throws Exception {
         IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo", null).function(
-                "lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname())))"
-        );
+                "lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname())))");
 
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
         idxb.build(idx);
@@ -924,15 +954,17 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         rootTree.addChild("bar");
 
         root.commit();
+        postCommitHook();
 
         assertPlanAndQuery(
                 "select * from [nt:base] where lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname()))) = 'bar'",
-                "lucene:test1(/oak:index/test1)", asList("/a", "/b", "/bar"));
+                getIndexProvider() + "test1(/oak:index/test1)", asList("/a", "/b", "/bar"));
     }
 
     /*
-    Given an index def with 2 orderable property definitions(Relative) for same property - one with function and one without
-    Order by should give correct results
+     * Given an index def with 2 orderable property definitions(Relative) for same
+     * property - one with function and one without
+     * Order by should give correct results
      */
     @Test
     public void sameOrderableRelPropWithAndWithoutFunc_checkOrdering() throws Exception {
@@ -956,7 +988,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         root.commit();
 
-
         int i = 1;
         // Create nodes that will be served by the index definition that follows
         for (String node : asList("a", "c", "b", "e", "d")) {
@@ -975,27 +1006,31 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         }
 
         root.commit();
-
+        // pure paranoia, this test seems to be more suceptable to delays in indexng
+        // than others
+        for (int j = 0; j < 5; j++) {
+            postCommitHook();
+        }
 
         // Check ordering works for func and non func properties
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo])",
-                "lucene:upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo]",
-                "lucene:upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
-                "lucene:upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo] DESC",
-                "lucene:upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
 
-
-        // Now we change the value of foo on already indexed nodes and see if changes get indexed properly.
+        // Now we change the value of foo on already indexed nodes and see if changes
+        // get indexed properly.
 
         i = 5;
         for (String node : asList("a", "c", "b", "e", "d")) {
@@ -1006,29 +1041,36 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             i--;
         }
         root.commit();
+        // pure paranoia, this test seems to be more suceptable to delays in indexng
+        // than others
+        for (int j = 0; j < 5; j++) {
+            postCommitHook();
+        }
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo])",
-                "lucene:upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo]",
-                "lucene:upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
-                "lucene:upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo] DESC",
-                "lucene:upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
 
     }
 
     /*
-Given an index def with 2 orderable property definitions(non-relative) for same property - one with function and one without
-Indexer should index any changes properly and ordering should work as expected.
-*/
+     * Given an index def with 2 orderable property definitions(non-relative) for
+     * same property - one with function and one without
+     * Indexer should index any changes properly and ordering should work as
+     * expected.
+     */
     @Test
     public void sameOrderablePropertyWithandWithoutFunction() throws Exception {
         LogCustomizer customLogs = LogCustomizer.forLogger(getLoggerName()).enable(org.slf4j.event.Level.WARN).create();
@@ -1076,24 +1118,25 @@ Indexer should index any changes properly and ordering should work as expected.
             }
 
             root.commit();
+            postCommitHook();
             Assert.assertFalse(customLogs.getLogs().contains("Failed to index the node [/test]"));
             Assert.assertTrue(customLogs.getLogs().size() == 0);
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by upper([foo])",
-                    "lucene:upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                    getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by [foo]",
-                    "lucene:upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                    getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by upper([foo]) DESC",
-                    "lucene:upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                    getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by [foo] DESC",
-                    "lucene:upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                    getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
 
         } finally {
             customLogs.finished();
@@ -1102,9 +1145,10 @@ Indexer should index any changes properly and ordering should work as expected.
     }
 
     /*
-    <OAK-8166>
-    Given an index def with 2 orderable property definitions(Relative) for same property - one with function and one without
-    Indexer should not fail to index the nodes covered by this index
+     * <OAK-8166>
+     * Given an index def with 2 orderable property definitions(Relative) for same
+     * property - one with function and one without
+     * Indexer should not fail to index the nodes covered by this index
      */
     @Test
     public void sameOrderableRelativePropertyWithAndWithoutFunction() throws Exception {
@@ -1145,6 +1189,7 @@ Indexer should index any changes properly and ordering should work as expected.
             customLogs.starting();
             root.getTree("/").getChild("test").getChild("jcr:content").getChild("n").setProperty("foo", "bar2");
             root.commit();
+            postCommitHook();
             Assert.assertFalse(customLogs.getLogs().contains("Failed to index the node [/test]"));
             Assert.assertTrue(customLogs.getLogs().size() == 0);
         } finally {
@@ -1153,6 +1198,56 @@ Indexer should index any changes properly and ordering should work as expected.
 
     }
 
+    @Test
+    public void duplicateFunctionInIndex() throws Exception {
+        // Index def with same property - ordered - one with function and one without
+        Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+        Tree prop = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE);
+        Tree upper1 = prop.addChild("upper1");
+        upper1.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        upper1.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+        Tree upper2 = prop.addChild("upper2");
+        upper2.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        upper2.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+        Tree upper3 = prop.addChild("upper3");
+        upper3.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+        Tree upper4 = prop.addChild("upper4");
+        upper4.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+
+        root.commit();
+
+        int i = 1;
+        // Create nodes that will be served by the index definition that follows
+        for (String node : asList("a", "c", "b", "e", "d")) {
+
+            Tree test = root.getTree("/").addChild(node);
+            test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+            Tree a = test.addChild("jcr:content");
+            a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+            Tree b = a.addChild("n");
+
+            b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            b.setProperty("foo", "bar"+i);
+            i++;
+        }
+
+        root.commit();
+        postCommitHook();
+
+        // Check ordering works for func and non func properties
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo])",
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
+                getIndexProvider() + "upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+    }
 
     protected String explain(String query) {
         String explain = "explain " + query;

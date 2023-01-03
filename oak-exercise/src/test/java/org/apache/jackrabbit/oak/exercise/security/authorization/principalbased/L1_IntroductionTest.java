@@ -62,7 +62,7 @@ import static org.junit.Assert.assertTrue;
  *
  *   Question: What does binding a policy to a node means in this context?
  *   Question: Where does a principal-based policy take effect? see also
- *   https://docs.adobe.com/docs/en/spec/jcr/2.0/16_Access_Control_Management.html#16.3%20Access%20Control%20Policies
+ *   https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html#16.3%20Access%20Control%20Policies
  *   Question: How does the PrincipalAccessControlList allow to specify where a given entry takes effect and how
  *   restrictions could be used to achieve the same effect?
  *

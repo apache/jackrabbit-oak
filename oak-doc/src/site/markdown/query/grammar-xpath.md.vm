@@ -296,9 +296,12 @@ that point. `//` is *not* supported as part of relative path. So, `a/*/@test`,
 
 "jcr:score()" is the score returned by the index.
 
-"fn:coalesce": this returns the first operand if it is not null,
+"fn:coalesce": This returns the first operand if it is not null,
 and the second operand otherwise.
 `@since Oak 1.8`
+
+"jcr:first", "fn:path": Supported `@since Oak 1.42`, see OAK-9625.
+
 
 Examples:
 
@@ -307,7 +310,9 @@ Examples:
     items/type/@metaType
     indexRules/nt:base/*
     fn:string-length(@title)
+    jcr:first(@alias)
     fn:name()
+    fn:path()
     jcr:score ()
     fn:lower-case(@lastName)
     fn:coalesce(@lastName, @name)
@@ -329,6 +334,9 @@ The traversal option can be used to change the behavior of the given query:
 To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of choice,
 and specify this tag in the query.
 See <a href="query-engine.html#Query_Option_Index_Tag">Query Option Index Tag</a>.
+
+"offset" / "limit": sets the offset / limit at the time of parsing the query
+See <a href="query-engine.html#Query_Option_Offset__Limit">Query Option Offset / Limit</a>.
 
 Examples:
 

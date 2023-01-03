@@ -91,9 +91,9 @@ dynamicOperand [ 'ascending' | 'descending' ]
 "Grammar","Dynamic Operand","
 [ relativePath / ] { @propertyName | * }
     | 'fn:string-length' ( dynamicOperand  )
-    | { 'fn:name' | 'fn:local-name' } ( [ . ] )
+    | { 'fn:name' | 'fn:local-name' | 'fn:path' } ( [ . ] )
     | 'jcr:score' ( )
-    | { 'fn:lower-case' | 'fn:upper-case' } ( dynamicOperand )
+    | { 'fn:lower-case' | 'fn:upper-case' | 'jcr:first' } ( dynamicOperand )
     | 'fn:coalesce' ( firstDynamicOperand, secondDynamicOperand )
 ","
 "
@@ -133,7 +133,9 @@ simpleType
 "Grammar","Options","
 'option'( {
     'traversal' { 'ok' | 'warn' | 'fail' | 'default' } |
-    'index' 'tag' tagName
+    'index' 'tag' tagName |
+    'offset' number |
+    'limit' number
     } [ , ... ] )
 ","
 "

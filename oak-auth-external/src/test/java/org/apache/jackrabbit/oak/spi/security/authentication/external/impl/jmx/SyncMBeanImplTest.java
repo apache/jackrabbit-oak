@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -49,6 +51,8 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -157,36 +161,36 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
      */
     @Test
     public void testSyncUsersBefore() {
-        String[] userIds = new String[] {TestIdentityProvider.ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
+        String[] userIds = new String[] {ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
 
         String[] result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
 
         result = syncMBean.syncUsers(userIds, true);
-        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
     public void testSyncUsers() throws Exception {
-        sync(idp, TestIdentityProvider.ID_TEST_USER, false);
+        sync(idp, ID_TEST_USER, false);
 
-        String[] userIds = new String[]{TestIdentityProvider.ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
+        String[] userIds = new String[]{ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
         String[] result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
 
         result = syncMBean.syncUsers(userIds, true);
-        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
     public void testSyncUsersAlwaysForcesSync() throws Exception {
-        sync(idp, TestIdentityProvider.ID_TEST_USER, false);
+        sync(idp, ID_TEST_USER, false);
 
-        String[] userIds = new String[]{TestIdentityProvider.ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
+        String[] userIds = new String[]{ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
         syncConfig.user().setExpirationTime(Long.MAX_VALUE);
 
         String[]result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
+        assertResultMessages(result, ImmutableMap.of(ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
@@ -247,19 +251,19 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     @Test
     public void testSyncUsersForeign() throws Exception {
         // sync user from foreign IDP into the repository
-        SyncResult res = sync(foreignIDP, TestIdentityProvider.ID_TEST_USER, false);
-        assertNotNull(getUserManager().getAuthorizable(TestIdentityProvider.ID_TEST_USER));
-        assertEquals(foreignIDP.getUser(TestIdentityProvider.ID_TEST_USER).getExternalId(), res.getIdentity().getExternalIdRef());
+        SyncResult res = sync(foreignIDP, ID_TEST_USER, false);
+        assertNotNull(getUserManager().getAuthorizable(ID_TEST_USER));
+        assertEquals(foreignIDP.getUser(ID_TEST_USER).getExternalId(), res.getIdentity().getExternalIdRef());
 
         // syncUsers with testIDP must detect the foreign status
-        String[] result = syncMBean.syncUsers(new String[]{TestIdentityProvider.ID_TEST_USER}, false);
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
-        assertNotNull(getUserManager().getAuthorizable(TestIdentityProvider.ID_TEST_USER));
+        String[] result = syncMBean.syncUsers(new String[]{ID_TEST_USER}, false);
+        assertResultMessages(result, ID_TEST_USER, "for");
+        assertNotNull(getUserManager().getAuthorizable(ID_TEST_USER));
 
         // same expected with 'purge' set to true
-        result = syncMBean.syncUsers(new String[] {TestIdentityProvider.ID_TEST_USER}, true);
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
-        assertNotNull(getUserManager().getAuthorizable(TestIdentityProvider.ID_TEST_USER));
+        result = syncMBean.syncUsers(new String[] {ID_TEST_USER}, true);
+        assertResultMessages(result, ID_TEST_USER, "for");
+        assertNotNull(getUserManager().getAuthorizable(ID_TEST_USER));
     }
 
     @Test
@@ -295,19 +299,19 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
     @Test
     public void testSyncUserThrowingHandler() throws Exception {
-        sync(idp, TestIdentityProvider.ID_TEST_USER, false);
+        sync(idp, ID_TEST_USER, false);
 
-        String[] result = createThrowingSyncMBean(false).syncUsers(new String[]{TestIdentityProvider.ID_TEST_USER}, false);
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "ERR");
+        String[] result = createThrowingSyncMBean(false).syncUsers(new String[]{ID_TEST_USER}, false);
+        assertResultMessages(result, ID_TEST_USER, "ERR");
     }
 
     @Test
     public void testInitialSyncExternalUsers() throws Exception {
-        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
+        ExternalUser externalUser = idp.getUser(ID_TEST_USER);
         String[] externalId = new String[] {externalUser.getExternalId().getString()};
 
         String[] result = syncMBean.syncExternalUsers(externalId);
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "add");
+        assertResultMessages(result, ID_TEST_USER, "add");
 
         UserManager userManager = getUserManager();
         User testUser = userManager.getAuthorizable(externalUser.getId(), User.class);
@@ -322,11 +326,11 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     public void testInitialSyncExternalUsersNoNesting() throws Exception {
         syncConfig.user().setMembershipNestingDepth(-1);
 
-        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
+        ExternalUser externalUser = idp.getUser(ID_TEST_USER);
         String[] externalId = new String[] {externalUser.getExternalId().getString()};
 
         String[] result = syncMBean.syncExternalUsers(externalId);
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "add");
+        assertResultMessages(result, ID_TEST_USER, "add");
 
         UserManager userManager = getUserManager();
         User testUser = userManager.getAuthorizable(externalUser.getId(), User.class);
@@ -339,7 +343,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
     @Test
     public void testSyncExternalUsersLastSyncedProperty() throws Exception {
-        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
+        ExternalUser externalUser = idp.getUser(ID_TEST_USER);
         String[] externalId = new String[]{externalUser.getExternalId().getString()};
 
         syncMBean.syncExternalUsers(externalId);
@@ -351,7 +355,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
             Group gr = userManager.getAuthorizable(groupRef.getId(), Group.class);
             long groupLastSynced = gr.getProperty(DefaultSyncContext.REP_LAST_SYNCED)[0].getLong();
 
-            assertTrue(lastSynced == groupLastSynced);
+            assertEquals(lastSynced, groupLastSynced);
         }
 
         while (System.currentTimeMillis() <= lastSynced) {
@@ -369,7 +373,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
             Group gr = userManager.getAuthorizable(groupRef.getId(), Group.class);
             long groupLastSynced = gr.getProperty(DefaultSyncContext.REP_LAST_SYNCED)[0].getLong();
 
-            assertTrue(lastSynced2 == groupLastSynced);
+            assertEquals(lastSynced2, groupLastSynced);
         }
     }
 
@@ -415,13 +419,13 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
      */
     @Test
     public void testSyncExternalForeign() {
-        ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, "anotherIDP");
+        ExternalIdentityRef ref = new ExternalIdentityRef(ID_TEST_USER, "anotherIDP");
 
         String[] result = syncMBean.syncExternalUsers(new String[]{ref.getString()});
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
+        assertResultMessages(result, ID_TEST_USER, "for");
 
         result = syncMBean.syncExternalUsers(new String[] {ref.getString()});
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
+        assertResultMessages(result, ID_TEST_USER, "for");
     }
 
     @Test
@@ -433,9 +437,9 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
     @Test
     public void testSyncExternalUserThrowingHandler() {
-        ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, idp.getName());
+        ExternalIdentityRef ref = new ExternalIdentityRef(ID_TEST_USER, idp.getName());
         String[] result = createThrowingSyncMBean(false).syncExternalUsers(new String[]{ref.getString()});
-        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "ERR");
+        assertResultMessages(result, ID_TEST_USER, "ERR");
     }
 
     /**
@@ -492,7 +496,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
     @Test
     public void testSyncAllUsersPurgeFalse() throws Exception {
-        // first sync external user|group into the repo that does't exist on the IDP (anymore)
+        // first sync external user|group into the repo that doesn't exist on the IDP (anymore)
         sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
@@ -507,7 +511,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
     @Test
     public void testSyncAllUsersPurgeTrue() throws Exception {
-        // first sync external user|group into the repo that does't exist on the IDP (anymore)
+        // first sync external user|group into the repo that doesn't exist on the IDP (anymore)
         sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
@@ -525,18 +529,18 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         // first sync external users + groups from 2 different IDPs into the repo
         // but set membership-nesting to 0
         syncConfig.user().setMembershipNestingDepth(0);
-        sync(idp, TestIdentityProvider.ID_TEST_USER, false);
+        sync(idp, ID_TEST_USER, false);
         sync(idp, "a", true);
         sync(foreignIDP, TestIdentityProvider.ID_SECOND_USER, false);
         sync(foreignIDP, "aa", true);
 
         // verify effect of syncAllUsers : foreign user/group must be ignored by the sync.
         String[] result = syncMBean.syncAllUsers(false);
-        Map<String, String> expectedResults = ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", "a", "upd");
+        Map<String, String> expectedResults = ImmutableMap.of(ID_TEST_USER, "upd", "a", "upd");
         assertResultMessages(result, expectedResults);
 
         ExternalIdentity[] expectedIds = new ExternalIdentity[] {
-                idp.getUser(TestIdentityProvider.ID_TEST_USER),
+                idp.getUser(ID_TEST_USER),
                 foreignIDP.getUser(TestIdentityProvider.ID_SECOND_USER),
                 idp.getGroup("a"),
                 foreignIDP.getGroup("aa")
@@ -639,7 +643,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     @Test
     public void testListOrphanedUsersForeign() throws Exception {
         sync(foreignIDP, "a", true);
-        sync(foreignIDP, TestIdentityProvider.ID_TEST_USER, false);
+        sync(foreignIDP, ID_TEST_USER, false);
 
         String[] result = syncMBean.listOrphanedUsers();
         assertEquals(0, result.length);
@@ -694,7 +698,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     @Test
     public void testPurgeOrphanedUsersForeign() throws Exception {
         sync(foreignIDP, "a", true);
-        sync(foreignIDP, TestIdentityProvider.ID_TEST_USER, false);
+        sync(foreignIDP, ID_TEST_USER, false);
 
         String[] result = syncMBean.purgeOrphanedUsers();
         assertEquals(0, result.length);
@@ -738,6 +742,63 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         assertNotNull(userManager.getAuthorizable("thirdUser"));
         assertNotNull(userManager.getAuthorizable("g"));
     }
+    
+    @Test
+    public void testConvertToDynamicMembershipDefaultContext() throws Exception {
+        sync(new TestIdentityProvider.TestUser(ID_TEST_USER, idp.getName()), idp);
+        
+        String[] result = syncMBean.convertToDynamicMembership();
+        assertNotNull(result);
+        assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testConvertToDynamicMembership() throws Exception {
+        syncConfig.user().setMembershipNestingDepth(2);
+        sync(idp.getUser(ID_TEST_USER), idp);
+
+        syncConfig.user().setDynamicMembership(true);
+        String[] result = syncMBean.convertToDynamicMembership();
+        assertNotNull(result);
+        assertEquals(1, result.length);
+        
+        ResultMessages expected = new ResultMessages();
+        expected.append(Collections.singletonList(new DefaultSyncResultImpl(DefaultSyncContext.createSyncedIdentity(getUserManager().getAuthorizable(ID_TEST_USER)), SyncResult.Status.UPDATE)));
+        assertArrayEquals(expected.getMessages(), result);
+    }
+
+    @Test
+    public void testConvertToDynamicMembershipNoop() throws Exception {
+        syncConfig.user().setDynamicMembership(true);
+
+        syncMBean.syncExternalUsers(new String[] {idp.getUser(ID_TEST_USER).getExternalId().getString()});
+        
+        Authorizable a = getUserManager().getAuthorizable(ID_TEST_USER);
+        assertNotNull(a);
+        
+        String[] result = syncMBean.convertToDynamicMembership();
+        assertNotNull(result);
+        assertEquals(1, result.length);
+
+        ResultMessages expected = new ResultMessages();
+        expected.append(Collections.singletonList(new DefaultSyncResultImpl(DefaultSyncContext.createSyncedIdentity(a), SyncResult.Status.NOP)));
+        assertArrayEquals(expected.getMessages(), result);
+    }
+
+    @Test
+    public void testConvertToDynamicMembershipForeign() throws Exception {
+        String idpName = "anotherIDP";
+        TestIdentityProvider anotherIdp = new TestIdentityProvider(idpName);
+        sync(anotherIdp.getUser(ID_TEST_USER), anotherIdp);
+
+        syncConfig.user().setDynamicMembership(true);
+        Authorizable a = getUserManager().getAuthorizable(ID_TEST_USER);
+        assertNotNull(a);
+
+        String[] result = syncMBean.convertToDynamicMembership();
+        assertNotNull(result);
+        assertEquals(0, result.length);
+    }
 
     /**
      * SyncHandler implementation that throws Exceptions.
@@ -747,12 +808,12 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         private static final String NAME = "throwing";
         private static final String NAME_ALLOWS_IDENTITY_LISTING = "throwingExceptListIdentities";
 
-        boolean allowsListIdentities = false;
+        boolean allowsListIdentities;
 
         private ThrowingSyncHandler(boolean allowsListIdentities) {
             super(syncConfig);
             this.allowsListIdentities = allowsListIdentities;
-        };
+        }
 
         @NotNull
         @Override

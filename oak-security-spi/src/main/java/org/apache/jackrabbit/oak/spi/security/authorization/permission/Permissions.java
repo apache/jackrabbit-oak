@@ -16,17 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Session;
-
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -37,6 +27,15 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.Session;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Provides constants for permissions used in the OAK access evaluation as well
@@ -309,12 +308,7 @@ public final class Permissions {
         if (ALL == permissions) {
             return NON_AGGREGATES;
         } else {
-            return Iterables.filter(NON_AGGREGATES, new Predicate<Long>() {
-                @Override
-                public boolean apply(@Nullable Long permission) {
-                    return permission != null && includes(permissions, permission);
-                }
-            });
+            return NON_AGGREGATES.stream().filter(permission -> includes(permissions, permission)).collect(Collectors.toSet());
         }
     }
 
@@ -336,8 +330,8 @@ public final class Permissions {
      * If {@code permissions} is included in {@code otherPermissions},
      * {@link #NO_PERMISSION} is returned.
      *
-     * @param permissions
-     * @param otherPermissions
+     * @param permissions The permissions from which to subtract {@code otherPermissions}.
+     * @param otherPermissions The permissions to be subtracted.
      * @return the differences of the 2 permissions or {@link #NO_PERMISSION}.
      */
     public static long diff(long permissions, long otherPermissions) {
@@ -369,42 +363,17 @@ public final class Permissions {
         long permissions = NO_PERMISSION;
         // map read action respecting the 'isAccessControlContent' flag.
         if (actions.remove(Session.ACTION_READ)) {
-            if (isAccessControlContent) {
-                permissions |= READ_ACCESS_CONTROL;
-            } else if (!location.exists()) {
-                permissions |= READ;
-            } else if (location.getProperty() != null) {
-                permissions |= READ_PROPERTY;
-            } else {
-                permissions |= READ_NODE;
-            }
+            permissions |= mapReadAction(location, isAccessControlContent);
         }
 
         // map write actions respecting the 'isAccessControlContent' flag.
         if (!actions.isEmpty()) {
             if (isAccessControlContent) {
                 if (actions.removeAll(WRITE_ACTIONS)) {
-                    permissions |= MODIFY_ACCESS_CONTROL;
+                    permissions |=  MODIFY_ACCESS_CONTROL;
                 }
             } else {
-                // item is not access controlled -> cover actions that don't have
-                // a 1:1 mapping to a given permission.
-                if (actions.remove(Session.ACTION_SET_PROPERTY)) {
-                    if (location.getProperty() == null) {
-                        permissions |= ADD_PROPERTY;
-                    } else {
-                        permissions |= MODIFY_PROPERTY;
-                    }
-                }
-                if (actions.remove(Session.ACTION_REMOVE)) {
-                    if (!location.exists()) {
-                        permissions |= REMOVE;
-                    } else if (location.getProperty() != null) {
-                        permissions |= REMOVE_PROPERTY;
-                    } else {
-                        permissions |= REMOVE_NODE;
-                    }
-                }
+                permissions |= mapWriteActions(actions, location);
             }
         }
 
@@ -422,6 +391,41 @@ public final class Permissions {
         // now the action set must be empty; otherwise it contained unsupported action(s)
         if (!actions.isEmpty()) {
             throw new IllegalArgumentException("Unknown actions: " + actions);
+        }
+        return permissions;
+    }
+
+    private static long mapReadAction(@NotNull TreeLocation location, boolean isAccessControlContent) {
+        if (isAccessControlContent) {
+            return READ_ACCESS_CONTROL;
+        } else if (!location.exists()) {
+            return READ;
+        } else if (location.getProperty() != null) {
+            return READ_PROPERTY;
+        } else {
+            return READ_NODE;
+        }
+    }
+
+    private static long mapWriteActions(@NotNull Set<String> actions, @NotNull TreeLocation location) {
+        // item is not access controlled -> cover actions that don't have
+        // a 1:1 mapping to a given permission.
+        long permissions = NO_PERMISSION;
+        if (actions.remove(Session.ACTION_SET_PROPERTY)) {
+            if (location.getProperty() == null) {
+                permissions |= ADD_PROPERTY;
+            } else {
+                permissions |= MODIFY_PROPERTY;
+            }
+        }
+        if (actions.remove(Session.ACTION_REMOVE)) {
+            if (!location.exists()) {
+                permissions |= REMOVE;
+            } else if (location.getProperty() != null) {
+                permissions |= REMOVE_PROPERTY;
+            } else {
+                permissions |= REMOVE_NODE;
+            }
         }
         return permissions;
     }
@@ -447,7 +451,7 @@ public final class Permissions {
         Iterator<String> it = permissionNames.iterator();
         while (it.hasNext()) {
             String name = it.next();
-            if (name != null && PERMISSION_LOOKUP.containsKey(name)) {
+            if (PERMISSION_LOOKUP.containsKey(name)) {
                 permissions |= PERMISSION_LOOKUP.get(name);
                 it.remove();
             }
@@ -466,7 +470,7 @@ public final class Permissions {
         } else if (PrivilegeConstants.PRIVILEGES_PATH.equals(path)) {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
         } else {
-            // FIXME: workspace-mgt (blocked by OAK-916)
+            // NOTE: workspace-mgt is missing (blocked by OAK-916)
             permission = defaultPermission;
         }
         return permission;

@@ -87,9 +87,7 @@ public class ExternalLoginDynamicMembershipTest extends ExternalLoginTest {
 
     @Test
     public void testLoginPopulatesPrincipals() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, new char[0]));
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
 
             Set<String> expectedExternal = new HashSet<>();
             calcExpectedPrincipalNames(idp.getUser(USER_ID), syncConfig.user().getMembershipNestingDepth(), expectedExternal);
@@ -115,9 +113,6 @@ public class ExternalLoginDynamicMembershipTest extends ExternalLoginTest {
             assertTrue(principals.isEmpty());
 
         } finally {
-            if (cs != null) {
-                cs.close();
-            }
             options.clear();
         }
     }

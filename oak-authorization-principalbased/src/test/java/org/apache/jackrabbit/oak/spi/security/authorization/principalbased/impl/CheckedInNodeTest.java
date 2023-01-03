@@ -20,12 +20,10 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.junit.Test;
 
 import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
@@ -33,13 +31,11 @@ import java.util.Map;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.MIX_REP_PRINCIPAL_BASED_MIXIN;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 
 public class CheckedInNodeTest extends AbstractPrincipalBasedTest {
 
-    private ReadWriteVersionManager versionManager;
     private Principal testPrincipal;
 
     @Override

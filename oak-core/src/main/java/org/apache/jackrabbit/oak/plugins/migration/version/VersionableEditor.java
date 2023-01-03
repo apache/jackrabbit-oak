@@ -153,7 +153,8 @@ public class VersionableEditor extends DefaultEditor {
         assert versionable.exists();
 
         final String versionableUuid = versionable.getProperty(JCR_UUID).getValue(Type.STRING);
-        return versionCopier.copyVersionHistory(versionableUuid, provider.config.getVersionsMinDate());
+        return versionCopier.copyVersionHistory(versionableUuid, provider.config.getVersionsMinDate(),
+            provider.config.preserveOnTarget());
     }
 
     private void setVersionablePath(String versionableUuid) {

@@ -16,35 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import com.github.dockerjava.api.DockerClient;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.client.RequestOptions;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.testcontainers.utility.MountableFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
-import static org.junit.Assume.assumeNotNull;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /*
 To be used as a @ClassRule
@@ -52,27 +39,20 @@ To be used as a @ClassRule
 public class ElasticConnectionRule extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticConnectionRule.class);
-    private ElasticConnection elasticConnection;
-    private final String elasticConnectionString;
-    private static final String INDEX_PREFIX = "ElasticTest_";
-    private static final String PLUGIN_DIGEST = "060117b4150c87274d9cff0925ec16e714f28a40906a53a2cd2a23322bbb3189";
+
+    private final String indexPrefix;
     private static boolean useDocker = false;
+
+    private final String elasticConnectionString;
+
+    private ElasticConnectionModel elasticConnectionModel;
 
     public ElasticConnectionRule(String elasticConnectionString) {
         this.elasticConnectionString = elasticConnectionString;
+        indexPrefix = "elastic_test_" + RandomStringUtils.random(5, true, false).toLowerCase();
     }
 
     public ElasticsearchContainer elastic;
-
-    /*
-    Executed once in the test class' execution lifecycle, after the execution of apply()
-     */
-    @Override
-    protected void before() {
-        if (useDocker()) {
-            elasticConnection = getElasticConnectionForDocker();
-        }
-    }
 
     /*
     This is the first method to be executed. It gets executed exactly once at the beginning of the test class execution.
@@ -80,119 +60,141 @@ public class ElasticConnectionRule extends ExternalResource {
     @Override
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
-        // see if docker is to be used or not... initialize docker rule only if that's the case.
-        final String pluginVersion = "7.10.2.3";
-        final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
-        final String localPluginPath = "target/" + pluginFileName;
-        downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
-        if (elasticConnectionString == null || getElasticConnectionFromString() == null) {
-            checkIfDockerClientAvailable();
-            elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT)
-                    .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
-                    .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
-                    .withCommand("bash /tmp/elasticstartscript.sh");
-            s = elastic.apply(s, description);
+        if (!isValidUri(elasticConnectionString)) {
+            elastic = ElasticTestServer.getESTestServer();
             setUseDocker(true);
+            initializeElasticConnectionModel(elastic);
+        } else {
+            initializeElasticConnectionModel(elasticConnectionString);
         }
         return s;
     }
 
     @Override
     protected void after() {
-        //TODO: See if something needs to be cleaned up at test class level ??
-    }
-
-    private void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
-        File pluginFile = new File(localPluginPath);
-        if (!pluginFile.exists()) {
-            LOG.info("Plugin file {} doesn't exist. Trying to download.", localPluginPath);
-            try (CloseableHttpClient client = HttpClients.createDefault()) {
-                HttpGet get = new HttpGet("https://github.com/alexklibisz/elastiknn/releases/download/" + pluginVersion
-                        +"/elastiknn-" + pluginVersion +".zip");
-                CloseableHttpResponse response = client.execute(get);
-                InputStream inputStream = response.getEntity().getContent();
-                MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-                DigestInputStream dis = new DigestInputStream(inputStream, messageDigest);
-                FileOutputStream outputStream = new FileOutputStream(pluginFile);
-                IOUtils.copy(dis, outputStream);
-                messageDigest = dis.getMessageDigest();
-                // bytes to hex
-                StringBuilder result = new StringBuilder();
-                for (byte b : messageDigest.digest()) {
-                    result.append(String.format("%02x", b));
-                }
-                if (!PLUGIN_DIGEST.equals(result.toString())) {
-                    String deleteString = "Downloaded plugin file deleted.";
-                    if (!pluginFile.delete()) {
-                        deleteString = "Could not delete downloaded plugin file.";
-                    }
-                    throw new RuntimeException("Plugin digest unequal. Found " + result.toString() + ". Expected " + PLUGIN_DIGEST + ". " + deleteString);
-                }
-            } catch (IOException|NoSuchAlgorithmException e) {
-                throw new RuntimeException("Could not download similarity search plugin", e);
+        ElasticConnection esConnection = getElasticConnection();
+        if (esConnection != null) {
+            try {
+                esConnection.getClient().indices().delete(d -> d.index(this.indexPrefix + "*"));
+            } catch (IOException e) {
+                LOG.error("Unable to delete indexes with prefix {}", this.indexPrefix);
+            } finally {
+                IOUtils.closeQuietly(esConnection, e -> LOG.debug("Error closing Elasticsearch connection", e));
             }
         }
+    }
+
+    public ElasticConnectionModel getElasticConnectionModel() {
+        return elasticConnectionModel;
+    }
+
+    private void initializeElasticConnectionModel(String elasticConnectionString) {
+        try {
+            URI uri = new URI(elasticConnectionString);
+            String host = uri.getHost();
+            String scheme = uri.getScheme();
+            int port = uri.getPort();
+
+            Map<String, String> queryParams = getUriQueryParams(uri);
+            String apiKey = queryParams.get("key_id");
+            String apiSecret = queryParams.get("key_secret");
+
+            this.elasticConnectionModel = new ElasticConnectionModel();
+            elasticConnectionModel.scheme = scheme;
+            elasticConnectionModel.elasticHost = host;
+            elasticConnectionModel.elasticPort = port;
+            elasticConnectionModel.elasticApiKey = apiKey;
+            elasticConnectionModel.elasticApiSecret = apiSecret;
+            elasticConnectionModel.indexPrefix = indexPrefix + System.currentTimeMillis();
+        } catch (URISyntaxException e) {
+            LOG.error("Provided elastic connection string is not valid ", e);
+        }
+    }
+
+    private void initializeElasticConnectionModel(ElasticsearchContainer elastic) {
+        this.elasticConnectionModel = new ElasticConnectionModel();
+        elasticConnectionModel.scheme = ElasticConnection.DEFAULT_SCHEME;
+        elasticConnectionModel.elasticHost = elastic.getHost();
+        elasticConnectionModel.elasticPort = elastic.getMappedPort(ElasticConnection.DEFAULT_PORT);
+        elasticConnectionModel.elasticApiKey = null;
+        elasticConnectionModel.elasticApiSecret = null;
+        elasticConnectionModel.indexPrefix = indexPrefix + System.currentTimeMillis();
+    }
+
+    private Map<String, String> getUriQueryParams(URI uri) {
+        String query = uri.getQuery();
+        if (query != null) {
+            return Arrays.stream(query.split(","))
+                    .map(s -> s.split("="))
+                    .collect(Collectors.toMap(
+                            a -> a[0],  //key
+                            a -> a[1]   //value
+                    ));
+        }
+        return Collections.emptyMap();
     }
 
     public ElasticConnection getElasticConnectionFromString() {
-        if (elasticConnection == null) {
-            try {
-                URI uri = new URI(elasticConnectionString);
-                String host = uri.getHost();
-                String scheme = uri.getScheme();
-                int port = uri.getPort();
-                String query = uri.getQuery();
+        try {
+            URI uri = new URI(elasticConnectionString);
+            String host = uri.getHost();
+            String scheme = uri.getScheme();
+            int port = uri.getPort();
+            Map<String, String> queryParams = getUriQueryParams(uri);
+            String apiKey = queryParams.get("key_id");
+            String apiSecret = queryParams.get("key_secret");
 
-                String api_key = null;
-                String api_secret = null;
-                if (query != null) {
-                    api_key = query.split(",")[0].split("=")[1];
-                    api_secret = query.split(",")[1].split("=")[1];
-                }
-                elasticConnection = ElasticConnection.newBuilder()
-                        .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
-                        .withConnectionParameters(scheme, host, port)
-                        .withApiKeys(api_key, api_secret)
-                        .build();
-            } catch (URISyntaxException e) {
-                return null;
-            }
+            return ElasticConnection.newBuilder()
+                    .withIndexPrefix(indexPrefix + System.currentTimeMillis())
+                    .withConnectionParameters(scheme, host, port)
+                    .withApiKeys(apiKey, apiSecret)
+                    .build();
+        } catch (URISyntaxException e) {
+            LOG.error("Provided elastic connection string is not valid ", e);
+            return null;
         }
-        return elasticConnection;
+    }
+
+    private boolean isValidUri(String connectionString) {
+        if (connectionString == null) {
+            return false;
+        }
+        try {
+            new URI(connectionString);
+            return true;
+        } catch (URISyntaxException e) {
+            LOG.debug("Provided elastic connection string is not valid ", e);
+            return false;
+        }
+    }
+
+    /**
+     * We initialise elasticConnectionModel in apply method. So use this method only
+     * if apply had been called once.
+     *
+     * @return
+     */
+    public ElasticConnection getElasticConnection() {
+        return ElasticConnection.newBuilder()
+                .withIndexPrefix(elasticConnectionModel.indexPrefix)
+                .withConnectionParameters(elasticConnectionModel.scheme,
+                        elasticConnectionModel.elasticHost, elasticConnectionModel.elasticPort)
+                .withApiKeys(elasticConnectionModel.elasticApiKey, elasticConnectionModel.elasticApiSecret)
+                .build();
     }
 
     public ElasticConnection getElasticConnectionForDocker() {
-        if (elasticConnection == null) {
-            elasticConnection = ElasticConnection.newBuilder()
-                    .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
-                    .withConnectionParameters(ElasticConnection.DEFAULT_SCHEME,
-                            elastic.getContainerIpAddress(),
-                            elastic.getMappedPort(ElasticConnection.DEFAULT_PORT))
-                    .withApiKeys(null, null)
-                    .build();
-        }
-        return elasticConnection;
+        return getElasticConnectionForDocker(elasticConnectionModel.elasticHost,
+                elasticConnectionModel.elasticPort);
     }
 
-    public void closeElasticConnection() throws IOException {
-        if (elasticConnection != null) {
-            elasticConnection.getClient().indices().delete(new DeleteIndexRequest(elasticConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
-            elasticConnection.close();
-            // Make this object null otherwise tests after the first test would
-            // receive an client that is closed.
-            elasticConnection = null;
-        }
-    }
-
-    private void checkIfDockerClientAvailable() {
-        DockerClient client = null;
-        try {
-            client = DockerClientFactory.instance().client();
-        } catch (Exception e) {
-            LOG.warn("Docker is not available and elasticConnectionDetails sys prop not specified or incorrect" +
-                    ", Elastic tests will be skipped");
-        }
-        assumeNotNull(client);
+    public ElasticConnection getElasticConnectionForDocker(String containerIpAddress, int port) {
+        return ElasticConnection.newBuilder()
+                .withIndexPrefix(elasticConnectionModel.indexPrefix)
+                .withConnectionParameters(elasticConnectionModel.scheme,
+                        containerIpAddress, port)
+                .withApiKeys(elasticConnectionModel.elasticApiKey, elasticConnectionModel.elasticApiSecret)
+                .build();
     }
 
     private void setUseDocker(boolean useDocker) {
@@ -201,5 +203,38 @@ public class ElasticConnectionRule extends ExternalResource {
 
     public boolean useDocker() {
         return useDocker;
+    }
+
+    public static class ElasticConnectionModel {
+        private String elasticApiSecret;
+        private String elasticApiKey;
+        private String scheme;
+        private String elasticHost;
+        private int elasticPort;
+        private String indexPrefix;
+
+        public String getElasticApiSecret() {
+            return elasticApiSecret;
+        }
+
+        public String getElasticApiKey() {
+            return elasticApiKey;
+        }
+
+        public String getScheme() {
+            return scheme;
+        }
+
+        public String getElasticHost() {
+            return elasticHost;
+        }
+
+        public int getElasticPort() {
+            return elasticPort;
+        }
+
+        public String getIndexPrefix() {
+            return indexPrefix;
+        }
     }
 }

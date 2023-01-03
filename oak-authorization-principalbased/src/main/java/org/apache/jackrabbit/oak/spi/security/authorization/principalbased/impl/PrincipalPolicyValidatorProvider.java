@@ -49,6 +49,7 @@ import java.security.Principal;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
@@ -96,7 +97,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             if (parentValidator.isNodetypeTree) {
                 this.isNodetypeTree = true;
             } else {
-                this.isNodetypeTree = NodeTypeConstants.JCR_NODE_TYPES.equals(after.getName()) && NodeTypeConstants.JCR_SYSTEM.equals(parentValidator.getName());
+                this.isNodetypeTree = NodeTypeConstants.JCR_NODE_TYPES.equals(after.getName()) && JCR_SYSTEM.equals(parentValidator.getName());
             }
         }
 
@@ -106,7 +107,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             if (parentValidator.isNodetypeTree) {
                 this.isNodetypeTree = true;
             } else {
-                this.isNodetypeTree = NodeTypeConstants.JCR_NODE_TYPES.equals(tree.getName()) && NodeTypeConstants.JCR_SYSTEM.equals(parentValidator.getName());
+                this.isNodetypeTree = NodeTypeConstants.JCR_NODE_TYPES.equals(tree.getName()) && JCR_SYSTEM.equals(parentValidator.getName());
             }
         }
 
@@ -178,7 +179,8 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
                     throw new CommitFailedException(ACCESS, 3, "Access denied");
                 }
             }
-            return new VisibleValidator(nextValidator(name, before, false), true, true);        }
+            return new VisibleValidator(nextValidator(name, before, false), true, true);        
+        }
 
         //----------------------------------------------------------------------
         private void validatePolicyNode(@NotNull Tree parent, @NotNull NodeState nodeState) throws CommitFailedException {

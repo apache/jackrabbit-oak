@@ -27,6 +27,7 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -90,9 +91,9 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
             // oddity of the current impl that add members without testing for
             boolean found = false;
             MembershipProvider mp = userManager.getMembershipProvider();
-            for (Iterator<String> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
-                String p = it.next();
-                if (testGroup.getPath().equals(p)) {
+            for (Iterator<Tree> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
+                Tree t = it.next();
+                if (testGroup.getPath().equals(t.getPath())) {
                     found = true;
                 }
             }

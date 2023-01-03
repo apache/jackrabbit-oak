@@ -16,7 +16,14 @@
  */
 package org.apache.jackrabbit.oak.query.xpath;
 
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Optional;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.xpath.Statement.UnionStatement;
@@ -24,27 +31,22 @@ import org.apache.jackrabbit.util.ISO9075;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Locale;
-
 /**
  * This class can can convert a XPATH query to a SQL2 query.
  */
 public class XPathToSQL2Converter {
-    
+
     /**
-     * Optimize queries of the form "from [nt:base] where [jcr:primaryType] = 'x'" 
+     * Optimize queries of the form "from [nt:base] where [jcr:primaryType] = 'x'"
      * to "from [x] where [jcr:primaryType] = 'x'".
      * Enabled by default.
      */
     public static final boolean NODETYPE_OPTIMIZATION = Boolean.parseBoolean(
             System.getProperty("oak.xpathNodeTypeOptimization", "true"));
-    
+
     /**
      * Convert queries of the form "where [jcr:primaryType] = 'x' or [jcr:primaryType] = 'y'"
-     * to "select ... where [jcr:primaryType] = 'x' union select ... where [jcr:primaryType] = 'y'". 
+     * to "select ... where [jcr:primaryType] = 'x' union select ... where [jcr:primaryType] = 'y'".
      * If disabled, only one query with "where [jcr:primaryType] in ('x', 'y') is used.
      * Enabled by default.
      */
@@ -76,6 +78,16 @@ public class XPathToSQL2Converter {
     private Selector currentSelector = new Selector();
     private ArrayList<Selector> selectors = new ArrayList<Selector>();
 
+    private final QueryEngineSettings settings;
+
+    public XPathToSQL2Converter() {
+        this(null);
+    }
+
+    public XPathToSQL2Converter(QueryEngineSettings settings) {
+        this.settings = settings;
+    }
+
     /**
      * Convert the query to SQL2.
      *
@@ -88,11 +100,11 @@ public class XPathToSQL2Converter {
         statement = statement.optimize();
         return statement.toString();
     }
-    
+
     private Statement convertToStatement(String query) throws ParseException {
-        
+
         query = query.trim();
-        
+
         Statement statement = new Statement();
 
         if (query.startsWith("explain ")) {
@@ -103,19 +115,19 @@ public class XPathToSQL2Converter {
             query = query.substring("measure".length()).trim();
             statement.setMeasure(true);
         }
-        
+
         if (query.isEmpty()) {
             // special case, will always result in an empty result
             query = "//jcr:root";
         }
-        
+
         statement.setOriginalQuery(query);
-        
+
         initialize(query);
-        
+
         expected = new ArrayList<String>();
         read();
-        
+
         if (currentTokenType == END) {
             throw getSyntaxError("the query may not be empty");
         }
@@ -126,11 +138,11 @@ public class XPathToSQL2Converter {
         boolean startOfQuery = true;
 
         while (true) {
-            
+
             // if true, path or nodeType conditions are not allowed
             boolean shortcut = false;
             boolean slash = readIf("/");
-            
+
             if (!slash) {
                 if (startOfQuery) {
                     // the query doesn't start with "/"
@@ -209,7 +221,7 @@ public class XPathToSQL2Converter {
                             currentSelector.nodeName = "jcr:xmltext";
                         } else {
                             currentSelector.path = PathUtils.concat(currentSelector.path, "jcr:xmltext");
-                        }                        
+                        }
                     } else if ("element".equals(identifier)) {
                         // "...element(..."
                         if (readIf(")")) {
@@ -298,7 +310,7 @@ public class XPathToSQL2Converter {
                     } else if (readIf("rep:spellcheck")) {
                         // only rep:spellcheck() is currently supported
                         read("(");
-                        read(")");                        
+                        read(")");
                         Expression.Property p = new Expression.Property(currentSelector, "rep:spellcheck()", false);
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:suggest")) {
@@ -386,7 +398,12 @@ public class XPathToSQL2Converter {
         QueryOptions options = null;
         if (readIf("option")) {
             read("(");
-            options = new QueryOptions();
+            if (settings == null) {
+                options = new QueryOptions();
+            } else {
+                QueryOptions defaultOptions = settings.getAutomaticQueryOptions().getDefaultValues(query);
+                options = new QueryOptions(defaultOptions);
+            }
             while (true) {
                 if (readIf("traversal")) {
                     String type = readIdentifier().toUpperCase(Locale.ENGLISH);
@@ -397,6 +414,21 @@ public class XPathToSQL2Converter {
                     } else if (readIf("tag")) {
                         options.indexTag = readIdentifier();
                     }
+                } else if (readIf("offset")) {
+                    options.offset = Optional.of(readNumber());
+                } else if (readIf("limit")) {
+                    options.limit = Optional.of(readNumber());
+                } else if (readIf("prefetches")) {
+                    options.prefetchCount = Optional.of((int) readNumber());
+                } else if (readIf("prefetch")) {
+                    read("(");
+                    ArrayList<String> list = new ArrayList<String>();
+                    do {
+                        String x = readString();
+                        list.add(x);
+                    } while (readIf(","));
+                    read(")");
+                    options.prefetch = list;
                 } else {
                     break;
                 }
@@ -410,7 +442,7 @@ public class XPathToSQL2Converter {
         statement.setColumnSelector(currentSelector);
         statement.setSelectors(selectors);
         statement.setQueryOptions(options);
-        
+
         Expression where = null;
         for (Selector s : selectors) {
             where = Expression.and(where, s.condition);
@@ -418,7 +450,7 @@ public class XPathToSQL2Converter {
         statement.setWhere(where);
         return statement;
     }
-    
+
     private void appendNodeName(String name) {
         if (!currentSelector.isChild) {
             currentSelector.nodeName = name;
@@ -435,7 +467,7 @@ public class XPathToSQL2Converter {
             }
         }
     }
-    
+
     /**
      * Switch back to the old selector when reading a property. This occurs
      * after reading a "/", but then reading a property or a list of properties.
@@ -464,8 +496,8 @@ public class XPathToSQL2Converter {
             String n = currentSelector.nodeName;
             // encode again, because it will be decoded again
             n = ISO9075.encode(n);
-            Expression.Condition c = new Expression.Condition(f, "=", 
-                    Expression.Literal.newString(n), 
+            Expression.Condition c = new Expression.Condition(f, "=",
+                    Expression.Literal.newString(n),
                     Expression.PRECEDENCE_CONDITION);
             condition = Expression.and(condition, c);
         }
@@ -485,7 +517,7 @@ public class XPathToSQL2Converter {
                 c.params.add(new Expression.SelectorExpr(currentSelector));
                 c.params.add(new Expression.SelectorExpr(selectors.get(selectors.size() - 1)));
                 joinCondition = c;
-            } 
+            }
         } else if (currentSelector.isParent) {
             if (isFirstSelector) {
                 throw getSyntaxError();
@@ -602,7 +634,7 @@ public class XPathToSQL2Converter {
             c = new Expression.Condition(left, "<=", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else if (readIf(">=")) {
             c = new Expression.Condition(left, ">=", parseExpression(), Expression.PRECEDENCE_CONDITION);
-        // TODO support "x eq y"? it seems this only matches for single value properties?  
+        // TODO support "x eq y"? it seems this only matches for single value properties?
         // } else if (readIf("eq")) {
         //    c = new Condition(left, "==", parseExpression(), Expression.PRECEDENCE_CONDITION);
         } else {
@@ -624,6 +656,8 @@ public class XPathToSQL2Converter {
                 read(")");
             }
             return Expression.Literal.newBoolean(false);
+        } else if (readIf("$")) {
+            return Expression.Literal.newBindVariable(readIdentifier());
         } else if (currentTokenType == VALUE_NUMBER) {
             Expression.Literal l = Expression.Literal.newNumber(currentToken);
             read();
@@ -699,7 +733,7 @@ public class XPathToSQL2Converter {
 
     private Expression parseFunction(String functionName) throws ParseException {
         if ("jcr:like".equals(functionName)) {
-            Expression.Condition c = new Expression.Condition(parseExpression(), 
+            Expression.Condition c = new Expression.Condition(parseExpression(),
                     "like", null, Expression.PRECEDENCE_CONDITION);
             read(",");
             c.right = parseExpression();
@@ -729,6 +763,11 @@ public class XPathToSQL2Converter {
             f.params.add(parseExpression());
             read(")");
             return f;
+        } else if ("jcr:first".equals(functionName)) {
+            Expression.Function f = new Expression.Function("first");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:lower-case".equals(functionName)) {
             Expression.Function f = new Expression.Function("lower");
             f.params.add(parseExpression());
@@ -748,6 +787,15 @@ public class XPathToSQL2Converter {
             Expression.Function f = new Expression.Function("name");
             if (!readIf(")")) {
                 // only name(.) and name() are currently supported
+                read(".");
+                read(")");
+            }
+            f.params.add(new Expression.SelectorExpr(currentSelector));
+            return f;
+        } else if ("fn:path".equals(functionName)) {
+            Expression.Function f = new Expression.Function("path");
+            if (!readIf(")")) {
+                // only path(.) and path() are currently supported
                 read(".");
                 read(")");
             }
@@ -789,8 +837,8 @@ public class XPathToSQL2Converter {
             read(")");
             return new Expression.Suggest(term);
         } else {
-            throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " + 
-                    "fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck | rep:suggest");
+            throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " +
+                    "fn:lower-case | fn:upper-case | jcr:first | fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
         }
     }
 
@@ -818,16 +866,39 @@ public class XPathToSQL2Converter {
         read();
     }
 
+    private long readNumber() throws ParseException {
+        if (currentTokenType == VALUE_NUMBER) {
+            try {
+                long l = Long.parseLong(currentToken);
+                read();
+                return l;
+            } catch (NumberFormatException nfe) {
+                throw getSyntaxError("[0-9]");
+            }
+        } else {
+            throw getSyntaxError("[0-9]");
+        }
+    }
+
+    private String readString() throws ParseException {
+        if (currentTokenType != VALUE_STRING) {
+            throw getSyntaxError("string value");
+        }
+        String result = currentToken;
+        read();
+        return result;
+    }
+
     private Expression.Property readProperty() throws ParseException {
         if (readIf("*")) {
             return new Expression.Property(currentSelector, "*", false);
         }
         return new Expression.Property(currentSelector, readPathSegment(), false);
     }
-    
+
     /**
      * Read open bracket (optional), and optional dot, and close bracket.
-     * 
+     *
      * @param readOpenBracket whether to read the open bracket (false if this
      *            was already read)
      * @throws ParseException if close bracket or the dot were not read
@@ -975,7 +1046,7 @@ public class XPathToSQL2Converter {
                 // for example in "fn:lower-case"
                 // the '.' can be part of a name,
                 // for example in "@offloading.status"
-                if (type != CHAR_NAME && type != CHAR_VALUE 
+                if (type != CHAR_NAME && type != CHAR_VALUE
                         && chars[i] != '-'
                         && chars[i] != '.') {
                     break;
@@ -1150,12 +1221,12 @@ public class XPathToSQL2Converter {
         }
         return new ParseException("Query:\n" + query, index);
     }
-    
+
     private Statement convertToUnion(String query, Statement statement,
             int startParseIndex) throws ParseException {
         int start = query.indexOf("(", startParseIndex);
         String begin = query.substring(0, start);
-        XPathToSQL2Converter converter = new XPathToSQL2Converter();
+        XPathToSQL2Converter converter = new XPathToSQL2Converter(settings);
         String partList = query.substring(start);
         converter.initialize(partList);
         converter.read();
@@ -1184,14 +1255,14 @@ public class XPathToSQL2Converter {
             }
         }
         String or = partList.substring(lastOrIndex, parseIndex - 1);
-        parts.add(or);        
+        parts.add(or);
         String end = partList.substring(parseIndex);
         Statement result = null;
         ArrayList<Order> orderList = null;
         QueryOptions queryOptions = null;
         for(String p : parts) {
             String q = begin + p + end;
-            converter = new XPathToSQL2Converter();
+            converter = new XPathToSQL2Converter(settings);
             Statement stat = converter.convertToStatement(q);
             orderList = stat.orderList;
             queryOptions = stat.queryOptions;

@@ -32,7 +32,7 @@ public class SyncManagerImplTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private SyncManagerImpl syncManager = new SyncManagerImpl();
+    private final SyncManagerImpl syncManager = new SyncManagerImpl();
 
     @Before()
     public void before() {

@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.scalability.benchmarks.segment.standby.StandbyBulkTransferBenchmark;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityStandbySuite;
+import org.apache.jackrabbit.oak.segment.Segment;
 
 /**
  * Main class for running scalability/longevity tests.
@@ -74,7 +75,8 @@ public class ScalabilityRunner {
                         scalabilityOptions.getPort().value(options),
                         scalabilityOptions.getDbName().value(options),
                         scalabilityOptions.getDropDBAfterTest().value(options),
-                        cacheSize * MB),
+                        cacheSize * MB,
+                        scalabilityOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoWithDS(
                         scalabilityOptions.getHost().value(options),
                         scalabilityOptions.getPort().value(options),
@@ -82,22 +84,25 @@ public class ScalabilityRunner {
                         scalabilityOptions.getDropDBAfterTest().value(options),
                         cacheSize * MB,
                         scalabilityOptions.getBase().value(options),
-                        scalabilityOptions.getFdsCache().value(options)),
+                        scalabilityOptions.getFdsCache().value(options),
+                        scalabilityOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoNS(
                         scalabilityOptions.getHost().value(options),
                         scalabilityOptions.getPort().value(options),
                         scalabilityOptions.getDbName().value(options),
                         scalabilityOptions.getDropDBAfterTest().value(options),
-                    cacheSize * MB),
+                    cacheSize * MB,
+                        scalabilityOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getSegmentTar(
                         scalabilityOptions.getBase().value(options), 256, cacheSize,
-                        scalabilityOptions.getMmap().value(options)),
+                        scalabilityOptions.getMmap().value(options), Segment.MEDIUM_LIMIT),
                 OakRepositoryFixture.getSegmentTarWithDataStore(scalabilityOptions.getBase().value(options),
                         256, cacheSize,
-                        scalabilityOptions.getMmap().value(options),
+                        scalabilityOptions.getMmap().value(options), Segment.MEDIUM_LIMIT,
                         scalabilityOptions.getFdsCache().value(options)),
                 OakRepositoryFixture.getSegmentTarWithColdStandby(scalabilityOptions.getBase().value(options), 256, cacheSize,
                         scalabilityOptions.getMmap().value(options),
+                        Segment.MEDIUM_LIMIT,
                         scalabilityOptions.getColdUseDataStore().value(options),
                         scalabilityOptions.getFdsCache().value(options),
                         scalabilityOptions.getColdSyncInterval().value(options),

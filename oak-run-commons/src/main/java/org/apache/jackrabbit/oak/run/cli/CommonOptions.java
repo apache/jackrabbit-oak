@@ -19,13 +19,13 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 

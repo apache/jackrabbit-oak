@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
@@ -44,14 +45,16 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     private final long size;
     private final Set<String> servedIds;
 
-    static AuthorizableIterator create(Iterator<String> authorizableOakPaths,
-                                       UserManagerImpl userManager,
-                                       AuthorizableType authorizableType) {
-        Iterator<Authorizable> it = Iterators.transform(authorizableOakPaths, new PathToAuthorizable(userManager, authorizableType));
-        long size = getSize(authorizableOakPaths);
+    @NotNull
+    static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
+                                       @NotNull UserManagerImpl userManager,
+                                       @NotNull AuthorizableType authorizableType) {
+        Iterator<Authorizable> it = Iterators.transform(authorizableTrees, new TreeToAuthorizable(userManager, authorizableType));
+        long size = getSize(authorizableTrees);
         return new AuthorizableIterator(it, size, false);
     }
     
+    @NotNull
     static AuthorizableIterator create(boolean filterDuplicates, @NotNull Iterator<? extends Authorizable> it1, @NotNull Iterator<? extends Authorizable> it2) {
         long size = 0;
         for (Iterator<?> it : new Iterator[] {it1, it2}) {
@@ -118,25 +121,25 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
         }
     }
 
-    private static class PathToAuthorizable implements Function<String, Authorizable> {
+    private static class TreeToAuthorizable implements Function<Tree, Authorizable> {
 
         private final UserManagerImpl userManager;
         private final Predicate<Authorizable> predicate;
 
-        PathToAuthorizable(UserManagerImpl userManager, AuthorizableType type) {
+        TreeToAuthorizable(UserManagerImpl userManager, AuthorizableType type) {
             this.userManager = userManager;
             this.predicate = new AuthorizableTypePredicate(type);
         }
 
         @Override
-        public Authorizable apply(String oakPath) {
+        public Authorizable apply(Tree tree) {
             try {
-                Authorizable a = userManager.getAuthorizableByOakPath(oakPath);
+                Authorizable a = userManager.getAuthorizable(tree);
                 if (predicate.test(a)) {
                     return a;
                 }
             } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable {}", oakPath);
+                log.debug("Failed to access authorizable {}", tree.getPath());
             }
             return null;
         }

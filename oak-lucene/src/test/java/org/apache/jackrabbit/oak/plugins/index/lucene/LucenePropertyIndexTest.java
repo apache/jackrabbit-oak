@@ -592,21 +592,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void propertyExistenceQuery() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        test.addChild("b").setProperty("propa", "c");
-        test.addChild("c").setProperty("propb", "e");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b"));
-    }
-
-    @Test
     public void explainScoreTest() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
         idx.addChild(PROP_NODE).addChild("propa");
@@ -707,52 +692,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //Check that filter created out of query does not have is not null restriction
         assertThat(explain(q), not(containsString("[content].[tags] is not null")));
-    }
-
-    @Test
-    public void propertyExistenceQuery2() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
-
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(PROP_NAME, "propa");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        prop.setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithType(test, "a", "oak:TestNode").setProperty("propa", "a");
-        createNodeWithType(test, "b", "oak:TestNode").setProperty("propa", "c");
-        createNodeWithType(test, "c", "oak:TestNode").setProperty("propb", "e");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [oak:TestNode] where [propa] is not null";
-        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :notNullProps:propa"));
-        assertQuery(propabQuery, asList("/test/a", "/test/b"));
-    }
-
-    @Test
-    public void propertyNonExistenceQuery() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
-
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
-        Tree prop = props.addChild(TestUtil.unique("prop"));
-        prop.setProperty(PROP_NAME, "propa");
-        prop.setProperty(PROP_PROPERTY_INDEX, true);
-        prop.setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        createNodeWithType(test, "a", "oak:TestNode").setProperty("propa", "a");
-        createNodeWithType(test, "b", "oak:TestNode").setProperty("propa", "c");
-        createNodeWithType(test, "c", "oak:TestNode").setProperty("propb", "e");
-        root.commit();
-
-        String propabQuery = "select [jcr:path] from [oak:TestNode] where [propa] is null";
-        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :nullProps:propa"));
-        assertQuery(propabQuery, asList("/test/c"));
     }
 
     private static Tree createNodeWithType(Tree t, String nodeName, String typeName){
@@ -1251,76 +1190,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/2014"), asList("/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where [propa] > "+ dt("15/02/2014") + " and [propa] < " + dt("13/04/2014"), asList("/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
-    }
-
-    @Test
-    public void likeQueriesWithString() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "humpty");
-        test.addChild("b").setProperty("propa", "dumpty");
-        test.addChild("c").setProperty("propa", "humpy");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
-                asList("/test/a", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
-                asList("/test/a", "/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
-                asList("/test/a", "/test/b", "/test/c"));
-    }
-
-    @Test
-    public void likeQueriesWithEscapedChars() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "foo%");
-        test.addChild("b").setProperty("propa", "%bar");
-        test.addChild("c").setProperty("propa", "foo%bar");
-        test.addChild("d").setProperty("propa", "foo_");
-        test.addChild("e").setProperty("propa", "_foo");
-        test.addChild("f").setProperty("propa", "foo_bar");
-        test.addChild("g").setProperty("propa", "foo%_bar");
-        test.addChild("h").setProperty("propa", "foo\\bar");
-        test.addChild("i").setProperty("propa", "foo\\\\%bar");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo%'",
-                asList("/test/a", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h", "/test/i"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo%'",
-                asList("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g", "/test/h", "/test/i"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\%'",
-                asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%'",
-                asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%%'",
-                asList("/test/a", "/test/c", "/test/g"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '\\%b%'",
-                asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo_'",
-                asList("/test/a", "/test/d"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '_oo_'",
-                asList("/test/a", "/test/d"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\_'",
-                asList("/test/d"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_'",
-                asList("/test/d"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_%'",
-                asList("/test/d", "/test/f"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%\\_%'",
-                asList("/test/g"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\\\bar'",
-                asList("/test/h"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\%'",
-                asList("/test/h", "/test/i"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\\\%%'",
-                asList("/test/i"));
     }
 
     @Test
@@ -3050,6 +2919,122 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testRepSimilarWithBinaryFeatureVectorsWithIndexSimilarityBinariesDefinedAsLucene() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityBinaries("lucene");
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            String[] split = line.split(",");
+            List<Double> values = new LinkedList<>();
+            int i = 0;
+            for (String s : split) {
+                if (i > 0) {
+                    values.add(Double.parseDouble(s));
+                }
+                i++;
+            }
+
+            byte[] bytes = SimSearchUtils.toByteArray(values);
+            List<Double> actual = SimSearchUtils.toDoubles(bytes);
+            assertEquals(values, actual);
+
+            Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+            String name = split[0];
+            Tree child = test.addChild(name);
+            child.setProperty("fv", blob, Type.BINARY);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertNotEquals(baseline, current);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    /**
+     * To disable similarity for binaries the index type should not be in present as value for FulltextIndexConstants.INDEX_SIMILARITY_BINARIES.
+     * In this case index type is lucene but indexSimilarityBinaries is set to elasticsearch
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRepSimilarWithBinaryFeatureVectorsWithIndexSimilarityBinariesDefinedAsElasticsearch() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityBinaries("elasticsearch");
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            String[] split = line.split(",");
+            List<Double> values = new LinkedList<>();
+            int i = 0;
+            for (String s : split) {
+                if (i > 0) {
+                    values.add(Double.parseDouble(s));
+                }
+                i++;
+            }
+
+            byte[] bytes = SimSearchUtils.toByteArray(values);
+            List<Double> actual = SimSearchUtils.toDoubles(bytes);
+            assertEquals(values, actual);
+
+            Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+            String name = split[0];
+            Tree child = test.addChild(name);
+            child.setProperty("fv", blob, Type.BINARY);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertEquals("binary data for similarity should not be indexed", 0, current.size());
+        }
+    }
+
+    @Test
     public void testRepSimilarWithStringFeatureVectors() throws Exception {
 
         IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
@@ -3090,6 +3075,97 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             assertNotEquals(baseline, current);
             baseline.clear();
             baseline.addAll(current);
+        }
+    }
+
+    @Test
+    public void testRepSimilarWithStringFeatureVectorsWithIndexSimilarityStringsDefinedAsLucene() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityStrings("lucene");
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            int i1 = line.indexOf(',');
+            String name = line.substring(0, i1);
+            String value = line.substring(i1 + 1);
+            Tree child = test.addChild(name);
+            child.setProperty("fv", value, Type.STRING);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertNotEquals(baseline, current);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    /**
+     * To disable similarity for strings the index type should not be in present as value for FulltextIndexConstants.INDEX_SIMILARITY_STRINGS.
+     * In this case index type is lucene but indexSimilarityStrings is set to elasticsearch
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRepSimilarWithStringFeatureVectorsWithIndexSimilarityStringsDefinedAsElasticsearch() throws Exception {
+
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().indexSimilarityStrings("elasticsearch");
+        idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            int i1 = line.indexOf(',');
+            String name = line.substring(0, i1);
+            String value = line.substring(i1 + 1);
+            Tree child = test.addChild(name);
+            child.setProperty("fv", value, Type.STRING);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertEquals("String data for similarity should not be indexed", 0, current.size());
         }
     }
 

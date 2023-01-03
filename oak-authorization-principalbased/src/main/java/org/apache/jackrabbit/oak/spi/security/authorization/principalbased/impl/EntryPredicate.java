@@ -30,12 +30,18 @@ final class EntryPredicate {
     private EntryPredicate() {}
 
     @NotNull
-    static Predicate<PermissionEntry> create(@Nullable String oakPath) {
-        if (oakPath == null) {
-            return permissionEntry -> permissionEntry.matches();
-        } else {
-            return permissionEntry -> permissionEntry.matches(oakPath);
-        }
+    static Predicate<PermissionEntry> create() {
+        return permissionEntry -> permissionEntry.matches();
+    }
+
+    @NotNull
+    static Predicate<PermissionEntry> create(@NotNull String oakPath) {
+        return permissionEntry -> permissionEntry.matches(oakPath);
+    }
+    
+    @NotNull
+    static Predicate<PermissionEntry> create(@NotNull String oakPath, boolean isProperty) {
+        return permissionEntry -> permissionEntry.matches(oakPath, isProperty);
     }
 
     @NotNull
@@ -44,7 +50,7 @@ final class EntryPredicate {
             // target node does not exist (anymore) in this workspace
             // use best effort calculation based on the item path.
             String predicatePath = (property == null) ? tree.getPath() : PathUtils.concat(tree.getPath(), property.getName());
-            return create(predicatePath);
+            return create(predicatePath, property != null);
         } else {
             return permissionEntry -> permissionEntry.matches(tree, property);
         }
@@ -61,7 +67,7 @@ final class EntryPredicate {
             return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath()) && permissionEntry.matches(parentTree, null);
         } else {
             String parentPath = PathUtils.getParentPath(treePath);
-            return permissionEntry -> permissionEntry.appliesTo(parentPath) && permissionEntry.matches(parentPath);
+            return permissionEntry -> permissionEntry.appliesTo(parentPath) && permissionEntry.matches(parentPath, false);
         }
     }
 

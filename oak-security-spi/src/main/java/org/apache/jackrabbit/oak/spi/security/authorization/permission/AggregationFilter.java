@@ -27,18 +27,22 @@ import java.util.Set;
 public interface AggregationFilter {
 
     /**
-     *
-     * @param permissionProvider
-     * @param principals
+     * Determine if permission evaluation for the given set of principals should stop after the give 
+     * {@code permissionProvider} completed it's evaluation.
+     * 
+     * @param permissionProvider An aggregated permission provider instance.
+     * @param principals The set of principals for which permissions are being evaluated.
      * @return {@code true} if aggregation of permission providers should be stopped after the given {@code permissionProvider}
      * created for the given set of {@code principals}.
      */
     boolean stop(@NotNull AggregatedPermissionProvider permissionProvider, @NotNull Set<Principal> principals);
 
     /**
-     *
-     * @param accessControlManager
-     * @param principals
+     * Determine if computing effective access control policies for the given set of principals should stop after the 
+     * given {@code accessControlManager} completed.
+     * 
+     * @param accessControlManager An access control manager.
+     * @param principals The set of {@link Principal}s for which effective policies are being computed.
      * @return {@code true} if aggregation of effective policies for the specified principals should be stopped after
      * the given {@code accessControlManager}.
      * @see AccessControlManager#getEffectivePolicies(String)
@@ -46,9 +50,11 @@ public interface AggregationFilter {
     boolean stop(@NotNull JackrabbitAccessControlManager accessControlManager, @NotNull Set<Principal> principals);
 
     /**
-     *
-     * @param accessControlManager
-     * @param absPath
+     * Determine if computing effective access control policies for the given path should stop after the given 
+     * {@code accessControlManager} completed.
+     * 
+     * @param accessControlManager An access control manager.
+     * @param absPath An absolute path.
      * @return {@code true} if aggregation of effective policies for the specified effective path should be stopped after
      * the given {@code accessControlManager}.
      * @see JackrabbitAccessControlManager#getEffectivePolicies(Set)

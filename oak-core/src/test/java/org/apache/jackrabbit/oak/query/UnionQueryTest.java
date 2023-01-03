@@ -17,17 +17,13 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -224,6 +220,31 @@ public class UnionQueryTest extends AbstractQueryTest {
         };
 
         Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
+                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+
+        List<ResultRow> rows = Lists.newArrayList(result.getRows());
+        assertEquals(expected.length, rows.size());
+
+        int i = 0;
+        for (ResultRow rr: result.getRows()) {
+            assertEquals(rr.getPath(), expected[i++]);
+        }
+    }
+
+    @Test
+    public void testOrderLimitOption() throws Exception {
+        String left = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest')";
+        String right = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest')";
+        String order = "ORDER BY [jcr:path]";
+        String union = String.format("%s UNION %s %s OPTION(LIMIT 3, OFFSET 2)", left, right, order);
+
+        String[] expected = {
+                "/UnionQueryTest/a/b/c",
+                "/UnionQueryTest/a/b/c/d",
+                "/UnionQueryTest/a/b/c/d/e"
+        };
+
+        Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, Optional.empty(), Optional.empty(),
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
         List<ResultRow> rows = Lists.newArrayList(result.getRows());

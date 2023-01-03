@@ -22,6 +22,7 @@ import javax.jcr.NamespaceRegistry;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -71,10 +72,33 @@ public class PrefixPatternTest extends AbstractSecurityTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> notMatching = ImmutableList.of("/", "/a", "/jcr:b", "/d/jcr:e/a", "/a/b/c/d/jcr:b");
+        List<String> notMatching = ImmutableList.of("/", "/a", "/d/jcr:e/a");
         for (String p : notMatching) {
-            assertFalse(pattern.matches(p));
+            assertFalse(p, pattern.matches(p));
         }
+        assertTrue(pattern.matches("/jcr:b"));
+        assertTrue(pattern.matches("/a/b/c/d/jcr:b"));
+    }
+    
+    @Test
+    public void testEmptyPrefix() throws Exception {
+        PrefixPattern pp = new PrefixPattern(ImmutableSet.of("", "prefix"));
+        assertTrue(pp.matches("/"));
+        assertTrue(pp.matches("/noprefix"));
+        assertTrue(pp.matches("/prefix:noprefix"));
+        assertFalse(pp.matches("/jcr:namewithnonmatchingprefix"));
+        
+        Tree rootTree = root.getTree("/");
+        assertTrue(pp.matches(rootTree, null));
+        assertFalse(pp.matches(rootTree, rootTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)));
+
+        Tree testTree = TreeUtil.addChild(rootTree, "name", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        testTree.setProperty("prefix:prop", "value");
+        testTree.setProperty("prop", "value");
+        assertTrue(pp.matches(testTree, null));
+        assertTrue(pp.matches(testTree, testTree.getProperty("prefix:prop")));
+        assertTrue(pp.matches(testTree, testTree.getProperty("prop")));
+        assertFalse(pp.matches(testTree, rootTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)));
     }
 
     @Test

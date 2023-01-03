@@ -79,7 +79,7 @@ abstract class CompositeStoreFixture extends OakFixture {
     }
 
     static OakFixture newCompositeSegmentFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
-                                                 boolean memoryMapping) {
+                                                 boolean memoryMapping, int binariesInlineThreshold) {
         return new CompositeStoreFixture(name) {
 
             private FileStore fileStore;
@@ -90,7 +90,8 @@ abstract class CompositeStoreFixture extends OakFixture {
                 FileStoreBuilder fsBuilder = fileStoreBuilder(new File(base, unique))
                         .withMaxFileSize(maxFileSizeMB)
                         .withSegmentCacheSize(cacheSizeMB)
-                        .withMemoryMapping(memoryMapping);
+                        .withMemoryMapping(memoryMapping)
+                        .withBinariesInlineThreshold(binariesInlineThreshold);
                 fileStore = fsBuilder.build();
                 return SegmentNodeStoreBuilders.builder(fileStore).build();
             }
@@ -104,10 +105,8 @@ abstract class CompositeStoreFixture extends OakFixture {
         };
     }
 
-    static OakFixture newCompositeMongoFixture(String name,
-                                               String uri,
-                                               boolean dropDBAfterTest,
-                                               long cacheSize) {
+    static OakFixture newCompositeMongoFixture(String name, String uri, boolean dropDBAfterTest, long cacheSize,
+                                               boolean throttlingEnabled) {
         return new CompositeStoreFixture(name) {
 
             private String database = new MongoClientURI(uri).getDatabase();
@@ -118,6 +117,7 @@ abstract class CompositeStoreFixture extends OakFixture {
                 ns = newMongoDocumentNodeStoreBuilder()
                         .memoryCacheSize(cacheSize)
                         .setMongoDB(uri, database, 0)
+                        .setThrottlingEnabled(throttlingEnabled)
                         .build();
                 return ns;
             }

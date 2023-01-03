@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
@@ -46,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
@@ -55,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
@@ -290,13 +294,32 @@ public class FulltextIndexPlanner {
 
             IndexPlan.Builder plan = defaultPlan();
 
+            if (plan == null) {
+                return null;
+            }
+
             if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.WARN.name()) && !isPlanWithValidPathFilter()) {
                 plan.setLogWarningForPathFilterMismatch(true);
             }
 
-            if (plan == null) {
-                return null;
+            Pattern queryFilterPattern = definition.getQueryFilterRegex() != null ? definition.getQueryFilterRegex() :
+                    definition.getPropertyRegex();
+
+            if (queryFilterPattern != null) {
+                if (ft != null && !queryFilterPattern.matcher(ft.toString()).find()) {
+                    plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
+                            + queryFilterPattern + " to search for value '" + ft + "'");
+                }
+                 for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                	// Ignore properties beginning with ";" like :indexTag / :indexName etx
+                    if (!pr.propertyName.startsWith(":") && !queryFilterPattern.matcher(pr.toString()).find()) {
+                        plan.addAdditionalMessage(Level.WARN, "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
+                                + queryFilterPattern + " to search for value '" + pr + "'");
+                    }
+                }
             }
+
+
             if (!sortOrder.isEmpty()) {
                 plan.setSortOrder(sortOrder);
             }
@@ -405,6 +428,9 @@ public class FulltextIndexPlanner {
             }
             // no tag matches
             return true;
+        } else if (IndexSelectionPolicy.TAG.equals(definition.getIndexSelectionPolicy())) {
+            // index tags are not specified in query, but required by the "tag" index selection policy
+            return true;
         }
         // no tag specified
         return wrong;
@@ -431,7 +457,7 @@ public class FulltextIndexPlanner {
                 canHandleNativeFunction = false;
             }
         }
-        
+
         if (!canHandleNativeFunction) {
             return null;
         }
@@ -851,6 +877,36 @@ public class FulltextIndexPlanner {
                 minNumDocs = (int)scaledDocCnt;
             } else if (docCntForField < minNumDocs) {
                 minNumDocs = docCntForField;
+            }
+        }
+
+        // Reduce the estimation if the index supports path restrictions,
+        // and we have one that we can use.
+        // We don't need to be exact here, because we don't know the
+        // exact number of nodes in the subtree - this is taken care of
+        // in the query engine.
+        // But we need to adjust the cost a bit, so that
+        // the cost is lower if there is a usable path condition
+        // (see below).
+        if (definition.evaluatePathRestrictions()) {
+            PathRestriction pathRestriction = filter.getPathRestriction();
+            if (pathRestriction == PathRestriction.EXACT || pathRestriction == PathRestriction.PARENT) {
+                // We have an exact path restriction and we have an index that indexes the path:
+                // then the result size is at most 1.
+                minNumDocs = 1;
+            } else if (pathRestriction == PathRestriction.DIRECT_CHILDREN) {
+                // We restrict to direct children: assume at most 50% are there.
+                minNumDocs /= 2;
+            } else if (pathRestriction != PathRestriction.NO_RESTRICTION) {
+                // Other restriction: assume at most 90%.
+                // This is important if we have
+                // "descendantnode(/content/abc) or issamenode(/content/abc)":
+                // We could either convert it to a union, or not use the path restriction.
+                // In this case, we want to convert it to a union!
+                // A path restriction will reduce the number of entries.
+                // So the cost of having a usable path condition is
+                // lower than the cost of not having a path condition at all.
+                minNumDocs = (int) (minNumDocs * 0.9);
             }
         }
         return minNumDocs;

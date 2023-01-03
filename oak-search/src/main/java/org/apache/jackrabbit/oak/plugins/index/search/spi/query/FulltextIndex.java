@@ -26,8 +26,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
-import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
+import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -288,7 +288,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
      */
-    protected static String rewriteQueryText(String textsearch) {
+    public static String rewriteQueryText(String textsearch) {
         // replace escaped ' with just '
         StringBuilder rewritten = new StringBuilder();
         // most query parsers recognize 'AND' and 'NOT' as

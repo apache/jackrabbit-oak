@@ -69,6 +69,14 @@ public class ClusterNodeInfoDocument extends Document {
         return startTime;
     }
 
+    /**
+     * @return the Runtime ID for this cluster node.
+     */
+    @Nullable
+    public String getRuntimeId() {
+        return (String) get(ClusterNodeInfo.RUNTIME_ID_KEY);
+    }
+
     public boolean isActive(){
         return getState() == ClusterNodeState.ACTIVE;
     }

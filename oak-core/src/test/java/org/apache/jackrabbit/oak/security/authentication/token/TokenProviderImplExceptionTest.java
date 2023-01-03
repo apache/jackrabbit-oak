@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -120,7 +121,7 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
         doAnswer(new Answer() {
             int cnt = 0;
             @Override
-            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+            public @Nullable Object answer(InvocationOnMock invocationOnMock) throws Throwable {
                 if (cnt++ == 0) {
                     throw new CommitFailedException(CommitFailedException.CONSTRAINT, 1, "conflict");
                 } else {

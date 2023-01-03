@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.query.index;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
+import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;

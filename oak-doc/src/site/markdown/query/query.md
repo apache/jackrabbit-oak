@@ -25,19 +25,20 @@ but probably be very slow.
 
 * [The Query Engine](./query-engine.html)
 * [XPath Grammar](./grammar-xpath.html)
-* [SQL-2 Grammar](./query-sql2.html)
+* [SQL-2 Grammar](./grammar-sql2.html)
 * [Troubleshooting](./query-troubleshooting.html)
 * [Flags](./flags.html)
 
 ### Indexes
 
-There are 3 main types of indexes available in Oak. For other type
+There are 4 main types of indexes available in Oak. For other type
 (eg: nodetype) please refer to the [query engine](./query-engine.html)
 documentation page.
 
 * [Lucene](./lucene.html)
-* [Solr](./solr.html)
+* [Elastic](./elastic.html)
 * [Property](./property-index.html)
+* [Solr](./solr.html)
 
 For more details on how indexing works (for all index types):
 

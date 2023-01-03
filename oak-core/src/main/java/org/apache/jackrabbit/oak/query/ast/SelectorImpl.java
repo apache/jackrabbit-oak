@@ -23,7 +23,9 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +38,7 @@ import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -47,8 +50,8 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -56,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -85,6 +89,7 @@ public class SelectorImpl extends SourceImpl {
     private static final String SLOW_QUERY_COUNT_NAME = "SLOW_QUERY_COUNT";
 
     private static long timerSampleCounter;
+
     
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     private SelectorExecutionPlan plan;
@@ -364,6 +369,13 @@ public class SelectorImpl extends SourceImpl {
             planIndexName = index.getIndexName(f, rootState);
             cursor = index.query(f, rootState);
         }
+        int prefetchCount = query.getQueryOptions().prefetchCount.
+                orElse(query.getExecutionContext().getSettings().getPrefetchCount());
+        if (prefetchCount > 0) {
+            PrefetchNodeStore store = query.getExecutionContext().getPrefetchNodeStore();
+            cursor = Cursors.newPrefetchCursor(cursor, store, prefetchCount,
+                    rootState, query.getQueryOptions().prefetch);
+        }
     }
     
     private long startTimer() {
@@ -392,8 +404,10 @@ public class SelectorImpl extends SourceImpl {
         TimerStats t = timerDuration;
         if (t == null) {
             // reuse the timer (in the normal case)
-            t = timerDuration = query.getSettings().getStatisticsProvider().
-                getTimer("QUERY_DURATION_" + planIndexName, StatsOptions.METRICS_ONLY);
+            // QUERY_DURATION;index=<planIndexName> will be translated as metric name = QUERY_DURATION
+            // and index=<planIndexName> as a label by a downstream consumer like prometheus.
+            StatsProviderUtil statsProviderUtil = new StatsProviderUtil(query.getSettings().getStatisticsProvider());
+            t = timerDuration = statsProviderUtil.getTimerStats().apply("QUERY_DURATION", Collections.singletonMap("index", planIndexName));
         }
         t.update(timeNanos, TimeUnit.NANOSECONDS);
     }

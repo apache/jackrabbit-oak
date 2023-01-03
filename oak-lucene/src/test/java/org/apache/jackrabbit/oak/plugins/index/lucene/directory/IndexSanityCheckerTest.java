@@ -36,13 +36,15 @@ public class IndexSanityCheckerTest {
 
     private Directory local = new RAMDirectory();
     private Directory remote = new RAMDirectory();
+    
+    private IndexSanityChecker.IndexSanityStatistics stats = new IndexSanityChecker.IndexSanityStatistics();
 
     @Test
     public void validDirs() throws Exception{
         byte[] t1 = writeFile(local, "t1", 100);
         writeFile(remote, "t1", t1);
 
-        assertTrue(new IndexSanityChecker("/foo", local, remote).check());
+        assertTrue(new IndexSanityChecker("/foo", local, remote).check(stats));
 
         assertTrue(local.fileExists("t1"));
         assertTrue(remote.fileExists("t1"));
@@ -59,7 +61,7 @@ public class IndexSanityCheckerTest {
         byte[] t3R = writeFile(remote, "t3", 140);
         writeFile(local, "t3", t3R);
 
-        assertFalse(new IndexSanityChecker("/foo", local, remote).check());
+        assertFalse(new IndexSanityChecker("/foo", local, remote).check(stats));
 
         assertTrue(remote.fileExists("t3"));
 
@@ -74,7 +76,7 @@ public class IndexSanityCheckerTest {
         byte[] t3R = writeFile(remote, "t3", 140);
         writeFile(local, "t3", t3R);
 
-        new IndexSanityChecker("/foo", local, remote).check();
+        new IndexSanityChecker("/foo", local, remote).check(stats);
 
         //t1 exist in local but not in remote
         //it must be removed

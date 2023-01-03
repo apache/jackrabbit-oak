@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DynamicSyncContext;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -256,6 +258,42 @@ final class Delegatee {
         return messages.getMessages();
     }
 
+    /**
+     * @see SynchronizationMBean#convertToDynamicMembership() ()
+     */
+    @NotNull
+    String[] convertToDynamicMembership() {
+        if (!(context instanceof DynamicSyncContext)) {
+            log.debug("SyncHandler doesn't have dynamic-membership configured. Ignore request to convert external users.");
+            return new String[0];
+        }
+        
+        try {
+            ResultMessages messages = new ResultMessages();
+            Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
+            List<SyncResult> results = new ArrayList<>();
+            while (it.hasNext()) {
+                SyncedIdentity id = it.next();
+                if (isMyIDP(id) && !id.isGroup()) {
+                    Authorizable a = userMgr.getAuthorizable(id.getId());
+                    SyncResult.Status status;
+                    if (a == null) {
+                        status = SyncResult.Status.NO_SUCH_AUTHORIZABLE;
+                    } else if (((DynamicSyncContext) context).convertToDynamicMembership(a)) {
+                        status = SyncResult.Status.UPDATE;
+                    } else {
+                        status = SyncResult.Status.NOP;
+                    }
+                    results.add(new DefaultSyncResultImpl(new DefaultSyncedIdentity(id.getId(), id.getExternalIdRef(), id.isGroup(), id.lastSynced()), status));
+                }
+            }
+            commit(messages, results, NO_BATCH_SIZE);
+            return messages.getMessages();
+        } catch (RepositoryException e) {
+            throw new IllegalStateException("Error during conversion to dynamic membership", e);
+        }
+    }
+    
     //------------------------------------------------------------< private >---
 
     private boolean isMyIDP(@NotNull SyncedIdentity id) {

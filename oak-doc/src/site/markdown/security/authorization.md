@@ -36,8 +36,8 @@ evaluation separately:
 
 Despite the fact that there is a distinction between the public facing access
 control management and the internal permission evaluation, these two topics remain
-connected to one another and a given authorization model is expected to define and
-handle both in a consistent manner. Consequently the main entry point for
+connected to one another, and a given authorization model is expected to define and
+handle both consistently. Therefore, the main entry point for
 authorization related operations is a single `AuthorizationConfiguration` (see 
 section [configuration](#configuration) below).
 
@@ -64,7 +64,7 @@ This class provides the following methods:
 
 The supported configuration options of the default implementation are described 
 separately for [access control management](accesscontrol/default.html#configuration) 
-and [permission evalution](permission/default.html#configuration) .
+and [permission evaluation](permission/default.html#configuration) .
 
 <a name="pluggability"></a>
 ### Pluggability
@@ -88,7 +88,7 @@ not supported and it was only possible to replace the existing `AuthorizationCon
 This would completely replace the default way of handling authorization in the repository.
 
 In OSGi-base setup this is achieved by making the configuration implementation a service
-such that it takes precendece over the default. 
+such that it takes precedence over the default. 
 
 In a non-OSGi-base setup the custom configuration must be exposed by the `SecurityProvider` implementation.
 
@@ -99,11 +99,15 @@ restriction management that allows to narrow the effect of permissions to
 items matching a given, defined behavior. Details can be found in section 
 [RestrictionManagement](authorization/restriction.html#pluggability).
 
+<a name="best_practices"></a>
+### Best Practices
+See section [Best Practices for Authorization](authorization/bestpractices.html).
+
 <a name="further_reading"></a>
 ### Further Reading
 
 - [Access Control Management](accesscontrol.html)
-- [Permission Evalution](permission.html)
+- [Permission Evaluation](permission.html)
 - [Restriction Management](authorization/restriction.html)
 - [Combining Multiple Authorization Models](authorization/composite.html)
 

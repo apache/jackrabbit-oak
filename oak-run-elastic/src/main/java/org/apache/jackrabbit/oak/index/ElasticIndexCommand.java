@@ -27,10 +27,10 @@ import com.google.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.index.async.AsyncIndexerElastic;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
@@ -38,9 +38,14 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
-import org.apache.jackrabbit.oak.spi.commit.*;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
+import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
+import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,12 +95,22 @@ public class ElasticIndexCommand implements Command {
 
         boolean success = false;
         try {
-            try (Closer closer = Closer.create()) {
+            if (indexOpts.isAsyncIndex()) {
+                Closer closer = Closer.create();
                 NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
+                AsyncIndexerElastic asyncIndexerService = new AsyncIndexerElastic(indexHelper, closer,
+                        indexOpts.getAsyncLanes(), indexOpts.aysncDelay(), indexOpts);
+                closer.register(asyncIndexerService);
                 closer.register(fixture);
-                execute(fixture, indexOpts, closer);
+                asyncIndexerService.execute();
+            } else {
+                try (Closer closer = Closer.create()) {
+                    NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                    closer.register(fixture);
+                    execute(fixture, indexOpts, closer);
+                }
             }
-
             success = true;
         } catch (Throwable e) {
             log.error("Error occurred while performing index tasks", e);
@@ -120,9 +135,10 @@ public class ElasticIndexCommand implements Command {
         //dumpIndexStats(indexOpts, indexHelper);
         //dumpIndexDefinitions(indexOpts, indexHelper);
         reindexOperation(indexOpts, indexHelper);
-        // This will not work with --doc-traversal mode, since that only works with read only mode and apply index def needs read write mode
-        // read write requirement - logic handled in applyIndexDefOperation
-        applyIndexDefOperation(indexOpts, indexHelper);
+
+        // For elastic implementation - this applies the newly created elastic definition to the repo and brings the index up to date with the
+        // current state for async lane for this index.
+        importIndexOperation(indexOpts, indexHelper);
     }
 
     private IndexHelper createIndexHelper(NodeStoreFixture fixture,
@@ -153,28 +169,19 @@ public class ElasticIndexCommand implements Command {
         return new ArrayList<>(indexPaths);
     }
 
-    private void applyIndexDefOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException  {
-        // return if index opts don't contain --applyIndexDef option or --read-write is not present
-        if (!indexOpts.isApplyIndexDef() || !opts.getCommonOpts().isReadWrite()) {
-            log.info("Index def not applied to repo. Run index command with --applyIndexDef and --read-write without the --reindex " +
-                    "opts to apply the index def");
-            return;
+    private void importIndexOperation(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
+        if (indexOpts.isImportIndex()) {
+            File importDir = indexOpts.getIndexImportDir();
+            importIndex(indexHelper, importDir);
         }
-        applyIndexDef(indexOpts, indexHelper);
     }
 
-    private void applyIndexDef(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
-        File definitions = indexOpts.getIndexDefinitionsFile();
-        if (definitions != null) {
-            Preconditions.checkArgument(definitions.exists(), "Index definitions file [%s] not found", getPath(definitions));
-            NodeStore store = indexHelper.getNodeStore();
-            NodeState root = store.getRoot();
-            NodeBuilder rootBuilder = root.builder();
-            new IndexDefinitionUpdater(definitions).apply(rootBuilder);
-            mergeWithConcurrentCheck(store, rootBuilder);
-        } else {
-            log.warn("No index definitions file provided");
-        }
+    private void importIndex(IndexHelper indexHelper, File importDir) throws IOException, CommitFailedException {
+        try (ElasticIndexImporterSupport elasticIndexImporterSupport = new ElasticIndexImporterSupport(indexHelper, indexOpts.getIndexPrefix(),
+                indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
+                indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())) {
+           elasticIndexImporterSupport.importIndex(importDir);
+       }
     }
 
     private void reindexOperation(ElasticIndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
@@ -199,12 +206,6 @@ public class ElasticIndexCommand implements Command {
                     indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
                     indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())) {
                 indexer.reindex();
-                // Wait for default flush interval before exiting the try block
-                // to make sure the client is not closed before the last flush
-                // TODO : See if this can be handled in a better manner
-                Thread.sleep(ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT * 2);
-            } catch (InterruptedException e) {
-                log.debug("Exception while waiting for Elastic connection to close", e);
             }
         } else {
             try (ElasticOutOfBandIndexer indexer = new ElasticOutOfBandIndexer(indexHelper, indexerSupport, indexOpts.getIndexPrefix(),
@@ -212,20 +213,20 @@ public class ElasticIndexCommand implements Command {
                     indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())) {
 
                 indexer.reindex();
-                // Wait for default flush interval before exiting the try block
-                // to make sure the client is not closed before the last flush
-                Thread.sleep(ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT * 2);
-            } catch (InterruptedException e) {
-                log.debug("Exception while waiting for Elastic connection to close", e);
             }
         }
         indexerSupport.writeMetaInfo(checkpoint);
-        log.info("Indexing completed for indexes {} in {} ({} ms)",
-                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS));
+
+        // This will copy the metadata files (consisting of the checkpoint info and indexes that have been re-indexed)
+        // to the o/p directory. We need to do this because the working dir where they have been created would be cleaned up.
+        // In case of lucene, even the index files are created here and copied as part of this, but for elastic - it's just metadata.
+        File destDir = indexerSupport.copyIndexFilesToOutput();
+        log.info("Indexing completed for indexes {} in {} ({} ms) and index metadata files are copied to {}",
+                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS), ElasticIndexCommand.getPath(destDir));
     }
 
     private IndexerSupport createIndexerSupport(IndexHelper indexHelper, String checkpoint) {
-        IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
+        IndexerSupport indexerSupport = new ElasticIndexerSupport(indexHelper, checkpoint);
 
         File definitions = indexOpts.getIndexDefinitionsFile();
         if (definitions != null) {

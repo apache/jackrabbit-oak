@@ -31,7 +31,7 @@ Quoting from JSR 283 section 16.6.2 Permissions:
 > to provide finer-grained access restrictions to individual properties or
 > child nodes of the node to which the policy applies.
 
-Furthermore the restriction concept is aimed to allow for custom extensions of the
+Furthermore, the restriction concept is aimed to allow for custom extensions of the
 default access control implementation to meet project specific needs without
 having to implement the common functionality provided by JCR.
 
@@ -44,24 +44,22 @@ a given access control entry during permission evaluation include:
 - dedicated time frame
 - size of a value
 
-The set of built-in restrictions present with Jackrabbit 2.x has extended as of 
-Oak 1.0 along with some extensions of the Jackrabbit API. This covers the public 
-facing usage of restrictions i.e. access control management.
+The set of built-in restrictions available with Jackrabbit 2.x has been extended along with some extensions of the 
+Jackrabbit API. This covers the public facing usage of restrictions i.e. access control management.
 
-In addition Oak provides it's own restriction API that adds support for internal 
-validation and permission evaluation.
+In addition, Oak provides its own internal restriction API that adds support for validation and permission evaluation.
 
 <a name="jackrabbit_api"></a>
 ### Jackrabbit API
 
-The Jackrabbit API add the following extensions to JCR access control management
+The Jackrabbit API adds the following extensions to JCR access control management
 to read and create entries with restrictions:
 
 - `JackrabbitAccessControlList`
     - `getRestrictionNames()` : returns the JCR names of the supported restrictions.
-    - `getRestrictionType(String restrictionName)` : returns property type of a given restriction.
+    - `getRestrictionType(String restrictionName)` : returns the property type of a given restriction.
     - `addEntry(Principal, Privilege[], boolean, Map<String, Value>)`: the map contain the restrictions.
-    - `addEntry(Principal, Privilege[], boolean, Map<String, Value>, Map<String, Value[]>)`: allows to specify both single and multivalue restrictions (since Oak 1.0, Jackrabbit API 2.8)
+    - `addEntry(Principal, Privilege[], boolean, Map<String, Value>, Map<String, Value[]>)`: allows to specify both single and multi-value restrictions (since Oak 1.0, Jackrabbit API 2.8)
 
 
 - `JackrabbitAccessControlEntry`
@@ -81,17 +79,18 @@ repository internal permission evaluation:
 - [Restriction]: the restriction object as created using Jackrabbit access control API
 - [RestrictionDefinition]: the static definition of a supported restriction
 - [RestrictionPattern]: the processed restriction ready for permission evaluation
+- [AggregationAware]: optional extension to make a [RestrictionProvider] aware of being used in an composite setup, since Oak 1.44.0 (see [OAK-9782])
 
 <a name="default_implementation"></a>
 ### Default Implementation
 
 Oak 1.0 provides the following base implementations:
 
-- `AbstractRestrictionProvider`: abstract base implementation of the provider interface.
+- `AbstractRestrictionProvider`: abstract base implementation of the provider interface. Since 1.44.0 also implements [AggregationAware] (see [OAK-9782])
 - `RestrictionDefinitionImpl`: default implementation of the `RestrictionDefinition` interface.
 - `RestrictionImpl`: default implementation of the `Restriction` interface.
-- `CompositeRestrictionProvider`: Allows to aggregate multiple provider implementations (see [Pluggability](#pluggability) below).
-- `CompositePattern`: Allows to aggregate multiple restriction patterns.
+- `CompositeRestrictionProvider`: Allows aggregating multiple provider implementations (see [Pluggability](#pluggability) below).
+- `CompositePattern`: Allows aggregating multiple restriction patterns.
 
 #### Changes wrt Jackrabbit 2.x
 
@@ -99,34 +98,38 @@ Apart from the fact that the internal Jackrabbit extension has been replaced by
 a public API, the restriction implementation in Oak differs from Jackrabbit 2.x
 as follows:
 
-- Separate restriction management API (see below) on the OAK level that allows to ease plugging custom restrictions.
+- Separate restriction management API (see below) on the OAK level that simplifies plugging custom restrictions.
 - Changed node type definition for storing restrictions in the default implementation.
     - as of OAK restrictions are collected underneath a separate child node "rep:restrictions"
     - backwards compatible behavior for restrictions stored underneath the ACE node directly
 - Support for multi-valued restrictions (see [JCR-3637](https://issues.apache.org/jira/browse/JCR-3637), [JCR-3641](https://issues.apache.org/jira/browse/JCR-3641))
 - Validation of the restrictions is delegated to a dedicated commit hook
 - Restriction `rep:glob` limits the number of wildcard characters to 20
-- New restrictions `rep:ntNames`, `rep:prefixes` and `rep:itemNames`
+- New restrictions `rep:ntNames`, `rep:prefixes`, `rep:itemNames` and `rep:current`
    
 #### Built-in Restrictions
 
-The default implementations of the `Restriction` interface are present with
-Oak 1.0 access control management:
+The following `Restriction` implementations are supported with the default Oak access control management:
 
-* `rep:glob`: single name, path or path pattern with '*' wildcard(s).
-* `rep:ntNames`: multivalued restriction to limit the affected ACE to nodes of the specified primary node type(s) (no nt inheritence, since Oak 1.0)
-* `rep:prefixes`: multivalued restriction to limit the effect to item names that match the specified namespace prefixes (session level remapping not respected, since Oak 1.0)
-* `rep:itemNames`: multivalued restriction for property or node names (since Oak 1.3.8)
+| Restriction Name | Type   | Multi-Valued | Mandatory | Description                          | Since |
+|------------------|--------|--------------|-----------|--------------------------------------|-------|
+| `rep:glob`       | String | false        | false     | Single name, path or path pattern with '*' wildcard(s), see below for details | Oak 1.0 |
+| `rep:ntNames`    | Name   | true         | false     | Multivalued restriction to limit the effect to nodes of the specified primary node types (no nt inheritance) | Oak 1.0 |
+| `rep:prefixes`   | String | true         | false     | Multivalued restriction to limit the effect to item names that match the specified namespace prefixes (session level remapping not respected) | Oak 1.0 |
+| `rep:itemNames`  | Name   | true         | false     | Multivalued restriction for property or node names | Oak 1.3.8 |
+| `rep:current`    | String | true         | false     | Multivalued restriction that limits the effect to a single level i.e. the target node where the access control entry takes effect and optionally all or a subset of it's properties. There is no inheritance of the ACE effect to nodes in the subtree or their properties. Expanded JCR property names and namespace remapping not supported (see below for details) | Oak 1.42.0 |
+| `rep:globs`      | String | true         | false     | Multivalued variant of the `rep:glob` restriction | Oak 1.44.0 |
+| `rep:subtrees`   | String | true         | false     | Multivalued restriction that limits effect to one or multiple subtrees (see below) | Oak 1.44.0 |
 
-##### Examples
 
-###### Using rep:glob
+<a name="rep_glob"></a>
+##### rep:glob - Details and Examples
 
 For a nodePath `/foo` the following results can be expected for the different
 values of `rep:glob`.
 
 Please note that the pattern is based on simple path concatenation and equally applies to either type of item (both nodes and properties). 
-Consequently the examples below need to be adjusted for the root node in order to produce the desired effect. In particular a path with two subsequent / is invalid and will never match any target item or path.
+Consequently, the examples below need to be adjusted for the root node in order to produce the desired effect. In particular a path with two subsequent / is invalid and will never match any target item or path.
 
 | rep:glob      | Result                                                   |
 |---------------|----------------------------------------------------------|
@@ -158,10 +161,74 @@ Examples without wildcard char:
 
 See also [GlobPattern] for implementation details and the [GlobRestrictionTest] in the _oak-exercise_ module for training material.
 
+<a name="rep_current"></a>
+##### rep:current - Details and Examples
+
+The restriction limits the effect to the target node. The value of the restriction property defines which properties of 
+the target node will in addition also match the restriction:
+
+- an empty value array will make the restriction matching the target node only (i.e. equivalent to rep:glob=""). 
+- an array of qualified property names will extend the effect of the restriction to properties of the target node that match the specified names. 
+- the residual name * will match all properties of the target node.
+
+For a nodePath `/foo` the following results can be expected for the different values of `rep:current`:
+
+| rep:current       | Result                                                        |
+|-------------------|---------------------------------------------------------------|
+| []                | `/foo` only, none of it's properties                          |
+| [\*]              | `/foo` and all it's properties                                |
+| [jcr:primaryType] | `/foo` and it's `jcr:primaryType` property. no other property |
+| [a, b, c]         | `/foo` and it's properties `a`,`b`,`c`                        |
+
+###### Known Limitations
+- Due to the support of the residual name `*`, which isn't a valid JCR name, the restriction `rep:current` is defined to be 
+of `PropertyType.STRING` instead of `PropertyType.NAME`. Like the `rep:glob` restriction it will therefore not work with 
+expanded JCR names or with remapped namespace prefixes.
+- In case of permission evaluation for a path pointing to a *non-existing* JCR item (see e.g. `javax.jcr.Session#hasPermission(String, String)`),
+it's not possible to distinguish between nodes and properties. A best-effort approach is take to identify known properties 
+like e.g. `jcr:primaryType`. For all other paths the implementation of the `rep:current` restrictions assumes that they 
+point to non-existing nodes. Example: if `rep:current` is present with an ACE taking effect at `/foo` the call 
+`Session.hasPermission("/foo/non-existing",Session.ACTION_READ)` will always return `false` because the restriction
+will interpret `/foo/non-existing` as a path pointing to a node.
+
+<a name="rep_subtrees"></a>
+##### rep:subtrees - Details and Examples
+
+The `rep:subtrees` restriction allows to limit the effect to one or multiple subtrees below the access-controlled 
+node. It is a simplified variant of the common pattern using 2 `rep:glob` (wildcard) patterns to grant or 
+deny access on a particular node in the subtree and all its descendent items.
+
+A common pattern involving `rep:glob` may look as follows:
+- entry 1: `rep:glob` = "/\*/path/to/subtree"
+- entry 2: `rep:glob`= "/\*/path/to/subtree/\*"
+
+The `rep:subtrees` restriction neither requires multiple entries nor wildcard characters 
+that have shown to be prone to mistakes. The corresponding setup with `rep:subtrees` would be
+- entry: `rep:subtrees` = "/path/to/subtree"
+
+and matches both the tree defined at /foo/path/to/subtree as well as any subtree at /foo/*/path/to/subtree.
+
+For a node path `/foo` the following results can be expected for different values of `rep:subtrees`:
+
+| `rep:subtrees`| Result |
+|---------------|-------------------------------------------------------------|
+| [/cat]        |   all descendants of `/foo` whose path ends with `/cat` or that have an intermediate segment `/cat/` |
+| [/cat/]       |   all descendants of `/foo` that have an intermediate segment `/cat/` |
+| [cat]         |   all siblings or descendants of `/foo` whose path ends with `cat` or that have an intermediate segment ending with `cat` |
+| [cat/]        |   all siblings or descendants of `/foo` that have an intermediate segment ending with `cat` |
+
+Note:
+- variants of 'cat'-paths could also consist of multiple segments like e.g. `/cat/dog` or `/cat/dog`
+- different subtrees can be matched by defining multiple values in the restriction
+- in contrast to `rep:glob` no wildcard characters are required to make sure the restriction is evaluated against the whole tree below the access controlled node.
+- an empty value array will never match any path/item
+- null values and empty string values will be ignored
+
+
 <a name="representation"></a>
 ### Representation in the Repository
 
-All restrictions defined by default in a Oak repository are stored as properties 
+All restrictions defined by default in an Oak repository are stored as properties 
 in a dedicated `rep:restriction` child node of the target access control entry node. 
 Similarly, they are represented with the corresponding permission entry.
 The node type definition used to represent restriction content is as follows:
@@ -189,7 +256,7 @@ The default security setup as present with Oak 1.0 is able to provide custom
 `RestrictionProvider` implementations and will automatically combine the
 different implementations using the `CompositeRestrictionProvider`.
 
-In an OSGi setup the following steps are required in order to add a action provider
+In an OSGi setup the following steps are required in order to add an action provider
 implementation:
 
 - implement `RestrictionProvider` interface exposing your custom restriction(s).
@@ -308,4 +375,6 @@ The time-based `RestrictionPattern` used by the example provider above.
 [RestrictionDefinition]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionDefinition.html
 [RestrictionPattern]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionPattern.html
 [RestrictionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionProvider.html
+[AggregationAware]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/AggregationAware.html
 [OAK-5784]: https://issues.apache.org/jira/browse/OAK-5784
+[OAK-9782]: https://issues.apache.org/jira/browse/OAK-9782

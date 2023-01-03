@@ -26,8 +26,11 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -130,7 +133,7 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * <code>READ_ACCESS_CONTROL</code> privilege for the <code>absPath</code> node.
      * @throws RepositoryException  if another error occurs.
      */
-    public boolean hasPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals, @NotNull Privilege[] privileges)
+    boolean hasPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals, @NotNull Privilege[] privileges)
             throws PathNotFoundException, AccessDeniedException, RepositoryException;
 
     /**
@@ -168,7 +171,78 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * privilege for the <code>absPath</code> node.
      * @throws RepositoryException  if another error occurs.
      */
-    @NotNull
-    public Privilege[] getPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals)
+    @NotNull Privilege[] getPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals)
             throws PathNotFoundException, AccessDeniedException, RepositoryException;
+
+    /**
+     * <p>Returns the {@link PrivilegeCollection} for editing session at the given absolute path, which
+     * must be an existing node. This is equivalent to {@link #getPrivileges(String)} and 
+     * {@link #hasPrivileges(String, Privilege[])} but allows for easy resolution of aggregated privileges 
+     * (like e.g. jcr:all) and repeated evaluation if the editing session has privileges granted 
+     * at the given target node.</p>
+     * 
+     * Note: For backwards compatibility this method comes with a default implementation that computes the {@link PrivilegeCollection}
+     * using regular JCR/Jackrabbit API, which might not be efficient. Implementations of {@link JackrabbitAccessControlManager} 
+     * are therefore expected to overwrite the default.
+     * 
+     * @param absPath An absolute path to an existing JCR node.
+     * @return A {@link PrivilegeCollection} wrapping around the privileges granted for the editing session at absPath.
+     * @throws PathNotFoundException if no node at <code>absPath</code> exists or the session does not have sufficient 
+     * access to retrieve a node at that location.
+     * @throws RepositoryException If another error occurs.
+     * @since Oak 1.42.0
+     */
+    @NotNull
+    default PrivilegeCollection getPrivilegeCollection(@Nullable String absPath) throws RepositoryException {
+        return new PrivilegeCollection.Default(getPrivileges(absPath), this);
+    }
+
+    /**
+     * <p>Returns the {@link PrivilegeCollection} for the given set of principals at the given absolute path, which
+     * must be an existing node. This is equivalent to {@link #getPrivileges(String,Set)} and 
+     * {@link #hasPrivileges(String, Set, Privilege[])} but allows for easy resolution of aggregated privileges 
+     * (like e.g. jcr:all) and repeated evaluation if the editing session has privileges granted 
+     * at the given target node.</p>
+     *
+     * Note: For backwards compatibility this method comes with a default implementation that computes the {@link PrivilegeCollection}
+     * using regular JCR/Jackrabbit API, which might not be efficient. Implementations of {@link JackrabbitAccessControlManager}
+     * are therefore expected to overwrite the default.
+     * 
+     * @param absPath An absolute path to an existing JCR node.
+     * @param principals A set of principals for which the {@link PrivilegeCollection} should be created.
+     * @return A {@link PrivilegeCollection} wrapping around the privileges granted for the editing session at absPath.
+     * @throws PathNotFoundException if no node at <code>absPath</code> exists or the session does not have sufficient 
+     * access to retrieve a node at that location.
+     * @throws AccessDeniedException if the session lacks <code>READ_ACCESS_CONTROL</code> privilege for the <code>absPath</code> node.
+     * @throws RepositoryException If another error occurs.
+     * @since Oak 1.42.0
+     */
+    @NotNull
+    default PrivilegeCollection getPrivilegeCollection(@Nullable String absPath, @NotNull Set<Principal> principals) throws RepositoryException {
+        return new PrivilegeCollection.Default(getPrivileges(absPath, principals), this);
+    }
+
+    /**
+     * <p>Returns the {@link PrivilegeCollection} for the specified <code>privilegeNames</code>.
+     * Since the privilege names are JCR names, they may be passed in either
+     * qualified or expanded form (see specification for details on JCR names).</p>
+     * 
+     * Note: For backwards compatibility this method comes with a default implementation that computes the {@link PrivilegeCollection}
+     * using regular JCR/Jackrabbit API, which might not be efficient. Implementations of {@link JackrabbitAccessControlManager}
+     * are therefore expected to overwrite the default.
+     *
+     * @param privilegeNames the names of existing privilege.
+     * @return the <code>PrivilegeCollection</code> representing the specified <code>privilegeNames</code>.
+     * @throws AccessControlException if no privilege with any of the specified names exists.
+     * @throws RepositoryException If another error occurs.
+     * @since Oak 1.42.0
+     */
+    @NotNull
+    default PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
+        List<Privilege> privileges = new ArrayList<>();
+        for (String privilegeName : privilegeNames) {
+            privileges.add(privilegeFromName(privilegeName));
+        }
+        return new PrivilegeCollection.Default(privileges.toArray(new Privilege[0]), this);
+    }
 }

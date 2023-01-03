@@ -63,8 +63,7 @@ public class CugConfigurationTest extends AbstractCugTest {
 
     private static CugConfiguration createConfiguration(ConfigurationParameters params) {
         SecurityProvider sp = CugSecurityProvider.newTestSecurityProvider(ConfigurationParameters.of(AuthorizationConfiguration.NAME, params));
-        CugConfiguration cugConfiguration = CugSecurityProvider.getCugConfiguration(sp);
-        return cugConfiguration;
+        return CugSecurityProvider.getCugConfiguration(sp);
     }
 
     @Test

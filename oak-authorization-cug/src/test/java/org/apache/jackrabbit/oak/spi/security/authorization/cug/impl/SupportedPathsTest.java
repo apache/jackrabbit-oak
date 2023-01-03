@@ -89,7 +89,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testEmpty() {
-        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.<String>of());
+        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of());
 
         List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
 

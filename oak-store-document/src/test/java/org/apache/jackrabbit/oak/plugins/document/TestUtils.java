@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NavigableMap;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -24,6 +26,7 @@ import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -139,5 +142,21 @@ public class TestUtils {
         } catch (Exception e) {
             // ignore
         }
+    }
+
+    public static int getDeletedDocGCCount(VersionGCStats stats) {
+        return stats.deletedDocGCCount;
+    }
+
+    public static int getMaxRangeHeight(NodeDocument doc) {
+        int height = 0;
+        for (Range r : doc.getPreviousRanges().values()) {
+            height = Math.max(r.getHeight(), height);
+        }
+        return height;
+    }
+
+    public static Iterator<NodeDocument> getAllPreviousDocs(NodeDocument doc) {
+        return doc.getAllPreviousDocs();
     }
 }

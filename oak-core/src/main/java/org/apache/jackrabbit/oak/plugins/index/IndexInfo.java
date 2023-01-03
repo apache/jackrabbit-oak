@@ -39,7 +39,7 @@ public interface IndexInfo {
 
     /**
      * Returns name of the async index lane to which this index is bound to
-     * or null if its not an async index
+     * or null if it's not an async index
      */
     @Nullable
     String getAsyncLaneName();
@@ -90,4 +90,36 @@ public interface IndexInfo {
      */
     @Nullable
     String getIndexDefinitionDiff();
+
+    /**
+     * Determines if a hidden oak libs mount node is present
+     * @return true in case of composite node store with indexed content from read-only part of repository, false otherwise
+     */
+    boolean hasHiddenOakLibsMount();
+
+    /**
+     * Determines if :property-index node is present
+     * @return true if the index is hybrid and has :property-index node, false otherwise.
+     */
+    boolean hasPropertyIndexNode();
+
+    /**
+     * Index suggest data storage size
+     * @return storage size or -1 if unknown
+     */
+    long getSuggestSizeInBytes();
+
+    /**
+     * Time in millis at which index definition was created
+     *
+     * @return time in millis or -1 if unknown
+     */
+    long getCreationTimestamp();
+
+    /**
+     * Time in millis at which index was last re indexed
+     *
+     * @return time in millis or -1 if unknown
+     */
+    long getReindexCompletionTimestamp();
 }

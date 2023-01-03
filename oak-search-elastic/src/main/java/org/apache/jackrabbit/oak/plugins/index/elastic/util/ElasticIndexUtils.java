@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
-
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ElasticIndexUtils {
 
@@ -39,8 +38,7 @@ public class ElasticIndexUtils {
      *
      * @param path the document path
      * @return the Elasticsearch compatible path
-     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">
-     * Mapping _id field</a>
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">Mapping _id field</a>
      */
     public static String idFromPath(@NotNull String path) {
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
@@ -88,4 +86,5 @@ public class ElasticIndexUtils {
         }
         return bytes;
     }
+
 }

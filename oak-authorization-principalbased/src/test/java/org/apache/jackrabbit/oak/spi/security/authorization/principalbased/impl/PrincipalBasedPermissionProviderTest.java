@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -54,22 +53,18 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBasedTest {
-
-    private Principal testPrincipal;
-
+    
     private PrincipalBasedPermissionProvider permissionProvider;
 
-    private String contentPath;
     private String childPath;
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        contentPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 3);
         childPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 2);
 
-        testPrincipal = getTestSystemUser().getPrincipal();
+        Principal testPrincipal = getTestSystemUser().getPrincipal();
         setupContentTrees(TEST_OAK_PATH);
         setupContentTrees(NT_FOLDER, childPath + "/folder", TEST_OAK_PATH + "/folder");
 

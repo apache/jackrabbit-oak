@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.41-SNAPSHOT</version>
+    <version>1.47-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -31,7 +31,7 @@
   <name>Oak Runnable Jar</name>
 
   <properties>
-    <jetty.version>8.2.0.v20160908</jetty.version>
+    <jetty.version>9.4.46.v20220331</jetty.version>
     <groovy.version>2.4.17</groovy.version>
     <!--
       Size History:
@@ -69,7 +69,6 @@
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
-        <version>1.5</version>
         <executions>
           <execution>
             <goals>
@@ -77,8 +76,8 @@
               <goal>addTestSources</goal>
               <goal>generateStubs</goal>
               <goal>compile</goal>
-              <goal>testGenerateStubs</goal>
-              <goal>testCompile</goal>
+              <goal>generateTestStubs</goal>
+              <goal>compileTests</goal>
               <goal>removeStubs</goal>
               <goal>removeTestStubs</goal>
             </goals>
@@ -105,35 +104,12 @@
               <goal>single</goal>
             </goals>
             <configuration>
-              <attach>false</attach>
               <descriptors>
                 <descriptor>src/main/assembly/oak-run.xml</descriptor>
               </descriptors>
+              <!-- use the new assembly as main artifact (i.e replace the original jar -->
+              <appendAssemblyId>false</appendAssemblyId>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.8</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <configuration>
-              <target>
-                <!--
-                Replace the default oak-run with the one created in assembly so
-                as to ensure default artifact oak-run is the one which has all jars
-                embedded
-                -->
-                <copy file="${project.build.directory}/${project.build.finalName}-oak.jar" tofile="${project.build.directory}/${project.build.finalName}.jar" />
-                <delete file="${project.build.directory}/${project.build.finalName}-oak.jar" />
-              </target>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
@@ -160,7 +136,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.0.0-M2</version>
         <executions>
           <execution>
             <id>enforce-file-size</id>
@@ -170,7 +145,6 @@
             <phase>package</phase>
             <configuration>
               <rules>
-
                 <requireFilesSize>
                   <maxsize>${max.jar.size}</maxsize>
                   <files>
@@ -195,6 +169,7 @@
           <excludes>
             <exclude>**/merge.txt</exclude>
             <exclude>**/mergeIndexes.txt</exclude>
+            <exclude>**/*.json</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -477,6 +452,12 @@
       <artifactId>docker-junit-rule</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.github.stefanbirkner</groupId>
+      <artifactId>system-rules</artifactId>
+      <version>1.19.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>
@@ -531,6 +512,13 @@
         <dependency>
           <groupId>org.apache.jackrabbit</groupId>
           <artifactId>oak-blob-plugins</artifactId>
+          <version>${project.version}</version>
+          <type>test-jar</type>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>oak-lucene</artifactId>
           <version>${project.version}</version>
           <type>test-jar</type>
           <scope>test</scope>

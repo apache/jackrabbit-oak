@@ -250,14 +250,8 @@ public class Commit {
      * Update the binary status in the update op.
      */
     private void updateBinaryStatus() {
-        DocumentStore store = this.nodeStore.getDocumentStore();
-
         for (Path path : this.nodesWithBinaries) {
-            NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(path));
-            if ((nd == null) || !nd.hasBinary()) {
-                UpdateOp updateParentOp = getUpdateOperationForNode(path);
-                NodeDocument.setHasBinary(updateParentOp);
-            }
+            NodeDocument.setHasBinary(getUpdateOperationForNode(path));
         }
     }
 

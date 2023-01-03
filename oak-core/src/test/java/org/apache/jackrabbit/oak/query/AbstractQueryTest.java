@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -108,15 +109,18 @@ public abstract class AbstractQueryTest {
         root.commit();
     }
 
-    protected static Tree createTestIndexNode(Tree index, String type)
-            throws Exception {
+    protected static Tree createTestIndexNode(String indexName, Tree index, String type) {
         Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
-                TEST_INDEX_NAME);
+                indexName);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         indexDef.setProperty(TYPE_PROPERTY_NAME, type);
         indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
         return indexDef;
+    }
+
+    protected static Tree createTestIndexNode(Tree index, String type) {
+        return createTestIndexNode(TEST_INDEX_NAME, index, type);
     }
 
     protected Result executeQuery(String statement, String language,
@@ -224,7 +228,14 @@ public abstract class AbstractQueryTest {
                     w.println(line);
                     line = line.substring("commit".length()).trim();
                     apply(root, line);
-                    root.commit();
+                    // This part of code is used by both lucene and elastic tests.
+                    // The index definitions in these tests don't have async property set
+                    // So lucene, in this case behaves in a sync manner. But the tests fail on Elastic,
+                    // since ES indexing is always async.
+                    // The below commit info map (sync-mode = rt) would make Elastic use RealTimeBulkProcessHandler.
+                    // This would make ES indexes also sync.
+                    // This will NOT have any impact on the lucene tests.
+                    root.commit(Collections.singletonMap("sync-mode", "rt"));
                 }
                 w.flush();
             }
@@ -312,10 +323,25 @@ public abstract class AbstractQueryTest {
 
     protected List<String> assertQuery(String sql, String language,
                                        List<String> expected, boolean skipSort) {
-        List<String> paths = executeQuery(sql, language, true, skipSort);
-        assertResult(expected, paths);
-        return paths;
+        return assertQuery(sql, language, expected, skipSort, false);
+    }
 
+    protected List<String> assertQuery(String sql, String language,
+                                       List<String> expected, boolean skipSort, boolean checkSort) {
+        List<String> paths = executeQuery(sql, language, true, skipSort);
+        if (checkSort) {
+            assertResultSorted(expected, paths);
+        } else {
+            assertResult(expected, paths);
+        }
+        return paths;
+    }
+
+    protected static void assertResultSorted(@NotNull List<String> expected, @NotNull List<String> actual) {
+        assertEquals("Result set size is different: " + actual, expected.size(),
+                actual.size());
+
+        assertEquals("Expected sorted result not found", expected, actual);
     }
 
     protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {

@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersT
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
+import org.apache.jackrabbit.oak.benchmark.authorization.GetPrivilegeCollectionIncludeNamesTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.MvGlobsAndSubtreesTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.SaveHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.HasPermissionHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.HasPrivilegesHasItemGetItemTest;
@@ -101,22 +103,24 @@ public class BenchmarkRunner {
         RepositoryFixture[] allFixtures = new RepositoryFixture[]{
                 new JackrabbitRepositoryFixture(benchmarkOptions.getBase().value(options), cacheSize),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
-                OakRepositoryFixture.getMongo(uri,
-                        benchmarkOptions.getDropDBAfterTest().value(options), cacheSize * MB),
+                OakRepositoryFixture.getMongo(uri, benchmarkOptions.getDropDBAfterTest().value(options),
+                        cacheSize * MB, benchmarkOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoWithDS(uri,
                         benchmarkOptions.getDropDBAfterTest().value(options),
                         cacheSize * MB,
                         benchmarkOptions.getBase().value(options),
-                        benchmarkOptions.getFdsCache().value(options)),
+                        benchmarkOptions.getFdsCache().value(options), benchmarkOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getMongoNS(uri,
                         benchmarkOptions.getDropDBAfterTest().value(options),
-                        cacheSize * MB),
+                        cacheSize * MB, benchmarkOptions.isThrottlingEnabled().value(options)),
                 OakRepositoryFixture.getSegmentTar(benchmarkOptions.getBase().value(options), 256, cacheSize,
-                        benchmarkOptions.getMmap().value(options)),
+                        benchmarkOptions.getMmap().value(options), benchmarkOptions.getBinariesInlineThreshold().value(options)),
                 OakRepositoryFixture.getSegmentTarWithDataStore(benchmarkOptions.getBase().value(options), 256, cacheSize,
-                        benchmarkOptions.getMmap().value(options), benchmarkOptions.getFdsCache().value(options)),
+                        benchmarkOptions.getMmap().value(options), benchmarkOptions.getBinariesInlineThreshold().value(options), 
+                        benchmarkOptions.getFdsCache().value(options)),
                 OakRepositoryFixture.getSegmentTarWithColdStandby(benchmarkOptions.getBase().value(options), 256, cacheSize,
-                        benchmarkOptions.getMmap().value(options), benchmarkOptions.getColdUseDataStore().value(options),
+                        benchmarkOptions.getMmap().value(options), benchmarkOptions.getBinariesInlineThreshold().value(options),
+                        benchmarkOptions.getColdUseDataStore().value(options),
                         benchmarkOptions.getFdsCache().value(options),
                         benchmarkOptions.getColdSyncInterval().value(options),
                         benchmarkOptions.getColdShareDataStore().value(options), benchmarkOptions.getColdSecure().value(options),
@@ -125,7 +129,8 @@ public class BenchmarkRunner {
                         benchmarkOptions.getAzureConnectionString().value(options),
                         benchmarkOptions.getAzureContainerName().value(options),
                         benchmarkOptions.getAzureRootPath().value(options),
-                        256, cacheSize, true, benchmarkOptions.getFdsCache().value(options)),
+                        256, cacheSize, benchmarkOptions.getBinariesInlineThreshold().value(options), 
+                        true, benchmarkOptions.getFdsCache().value(options)),
                 OakRepositoryFixture.getRDB(benchmarkOptions.getRdbjdbcuri().value(options),
                         benchmarkOptions.getRdbjdbcuser().value(options),
                         benchmarkOptions.getRdbjdbcpasswd().value(options), benchmarkOptions.getRdbjdbctableprefix().value(options),
@@ -136,10 +141,10 @@ public class BenchmarkRunner {
                         benchmarkOptions.getDropDBAfterTest().value(options), cacheSize * MB, benchmarkOptions.getBase().value(options),
                         benchmarkOptions.getFdsCache().value(options), benchmarkOptions.getVgcMaxAge().value(options)),
                 OakRepositoryFixture.getCompositeStore(benchmarkOptions.getBase().value(options), 256, cacheSize,
-                        benchmarkOptions.getMmap().value(options)),
+                        benchmarkOptions.getMmap().value(options), benchmarkOptions.getBinariesInlineThreshold().value(options)),
                 OakRepositoryFixture.getCompositeMemoryStore(),
                 OakRepositoryFixture.getCompositeMongoStore(uri, cacheSize * MB,
-                        benchmarkOptions.getDropDBAfterTest().value(options))
+                        benchmarkOptions.getDropDBAfterTest().value(options), benchmarkOptions.isThrottlingEnabled().value(options))
         };
 
         addToBenchMarkList(Arrays.asList(
@@ -289,6 +294,20 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getItemsToRead().value(options),
                                 benchmarkOptions.getNumberOfInitialAce().value(options),
                                 benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options)),
+                        new GetPrivilegeCollectionIncludeNamesTest(benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options), 
+                                benchmarkOptions.getEvalutionType().value(options)),
+                        new MvGlobsAndSubtreesTest(benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options),
+                                benchmarkOptions.getEvalutionType().value(options)),
+                        new IsCheckedOutAddMixinSetPropertyTest(
+                                benchmarkOptions.getRunAsAdmin().value(options), 
+                                benchmarkOptions.getItemsToRead().value(options),
                                 benchmarkOptions.getReport().value(options)),
                         new ConcurrentReadDeepTreeTest(
                                 benchmarkOptions.getRunAsAdmin().value(options),
@@ -444,7 +463,8 @@ public class BenchmarkRunner {
                         new IsNodeTypeTest(benchmarkOptions.getRunAsAdmin().value(options)),
                         new SetPropertyTransientTest(),
                         new GetURITest(),
-                        new ISO8601FormatterTest()
+                        new ISO8601FormatterTest(),
+                        new ReadBinaryPropertiesTest()
                 )
         );
 

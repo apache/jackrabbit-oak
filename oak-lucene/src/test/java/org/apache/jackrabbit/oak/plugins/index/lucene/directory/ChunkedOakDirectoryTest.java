@@ -54,9 +54,9 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
 
     @Test
     public void writes_CustomBlobSize() throws Exception{
-        builder.setProperty(FulltextIndexConstants.BLOB_SIZE, 300);
+        builder.setProperty(FulltextIndexConstants.BLOB_SIZE, 1300);
         Directory dir = createDir(builder, false, "/foo");
-        assertWrites(dir, 300);
+        assertWrites(dir, 1300);
     }
 
     @Test

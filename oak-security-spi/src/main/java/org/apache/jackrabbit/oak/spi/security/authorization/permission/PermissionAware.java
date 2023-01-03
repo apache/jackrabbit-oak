@@ -18,8 +18,16 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Interface indicating that a given object (like e.g. {@link org.apache.jackrabbit.oak.api.Root} comes with {@link PermissionProvider} 
+ * and thus obtaining a new provider from the {@link org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration}
+ * can be avoided.
+ */
 public interface PermissionAware {
 
+    /**
+     * @return the {@link PermissionProvider} associated with the object implementing this interface.
+     */
     @NotNull
     PermissionProvider getPermissionProvider();
 }

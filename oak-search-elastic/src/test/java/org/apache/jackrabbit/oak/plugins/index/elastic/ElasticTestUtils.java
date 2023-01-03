@@ -24,6 +24,17 @@ import java.util.Random;
 public final class ElasticTestUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestUtils.class);
 
+    // Set this connection string as
+    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
+    // key_id and key_secret are optional in case the ES server
+    // needs authentication
+    // Do not set this if docker is running and you want to run the tests on docker instead.
+    public static final String ELASTIC_CONNECTION_STRING = System.getProperty("elasticConnectionString");
+
+    public static final String ELASTIC_DOCKER_IMAGE_VERSION = System.getProperty("elasticDockerImageVersion");
+    public static final String ELASTIC_KNN_PLUGIN_URI_KEY = "elasticKnnPluginUri";
+    public static final String ELASTIC_KNN_PLUGIN_URI = System.getProperty(ELASTIC_KNN_PLUGIN_URI_KEY);
+
     public static void assertEventually(Runnable r, long timeoutMillis) {
         final long start = System.currentTimeMillis();
         long lastAttempt = 0;

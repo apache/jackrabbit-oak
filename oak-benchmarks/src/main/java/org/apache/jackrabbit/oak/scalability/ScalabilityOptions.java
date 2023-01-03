@@ -49,6 +49,7 @@ public class ScalabilityOptions {
     private final OptionSpec<?> help;
     private final OptionSpec<String> nonOption;
     private final OptionSpec<File> csvFile;
+    private final OptionSpec<Boolean> throttlingEnabled;
 
     public OptionSpec<Integer> getColdSyncInterval() {
         return coldSyncInterval;
@@ -134,6 +135,10 @@ public class ScalabilityOptions {
         return csvFile;
     }
 
+    public OptionSpec<Boolean> isThrottlingEnabled() {
+        return throttlingEnabled;
+    }
+
 
 
     public ScalabilityOptions(OptionParser parser) {
@@ -194,6 +199,10 @@ public class ScalabilityOptions {
                         "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+        throttlingEnabled = parser
+                .accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE); // throttling is disabled by default
 
         help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         nonOption = parser.nonOptions();

@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_SELECTION_POLICY;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -94,6 +96,16 @@ public class IndexDefinitionBuilder {
         return this;
     }
 
+    public IndexDefinitionBuilder indexSimilarityBinaries(String... indexNames) {
+        getBuilderTree().setProperty(FulltextIndexConstants.INDEX_SIMILARITY_BINARIES, Arrays.asList(indexNames), Type.STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder indexSimilarityStrings(String... indexNames) {
+        getBuilderTree().setProperty(FulltextIndexConstants.INDEX_SIMILARITY_STRINGS, Arrays.asList(indexNames), Type.STRINGS);
+        return this;
+    }
+
     public IndexDefinitionBuilder includedPaths(String... paths) {
         tree.setProperty(PathFilter.PROP_INCLUDED_PATHS, asList(paths), STRINGS);
         return this;
@@ -133,6 +145,11 @@ public class IndexDefinitionBuilder {
     public IndexDefinitionBuilder tags(String... tagVals) {
         tree.removeProperty(INDEX_TAGS);
         tree.setProperty(INDEX_TAGS, asList(tagVals), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder selectionPolicy(String policy) {
+        tree.setProperty(INDEX_SELECTION_POLICY,  checkNotNull(policy));
         return this;
     }
 
@@ -631,6 +648,7 @@ public class IndexDefinitionBuilder {
                 IndexConstants.USE_IF_EXISTS,
                 IndexConstants.QUERY_PATHS,
                 IndexConstants.INDEX_TAGS,
+                IndexConstants.INDEX_SELECTION_POLICY,
                 FulltextIndexConstants.BLOB_SIZE,
                 FulltextIndexConstants.COST_PER_ENTRY,
                 FulltextIndexConstants.COST_PER_EXECUTION);

@@ -88,7 +88,7 @@ Repository repository =
 <p>
   See the <a href="http://jcp.org/en/jsr/detail?id=170">JCR specification</a>
   and the
-  <a href="http://www.day.com/maven/jsr170/javadocs/jcr-1.0/javax/jcr/Repository.html">Repository</a>
+  <a href="https://s.apache.org/jcr-1.0-javadoc/javax/jcr/Repository.html">Repository</a>
   javadoc for details on what to do with the acquired Repository instance.
 </p>
 

@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,14 +33,14 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * An {@link ElasticSecureFacetAsyncProvider} extension that subscribes also on Elastic Aggregation events.
  * SearchHit events are sampled and then used to adjust facets coming from Aggregations in order to minimize
  * access checks. This provider could improve facets performance but only when the result set is quite big.
  */
-public class ElasticStatisticalFacetAsyncProvider
-        extends ElasticSecureFacetAsyncProvider
+public class ElasticStatisticalFacetAsyncProvider extends ElasticSecureFacetAsyncProvider
         implements ElasticResponseListener.AggregationListener {
 
     private final int sampleSize;
@@ -67,7 +70,7 @@ public class ElasticStatisticalFacetAsyncProvider
     }
 
     @Override
-    public void on(ElasticResponseHandler.SearchResponseHit searchHit) {
+    public void on(Hit<ObjectNode> searchHit) {
         if (totalHits < sampleSize) {
             super.on(searchHit);
         } else {
@@ -88,15 +91,13 @@ public class ElasticStatisticalFacetAsyncProvider
     }
 
     @Override
-    public void on(Map<String, ElasticResponseHandler.AggregationBuckets> aggregations) {
-        for (String field: facetFields) {
-            ElasticResponseHandler.AggregationBuckets terms = aggregations.get(field);
-            ElasticResponseHandler.AggregationBucket[] buckets = terms.buckets;
-            final List<FulltextIndex.Facet> facetList = new ArrayList<>(buckets.length);
-            for (ElasticResponseHandler.AggregationBucket bucket : buckets) {
-                facetList.add(new FulltextIndex.Facet(bucket.key.toString(), bucket.count));
-            }
-            facetMap.put(field, facetList);
+    public void on(Map<String, Aggregate> aggregations) {
+        for (String field : facetFields) {
+            List<StringTermsBucket> buckets = aggregations.get(field).sterms().buckets().array();
+            facetMap.put(field, buckets.stream()
+                    .map(b -> new FulltextIndex.Facet(b.key().stringValue(), (int) b.docCount()))
+                    .collect(Collectors.toList())
+            );
         }
     }
 

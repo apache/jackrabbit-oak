@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,9 +28,12 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +43,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -47,6 +53,7 @@ import java.util.Set;
  * This implementation covers both editing access control content by path and
  * by {@code Principal} resulting both in the same content structure.
  */
+@ProviderType
 public abstract class AbstractAccessControlManager implements JackrabbitAccessControlManager, AccessControlConstants {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractAccessControlManager.class);
@@ -58,6 +65,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     private final PrivilegeManager privilegeManager;
 
     private PermissionProvider permissionProvider;
+    private PrivilegeBitsProvider privilegeBitsProvider;
     private boolean doRefresh = false;
 
     protected AbstractAccessControlManager(@NotNull Root root,
@@ -118,6 +126,26 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         }
     }
 
+    @Override
+    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath) throws RepositoryException {
+        return getPrivilegeCollection(getPrivilegeNames(absPath, getPermissionProvider(), Permissions.NO_PERMISSION), false);
+    }
+
+    @Override
+    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath, @NotNull Set<Principal> principals) throws RepositoryException {
+        if (getPrincipals().equals(principals)) {
+            return getPrivilegeCollection(absPath);
+        } else {
+            PermissionProvider provider = config.getPermissionProvider(root, workspaceName, principals);
+            return getPrivilegeCollection(getPrivilegeNames(absPath, provider, Permissions.READ_ACCESS_CONTROL), false);
+        }
+    }
+
+    @Override
+    public @NotNull PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
+        return getPrivilegeCollection(PrivilegeUtil.getOakNames(privilegeNames, namePathMapper), true);
+    }
+
     //----------------------------------------------------------< protected >---
     @NotNull
     protected AuthorizationConfiguration getConfig() {
@@ -142,6 +170,14 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     @NotNull
     protected PrivilegeManager getPrivilegeManager() {
         return privilegeManager;
+    }
+    
+    @NotNull
+    protected PrivilegeBitsProvider getPrivilegeBitsProvider() {
+        if (privilegeBitsProvider == null) {
+            privilegeBitsProvider = new PrivilegeBitsProvider(root);
+        }
+        return privilegeBitsProvider;
     }
 
     @Nullable
@@ -210,9 +246,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     }
 
     @NotNull
-    private Privilege[] getPrivileges(@Nullable String absPath,
-                                      @NotNull PermissionProvider provider,
-                                      long permissions) throws RepositoryException {
+    private Set<String> getPrivilegeNames(@Nullable String absPath, @NotNull PermissionProvider provider, long permissions) throws RepositoryException {
         Tree tree;
         if (absPath == null) {
             tree = null;
@@ -222,16 +256,27 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         } else {
             tree = getTree(getOakPath(absPath), permissions, false);
         }
-        Set<String> pNames = provider.getPrivileges(tree);
-        if (pNames.isEmpty()) {
+        return provider.getPrivileges(tree);
+    }
+
+    @NotNull
+    private Privilege[] getPrivileges(@NotNull Set<String> privilegeNames) throws RepositoryException {
+        if (privilegeNames.isEmpty()) {
             return new Privilege[0];
         } else {
-            Set<Privilege> privileges = new HashSet<>(pNames.size());
-            for (String name : pNames) {
+            Set<Privilege> privileges = new HashSet<>(privilegeNames.size());
+            for (String name : privilegeNames) {
                 privileges.add(privilegeManager.getPrivilege(namePathMapper.getJcrName(name)));
             }
             return privileges.toArray(new Privilege[0]);
         }
+    }
+    
+    @NotNull
+    private Privilege[] getPrivileges(@Nullable String absPath,
+                                      @NotNull PermissionProvider provider,
+                                      long permissions) throws RepositoryException {
+        return getPrivileges(getPrivilegeNames(absPath, provider, permissions));
     }
 
     private boolean hasPrivileges(@Nullable String absPath, @Nullable Privilege[] privileges,
@@ -251,11 +296,29 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
             log.debug("No privileges passed -> allowed.");
             return true;
         } else {
-            Set<String> privilegeNames = new HashSet<>(privileges.length);
-            for (Privilege privilege : privileges) {
-                privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
-            }
+            String[] jcrNames = Arrays.stream(privileges).filter(Objects::nonNull).map(Privilege::getName).toArray(String[]::new);
+            Set<String> privilegeNames = PrivilegeUtil.getOakNames(jcrNames, namePathMapper);
             return provider.hasPrivileges(tree, privilegeNames.toArray(new String[0]));
         }
+    }
+    
+    @NotNull
+    private PrivilegeCollection getPrivilegeCollection(@NotNull Set<String> pNames, boolean validate) throws AccessControlException {
+        return new AbstractPrivilegeCollection(getPrivilegeBitsProvider().getBits(pNames, validate)) {
+            @Override
+            public Privilege[] getPrivileges() throws RepositoryException {
+                return AbstractAccessControlManager.this.getPrivileges(pNames);
+            }
+
+            @Override
+            @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+                return AbstractAccessControlManager.this.getPrivilegeBitsProvider();
+            }
+
+            @Override
+            @NotNull NamePathMapper getNamePathMapper() {
+                return AbstractAccessControlManager.this.getNamePathMapper();
+            }
+        };
     }
 }

@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import co.elastic.clients.json.JsonpUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
@@ -26,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.elasticsearch.common.Strings;
 
 import java.util.Iterator;
 import java.util.List;
@@ -89,7 +91,7 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
-        return Strings.toString(new ElasticRequestHandler(plan, getPlanResult(plan), rootState).baseQuery());
+        return JsonpUtils.toString(new ElasticRequestHandler(plan, getPlanResult(plan), rootState).baseQuery(), new StringBuilder()).toString();
     }
 
     @Override
@@ -120,7 +122,8 @@ class ElasticIndex extends FulltextIndex {
                         responseHandler,
                         plan,
                         partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
-                        getEstimator(plan.getPlanName())
+                        getEstimator(plan.getPlanName()),
+                        elasticIndexTracker.getElasticMetricHandler()
                 );
 
             }

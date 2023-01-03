@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -167,8 +166,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
     private PropertyDefinition mockPropertyDefinition(@NotNull String jcrName) {
         NodeType nt = when(mock(NodeType.class).getName()).thenReturn(jcrName).getMock();
-        PropertyDefinition def = when(mock(PropertyDefinition.class).getDeclaringNodeType()).thenReturn(nt).getMock();
-        return def;
+        return when(mock(PropertyDefinition.class).getDeclaringNodeType()).thenReturn(nt).getMock();
     }
 
     private NodeInfo mockNodeInfo(@NotNull String jcrName, @NotNull String jcrPrimaryType) {
@@ -289,8 +287,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true);
         PropInfo propInfo = mockPropInfo(REP_PRINCIPAL_NAME);
-
-        assertFalse(importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
+        
+        assertFalse(importer.handlePropInfo(tree, propInfo, mock(PropertyDefinition.class)));
     }
 
     @Test
@@ -412,12 +410,12 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testStartNotInitialized() throws Exception {
+    public void testStartNotInitialized() {
         importer.start(mock(Tree.class));
     }
 
     @Test
-    public void testStartWithoutPolicy() throws Exception {
+    public void testStartWithoutPolicy() {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         assertFalse(importer.start(mock(Tree.class)));
     }

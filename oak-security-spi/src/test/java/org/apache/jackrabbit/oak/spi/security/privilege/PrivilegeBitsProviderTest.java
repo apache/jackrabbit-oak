@@ -31,7 +31,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
+import java.util.Collections;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -41,6 +43,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -226,6 +229,51 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
         verify(root, times(2)).getTree(PRIVILEGES_PATH);
         verify(privTree, times(1)).getChild(KNOWN_PRIV_NAME);
+    }
+
+    @Test
+    public void testBitsValidateEmpty() throws Exception {
+        PrivilegeBits bits = bitsProvider.getBits(Collections.emptySet(), true);
+        assertSame(PrivilegeBits.EMPTY, bits);
+
+        bits = bitsProvider.getBits(Collections.emptySet(), false);
+        assertSame(PrivilegeBits.EMPTY, bits);
+
+        verify(root, never()).getTree(PRIVILEGES_PATH);
+        verify(privTree, never()).getChild(anyString());
+    }
+    
+    @Test
+    public void testGetBitsValidateTwiceBuitInKnown() throws Exception {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, JCR_ADD_CHILD_NODES);
+        PrivilegeBits bits1 = bitsProvider.getBits(names, true);
+        PrivilegeBits bits2 = bitsProvider.getBits(names, false);
+
+        assertNotSame(bits1, bits2);
+        assertEquals(bits1, bits2);
+
+        verify(root, times(1)).getTree(PRIVILEGES_PATH);
+        verify(privTree, times(1)).getChild(KNOWN_PRIV_NAME);
+    }
+    
+    @Test(expected = AccessControlException.class)
+    public void testBitsValidateNonExistingTree() throws Exception {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, JCR_ADD_CHILD_NODES);
+
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(false);
+        // privilegesTree has no child for KNOWN_PRIV_NAME -> must fail
+        bitsProvider.getBits(names, true);
+    }
+
+    public void testBitsValidateFalseNonExistingTree() throws Exception {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, JCR_ADD_CHILD_NODES);
+
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(false);
+        
+        // validation is disabled => same as getBits(Iterable)
+        assertEquals(bitsProvider.getBits(names), bitsProvider.getBits(names, false));
     }
 
     @Test

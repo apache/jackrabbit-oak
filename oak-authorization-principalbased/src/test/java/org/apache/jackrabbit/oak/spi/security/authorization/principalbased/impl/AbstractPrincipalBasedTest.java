@@ -57,7 +57,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UN
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AbstractPrincipalBasedTest extends AbstractSecurityTest {
+public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     static final String INTERMEDIATE_PATH = UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH + "/test";
     static final String SUPPORTED_PATH = PathUtils.concat(UserConstants.DEFAULT_USER_PATH, INTERMEDIATE_PATH);

@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -176,8 +177,8 @@ public class FlatFileStoreIteratorTest {
     @Test
     public void bufferEstimatesMemory() {
         List<NodeStateEntry> nseList = Lists.newArrayList(
-                new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a", 20),
-                new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a/b", 30)
+                new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a").withMemUsage(20).build(),
+                new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a/b").withMemUsage(30).build()
         );
         FlatFileStoreIterator fitr = newInMemoryFlatFileStore(nseList.iterator(), ImmutableSet.of(), 100);
 
@@ -195,10 +196,10 @@ public class FlatFileStoreIteratorTest {
     @Test
     public void memUsageConfig100() {
         try {
-            NodeStateEntry root = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/");
-            NodeStateEntry e1Byte = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a/b", 1);
-            NodeStateEntry e1MB = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a", 1 * 1024 * 1024);
-            NodeStateEntry e100MB = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a", 100 * 1024 * 1024);
+            NodeStateEntry root = new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/").build();
+            NodeStateEntry e1Byte = new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a/b").withMemUsage(1).build();
+            NodeStateEntry e1MB = new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a").withMemUsage(1 * 1024 * 1024).build();
+            NodeStateEntry e100MB = new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a").withMemUsage(100 * 1024 * 1024).build();
 
             {
                 // 100 MB limit

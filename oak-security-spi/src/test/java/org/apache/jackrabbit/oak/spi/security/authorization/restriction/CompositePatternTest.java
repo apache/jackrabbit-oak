@@ -37,7 +37,7 @@ public class CompositePatternTest {
 
     @Test
     public void testCreateFromEmptyList() {
-        RestrictionPattern rp = CompositePattern.create(ImmutableList.<RestrictionPattern>of());
+        RestrictionPattern rp = CompositePattern.create(ImmutableList.of());
         assertSame(RestrictionPattern.EMPTY, rp);
     }
 
@@ -66,6 +66,18 @@ public class CompositePatternTest {
         for (String path : paths) {
             assertTrue(alwaysMatching.matches(path));
             assertFalse(neverMatching.matches(path));
+        }
+    }
+
+    @Test
+    public void testMatchesPathIsProperty() {
+        List<String> paths = ImmutableList.of("/", "/a", "/a/b/c", "");
+
+        for (String path : paths) {
+            assertTrue(alwaysMatching.matches(path, true));
+            assertTrue(alwaysMatching.matches(path, false));
+            assertFalse(neverMatching.matches(path, true));
+            assertFalse(neverMatching.matches(path, false));
         }
     }
 

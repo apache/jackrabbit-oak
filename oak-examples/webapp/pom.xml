@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.41-SNAPSHOT</version>
+    <version>1.47-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-webapp</artifactId>
@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>7.0.100</tomcat.version>
+    <tomcat.version>8.5.71</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -309,6 +309,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
+          <skipITs>true</skipITs>
           <systemPropertyVariables>
             <java.util.logging.config.file>
               src/test/resources/logging.properties

@@ -38,6 +38,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExt
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.apache.jackrabbit.oak.spi.observation.ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 
 import java.io.Closeable;
@@ -82,6 +83,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -91,8 +93,8 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
+import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
-import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -104,6 +106,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWr
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.document.util.ThrottlingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -120,6 +123,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -133,7 +138,7 @@ import org.slf4j.LoggerFactory;
  * Implementation of a NodeStore on {@link DocumentStore}.
  */
 public final class DocumentNodeStore
-        implements NodeStore, RevisionContext, Observable, Clusterable, NodeStateDiffer {
+        implements NodeStore, RevisionContext, Observable, Clusterable, PrefetchNodeStore, NodeStateDiffer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStore.class);
 
@@ -211,6 +216,9 @@ public final class DocumentNodeStore
     // max time diff of 2000 millis (2sec)
     static final long DEFAULT_MAX_SERVER_TIME_DIFFERENCE = 2000L;
     private final long maxTimeDiffMillis = SystemPropertySupplier.create("oak.documentMK.maxServerTimeDiffMillis", DEFAULT_MAX_SERVER_TIME_DIFFERENCE).loggingTo(LOG).get();
+
+    public static final String SYS_PROP_PREFETCH = "oak.documentstore.prefetch";
+    private final boolean prefetchEnabled = SystemPropertySupplier.create(SYS_PROP_PREFETCH, false).loggingTo(LOG).get();
 
     /**
      * The document store without potentially lease checking wrapper.
@@ -537,6 +545,10 @@ public final class DocumentNodeStore
 
     private final Predicate<Path> nodeCachePredicate;
 
+    private final Feature prefetchFeature;
+
+    private CacheWarming cacheWarming;
+
     public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
         this.nodeCachePredicate = builder.getNodeCachePathPredicate();
         this.updateLimit = builder.getUpdateLimit();
@@ -586,6 +598,10 @@ public final class DocumentNodeStore
         }
         this.clusterId = clusterNodeInfo.getId();
 
+        if (isThrottlingEnabled(builder)) {
+            s = new ThrottlingDocumentStoreWrapper(s, builder.getThrottlingStatsCollector());
+        }
+
         clusterNodeInfo.setLeaseCheckMode(builder.getLeaseCheckMode());
         if (builder.getLeaseCheckMode() != LeaseCheckMode.DISABLED) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
@@ -602,6 +618,9 @@ public final class DocumentNodeStore
             leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
             leaseUpdateThread.start();
         }
+
+        this.prefetchFeature = builder.getPrefetchFeature();
+        this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
         this.store = s;
@@ -1291,6 +1310,33 @@ public final class DocumentNodeStore
         } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
+    }
+
+    /**
+     * Returns the node for the given path and revision from the cache. This
+     * method returns {@code null} if the cache does not have an entry for the
+     * node with the given revision.
+     * <p>
+     * This implementation behaves slightly different from
+     * {@link #getNode(Path, RevisionVector)} when the cache knows a node does
+     * not exist at a location. This method then returns a
+     * {@code DocumentNodeState} which will return false when asked whether it
+     * {@link DocumentNodeState#exists()}.
+     * 
+     * @param path the path of a node state.
+     * @param rev the revision of a node state.
+     * @return the node state or {@code null} if the cache does not have an
+     *          entry for the location and revision.
+     */
+    @Nullable
+    DocumentNodeState getNodeIfCached(@NotNull final Path path,
+                                      @NotNull final RevisionVector rev) {
+        PathRev key = new PathRev(path, rev);
+        DocumentNodeState state = nodeCache.getIfPresent(key);
+        if (state == missing) {
+            state = DocumentNodeState.newMissingNode(this, path, rev);
+        }
+        return state;
     }
 
     @NotNull
@@ -2311,11 +2357,19 @@ public final class DocumentNodeStore
      */
     boolean renewClusterIdLease() {
         Stopwatch sw = Stopwatch.createStarted();
-        boolean renewed = clusterNodeInfo.renewLease();
-        if (renewed) {
-            nodeStoreStatsCollector.doneLeaseUpdate(sw.elapsed(MICROSECONDS));
+        boolean renewedOrException = true;
+        try {
+            renewedOrException = clusterNodeInfo.renewLease();
+        } finally {
+            // we need to collect the stats if,
+            // 1. Either lease had been renewed
+            // 2. or there is exception while renewing the lease i.e lease renewal failed/timed out
+            // In case lease is not renewed (can happen if it had not expired), we don't collect the stats
+            if (renewedOrException) {
+                nodeStoreStatsCollector.doneLeaseUpdate(sw.elapsed(MICROSECONDS));
+            }
         }
-        return renewed;
+        return renewedOrException;
     }
 
     /**
@@ -3860,5 +3914,20 @@ public final class DocumentNodeStore
     
     boolean isReadOnlyMode() {
         return readOnlyMode;
+    }
+
+    @Override
+    public void prefetch(java.util.Collection<String> paths, NodeState rootState) {
+        if (paths != null
+                && rootState instanceof DocumentNodeState
+                && isPrefetchEnabled()) {
+            cacheWarming.prefetch(paths, (DocumentNodeState) rootState);
+        }
+    }
+
+    private boolean isPrefetchEnabled() {
+        // feature can be enabled with system property or feature toggle
+        return prefetchEnabled
+                || (prefetchFeature != null && prefetchFeature.isEnabled());
     }
 }

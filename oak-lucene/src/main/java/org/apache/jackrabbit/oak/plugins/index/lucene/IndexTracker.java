@@ -65,6 +65,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  */
 public class IndexTracker {
 
+    // auto-refresh every hour
+    private static final long AUTO_REFRESH_MILLIS = Long.getLong(
+            "oak.indexTracker.autoRefresh",
+            60 * 60 * 1000);
+
     /** Logger instance. */
     private static final Logger log = LoggerFactory.getLogger(IndexTracker.class);
     private static final PerfLogger PERF_LOGGER =
@@ -81,6 +86,7 @@ public class IndexTracker {
     private volatile Map<String, LuceneIndexNodeManager> indices = emptyMap();
 
     private volatile boolean refresh;
+    private volatile long nextAutoRefresh = System.currentTimeMillis() + AUTO_REFRESH_MILLIS;
 
     public IndexTracker() {
         this((IndexCopier)null);
@@ -98,7 +104,7 @@ public class IndexTracker {
         this.readerFactory = readerFactory;
         this.nrtFactory = nrtFactory;
     }
-    
+
     public MountInfoProvider getMountInfoProvider() {
         return readerFactory.getMountInfoProvider();
     }
@@ -124,6 +130,11 @@ public class IndexTracker {
             log.info("Refreshed the opened indexes");
         } else {
             diffAndUpdate(root);
+            long now = System.currentTimeMillis();
+            if (!refresh && now > nextAutoRefresh) {
+                refresh = true;
+                nextAutoRefresh = now + AUTO_REFRESH_MILLIS;
+            }
         }
     }
 

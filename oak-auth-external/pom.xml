@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.41-SNAPSHOT</version>
+        <version>1.47-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -34,7 +34,7 @@
     <properties>
         <!-- enable execution of jacoco and set minimal line coverage -->
         <skip.coverage>false</skip.coverage>
-        <minimum.line.coverage>0.96</minimum.line.coverage>
+        <minimum.line.coverage>0.99</minimum.line.coverage>
         <minimum.branch.coverage>1.0</minimum.branch.coverage>
     </properties>
 
@@ -141,6 +141,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Logging -->

@@ -25,9 +25,9 @@ import java.util.List;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -111,7 +111,7 @@ public class CustomQueryIndexProviderTest extends AbstractSecurityTest {
         }
 
         @Override
-        public Cursor query(Filter filter, NodeState rootState) {
+        public @Nullable Cursor query(Filter filter, NodeState rootState) {
             Filter.PropertyRestriction pr = filter.getPropertyRestriction("jcr:uuid");
             if (pr != null) {
                 NodeBuilder nb = rootState.builder();

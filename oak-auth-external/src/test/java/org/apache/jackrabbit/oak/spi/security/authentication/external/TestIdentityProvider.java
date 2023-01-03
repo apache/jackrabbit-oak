@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
@@ -87,7 +90,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         externalUsers.put(user.getId().toLowerCase(), (ExternalUser) user);
     }
 
-    private void addGroup(TestIdentity group) {
+    public void addGroup(TestIdentity group) {
         externalGroups.put(group.getId().toLowerCase(), (ExternalGroup) group);
     }
 
@@ -102,7 +105,9 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         if (ID_EXCEPTION.equals(ref.getId())) {
             throw new ExternalIdentityException(ID_EXCEPTION);
         }
-
+        if (ref.getProviderName() == null || !idpName.equals(ref.getProviderName())) {
+            return null;
+        }
         ExternalIdentity id = externalUsers.get(ref.getId().toLowerCase());
         if (id != null) {
             return id;
@@ -207,7 +212,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
         @NotNull
         @Override
-        public Iterable<ExternalIdentityRef> getDeclaredGroups() {
+        public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
             return groups;
         }
 
@@ -218,13 +223,13 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         }
 
         @NotNull
-        protected TestIdentity withProperty(@NotNull String name, @NotNull Object value) {
+        public TestIdentity withProperty(@NotNull String name, @NotNull Object value) {
             props.put(name, value);
             return this;
         }
 
         @NotNull
-        protected TestIdentity withGroups(@NotNull String ... grps) {
+        public TestIdentity withGroups(@NotNull String ... grps) {
             for (String grp: grps) {
                 groups.add(new ExternalIdentityRef(grp, id.getProviderName()));
             }
@@ -259,7 +264,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() {
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -280,6 +285,23 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() {
             return ImmutableList.of();
+        }
+    }
+
+    public static final class UserWithSupplierProperties extends TestUser {
+
+        public final String stringValue = "customValue";
+        public final BigDecimal bigDecimal = new BigDecimal("99.99");
+        public final Boolean boolValue = Boolean.TRUE;
+
+        public UserWithSupplierProperties(String userId, @NotNull String idpName) {
+            super(userId, idpName);
+            withProperty("profile/id", "zw2")
+                .withProperty("profile/name", "Supplied properties user")
+                .withProperty("stringSuppliedValue", (Supplier) () -> stringValue)
+                .withProperty("bigDecimalSuppliedValue", (Supplier) () -> bigDecimal)
+                .withProperty("nullSupplier", (Supplier) () -> null)
+                .withProperty("booleanSuppliedValue", (Supplier) () -> boolValue);
         }
     }
 }

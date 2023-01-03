@@ -19,12 +19,16 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -35,9 +39,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -45,6 +51,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,17 +59,25 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.DEFAULT_IDP_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -74,7 +89,7 @@ public class DelegateeTest extends AbstractJmxTest {
                 new Object[] { 100, "BatchSize 100" },
                 new Object[] { 1, "BatchSize 1" },
                 new Object[] { 2, "BatchSize 2" });
-    };
+    }
 
     private final int batchSize;
 
@@ -93,7 +108,7 @@ public class DelegateeTest extends AbstractJmxTest {
     public void before() throws Exception {
         super.before();
 
-        delegatee = createDelegatee(new TestIdentityProvider(), new DefaultSyncHandler(syncConfig));
+        delegatee = createDelegatee(idp, new DefaultSyncHandler(syncConfig));
     }
 
     @Override
@@ -122,14 +137,44 @@ public class DelegateeTest extends AbstractJmxTest {
     }
 
     @Test
-    public void testDoubleClose() {
-        delegatee.close();
-        delegatee.close();
+    public void testDoubleClose() throws Exception {
+        ContentSession cs = mock(ContentSession.class);
+        when(cs.getLatestRoot()).thenReturn(root);
+        when(cs.getAuthInfo()).thenReturn(AuthInfo.EMPTY);
+        
+        ContentRepository repo = mock(ContentRepository.class);
+        when(repo.login(null, null)).thenReturn(cs);
+        
+        Delegatee dg = Delegatee.createInstance(repo, getSecurityProvider(), new DefaultSyncHandler(syncConfig), new TestIdentityProvider());
+        dg.close();
+        dg.close();
+        
+        verify(repo).login(null, null);
+        verifyNoMoreInteractions(repo);
+        verify(cs, times(2)).close();
+    }
+
+    @Test
+    public void testCloseFails() throws Exception {
+        ContentSession cs = mock(ContentSession.class);
+        doThrow(new IOException()).when(cs).close();
+        when(cs.getLatestRoot()).thenReturn(root);
+        when(cs.getAuthInfo()).thenReturn(AuthInfo.EMPTY);
+
+        ContentRepository repo = mock(ContentRepository.class);
+        when(repo.login(null, null)).thenReturn(cs);
+
+        Delegatee dg = Delegatee.createInstance(repo, getSecurityProvider(), new DefaultSyncHandler(syncConfig), new TestIdentityProvider());
+        dg.close();
+
+        verify(repo).login(null, null);
+        verifyNoMoreInteractions(repo);
+        verify(cs).close();
     }
 
     @Test
     public void testSyncUsersBeforeSaveError() throws Exception {
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncUsers(TEST_IDS, false);
         assertResultMessages(result, ImmutableMap.of(
@@ -160,10 +205,10 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test
     public void testSyncAllUsersBeforeSaveError() throws Exception {
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncAllUsers(false);
-        assertResultMessages(result, ImmutableMap.<String,String>of());
+        assertResultMessages(result, ImmutableMap.of());
         assertFalse(r.hasPendingChanges());
     }
 
@@ -174,7 +219,7 @@ public class DelegateeTest extends AbstractJmxTest {
         sync(new TestIdentityProvider.TestUser("third", idp.getName()), idp);
         sync(foreignIDP, TestIdentityProvider.ID_WILDCARD_USER, false);
 
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         ImmutableMap<String, String> expected = ImmutableMap.<String, String>builder()
                 .put(ID_TEST_USER, "ERR")
@@ -198,7 +243,7 @@ public class DelegateeTest extends AbstractJmxTest {
         sync(new TestIdentityProvider.TestUser("third", idp.getName()), idp);
         sync(foreignIDP, TestIdentityProvider.ID_WILDCARD_USER, false);
 
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         ImmutableMap<String, String> expected = ImmutableMap.<String, String>builder()
                 .put(ID_TEST_USER, "ERR")
@@ -217,7 +262,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test
     public void testSyncNonExistingExternalUserSaveError() throws Exception {
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncExternalUsers(new String[] {new ExternalIdentityRef("nonExisting", idp.getName()).getString()});
         assertResultMessages(result, "", "nsi");
@@ -226,7 +271,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test
     public void testSyncForeignExternalUserSaveError() throws Exception {
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncExternalUsers(new String[] {new ExternalIdentityRef(ID_TEST_USER, foreignIDP.getName()).getString()});
         assertResultMessages(result, ID_TEST_USER, "for");
@@ -235,7 +280,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test
     public void testSyncThrowingExternalUserSaveError() throws Exception {
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncExternalUsers(new String[] {new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName()).getString()});
         assertResultMessages(result, TestIdentityProvider.ID_EXCEPTION, "ERR");
@@ -244,7 +289,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test
     public void testSyncExternalUsersSaveError() throws Exception {
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         List<String> externalIds = new ArrayList<>();
         for (String id : TEST_IDS) {
@@ -274,7 +319,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test
     public void testSyncAllExternalUsersSaveError() throws Exception {
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.syncAllExternalUsers();
         assertResultMessages(result, ImmutableMap.of(
@@ -301,7 +346,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test
     public void testListOrphanedUsersFiltersNullSyncIdentity() throws Exception {
-        Iterator<SyncedIdentity> it = Arrays.asList((SyncedIdentity) null).iterator();
+        Iterator<SyncedIdentity> it = Collections.singletonList((SyncedIdentity) null).iterator();
         SyncHandler syncHandler = mock(SyncHandler.class);
         when(syncHandler.listIdentities(any(UserManager.class))).thenReturn(it);
 
@@ -329,7 +374,7 @@ public class DelegateeTest extends AbstractJmxTest {
         sync(new TestIdentityProvider.TestUser("forth", idp.getName()), idp);
         sync(idp, ID_TEST_USER, false);
 
-        Root r = preventRootCommit(delegatee);;
+        Root r = preventRootCommit(delegatee);
 
         String[] result = delegatee.purgeOrphanedUsers();
         assertResultMessages(result, ImmutableMap.of(
@@ -337,10 +382,55 @@ public class DelegateeTest extends AbstractJmxTest {
                 "forth", "ERR"));
         assertFalse(r.hasPendingChanges());
     }
+    
+    @Test
+    public void testConvertToDynamicMembershipFailsWithRepositoryException() throws Exception {
+        syncConfig.user().setDynamicMembership(true);
+        sync(idp.getUser(ID_TEST_USER), idp);
+        
+        UserManager um = spy(getUserManager(root));
+        when(um.getAuthorizable(any(String.class))).thenThrow(new RepositoryException());
+        
+        UserConfiguration uc = mock(UserConfiguration.class);
+        when(uc.getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um);
+        SecurityProvider sp = spy(securityProvider);
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+        
+        Delegatee delegatee = Delegatee.createInstance(getContentRepository(), sp, new DefaultSyncHandler(syncConfig), idp);
+        try {
+            delegatee.convertToDynamicMembership();
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testConvertToDynamicMembershipUserNotFound() throws Exception {
+        syncConfig.user().setDynamicMembership(true);
+        sync(idp.getUser(ID_TEST_USER), idp);
+
+        UserManager um = spy(getUserManager(root));
+        when(um.getAuthorizable(any(String.class))).thenReturn(null);
+
+        UserConfiguration uc = mock(UserConfiguration.class);
+        when(uc.getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um);
+        SecurityProvider sp = spy(securityProvider);
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+
+        Delegatee delegatee = Delegatee.createInstance(getContentRepository(), sp, new DefaultSyncHandler(syncConfig), idp);
+        String[] result = delegatee.convertToDynamicMembership();
+        
+        ResultMessages expected = new ResultMessages();
+        DefaultSyncedIdentity dsi = DefaultSyncContext.createSyncedIdentity(getUserManager().getAuthorizable(ID_TEST_USER));
+        expected.append(Collections.singletonList(new DefaultSyncResultImpl(dsi, SyncResult.Status.NO_SUCH_AUTHORIZABLE)));
+
+        assertArrayEquals(expected.getMessages(), result);
+    }
 
     private static final class ThrowingRoot implements Root {
 
-        private Root base;
+        private final Root base;
 
         private ThrowingRoot(@NotNull Root base) {
             this.base = base;
@@ -369,7 +459,7 @@ public class DelegateeTest extends AbstractJmxTest {
 
         @Override
         public void commit() throws CommitFailedException {
-            commit(ImmutableMap.<String, Object>of());
+            commit(ImmutableMap.of());
         }
 
         @Override

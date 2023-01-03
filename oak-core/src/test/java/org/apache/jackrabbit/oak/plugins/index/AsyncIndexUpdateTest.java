@@ -2107,7 +2107,8 @@ public class AsyncIndexUpdateTest {
 
         // Make index
         NodeBuilder builder = store.getRoot().builder();
-        builder.child("oak:index").child("fooIndex").setProperty("async", "async").setProperty("type", "foo");
+        builder.child("oak:index").child("fooIndex").setProperty("async", "async").setProperty("type", "foo")
+                .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // reset stats

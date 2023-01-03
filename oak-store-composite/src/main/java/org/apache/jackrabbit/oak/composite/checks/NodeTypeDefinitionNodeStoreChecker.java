@@ -67,7 +67,7 @@ public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreCheck
             @Override
             public void onConstraintViolation(String path, List<String> typeNames, int code, String message)
                     throws CommitFailedException {
-                errorHolder.report(mountedStore, path, message);
+                errorHolder.report(mountedStore, path, message, NodeTypeDefinitionNodeStoreChecker.this);
             }
         };
         
@@ -75,6 +75,11 @@ public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreCheck
         NodeBuilder rootBuilder = new ReadOnlyBuilder(root); // prevent accidental changes
         
         String primary = root.getName(JCR_PRIMARYTYPE);
+        // workaround until https://issues.apache.org/jira/browse/OAK-9863 is fixed
+        if (primary == null) {
+            // no primary type for root node found (probably empty segment store used for testing)
+            return false;
+        }
         Iterable<String> mixins = root.getNames(JCR_MIXINTYPES);
         try {
             Set<String> checkNodeTypeNames = context.getAllNodeTypeNames();
@@ -90,7 +95,7 @@ public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreCheck
             EditorDiff.process(editor, MISSING_NODE, root);
             
         } catch (CommitFailedException e) {
-            errorHolder.report(mountedStore, "/", "Unexpected error : " + e.getMessage());
+            errorHolder.report(mountedStore, "/", "Unexpected error : " + e.getMessage(), this);
         }
 
         

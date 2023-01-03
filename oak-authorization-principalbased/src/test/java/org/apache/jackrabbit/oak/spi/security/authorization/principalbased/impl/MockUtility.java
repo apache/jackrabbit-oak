@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeAware;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.FilterProvider;
@@ -66,9 +65,7 @@ final class MockUtility {
         Tree t = mock(Tree.class);
         when(t.exists()).thenReturn(true);
         when(t.getName()).thenReturn(name);
-        if (ntName != null) {
-            when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(createPrimaryTypeProperty(ntName));
-        }
+        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(createPrimaryTypeProperty(ntName));
         when(t.getPath()).thenReturn(path);
         when(t.isRoot()).thenReturn(PathUtils.denotesRoot(path));
         for (String propertyName : propertyNames) {

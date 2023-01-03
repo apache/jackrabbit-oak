@@ -37,6 +37,12 @@ public class EmptyPatternTest {
     }
 
     @Test
+    public void testMatchesPathIsProperty() {
+        assertTrue(RestrictionPattern.EMPTY.matches("/any/path", true));
+        assertTrue(RestrictionPattern.EMPTY.matches("/any/path", false));
+    }
+
+    @Test
     public void testMatchesTree() {
         assertTrue(RestrictionPattern.EMPTY.matches(Mockito.mock(Tree.class), null));
     }

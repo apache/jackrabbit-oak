@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
 
@@ -27,5 +28,13 @@ public class ElasticIndexDefinitionBuilder extends IndexDefinitionBuilder {
     @Override
     protected String getIndexType() {
         return TYPE_ELASTICSEARCH;
+    }
+
+    public ElasticIndexDefinitionBuilder() {
+        super();
+    }
+
+    public ElasticIndexDefinitionBuilder(NodeBuilder builder) {
+        super(builder);
     }
 }

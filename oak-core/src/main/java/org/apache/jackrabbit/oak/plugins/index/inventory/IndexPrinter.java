@@ -16,26 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ListMultimap;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
-import org.apache.jackrabbit.util.ISO8601;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -44,9 +47,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Component(
         service = InventoryPrinter.class,
         property = {
-            "felix.inventory.printer.name=oak-index-stats",
-            "felix.inventory.printer.title=Oak Index Stats",
-            "felix.inventory.printer.format=TEXT"
+                "felix.inventory.printer.name=oak-index-stats",
+                "felix.inventory.printer.title=Oak Index Stats",
+                "felix.inventory.printer.format=TEXT",
+                "felix.inventory.printer.format=JSON"
         })
 public class IndexPrinter implements InventoryPrinter {
 
@@ -66,97 +70,221 @@ public class IndexPrinter implements InventoryPrinter {
 
     @Override
     public void print(PrintWriter pw, Format format, boolean isZip) {
-        //TODO Highlight if failing
-        printAsyncIndexInfo(pw);
-        printIndexInfo(pw);
+        PrinterOutput po = format == Format.JSON ? new JsonPrinterOutput() : new TextPrinterOutput();
+        asyncLanesInfo(po);
+        indexInfo(po);
+        pw.print(po.output());
     }
 
-    private void printAsyncIndexInfo(PrintWriter pw) {
+    private void asyncLanesInfo(PrinterOutput po) {
         List<String> asyncLanes = ImmutableList.copyOf(asyncIndexInfoService.getAsyncLanes());
-        String title = "Async Indexers State";
-        printTitle(pw, title);
-        pw.printf("Number of async indexer lanes : %d%n", asyncLanes.size());
-        pw.println();
+        po.startSection("Async Indexers State", true);
+        po.text("Number of async indexer lanes", asyncLanes.size());
+
         for (String lane : asyncLanes) {
-            pw.println(lane);
+            po.startSection(lane, false);
             AsyncIndexInfo info = asyncIndexInfoService.getInfo(lane);
             if (info != null) {
-                        pw.printf("    Last indexed to      : %s%n", formatTime(info.getLastIndexedTo()));
+                po.text("Last indexed to", formatTime(info.getLastIndexedTo()));
                 IndexStatsMBean stats = info.getStatsMBean();
                 if (stats != null) {
-                        pw.printf("    Status              : %s%n", stats.getStatus());
-                        pw.printf("    Failing             : %s%n", stats.isFailing());
-                        pw.printf("    Paused              : %s%n", stats.isPaused());
+                    po.text("Status", stats.getStatus());
+                    po.text("Failing", stats.isFailing());
+                    po.text("Paused", stats.isPaused());
                     if (stats.isFailing()) {
-                        pw.printf("    Failing since       : %s%n", stats.getFailingSince());
-                        pw.printf("    Latest error        : %s%n", stats.getLatestError());
+                        po.text("Failing since", stats.getFailingSince());
+                        po.text("Latest error", stats.getLatestError());
                     }
                 }
-                pw.println();
             }
+            po.endSection();
         }
+        po.endSection();
     }
 
-    private static void printTitle(PrintWriter pw, String title) {
-        pw.println(title);
-        pw.println(Strings.repeat("=", title.length()));
-    }
+    private void indexInfo(PrinterOutput po) {
+        Map<String, List<IndexInfo>> indexesByType = StreamSupport.stream(indexInfoService.getAllIndexInfo().spliterator(), false)
+                .collect(Collectors.groupingBy(IndexInfo::getType));
 
-    private void printIndexInfo(PrintWriter pw) {
-        ListMultimap<String, IndexInfo> infos = ArrayListMultimap.create();
-        for (IndexInfo info : indexInfoService.getAllIndexInfo()) {
-            infos.put(info.getType(), info);
-        }
+        po.text("Total number of indexes", indexesByType.values().stream().mapToInt(List::size).sum());
 
-        pw.printf("Total number of indexes : %d%n", infos.size());
-        for (String type : infos.keySet()){
-            List<IndexInfo> typedInfo = infos.get(type);
-            String title = String.format("%s(%d)", type, typedInfo.size());
-            printTitle(pw, title);
-            pw.println();
-            for (IndexInfo info : typedInfo){
-                printIndexInfo(pw, info);
+        for (String type : indexesByType.keySet()) {
+            List<IndexInfo> typedInfo = indexesByType.get(type);
+            po.startSection(type, true);
+            po.text("Number of " + type + " indexes", typedInfo.size());
+            for (IndexInfo info : typedInfo) {
+                indexInfo(po, info);
             }
+            po.endSection();
         }
     }
 
-    private static void printIndexInfo(PrintWriter pw, IndexInfo info) {
-        pw.println(info.getIndexPath());
-        pw.printf("    Type                    : %s%n", info.getType());
+    private void indexInfo(PrinterOutput po, IndexInfo info) {
+        po.startSection(info.getIndexPath(), false);
+
+        po.text("Type", info.getType());
         if (info.getAsyncLaneName() != null) {
-            pw.printf("    Async                   : true%n");
-            pw.printf("    Async lane name         : %s%n", info.getAsyncLaneName());
+            po.text("Async", true);
+            po.text("Async lane name", info.getAsyncLaneName());
         }
 
-        if (info.getIndexedUpToTime() > 0){
-            pw.printf("    Last indexed up to      : %s%n", formatTime(info.getIndexedUpToTime()));
+        if (info.getIndexedUpToTime() > 0) {
+            po.text("Last indexed up to", formatTime(info.getIndexedUpToTime()));
         }
 
-        if (info.getLastUpdatedTime() > 0){
-            pw.printf("    Last updated time       : %s%n", formatTime(info.getLastUpdatedTime()));
+        if (info.getLastUpdatedTime() > 0) {
+            po.text("Last updated time", formatTime(info.getLastUpdatedTime()));
         }
 
-        if (info.getSizeInBytes() >= 0){
-            pw.printf("    Size                    : %s%n", IOUtils.humanReadableByteCount(info.getSizeInBytes()));
+        if (info.getCreationTimestamp() > 0) {
+            po.text("Creation time", formatTime(info.getCreationTimestamp()));
         }
 
-        if (info.getEstimatedEntryCount() >= 0){
-            pw.printf("    Estimated entry count   : %d%n", info.getEstimatedEntryCount());
+        if (info.getReindexCompletionTimestamp() > 0) {
+            po.text("Reindex completion time", formatTime(info.getReindexCompletionTimestamp()));
+        }
+
+        if (info.getSizeInBytes() >= 0) {
+            po.text("Size", IOUtils.humanReadableByteCount(info.getSizeInBytes()));
+            po.text("Size (in bytes)", info.getSizeInBytes());
+        }
+
+        if (info.getSuggestSizeInBytes() >= 0) {
+            po.text("Suggest size", IOUtils.humanReadableByteCount(info.getSuggestSizeInBytes()));
+            po.text("Suggest size (in bytes)", info.getSuggestSizeInBytes());
+        }
+
+        if (info.getEstimatedEntryCount() >= 0) {
+            po.text("Estimated entry count", info.getEstimatedEntryCount());
+        }
+
+        if ("lucene".equals(info.getType())) {
+            // Only valid for lucene type indexes, for others it will simply show false.
+            po.text("Has hidden oak mount", info.hasHiddenOakLibsMount());
+            po.text("Has property index", info.hasPropertyIndexNode());
         }
 
         if (info.hasIndexDefinitionChangedWithoutReindexing()) {
-            pw.println("    Index definition changed without reindexing");
             String diff = info.getIndexDefinitionDiff();
             if (diff != null) {
-                pw.println("    "+diff);
+                po.text("Index definition changed without reindexing", diff);
             }
         }
-        pw.println();
+        po.endSection();
     }
 
-    private static String formatTime(long time){
+    private static String formatTime(long time) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(time);
-        return ISO8601.format(cal);
+        Date date = cal.getTime();
+        SimpleDateFormat outputFmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        outputFmt.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return outputFmt.format(date);
+    }
+
+    private static abstract class PrinterOutput {
+
+        abstract String output();
+
+        abstract void startSection(String section, boolean topLevel);
+
+        void endSection() {
+        }
+
+        abstract void text(String key, Object value);
+
+    }
+
+    private static class JsonPrinterOutput extends PrinterOutput {
+
+        private final JsopBuilder json;
+
+        public JsonPrinterOutput() {
+            this.json = new JsopBuilder().object();
+        }
+
+        @Override
+        String output() {
+            return JsopBuilder.prettyPrint(json.endObject().toString());
+        }
+
+        @Override
+        void startSection(String section, boolean topLevel) {
+            json.key(section);
+            json.object();
+        }
+
+        @Override
+        void endSection() {
+            json.endObject();
+        }
+
+        @Override
+        void text(String key, Object value) {
+            json.key(key);
+            if (value instanceof String) {
+                json.value((String) value);
+            } else if (value instanceof Long) {
+                json.value((Long) value);
+            } else if (value instanceof Boolean) {
+                json.value((Boolean) value);
+            } else if (value instanceof Integer) {
+                json.value((Integer) value);
+            } else {
+                throw new IllegalArgumentException("Unsupported type of value while creating the json output");
+            }
+        }
+    }
+
+    private static class TextPrinterOutput extends PrinterOutput {
+
+        private final StringBuilder sb;
+
+        private int leftPadding = 0;
+
+        public TextPrinterOutput() {
+            this.sb = new StringBuilder();
+        }
+
+        @Override
+        String output() {
+            return sb.toString();
+        }
+
+        @Override
+        void startSection(String section, boolean topLevel) {
+            newLine();
+            appendLine(section);
+            if (topLevel) {
+                appendLine(Strings.repeat("=", section.length()));
+                newLine();
+            } else {
+                leftPadding += 4;
+            }
+        }
+
+        @Override
+        void endSection() {
+            if (leftPadding >= 4) leftPadding -= 4;
+        }
+
+        @Override
+        void text(String key, Object value) {
+            appendLine(key, value);
+        }
+
+        private void appendLine(String text) {
+            sb.append(text).append(System.lineSeparator());
+        }
+
+        private void appendLine(String key, Object value) {
+            String leftPaddedKey = leftPadding > 0 ? String.format("%" + leftPadding + "s", key) : key;
+            sb.append(String.format("%-29s", leftPaddedKey))
+                    .append(":").append(value).append(System.lineSeparator());
+        }
+
+        private void newLine() {
+            sb.append(System.lineSeparator());
+        }
     }
 }

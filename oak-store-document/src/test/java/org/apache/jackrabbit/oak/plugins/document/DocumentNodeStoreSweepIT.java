@@ -97,6 +97,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
 
         // wait for lease to expire
         clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        ds2.getClusterInfo().renewLease();
         // run recovery for cluster node 1
         assertTrue(ds2.getLastRevRecoveryAgent().recover(c1Id) > 0);
 

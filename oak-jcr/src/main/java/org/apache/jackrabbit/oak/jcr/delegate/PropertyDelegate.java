@@ -92,7 +92,12 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public boolean isProtected() throws InvalidItemStateException {
-        return getParent().isProtected(name);
+        NodeDelegate p = getParent();
+        if (p != null) {
+            return p.isProtected(name, getPropertyState().getType());
+        } else {
+            throw newInvalidItemStateException();
+        }
     }
 
     @NotNull
@@ -100,8 +105,7 @@ public class PropertyDelegate extends ItemDelegate {
         if (state != null) {
             return state;
         } else {
-            throw new InvalidItemStateException(
-                    "The " + name + " property does not exist");
+            throw newInvalidItemStateException();
         }
     }
 
@@ -160,4 +164,8 @@ public class PropertyDelegate extends ItemDelegate {
                 .toString();
     }
 
+    private InvalidItemStateException newInvalidItemStateException() {
+        return new InvalidItemStateException(
+                "The " + name + " property does not exist");
+    }
 }

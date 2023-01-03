@@ -210,7 +210,7 @@ Consequently, the following configuration option `groupMembershipSplitSize` pres
 with Jackrabbit 2.x is not supported anymore.
 
 <!-- hidden references -->
-[org.apache.jackrabbit.api.security.user.Group]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Group.java
-[org.apache.jackrabbit.api.security.user.Authorizable]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Authorizable.java
+[org.apache.jackrabbit.api.security.user.Group]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Group.html
+[org.apache.jackrabbit.api.security.user.Authorizable]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Authorizable.html
 [JCR-3880]: https://issues.apache.org/jira/browse/JCR-3880
 [OAK-3170]: https://issues.apache.org/jira/browse/OAK-3170

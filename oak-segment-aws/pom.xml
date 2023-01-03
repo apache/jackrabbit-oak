@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.41-SNAPSHOT</version>
+        <version>1.47-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -112,7 +112,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M4</version>
                 <configuration>
                     <argLine>-Dsqlite4java.library.path="${project.build.directory}/dependencies"</argLine>
                 </configuration>
@@ -120,7 +119,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.1.1</version>
                 <executions>
                     <execution>
                         <id>copy-dependencies</id>
@@ -282,6 +280,12 @@
             <artifactId>DynamoDBLocal</artifactId>
             <version>1.12.0</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
@@ -301,6 +305,14 @@
             <artifactId>sqlite4java-win32-x64</artifactId>
             <version>${sqlite4java.version}</version>
             <type>dll</type>
+            <scope>test</scope>
+        </dependency>
+        <!-- add native implementation for Apple silicon from fork -->
+        <dependency>
+            <groupId>io.github.ganadist.sqlite4java</groupId>
+            <artifactId>libsqlite4java-osx-aarch64</artifactId>
+            <version>${sqlite4java.version}</version>
+            <type>dylib</type>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -41,7 +41,7 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     protected RuntimeException unsupported() {
-        return new UnsupportedOperationException("This builder is read-only.");
+        return new ReadyOnlyBuilderException("This builder is read-only.");
     }
 
     @Override

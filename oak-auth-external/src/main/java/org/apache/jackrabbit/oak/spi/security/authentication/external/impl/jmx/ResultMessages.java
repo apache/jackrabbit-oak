@@ -22,16 +22,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 final class ResultMessages {
-
-    private static final Logger log = LoggerFactory.getLogger(ResultMessages.class);
-
+    
     private final List<String> messages = new ArrayList<>();
 
     ResultMessages() {}

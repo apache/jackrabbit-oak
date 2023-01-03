@@ -92,7 +92,7 @@ public class FunctionIndexProcessor {
         }
 
         PropertyState ret = stack.pop();
-        return ret==EMPTY_PROPERTY_STATE ? null : ret;
+        return ret == EMPTY_PROPERTY_STATE ? null : ret;
     }
 
     /**
@@ -141,6 +141,12 @@ public class FunctionIndexProcessor {
             } else if ("length".equals(functionName)) {
                 x = ps.size(i);
                 type = Type.LONG;
+            } else if ("first".equals(functionName)) {
+                if (i > 0) {
+                    break;
+                }
+                x = ps.getValue(Type.STRING, 0);
+                type = Type.STRING;
             } else {
                 LOG.debug("Unknown function {}", functionName);
                 return null;
@@ -175,6 +181,9 @@ public class FunctionIndexProcessor {
         } else if (":name".equals(propertyName)) {
             ps = PropertyStates.createProperty("value",
                     PathUtils.getName(path), Type.STRING);
+        } else if (":path".equals(propertyName)) {
+            ps = PropertyStates.createProperty("value",
+                   path, Type.STRING);
         } else {
             ps = state.getProperty(propertyName);
         }
@@ -211,6 +220,9 @@ public class FunctionIndexProcessor {
         if (match("fn:name()") || match("name()")) {
             return "@:name";
         }
+        if (match("fn:path()") || match("path()")) {
+            return "@:path";
+        }
         if (match("fn:upper-case(") || match("upper(")) {
             return "upper*" + parse() + read(")");
         }
@@ -219,6 +231,9 @@ public class FunctionIndexProcessor {
         }
         if (match("fn:coalesce(") || match("coalesce(")) {
             return "coalesce*" + parse() + readCommaAndWhitespace() + parse() + read(")");
+        }
+        if (match("jcr:first(") || match("first(")) {
+            return "first*" + parse() + read(")");
         }
         if (match("fn:string-length(") || match("length(")) {
             return "length*" + parse() + read(")");
@@ -233,7 +248,11 @@ public class FunctionIndexProcessor {
             }
             prop = prop.substring(0, prop.lastIndexOf(']'));
             remaining = remaining.substring(prop.length() + 1);
-            return property(prop.replaceAll("]]", "]"));
+            String x = prop.replaceAll("]]", "]");
+            if ("jcr:path".equals(x)) {
+                return "@:path";
+            }
+            return property(x);
         } else {
             String prop = remaining;
             int paren = remaining.indexOf(')');
@@ -246,7 +265,11 @@ public class FunctionIndexProcessor {
                 prop = remaining.substring(0, end);
             }
             remaining = remaining.substring(prop.length());
-            return property(prop.replaceAll("@", ""));
+            String x = prop.replaceAll("@", "");
+            if ("jcr:path".equals(x)) {
+                return "@:path";
+            }
+            return property(x);
         }
     }
 

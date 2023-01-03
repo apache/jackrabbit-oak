@@ -19,29 +19,94 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import com.google.common.collect.FluentIterable;
 import com.mongodb.BasicDBObject;
+import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.bson.BsonDocument;
+import org.bson.BsonInt64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public class MongoDocumentTraverser {
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentTraverser.class);
     private final MongoDocumentStore mongoStore;
     private boolean disableReadOnlyCheck;
+
+    public static class TraversingRange {
+
+        private final LastModifiedRange lastModifiedRange;
+        /**
+         * could be null to indicate start from first document in the lastModifiedRange
+         */
+        private final String startAfterDocumentID;
+
+        public TraversingRange(LastModifiedRange lastModifiedRange, String startAfterDocumentID) {
+            this.lastModifiedRange = lastModifiedRange;
+            this.startAfterDocumentID = startAfterDocumentID;
+        }
+
+        public boolean coversAllDocuments() {
+            return lastModifiedRange.coversAllDocuments() && startAfterDocumentID == null;
+        }
+
+        public LastModifiedRange getLastModifiedRange() {
+            return lastModifiedRange;
+        }
+
+        private BsonDocument getFindQuery() {
+            String lastModifiedRangeQueryPart = "{$gte:" + lastModifiedRange.getLastModifiedFrom() + ",";
+            lastModifiedRangeQueryPart += "$lt:" + lastModifiedRange.getLastModifiedTo() + "}";
+            String idRangeQueryPart = "";
+            if (startAfterDocumentID != null) {
+                String condition = "{$gt:\"" + startAfterDocumentID + "\"}";
+                idRangeQueryPart = ", " + NodeDocument.ID + ":" + condition;
+            }
+            return BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + lastModifiedRangeQueryPart
+                    + idRangeQueryPart  + "}");
+        }
+
+        public String getStartAfterDocumentID() {
+            return startAfterDocumentID;
+        }
+
+        @Override
+        public String toString() {
+            return "Range: " + lastModifiedRange.toString() + ", startAfterDocument: " + startAfterDocumentID;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TraversingRange that = (TraversingRange) o;
+            return Objects.equals(lastModifiedRange, that.lastModifiedRange) && Objects.equals(startAfterDocumentID, that.startAfterDocumentID);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(lastModifiedRange, startAfterDocumentID);
+        }
+    }
 
     public MongoDocumentTraverser(MongoDocumentStore mongoStore) {
         this.mongoStore = mongoStore;
     }
 
-    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, Predicate<String> filter) {
+    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, TraversingRange traversingRange,
+                                                                     Predicate<String> filter) {
         if (!disableReadOnlyCheck) {
             checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
         }
@@ -49,9 +114,20 @@ public class MongoDocumentTraverser {
         MongoCollection<BasicDBObject> dbCollection = mongoStore.getDBCollection(collection);
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
-        Iterable<BasicDBObject> cursor = dbCollection
-                .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
-                .find();
+        Iterable<BasicDBObject> cursor;
+        if (traversingRange.coversAllDocuments()) {
+            cursor = dbCollection
+                    .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
+                    .find();
+        } else {
+            ReadPreference preference = mongoStore.getConfiguredReadPreference(collection);
+            LOG.info("Using read preference {}", preference.getName());
+            cursor = dbCollection
+                    .withReadPreference(preference)
+                    .find(traversingRange.getFindQuery()).sort(new BsonDocument()
+                            .append(NodeDocument.MODIFIED_IN_SECS, new BsonInt64(1))
+                            .append(NodeDocument.ID, new BsonInt64(1)));
+        }
 
         CloseableIterable<BasicDBObject> closeableCursor = CloseableIterable.wrap(cursor);
         cursor = closeableCursor;

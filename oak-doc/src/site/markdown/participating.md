@@ -26,8 +26,7 @@ Use the [OAK issue tracker](https://issues.apache.org/jira/browse/OAK) to submit
 or patches. To subscribe to issue notifications, send a message to [oak-issues@]
 (mailto:oak-issues-subscribe@jackrabbit.apache.org). 
 
-The latest Oak sources are available for checkout from [svn][1] and can also be browsed using the 
-[ViewVC][3] interface. You can also [fork them][2] on GitHub. To subscribe to commit notifications, 
+The latest Oak sources are available on [GitHub][1]. To subscribe to commit notifications, 
 send a message to [oak-commits@] (mailto:oak-commits-subscribe@jackrabbit.apache.org).
 
 For more details related to various mailing list have a look at http://jackrabbit.apache.org/mailing-lists.html
@@ -41,6 +40,4 @@ evaluated for its potential impact, risk and possible mitigation. It is the resp
 committer to asses these and ask for advise or reviewing on oak-dev@ if uncertain. Whether using 
 RTC or CTR is up to the committer.
  
-[1]: https://svn.apache.org/repos/asf/jackrabbit/oak/trunk
-[2]: https://github.com/apache/jackrabbit-oak
-[3]: https://github.com/apache/jackrabbit-oak/tree/trunk/
+[1]: https://github.com/apache/jackrabbit-oak

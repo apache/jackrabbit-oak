@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsMBean
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore
 import org.apache.jackrabbit.oak.spi.blob.BlobStore
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore
@@ -70,6 +71,9 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         ])
 
         DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
+        // OAK-9668: H2 2.0.206 has a limit of 1MB for BINARY VARYING
+        AbstractBlobStore blobStore = getServiceWithWait(BlobStore.class)
+        blobStore.setBlockSize(1024 * 1024)
 
         //3. Check that DS contains tables from both RDBBlobStore and RDBDocumentStore
         assert getExistingTables(ds).containsAll(['NODES', 'DATASTORE_META'])

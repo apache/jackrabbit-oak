@@ -46,6 +46,8 @@ public interface DocumentStoreStatsMBean {
 
     long getJournalReadCount();
 
+    long getNodesPrefetchCount();
+
     CompositeData getFindCachedNodesHistory();
 
     CompositeData getFindSplitNodesHistory();
@@ -75,4 +77,6 @@ public interface DocumentStoreStatsMBean {
     CompositeData getUpdateNodesFailureHistory();
 
     CompositeData getRemoveNodesHistory();
+
+    CompositeData getPrefetchNodesHistory();
 }

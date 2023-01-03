@@ -34,6 +34,7 @@ public final class EmptyPrincipalProvider implements PrincipalProvider {
 
     private EmptyPrincipalProvider() {}
 
+    @Nullable
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
         return null;

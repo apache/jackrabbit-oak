@@ -26,6 +26,8 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.core.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.api.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -57,12 +59,12 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     }
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return USERPATH;
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @Nullable String getImportBehavior() {
         return null;
     }
 

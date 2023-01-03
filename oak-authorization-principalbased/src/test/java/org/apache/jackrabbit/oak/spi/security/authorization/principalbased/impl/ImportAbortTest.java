@@ -22,14 +22,12 @@ import org.junit.Test;
 
 import javax.jcr.Node;
 import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlPolicy;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_PRINCIPAL_POLICY;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_PRINCIPAL_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_PRINCIPAL_POLICY;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ImportAbortTest extends ImportBaseTest {
 

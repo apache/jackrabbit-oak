@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import javax.jcr.Node;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -31,12 +33,12 @@ import static org.junit.Assert.assertFalse;
 public class UserImportCacheTest extends AbstractImportTest {
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return USERPATH;
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @Nullable String getImportBehavior() {
         return null;
     }
 

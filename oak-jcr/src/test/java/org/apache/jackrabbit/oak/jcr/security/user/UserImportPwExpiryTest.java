@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
@@ -42,17 +43,16 @@ import static org.junit.Assert.assertTrue;
 public class UserImportPwExpiryTest extends AbstractImportTest {
 
     @Override
-    protected String getTargetPath() {
+    protected @NotNull String getTargetPath() {
         return USERPATH;
     }
 
     @Override
-    protected String getImportBehavior() {
+    protected @Nullable String getImportBehavior() {
         return null;
     }
 
-    @Nullable
-    protected ConfigurationParameters getConfigurationParameters() {
+    protected @NotNull ConfigurationParameters getConfigurationParameters() {
         HashMap<String, Object> userParams = new HashMap<String, Object>() {{
             put(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
         }};

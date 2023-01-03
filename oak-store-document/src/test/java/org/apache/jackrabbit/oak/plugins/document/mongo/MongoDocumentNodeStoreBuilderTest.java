@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class MongoDocumentNodeStoreBuilderTest {
@@ -33,5 +34,23 @@ public class MongoDocumentNodeStoreBuilderTest {
     public void clientSessionDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertFalse(builder.isClientSessionDisabled());
+    }
+
+    @Test
+    public void throttlingDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.isThrottlingEnabled());
+    }
+
+    @Test
+    public void throttlingFeatureToggleDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getDocStoreThrottlingFeature());
+    }
+
+    @Test
+    public void collectionCompressionDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getCollectionCompressionType());
     }
 }

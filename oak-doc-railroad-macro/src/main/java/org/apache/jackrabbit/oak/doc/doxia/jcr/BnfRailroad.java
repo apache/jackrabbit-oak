@@ -33,7 +33,7 @@ public class BnfRailroad implements BnfVisitor {
 
     private static final boolean RAILROAD_DOTS = true;
 
-    private static final Map<String, String> XPATH_KEYWORD_TO_ESCAPE = new HashMap();
+    private static final Map<String, String> XPATH_KEYWORD_TO_ESCAPE = new HashMap<>();
     static {
         XPATH_KEYWORD_TO_ESCAPE.put("|", "@PIPE@");
         XPATH_KEYWORD_TO_ESCAPE.put("element", "@ELEMENT@");
@@ -41,6 +41,7 @@ public class BnfRailroad implements BnfVisitor {
         XPATH_KEYWORD_TO_ESCAPE.put("jcr:contains", "@CONTAINS@");
         XPATH_KEYWORD_TO_ESCAPE.put("jcr:like", "@LIKE@");
         XPATH_KEYWORD_TO_ESCAPE.put("jcr:score", "@SCORE@");
+        XPATH_KEYWORD_TO_ESCAPE.put("jcr:first", "@FIRST@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:not", "@FN_NOT@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:string-length", "@FN_STRING_LENGTH@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:name", "@FN_NAME@");
@@ -48,6 +49,7 @@ public class BnfRailroad implements BnfVisitor {
         XPATH_KEYWORD_TO_ESCAPE.put("fn:lower-case", "@FN_LOWER_CASE@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:upper-case", "@FN_UPPER_CASE@");
         XPATH_KEYWORD_TO_ESCAPE.put("fn:coalesce", "@FN_COALESCE@");
+        XPATH_KEYWORD_TO_ESCAPE.put("fn:path", "@FN_PATH@");
         XPATH_KEYWORD_TO_ESCAPE.put("rep:excerpt", "@EXCERPT@");
         XPATH_KEYWORD_TO_ESCAPE.put("rep:native", "@NATIVE@");
         XPATH_KEYWORD_TO_ESCAPE.put("rep:similar", "@SIMILAR@");
@@ -68,6 +70,8 @@ public class BnfRailroad implements BnfVisitor {
         XPATH_KEYWORD_TO_ESCAPE.put("order by", "@ORDER_BY@");
         XPATH_KEYWORD_TO_ESCAPE.put("option", "@OPTION@");
         XPATH_KEYWORD_TO_ESCAPE.put("traversal", "@TRAVERSAL@");
+        XPATH_KEYWORD_TO_ESCAPE.put("offset", "@OFFSET@");
+        XPATH_KEYWORD_TO_ESCAPE.put("limit", "@LIMIT@");
         XPATH_KEYWORD_TO_ESCAPE.put("ok", "@OK@");
         XPATH_KEYWORD_TO_ESCAPE.put("warn", "@WARN@");
         XPATH_KEYWORD_TO_ESCAPE.put("fail", "@FAIL@");
@@ -238,5 +242,17 @@ public class BnfRailroad implements BnfVisitor {
         buff.append("</td><td class=\"le\"></td></tr></table>");
         html = buff.toString();
     }
+    
+    @Override
+    public void visitRuleOptional(ArrayList<Rule> list) {
+        for (Rule r : list) {
+            visitRuleOptional(r);
+        }
+    }
+
+    @Override
+    public void visitRuleExtension(Rule rule, boolean compatibility) {
+        // not used
+    }    
 
 }

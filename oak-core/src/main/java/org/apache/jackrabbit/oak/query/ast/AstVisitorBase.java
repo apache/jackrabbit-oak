@@ -139,6 +139,14 @@ public abstract class AstVisitorBase implements AstVisitor {
     }
 
     /**
+     * Calls accept on the dynamic operand in the first node.
+     */
+    @Override
+    public boolean visit(FirstImpl node) {
+        return node.getOperand().accept(this);
+    }
+
+    /**
      * Calls accept on the constraint in the NOT node.
      */
     @Override

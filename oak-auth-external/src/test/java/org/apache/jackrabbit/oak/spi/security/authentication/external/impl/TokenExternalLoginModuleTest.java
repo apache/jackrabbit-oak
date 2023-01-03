@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +42,6 @@ import static org.junit.Assert.assertTrue;
 public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
 
     private CredentialsSupport credentialsSupport;
-    private Registration registration;
     private TokenConfigurationImpl tc;
 
     @Before
@@ -77,7 +75,7 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
                         new AppConfigurationEntry(
                                 TokenLoginModule.class.getName(),
                                 AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                Collections.<String, Object>emptyMap()),
+                                Collections.emptyMap()),
 
                         new AppConfigurationEntry(
                                 ExternalLoginModule.class.getName(),
@@ -95,8 +93,7 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
 
         String expectedUserId = credentialsSupport.getUserId(creds);
 
-        ContentSession cs = login(creds);
-        try {
+        try (ContentSession cs = login(creds)) {
             assertEquals(expectedUserId, cs.getAuthInfo().getUserID());
 
             Map<String, ?> attributes = credentialsSupport.getAttributes(creds);
@@ -109,8 +106,6 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
             Tree tokenParent = root.getTree(user.getPath()).getChild(".tokens");
             assertTrue(tokenParent.exists());
             assertEquals(1, tokenParent.getChildrenCount(100));
-        } finally {
-            cs.close();
         }
     }
 

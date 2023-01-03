@@ -18,20 +18,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValues;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValues;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 public class ElasticIndexDefinition extends IndexDefinition {
 
@@ -61,6 +63,9 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String QUERY_FETCH_SIZES = "queryFetchSizes";
     public static final Long[] QUERY_FETCH_SIZES_DEFAULT = new Long[]{100L, 1000L};
 
+    public static final String TRACK_TOTAL_HITS = "trackTotalHits";
+    public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
+
     /**
      * Hidden property for storing a seed value to be used as suffix in remote index name.
      */
@@ -79,7 +84,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * Boolean property indicating if in-built analyzer should preserve original term
      */
-    private static final String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
+    public static final String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
+
+    public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
+    public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
+
+    public static final String ELASTIKNN = "elastiknn";
 
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
     private static final boolean SIMILARITY_TAGS_ENABLED_DEFAULT = true;
@@ -97,17 +107,19 @@ public class ElasticIndexDefinition extends IndexDefinition {
         isAnalyzable = type -> Arrays.binarySearch(NOT_ANALYZED_TYPES, type) < 0;
     }
 
+    private final String indexPrefix;
+    private final String indexAlias;
     public final int bulkActions;
     public final long bulkSizeBytes;
     public final long bulkFlushIntervalMs;
     public final int bulkRetries;
     public final long bulkRetriesBackoff;
-    private final String remoteAlias;
     private final boolean similarityTagsEnabled;
     private final float similarityTagsBoost;
     public final int numberOfShards;
     public final int numberOfReplicas;
     public final int[] queryFetchSizes;
+    public final Integer trackTotalHits;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<PropertyDefinition> dynamicBoostProperties;
@@ -115,7 +127,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
-        this.remoteAlias = ElasticIndexNameHelper.getIndexAlias(indexPrefix != null ? indexPrefix : "", getIndexPath());
+        this.indexPrefix = indexPrefix;
+        this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath());
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
@@ -127,12 +140,20 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.similarityTagsBoost = getOptionalValue(defn, SIMILARITY_TAGS_BOOST, SIMILARITY_TAGS_BOOST_DEFAULT);
         this.queryFetchSizes = Arrays.stream(getOptionalValues(defn, QUERY_FETCH_SIZES, Type.LONGS, Long.class, QUERY_FETCH_SIZES_DEFAULT))
                 .mapToInt(Long::intValue).toArray();
+        this.trackTotalHits = getOptionalValue(defn, TRACK_TOTAL_HITS, TRACK_TOTAL_HITS_DEFAULT);
 
         this.propertiesByName = getDefinedRules()
                 .stream()
-                .flatMap(rule -> StreamSupport.stream(rule.getProperties().spliterator(), false))
+                .flatMap(rule -> Stream.concat(StreamSupport.stream(rule.getProperties().spliterator(), false),
+                        rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
-                .collect(Collectors.groupingBy(pd -> pd.name));
+                .collect(Collectors.groupingBy(pd -> {
+                    if (pd.function != null) {
+                        return pd.function;
+                    } else {
+                        return pd.name;
+                    }
+                }));
 
         this.dynamicBoostProperties = getDefinedRules()
                 .stream()
@@ -146,13 +167,17 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .collect(Collectors.toList());
     }
 
+    public String getIndexPrefix() {
+        return indexPrefix;
+    }
+
     /**
-     * Returns the index alias on the Elasticsearch cluster. This alias should be used for any index related operations
-     * instead of accessing the index directly.
+     * Returns the index alias on the Elasticsearch cluster. This alias should be used for any query related operations.
+     * The actual index name is used only when a reindex is in progress.
      * @return the Elasticsearch index alias
      */
-    public String getRemoteIndexAlias() {
-        return remoteAlias;
+    public String getIndexAlias() {
+        return indexAlias;
     }
 
     public Map<String, List<PropertyDefinition>> getPropertiesByName() {
@@ -213,9 +238,19 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * Returns {@code true} if original terms need to be preserved at indexing analysis phase
      */
-    public boolean indexOriginalTerms() {
+    public boolean analyzerConfigIndexOriginalTerms() {
         NodeState analyzersTree = definition.getChildNode(ANALYZERS);
         return getOptionalValue(analyzersTree, INDEX_ORIGINAL_TERM, false);
+    }
+
+    public boolean analyzerConfigSplitOnCaseChange() {
+        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
+        return getOptionalValue(analyzersTree, SPLIT_ON_CASE_CHANGE, false);
+    }
+
+    public boolean analyzerConfigSplitOnNumerics() {
+        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
+        return getOptionalValue(analyzersTree, SPLIT_ON_NUMERICS, false);
     }
 
     @Override
@@ -231,7 +266,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         private final String indexPrefix;
 
-        public Builder(String indexPrefix) {
+        public Builder(@NotNull String indexPrefix) {
             this.indexPrefix = indexPrefix;
         }
 
