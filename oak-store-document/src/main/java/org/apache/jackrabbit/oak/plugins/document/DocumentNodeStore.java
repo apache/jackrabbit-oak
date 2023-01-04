@@ -345,6 +345,11 @@ public final class DocumentNodeStore
     private Thread backgroundUpdateThread;
 
     /**
+     * Background thread performing purging of unmerged branch commits & collision markers
+     */
+    private Thread backgroundPurgeThread;
+
+    /**
      * Monitor object to synchronize background writes.
      */
     private final Object backgroundWriteMonitor = new Object();
@@ -729,6 +734,10 @@ public final class DocumentNodeStore
                 new BackgroundReadOperation(this, isDisposed),
                 "DocumentNodeStore background read thread " + threadNamePostfix);
         backgroundReadThread.setDaemon(true);
+        backgroundPurgeThread = new Thread(
+                new BackgroundPurgeOperation(this, isDisposed),
+                "DocumentNodeStore background purge thread " + threadNamePostfix);
+        backgroundPurgeThread.setDaemon(true);
         backgroundUpdateThread = new Thread(
                 new BackgroundUpdateOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
@@ -811,6 +820,7 @@ public final class DocumentNodeStore
 
             backgroundUpdateThread.start();
             backgroundSweepThread.start();
+            backgroundPurgeThread.start();
 
             if (sweep2Lock >= 0) {
                 // sweep2 is necessary - so start a sweep2 background task
@@ -857,7 +867,8 @@ public final class DocumentNodeStore
         Utils.joinQuietly(backgroundReadThread,
                 backgroundUpdateThread,
                 backgroundSweepThread,
-                backgroundSweep2Thread);
+                backgroundSweep2Thread,
+                backgroundPurgeThread);
 
         DocumentStoreException ex = null;
 
@@ -2931,6 +2942,10 @@ public final class DocumentNodeStore
         return num;
     }
 
+    private void purgeUnmergedBranchCommitAndCollisionMarkers(final ClusterNodeInfoDocument cluster) {
+        branches.purgeUnmergedBranchCommitAndCollisionMarkers(store, cluster.getClusterId(), this.purgeUncommittedRevisions);
+    }
+
     private int forceBackgroundSweep(Revision startRev, String reason) throws DocumentStoreException {
         NodeDocumentSweeper sweeper = new NodeDocumentSweeper(this, false);
         LOG.info("Starting document sweep. Head: {}, starting at {} (reason: {})",
@@ -3701,6 +3716,24 @@ public final class DocumentNodeStore
                 delay = (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
             }
             return Suppliers.ofInstance(delay);
+        }
+    }
+
+    /**
+     * Background unmerged branch commits & collision marker operation.
+     */
+    private static class BackgroundPurgeOperation extends NodeStoreTask {
+
+        BackgroundPurgeOperation(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
+            // run every 60 secs
+            super(nodeStore, isDisposed, Suppliers.ofInstance(60000));
+        }
+
+        @Override
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
+            ClusterNodeInfoDocument.all(nodeStore.nonLeaseCheckingStore)
+                    .stream().filter(cluster -> !cluster.isActive())
+                    .forEach(nodeStore::purgeUnmergedBranchCommitAndCollisionMarkers);
         }
     }
 

@@ -330,7 +330,7 @@ public class NodeDocumentTest {
         nodeDocument.data.put("_bc", localRevisionMap);
         nodeDocument.put(ID, "_id");
 
-        final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(revisionContext, 50);
+        final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(revisionContext.getClusterId(), 50);
         verify(store, times(6)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
 
@@ -353,7 +353,7 @@ public class NodeDocumentTest {
         nodeDocument.put(COLLISIONS, collisions);
         nodeDocument.put(ID, "_id");
 
-        int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(revisionContext, 50);
+        int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(revisionContext.getClusterId(), 50);
         verify(store, times(3)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
     }

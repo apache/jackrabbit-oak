@@ -72,15 +72,28 @@ class UnmergedBranches {
         if (!initialized.compareAndSet(false, true)) {
             throw new IllegalStateException("already initialized");
         }
+        purgeUnmergedBranchCommitAndCollisionMarkers(store, context.getClusterId(), batchSize);
+    }
+
+    /**
+     * purge un-merged branch commits and collision markers for
+     * <code>clusterId</code>.
+     *
+     * @param store the document store.
+     * @param clusterId the clusterId of document store.
+     * @param batchSize the batch size to purge uncommitted revisions & collisions
+     */
+    void purgeUnmergedBranchCommitAndCollisionMarkers(final DocumentStore store, final int clusterId, final int batchSize) {
+
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT));
         if (doc == null) {
             return;
         }
-        int purgeCount = doc.purgeUncommittedRevisions(context, batchSize);
+        int purgeCount = doc.purgeUncommittedRevisions(clusterId, batchSize);
         if (purgeCount > 0) {
             log.info("Purged [{}] uncommitted branch revision entries", purgeCount);
         }
-        purgeCount = doc.purgeCollisionMarkers(context, batchSize);
+        purgeCount = doc.purgeCollisionMarkers(clusterId, batchSize);
         if (purgeCount > 0) {
             log.info("Purged [{}] collision markers", purgeCount);
         }
