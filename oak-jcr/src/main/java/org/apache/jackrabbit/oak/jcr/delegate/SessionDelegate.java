@@ -82,14 +82,17 @@ public class SessionDelegate {
     // the bitmask used for trace level logging
     // we use a bitmask instead of a counter to avoid the slow modulo operation:
     // https://stackoverflow.com/questions/27977834/why-is-modulus-operator-slow
-    // we use "if ((counter & LOG_TRACE_BIT_MASK) == 0) log(...)"
+    // so we use "if ((counter & LOG_TRACE_BIT_MASK) == 0) log(...)"
     // instead of the slower "if ((counter % LOG_TRACE) == 0) log(...)"
-    private static final String LOG_TRACE_BIT_MASK_NAME = "org.apache.jackrabbit.oak.jcr.operations.bitMask";
+    // that means the values need to be some power of two, minus one
     // log every 128th call by default
-    private static long LOG_TRACE_BIT_MASK = Long.getLong(LOG_TRACE_BIT_MASK_NAME, 128 - 1);
-    private static final String LOG_TRACE_STACK_BIT_MASK_NAME = "org.apache.jackrabbit.oak.jcr.operations.stack.bitMask";
+    private static long LOG_TRACE_BIT_MASK = Long.getLong(
+            "org.apache.jackrabbit.oak.jcr.operations.bitMask",
+            128 - 1);
     // log a stack trace every ~1 million calls by default
-    private static long LOG_TRACE_STACK_BIT_MASK = Long.getLong(LOG_TRACE_BIT_MASK_NAME, 1024 * 1024 - 1);
+    private static long LOG_TRACE_STACK_BIT_MASK = Long.getLong(
+            "org.apache.jackrabbit.oak.jcr.operations.stack.bitMask",
+            1024 * 1024 - 1);
     // the counter used for logging
     private static AtomicLong LOG_COUNTER = new AtomicLong();
 
@@ -706,9 +709,6 @@ public class SessionDelegate {
             Logger log = ops.isUpdate() ? writeOperationLogger : readOperationLogger;
             long logId = LOG_COUNTER.incrementAndGet();
             if ((logId & LOG_TRACE_BIT_MASK) == 0) {
-                // update, to allow changes at runtime
-                LOG_TRACE_BIT_MASK = Long.getLong(LOG_TRACE_BIT_MASK_NAME, LOG_TRACE_BIT_MASK);
-                LOG_TRACE_STACK_BIT_MASK = Long.getLong(LOG_TRACE_BIT_MASK_NAME, LOG_TRACE_STACK_BIT_MASK);
                 if ((logId & LOG_TRACE_STACK_BIT_MASK) == 0) {
                     Exception e = new Exception("count: " + LOG_COUNTER);
                     log.trace("[{}] {}", session, ops, e);
