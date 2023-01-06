@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.PATH;
@@ -125,6 +126,10 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
             @Override
             public String perform() {
                 return item.getName();
+            }
+            @Override
+            public String toString() {
+                return format("getName [%s]", dlg.getPath());
             }
         });
         // special case name of root node
