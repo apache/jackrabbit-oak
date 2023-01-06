@@ -86,15 +86,15 @@ public class SessionDelegate {
     // instead of the slower "if ((counter % LOG_TRACE) == 0) log(...)"
     // that means the values need to be some power of two, minus one
     // log every 128th call by default
-    private static long LOG_TRACE_BIT_MASK = Long.getLong(
+    private static final long LOG_TRACE_BIT_MASK = Long.getLong(
             "org.apache.jackrabbit.oak.jcr.operations.bitMask",
-            128 - 1);
+            128L - 1);
     // log a stack trace every ~1 million calls by default
-    private static long LOG_TRACE_STACK_BIT_MASK = Long.getLong(
+    private static final long LOG_TRACE_STACK_BIT_MASK = Long.getLong(
             "org.apache.jackrabbit.oak.jcr.operations.stack.bitMask",
-            1024 * 1024 - 1);
+            1024L * 1024 - 1);
     // the counter used for logging
-    private static AtomicLong LOG_COUNTER = new AtomicLong();
+    private static final AtomicLong LOG_COUNTER = new AtomicLong();
 
     private final ContentSession contentSession;
     private final SecurityProvider securityProvider;
