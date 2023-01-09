@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
@@ -86,13 +87,13 @@ public class SessionDelegate {
     // instead of the slower "if ((counter % LOG_TRACE) == 0) log(...)"
     // that means the values need to be some power of two, minus one
     // log every 128th call by default
-    private static final long LOG_TRACE_BIT_MASK = Long.getLong(
+    private static final long LOG_TRACE_BIT_MASK = SystemPropertySupplier.create(
             "org.apache.jackrabbit.oak.jcr.operations.bitMask",
-            128L - 1);
+            128L - 1).loggingTo(log).get();
     // log a stack trace every ~1 million calls by default
-    private static final long LOG_TRACE_STACK_BIT_MASK = Long.getLong(
+    private static final long LOG_TRACE_STACK_BIT_MASK = SystemPropertySupplier.create(
             "org.apache.jackrabbit.oak.jcr.operations.stack.bitMask",
-            1024L * 1024 - 1);
+            1024L * 1024 - 1).loggingTo(log).get();
     // the counter used for logging
     private static final AtomicLong LOG_COUNTER = new AtomicLong();
 
