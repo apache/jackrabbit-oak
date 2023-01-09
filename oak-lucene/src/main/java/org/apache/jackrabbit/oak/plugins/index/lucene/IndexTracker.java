@@ -65,10 +65,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  */
 public class IndexTracker {
 
-    // auto-refresh every hour
+    // auto-refresh
+    // the default is to not refresh (refresh every 100 years)
+    // to refresh every hour, set it to 3600000
+    // we don't use Long.MAX_VALUE to avoid (now + AUTO_REFRESH_MILLIS) to become negative
     private static final long AUTO_REFRESH_MILLIS = Long.getLong(
             "oak.indexTracker.autoRefresh",
-            60 * 60 * 1000);
+            100L * 365 * 24 * 60 * 60 * 1000);
 
     /** Logger instance. */
     private static final Logger log = LoggerFactory.getLogger(IndexTracker.class);
