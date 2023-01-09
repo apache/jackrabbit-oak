@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
@@ -77,6 +79,23 @@ public class SessionDelegate {
     static final Logger auditLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.audit");
     static final Logger readOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.reads");
     static final Logger writeOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.writes");
+
+    // the bitmask used for trace level logging
+    // we use a bitmask instead of a counter to avoid the slow modulo operation:
+    // https://stackoverflow.com/questions/27977834/why-is-modulus-operator-slow
+    // so we use "if ((counter & LOG_TRACE_BIT_MASK) == 0) log(...)"
+    // instead of the slower "if ((counter % LOG_TRACE) == 0) log(...)"
+    // that means the values need to be some power of two, minus one
+    // log every 128th call by default
+    private static final long LOG_TRACE_BIT_MASK = SystemPropertySupplier.create(
+            "org.apache.jackrabbit.oak.jcr.operations.bitMask",
+            128L - 1).loggingTo(log).get();
+    // log a stack trace every ~1 million calls by default
+    private static final long LOG_TRACE_STACK_BIT_MASK = SystemPropertySupplier.create(
+            "org.apache.jackrabbit.oak.jcr.operations.stack.bitMask",
+            1024L * 1024 - 1).loggingTo(log).get();
+    // the counter used for logging
+    private static final AtomicLong LOG_COUNTER = new AtomicLong();
 
     private final ContentSession contentSession;
     private final SecurityProvider securityProvider;
@@ -689,8 +708,15 @@ public class SessionDelegate {
                 || writeOperationLogger.isTraceEnabled()
                 || auditLogger.isDebugEnabled()) {
             Logger log = ops.isUpdate() ? writeOperationLogger : readOperationLogger;
-            log.trace("[{}] {}", session, ops);
-
+            long logId = LOG_COUNTER.incrementAndGet();
+            if ((logId & LOG_TRACE_BIT_MASK) == 0) {
+                if ((logId & LOG_TRACE_STACK_BIT_MASK) == 0) {
+                    Exception e = new Exception("count: " + LOG_COUNTER);
+                    log.trace("[{}] {}", session, ops, e);
+                } else {
+                    log.trace("[{}] {}", session, ops);
+                }
+            }
             //For a logout operation the auth info is not accessible
             if (!ops.isLogout() && !ops.isRefresh() && !ops.isSave() && ops.isUpdate()) {
                 auditLogger.debug("[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
