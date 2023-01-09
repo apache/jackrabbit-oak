@@ -571,9 +571,12 @@ public final class NodeDocument extends Document {
      *
      * @param clusterId the clusterId.
      * @param batchSize the batch size to purge uncommitted revisions
+     * @param olderThanLastWrittenRootRevPredicate @{@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      * @return count of the revision entries purged
      */
-    int purgeUncommittedRevisions(final int clusterId, int batchSize) {
+
+    int purgeUncommittedRevisions(final int clusterId, final int batchSize,
+                                  final java.util.function.Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
         // only look at revisions in this document.
         // uncommitted revisions are not split off
         Map<Revision, String> localRevisions = getLocalRevisions();
@@ -582,7 +585,7 @@ public final class NodeDocument extends Document {
         for (Map.Entry<Revision, String> commit : localRevisions.entrySet()) {
             if (!Utils.isCommitted(commit.getValue())) {
                 Revision r = commit.getKey();
-                if (r.getClusterId() == clusterId) {
+                if (r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                     uniqueRevisions.add(r);
                     removeRevision(op, r);
                 }
@@ -601,7 +604,7 @@ public final class NodeDocument extends Document {
 
         for (Revision r : getLocalBranchCommits()) {
             String commitValue = localRevisions.get(r);
-            if (!Utils.isCommitted(commitValue) && r.getClusterId() == clusterId) {
+            if (!Utils.isCommitted(commitValue) && r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                 uniqueRevisions.add(r);
                 removeBranchCommit(op, r);
             }
@@ -623,15 +626,17 @@ public final class NodeDocument extends Document {
      *
      * @param clusterId the cluster Id.
      * @param batchSize the batch size to purge collision markers
+     * @param olderThanLastWrittenRootRevPredicate @{@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      * @return the number of removed collision markers.
      */
-    int purgeCollisionMarkers(final int clusterId, final int batchSize) {
+    int purgeCollisionMarkers(final int clusterId, final int batchSize,
+                              final java.util.function.Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
         Map<Revision, String> valueMap = getLocalMap(COLLISIONS);
         UpdateOp op = new UpdateOp(requireNonNull(getId()), false);
         int purgeCount = 0;
         for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
             Revision r = commit.getKey();
-            if (r.getClusterId() == clusterId) {
+            if (r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                 purgeCount++;
                 removeCollision(op, r);
             }

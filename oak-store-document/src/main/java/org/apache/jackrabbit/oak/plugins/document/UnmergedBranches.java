@@ -22,6 +22,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchReference;
@@ -72,7 +73,8 @@ class UnmergedBranches {
         if (!initialized.compareAndSet(false, true)) {
             throw new IllegalStateException("already initialized");
         }
-        purgeUnmergedBranchCommitAndCollisionMarkers(store, context.getClusterId(), batchSize);
+        // since this is called only to bootup, no need to check for lastWrittenRootRev
+        purgeUnmergedBranchCommitAndCollisionMarkers(store, context.getClusterId(), batchSize, c -> true);
     }
 
     /**
@@ -82,18 +84,20 @@ class UnmergedBranches {
      * @param store the document store.
      * @param clusterId the clusterId of document store.
      * @param batchSize the batch size to purge uncommitted revisions & collisions
+     * @param olderThanLastWrittenRootRevPredicate @{@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      */
-    void purgeUnmergedBranchCommitAndCollisionMarkers(final DocumentStore store, final int clusterId, final int batchSize) {
+    void purgeUnmergedBranchCommitAndCollisionMarkers(final DocumentStore store, final int clusterId, final int batchSize,
+                                                      final Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
 
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT));
         if (doc == null) {
             return;
         }
-        int purgeCount = doc.purgeUncommittedRevisions(clusterId, batchSize);
+        int purgeCount = doc.purgeUncommittedRevisions(clusterId, batchSize, olderThanLastWrittenRootRevPredicate);
         if (purgeCount > 0) {
             log.info("Purged [{}] uncommitted branch revision entries", purgeCount);
         }
-        purgeCount = doc.purgeCollisionMarkers(clusterId, batchSize);
+        purgeCount = doc.purgeCollisionMarkers(clusterId, batchSize, olderThanLastWrittenRootRevPredicate);
         if (purgeCount > 0) {
             log.info("Purged [{}] collision markers", purgeCount);
         }

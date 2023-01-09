@@ -23,6 +23,7 @@ import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -32,6 +33,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
+import static org.apache.jackrabbit.oak.plugins.document.Revision.fromString;
+import static org.apache.jackrabbit.oak.plugins.document.Revision.getTimestampDifference;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
@@ -67,6 +70,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
@@ -2943,7 +2947,19 @@ public final class DocumentNodeStore
     }
 
     private void purgeUnmergedBranchCommitAndCollisionMarkers(final ClusterNodeInfoDocument cluster) {
-        branches.purgeUnmergedBranchCommitAndCollisionMarkers(store, cluster.getClusterId(), this.purgeUncommittedRevisions);
+        branches.purgeUnmergedBranchCommitAndCollisionMarkers(store, cluster.getClusterId(), purgeUncommittedRevisions,
+                getOlderThanLastWrittenRootRevPredicate(cluster));
+    }
+
+    /**
+     * Method to create @{@link java.util.function.Predicate} to filter revisions
+     *
+     * @return @{@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
+     */
+    @NotNull
+    @VisibleForTesting
+    static java.util.function.Predicate<Revision> getOlderThanLastWrittenRootRevPredicate(final ClusterNodeInfoDocument cluster) {
+        return r -> nonNull(cluster.getLastWrittenRootRev()) && getTimestampDifference(r, fromString(cluster.getLastWrittenRootRev())) < 0;
     }
 
     private int forceBackgroundSweep(Revision startRev, String reason) throws DocumentStoreException {
@@ -3731,9 +3747,15 @@ public final class DocumentNodeStore
 
         @Override
         protected void execute(@NotNull DocumentNodeStore nodeStore) {
+            final Clock clock = nodeStore.getClock();
+            long now = clock.getTime();
+            LOG.info("BackgroundPurgeOperation.execute: started purging for non active clusterIds");
             ClusterNodeInfoDocument.all(nodeStore.nonLeaseCheckingStore)
                     .stream().filter(cluster -> !cluster.isActive())
+                    .filter(cluster -> nonNull(cluster.getLastWrittenRootRev()))
                     .forEach(nodeStore::purgeUnmergedBranchCommitAndCollisionMarkers);
+            LOG.info("BackgroundPurgeOperation.execute: done purging for non active clusterIds, time taken {}ms",
+                    clock.getTime() - now);
         }
     }
 

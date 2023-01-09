@@ -53,6 +53,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.getOlderThanLastWrittenRootRevPredicate;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
@@ -320,9 +321,6 @@ public class NodeDocumentTest {
             localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
 
-        RevisionContext revisionContext = mock(RevisionContext.class);
-        when(revisionContext.getClusterId()).thenReturn(1);
-
         DocumentStore store = mock(DocumentStore.class);
 
         NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
@@ -330,8 +328,58 @@ public class NodeDocumentTest {
         nodeDocument.data.put("_bc", localRevisionMap);
         nodeDocument.put(ID, "_id");
 
-        final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(revisionContext.getClusterId(), 50);
+        final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 50, c -> true);
         verify(store, times(6)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        assertEquals(140, uncommittedRevisions);
+
+    }
+
+    @Test
+    public void testPurgeUncommittedRevisionsWithLaterRevisions() {
+
+        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        for (int i = 0; i < 140; i++) {
+            localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
+        }
+
+        String lastWrittenRootRev = new Revision(currentTimeMillis() - 2_000_000, 1, 1).toString();
+        DocumentStore store = mock(DocumentStore.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
+
+        NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
+        nodeDocument.data.put(REVISIONS, localRevisionMap);
+        nodeDocument.data.put("_bc", localRevisionMap);
+        nodeDocument.put(ID, "_id");
+
+        final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 50,
+                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+        verify(store, times(0)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        assertEquals(0, uncommittedRevisions);
+
+    }
+
+    @Test
+    public void testPurgeUncommittedRevisionsWithOlderRevisions() {
+
+        final SortedMap<Revision, String> localRevisionMap = newTreeMap(REVERSE);
+        for (int i = 0; i < 140; i++) {
+            localRevisionMap.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
+        }
+
+        String lastWrittenRootRev = new Revision(currentTimeMillis() + 2_000_000, 1, 1).toString();
+        DocumentStore store = mock(DocumentStore.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
+
+        NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
+        nodeDocument.data.put(REVISIONS, localRevisionMap);
+        nodeDocument.data.put("_bc", localRevisionMap);
+        nodeDocument.put(ID, "_id");
+
+        final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 40,
+                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+        verify(store, times(8)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
 
     }
@@ -344,17 +392,60 @@ public class NodeDocumentTest {
             collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
         }
 
-        RevisionContext revisionContext = mock(RevisionContext.class);
-        when(revisionContext.getClusterId()).thenReturn(1);
-
         DocumentStore store = mock(DocumentStore.class);
 
         NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
         nodeDocument.put(COLLISIONS, collisions);
         nodeDocument.put(ID, "_id");
 
-        int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(revisionContext.getClusterId(), 50);
+        int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(1, 50, c -> true);
         verify(store, times(3)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        assertEquals(140, uncommittedRevisions);
+    }
+
+    @Test
+    public void testPurgeCollisionMarkersWithLaterRevisions() {
+
+        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        for (int i = 0; i < 140; i++) {
+            collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
+        }
+
+        String lastWrittenRootRev = new Revision(currentTimeMillis() - 2_000_000, 1, 1).toString();
+        DocumentStore store = mock(DocumentStore.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
+
+        NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
+        nodeDocument.put(COLLISIONS, collisions);
+        nodeDocument.put(ID, "_id");
+
+        int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(1, 50,
+                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+        verify(store, times(0)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
+        assertEquals(0, uncommittedRevisions);
+    }
+
+    @Test
+    public void testPurgeCollisionMarkersWithOlderRevisions() {
+
+        final SortedMap<Revision, String> collisions = newTreeMap(REVERSE);
+        for (int i = 0; i < 140; i++) {
+            collisions.putIfAbsent(new Revision(currentTimeMillis(), i, 1), "nc");
+        }
+
+        String lastWrittenRootRev = new Revision(currentTimeMillis() + 2_000_000, 1, 1).toString();
+        DocumentStore store = mock(DocumentStore.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
+
+        NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
+        nodeDocument.put(COLLISIONS, collisions);
+        nodeDocument.put(ID, "_id");
+
+        int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(1, 30,
+                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+        verify(store, times(5)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
     }
 
