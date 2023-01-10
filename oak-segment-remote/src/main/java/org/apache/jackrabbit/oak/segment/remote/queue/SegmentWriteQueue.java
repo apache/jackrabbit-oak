@@ -216,7 +216,7 @@ public class SegmentWriteQueue implements Closeable {
         try {
             executor.shutdown();
             if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
-                throw new IOException("The write wasn't able to shut down clearly");
+                throw new IOException("The write wasn't able to shut down cleanly");
             }
         } catch (InterruptedException e) {
             throw new IOException(e);
