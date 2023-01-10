@@ -264,6 +264,11 @@ public final class DocumentNodeStore
 
     private int changeSetMaxItems = SystemPropertySupplier.create("oak.document.changeSet.maxItems", 50).loggingTo(LOG).get();
 
+    /**
+     * Batch size to purge uncommitted revisions & collisions on boot-up. The default value is 50.
+     */
+    private int purgeUncommittedRevisions = SystemPropertySupplier.create("oak.document.purgeUncommittedRevisions.batchSize", 50).loggingTo(LOG).get();
+
     private int changeSetMaxDepth = SystemPropertySupplier.create("oak.document.changeSet.maxDepth", 9).loggingTo(LOG).get();
 
     /**
@@ -711,7 +716,7 @@ public final class DocumentNodeStore
 
         checkpoints = new Checkpoints(this);
         // initialize branchCommits
-        branches.init(store, this);
+        branches.init(store, this, purgeUncommittedRevisions);
 
         dispatcher = builder.isPrefetchExternalChanges() ?
                 new PrefetchDispatcher(getRoot(), executor) :

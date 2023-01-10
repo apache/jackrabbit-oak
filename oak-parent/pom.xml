@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>18</version>
+    <version>29</version>
     <relativePath />
   </parent>
 
@@ -34,6 +34,8 @@
   <packaging>pom</packaging>
 
   <properties>
+    <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
+    <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
@@ -44,7 +46,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.7</jackrabbit.version>
+    <jackrabbit.version>2.20.8</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -88,10 +90,6 @@
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
   </properties>
 
-  <prerequisites>
-    <maven>3.2.1</maven>
-  </prerequisites>
-
   <issueManagement>
     <system>Jira</system>
     <url>http://issues.apache.org/jira/browse/OAK</url>
@@ -123,9 +121,25 @@
           </configuration>
         </plugin>
         <plugin>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <configuration>
+            <doclint>none</doclint>
+            <detectJavaApiLink>false</detectJavaApiLink>
+            <aggregate>true</aggregate>
+            <links>
+              <link>https://s.apache.org/jcr-2.0-javadoc/</link>
+              <link>https://jackrabbit.apache.org/api/2.20/</link>
+              <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
+              <link>http://www.slf4j.org/apidocs/</link>
+            </links>
+            <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
+      	    <excludePackageNames>org.apache.jackrabbit.oak.plugins.index.*</excludePackageNames>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>5.1.1</version>
+          <version>5.1.8</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <dependencies>
@@ -242,35 +256,31 @@
           </executions>
         </plugin>
         <plugin>
+          <groupId>org.codehaus.gmavenplus</groupId>
+          <artifactId>gmavenplus-plugin</artifactId>
+          <version>1.13.1</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.8.2</version>
           <configuration>
             <skip>${skip.deployment}</skip>
           </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
-          <version>2.5.3</version>
           <configuration>
             <autoVersionSubmodules>true</autoVersionSubmodules>
           </configuration>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <version>3.2.0</version>
-        </plugin>
-        <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.13</version>
           <configuration>
             <consoleOutput>true</consoleOutput>
           </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <trimStackTrace>false</trimStackTrace>
@@ -294,7 +304,6 @@
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <trimStackTrace>false</trimStackTrace>
@@ -315,7 +324,7 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.1.0</version>
+            <version>3.1.2</version>
           </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
@@ -326,7 +335,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.7</version>
+          <version>2.14.1</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -371,7 +380,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.12.0</version>
           <configuration>
             <generateReports>false</generateReports>
             <skip>true</skip>
@@ -380,34 +388,9 @@
           </configuration>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-scm-publish-plugin</artifactId>
-          <version>3.0.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.0.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>3.2.1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-clean-plugin</artifactId>
-            <version>3.1.0</version>
-        </plugin>
-        <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
           <version>0.8.8</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.1.2</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -470,7 +453,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.2.0</version>
         <executions>
           <execution>
             <goals>
@@ -833,7 +815,7 @@
 
    <!--  - - - - - - - - - - - - - - - - - - - will run all the required tests before a release -->
    <profile>
-      <id>release</id>
+      <id>release</id> <!-- needs to be activated manually, not used automatically with m-release-p goals -->
       <properties>
          <nsfixtures />
          <rdb.jdbc-url>jdbc:derby:./target/derby-release-test;create=true</rdb.jdbc-url>
@@ -953,7 +935,6 @@
          <plugins>
             <plugin>
               <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.7.0</version>
               <configuration>
                 <compilerId>javac-with-errorprone</compilerId>
                 <forceJavacCompilerUse>true</forceJavacCompilerUse>

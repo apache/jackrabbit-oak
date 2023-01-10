@@ -118,6 +118,11 @@
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
     </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.9.4</version>
+    </dependency>
 
     <!-- Required for Felix WebConsole -->
     <dependency>
