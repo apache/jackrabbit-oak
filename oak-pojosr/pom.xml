@@ -31,7 +31,7 @@
   <name>Oak PojoSR</name>
 
   <properties>
-    <groovy.version>2.4.12</groovy.version>
+    <groovy.version>2.4.21</groovy.version>
   </properties>
 
   <build>
