@@ -53,7 +53,6 @@ import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.getOlderThanLastWrittenRootRevPredicate;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
@@ -73,6 +72,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -344,7 +344,7 @@ public class NodeDocumentTest {
 
         String lastWrittenRootRev = new Revision(currentTimeMillis() - 2_000_000, 1, 1).toString();
         DocumentStore store = mock(DocumentStore.class);
-        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = spy(ClusterNodeInfoDocument.class);
         when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
 
         NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
@@ -353,7 +353,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 50,
-                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(0)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(0, uncommittedRevisions);
 
@@ -369,7 +369,7 @@ public class NodeDocumentTest {
 
         String lastWrittenRootRev = new Revision(currentTimeMillis() + 2_000_000, 1, 1).toString();
         DocumentStore store = mock(DocumentStore.class);
-        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = spy(ClusterNodeInfoDocument.class);
         when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
 
         NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
@@ -378,7 +378,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 40,
-                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(8)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
 
@@ -413,7 +413,7 @@ public class NodeDocumentTest {
 
         String lastWrittenRootRev = new Revision(currentTimeMillis() - 2_000_000, 1, 1).toString();
         DocumentStore store = mock(DocumentStore.class);
-        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = spy(ClusterNodeInfoDocument.class);
         when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
 
         NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
@@ -421,7 +421,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(1, 50,
-                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(0)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(0, uncommittedRevisions);
     }
@@ -436,7 +436,7 @@ public class NodeDocumentTest {
 
         String lastWrittenRootRev = new Revision(currentTimeMillis() + 2_000_000, 1, 1).toString();
         DocumentStore store = mock(DocumentStore.class);
-        ClusterNodeInfoDocument clusterNodeInfoDocument = mock(ClusterNodeInfoDocument.class);
+        ClusterNodeInfoDocument clusterNodeInfoDocument = spy(ClusterNodeInfoDocument.class);
         when(clusterNodeInfoDocument.getLastWrittenRootRev()).thenReturn(lastWrittenRootRev);
 
         NodeDocument nodeDocument = new NodeDocument(store, currentTimeMillis());
@@ -444,7 +444,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(1, 30,
-                getOlderThanLastWrittenRootRevPredicate(clusterNodeInfoDocument));
+                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(5)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
     }

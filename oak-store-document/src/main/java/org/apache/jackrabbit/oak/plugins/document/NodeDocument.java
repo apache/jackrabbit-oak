@@ -571,7 +571,7 @@ public final class NodeDocument extends Document {
      *
      * @param clusterId the clusterId.
      * @param batchSize the batch size to purge uncommitted revisions
-     * @param olderThanLastWrittenRootRevPredicate @{@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
+     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      * @return count of the revision entries purged
      */
 
@@ -626,7 +626,7 @@ public final class NodeDocument extends Document {
      *
      * @param clusterId the cluster Id.
      * @param batchSize the batch size to purge collision markers
-     * @param olderThanLastWrittenRootRevPredicate @{@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
+     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      * @return the number of removed collision markers.
      */
     int purgeCollisionMarkers(final int clusterId, final int batchSize,

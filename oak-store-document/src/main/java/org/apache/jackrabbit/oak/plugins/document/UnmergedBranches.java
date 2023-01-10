@@ -84,7 +84,7 @@ class UnmergedBranches {
      * @param store the document store.
      * @param clusterId the clusterId of document store.
      * @param batchSize the batch size to purge uncommitted revisions & collisions
-     * @param olderThanLastWrittenRootRevPredicate @{@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
+     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      */
     void purgeUnmergedBranchCommitAndCollisionMarkers(final DocumentStore store, final int clusterId, final int batchSize,
                                                       final Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
