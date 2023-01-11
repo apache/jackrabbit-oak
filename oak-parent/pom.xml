@@ -68,6 +68,7 @@
     <jackson.version>2.13.4</jackson.version>
     <testcontainers.version>1.17.5</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
+    <groovy.version>2.4.21</groovy.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     

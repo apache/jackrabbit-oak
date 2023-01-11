@@ -32,7 +32,6 @@
 
     <properties>
         <jetty.version>8.2.0.v20160908</jetty.version>
-        <groovy.version>2.4.17</groovy.version>
         <!--
         Size History:
         105 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
