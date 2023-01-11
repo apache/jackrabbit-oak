@@ -1096,7 +1096,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 failingSince = latestErrorTime;
                 latestErrorWarn = System.currentTimeMillis();
                 if (isConcurrentUpdateException) {
-                    log.info("[{}]", name,  e.getMessage());
+                    log.info("[{}] The index update failed : {}", name,  e.getMessage());
                 } else {
                     log.warn("[{}] The index update failed", name, e);
                 }
@@ -1106,7 +1106,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 if (warn) {
                     latestErrorWarn = System.currentTimeMillis();
                     if (isConcurrentUpdateException) {
-                        log.info("[{}]", name,  e.getMessage());
+                        log.info("[{}] The index update is still failing : {}", name,  e.getMessage());
                     } else {
                         log.warn("[{}] The index update is still failing", name, e);
                     }
