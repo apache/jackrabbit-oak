@@ -68,7 +68,9 @@
     <jackson.version>2.13.4</jackson.version>
     <testcontainers.version>1.17.5</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
+    <groovy.version>2.4.21</groovy.version>
     <java.version>11</java.version>
+
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
