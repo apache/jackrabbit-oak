@@ -34,6 +34,7 @@
     <jetty.version>9.4.46.v20220331</jetty.version>
     <!--
       Size History:
+      +  6 MB Groovy 2.5 (OAK-10066)
       + 56 MB MongoDB Java driver 3.12.7 (OAK-9357)
       + 55 MB Add support for segment persistent cache (OAK-7744)
       + 54 MB AWS support for segment-tar (OAK-8827)
@@ -46,7 +47,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>58720256</max.jar.size>
+    <max.jar.size>59320256</max.jar.size>
   </properties>
 
   <build>
