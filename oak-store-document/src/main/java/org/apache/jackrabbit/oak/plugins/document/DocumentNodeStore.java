@@ -23,6 +23,7 @@ import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -343,6 +344,11 @@ public final class DocumentNodeStore
      * Background thread performing updates of _lastRev entries.
      */
     private Thread backgroundUpdateThread;
+
+    /**
+     * Background thread performing purging of unmerged branch commits & collision markers
+     */
+    private Thread backgroundPurgeThread;
 
     /**
      * Monitor object to synchronize background writes.
@@ -729,6 +735,10 @@ public final class DocumentNodeStore
                 new BackgroundReadOperation(this, isDisposed),
                 "DocumentNodeStore background read thread " + threadNamePostfix);
         backgroundReadThread.setDaemon(true);
+        backgroundPurgeThread = new Thread(
+                new BackgroundPurgeOperation(this, isDisposed),
+                "DocumentNodeStore background purge thread " + threadNamePostfix);
+        backgroundPurgeThread.setDaemon(true);
         backgroundUpdateThread = new Thread(
                 new BackgroundUpdateOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
@@ -811,6 +821,7 @@ public final class DocumentNodeStore
 
             backgroundUpdateThread.start();
             backgroundSweepThread.start();
+            backgroundPurgeThread.start();
 
             if (sweep2Lock >= 0) {
                 // sweep2 is necessary - so start a sweep2 background task
@@ -857,7 +868,8 @@ public final class DocumentNodeStore
         Utils.joinQuietly(backgroundReadThread,
                 backgroundUpdateThread,
                 backgroundSweepThread,
-                backgroundSweep2Thread);
+                backgroundSweep2Thread,
+                backgroundPurgeThread);
 
         DocumentStoreException ex = null;
 
@@ -2931,6 +2943,11 @@ public final class DocumentNodeStore
         return num;
     }
 
+    private void purgeUnmergedBranchCommitAndCollisionMarkers(final ClusterNodeInfoDocument cluster) {
+        branches.purgeUnmergedBranchCommitAndCollisionMarkers(store, cluster.getClusterId(), purgeUncommittedRevisions,
+                cluster.isOlderThanLastWrittenRootRevPredicate());
+    }
+
     private int forceBackgroundSweep(Revision startRev, String reason) throws DocumentStoreException {
         NodeDocumentSweeper sweeper = new NodeDocumentSweeper(this, false);
         LOG.info("Starting document sweep. Head: {}, starting at {} (reason: {})",
@@ -3701,6 +3718,35 @@ public final class DocumentNodeStore
                 delay = (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
             }
             return Suppliers.ofInstance(delay);
+        }
+    }
+
+    /**
+     * Background unmerged branch commits & collision marker operation.
+     */
+    private static class BackgroundPurgeOperation extends NodeStoreTask {
+
+        BackgroundPurgeOperation(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
+            // run every 60 secs
+            super(nodeStore, isDisposed, Suppliers.ofInstance(60000));
+        }
+
+        @Override
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
+            final Clock clock = nodeStore.getClock();
+            final long now = clock.getTime();
+            final boolean debug = LOG.isDebugEnabled();
+            if (debug) {
+                LOG.debug("BackgroundPurgeOperation.execute: started purging for non active clusterIds");
+            }
+            ClusterNodeInfoDocument.all(nodeStore.nonLeaseCheckingStore)
+                    .stream().filter(cluster -> !cluster.isActive())
+                    .filter(cluster -> nonNull(cluster.getLastWrittenRootRev()))
+                    .forEach(nodeStore::purgeUnmergedBranchCommitAndCollisionMarkers);
+            if (debug) {
+                LOG.debug("BackgroundPurgeOperation.execute: done purging for non active clusterIds, time taken {}ms",
+                        clock.getTime() - now);
+            }
         }
     }
 
