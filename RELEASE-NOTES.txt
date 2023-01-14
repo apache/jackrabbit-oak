@@ -13,7 +13,7 @@ releases. This release is considered stable and targeted for
 production use.
 
 While Oak 1.46.0 compiles and tests successfully on Java 17, Javadocs
-generation fails on Java 17 (but works as expected on Java 8).
+generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
