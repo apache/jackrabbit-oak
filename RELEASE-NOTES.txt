@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.13
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.14
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.13 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.14 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,19 +15,70 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.13
----------------------
+Changes in Oak 1.22.14
+----------------------
+
+Technical task
+
+    [OAK-8861] - oak-core-spi: bump up logging for deprecated Guava based APIs to WARN
+    [OAK-8862] - oak-commons: bump up logging for deprecated Guava based APIs to WARN
+    [OAK-9269] - RDB*Store: update postgresql jdbc driver reference to 42.2.18
+    [OAK-9574] - Update Mockito dependency to 3.12.4
+    [OAK-9577] - Update Tomcat dependency to 8.5.71
+    [OAK-9579] - standalone: upgrade spring fwk to 2.5.5
+    [OAK-9915] - remove jackrabbit-data dependency from oak-core
+    [OAK-9916] - remove jackrabbit-data dependency from oak-store-document
+    [OAK-9994] - avoid leaking out transitive dependencies to Guava
+    [OAK-9995] - oak-blob-cloud-azure: unneeded Guava import declaration
+    [OAK-9996] - oak-search-mt: unneeded Guava import declaration
+    [OAK-10015] - Update Mockito dependency to 4.9.0
+    [OAK-10018] - standalone: upgrade spring fwk to 2.5.14
+    [OAK-10024] - improve diagnostics for addNode for invalid relative paths
+    [OAK-10038] - CompositeStoreIT: add workaround for potential NPE in test
 
 Bug
 
-    [OAK-9535] - Support recovery of large branch merge
-    [OAK-9891] - Removal (purge) of version of a node does not remove associated labels
+    [OAK-9487] - WarnLogStringPropertySizeTest may fail with multiple fixtures
+    [OAK-9563] - LastRevSingleNodeRecoveryTest fails in setUp()
+    [OAK-9636] - FileWriter not closed in LocalManifestFile
+    [OAK-9785] - Tar SegmentStore can be corrupted during compaction
+    [OAK-9809] - oak-run server: update Jetty because of outdated servlet API version
+    [OAK-9908] - Recovery may revert committed changes
+    [OAK-9911] - Resource leak in ChunkedBlobStream
+
+Improvement
+
+    [OAK-8874] - deprecate use of Guava Predicate class in oak-core API
+    [OAK-9010] - Standardize handling of system properties
+    [OAK-9017] - use SystemPropertySupplier in RDBConnectionHandler
+    [OAK-9018] - use SystemPropertySupplier in RDBVersionGCSupport
+    [OAK-9019] - use SystemPropertySupplier in RDBMissingLastRevSeeker
+    [OAK-9020] - use SystemPropertySupplier in RDBDocumentStoreDB
+    [OAK-9021] - use SystemPropertySupplier in RDBDataSourceFactory
+    [OAK-9022] - use SystemPropertySupplier in ClusterNodeInfo
+    [OAK-9023] - use SystemPropertySupplier in RDBDocumentStore
+    [OAK-9025] - use SystemPropertySupplier in DocumentNodeStoreService
+    [OAK-9031] - use SystemPropertySupplier in DocumentNodeStore
+    [OAK-9356] - DocumentNodeStore: in dispose(), improve lease update diagnostics
+    [OAK-9420] - slightly misleading debug message in JournalEntry
+    [OAK-10055] - Auto refreshing IndexTracker every hour causes online reindexing to fail
 
 Task
 
-    [OAK-9720] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.5
-    [OAK-9828] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.6
-    [OAK-9925] - update MongoDB Java Driver dependency to 3.12.11
+    [OAK-9028] - upgrade to mockito-core 3.3.3
+    [OAK-9329] - upgrade to mockito-core 3.7.7
+    [OAK-9479] - oak-search-elastic: upgrade jackson-databind to 2.10.5.1
+    [OAK-9581] - oak-examples/standalone: update spring boot dependency to 1.5.22 and cleanup POM
+    [OAK-9926] - Upgrade h2db dependency to 2.1.214
+    [OAK-9947] - upgrade jackson-databind to 2.13.4
+    [OAK-9950] - Upgrade tika to 1.26
+    [OAK-9990] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.7
+    [OAK-10016] - avoid use of deprecated Mockito methods (removed in 4.*)
+    [OAK-10019] - Update slf4j dependency to 1.7.36
+    [OAK-10021] - upgrade jackson-databind to 2.13.4.2
+    [OAK-10057] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.8
+    [OAK-10059] - webapp: avoid use of Jackrabbit's transitive commons-collections dependency
+
 
 
 In addition to the above-mentioned changes, this release contains
