@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,7 +38,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 
@@ -125,5 +134,27 @@ class DynamicGroupUtil {
             log.warn("IDP mismatch between dynamic group '{}' and member '{}'.", groupIdpName, idpName);
             return false;
         }
+    }
+    
+    static Set<Principal> getInheritedPrincipals(@NotNull Principal dynamicGroupPrincipal, @NotNull UserManager userManager) {
+        try {
+            Authorizable gr = userManager.getAuthorizable(dynamicGroupPrincipal);
+            if (gr != null && gr.isGroup()) {
+                Iterator<Group> inherited = gr.memberOf();
+                if (inherited.hasNext()) {
+                    Spliterator<Group> spliterator = Spliterators.spliteratorUnknownSize(inherited, 0);
+                    return StreamSupport.stream(spliterator, false).map(group -> {
+                        try {
+                            return group.getPrincipal();
+                        } catch (RepositoryException repositoryException) {
+                            return null;
+                        }
+                    }).filter(Objects::nonNull).collect(Collectors.toSet());
+                }
+            }
+        } catch (RepositoryException e) {
+            log.error("Failed to retrieve inherited group principals", e);
+        }
+        return Collections.emptySet();
     }
 }
