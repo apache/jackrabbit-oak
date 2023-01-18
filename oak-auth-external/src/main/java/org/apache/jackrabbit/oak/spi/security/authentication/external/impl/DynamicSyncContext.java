@@ -104,6 +104,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
             ExternalIdentityRef ref = identity.getExternalId();
             if (!isSameIDP(ref)) {
                 // create result in accordance with sync(String) where status is FOREIGN
+                warnForeign(identity);
                 return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, true, -1), SyncResult.Status.FOREIGN);
             }
             return sync((ExternalGroup) identity, ref);
@@ -286,7 +287,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
             // there exists a group with the same id or principal name but it doesn't belong to the same IDP
             // in consistency with DefaultSyncContext don't sync this very membership into the repository
             // and log a warning about the collision instead.
-            log.warn("Existing group with id '{}' and principal name '{}' is not defined by IDP '{}'.", authorizable.getID(), authorizable.getPrincipal().getName(), idp.getName());
+            warnForeignExisting(authorizable, true);
             return true;
         } else if (!principalName.equals(authorizable.getPrincipal().getName())) {
             // there exists a group with matching ID but principal-mismatch, don't sync this very membership into the 

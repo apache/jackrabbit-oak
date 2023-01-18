@@ -32,9 +32,9 @@
 
   <properties>
     <jetty.version>9.4.46.v20220331</jetty.version>
-    <groovy.version>2.4.17</groovy.version>
     <!--
       Size History:
+      + 60 MB Groovy 2.5 (OAK-10066)
       + 56 MB MongoDB Java driver 3.12.7 (OAK-9357)
       + 55 MB Add support for segment persistent cache (OAK-7744)
       + 54 MB AWS support for segment-tar (OAK-8827)
@@ -47,7 +47,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>58720256</max.jar.size>
+    <max.jar.size>62914560</max.jar.size>
   </properties>
 
   <build>
@@ -261,7 +261,19 @@
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
+      <artifactId>groovy</artifactId>
+      <version>${groovy.version}</version>
+      <classifier>indy</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-json</artifactId>
+      <version>${groovy.version}</version>
+      <classifier>indy</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-groovysh</artifactId>
       <version>${groovy.version}</version>
       <classifier>indy</classifier>
     </dependency>

@@ -415,10 +415,10 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         assertTrue(groups.contains(automembershipGroup2));
 
         groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
-        assertEquals(3, groups.size()); // all duplicates must be properly filtered
+        assertEquals(2, groups.size()); // all duplicates must be properly filtered and everyone must be omitted
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
-        assertTrue(groups.contains(everyone));
+        assertFalse(groups.contains(everyone));
     }
 
     @Test

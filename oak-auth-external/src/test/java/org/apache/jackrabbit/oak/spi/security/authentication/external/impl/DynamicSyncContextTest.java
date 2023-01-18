@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
@@ -148,7 +147,8 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         tidp.addGroup(new TestIdentityProvider.TestGroup("ttt", idpName));
         tidp.addGroup(new TestIdentityProvider.TestGroup("tt", idpName).withGroups("ttt"));
         tidp.addGroup(new TestIdentityProvider.TestGroup("thirdGroup", idpName).withGroups("tt"));
-        tidp.addUser(new TestIdentityProvider.TestUser(PREVIOUS_SYNCED_ID, idpName).withGroups("thirdGroup"));
+        tidp.addGroup(new TestIdentityProvider.TestGroup("forthGroup", idpName));
+        tidp.addUser(new TestIdentityProvider.TestUser(PREVIOUS_SYNCED_ID, idpName).withGroups("thirdGroup", "forthGroup"));
 
         UserManager um = getUserManager(r);
         DefaultSyncContext ctx = new DefaultSyncContext(priorSyncConfig, idp, um, getValueFactory(r));

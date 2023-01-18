@@ -46,7 +46,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.7</jackrabbit.version>
+    <jackrabbit.version>2.20.8</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -68,6 +68,7 @@
     <jackson.version>2.13.4</jackson.version>
     <testcontainers.version>1.17.5</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
+    <groovy.version>2.5.20</groovy.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
