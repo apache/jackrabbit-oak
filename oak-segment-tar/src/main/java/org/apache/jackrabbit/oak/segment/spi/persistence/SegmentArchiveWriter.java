@@ -120,6 +120,14 @@ public interface SegmentArchiveWriter {
     void close() throws IOException;
 
     /**
+     * Close the archive unsafely, without flushing to persistent storage, potentially losing data. To be used only to cope with permanent 
+     * failure modes where attempting to flush would likely corrupt the archive. 
+     * <p>
+     * Implementations should close the archive without flushing pending writes to a persistent storage, leaving it in a valid state.
+     */
+    void unsafeClose() throws IOException;
+
+    /**
      * Check if the archive has been created (eg. something has been written).
      *
      * @return true if the archive has been created, false otherwise
@@ -140,4 +148,24 @@ public interface SegmentArchiveWriter {
      */
     @NotNull
     String getName();
+
+    /**
+     * Suspend all writes to the archive, keeping them in memory. To be used only to cope with temporary failure modes where attempting to 
+     * write to a temporary storage could corrupt the archive. 
+     */
+    default void suspendWrites() {
+    }
+
+    /**
+     * Resume all writes to the archive, in case they were previously suspended
+     */
+    default void resumeWrites() {
+    }
+
+    /**
+     * Whether writes are currently suspended.
+     */
+    default boolean isWritesSuspended() {
+        return false;
+    }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
+import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -70,4 +71,8 @@ public class CachingPersistence implements SegmentNodeStorePersistence {
         return delegate.lockRepository();
     }
 
+    @Override
+    public RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException {
+        return delegate.lockRepository(lockStatusChangedCallback);
+    }
 }

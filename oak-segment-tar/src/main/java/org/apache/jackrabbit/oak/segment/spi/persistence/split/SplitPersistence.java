@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
+import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -121,4 +122,8 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
         return rwPersistence.lockRepository();
     }
 
+    @Override
+    public RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException {
+        return rwPersistence.lockRepository(lockStatusChangedCallback);
+    }
 }

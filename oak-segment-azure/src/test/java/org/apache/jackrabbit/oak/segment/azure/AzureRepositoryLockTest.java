@@ -18,27 +18,39 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.google.common.collect.ImmutableList;
 import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.rmi.server.ExportException;
-import java.security.InvalidKeyException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeoutException;
-
-import static org.junit.Assert.fail;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.ACQUIRED;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.ACQUIRE_FAILED;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.LOST;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RELEASED;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RENEWAL;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RENEWAL_FAILED;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence.LockStatus.RENEWAL_SUCCEEDED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 
 public class AzureRepositoryLockTest {
 
@@ -57,22 +69,22 @@ public class AzureRepositoryLockTest {
     @Test
     public void testFailingLock() throws URISyntaxException, IOException, StorageException {
         CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
-        new AzureRepositoryLock(blob, () -> {}, 0).lock();
-        try {
-            new AzureRepositoryLock(blob, () -> {}, 0).lock();
-            fail("The second lock should fail.");
-        } catch (IOException e) {
-            // it's fine
-        }
+        AtomicReference<LockStatus> status = new AtomicReference<>();
+        new AzureRepositoryLock(blob, status::set, 0, 0).lock();
+        assertEquals(ACQUIRED, status.get());
+        assertThrows("The second lock should fail", IOException.class, () -> new AzureRepositoryLock(blob, status::set, 0, 0).lock());
+        assertEquals(ACQUIRE_FAILED, status.get());
     }
 
     @Test
     public void testWaitingLock() throws URISyntaxException, IOException, StorageException, InterruptedException {
         CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+        AtomicReference<LockStatus> status1 = new AtomicReference<>();
+        AtomicReference<LockStatus> status2 = new AtomicReference<>();
         Semaphore s = new Semaphore(0);
         new Thread(() -> {
             try {
-                RepositoryLock lock = new AzureRepositoryLock(blob, () -> {}, 0).lock();
+                RepositoryLock lock = new AzureRepositoryLock(blob, status1::set, 10, 10).lock();
                 s.release();
                 Thread.sleep(1000);
                 lock.unlock();
@@ -82,7 +94,10 @@ public class AzureRepositoryLockTest {
         }).start();
 
         s.acquire();
-        new AzureRepositoryLock(blob, () -> {}, 10).lock();
+        assertEquals(ACQUIRED, status1.get());
+        new AzureRepositoryLock(blob, status2::set, 10, 10).lock();
+        assertEquals(RELEASED, status1.get());
+        assertEquals(ACQUIRED, status2.get());
     }
 
     @Test
@@ -97,21 +112,52 @@ public class AzureRepositoryLockTest {
         Mockito.doThrow(storageException)
                 .doThrow(storageException)
                 .doCallRealMethod()
-                .when(blobMocked).renewLease(Mockito.any());
+                .when(blobMocked).renewLease(any(), any(), any());
 
-        new AzureRepositoryLock(blobMocked, () -> {}, 0).lock();
+        Queue<LockStatus> statusHistory = new ConcurrentLinkedDeque<>();
+        new AzureRepositoryLock(blobMocked, statusHistory::add, 0, 10, 15).lock();
 
         // wait till lease expires
-        Thread.sleep(70000);
+        Thread.sleep(16000);
+
+        assertEquals("Should fail to renew twice", 2, statusHistory.stream().limit(5).filter(s -> s == RENEWAL_FAILED).count());
+        assertTrue("Should succeed to renew after 2 failures",  statusHistory.stream().skip(5).anyMatch(s -> s == RENEWAL_SUCCEEDED));
 
         // reset the mock to default behaviour
-        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any());
+        Mockito.doCallRealMethod().when(blobMocked).renewLease(any(), any(), any());
 
-        try {
-            new AzureRepositoryLock(blobMocked, () -> {}, 0).lock();
-            fail("The second lock should fail.");
-        } catch (IOException e) {
-            // it's fine
-        }
+        assertThrows("The second lock should fail because the first has been renewed", IOException.class, () -> 
+            new AzureRepositoryLock(blobMocked, s -> {}, 0, 0).lock());
     }
+
+    @Test
+    public void testLeaseLost() throws URISyntaxException, StorageException, IOException, InterruptedException {
+        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+
+        CloudBlockBlob blobMocked = Mockito.spy(blob);
+
+        // instrument the mock to throw the exception when renewing the lease
+        StorageException storageException =
+            new StorageException(
+                StorageErrorCodeStrings.LEASE_ID_MISMATCH_WITH_LEASE_OPERATION,
+                "The lease ID specified did not match the lease ID for the blob.", null);
+        Mockito.doThrow(storageException)
+            .when(blobMocked).renewLease(any(), any(), any());
+
+        Queue<LockStatus> statusHistory = new ConcurrentLinkedDeque<>();
+        new AzureRepositoryLock(blobMocked, statusHistory::add, 0, 2, 15).lock();
+
+        // wait till lease expires
+        Thread.sleep(16000);
+
+        assertEquals("Lease should be lost", ImmutableList.of(ACQUIRED, RENEWAL, LOST), ImmutableList.copyOf(statusHistory));
+
+        // reset the mock to default behaviour
+        Mockito.doCallRealMethod().when(blobMocked).renewLease(any(), any(), any());
+
+        AtomicReference<LockStatus> status = new AtomicReference<>();
+        new AzureRepositoryLock(blobMocked, status::set, 0, 0).lock();
+        assertEquals("The second lock should succeed because the first has been lost", ACQUIRED, status.get());
+    }
+
 }

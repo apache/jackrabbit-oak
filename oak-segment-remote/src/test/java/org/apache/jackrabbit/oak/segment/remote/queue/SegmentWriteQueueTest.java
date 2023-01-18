@@ -42,6 +42,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -67,11 +68,10 @@ public class SegmentWriteQueueTest {
     }
 
     @Test
-    public void testThreadInterruptedWhileAddigToQueue() throws InterruptedException, NoSuchFieldException {
+    public void testThreadInterruptedWhileAddingToQueue() throws InterruptedException, NoSuchFieldException {
 
         Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
         Semaphore semaphore = new Semaphore(0);
-
 
         BlockingDeque<SegmentWriteAction> queue = Mockito.mock(BlockingDeque.class);
 
@@ -200,11 +200,11 @@ public class SegmentWriteQueueTest {
             addedAfterFlush.containsAll(expectedAddedAfterFlush));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testClose() throws IOException {
         queue = new SegmentWriteQueue((tarEntry, data, offset, size) -> {});
         queue.close();
-        queue.addToQueue(tarEntry(10), EMPTY_DATA, 0, 0);
+        assertThrows(IllegalStateException.class, () -> queue.addToQueue(tarEntry(10), EMPTY_DATA, 0, 0));
     }
 
     @Test
@@ -317,6 +317,11 @@ public class SegmentWriteQueueTest {
 
         assertTrue("Segment queue should be empty", flushFinished.get());
         assertEquals(3, added.size());
+    }
+
+    @Test
+    public void testSuspendWrites() {
+        
     }
 
     private static RemoteSegmentArchiveEntry tarEntry(long i) {

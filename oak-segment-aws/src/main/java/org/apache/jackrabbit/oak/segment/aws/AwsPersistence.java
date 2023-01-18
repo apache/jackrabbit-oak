@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.IOException;
 
+import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -80,6 +81,11 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AwsRepositoryLock(awsContext.dynamoDBClient, awsContext.getPath("repo.lock")).lock();
+        return lockRepository(s -> {});
+    }
+
+    @Override
+    public RepositoryLock lockRepository(Consumer<LockStatus> lockStatusChangedCallback) throws IOException {
+        return new AwsRepositoryLock(awsContext.dynamoDBClient, awsContext.getPath("repo.lock"), lockStatusChangedCallback).lock();
     }
 }

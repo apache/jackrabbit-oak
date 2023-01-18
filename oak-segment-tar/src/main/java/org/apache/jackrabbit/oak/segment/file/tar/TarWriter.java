@@ -151,6 +151,18 @@ class TarWriter implements Closeable {
         }
     }
 
+    public void suspendWrites() {
+        archive.suspendWrites();
+    }
+
+    public void resumeWrites() {
+        archive.resumeWrites();
+    }
+
+    public boolean isWritesSuspended() {
+        return archive.isWritesSuspended();
+    }
+
     void addBinaryReference(GCGeneration generation, UUID segmentId, String reference) {
         binaryReferences.addEntry(
             generation.getGeneration(),
@@ -219,6 +231,25 @@ class TarWriter implements Closeable {
             writeGraph();
 
             archive.close();
+        }
+    }
+
+    public void unsafeClose() throws IOException {
+        if (closed) {
+            return;
+        }
+        // Mark this writer as closed. We don't synchronize here to avoid deadlocks, because if this method is called, it means writes are 
+        // suspended, in which case the lock on `this` is still held in {@link #writeEntry}. 
+        checkState(archive.isWritesSuspended(), "Writes must be suspended before calling unsafeClose()");
+        closed = true;
+
+        // If nothing was written to this file, then we're already done.
+        if (!archive.isCreated()) {
+            return;
+        }
+
+        synchronized (closeMonitor) {
+            archive.unsafeClose();
         }
     }
 
@@ -326,5 +357,4 @@ class TarWriter implements Closeable {
     public String toString() {
         return getFileName();
     }
-
 }
