@@ -46,7 +46,6 @@ import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -318,7 +317,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         assertTrue(r.getTree(a.getPath()).hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         
         // verify membership
-        List<String> groupIds = toIds(a.memberOf());
+        List<String> groupIds = getIds(a.memberOf());
         if (membershipNestingDepth == 0) {
             assertFalse(groupIds.contains("localGroup"));
             assertFalse(local.isMember(a));
@@ -329,7 +328,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             
             for (String id : new String[] {groupId, groupId2}) {
                 Authorizable extGroup = um.getAuthorizable(id);
-                assertTrue(toIds(extGroup.declaredMemberOf()).contains("localGroup"));
+                assertTrue(getIds(extGroup.declaredMemberOf()).contains("localGroup"));
                 assertTrue(local.isMember(extGroup));
             }
         }
@@ -348,19 +347,5 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             principalNames = getPrincipalNames(pm.getGroupMembership(dynamicGroup.getPrincipal()));
             assertTrue(principalNames.contains(local.getPrincipal().getName()));
         }
-    }
-    
-    private @NotNull List<String> toIds(@NotNull Iterator<Group> groups) {
-        return ImmutableList.copyOf(Iterators.transform(groups, group -> {
-            try {
-                return group.getID();
-            } catch (RepositoryException repositoryException) {
-                throw new RuntimeException();
-            }
-        }));
-    }
-    
-    private @NotNull List<String> getPrincipalNames(@NotNull Iterator<Principal> groupPrincipals) {
-        return ImmutableList.copyOf(Iterators.transform(groupPrincipals, Principal::getName));
     }
 }
