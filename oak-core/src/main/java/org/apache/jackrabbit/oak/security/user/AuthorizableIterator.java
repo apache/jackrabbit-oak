@@ -44,6 +44,8 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     private final Iterator<Authorizable> authorizables;
     private final long size;
     private final Set<String> servedIds;
+    
+    private static AuthorizableIterator EMPTY = new AuthorizableIterator(Iterators.emptyIterator(), 0, false);
 
     @NotNull
     static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
@@ -67,6 +69,11 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
             }
         }
         return new AuthorizableIterator(Iterators.concat(it1, it2), size, filterDuplicates);
+    }
+    
+    @NotNull
+    static AuthorizableIterator empty() {
+        return EMPTY;
     }
 
     private AuthorizableIterator(Iterator<Authorizable> authorizables, long size, boolean filterDuplicates) {
