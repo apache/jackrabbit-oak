@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -141,6 +142,39 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         
         Set<String> expectedIds = ImmutableSet.of(AUTO_GROUPS, BASE_ID, EveryonePrincipal.NAME);
         assertExpectedIds(expectedIds, aGroup.declaredMemberOf(), aGroup.memberOf());
+    }
+
+    @Test
+    public void testAutomembershipGroups() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        sync(externalUser, SyncResult.Status.ADD);
+
+        Authorizable user = userManager.getAuthorizable(USER_ID);
+        Group aGroup = userManager.getAuthorizable("a", Group.class);
+
+        // verify group 'autoForGroups'
+        Set<String> expMemberIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", USER_ID);
+        assertExpectedIds(expMemberIds, autoForGroups.getDeclaredMembers(), autoForGroups.getMembers());
+        assertIsMember(autoForGroups, true, user, aGroup);
+        assertIsMember(autoForGroups, false, user, aGroup);
+        assertFalse(autoForGroups.isMember(base));
+    }
+
+    @Test
+    public void testAutomembershipUsers() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        sync(externalUser, SyncResult.Status.ADD);
+
+        Authorizable user = userManager.getAuthorizable(USER_ID);
+        Group aGroup = userManager.getAuthorizable("a", Group.class);
+
+        // verify group 'autoForUsers'
+        Set<String> expMemberIds = ImmutableSet.of(USER_ID);
+        assertExpectedIds(expMemberIds, autoForUsers.getDeclaredMembers(), autoForUsers.getMembers());
+        assertTrue(autoForUsers.isMember(user));
+
+        assertFalse(autoForUsers.isMember(aGroup));
+        assertFalse(autoForUsers.isMember(base));
     }
 
     private static void assertIsMember(@NotNull Group group, boolean declared, @NotNull Authorizable... members) {
