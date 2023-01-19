@@ -45,6 +45,8 @@ Improvement
     [OAK-10054] - Improved trace level logging of JCR method calls
     [OAK-10055] - Auto refreshing IndexTracker every hour causes online reindexing to fail
     [OAK-10061] - WARN when for an external group a local group with the same name is already present
+    [OAK-10071] - Consistently filter duplicate authorizables in iterators
+    [OAK-10074] - AutoMembershipProvider consistency with ExternalPrincipalProvider
 
 Task
 
@@ -61,6 +63,7 @@ Task
     [OAK-10062] - consolidate and update groovy versions to 2.4.21
     [OAK-10065] - avoid-use of groovy-all artefact
     [OAK-10066] - update groovy dependency to 2.5.20
+    [OAK-10073] - Additional tests combining dynamic groups and automembership
 
 
 In addition to the above-mentioned changes, this release contains all
