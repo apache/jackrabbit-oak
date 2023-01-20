@@ -241,6 +241,11 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         return file.getName();
     }
 
+    @Override
+    public boolean isRemote() {
+        return false;
+    }
+
     private static byte[] newEntryHeader(String name, int size) {
         byte[] header = new byte[BLOCK_SIZE];
 
