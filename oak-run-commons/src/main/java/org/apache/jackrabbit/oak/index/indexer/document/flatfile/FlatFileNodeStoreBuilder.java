@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -250,7 +249,10 @@ public class FlatFileNodeStoreBuilder {
         // Check system property defined path
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
         if (StringUtils.isNotBlank(sortedFilePath)) {
-            List<File> files = getFiles(sortedFilePath);
+            File sortedDir = new File(sortedFilePath);
+            log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
+                sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+            List<File> files = getFiles(sortedDir);
             if (files != null) {
                 return files;
             }
@@ -259,26 +261,22 @@ public class FlatFileNodeStoreBuilder {
         // Initialize the flat file store again
         
         createStoreDir();
-        org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy strategy = createSortStrategy(flatFileStoreDir);
+        SortStrategy strategy = createSortStrategy(flatFileStoreDir);
         File result = strategy.createSortedStoreFile();
         entryCount = strategy.getEntryCount();
         return Collections.singletonList(result);
     }
 
     @Nullable
-    private List<File> getFiles(String sortedFilePath) {
-        File sortedDir = new File(sortedFilePath);
+    private List<File> getFiles(File sortedDir) {
         if (sortedDir.exists() && sortedDir.canRead() && sortedDir.isDirectory()) {
-            log.info("Reading from provided sorted files directory [{}] (via system property '{}')",
-                sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
             File[] files = sortedDir.listFiles(
                 (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
             if (files != null && files.length != 0) {
                 return Arrays.asList(files);
             }
         } else {
-            String msg = String.format("Cannot read sorted files directory at [%s] configured via system property '%s'",
-                sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+            String msg = String.format("Cannot read sorted files directory at [%s]", sortedDir.getAbsolutePath());
             throw new IllegalArgumentException(msg);
         }
         return null;

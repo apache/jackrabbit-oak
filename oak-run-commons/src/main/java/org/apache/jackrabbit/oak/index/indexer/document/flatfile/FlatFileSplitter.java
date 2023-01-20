@@ -75,7 +75,7 @@ public class FlatFileSplitter {
     private boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
     
-    static Predicate IS_SPLIT = (Predicate<File>) path -> path.getParent().endsWith(SPLIT_DIR_NAME);
+    static Predicate<File> IS_SPLIT = path -> path.getParent().endsWith(SPLIT_DIR_NAME);
     
     public FlatFileSplitter(File flatFile, File workdir, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader,
             Set<IndexDefinition> indexDefinitions) {

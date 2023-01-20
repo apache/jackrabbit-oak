@@ -221,7 +221,7 @@ public class FlatFileNodeStoreBuilderTest {
             assertTrue(storeList.size() > 1);
         } else {
             assertEquals(dir, storeList.get(0).getFlatFileStorePath());
-            assertTrue(storeList.size() == 1);
+            assertEquals(1, storeList.size());
         }
     }
 
