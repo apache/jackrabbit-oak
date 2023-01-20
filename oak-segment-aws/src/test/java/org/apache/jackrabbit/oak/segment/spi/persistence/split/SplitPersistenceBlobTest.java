@@ -76,6 +76,8 @@ public class SplitPersistenceBlobTest {
 
     private SegmentNodeStorePersistence splitPersistence;
 
+    private String sharedPersistenceBlobId;
+
     @Before
     public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException {
         AmazonS3 s3 = s3Mock.createClient();
@@ -110,7 +112,7 @@ public class SplitPersistenceBlobTest {
             .build();
         base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
 
-        createLoad(base, baseFileStore).getContentIdentity();
+        sharedPersistenceBlobId = createLoad(base, baseFileStore).getContentIdentity();
         baseFileStore.flush();
 
         SegmentNodeStorePersistence localPersistence = new TarPersistence(folder.newFolder());
@@ -134,7 +136,7 @@ public class SplitPersistenceBlobTest {
         throws IOException, CommitFailedException {
         String blobId = createLoad(split, splitFileStore).getContentIdentity();
 
-        assertReferences(2, Sets.newHashSet(baseBlobId, blobId));
+        assertReferences(3, Sets.newHashSet(baseBlobId, sharedPersistenceBlobId, blobId));
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {
