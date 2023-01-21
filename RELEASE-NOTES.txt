@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.46.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.48.0
 
 Introduction
 ------------
@@ -7,162 +7,64 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.46.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.48.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.46.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.48.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 8).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.46.0
+Changes in Oak 1.48.0
 ---------------------
 
 Technical task
 
-    [OAK-9084] - Remove unnecessary (un)boxing in oak-store-spi
-    [OAK-9085] - Remove unnecessary (un)boxing in oak-webapp
-    [OAK-9901] - deploy oak docu
-    [OAK-9915] - remove jackrabbit-data dependency from oak-core
-    [OAK-9916] - remove jackrabbit-data dependency from oak-store-document
-    [OAK-9969] - Benchmark for OAK-9966
-    [OAK-9994] - avoid leaking out transitive dependencies to Guava
-    [OAK-9995] - oak-blob-cloud-azure: unneeded Guava import declaration
-    [OAK-9996] - oak-search-mt: unneeded Guava import declaration
-    [OAK-9999] - remove use of com.google.common.collect.Iterators.emptyIterator
-    [OAK-10015] - Update Mockito dependency to 4.9.0
-    [OAK-10018] - standalone: upgrade spring fwk to 2.5.14
-    [OAK-10024] - improve diagnostics for addNode for invalid relative paths
+    [OAK-10038] - CompositeStoreIT: add workaround for potential NPE in test
+    [OAK-10039] - CompositeTestSupport: improve diagnostics
 
 Bug
 
-    [OAK-9785] - Tar SegmentStore can be corrupted during compaction
-    [OAK-9826] - Flaky test: DataStoreBlobStoreStatsTest
-    [OAK-9839] - DefaultSyncConfig.enforceDynamicMembership is not reflected in OSGi configuration
-    [OAK-9840] - Race condition in MountInfoProviderService
-    [OAK-9843] - elastic: secure facet query fails when the hits does not include data from some faceted field
-    [OAK-9850] - ConcurrentPrefetchAndUpdateIT.cacheConsistency fails occasionally
-    [OAK-9853] - Generating site is broken
-    [OAK-9867] - AutoMembershipProvider.isMember must not ignore 'includeInherited' flag
-    [OAK-9871] - AutoMembershipPrincipals.getAutoMembership must resolved inherited groups
-    [OAK-9872] - Align oak-run segment-copy flat flag implementation with documentation
-    [OAK-9874] - Add a (failing and @Ignored) unit test to check that queries return same result with and without index.
-    [OAK-9879] - CacheLIRS statistics may return incorrect load count
-    [OAK-9891] - Removal (purge) of version of a node does not remove associated labels
-    [OAK-9902] - Configuration for ExternalUserValidator
-    [OAK-9908] - Recovery may revert committed changes
-    [OAK-9911] - Resource leak in ChunkedBlobStream
-    [OAK-9912] - elastic: Spellcheck query with no descendants returns incorrect number of results
-    [OAK-9927] - Building file store with azure caching persistence fails if another process is using azure persistence with the same azure directory
-    [OAK-9954] - Dynamic membership/group should spot conflicts with existing groups
-    [OAK-9967] - Lease update duration not displayed correctly if timed-out
-    [OAK-9978] - Test failure: PurgeOldIndexVersionTest. noDeleteIfInvalidIndexOperationVersion
-    [OAK-9981] - Add a option in purgecommand(oak-run) to skip purge operations on active base index
-    [OAK-9984] - FlatFileSplitterTest reliably failing
-    [OAK-9988] - MergeRunnerTest leaves temp files/folders behind
-    [OAK-10008] - Reduce heap requirement for test DocumentStoreIndexeIT#parallelReindexWithLZ4
-    [OAK-10010] - Test org.apache.jackrabbit.oak.plugins.document.RandomizedClusterTest.addRemoveSet is Flaky
-    [OAK-10027] - CacheWarmingTest does not clean up
+    [OAK-10022] - ReadOnlyFileStore#collectBlobReferences throws NullPointerException if azure blob with binary references is missing in the tar directory
+    [OAK-10033] - Conditions on dates use the wrong range
+    [OAK-10051] - oak-run and oak-upgrade JARs incomplete (META-INF/MANIFEST.MF is missing the Main-Class entry)
+    [OAK-10063] - AsyncIndexUpdate - Logger not printing complete message
+    [OAK-10067] - ExternalGroupPrincipalProvider does not resolve inherited groups that cross IDP boundaries
 
 New Feature
 
-    [OAK-9780] - Prefetch node states
-    [OAK-9851] - Provide support for throttling in mongo oak client based on oplog replication window
-    [OAK-9873] - Prefetch node states: composite node store support
-    [OAK-9888] - Support more flexible SplitPersistence setups via OSGi
-    [OAK-9893] - Prefetch for queries
-    [OAK-9909] - Provide Feature toggle for oplog window based throttling for Mongo Document Store
-    [OAK-9913] - Expose Metrics for Mongo DocumentStore throttling
-    [OAK-9914] - Starting Oak with Azure persistence in read-only mode while another Oak process is running will initiate repo recovery
-    [OAK-9918] - DocumentNodeStore consistency check
-    [OAK-9928] - Add benchmark for access of binary properties in Cloud DataStore
-
-Story
-
-    [OAK-9790] - Implement parallel indexing for speeding up oak run indexing command
+    [OAK-10056] - Provide support for Jakarta Region for AWS S3
 
 Improvement
 
-    [OAK-9670] - Log an WARN when a fulltext query cannot find an appropriate index
-    [OAK-9679] - Oak Segment AWS: Test failures on Apple Silicon for tests leveraging DynamoDBEmbedded
-    [OAK-9803] - Extend DynamicSyncHandler to allow for dynamic groups
-    [OAK-9834] - Improve documentation for repository representation of default access control
-    [OAK-9844] - Nullness annotations must not be used on primitive types
-    [OAK-9846] - o.a.j.oak.composite.ErrorHolder should include the name of the checker for each report
-    [OAK-9847] - Offline compaction cleanup failures for migrated AzureSegmentStores with missing graph files
-    [OAK-9848] - Bump and align testcontainers dependency to v1.17.3
-    [OAK-9855] - Enable for Lucene the tests common to Lucene and Elastic that are failing only with Elastic
-    [OAK-9862] - Some tests in oak-search are not cleaning up Elastic Search indexes after the test
-    [OAK-9865] - DefaultSyncContext: extract method to get external group from ExternalIdentityRef
-    [OAK-9866] - Add command line argument for append mode in oak-run segment-copy
-    [OAK-9868] - Introduce interface to extract tree from users
-    [OAK-9884] - Optimization: use Elastic prefix queries instead of wildcard queries for "like foo%" constraints
-    [OAK-9886] - Missing tests for like constraint in Elastic
-    [OAK-9892] - Improve query statement for ExternalGroupPrincipalProvider.findPrincipals
-    [OAK-9896] - Running unit-tests in IntelliJ dos not work
-    [OAK-9907] - Allow comparing indexes in the same file
-    [OAK-9919] - Add support for zstd, zlib to document store with mongodb
-    [OAK-9930] - Thread leak in elastic index statistics module
-    [OAK-9932] - Version of Elasticsearch server docker image used for tests should be configurable
-    [OAK-9935] - Bump Elasticsearch clients from 7.17.3 to 7.17.6
-    [OAK-9936] - Optimize AzureJournalWriter#batchWriteLines()
-    [OAK-9945] - oak-search-elastic: migrate index creation from Rest High Level Client to the new Java API Client
-    [OAK-9946] - Consistency check for versionable nodes
-    [OAK-9948] - oak-search-elastic: migrate search suggestions request from RHLC to new Java Client
-    [OAK-9951] - Improve support for running unit tests with Elasticsearch 8
-    [OAK-9952] - Allow Segment Consistency Check to fail fast
-    [OAK-9955] - DynamicSyncContext: avoid duplicate iteration in syncMembership
-    [OAK-9958] - Deprecate native queries
-    [OAK-9959] - RepositoryImpl.shutdown() takes way too long in case of unclosed Sessions
-    [OAK-9965] - Add support for running unit tests against Elasticsearch 8.4.3
-    [OAK-9966] - Internal code calls Node.isCheckedOut and VersionManager.isCheckedOut
-    [OAK-9968] - Enable LZ4 compression for parallel indexing
-    [OAK-9970] - Internal code calls LockManager.isLocked(String)
-    [OAK-9973] - Bump and align testcontainers dependency to v1.17.5
-    [OAK-9975] - [DSGC] Report cummulative size of referenced blobs
-    [OAK-9985] - DataStoreCopyCommandTest#destinationFromBlobId fails on windows
-    [OAK-9987] - Oak-search-elastic depends on vulnerable snakeyaml version.
-    [OAK-9992] - Introduce limit for oak.removeCollisions()
-    [OAK-9993] - Add utility method to remove unmerged branches
-    [OAK-10004] - Bump Elasticsearch Java client from 7.17.6 to 7.17.7
-    [OAK-10012] - Redundant modifier in oak-jackrabbit-api
+    [OAK-9800] - Update Maven Plugins and Apache Parent POM to version 29
+    [OAK-10031] - Remove unmerged branches and collisions in batches
+    [OAK-10034] - Periodically clean up unmerged branch commits and collision markers
+    [OAK-10054] - Improved trace level logging of JCR method calls
+    [OAK-10055] - Auto refreshing IndexTracker every hour causes online reindexing to fail
+    [OAK-10061] - WARN when for an external group a local group with the same name is already present
+    [OAK-10071] - Consistently filter duplicate authorizables in iterators
+    [OAK-10074] - AutoMembershipProvider consistency with ExternalPrincipalProvider
 
 Task
 
-    [OAK-9856] - Log jcr query along with caller stack trace in case of failed queries in ES server
-    [OAK-9870] - Fulltext Query with "}" fails in case of elasticsearch
-    [OAK-9878] - Elastic: Rectify remaining failing ported tests
-    [OAK-9880] - Simplify rgc DEFAULT_NO_BRANCH query
-    [OAK-9895] - update release schedule for 1.8 (fewer) and 1.6 (EOL)
-    [OAK-9903] - oak-search-elastic: add unit tests with different path restriction queries
-    [OAK-9917] - Port lucene tests to common format so that same tests can be run for both lucene and elastic
-    [OAK-9924] - Elastic mbean should show the primary shard size
-    [OAK-9925] - update MongoDB Java Driver dependency to 3.12.11
-    [OAK-9926] - Upgrade h2db dependency to 2.1.214
-    [OAK-9947] - upgrade jackson-databind to 2.13.4
-    [OAK-9950] - Upgrade tika to 1.26
-    [OAK-9960] - oak-run command to download blobs from datastore
-    [OAK-9962] - [Document] Improve ES documentation
-    [OAK-9971] - Migrate Oak maintenance builds from Travis CI to Jenkins
-    [OAK-9990] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.7
-    [OAK-10002] - oak-core: bump up logging for deprecated Guava based APIs to INFO
-    [OAK-10009] - Enable SonarClould for Oak
-    [OAK-10011] - Configure SonarClould for Oak
-    [OAK-10013] - oak-run-commons: tests fail on Windows Subsystem for Linux
-    [OAK-10016] - avoid use of deprecated Mockito methods (removed in 4.*)
-    [OAK-10019] - Update slf4j dependency to 1.7.36
-    [OAK-10021] - upgrade jackson-databind to 2.13.4.2
-    [OAK-10023] - oak-search-mt: eliminate transitive log4j dependency
-    [OAK-10029] - Disable Sonar checks on PRs from forks
-    [OAK-10032] - get rid of ant-run plugin dependency
-
-Documentation
-
-    [OAK-9972] - Create FAQ for dynamic sync
-    [OAK-9974] - permission eval: entries are evaluated in reverse order
+    [OAK-10040] - Update animal-sniffer dependency to 1.22
+    [OAK-10041] - Upgrade maven-bundle-plugin to 5.1.8
+    [OAK-10042] - Update checkstyle-plugin dependency to version 3.1.2
+    [OAK-10043] - Upgrade maven-versions-plugin to 2.14.1
+    [OAK-10044] - Javadoc fixes for JDK 11 compat
+    [OAK-10045] - Upgrade gmavenplus-plugin to 1.13.1
+    [OAK-10046] - oak-it-osgi: remove unneeded workaround maven-resources-plugin
+    [OAK-10047] - oak-core: bump up logging for deprecated Guava based APIs to WARN
+    [OAK-10057] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.8
+    [OAK-10059] - webapp: avoid use of Jackrabbit's transitive commons-collections dependency
+    [OAK-10062] - consolidate and update groovy versions to 2.4.21
+    [OAK-10065] - avoid-use of groovy-all artefact
+    [OAK-10066] - update groovy dependency to 2.5.20
+    [OAK-10073] - Additional tests combining dynamic groups and automembership
 
 
 In addition to the above-mentioned changes, this release contains all
