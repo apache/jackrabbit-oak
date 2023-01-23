@@ -57,7 +57,7 @@ public class DataStoreCopyCommandTest {
     private static final ImmutableSet<String> BLOBS = ImmutableSet.of(BLOB1, BLOB2);
 
     @Rule
-    public TemporaryFolder outDir = new TemporaryFolder();
+    public TemporaryFolder outDir = new TemporaryFolder(new File("target"));
 
     private CloudBlobContainer container;
 
