@@ -30,9 +30,12 @@ Bug
 
     [OAK-10022] - ReadOnlyFileStore#collectBlobReferences throws NullPointerException if azure blob with binary references is missing in the tar directory
     [OAK-10033] - Conditions on dates use the wrong range
+    [OAK-10048] - DocumentStoreIndexerBase#buildFlatFileStore outputs the wrong path when FlatFileSplitter used
     [OAK-10051] - oak-run and oak-upgrade JARs incomplete (META-INF/MANIFEST.MF is missing the Main-Class entry)
     [OAK-10063] - AsyncIndexUpdate - Logger not printing complete message
     [OAK-10067] - ExternalGroupPrincipalProvider does not resolve inherited groups that cross IDP boundaries
+    [OAK-10078] - antrun for reactor pom fails due to removal of tasks function
+    [OAK-10079] - oak-run-commons tests left over: empty "split" folder (next to "src")
 
 New Feature
 
