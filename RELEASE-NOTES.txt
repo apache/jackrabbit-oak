@@ -68,6 +68,7 @@ Task
     [OAK-10065] - avoid-use of groovy-all artefact
     [OAK-10066] - update groovy dependency to 2.5.20
     [OAK-10073] - Additional tests combining dynamic groups and automembership
+    [OAK-10076] - Bump netty dependency from 4.1.68.Final to 4.1.86.Final
 
 
 In addition to the above-mentioned changes, this release contains all
