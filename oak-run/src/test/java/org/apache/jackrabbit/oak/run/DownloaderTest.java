@@ -35,10 +35,10 @@ import static org.junit.Assert.assertTrue;
 public class DownloaderTest {
 
     @Rule
-    public TemporaryFolder sourceFolder = new TemporaryFolder(new File("target"));
+    public TemporaryFolder sourceFolder = new TemporaryFolder();
 
     @Rule
-    public TemporaryFolder destinationFolder = new TemporaryFolder(new File("target"));
+    public TemporaryFolder destinationFolder = new TemporaryFolder();
 
     @Before
     public void setUp() throws IOException {
