@@ -42,7 +42,10 @@ however there are differences:
 * `blobSize` is ignored.
 * `name` is ignored.
 * `indexPath` is ignored.
+* If the composite node store is used, Elastic indexes only index the writable part of the repository.
+  It is best to use `queryPaths` and `includedPaths` to ensure the index is only used for the right queries.
 * `analyzers` is ignored, except for `indexOriginalTerm`.
+  Due to that, synonyms, stemming (`PorterStem`), filters (`LowerCase`), and stopwords are not supported.
 * `useInExcerpt` does not support regexp relative properties.
 * For property definitions, `sync` and `unique` are ignored.
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
