@@ -217,7 +217,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             preferredPathElements.addAll(indexDf.getRelativeNodeNames());
         }
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
-        FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate, preferredPathElements, false, indexDefinitions).get(0);
+        FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
+            preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
                 flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
         return flatFileStore;
