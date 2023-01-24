@@ -77,7 +77,8 @@ public final class FileIOUtils {
     /**
      * @deprecated use {@link java.util.function.Function#identity()} instead
      */
-    @Deprecated public final static Function<String, String> passThruTransformer = new Function<String, String>() {
+    @Deprecated(since = "1.20.0", forRemoval = true)
+    public final static Function<String, String> passThruTransformer = new Function<String, String>() {
         @Nullable @Override public String apply(@Nullable String input) {
             return input;
         }
@@ -273,7 +274,8 @@ public final class FileIOUtils {
     /**
      * @deprecated use {@link #writeStrings(Iterator, File, boolean, java.util.function.Function, Logger, String)} instead
      */
-    @Deprecated public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
+    @Deprecated(since = "1.20.0", forRemoval = true)
+    public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
             @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
         GuavaDeprecation.handleCall("OAK-8677");
         java.util.function.Function<String, String> tr2 = (s) -> transformer.apply(s);
@@ -376,7 +378,8 @@ public final class FileIOUtils {
      * 
      * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator} instead
      */
-    @Deprecated public static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
+    @Deprecated(since = "1.20.0", forRemoval = true)
+    public static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
         private final PeekingIterator<String> peekMarked;
         private final LineIterator marked;
         private final LineIterator all;
@@ -474,7 +477,8 @@ public final class FileIOUtils {
      * @param <T> the type of elements in the iterator
      * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator} instead
      */
-    @Deprecated public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
+    @Deprecated(since = "1.20.0", forRemoval = true)
+    public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
         private final Logger log = LoggerFactory.getLogger(getClass());
 
         private final LineIterator iterator;
