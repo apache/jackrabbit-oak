@@ -90,7 +90,9 @@ public class DataStoreCopyCommandTest {
                 "--source-repo",
                 container.getUri().toURL().toString(),
                 "--include-path",
-                BLOB1
+                BLOB1,
+                "--out-dir",
+                outDir.getRoot().getAbsolutePath()
         );
     }
 
