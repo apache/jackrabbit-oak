@@ -20,7 +20,6 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -33,8 +32,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Auto
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -44,7 +41,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,14 +52,11 @@ import java.util.stream.StreamSupport;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.getIdpName;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_AUTHORIZABLE;
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_USER;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_AUTHORIZABLE_ID;
 
 class AutoMembershipProvider implements DynamicMembershipProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(AutoMembershipProvider.class);
-
+    
     private static final String BINDING_AUTHORIZABLE_IDS = "authorizableIds";
 
     private final Root root;
@@ -174,8 +167,7 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         if (!includeInherited) {
             return groupIt;
         } else {
-            Set<Group> processed = new HashSet<>();
-            return Iterators.filter(new InheritedMembershipIterator(groupIt), processed::add);
+            return new InheritedMembershipIterator(groupIt);
         }
     }
 
@@ -197,7 +189,8 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
             return;
         }
 
-        String nodeType = (groupIdpNames.isEmpty()) ? NT_REP_USER : (idpNames.size() == groupIdpNames.size()) ? NT_REP_GROUP : NT_REP_AUTHORIZABLE;
+        // currently 'group.automembership' is added for all users -> search for type authorizable (not just groups)
+        String nodeType = (groupIdpNames.isEmpty()) ? NT_REP_USER : NT_REP_AUTHORIZABLE;
 
         // since this provider is only enabled for dynamic-automembership the 'includeInherited' flag can be ignored.
         // as group-membership for dynamic users is flattened and automembership-configuration for groups is included.
@@ -238,56 +231,5 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         String val = "%;" + idpName.replace("%", "\\%").replace("_", "\\_");
         return Collections.singletonMap(BINDING_AUTHORIZABLE_IDS, PropertyValues.newString(val));
     }
-    
-    private static class InheritedMembershipIterator extends AbstractLazyIterator<Group> {
 
-        private final Iterator<Group> groupIterator;
-        private final List<Iterator<Group>> inherited = new ArrayList<>();
-        private Iterator<Group> inheritedIterator = null;
-        
-        private InheritedMembershipIterator(Iterator<Group> groupIterator) {
-            this.groupIterator = groupIterator;
-        }
-        
-        @Nullable
-        @Override
-        protected Group getNext() {
-            if (groupIterator.hasNext()) {
-                Group gr = groupIterator.next();
-                try {
-                    // call 'memberof' to cover nested inheritance
-                    Iterator<Group> it = gr.memberOf();
-                    if (it.hasNext()) {
-                        inherited.add(it);
-                    }
-                } catch (RepositoryException e) {
-                    log.error("Failed to retrieve membership of group {}", gr, e);
-                }
-                return gr;
-            }
-            
-            if (inheritedIterator == null || !inheritedIterator.hasNext()) {
-                inheritedIterator = getNextInheritedIterator();
-            }
-            
-            if (inheritedIterator.hasNext()) {
-                return inheritedIterator.next();
-            } else {
-                // all inherited groups have been processed
-                return null;
-            }
-        }
-        
-        @NotNull
-        private Iterator<Group> getNextInheritedIterator() {
-            if (inherited.isEmpty()) {
-                // no more inherited groups to retrieve
-                return Collections.emptyIterator();
-            } else {
-                // no need to verify if the inherited iterator has any elements as this has been asserted before
-                // adding it to the list.
-                return inherited.remove(0);
-            }
-        }
-    }
 }

@@ -184,6 +184,10 @@ class TarWriter implements Closeable {
 
             if (doFlush) {
                 archive.flush();
+
+                if (archive.isRemote()) {
+                    writeBinaryReferences();
+                }
             }
         }
     }

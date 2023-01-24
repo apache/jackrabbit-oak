@@ -400,6 +400,38 @@ public class AzureArchiveManagerTest {
         assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
     }
 
+    @Test
+    public void testCollectBlobReferencesForReadOnlyFileStore() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
+        AzurePersistence rwPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        try (FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build()) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            rwFileStore.flush();
+
+            // file with binary references has been created
+            assertTrue(container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
+
+            // create read-only FS
+            AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+            try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
+
+                PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
+                        .getRoot()
+                        .getProperty("foo");
+
+                assertThat(fooProperty, not(nullValue()));
+                assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
+
+                // no exception should be thrown
+                roFileStore.collectBlobReferences(s -> {
+                });
+
+            }
+        }
+    }
+
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override
