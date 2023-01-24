@@ -222,7 +222,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return AuthorizableIterator.create(true, dynamicMembers, AuthorizableIterator.empty());
         }
         
-        AuthorizableIterator members = AuthorizableIterator.create(trees, userMgr, AuthorizableType.AUTHORIZABLE);
+        Iterator<Authorizable> members = AuthorizableIterator.create(trees, userMgr, AuthorizableType.AUTHORIZABLE);
+        if (includeInherited) {
+            // need to resolve dynamic members of declared and inherited group-members 
+            members = new InheritedMembersIterator(members, dmp);
+        }
         AuthorizableIterator allMembers = AuthorizableIterator.create(true, dynamicMembers, members);
         return new RangeIteratorAdapter(allMembers, allMembers.getSize()); 
     }
