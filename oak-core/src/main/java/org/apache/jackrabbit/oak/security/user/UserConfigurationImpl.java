@@ -63,6 +63,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
@@ -82,6 +83,12 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                 name = "User Path",
                 description = "Path underneath which user nodes are being created.")
         String usersPath() default UserConstants.DEFAULT_USER_PATH;
+
+        @AttributeDefinition(
+                name = "Administrators groups",
+                description = "List of groups whose members have admin rights.",
+                type = AttributeType.STRING)
+        String[] administratorGroups() default {UserConstants.DEFAULT_ADMINISTRATORS_GROUP};
 
         @AttributeDefinition(
                 name = "Group Path",

@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -29,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -39,11 +47,39 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  */
 public final class UserUtil implements UserConstants {
 
+    private static final Logger log = LoggerFactory.getLogger(UserUtil.class);
+
     private UserUtil() {
     }
 
     public static boolean isAdmin(@NotNull ConfigurationParameters parameters, @NotNull String userId) {
         return getAdminId(parameters).equals(userId);
+    }
+
+    public static boolean isMemberOfAnAdministratorGroup(@NotNull Authorizable authorizable, @NotNull ConfigurationParameters parameters) {
+        String[] configuredAdministratorGroups = parameters.getConfigValue(ADMINISTRATOR_GROUPS_CONFIG_ID, new String[]{});
+        @NotNull Set<String> groupIds = getGroupIds(authorizable);
+        return Arrays.stream(configuredAdministratorGroups).anyMatch(groupIds::contains);
+    }
+
+    /**
+     * Retrieves the group ids of the groups this user is a member of.
+     *
+     * @return a set of group ids
+     */
+    private static @NotNull Set<String> getGroupIds(@NotNull Authorizable authorizable) {
+        Set<String> groupIds = new HashSet<>();
+        try {
+            @NotNull Iterator<Group> groups = authorizable.declaredMemberOf();
+            while (groups.hasNext()) {
+                Group group = groups.next();
+                groupIds.add(group.getID());
+            }
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+            return new HashSet<>();
+        }
+        return groupIds;
     }
 
     @NotNull

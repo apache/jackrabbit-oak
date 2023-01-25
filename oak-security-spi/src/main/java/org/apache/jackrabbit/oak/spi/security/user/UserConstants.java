@@ -79,6 +79,16 @@ public interface UserConstants {
     String PARAM_ADMIN_ID = "adminId";
 
     /**
+     * Configuration option defining the ID of the administratorGroups field.
+     */
+    String ADMINISTRATOR_GROUPS_CONFIG_ID = "administratorGroups";
+
+    /**
+     * Default value for the administrator group {@link #ADMINISTRATOR_GROUPS_CONFIG_ID}.
+     */
+    String DEFAULT_ADMINISTRATORS_GROUP = "administrators";
+
+    /**
      * Configuration option defining if the admin password should be omitted
      * upon user creation.
      */

@@ -135,7 +135,8 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         if (!allows) {
             // check if subject belongs to administrator user
             for (Principal principal : subject.getPrincipals()) {
-                if (isAdmin(principal)) {
+                // TODO shouldn't a admin role be assigned to a SUBJECT, not a PRINCIPAL
+                if (isAdmin(principal)) { // TODO if principal is administrator, allow
                     allows = true;
                     break;
                 }
@@ -206,6 +207,9 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
         // make sure the given principal doesn't refer to the admin user.
         if (isAdmin(p)) {
+            /* TODO if user is administrator he will not be added to allowed impersonators
+            TODO later, if he gets removed from administrators, we wont be able to impersonate
+            TODO even though he should've been added to impersonators */
             log.debug("Admin principal is already granted impersonation.");
             return false;
         }
