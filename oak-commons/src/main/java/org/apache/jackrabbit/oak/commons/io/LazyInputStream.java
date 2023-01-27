@@ -47,7 +47,8 @@ public class LazyInputStream extends FilterInputStream {
     /**
      * @deprecated Use {@link #LazyInputStream(Supplier)} instead
      */
-    @Deprecated public LazyInputStream(ByteSource byteSource) {
+    @Deprecated(since = "1.20.0", forRemoval = true)
+    public LazyInputStream(ByteSource byteSource) {
         super(null);
         this.byteSource = byteSource;
         this.inputStreamSupplier = null;

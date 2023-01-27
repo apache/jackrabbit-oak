@@ -206,7 +206,7 @@ public class TypePredicate implements Predicate<NodeState>, com.google.common.ba
     /**
      * @deprecated use {@link #test(NodeState)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
-    @Deprecated
+    @Deprecated(since = "1.26.0", forRemoval = true)
     public boolean apply(@Nullable NodeState input) {
         GuavaDeprecation.handleCall("OAK-8874");
         return test(input);
@@ -215,7 +215,7 @@ public class TypePredicate implements Predicate<NodeState>, com.google.common.ba
     /**
      * @deprecated use {@link #test(Tree)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
-    @Deprecated
+    @Deprecated(since = "1.26.0", forRemoval = true)
     public boolean apply(@Nullable Tree input) {
         GuavaDeprecation.handleCall("OAK-8874");
         return test(input);
@@ -224,7 +224,7 @@ public class TypePredicate implements Predicate<NodeState>, com.google.common.ba
     /**
      * @deprecated use {@link #test(String, Set)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
-    @Deprecated
+    @Deprecated(since = "1.26.0", forRemoval = true)
     public boolean apply(String primary, Set<String> mixins) {
         GuavaDeprecation.handleCall("OAK-8874");
         return test(primary, mixins);

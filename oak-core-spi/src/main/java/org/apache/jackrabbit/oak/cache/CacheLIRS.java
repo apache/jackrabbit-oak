@@ -177,6 +177,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      *        of the stack before the current item is moved
      * @param  evicted the eviction listener of this segment or {@code null} if none.
      */
+    @Deprecated(since = "1.20.0", forRemoval = true)
     @SuppressWarnings("unchecked")
     CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory,
             int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader,
