@@ -35,7 +35,6 @@
 
   <properties>
     <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
-    <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
@@ -69,8 +68,11 @@
     <testcontainers.version>1.17.5</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>2.5.20</groovy.version>
-    <java.version>1.8</java.version>
-    <java.version.signature>java18</java.version.signature>
+
+    <java.version>11</java.version>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
+    <minimalJavaBuildVersion>${java.version}</minimalJavaBuildVersion>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -116,18 +118,6 @@
               <!-- OAK-7310 -->
               <arg>-Xpkginfo:always</arg>
             </compilerArgs>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>animal-sniffer-maven-plugin</artifactId>
-          <version>1.22</version>
-          <configuration>
-            <signature>
-              <groupId>org.codehaus.mojo.signature</groupId>
-              <artifactId>${java.version.signature}</artifactId>
-              <version>1.0</version>
-            </signature>
           </configuration>
         </plugin>
         <plugin>
@@ -473,19 +463,6 @@
                 <exclude>logback-test.xml</exclude>
               </excludes>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>animal-sniffer</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
