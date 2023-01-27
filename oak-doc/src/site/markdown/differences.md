@@ -110,9 +110,9 @@ return an object of type `QueryObjectModel`.
 * Push notification mechanisms like JCR observation weight heavy on distributed systems. Therefore,
   if an application requirement is not actually an "eventing problem" consider using different means
   like query and custom indexes.
-  [Apache Sling](http://sling.apache.org) identified and classified common [usage patterns]
-  (https://cwiki.apache.org/confluence/display/SLING/Observation+usage+patterns) of observation and
-  recommendations on alternative solutions where applicable.
+  [Apache Sling](http://sling.apache.org) identified and classified common
+  [usage patterns](https://cwiki.apache.org/confluence/display/SLING/Observation+usage+patterns)
+  of observation and recommendations on alternative solutions where applicable.
 
 * Event generation is done by looking at the difference between two revisions of the persisted
   content trees. Items not present in a previous revision but present in the current revision are
