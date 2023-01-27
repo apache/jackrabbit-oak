@@ -56,6 +56,7 @@ public class DynamicSyncTest extends AbstractDynamicTest {
     private Group autoForGroups;
     private Group autoForUsers;
     private Group base;
+    private Group base2;
 
     @Override
     public void before() throws Exception {
@@ -72,7 +73,7 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         
         userManager.createGroup(EveryonePrincipal.getInstance());
 
-        Group base2 = userManager.createGroup(BASE2_ID);
+        base2 = userManager.createGroup(BASE2_ID);
         base2.addMember(autoForUsers);
         
         r.commit();
@@ -175,6 +176,41 @@ public class DynamicSyncTest extends AbstractDynamicTest {
 
         assertFalse(autoForUsers.isMember(aGroup));
         assertFalse(autoForUsers.isMember(base));
+    }
+
+    @Test
+    public void testInheritedBaseGroup() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        sync(externalUser, SyncResult.Status.ADD);
+
+        Authorizable user = userManager.getAuthorizable(USER_ID);
+
+        // verify group 'base'
+        Set<String> expDeclaredMemberIds = ImmutableSet.of(AUTO_GROUPS, AUTO_USERS, "a", "b");
+        assertExpectedIds(expDeclaredMemberIds, base.getDeclaredMembers());
+        assertFalse(base.isDeclaredMember(user));
+
+        Set<String> expMemberIds = ImmutableSet.of(USER_ID, AUTO_GROUPS, AUTO_USERS, "a", "b", "c", "aa", "aaa");
+       assertExpectedIds(expMemberIds, base.getMembers());
+        assertTrue(base.isMember(user));
+    }
+
+    @Test
+    public void testInheritedBase2Group() throws Exception {
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        sync(externalUser, SyncResult.Status.ADD);
+
+        Authorizable user = userManager.getAuthorizable(USER_ID);
+        
+        // verify group 'base2'    
+        Set<String> expDeclaredMemberIds = ImmutableSet.of(AUTO_USERS);
+        assertExpectedIds(expDeclaredMemberIds, base2.getDeclaredMembers());
+
+        assertFalse(base2.isDeclaredMember(user));
+
+        Set<String> expMemberIds = ImmutableSet.of(USER_ID, AUTO_USERS);
+        assertExpectedIds(expMemberIds, base2.getMembers());
+        assertTrue(base2.isMember(user));
     }
 
     private static void assertIsMember(@NotNull Group group, boolean declared, @NotNull Authorizable... members) {
