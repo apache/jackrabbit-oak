@@ -195,7 +195,7 @@ public final class FieldFactory {
             // However returning null for us would basically store a null value in the document (which seems wrong).
             // So throwing an unchecked exception here with a proper description.
             // Earlier such a situation was leading to an NPE which was confusing to understand.
-            // Refer https://jackrabbit.apache.org/api/2.12/index.html?org/apache/jackrabbit/util/ISO8601.html
+            // Refer https://jackrabbit.apache.org/api/2.20/index.html?org/apache/jackrabbit/util/ISO8601.html
             throw new RuntimeException("Unable to parse the provided date field : " + date + " to convert to millis. Supported format is ±YYYY-MM-DDThh:mm:ss.SSSTZD");
         }
     }
