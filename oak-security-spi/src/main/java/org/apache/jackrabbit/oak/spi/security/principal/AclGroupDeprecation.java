@@ -26,7 +26,7 @@ public class AclGroupDeprecation {
 
     private static final Logger LOG = LoggerFactory.getLogger(AclGroupDeprecation.class);
 
-    private static final String DEFAULT = "warn";
+    private static final String DEFAULT = "error";
 
     private static final String TLOGLEVEL = System.getProperty("org.apache.jackrabbit.oak.spi.tools.AclGroupDeprecation.LOGLEVEL",
             DEFAULT);
