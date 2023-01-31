@@ -238,7 +238,7 @@ public class LuceneIndexEditorTest {
         try {
             getPath(NumericRangeQuery.newLongRange("creationTime",
                     FieldFactory.dateToLong("05/05/2014"), FieldFactory.dateToLong("05/07/2014"), true, true));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             assertEquals("Unable to parse the provided date field : 05/05/2014 to convert to millis." +
                     " Supported format is ±YYYY-MM-DDThh:mm:ss.SSSTZD", e.getMessage());
         }
