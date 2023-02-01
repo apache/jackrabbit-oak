@@ -30,10 +30,6 @@
   <artifactId>oak-pojosr</artifactId>
   <name>Oak PojoSR</name>
 
-  <properties>
-    <groovy.version>2.4.12</groovy.version>
-  </properties>
-
   <build>
     <plugins>
       <plugin>

@@ -32,7 +32,6 @@
 
   <properties>
     <jetty.version>9.4.46.v20220331</jetty.version>
-    <groovy.version>2.4.17</groovy.version>
     <!--
       Size History:
       + 56 MB MongoDB Java driver 3.12.7 (OAK-9357)
