@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 
 import com.google.common.primitives.Ints;
@@ -186,7 +187,17 @@ public final class FieldFactory {
             return null;
         }
         //TODO OAK-2204 - Should we change the precision to lower resolution
-        return ISO8601.parse(date).getTimeInMillis();
+        Calendar c = ISO8601.parse(date);
+        if (c != null) {
+            return c.getTimeInMillis();
+        } else {
+            // ISO8601.parse returns null in case of multiple exceptions like IllegalFormatException, IndexOutOfBoundsException, NumberFormatException etc
+            // However returning null for us would basically store a null value in the document (which seems wrong).
+            // So throwing an unchecked exception here with a proper description.
+            // Earlier such a situation was leading to an NPE which was confusing to understand.
+            // Refer https://jackrabbit.apache.org/api/2.20/index.html?org/apache/jackrabbit/util/ISO8601.html
+            throw new RuntimeException("Unable to parse the provided date field : " + date + " to convert to millis. Supported format is ±YYYY-MM-DDThh:mm:ss.SSSTZD");
+        }
     }
 
 }
