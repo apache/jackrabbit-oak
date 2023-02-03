@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -194,10 +195,14 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  */
 public class LucenePropertyIndex extends FulltextIndex {
 
+    private static final Logger LOG = LoggerFactory
+            .getLogger(LucenePropertyIndex.class);
+        private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(LucenePropertyIndex.class.getName() + ".perf"));
 
     private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
     private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
-    private final static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    private final static boolean NON_LAZY = SystemPropertySupplier.create("oak.lucene.nonLazyIndex", true).loggingTo(LOG).get();
     public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
     private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
     public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
@@ -205,11 +210,6 @@ public class LucenePropertyIndex extends FulltextIndex {
             Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
 
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
-
-    private static final Logger LOG = LoggerFactory
-        .getLogger(LucenePropertyIndex.class);
-    private static final PerfLogger PERF_LOGGER =
-        new PerfLogger(LoggerFactory.getLogger(LucenePropertyIndex.class.getName() + ".perf"));
 
     /**
      * Batch size for fetching results from Lucene queries.
