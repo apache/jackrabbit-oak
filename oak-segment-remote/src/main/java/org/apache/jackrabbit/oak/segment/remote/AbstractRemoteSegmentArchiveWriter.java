@@ -150,6 +150,11 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
         }
     }
 
+    @Override
+    public boolean isRemote() {
+        return true;
+    }
+
     /**
      * Writes a segment to the remote storage.
      * @param indexEntry, the archive index entry to write

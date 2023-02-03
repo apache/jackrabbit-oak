@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.49-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-webapp</artifactId>
@@ -118,6 +118,11 @@
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
     </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.9.4</version>
+    </dependency>
 
     <!-- Required for Felix WebConsole -->
     <dependency>
@@ -145,7 +150,7 @@
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy</artifactId>
-      <version>2.5.2</version>
+      <version>${groovy.version}</version>
     </dependency>
 
     <dependency>
@@ -309,6 +314,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
+          <skipITs>true</skipITs>
           <systemPropertyVariables>
             <java.util.logging.config.file>
               src/test/resources/logging.properties

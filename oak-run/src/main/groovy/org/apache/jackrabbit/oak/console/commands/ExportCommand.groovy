@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.exporter.NodeStateSerializer
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
+import groovy.cli.picocli.CliBuilder
 
 class ExportCommand extends CommandSupport{
     public static final String COMMAND_NAME = 'export-nodes'

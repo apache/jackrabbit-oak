@@ -32,7 +32,7 @@ import org.apache.joshua.decoder.segment_file.Sentence;
 import org.apache.lucene.analysis.Analyzer;
 import org.junit.Test;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

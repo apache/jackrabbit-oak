@@ -60,7 +60,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -317,7 +317,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(EveryonePrincipal.getInstance());
         assertEquals(0, applicable.length);
 
-        verifyZeroInteractions(mgr);
+        verifyNoInteractions(mgr);
     }
 
     @Test
@@ -340,7 +340,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         CompositeAccessControlManager composite = createComposite(mgr);
         assertEquals(0, composite.getPolicies(EveryonePrincipal.getInstance()).length);
 
-        verifyZeroInteractions(mgr);
+        verifyNoInteractions(mgr);
     }
 
     @Test
@@ -375,7 +375,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         CompositeAccessControlManager composite = createComposite(mgr);
         assertEquals(0, composite.getEffectivePolicies(principalSet).length);
 
-        verifyZeroInteractions(mgr);
+        verifyNoInteractions(mgr);
     }
 
     @Test

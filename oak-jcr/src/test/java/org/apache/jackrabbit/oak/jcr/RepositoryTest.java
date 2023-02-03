@@ -101,7 +101,7 @@ import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.slf4j.LoggerFactory;
 
 public class RepositoryTest extends AbstractRepositoryTest {

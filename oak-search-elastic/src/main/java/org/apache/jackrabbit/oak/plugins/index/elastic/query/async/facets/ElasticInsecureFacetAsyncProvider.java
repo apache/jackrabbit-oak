@@ -53,7 +53,7 @@ class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider, Elastic
         if (aggregations != null) {
             Aggregate aggregate = aggregations.get(FulltextIndex.parseFacetField(columnName));
             return aggregate.sterms().buckets().array().stream()
-                    .map(term -> new FulltextIndex.Facet(term.key(), (int) term.docCount()))
+                    .map(term -> new FulltextIndex.Facet(term.key().stringValue(), (int) term.docCount()))
                     .collect(Collectors.toList());
         } else return null;
     }

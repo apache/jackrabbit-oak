@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -65,6 +68,9 @@ public class FlatFileNodeStoreBuilder {
      * Allowed values are the values from enum {@link SortStrategyType}
      */
     public static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
+    /**
+     * System property to define the existing folder containing the flat file store files
+     */
     public static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
 
     /**
@@ -191,7 +197,8 @@ public class FlatFileNodeStoreBuilder {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
-        FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
+        FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFiles().get(0),
+            new NodeStateEntryReader(blobStore),
                 unmodifiableSet(preferredPathElements), algorithm);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
@@ -205,13 +212,18 @@ public class FlatFileNodeStoreBuilder {
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
 
-        File flatStoreFile = createdSortedStoreFile();
+        List<File> fileList = createdSortedStoreFiles();
+        
         long start = System.currentTimeMillis();
-        NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
-        FlatFileSplitter splitter = new FlatFileSplitter(flatStoreFile, indexHelper.getWorkDir(), new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
+        // If not already split, split otherwise skip splitting
+        if (!fileList.stream().allMatch(FlatFileSplitter.IS_SPLIT)) {
+            NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
+            FlatFileSplitter splitter = new FlatFileSplitter(fileList.get(0), indexHelper.getWorkDir(),
+                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
                 indexDefinitions);
-        List<File> fileList = splitter.split();
-        log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
+            fileList = splitter.split();
+            log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
+        }
 
         List<FlatFileStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
@@ -222,26 +234,52 @@ public class FlatFileNodeStoreBuilder {
         return storeList;
     }
 
-    private File createdSortedStoreFile() throws IOException, CompositeException {
+    /**
+     * Returns the existing list of store files if it can read from system property OAK_INDEXER_SORTED_FILE_PATH which 
+     * defines the existing folder where the flat file store files are present. Will throw an exception if it cannot 
+     * read or the path in the system property is not a directory.
+     * If the system property OAK_INDEXER_SORTED_FILE_PATH in undefined, or it cannot read relevant files it 
+     * initializes the flat file store.
+     * 
+     * @return list of flat files
+     * @throws IOException 
+     * @throws CompositeException
+     */
+    private List<File> createdSortedStoreFiles() throws IOException, CompositeException {
+        // Check system property defined path
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
-        if (sortedFilePath != null) {
-            File sortedFile = new File(sortedFilePath);
-            if (sortedFile.exists() && sortedFile.isFile() && sortedFile.canRead()) {
-                log.info("Reading from provided sorted file [{}] (via system property '{}')",
-                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
-                return sortedFile;
-            } else {
-                String msg = String.format("Cannot read sorted file at [%s] configured via system property '%s'",
-                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
-                throw new IllegalArgumentException(msg);
+        if (StringUtils.isNotBlank(sortedFilePath)) {
+            File sortedDir = new File(sortedFilePath);
+            log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
+                sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+            List<File> files = getFiles(sortedDir);
+            if (files != null) {
+                return files;
+            }
+        } 
+        
+        // Initialize the flat file store again
+        
+        createStoreDir();
+        SortStrategy strategy = createSortStrategy(flatFileStoreDir);
+        File result = strategy.createSortedStoreFile();
+        entryCount = strategy.getEntryCount();
+        return Collections.singletonList(result);
+    }
+
+    @Nullable
+    private List<File> getFiles(File sortedDir) {
+        if (sortedDir.exists() && sortedDir.canRead() && sortedDir.isDirectory()) {
+            File[] files = sortedDir.listFiles(
+                (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
+            if (files != null && files.length != 0) {
+                return Arrays.asList(files);
             }
         } else {
-            createStoreDir();
-            org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy strategy = createSortStrategy(flatFileStoreDir);
-            File result = strategy.createSortedStoreFile();
-            entryCount = strategy.getEntryCount();
-            return result;
+            String msg = String.format("Cannot read sorted files directory at [%s]", sortedDir.getAbsolutePath());
+            throw new IllegalArgumentException(msg);
         }
+        return null;
     }
 
     SortStrategy createSortStrategy(File dir) throws IOException {

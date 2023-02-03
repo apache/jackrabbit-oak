@@ -246,7 +246,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
             @Override
             public String toString() {
-                return format("Removing node [%s]", dlg.getPath());
+                return format("removeNode [%s]", dlg.getPath());
             }
         });
     }
@@ -270,7 +270,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     @Override @NotNull
     public Node addNode(final String relPath, String primaryNodeTypeName)
             throws RepositoryException {
-        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        final String oakPath;
+
+        try {
+            oakPath = getOakPathOrThrowNotFound(relPath);
+        } catch (PathNotFoundException ex) {
+            throw new RepositoryException("cannot determine oak path for: " + relPath, ex);
+        }
+
         final String oakTypeName;
         if (primaryNodeTypeName != null) {
             oakTypeName = getOakName(primaryNodeTypeName);
@@ -322,7 +329,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
             @Override
             public String toString() {
-                return format("Adding node [%s/%s]", dlg.getPath(), relPath);
+                return format("addNode [%s/%s]", dlg.getPath(), relPath);
             }
         });
     }
@@ -592,6 +599,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     }
                 };
             }
+            @Override
+            public String toString() {
+                return format("getNodes [%s]", dlg.getPath());
+            }
         });
     }
 
@@ -614,6 +625,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                         });
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
+            @Override
+            public String toString() {
+                return format("getNodes [%s]", dlg.getPath());
+            }
         });
     }
 
@@ -635,6 +650,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                         });
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
+            @Override
+            public String toString() {
+                return format("getNodes [%s]", dlg.getPath());
+            }
         });
     }
 
@@ -654,6 +673,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     return new PropertyImpl(pd, sessionContext);
                 }
             }
+            @Override
+            public String toString() {
+                return format("getProperty [%s]", dlg.getPath());
+            }
         });
     }
 
@@ -668,6 +691,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 long size = node.getPropertyCount();
                 return new PropertyIteratorAdapter(
                         propertyIterator(properties), size);
+            }
+            @Override
+            public String toString() {
+                return format("getProperties [%s]", dlg.getPath());
             }
         });
     }
@@ -866,6 +893,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 @Override
                 public Boolean perform() throws RepositoryException {
                     return node.getPropertyOrNull(oakPath) != null;
+                }
+                @Override
+                public String toString() {
+                    return format("hasProperty [%s]", dlg.getPath());
                 }
             });
         } catch (PathNotFoundException e) {
@@ -1421,7 +1452,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
             @Override
             public String toString() {
-                return format("Setting property [%s/%s]", dlg.getPath(), jcrName);
+                return format("setProperty [%s/%s]", dlg.getPath(), jcrName);
             }
         });
     }
@@ -1467,7 +1498,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
             @Override
             public String toString() {
-                return format("Setting property [%s/%s]", dlg.getPath(), jcrName);
+                return format("setProperty [%s/%s]", dlg.getPath(), jcrName);
             }
         });
     }
@@ -1519,7 +1550,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
             @Override
             public String toString() {
-                return format("Removing property [%s]", jcrName);
+                return format("removeProperty [%s]", jcrName);
             }
         });
     }

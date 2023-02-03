@@ -41,6 +41,14 @@ public interface OperationStatsCollector {
         @Override public void updateTotalSizeDeleted(long size) {
         }
 
+        @Override
+        public void updateNumBlobReferences(long num) {
+        }
+
+        @Override
+        public void updateBlobReferencesSize(long size) {
+        }
+
         @Override public void updateDuration(long time, TimeUnit timeUnit) {
         }
 
@@ -79,6 +87,18 @@ public interface OperationStatsCollector {
      */
     void updateTotalSizeDeleted(long size);
 
+    /**
+     * Update the number of blob references
+     * @param num
+     */
+    public void updateNumBlobReferences(long num);
+
+    /**
+     * Update the size of blob references
+     * @param size
+     */
+    public void updateBlobReferencesSize(long size);
+    
     /**
      * Increment the duration timer
      *

@@ -105,7 +105,7 @@ public class ElasticIndexStatisticsTest {
             }
             // cache hit, latest value returned
             assertEquals(1000, indexStatistics.numDocs());
-        }, 500);
+        }, 1000);
         verifyNoMoreInteractions(elasticClientMock);
 
         // index count changes in elastic

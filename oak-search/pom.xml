@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.45-SNAPSHOT</version>
+        <version>1.49-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -40,6 +40,10 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <Import-Package>
+                            <!-- OAK-7182 -->${guava.osgi.import},
+                            *
+                        </Import-Package>
                         <Export-Package>
                             !*
                         </Export-Package>
@@ -128,6 +132,13 @@
             <artifactId>tika-core</artifactId>
             <version>${tika.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- General utility libraries -->
+        <dependency>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+          <scope>provided</scope>
         </dependency>
 
         <!-- Logging -->
