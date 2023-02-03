@@ -55,6 +55,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.azure.storage.AccessCondition;
+import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.ResultContinuation;
 import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.RetryPolicy;
@@ -123,6 +124,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private String downloadDomainOverride = null;
     private boolean createBlobContainer = true;
     private boolean presignedDownloadURIVerifyExists = true;
+    private boolean enableSecondaryLocation = AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT;
 
     private Cache<String, URI> httpDownloadURICache;
 
@@ -141,6 +143,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             requestOptions.setTimeoutIntervalInMs(requestTimeout);
         }
         requestOptions.setConcurrentRequestCount(concurrentRequestCount);
+        if (enableSecondaryLocation) {
+            requestOptions.setLocationMode(LocationMode.PRIMARY_THEN_SECONDARY);
+        }
 
         return Utils.getBlobContainer(connectionString, containerName, requestOptions);
     }
@@ -228,6 +233,11 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 if (createRefSecretOnInit) {
                     getOrCreateReferenceKey();
                 }
+
+                enableSecondaryLocation = PropertiesUtil.toBoolean(
+                        properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
+                        AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
+                );
             }
             catch (StorageException e) {
                 throw new DataStoreException(e);

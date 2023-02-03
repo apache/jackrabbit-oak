@@ -68,7 +68,7 @@ public final class Constraints {
      * @deprecated use {@link #asPredicate(int, String)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
     @SuppressWarnings("unchecked")
-    @Deprecated
+    @Deprecated(since = "1.26.0", forRemoval = true)
     public static com.google.common.base.Predicate<Value> valueConstraint(int type, String constraint) {
         GuavaDeprecation.handleCall("OAK-8874");
         return (com.google.common.base.Predicate<Value>) asPredicate(type, constraint);

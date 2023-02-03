@@ -39,7 +39,7 @@ public class ReferenceConstraint implements Predicate<Value>, com.google.common.
     /**
      * @deprecated use {@link #test(Value)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
-    @Deprecated
+    @Deprecated(since = "1.26.0", forRemoval = true)
     @Override
     public boolean apply(Value value) {
         GuavaDeprecation.handleCall("OAK-8874");

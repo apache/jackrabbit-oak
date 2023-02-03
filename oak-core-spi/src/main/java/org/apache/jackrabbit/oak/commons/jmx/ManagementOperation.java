@@ -110,7 +110,8 @@ public class ManagementOperation<R> extends FutureTask<R> {
     /**
      * @deprecated use {@link #newManagementOperation(String, Supplier, Callable)} instead
      */
-    @Deprecated public static <R> ManagementOperation<R> newManagementOperation(
+    @Deprecated(since = "1.20.0", forRemoval = true)
+    public static <R> ManagementOperation<R> newManagementOperation(
             @NotNull String name,
             @NotNull com.google.common.base.Supplier<String> statusMessage,
             @NotNull Callable<R> task) {
