@@ -43,7 +43,6 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                          <!-- OAK-7182 -->${guava.osgi.import},
                           *
                         </Import-Package>
                         <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3,org.apache.jackrabbit.oak.blob.cloud.s3.stats</Export-Package>
@@ -101,6 +100,11 @@
         <!-- Dependencies to other Oak components -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-wrapped-guava</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-api</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -129,6 +133,7 @@
             <artifactId>oak-store-spi</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <!-- Amazon AWS dependency -->
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -177,11 +182,6 @@
             <version>${netty.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>

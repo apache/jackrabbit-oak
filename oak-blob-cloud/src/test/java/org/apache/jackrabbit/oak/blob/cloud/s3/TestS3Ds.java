@@ -28,7 +28,7 @@ import javax.jcr.RepositoryException;
 
 import com.amazonaws.services.s3.Headers;
 import com.amazonaws.services.s3.model.SSEAlgorithm;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;

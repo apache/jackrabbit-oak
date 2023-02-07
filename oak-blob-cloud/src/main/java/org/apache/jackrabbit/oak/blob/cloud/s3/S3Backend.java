@@ -87,17 +87,17 @@ import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.base.Function;
+import org.apache.jackrabbit.oak.guava.common.base.Predicate;
+import org.apache.jackrabbit.oak.guava.common.base.Strings;
+import org.apache.jackrabbit.oak.guava.common.cache.Cache;
+import org.apache.jackrabbit.oak.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.oak.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.collect.Iterables.filter;
 import static java.lang.Thread.currentThread;
 
 /**

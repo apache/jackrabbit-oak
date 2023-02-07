@@ -44,9 +44,9 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.base.Strings;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
