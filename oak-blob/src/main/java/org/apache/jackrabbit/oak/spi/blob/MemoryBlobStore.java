@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 

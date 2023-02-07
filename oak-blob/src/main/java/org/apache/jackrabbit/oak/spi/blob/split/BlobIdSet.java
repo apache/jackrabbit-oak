@@ -30,11 +30,11 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.hash.BloomFilter;
-import com.google.common.hash.Funnels;
+import org.apache.jackrabbit.oak.guava.common.base.Charsets;
+import org.apache.jackrabbit.oak.guava.common.cache.Cache;
+import org.apache.jackrabbit.oak.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.oak.guava.common.hash.BloomFilter;
+import org.apache.jackrabbit.oak.guava.common.hash.Funnels;
 
 class BlobIdSet {
 

@@ -35,7 +35,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.guava.common.io.Files;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

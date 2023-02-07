@@ -29,10 +29,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.FluentIterable;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.guava.common.base.Predicate;
+import org.apache.jackrabbit.oak.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.oak.guava.common.io.Files;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;

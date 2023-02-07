@@ -43,8 +43,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.BaseEncoding;
+import org.apache.jackrabbit.oak.guava.common.base.Charsets;
+import org.apache.jackrabbit.oak.guava.common.io.BaseEncoding;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -54,8 +54,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,
