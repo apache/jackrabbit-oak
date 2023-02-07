@@ -65,6 +65,7 @@ class DocumentStoreCheckCommand implements Command {
                     .withOrphan(options.withOrphan())
                     .withBaseVersion(options.withBaseVersion())
                     .withVersionHistory(options.withVersionHistory())
+                    .withUuid(options.withUuid())
                     .withProgress(options.withProgress())
                     .isSilent(options.isSilent())
                     .withSummary(options.withSummary())
@@ -94,6 +95,8 @@ class DocumentStoreCheckCommand implements Command {
 
         final OptionSpec<Boolean> versionHistory;
 
+        final OptionSpec<Boolean> uuid;
+
         final OptionSpec<Integer> numThreads;
 
         public CheckOptions(String usage) {
@@ -111,6 +114,8 @@ class DocumentStoreCheckCommand implements Command {
             baseVersion = parser.accepts("baseVersion", "Check base version reference")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             versionHistory = parser.accepts("versionHistory", "Check version history reference")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            uuid = parser.accepts("uuid", "Check UUID index entry")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             numThreads = parser.accepts("numThreads", "Use this number of threads to check consistency")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
@@ -148,6 +153,10 @@ class DocumentStoreCheckCommand implements Command {
 
         public boolean withVersionHistory() {
             return versionHistory.value(options);
+        }
+
+        public boolean withUuid() {
+            return uuid.value(options);
         }
 
         public int getNumThreads() {
