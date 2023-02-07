@@ -320,7 +320,7 @@ public final class FileIOUtils {
      * @return comparator aware of line breaks
      */
     public static Comparator<String> lineBreakAwareComparator (Comparator<String> delegate) {
-        return new FileIOUtils.TransformingComparator(delegate, new Function<String, String>() {
+        return new FileIOUtils.TransformingComparator(delegate, new java.util.function.Function<String, String>() {
             @Nullable
             @Override
             public String apply(@Nullable String input) {
@@ -354,10 +354,28 @@ public final class FileIOUtils {
      * comparator.
      */
     public static class TransformingComparator implements Comparator<String> {
-        private Comparator delegate;
-        private Function<String, String> func;
+        private Comparator<String> delegate;
+        private java.util.function.Function<String, String> func;
 
-        public TransformingComparator(Comparator delegate, Function<String, String> func) {
+        /**
+         * @deprecated use {@link TransformingComparator(Comparator<String>
+         *             delegate, java.util.function.Function<String, String>)
+         *             instead
+         */
+        @Deprecated(since = "1.50.0", forRemoval = true)
+        public TransformingComparator(Comparator<String> delegate, final Function<String, String> func) {
+            GuavaDeprecation.handleCall("OAK-10109");
+            this.delegate = delegate;
+            this.func = new java.util.function.Function<String, String>() {
+                @Override
+                public String apply(String t) {
+                    return func.apply(t);
+                }
+            };
+        }
+
+        public TransformingComparator(Comparator<String> delegate, java.util.function.Function<String, String> func) {
+            GuavaDeprecation.handleCall("OAK-10109");
             this.delegate = delegate;
             this.func = func;
         }
