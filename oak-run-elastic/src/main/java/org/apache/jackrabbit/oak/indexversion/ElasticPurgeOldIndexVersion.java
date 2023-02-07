@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
-import co.elastic.clients.elasticsearch._types.AcknowledgedResponseBase;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -80,19 +79,18 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
 
         String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, idxPath, SEED_VALUE);
 
-        //String idxAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, idxPath);
-
         ElasticsearchIndicesClient client = coordinate.getClient().indices();
         DeleteIndexResponse deleteIndexResponse = null;
         try {
             deleteIndexResponse = client.delete(db -> db.index(remoteIndexName));
-            checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for index " + remoteIndexName);
-            LOG.info("Deleted index {}. Response acknowledged: {}", remoteIndexName, deleteIndexResponse.acknowledged());
+            LOG.info("Deleted index operation called on {}. Response acknowledged: {}", remoteIndexName, deleteIndexResponse.acknowledged());
+            if (!deleteIndexResponse.acknowledged()) {
+                LOG.warn("Delete index call not acknowledged for index {}. " +
+                        "This could potentially mean the index is left in dangling state on ES cluster and needs to be removed manually", remoteIndexName);
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Exception while deleting index {}", remoteIndexName, e);
         }
-
-
     }
 
     @Override
@@ -107,11 +105,5 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
             throw new IllegalStateException("Index full name cannot be computed without name seed");
         }
         SEED_VALUE = seedProp.getValue(Type.LONG);
-    }
-
-    private void checkResponseAcknowledgement(AcknowledgedResponseBase response, String exceptionMessage) {
-        if (!response.acknowledged()) {
-            throw new IllegalStateException(exceptionMessage);
-        }
     }
 }
