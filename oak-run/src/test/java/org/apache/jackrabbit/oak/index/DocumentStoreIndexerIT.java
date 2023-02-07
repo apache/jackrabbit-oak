@@ -101,7 +101,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
 
-public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
+public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
     private final Logger LOG = LoggerFactory.getLogger(getClass());
 
     @Rule
@@ -139,7 +139,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
     @Test
     public void indexMongoRepo() throws Exception{
         dns = getNodeStore();
-        fixture = new RepositoryFixture(temporaryFolder.getRoot(), dns);
+        fixture = new LuceneRepositoryFixture(temporaryFolder.getRoot(), dns);
         createTestData(false);
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
         fixture.close();
@@ -198,7 +198,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "true");
 
         DocumentNodeStore dns = getNodeStore();
-        fixture = new RepositoryFixture(temporaryFolder.getRoot(), dns);
+        fixture = new LuceneRepositoryFixture(temporaryFolder.getRoot(), dns);
         
         createTestData("/testNodea/test/a", "foo", 40, "oak:Unstructured", true);
         createTestData("/testNodeb/test/b", "foo", 40, "oak:Unstructured", true);
@@ -251,7 +251,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
         //~-----------------------------------------
         //Phase 3 - Validate the import
-        RepositoryFixture fixture3 = new RepositoryFixture(temporaryFolder.getRoot(), dns);
+        IndexRepositoryFixture fixture3 = new LuceneRepositoryFixture(temporaryFolder.getRoot(), dns);
         int foo3Count = getFooCount(fixture3, "foo");
 
         //new count should be same as previous
@@ -268,7 +268,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         dns.dispose();
     }
 
-    private int getFooCount(RepositoryFixture fixture, String propName) throws IOException, RepositoryException {
+    private int getFooCount(IndexRepositoryFixture fixture, String propName) throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         String explanation = getQueryPlan(fixture, "select * from [oak:Unstructured] where ["+propName+"] is not null");
@@ -281,7 +281,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         return size;
     }
 
-    private static String getQueryPlan(RepositoryFixture fixture, String query) throws RepositoryException, IOException {
+    private static String getQueryPlan(IndexRepositoryFixture fixture, String query) throws RepositoryException, IOException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query explain = qm.createQuery("explain "+query, Query.JCR_SQL2);

@@ -16,30 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
-import java.io.IOException;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.junit.After;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import java.io.File;
+import java.io.IOException;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 
-public class AbstractIndexCommandTest {
+public abstract class AbstractIndexTestCommand {
+
     public static final String TEST_INDEX_PATH = "/oak:index/fooIndex";
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
-    protected RepositoryFixture fixture;
+    protected IndexRepositoryFixture fixture;
 
     @After
     public void cleaup() throws IOException {
@@ -51,23 +49,23 @@ public class AbstractIndexCommandTest {
     protected void createTestData(boolean asyncIndex) throws IOException, RepositoryException {
         createTestData("/testNode/a", "foo", 100, "nt:base", asyncIndex);
     }
-    
-    protected void createTestData(String basePath, String propName, int count, String nodeType, boolean asyncIndex) 
-        throws IOException, RepositoryException {
+
+    protected void createTestData(String basePath, String propName, int count, String nodeType, boolean asyncIndex)
+            throws IOException, RepositoryException {
         if (fixture == null) {
-            this.fixture = new RepositoryFixture(temporaryFolder.newFolder());
+            this.fixture = getRepositoryFixture(temporaryFolder.newFolder());
         }
         indexIndexDefinitions();
-        createLuceneIndex(nodeType, propName, asyncIndex);
+        createIndex(nodeType, propName, asyncIndex);
         addTestContent(fixture, basePath, propName, count);
     }
-    
-    protected void addTestContent(RepositoryFixture fixture, String basePath, String propName, int count) 
-        throws IOException, RepositoryException {
+
+    protected void addTestContent(IndexRepositoryFixture fixture, String basePath, String propName, int count)
+            throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         for (int i = 0; i < count; i++) {
             getOrCreateByPath(basePath+i,
-                "oak:Unstructured", session).setProperty(propName, "bar");
+                    "oak:Unstructured", session).setProperty(propName, "bar");
         }
         session.save();
         session.logout();
@@ -82,21 +80,10 @@ public class AbstractIndexCommandTest {
         session.save();
         session.logout();
     }
-    
-    private void createLuceneIndex(String nodeType, String propName, boolean asyncIndex) throws IOException,
-        RepositoryException {
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
-        if (!asyncIndex) {
-            idxBuilder.noAsync();
-        }
-        idxBuilder.indexRule(nodeType).property(propName).propertyIndex();
 
-        Session session = fixture.getAdminSession();
-        Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,
-                "oak:QueryIndexDefinition", session);
+    protected abstract IndexRepositoryFixture getRepositoryFixture(File dir);
 
-        idxBuilder.build(fooIndex);
-        session.save();
-        session.logout();
-    }
+    protected abstract void createIndex(String nodeType, String propName, boolean asyncIndex) throws IOException,
+            RepositoryException;
+
 }

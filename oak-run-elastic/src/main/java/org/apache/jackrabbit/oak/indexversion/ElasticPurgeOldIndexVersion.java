@@ -1,0 +1,99 @@
+package org.apache.jackrabbit.oak.indexversion;
+
+import co.elastic.clients.elasticsearch._types.AcknowledgedResponseBase;
+import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
+import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
+
+public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticPurgeOldIndexVersion.class);
+
+    private final String indexPrefix;
+    private final String scheme;
+    private final String host;
+    private final int port;
+    private final String apiKeyId;
+    private final String apiSecretId;
+    private long SEED_VALUE;
+
+    public ElasticPurgeOldIndexVersion(String indexPrefix, String scheme, String host, int port, String apiKeyId, String apiSecretId) {
+        super();
+        this.indexPrefix = indexPrefix;
+        this.scheme = scheme;
+        this.host = host;
+        this.port = port;
+        this.apiKeyId = apiKeyId;
+        this.apiSecretId = apiSecretId;
+    }
+
+    @Override
+    protected String getIndexType() {
+        return TYPE_ELASTICSEARCH;
+    }
+
+    @Override
+    protected void postDeleteOp(String idxPath) {
+        final ElasticConnection.Builder.BuildStep buildStep = ElasticConnection.newBuilder()
+                .withIndexPrefix(indexPrefix)
+                .withConnectionParameters(
+                        scheme,
+                        host,
+                        port
+                );
+        final ElasticConnection coordinate;
+        if (apiKeyId != null && apiSecretId != null) {
+            coordinate = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
+        } else {
+            coordinate = buildStep.build();
+        }
+
+        closer.register(coordinate);
+
+        String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, idxPath, SEED_VALUE);
+
+        //String idxAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, idxPath);
+
+        ElasticsearchIndicesClient client = coordinate.getClient().indices();
+        DeleteIndexResponse deleteIndexResponse = null;
+        try {
+            deleteIndexResponse = client.delete(db -> db.index(remoteIndexName));
+            checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for index " + remoteIndexName);
+            LOG.info("Deleted index {}. Response acknowledged: {}", remoteIndexName, deleteIndexResponse.acknowledged());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    @Override
+    protected boolean returnIgnoreIsIndexActiveCheck() {
+        return true;
+    }
+
+    @Override
+    protected void preserveDetailsFromIndexDefForPostOp(NodeBuilder builder) {
+        PropertyState seedProp = builder.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
+        if (seedProp == null) {
+            throw new IllegalStateException("Index full name cannot be computed without name seed");
+        }
+        SEED_VALUE = seedProp.getValue(Type.LONG);
+    }
+
+    private void checkResponseAcknowledgement(AcknowledgedResponseBase response, String exceptionMessage) {
+        if (!response.acknowledged()) {
+            throw new IllegalStateException(exceptionMessage);
+        }
+    }
+}
