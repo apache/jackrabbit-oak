@@ -197,8 +197,8 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
-        private static final PerfLogger PERF_LOGGER =
-            new PerfLogger(LoggerFactory.getLogger(LucenePropertyIndex.class.getName() + ".perf"));
+    private static final PerfLogger PERF_LOGGER =
+        new PerfLogger(LoggerFactory.getLogger(LucenePropertyIndex.class.getName() + ".perf"));
 
     private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
     private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
@@ -224,6 +224,12 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final PostingsHighlighter postingsHighlighter = new PostingsHighlighter();
 
     private final IndexAugmentorFactory augmentorFactory;
+
+    static {
+        if (!NON_LAZY) {
+            LOG.warn("Lazy index download is enabled explicitly; this is not recommended, see OAK-10102.");
+        }
+    }
 
     public LucenePropertyIndex(IndexTracker tracker) {
         this(tracker, null);
