@@ -189,7 +189,8 @@ class SegmentDataV12 implements SegmentData {
             return new StringData(internalReadRecordId(index + Long.BYTES), (int) length);
         }
 
-        throw new IllegalStateException("String is too long: " + length);
+        throw new IllegalStateException("String is too long: " + length + "; possibly trying to read a "
+                + "BLOB using getString; can not convert BLOB to String");
     }
 
     private StringData internalReadString(int index, int length) {

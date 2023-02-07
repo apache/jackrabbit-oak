@@ -197,6 +197,11 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
                     Strings.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
+                enableSecondaryLocation = PropertiesUtil.toBoolean(
+                        properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
+                        AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
+                );
+
                 CloudBlobContainer azureContainer = getAzureContainer();
 
                 if (createBlobContainer && azureContainer.createIfNotExists()) {
@@ -233,11 +238,6 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 if (createRefSecretOnInit) {
                     getOrCreateReferenceKey();
                 }
-
-                enableSecondaryLocation = PropertiesUtil.toBoolean(
-                        properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
-                        AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
-                );
             }
             catch (StorageException e) {
                 throw new DataStoreException(e);
