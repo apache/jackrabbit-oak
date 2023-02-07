@@ -185,17 +185,17 @@ public abstract class PurgeOldIndexVersion implements Closeable {
                     NodeBuilder rootBuilder = root.builder();
                     NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, repositoryIndexPath);
                     if (nodeBuilder.exists()) {
-                        String indexType = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
+                        String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
                         // If type = disabled. There can be 2 cases -
                         // 1. It was marked as disabled by this code , in which case the original type would be moved to orig_type property
                         // 2. It was marked disabled by someone else.
 
 
-                        // Skip the run if (type = disabled and orig_type is present and not equal to PurgeOldIndexVersion's impl type)
+                        // Skip the run if (type = disabled and orig_type is present and not equal to PurgeOldIndexVersion's impl's  index type)
                         // OR
-                        // (type != disabled and type is not equal to PurgeOldIndexVersion's impl type )
-                        if ((TYPE_DISABLED.equals(indexType) && nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME) != null && !getIndexType().equals(nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME).getValue(Type.STRING))) ||
-                                (!TYPE_DISABLED.equals(indexType) && !getIndexType().equals(indexType))) {
+                        // (type != disabled and type is not equal to PurgeOldIndexVersion's impl's  index type)
+                        if ((TYPE_DISABLED.equals(type) && nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME) != null && !getIndexType().equals(nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME).getValue(Type.STRING))) ||
+                                (!TYPE_DISABLED.equals(type) && !getIndexType().equals(type))) {
                             continue;
                         }
 
@@ -230,14 +230,14 @@ public abstract class PurgeOldIndexVersion implements Closeable {
             String nodeName = toDeleteIndexNameObject.getIndexName().getNodeName();
             NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, nodeName);
             if (nodeBuilder.exists()) {
-                String indexType = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
+                String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
 
                 if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE_HIDDEN_AND_DISABLE) {
                     LOG.info("Disabling {}", nodeName);
                     nodeBuilder.setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED, Type.STRING);
                     // Set this property orig_type so that when the purge job marks this index for deletion in later runs -
                     // the proper post deletion hook can be called based on the original index type.
-                    nodeBuilder.setProperty(ORIGINAL_TYPE_PROPERTY_NAME, indexType, Type.STRING);
+                    nodeBuilder.setProperty(ORIGINAL_TYPE_PROPERTY_NAME, type, Type.STRING);
                     EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
                     store.merge(rootBuilder, hook, CommitInfo.EMPTY);
                     PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, nodeName);

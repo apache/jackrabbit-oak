@@ -103,6 +103,11 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
         Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
         Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+
+        // check if disabled index deleted in subsequent runs if hidden oak mount not present
+        runIndexPurgeCommand(true, 1, "");
+        indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+        Assert.assertFalse("Index:" + "fooIndex-4" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
     }
 
     @Test
@@ -373,6 +378,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
     }
 
     private void runIndexPurgeCommand(boolean readWrite, long threshold, String indexPaths) throws Exception {
+        fixture.getAdminSession();
         fixture.getAsyncIndexUpdate("async").run();
         fixture.close();
         LucenePurgeOldIndexVersionCommand command = new LucenePurgeOldIndexVersionCommand();
