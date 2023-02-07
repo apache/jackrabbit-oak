@@ -58,11 +58,11 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
         if (prop != null) {
             String ref = prop.getValue(Type.REFERENCE);
             AtomicReference<String> resolvedPath = new AtomicReference<>("");
-            NodeState version = getNodeByUUID(ref, resolvedPath);
-            if (version == null) {
+            NodeState target = getNodeByUUID(ref, resolvedPath);
+            if (target == null) {
                 result = new BrokenReference(path, ref, resolvedPath.get());
-            } else if (!isReferenceable(version, ref)) {
-                result = new ReferenceTargetInvalid(path, ref, resolvedPath.get(), version.getString(JCR_UUID));
+            } else if (!isReferenceable(target, ref)) {
+                result = new ReferenceTargetInvalid(path, ref, resolvedPath.get(), target.getString(JCR_UUID));
             }
         }
         return Optional.ofNullable(result);
