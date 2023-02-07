@@ -83,8 +83,8 @@
     </dependency>
   </dependencies>
   <properties>
-    <wrapped.guava.version>31.1-jre</wrapped.guava.version>
+    <wrapped.guava.version>20.0</wrapped.guava.version>
     <pref>org.apache.jackrabbit.oak.guava</pref>
-    <exported.guava.version>31.1.0</exported.guava.version>
+    <exported.guava.version>20.0</exported.guava.version>
   </properties>
 </project>

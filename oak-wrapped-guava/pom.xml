@@ -28,8 +28,8 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <wrapped.guava.version>31.1-jre</wrapped.guava.version>
-    <exported.guava.version>31.1.0</exported.guava.version>
+    <wrapped.guava.version>20.0</wrapped.guava.version>
+    <exported.guava.version>20.0</exported.guava.version>
     <pref>org.apache.jackrabbit.oak.guava</pref>
   </properties>
 
