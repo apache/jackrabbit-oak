@@ -375,7 +375,6 @@ public final class FileIOUtils {
         }
 
         public TransformingComparator(Comparator<String> delegate, java.util.function.Function<String, String> func) {
-            GuavaDeprecation.handleCall("OAK-10109");
             this.delegate = delegate;
             this.func = func;
         }
