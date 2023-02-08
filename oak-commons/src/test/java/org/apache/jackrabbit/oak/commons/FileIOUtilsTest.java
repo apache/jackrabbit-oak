@@ -480,7 +480,7 @@ public class FileIOUtilsTest {
     }
 
     @Test
-    public void testTransformingComparator() throws Exception {
+    public void testDeprecatedTransformingComparator() throws Exception {
         Comparator<String> delegate = new Comparator<String>() {
             @Override
             public int compare(String o1, String o2) {
@@ -493,6 +493,22 @@ public class FileIOUtilsTest {
                 return input.toLowerCase(Locale.ENGLISH);
             }
         };
+        FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate, fun);
+
+        assertTrue(0 > delegate.compare("A", "a"));
+        assertTrue(0 < delegate.compare("a", "A"));
+        assertTrue(0 == comp.compare("a", "A"));
+    }
+
+    @Test
+    public void testTransformingComparator() throws Exception {
+        Comparator<String> delegate = new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        };
+        java.util.function.Function<String, String> fun = x -> x.toLowerCase(Locale.ENGLISH);
         FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate, fun);
 
         assertTrue(0 > delegate.compare("A", "a"));
