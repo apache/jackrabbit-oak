@@ -255,10 +255,23 @@ public abstract class PurgeOldIndexVersion implements Closeable {
         }
     }
 
+    /**
+     *
+     * @return IndexType served by the implementation like lucene or elasticsearch
+     */
     protected abstract String getIndexType();
 
+    /**
+     *
+     * @param idxPath - index path on which to perform post delete operations
+     */
     protected abstract void postDeleteOp(String idxPath);
 
+    /**
+     *
+     * @return true if the isIndexActiveCheck should be skipped
+     * - for cases where index implementation does not have hidden oak mounts
+     */
     protected abstract boolean returnIgnoreIsIndexActiveCheck();
 
     /**
