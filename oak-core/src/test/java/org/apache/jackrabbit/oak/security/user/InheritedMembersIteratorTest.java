@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -29,6 +30,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -94,7 +97,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     @Test
     public void testNoDynamicMembers() throws Exception {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
-        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Iterators.emptyIterator());
+        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Collections.emptyIterator());
 
         // no dynamic members in result
         Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
@@ -108,7 +111,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     public void testDynamicMembers() throws Exception {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.getMembers(dynamicGroup, false)).thenReturn(Iterators.forArray(dynamicUser, getTestUser()));
-        when(dmp.getMembers(nonDynamicGroup, false)).thenReturn(Iterators.emptyIterator());
+        when(dmp.getMembers(nonDynamicGroup, false)).thenReturn(Collections.emptyIterator());
 
         // dynamic members get resolved this time
         Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup", "dynamicTestUser");

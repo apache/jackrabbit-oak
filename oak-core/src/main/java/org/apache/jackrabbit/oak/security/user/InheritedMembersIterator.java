@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
@@ -27,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -87,6 +87,6 @@ class InheritedMembersIterator extends AbstractLazyIterator<Authorizable> {
                 log.error("Failed to retrieve dynamic members of group '{}'", Utils.getIdOrNull(group), e);
             }
         }
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 }
