@@ -101,7 +101,7 @@ public class IndexVersionOperation {
         List<IndexName> disableIndexNameObjectList = removeDisabledCustomIndexesFromList(indexDefParentNode, reverseSortedIndexNameList);
         // for disabled indexes, we check if they exist in read-only repo, it not anymore, do full deletion then, otherwise, no action needed
         // Also skip deletion if ignoreIsIndexActiveCheck is true (which would be from ElasticPurgeOldIndexVersion) -
-        // this case would be valid disabled indexes which previously were ES indexes and hence wouldn't have any hidden oak mount and the check for read-only repo existence is irrelevant.
+        // this case would be valid for disabled indexes which previously were ES indexes and hence wouldn't have any hidden oak mount and the check for read-only repo existence is irrelevant.
         // So we skip deleting the disabled index here so that we don't delete a disabled base (ES) index by mistake.
         // Summary - Delete disabled index if ignoreIsIndexActiveCheck = false (which would be when called from LucenePurgeOldIndexVersion) and hidden oak mount doesn't exists.
         for (IndexName indexNameObject : disableIndexNameObjectList) {
