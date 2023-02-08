@@ -30,7 +30,7 @@ public interface IndexConstants {
     /**
      * Property to hold the value for original index implementation in case the index type is set to disabled.
      */
-    String ORIGINAL_TYPE_PROPERTY_NAME = "orig_type";
+    String ORIGINAL_TYPE_PROPERTY_NAME = ":originalType";
 
     String TYPE_UNKNOWN = "unknown";
 

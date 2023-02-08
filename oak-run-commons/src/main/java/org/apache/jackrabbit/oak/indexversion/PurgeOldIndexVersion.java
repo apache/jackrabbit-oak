@@ -177,19 +177,18 @@ public abstract class PurgeOldIndexVersion implements Closeable {
      */
     private Set<String> filterIndexPaths(NodeStore store, Iterable<String> repositoryIndexPaths, List<String> commandlineIndexPaths) {
         Set<String> filteredIndexPaths = new HashSet<>();
+        NodeState root = store.getRoot();
+        NodeBuilder rootBuilder = root.builder();
         for (String commandlineIndexPath : commandlineIndexPaths) {
             for (String repositoryIndexPath : repositoryIndexPaths) {
                 if (PurgeOldVersionUtils.isIndexChildNode(commandlineIndexPath, repositoryIndexPath)
                         || PurgeOldVersionUtils.isBaseIndexEqual(commandlineIndexPath, repositoryIndexPath)) {
-                    NodeState root = store.getRoot();
-                    NodeBuilder rootBuilder = root.builder();
                     NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, repositoryIndexPath);
                     if (nodeBuilder.exists()) {
                         String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
                         // If type = disabled. There can be 2 cases -
                         // 1. It was marked as disabled by this code , in which case the original type would be moved to orig_type property
                         // 2. It was marked disabled by someone else.
-
 
                         // Skip the run if (type = disabled and orig_type is present and not equal to PurgeOldIndexVersion's impl's  index type)
                         // OR

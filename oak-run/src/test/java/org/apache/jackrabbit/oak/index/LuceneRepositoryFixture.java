@@ -40,7 +40,7 @@ public class LuceneRepositoryFixture extends IndexRepositoryFixture {
     }
 
     @Override
-    protected void configureIndexProvider(Oak oak) throws IOException {
+    protected void configureIndexProvider(Oak oak) {
         LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
         LuceneIndexProvider provider = new LuceneIndexProvider();
         oak.with((QueryIndexProvider) provider)

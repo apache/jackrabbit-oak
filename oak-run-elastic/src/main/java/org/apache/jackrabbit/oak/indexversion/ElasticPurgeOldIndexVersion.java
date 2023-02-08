@@ -80,7 +80,7 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
         String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, idxPath, SEED_VALUE);
 
         ElasticsearchIndicesClient client = coordinate.getClient().indices();
-        DeleteIndexResponse deleteIndexResponse = null;
+        DeleteIndexResponse deleteIndexResponse;
         try {
             deleteIndexResponse = client.delete(db -> db.index(remoteIndexName));
             LOG.info("Deleted index operation called on {}. Response acknowledged: {}", remoteIndexName, deleteIndexResponse.acknowledged());
