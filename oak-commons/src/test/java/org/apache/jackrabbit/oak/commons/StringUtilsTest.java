@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Map;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 import org.junit.Test;
 
 /**

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.commons.io;
 
-import static com.google.common.io.Files.asByteSource;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
@@ -132,11 +131,11 @@ public class LazyInputStreamTest {
         createFile();
 
         // test open / close (without reading)
-        LazyInputStream in = new LazyInputStream(asByteSource(file));
+        LazyInputStream in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         in.close();
 
         // test reading too much and closing too much
-        in = new LazyInputStream(asByteSource(file));
+        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         assertEquals(0, in.read());
         assertEquals(-1, in.read());
         assertEquals(-1, in.read());
@@ -146,7 +145,7 @@ public class LazyInputStreamTest {
         in.close();
 
         // test markSupported, mark, and reset
-        in = new LazyInputStream(asByteSource(file));
+        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         assertFalse(in.markSupported());
         in.mark(1);
         assertEquals(0, in.read());
@@ -160,18 +159,18 @@ public class LazyInputStreamTest {
         in.close();
 
         // test read(byte[])
-        in = new LazyInputStream(asByteSource(file));
+        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         byte[] test = new byte[2];
         assertEquals(1, in.read(test));
         in.close();
 
         // test read(byte[],int,int)
-        in = new LazyInputStream(asByteSource(file));
+        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         assertEquals(1, in.read(test, 0, 2));
         in.close();
 
         // test skip
-        in = new LazyInputStream(asByteSource(file));
+        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         assertEquals(2, in.skip(2));
         assertEquals(-1, in.read(test));
         in.close();
@@ -179,7 +178,7 @@ public class LazyInputStreamTest {
         createFile();
 
         // test that the file is closed after reading the last byte
-        in = new LazyInputStream(asByteSource(file));
+        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         assertEquals(0, in.read());
         assertEquals(-1, in.read());
 

@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Supplier;
 
-import com.google.common.io.ByteSource;
 import org.apache.commons.io.input.ClosedInputStream;
 import org.apache.jackrabbit.oak.commons.GuavaDeprecation;
 
@@ -33,7 +32,7 @@ import org.apache.jackrabbit.oak.commons.GuavaDeprecation;
  */
 public class LazyInputStream extends FilterInputStream {
 
-    private final ByteSource byteSource;
+    private final com.google.common.io.ByteSource byteSource;
     private final Supplier<InputStream> inputStreamSupplier;
 
     private boolean opened;
@@ -48,7 +47,7 @@ public class LazyInputStream extends FilterInputStream {
      * @deprecated Use {@link #LazyInputStream(Supplier)} instead
      */
     @Deprecated(since = "1.20.0", forRemoval = true)
-    public LazyInputStream(ByteSource byteSource) {
+    public LazyInputStream(com.google.common.io.ByteSource byteSource) {
         super(null);
         this.byteSource = byteSource;
         this.inputStreamSupplier = null;
