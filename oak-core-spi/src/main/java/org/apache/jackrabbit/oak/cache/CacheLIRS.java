@@ -40,7 +40,7 @@ import com.google.common.cache.RemovalCause;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.apache.jackrabbit.oak.guava.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.apache.jackrabbit.oak.spi.GuavaDeprecation;

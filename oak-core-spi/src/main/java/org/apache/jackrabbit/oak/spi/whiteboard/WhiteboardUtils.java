@@ -30,9 +30,9 @@ import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;

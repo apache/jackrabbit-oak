@@ -36,7 +36,7 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 
 /**

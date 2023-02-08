@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.valueOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

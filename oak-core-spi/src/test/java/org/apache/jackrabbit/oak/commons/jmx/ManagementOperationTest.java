@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.oak.guava.common.util.concurrent.MoreExecutors.listeningDecorator;
+import static org.apache.jackrabbit.oak.guava.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static java.lang.Thread.currentThread;
 import static java.lang.Thread.sleep;
 import static java.util.concurrent.Executors.newCachedThreadPool;
@@ -40,7 +40,7 @@ import java.util.concurrent.TimeoutException;
 
 import javax.management.openmbean.CompositeData;
 
-import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.oak.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
 import org.junit.After;

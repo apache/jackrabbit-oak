@@ -114,6 +114,11 @@
     <!-- Other Oak module -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-wrapped-guava</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jackrabbit-api</artifactId>
       <version>${project.version}</version>
     </dependency>

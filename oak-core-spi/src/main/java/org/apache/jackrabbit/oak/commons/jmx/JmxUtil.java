@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.jetbrains.annotations.NotNull;
 

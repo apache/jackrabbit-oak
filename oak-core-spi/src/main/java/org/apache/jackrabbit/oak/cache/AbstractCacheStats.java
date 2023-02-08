@@ -18,13 +18,13 @@
 
 package org.apache.jackrabbit.oak.cache;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.oak.guava.common.base.Objects;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;

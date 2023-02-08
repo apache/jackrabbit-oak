@@ -19,13 +19,13 @@
 
 package org.apache.jackrabbit.oak.spi.gc;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newConcurrentHashSet;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newConcurrentHashSet;
 
 import java.util.Collection;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 

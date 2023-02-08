@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Objects.toStringHelper;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;

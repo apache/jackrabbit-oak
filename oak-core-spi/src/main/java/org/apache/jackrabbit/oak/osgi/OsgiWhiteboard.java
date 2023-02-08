@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newTreeMap;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.guava.common.collect.Maps.newTreeMap;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.lock;
 
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 public interface LockConstants extends JcrConstants {

@@ -26,7 +26,7 @@ import org.osgi.service.component.ComponentContext;
 
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Utility methods to use in an OSGi environment.
