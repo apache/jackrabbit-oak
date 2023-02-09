@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.internal;
 
 import java.util.Set;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 
 /**
  * Represents a preconditions set that may be satisfied by adding the right

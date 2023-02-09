@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;

@@ -24,9 +24,9 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.base.Predicate;
+import org.apache.jackrabbit.oak.guava.common.base.Strings;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;

@@ -36,8 +36,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Queues;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.collect.Queues;
 
 /**
  * A cursor that reads all nodes in a given subtree.

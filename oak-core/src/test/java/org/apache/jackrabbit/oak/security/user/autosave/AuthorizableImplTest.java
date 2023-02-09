@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.junit.After;
 import org.junit.Before;

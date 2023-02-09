@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.ASYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE;
@@ -96,11 +96,11 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 
 import ch.qos.logback.classic.Level;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;

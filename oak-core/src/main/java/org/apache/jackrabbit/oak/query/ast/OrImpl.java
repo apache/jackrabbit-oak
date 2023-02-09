@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 
 /**
  * An "or" condition.

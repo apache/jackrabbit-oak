@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.junit.After;

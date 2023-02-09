@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Map;
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;

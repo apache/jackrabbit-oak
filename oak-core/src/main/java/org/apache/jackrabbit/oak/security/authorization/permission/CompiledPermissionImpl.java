@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -54,7 +54,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Iterators.concat;
+import static org.apache.jackrabbit.oak.guava.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.EMPTY;
 

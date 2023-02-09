@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;

@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.progress;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

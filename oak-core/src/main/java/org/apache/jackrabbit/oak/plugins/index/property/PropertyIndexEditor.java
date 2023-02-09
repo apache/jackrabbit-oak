@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static com.google.common.base.Suppliers.memoize;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -38,7 +38,7 @@ import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.oak.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;

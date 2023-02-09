@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -37,9 +37,9 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.base.Objects;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;

@@ -33,8 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.base.Predicate;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 
 public class Multiplexers {
 

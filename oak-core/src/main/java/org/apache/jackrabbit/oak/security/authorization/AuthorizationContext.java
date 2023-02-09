@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;

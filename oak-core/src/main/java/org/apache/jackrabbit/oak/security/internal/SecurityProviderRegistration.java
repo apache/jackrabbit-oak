@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import com.google.common.collect.Iterables;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.io.Closer;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -86,7 +86,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.EMPTY;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;

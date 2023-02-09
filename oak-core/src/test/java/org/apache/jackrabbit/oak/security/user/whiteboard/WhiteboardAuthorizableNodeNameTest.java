@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;

@@ -23,7 +23,7 @@ import java.util.List;
 
 import javax.jcr.query.Query;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;

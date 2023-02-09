@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.ImmutableSet.copyOf;
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet.copyOf;
+import static org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.emptySet;
 
 /**

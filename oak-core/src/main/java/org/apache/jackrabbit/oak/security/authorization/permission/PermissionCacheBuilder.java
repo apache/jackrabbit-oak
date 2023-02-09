@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkState;
 
 final class PermissionCacheBuilder {
 

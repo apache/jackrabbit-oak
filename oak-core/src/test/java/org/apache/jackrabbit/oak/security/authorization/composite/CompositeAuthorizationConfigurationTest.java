@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;

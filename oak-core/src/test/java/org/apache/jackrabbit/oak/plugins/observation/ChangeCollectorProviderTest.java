@@ -61,8 +61,8 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 
 public class ChangeCollectorProviderTest {
 

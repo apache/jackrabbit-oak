@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static com.google.common.collect.ImmutableMap.of;
+import static org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

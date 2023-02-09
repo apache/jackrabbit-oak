@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;

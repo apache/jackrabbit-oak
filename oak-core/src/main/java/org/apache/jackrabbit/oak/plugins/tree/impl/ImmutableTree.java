@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.oak.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;

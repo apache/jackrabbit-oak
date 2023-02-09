@@ -29,7 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import javax.management.MBeanServer;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;

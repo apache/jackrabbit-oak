@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.oak.guava.common.base.Function;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;

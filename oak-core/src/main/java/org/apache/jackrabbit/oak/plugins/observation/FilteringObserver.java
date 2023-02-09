@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.Closeable;
 import java.util.concurrent.Executor;

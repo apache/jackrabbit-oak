@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkState;
 
 class TokenValidatorProvider extends ValidatorProvider implements TokenConstants {
 

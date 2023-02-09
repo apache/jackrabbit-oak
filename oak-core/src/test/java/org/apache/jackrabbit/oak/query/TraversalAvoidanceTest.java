@@ -43,8 +43,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 
 public class TraversalAvoidanceTest extends AbstractQueryTest {
     

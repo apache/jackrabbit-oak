@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;

@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.management;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
@@ -36,7 +36,7 @@ import java.util.Map;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.oak.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;

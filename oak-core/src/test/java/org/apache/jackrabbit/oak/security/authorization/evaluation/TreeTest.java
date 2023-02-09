@@ -25,7 +25,7 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;

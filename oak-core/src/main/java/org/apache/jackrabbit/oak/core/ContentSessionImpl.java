@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;

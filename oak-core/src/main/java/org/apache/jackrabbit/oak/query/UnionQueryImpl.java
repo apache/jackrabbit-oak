@@ -38,11 +38,11 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.common.collect.PeekingIterator;
+import org.apache.jackrabbit.oak.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.collect.PeekingIterator;
 
 /**
  * Represents a union query.

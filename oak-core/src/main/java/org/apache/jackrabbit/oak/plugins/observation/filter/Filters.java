@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.EXCLUDE_ALL;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.INCLUDE_ALL;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

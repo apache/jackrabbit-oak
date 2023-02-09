@@ -27,9 +27,9 @@ import java.lang.ref.SoftReference;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.guava.common.base.Charsets;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -42,9 +42,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkState;
 
 /**
  * TextWriter implementation which just stores the extracted text

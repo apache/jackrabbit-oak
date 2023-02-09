@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
 
 public class MultipleIndicesTest extends AbstractQueryTest {
 

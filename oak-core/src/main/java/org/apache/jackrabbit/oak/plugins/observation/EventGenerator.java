@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newLinkedList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;

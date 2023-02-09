@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.NoSuchWorkspaceException;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;

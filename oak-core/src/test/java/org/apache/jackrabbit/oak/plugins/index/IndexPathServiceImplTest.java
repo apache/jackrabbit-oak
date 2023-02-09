@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;

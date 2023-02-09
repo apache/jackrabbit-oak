@@ -27,10 +27,10 @@ import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newConcurrentMap;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_JCR;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_MIX;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_NT;

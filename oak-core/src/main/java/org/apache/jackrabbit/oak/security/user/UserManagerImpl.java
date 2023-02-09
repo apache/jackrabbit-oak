@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.base.Strings;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -64,7 +64,7 @@ import java.security.Principal;
 import java.util.Iterator;
 import java.util.Set;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
 
 /**
  * UserManagerImpl...

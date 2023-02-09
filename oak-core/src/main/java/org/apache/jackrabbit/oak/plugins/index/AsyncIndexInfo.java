@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 
 public class AsyncIndexInfo {
     private final String name;

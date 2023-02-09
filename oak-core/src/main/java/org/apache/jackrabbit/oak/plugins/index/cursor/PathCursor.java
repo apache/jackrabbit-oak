@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.base.Predicate;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
 
 /**
  * <code>PathCursor</code> implements a simple {@link Cursor} that iterates

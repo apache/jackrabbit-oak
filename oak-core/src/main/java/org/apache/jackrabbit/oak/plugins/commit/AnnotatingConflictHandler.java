@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;

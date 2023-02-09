@@ -46,7 +46,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
 
 /**
  * Tests for cases where two or more indices return a similar cost estimation for the same query

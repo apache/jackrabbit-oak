@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static com.google.common.collect.Iterables.contains;
+import static org.apache.jackrabbit.oak.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
@@ -43,8 +43,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

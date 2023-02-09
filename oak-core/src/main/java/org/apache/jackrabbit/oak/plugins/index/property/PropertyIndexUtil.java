@@ -24,7 +24,7 @@ import java.net.URLEncoder;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.oak.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
 public class PropertyIndexUtil {

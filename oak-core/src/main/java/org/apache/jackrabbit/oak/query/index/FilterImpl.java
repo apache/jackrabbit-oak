@@ -30,8 +30,8 @@ import java.util.TreeMap;
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+import org.apache.jackrabbit.oak.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.oak.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;

@@ -35,9 +35,9 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.collect.TreeTraverser;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;

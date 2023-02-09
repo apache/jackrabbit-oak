@@ -22,8 +22,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.base.Splitter;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;

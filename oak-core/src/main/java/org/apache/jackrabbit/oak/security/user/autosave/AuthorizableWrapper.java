@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.util.Iterator;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.base.Function;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 

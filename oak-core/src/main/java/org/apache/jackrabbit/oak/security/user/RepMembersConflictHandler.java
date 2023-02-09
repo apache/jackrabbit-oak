@@ -31,8 +31,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 
 /**
  * The {@code RepMembersConflictHandler} takes care of merging the {@code rep:members} property

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -50,9 +50,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 
 /**
  * Test the asynchronous reindexing ability of an synchronous index

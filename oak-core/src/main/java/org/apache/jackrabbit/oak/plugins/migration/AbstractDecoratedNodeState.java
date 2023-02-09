@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.base.Function;
+import org.apache.jackrabbit.oak.guava.common.base.Predicates;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -38,7 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import static com.google.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 public abstract class AbstractDecoratedNodeState extends AbstractNodeState {

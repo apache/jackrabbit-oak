@@ -30,8 +30,8 @@ import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 import java.util.Locale;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;

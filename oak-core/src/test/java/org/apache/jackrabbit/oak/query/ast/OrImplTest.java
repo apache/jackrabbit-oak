@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet.of;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;

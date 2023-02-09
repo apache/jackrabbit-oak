@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static com.google.common.collect.Iterables.addAll;
-import static com.google.common.collect.Iterables.contains;
-import static com.google.common.collect.Iterables.isEmpty;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newLinkedHashSet;
-import static com.google.common.collect.Sets.union;
+import static org.apache.jackrabbit.oak.guava.common.collect.Iterables.addAll;
+import static org.apache.jackrabbit.oak.guava.common.collect.Iterables.contains;
+import static org.apache.jackrabbit.oak.guava.common.collect.Iterables.isEmpty;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.union;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -77,7 +77,7 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 
 /**
  * This class is used by the {@link TypeEditorProvider} to check for,

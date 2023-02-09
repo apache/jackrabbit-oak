@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.junit.Test;

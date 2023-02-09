@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.lock;
 
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 /**

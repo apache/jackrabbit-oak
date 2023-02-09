@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.guava.common.base.Predicate;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;

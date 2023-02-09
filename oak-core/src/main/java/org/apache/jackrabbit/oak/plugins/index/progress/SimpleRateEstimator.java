@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.progress;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.guava.common.base.Stopwatch;
 
 public class SimpleRateEstimator implements TraversalRateEstimator {
     private final Stopwatch w = Stopwatch.createStarted();

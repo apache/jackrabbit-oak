@@ -25,11 +25,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Represents the index data created by oak-run tooling on the file system.

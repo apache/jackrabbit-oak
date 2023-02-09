@@ -52,8 +52,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
 
 /**
  * Randomized PermissionStore test. It generates a random structure (1110

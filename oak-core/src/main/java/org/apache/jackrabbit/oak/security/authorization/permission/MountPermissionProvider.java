@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
 
 public class MountPermissionProvider extends PermissionProviderImpl {
 

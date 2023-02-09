@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.oak.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -31,9 +31,9 @@ import org.osgi.service.component.annotations.Component;
 
 import java.util.List;
 import java.util.Set;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Collections2.transform;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
 
 /**

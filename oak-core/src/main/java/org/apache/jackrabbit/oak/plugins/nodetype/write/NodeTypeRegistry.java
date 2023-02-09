@@ -28,7 +28,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeTypeManager;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.oak.guava.common.base.Charsets;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.api.Root;

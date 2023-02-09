@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.Set;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;

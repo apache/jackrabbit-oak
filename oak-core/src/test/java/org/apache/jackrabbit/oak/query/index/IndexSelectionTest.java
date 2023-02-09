@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.query.index;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;

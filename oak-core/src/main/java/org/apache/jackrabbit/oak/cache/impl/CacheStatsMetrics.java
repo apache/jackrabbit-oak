@@ -24,8 +24,8 @@ import java.util.Map;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.osgi.service.component.annotations.Component;

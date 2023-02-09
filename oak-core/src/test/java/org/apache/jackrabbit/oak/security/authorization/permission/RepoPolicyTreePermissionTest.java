@@ -21,7 +21,7 @@ import java.security.PrivilegedAction;
 import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;

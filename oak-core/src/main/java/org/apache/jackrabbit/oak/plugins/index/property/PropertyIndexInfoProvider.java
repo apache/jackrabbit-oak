@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.guava.common.base.Preconditions.checkArgument;
 
 @Component
 public class PropertyIndexInfoProvider implements IndexInfoProvider {

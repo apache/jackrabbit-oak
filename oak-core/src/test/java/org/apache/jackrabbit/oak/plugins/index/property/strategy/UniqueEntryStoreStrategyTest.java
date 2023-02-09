@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import static com.google.common.base.Suppliers.memoize;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.oak.guava.common.base.Supplier;
 
 public class UniqueEntryStoreStrategyTest {
     
