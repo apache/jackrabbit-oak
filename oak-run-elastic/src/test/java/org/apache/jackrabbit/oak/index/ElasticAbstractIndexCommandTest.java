@@ -49,6 +49,9 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
     @Override
     protected IndexRepositoryFixture getRepositoryFixture(File dir) {
         esConnection = getElasticConnection();
+        if (esConnection == null) {
+            throw new IllegalStateException("Unable to create ES connection");
+        }
         return new ElasticRepositoryFixture(dir,esConnection);
     }
 
