@@ -49,6 +49,9 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
     @Override
     protected IndexRepositoryFixture getRepositoryFixture(File dir) {
         esConnection = getElasticConnection();
+        if (true) {
+            // NOOP
+        }
         return new ElasticRepositoryFixture(dir,esConnection);
     }
 
