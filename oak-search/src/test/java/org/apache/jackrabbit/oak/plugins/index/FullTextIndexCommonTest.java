@@ -198,7 +198,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void fulltextSearchWithCustomAnalyzer() throws Exception {
-        setup("foo", idx -> {
+        setup(singletonList("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
             anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("stop");
@@ -214,7 +214,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     //OAK-4805
     @Test
     public void badIndexDefinitionShouldLetQEWork() throws Exception {
-        setup("foo", idx -> {
+        setup(singletonList("foo"), idx -> {
             //This would allow index def to get committed. Else bad index def can't be created.
             idx.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, "async");
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
@@ -237,7 +237,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void testSynonyms() throws Exception {
-        setup("foo", idx -> {
+        setup(singletonList("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
             Tree synFilter = anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("Synonym");
@@ -265,7 +265,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         Tree index = setup(builder -> {
             builder.indexRule("nt:base").property("propa").analyzed();
             builder.indexRule("nt:base").property("propb").nodeScopeIndex();
-        }, idx -> idx.addChild(ANALYZERS).setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, true));
+        }, idx -> idx.addChild(ANALYZERS).setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, true),
+                "propa", "propb");
 
         Tree rootTree = root.getTree("/");
         Tree node1Tree = rootTree.addChild("node1");
@@ -305,22 +306,23 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         });
     }
 
-    private static final BiConsumer<IndexDefinitionBuilder, String> DEFAULT_BUILDER_HOOK = ((builder, analyzedField) ->
-            builder.indexRule("nt:base").property(analyzedField).analyzed().nodeScopeIndex());
+    private static final BiConsumer<IndexDefinitionBuilder, List<String>> DEFAULT_BUILDER_HOOK = ((builder, analyzedFields) ->
+            analyzedFields.forEach(f -> builder.indexRule("nt:base").property(f).analyzed().nodeScopeIndex()));
     protected Tree setup() throws Exception {
-        return setup("analyzed_field", idx -> {});
+        return setup(singletonList("analyzed_field"), idx -> {});
     }
 
-    private Tree setup(String analyzedField, Consumer<Tree> indexHook) throws Exception {
+    private Tree setup(List<String> analyzedFields, Consumer<Tree> indexHook) throws Exception {
         return setup(
-                builder -> DEFAULT_BUILDER_HOOK.accept(builder, analyzedField),
-                indexHook
+                builder -> DEFAULT_BUILDER_HOOK.accept(builder, analyzedFields),
+                indexHook,
+                analyzedFields.toArray(new String[0])
         );
     }
 
-    private Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook) throws Exception {
+    private Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook, String... propNames) throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
-                indexOptions.createIndexDefinitionBuilder(), false, "analyzed_field");
+                indexOptions.createIndexDefinitionBuilder(), false, propNames);
         builder.noAsync();
         builder.evaluatePathRestrictions();
         builderHook.accept(builder);
