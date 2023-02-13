@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -72,8 +73,8 @@ final class NodeStateAnalyzerFactory {
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
     private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
-            LuceneIndexConstants.ANL_CLASS,
-            LuceneIndexConstants.ANL_NAME,
+            FulltextIndexConstants.ANL_CLASS,
+            FulltextIndexConstants.ANL_NAME,
             JcrConstants.JCR_PRIMARYTYPE
     );
 
@@ -92,16 +93,16 @@ final class NodeStateAnalyzerFactory {
     }
 
     public Analyzer createInstance(NodeState state) {
-        if (state.hasProperty(LuceneIndexConstants.ANL_CLASS)){
+        if (state.hasProperty(FulltextIndexConstants.ANL_CLASS)){
             return createAnalyzerViaReflection(state);
         }
         return composeAnalyzer(state);
     }
 
     private Analyzer composeAnalyzer(NodeState state) {
-        TokenizerFactory tf = loadTokenizer(state.getChildNode(LuceneIndexConstants.ANL_TOKENIZER));
-        CharFilterFactory[] cfs = loadCharFilterFactories(state.getChildNode(LuceneIndexConstants.ANL_CHAR_FILTERS));
-        TokenFilterFactory[] tffs = loadTokenFilterFactories(state.getChildNode(LuceneIndexConstants.ANL_FILTERS));
+        TokenizerFactory tf = loadTokenizer(state.getChildNode(FulltextIndexConstants.ANL_TOKENIZER));
+        CharFilterFactory[] cfs = loadCharFilterFactories(state.getChildNode(FulltextIndexConstants.ANL_CHAR_FILTERS));
+        TokenFilterFactory[] tffs = loadTokenFilterFactories(state.getChildNode(FulltextIndexConstants.ANL_FILTERS));
         return new TokenizerChain(cfs, tf, tffs);
     }
 
@@ -141,7 +142,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private TokenizerFactory loadTokenizer(NodeState state) {
-        String clazz = checkNotNull(state.getString(LuceneIndexConstants.ANL_NAME));
+        String clazz = checkNotNull(state.getString(FulltextIndexConstants.ANL_NAME));
         Map<String, String> args = convertNodeState(state);
         TokenizerFactory tf = TokenizerFactory.forName(clazz, args);
         init(tf, state);
@@ -149,16 +150,16 @@ final class NodeStateAnalyzerFactory {
     }
 
     private Analyzer createAnalyzerViaReflection(NodeState state) {
-        String clazz = state.getString(LuceneIndexConstants.ANL_CLASS);
+        String clazz = state.getString(FulltextIndexConstants.ANL_CLASS);
         Class<? extends Analyzer> analyzerClazz = defaultLoader.findClass(clazz, Analyzer.class);
 
         Version matchVersion = getVersion(state);
         CharArraySet stopwords = null;
         if (StopwordAnalyzerBase.class.isAssignableFrom(analyzerClazz)
-                && state.hasChildNode(LuceneIndexConstants.ANL_STOPWORDS)) {
+                && state.hasChildNode(FulltextIndexConstants.ANL_STOPWORDS)) {
             try {
-                stopwords = loadStopwordSet(state.getChildNode(LuceneIndexConstants.ANL_STOPWORDS),
-                        LuceneIndexConstants.ANL_STOPWORDS, matchVersion);
+                stopwords = loadStopwordSet(state.getChildNode(FulltextIndexConstants.ANL_STOPWORDS),
+                        FulltextIndexConstants.ANL_STOPWORDS, matchVersion);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while loading stopwords", e);
             }
@@ -222,7 +223,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private static String getFactoryType(NodeState state, String nodeStateName){
-        String type = state.getString(LuceneIndexConstants.ANL_NAME);
+        String type = state.getString(FulltextIndexConstants.ANL_NAME);
         return type != null ? type : nodeStateName;
     }
 

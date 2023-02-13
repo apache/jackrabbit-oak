@@ -16,17 +16,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
 
 public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
@@ -40,8 +52,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void defaultAnalyzer() throws Exception {
-        Tree test = setup();
+        setup();
 
+        Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "sun.jpg");
         root.commit();
 
@@ -57,8 +70,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void defaultAnalyzerHonourSplitOptions() throws Exception {
-        Tree test = setup();
+        setup();
 
+        Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "1234abCd5678");
         root.commit();
 
@@ -70,10 +84,11 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         });
     }
 
-
     @Test
     public void testWithSpecialCharsInSearchTerm() throws Exception {
-        Tree test = setup();
+        setup();
+
+        Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "foo");
         root.commit();
 
@@ -95,8 +110,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     @Test()
     public void testFullTextTermWithUnescapedBraces() throws Exception {
         LogCustomizer customLogs = setupLogCustomizer();
-        Tree test = setup();
+        setup();
 
+        Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "foo");
         root.commit();
 
@@ -115,7 +131,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void pathTransformationsWithNoPathRestrictions() throws Exception {
-        Tree test = setup();
+        setup();
+
+        Tree test = root.getTree("/").addChild("test");
         test.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
         test.addChild("b").setProperty("analyzed_field", "bar");
         test.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
@@ -130,8 +148,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void pathTransformationsWithPathRestrictions() throws Exception {
-        Tree test = setup();
+        setup();
 
+        Tree test = root.getTree("/").addChild("test");
         test.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
         test.addChild("b").setProperty("analyzed_field", "bar");
         test.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
@@ -179,24 +198,145 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void fulltextSearchWithCustomAnalyzer() throws Exception {
+        setup("foo", idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+            anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("stop");
+        });
 
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("foo", "fox jumping");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", singletonList("/test")));
+    }
+
+    //OAK-4805
+    @Test
+    public void badIndexDefinitionShouldLetQEWork() throws Exception {
+        setup("foo", idx -> {
+            //This would allow index def to get committed. Else bad index def can't be created.
+            idx.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, "async");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree synFilter = anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("Synonym");
+            synFilter.setProperty("synonyms", "syn.txt");
+            // Don't add syn.txt to make analyzer (and hence index def) invalid
+            // synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "blah, foo, bar");
+        });
+
+        //Using this version of executeQuery as we don't want a result row quoting the exception
+        assertEventually(() -> {
+            try {
+                executeQuery("SELECT * FROM [nt:base] where a='b'", SQL2, QueryEngine.NO_BINDINGS);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Test
+    public void testSynonyms() throws Exception {
+        setup("foo", idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree synFilter = anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("Synonym");
+            synFilter.setProperty("synonyms", "syn.txt");
+            synFilter.addChild("syn.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "plane, airplane, aircraft\nflies=>scars");
+        });
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree testNodeChild = test.addChild("node");
+        testNodeChild.setProperty("foo", "an aircraft flies");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'plane')", singletonList("/test/node"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'airplane')", singletonList("/test/node"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'aircraft')", singletonList("/test/node"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'scars')", singletonList("/test/node"));
+        });
+    }
+
+    //OAK-4516
+    @Test
+    public void wildcardQueryToLookupUnanalyzedText() throws Exception {
+        Tree index = setup(builder -> {
+            builder.indexRule("nt:base").property("propa").analyzed();
+            builder.indexRule("nt:base").property("propb").nodeScopeIndex();
+        }, idx -> idx.addChild(ANALYZERS).setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, true));
+
+        Tree rootTree = root.getTree("/");
+        Tree node1Tree = rootTree.addChild("node1");
+        node1Tree.setProperty("propa", "abcdef");
+        node1Tree.setProperty("propb", "abcdef");
+        Tree node2Tree = rootTree.addChild("node2");
+        node2Tree.setProperty("propa", "abc_def");
+        node2Tree.setProperty("propb", "abc_def");
+        root.commit();
+
+        String fullIndexName = indexOptions.getIndexType() + ":" + index.getName();
+
+        assertEventually(() -> {
+            //normal query still works
+            String query = "select [jcr:path] from [nt:base] where contains('propa', 'abc*')";
+            String explanation = explain(query);
+            assertThat(explanation, containsString(fullIndexName));
+            assertQuery(query, asList("/node1", "/node2"));
+
+            //unanalyzed wild-card query can still match original term
+            query = "select [jcr:path] from [nt:base] where contains('propa', 'abc_d*')";
+            explanation = explain(query);
+            assertThat(explanation, containsString(fullIndexName));
+            assertQuery(query, singletonList("/node2"));
+
+            //normal query still works
+            query = "select [jcr:path] from [nt:base] where contains(*, 'abc*')";
+            explanation = explain(query);
+            assertThat(explanation, containsString(fullIndexName));
+            assertQuery(query, asList("/node1", "/node2"));
+
+            //unanalyzed wild-card query can still match original term
+            query = "select [jcr:path] from [nt:base] where contains(*, 'abc_d*')";
+            explanation = explain(query);
+            assertThat(explanation, containsString(fullIndexName));
+            assertQuery(query, singletonList("/node2"));
+        });
+    }
+
+    private static final BiConsumer<IndexDefinitionBuilder, String> DEFAULT_BUILDER_HOOK = ((builder, analyzedField) ->
+            builder.indexRule("nt:base").property(analyzedField).analyzed().nodeScopeIndex());
     protected Tree setup() throws Exception {
+        return setup("analyzed_field", idx -> {});
+    }
+
+    private Tree setup(String analyzedField, Consumer<Tree> indexHook) throws Exception {
+        return setup(
+                builder -> DEFAULT_BUILDER_HOOK.accept(builder, analyzedField),
+                indexHook
+        );
+    }
+
+    private Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook) throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
                 indexOptions.createIndexDefinitionBuilder(), false, "analyzed_field");
         builder.noAsync();
-        builder.indexRule("nt:base")
-                .property("analyzed_field")
-                .analyzed().nodeScopeIndex();
         builder.evaluatePathRestrictions();
+        builderHook.accept(builder);
 
-        indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
+        Tree index = indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
+        indexHook.accept(index);
         root.commit();
 
-        //add content
-        Tree test = root.getTree("/").addChild("test");
-        root.commit();
+        return index;
+    }
 
-        return test;
+    private String explain(String query){
+        String explain = "explain " + query;
+        return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
     // TODO : Below two method are only used for testFullTextTermWithUnescapedBraces
