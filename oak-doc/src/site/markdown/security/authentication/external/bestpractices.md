@@ -58,7 +58,7 @@ The optional order depends on the frequency of default vs external login.
 
 ##### Example JAAS Configuration
 
-The following JAAS configuration can e.g. be used when running an Oak repository with external authentication 
+The following JAAS configuration is an example when running an Oak repository with external authentication 
 in combination with Apache Sling (see also other [examples](externallogin_examples.html)):
 
 | Ranking | Control Flag | LoginModule Class Name |
