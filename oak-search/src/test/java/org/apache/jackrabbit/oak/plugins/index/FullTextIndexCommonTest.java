@@ -35,6 +35,8 @@ import java.util.function.Consumer;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -197,11 +199,51 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
-    public void fulltextSearchWithCustomAnalyzer() throws Exception {
+    public void fulltextSearchWithBuiltInAnalyzerClass() throws Exception {
+        setup(singletonList("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
+        });
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("foo", "fox jumping");
+        root.commit();
+
+        // standard english analyzer stems verbs (jumping -> jump)
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'jump')", singletonList("/test")));
+    }
+
+    @Test
+    public void fulltextSearchWithBuiltInAnalyzerClassAndConfigurationParams() throws Exception {
+        setup(singletonList("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
+            anl.addChild("stopwords").addChild(JCR_CONTENT).setProperty(JCR_DATA, "dog");
+        });
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("foo", "dog and cat");
+        root.commit();
+
+        // standard english analyzer stems verbs (jumping -> jump)
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'dog')", emptyList());
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'cat')", singletonList("/test"));
+        });
+    }
+
+    @Test
+    public void fulltextSearchWithCustomComposedAnalyzer() throws Exception {
         setup(singletonList("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
-            anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("stop");
+
+            Tree stopFilter = anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("Stop");
+            stopFilter.setProperty("words", "stop1.txt, stop2.txt");
+            stopFilter.addChild("stop1.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "was");
+            stopFilter.addChild("stop2.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "and");
         });
 
         Tree test = root.getTree("/").addChild("test");
@@ -312,7 +354,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         return setup(singletonList("analyzed_field"), idx -> {});
     }
 
-    private Tree setup(List<String> analyzedFields, Consumer<Tree> indexHook) throws Exception {
+    protected Tree setup(List<String> analyzedFields, Consumer<Tree> indexHook) throws Exception {
         return setup(
                 builder -> DEFAULT_BUILDER_HOOK.accept(builder, analyzedFields),
                 indexHook,

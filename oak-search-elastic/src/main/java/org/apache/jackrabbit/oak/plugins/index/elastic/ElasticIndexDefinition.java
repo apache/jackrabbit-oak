@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ElasticIndexDefinition extends IndexDefinition {
 
@@ -156,6 +157,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .stream()
                 .flatMap(rule -> rule.getSimilarityProperties().stream())
                 .collect(Collectors.toList());
+    }
+
+    @Nullable
+    public NodeState getAnalyzersNodeState() {
+        return definition.getChildNode(FulltextIndexConstants.ANALYZERS);
     }
 
     public String getIndexPrefix() {

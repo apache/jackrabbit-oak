@@ -17,14 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.junit.ClassRule;
+import org.junit.Test;
 import org.slf4j.event.Level;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Collections.singletonList;
 
 public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
 
@@ -66,5 +71,23 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
         expectedLogList.add(log1);
         expectedLogList.add(log2);
         return expectedLogList;
+    }
+
+    @Test
+    /*
+     * analyzers by name are not possible in lucene, this test can run on elastic only
+     */
+    public void fulltextSearchWithBuiltInAnalyzerName() throws Exception {
+        setup(singletonList("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.setProperty(FulltextIndexConstants.ANL_NAME, "german");
+        });
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("foo", "die Füchse springen");
+        root.commit();
+
+        // standard german analyzer stems verbs (springen -> spring)
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", singletonList("/test")));
     }
 }
