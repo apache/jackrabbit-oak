@@ -38,7 +38,7 @@ class OakHelpCommand extends CommandSupport{
 
     protected List createCompleters() {
         return [
-                new CommandNameCompleter(registry),
+                new CommandNameCompleter(registry, false),
                 null
         ]
     }
