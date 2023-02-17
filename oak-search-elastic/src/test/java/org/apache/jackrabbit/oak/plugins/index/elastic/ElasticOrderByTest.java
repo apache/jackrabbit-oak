@@ -101,6 +101,48 @@ public class ElasticOrderByTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    public void orderByUnmappedProperty() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("foo");
+        builder.indexRule("nt:folder").property("foo");
+
+        setIndex(UUID.randomUUID().toString(), builder);
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "zzzzzz");
+        a.setProperty("bar", "zzzzzz");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "aaaaaa");
+        b.setProperty("bar", "aaaaaa");
+        root.commit(Collections.singletonMap("sync-mode", "rt"));
+
+        String explain = explain("select [jcr:path] from [nt:folder] order by @bar");
+        assertOrderedQuery("select [jcr:path] from [nt:folder] order by @bar", asList("/test/b", "/test/a"));
+        assertOrderedQuery("select [jcr:path] from [nt:folder] order by @bar DESC", asList("/test/a", "/test/b"));
+    }
+
+    @Test
+    public void orderByUnmappedFunction() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("foo");
+        builder.indexRule("nt:base").property("foo");
+
+        setIndex(UUID.randomUUID().toString(), builder);
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "zzzzzz");
+        a.setProperty("bar", "zzzzzz");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "aaaaaa");
+        b.setProperty("bar", "AAAAAA");
+        root.commit(Collections.singletonMap("sync-mode", "rt"));
+
+        String explain = explain("select [jcr:path] from [nt:base] as a order by lower(name(a))");
+        assertOrderedQuery("select [jcr:path] from [nt:base] as a order by lower(name(a))", asList("/test/b", "/test/a"));
+        assertOrderedQuery("select [jcr:path] from [nt:base] as a order by lower(name(a)) DESC", asList("/test/a", "/test/b"));
+    }
+
+    @Test
     public void orderByAnalyzedProperty() throws Exception {
         IndexDefinitionBuilder builder = createIndex("foo");
         builder.indexRule("nt:base").property("foo").analyzed();

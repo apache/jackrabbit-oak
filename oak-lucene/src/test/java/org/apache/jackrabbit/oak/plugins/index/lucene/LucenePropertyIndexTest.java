@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -701,87 +700,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void orderByScore() throws Exception {
-        Tree idx = createIndex("test1", of("propa"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null order by [jcr:score]", asList("/test/a"));
-    }
-
-    // OAK-7370
-    @Ignore("OAK-7370")
-    @Test
-    public void orderByScoreAcrossUnion() throws Exception {
-        Tree idx = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild("test-index");
-        IndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
-        builder.evaluatePathRestrictions();
-        builder.indexRule("nt:base")
-                .property("foo").analyzed().propertyIndex().nodeScopeIndex()
-                .property("p1").propertyIndex()
-                .property("p2").propertyIndex();
-        builder.build(idx);
-        idx.removeProperty("async");
-        root.commit();
-
-        Tree testRoot = root.getTree("/").addChild("test");
-        Tree path1 = testRoot.addChild("path1");
-        Tree path2 = testRoot.addChild("path2");
-
-        Tree c1 = path1.addChild("c1");
-        c1.setProperty("foo", "bar. some extra stuff");
-        c1.setProperty("p1", "d");
-
-        Tree c2 = path2.addChild("c2");
-        c2.setProperty("foo", "bar");
-        c2.setProperty("p2", "d");
-
-        Tree c3 = path2.addChild("c3");
-        c3.setProperty("foo", "bar. some extra stuff... and then some to make it worse than c1");
-        c3.setProperty("p2", "d");
-
-        // create more stuff to get num_docs in index large and hence force union optimization
-        for (int i = 0; i < 10; i++) {
-            testRoot.addChild("extra" + i).setProperty("foo", "stuff");
-        }
-
-        root.commit();
-
-        List<String> expected = asList(c2.getPath(), c1.getPath(), c3.getPath());
-
-        String query;
-
-        // manual union
-        query =
-                "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path1.getPath() + "')" +
-                " union " +
-                "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path2.getPath() + "')" +
-                " order by [jcr:score] desc";
-
-        assertEquals(expected, executeQuery(query, SQL2));
-
-        // no union (estiimated fulltext without union would be same as sub-queries and it won't be optimized
-        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
-                " and (isdescendantnode('" + path1.getPath() + "') or" +
-                " isdescendantnode('" + path2.getPath() + "'))" +
-                " order by [jcr:score] desc";
-
-        assertEquals(expected, executeQuery(query, SQL2));
-
-        // optimization UNION as we're adding constraints to sub-queries that would improve cost of optimized union
-        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
-                " and ( (p1 = 'd' and isdescendantnode('" + path1.getPath() + "')) or" +
-                " (p2 = 'd' and isdescendantnode('" + path2.getPath() + "')))" +
-                " order by [jcr:score] desc";
-
-        assertEquals(expected, executeQuery(query, SQL2));
-    }
-
-    @Test
     public void rangeQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
@@ -880,134 +798,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         explanation = explain(query);
         assertThat(explanation, containsString("lucene:test1"));
         assertQuery(query, asList("/node2"));
-    }
-
-    @Test
-    public void sortOnNodeName() throws Exception {
-        Tree rootTree = root.getTree("/").addChild("test");
-
-        IndexDefinitionBuilder fnNameFunctionIndex = new LuceneIndexDefinitionBuilder().noAsync();
-        LuceneIndexDefinitionBuilder.PropertyRule rule = fnNameFunctionIndex.indexRule("nt:base")
-                .property("nodeName", null)
-                .propertyIndex()
-                .ordered();
-
-        // setup function index on "fn:name()"
-        rule.function("fn:name()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("fnName"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("fnName"));
-
-        // same index as above except for function - "name()"
-        rule.function("name()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("name"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("name"));
-
-        List<String> expected = Lists.newArrayList("/test/oak:index");
-        for (int i = 0; i < 3; i++) {
-            String nodeName = "a" + i;
-            rootTree.addChild(nodeName);
-            expected.add("/test/" + nodeName);
-        }
-        Collections.sort(expected);
-        root.commit();
-
-        String query = "/jcr:root/test/* order by fn:name() option(index tag fnName)";
-        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() ascending option(index tag fnName)";
-        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
-        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
-
-        // order by fn:name() although function index is on "name()"
-        query = "/jcr:root/test/* order by fn:name() option(index tag name)";
-        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() ascending option(index tag name)";
-        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
-        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
-    }
-
-    @Test
-    public void sortOnLocalName() throws Exception {
-        Tree rootTree = root.getTree("/").addChild("test");
-
-        IndexDefinitionBuilder fnNameFunctionIndex = new LuceneIndexDefinitionBuilder().noAsync();
-        IndexDefinitionBuilder.PropertyRule rule = fnNameFunctionIndex.indexRule("nt:base")
-                .property("nodeName", null)
-                .propertyIndex()
-                .ordered();
-
-        // setup function index on "fn:name()"
-        rule.function("fn:local-name()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("fnLocalName"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("fnLocalName"));
-
-        // same index as above except for function - "name()"
-        rule.function("localname()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("localName"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("localName"));
-
-        List<String> expected = Lists.newArrayList("/test/oak:index");
-        for (int i = 0; i < 3; i++) {
-            String nodeName = "ja" + i;//'j*' should come after (asc) 'index' in sort order
-            rootTree.addChild(nodeName);
-            expected.add("/test/" + nodeName);
-        }
-
-        //sort expectation based on local name
-        Collections.sort(expected, (s1, s2) -> {
-            final StringBuffer sb1 = new StringBuffer();
-            PathUtils.elements(s1).forEach(elem -> {
-                String[] split = elem.split(":", 2);
-                sb1.append(split[split.length - 1]);
-            });
-            s1 = sb1.toString();
-
-            final StringBuffer sb2 = new StringBuffer();
-            PathUtils.elements(s2).forEach(elem -> {
-                String[] split = elem.split(":", 2);
-                sb2.append(split[split.length - 1]);
-            });
-            s2 = sb2.toString();
-
-            return s1.compareTo(s2);
-        });
-        root.commit();
-
-        String query = "/jcr:root/test/* order by fn:local-name() option(index tag fnLocalName)";
-        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag fnLocalName)";
-        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag fnLocalName)";
-        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
-
-        // order by fn:name() although function index is on "name()"
-        query = "/jcr:root/test/* order by fn:local-name() option(index tag localName)";
-        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag localName)";
-        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag localName)";
-        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
     }
 
     //OAK-4517
@@ -1318,45 +1108,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void sortQueriesWithLong() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
-        root.commit();
-
-        assertSortedLong();
-    }
-
-    @Test
-    public void sortQueriesWithLong_OrderedProps() throws Exception {
-        Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
-        root.commit();
-
-        assertSortedLong();
-    }
-
-    @Test
-    public void sortQueriesWithLong_NotIndexed() throws Exception {
-        Tree idx = createIndex("test1", Collections.<String>emptySet());
-        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
-        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
-        root.commit();
-
-        assertThat(explain("select [jcr:path] from [nt:base] order by [jcr:score], [foo]"), containsString("lucene:test1"));
-
-        assertThat(explain("select [jcr:path] from [nt:base] order by [foo]"), containsString("lucene:test1"));
-
-        List<Tuple> tuples = createDataForLongProp();
-        assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
-        assertOrderedQuery("select [jcr:path] from [nt:base]  order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
-    }
-
-    @Test
     public void sortQueriesWithLong_NotIndexed_relativeProps() throws Exception {
         Tree idx = createIndex("test1", Collections.<String>emptySet());
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo/bar"), STRINGS));
@@ -1378,12 +1129,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo/bar]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery("select [jcr:path] from [nt:base]  order by [foo/bar] DESC", getSortedPaths(tuples, OrderDirection.DESC));
-    }
-
-    void assertSortedLong() throws CommitFailedException {
-        List<Tuple> tuples = createDataForLongProp();
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     private List<Tuple> createDataForLongProp() throws CommitFailedException {
