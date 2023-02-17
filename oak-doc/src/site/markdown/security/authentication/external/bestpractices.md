@@ -51,7 +51,7 @@ Make sure the token-login is 'sufficient' and is evaluated prior to the external
 #### Combination with Default Authentication
 
 Oak comes with a default login for user accounts stored and managed inside the JCR content repository. This also includes 
-support for default users like an anonymous guest, and an administrator with full access to the repository. If this is 
+support for default users like 'anonymous' and 'admin' with full access to the repository. If this is 
 desired, it is recommend to also add the [default `LoginModule`](../default.html#uid_pw) to the JAAS configuration.
 
 The optional order depends on the frequency of default vs external login.
