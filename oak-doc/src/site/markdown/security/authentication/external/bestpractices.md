@@ -41,13 +41,13 @@ Make sure the token login module has [control flag] 'SUFFICIENT' and is evaluate
 
 #### Combination with Default Authentication
 
-Oak comes with a default login for user accounts stored and managed inside the JCR content repository. This also includes support for default users like an anonymous guest, and an administrator with full access to the repository. If this is desired, it is recommend to also add the [default `LoginModule`](../default.html#uid_pw) to the JAAS configuration.
+Oak comes with a default login for user accounts stored and managed inside the JCR content repository. This also includes support for default users like 'anonymous' (guest) and 'admin' with full access to the repository. If this is desired, it is recommend to also add the [default `LoginModule`](../default.html#uid_pw) to the JAAS configuration.
 
 The optional order depends on the frequency of default vs external login: if login or impersonation against local users occurs frequently (e.g. unauthentication login with [GuestCredentials]) the default login module should have a higher ranking. However, if authentication of local users is unlikely, the external oak login should have a ranking.
 
 ##### Example JAAS Configuration
 
-The following JAAS configuration can e.g. be used when running an Oak repository with external authentication in combination with Apache Sling:
+The following JAAS configuration is an example when running an Oak repository with external authentication in combination with Apache Sling:
 
 | Ranking | Control Flag | LoginModule Class Name |
 |---------|--------------|------------------------|
