@@ -11,14 +11,16 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
 
+import javax.jcr.PropertyType;
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -36,14 +38,146 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
     }
 
     @Test
-    public void orderByScore() throws Exception {
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa"));
+    public void withoutOrderByClause() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.indexRule("nt:base")
+                .property("foo", null)
+                .analyzed();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo"));
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
+        test.addChild("a").setProperty("foo", "hello");
+        test.addChild("b").setProperty("foo", "hello hello");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null order by [jcr:score]", singletonList("/test/a"));
+        // results are sorted by score desc, node `b` returns first because it has a higher score from a tf/idf perspective
+        assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello')", asList("/test/b", "/test/a"));
+    }
+
+    @Test
+    public void orderByScore() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.indexRule("nt:base")
+                .property("foo", null)
+                .analyzed();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo"));
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("foo", "hello");
+        test.addChild("b").setProperty("foo", "hello hello");
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello') order by [jcr:score]",
+                asList("/test/a", "/test/b"));
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello') order by [jcr:score] DESC",
+                asList("/test/b", "/test/a"));
+    }
+
+    @Test
+    public void orderByPath() throws Exception {
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "foo"));
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("foo", "bar");
+        test.addChild("b").setProperty("foo", "bar");
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by [jcr:path]", asList("/test/a", "/test/b"));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by [jcr:path] DESC", asList("/test/b", "/test/a"));
+    }
+
+    @Test
+    public void orderByProperty() throws Exception {
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "foo", "baz"));
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("baz", "zzzzzz");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("baz", "aaaaaa");
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", asList("/test/b", "/test/a"));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", asList("/test/a", "/test/b"));
+    }
+
+    @Test
+    public void orderByAnalyzedProperty() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.indexRule("nt:base")
+                .property("baz", null)
+                .analyzed();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo", "baz"));
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("baz", "bbbbb");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("baz", "hello aaaa");
+        root.commit();
+
+        // this test verifies we use the keyword multi field when an analyzed properties is specified in order by
+        // http://www.technocratsid.com/string-sorting-in-elasticsearch/
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", asList("/test/a", "/test/b"));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", asList("/test/b", "/test/a"));
+    }
+
+    @Test
+    public void orderByNumericProperty() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.indexRule("nt:base")
+                .property("baz", null).propertyIndex().type(PropertyType.TYPENAME_LONG).ordered();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo", "baz"));
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("baz", "10");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("baz", "5");
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", asList("/test/b", "/test/a"));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", asList("/test/a", "/test/b"));
+    }
+
+    @Test
+    public void orderByMultiProperties() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.indexRule("nt:base")
+                .property("bar", null).propertyIndex().type(PropertyType.TYPENAME_LONG).ordered();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo", "bar", "baz"));
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a1 = test.addChild("a1");
+        a1.setProperty("foo", "foobar");
+        a1.setProperty("bar", "1");
+        a1.setProperty("baz", "a");
+        Tree a2 = test.addChild("a2");
+        a2.setProperty("foo", "foobar");
+        a2.setProperty("bar", "2");
+        a2.setProperty("baz", "a");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "foobar");
+        b.setProperty("bar", "100");
+        b.setProperty("baz", "b");
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @baz, @bar",
+                asList("/test/a1", "/test/a2", "/test/b"));
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @baz, @bar DESC",
+                asList("/test/a2", "/test/a1", "/test/b"));
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @bar DESC, @baz DESC",
+                asList("/test/b", "/test/a2", "/test/a1"));
     }
 
     @Test
@@ -244,6 +378,11 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         Result result = executeQuery(explain, "xpath", NO_BINDINGS);
         ResultRow row = Iterables.getOnlyElement(result.getRows());
         return row.getValue("plan").getValue(Type.STRING);
+    }
+
+    protected void assertOrderedQuery(String sql, List<String> paths) {
+        List<String> result = executeQuery(sql, AbstractQueryTest.SQL2, true, true);
+        assertEquals(paths, result);
     }
 
 }
