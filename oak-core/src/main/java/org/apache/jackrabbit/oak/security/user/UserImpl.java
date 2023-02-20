@@ -45,8 +45,7 @@ class UserImpl extends AuthorizableImpl implements User {
 
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
-        isAdmin = UserUtil.isAdmin(userManager.getConfig(), id)
-                || UserUtil.isMemberOfAnAdministratorGroup(this, userManager.getConfig());
+        isAdmin = UserUtil.isAdmin(userManager.getConfig(), id);
         pwHistory = new PasswordHistory(userManager.getConfig());
     }
 
@@ -79,9 +78,18 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     //---------------------------------------------------------------< User >---
+
+    /**
+     * The user is considered admin if it is the user with the id {@link UserConstants#DEFAULT_ADMIN_ID} or a member of
+     * a group configured as an administrators group using the config id
+     * {@link UserConstants#ADMINISTRATOR_GROUPS_CONFIG_ID}.
+     *
+     * @return true if the user has the id "admin" or a member of a configured administrators group.
+     */
     @Override
     public boolean isAdmin() {
-        return isAdmin;
+        return isAdmin
+                || UserUtil.isMemberOfAnAdministratorGroup(this, getUserManager().getConfig());
     }
 
     @Override
