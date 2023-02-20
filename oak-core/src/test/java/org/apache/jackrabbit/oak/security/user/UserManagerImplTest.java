@@ -91,7 +91,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     }
 
     private UserManagerImpl createUserManager(@NotNull Root root, @NotNull PartialValueFactory pvf) {
-        return new UserManagerImpl(root, pvf, getSecurityProvider(), UserMonitor.NOOP, mock(DynamicMembershipService.class));
+        return new UserManagerImpl(root, pvf, getSecurityProvider(), UserMonitor.NOOP, new DynamicMembershipTracker());
     }
 
     /**
