@@ -40,12 +40,10 @@ import org.jetbrains.annotations.Nullable;
  */
 class UserImpl extends AuthorizableImpl implements User {
 
-    private final boolean isAdmin;
     private final PasswordHistory pwHistory;
 
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
-        isAdmin = UserUtil.isAdmin(userManager.getConfig(), id);
         pwHistory = new PasswordHistory(userManager.getConfig());
     }
 
@@ -88,7 +86,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isAdmin() {
-        return isAdmin
+        return UserUtil.isAdmin(getUserManager().getConfig(), getID())
                 || UserUtil.isMemberOfAnAdministratorGroup(this, getUserManager().getConfig());
     }
 
@@ -137,9 +135,17 @@ class UserImpl extends AuthorizableImpl implements User {
         changePassword(password);
     }
 
+    /**
+     * Disables the user.
+     * <p>
+     * The user with the configured param {@link UserConstants#PARAM_ADMIN_ID} cannot be disabled.
+     *
+     * @throws RepositoryException if the user is the default admin one (configuration param
+     *                             {@link UserConstants#PARAM_ADMIN_ID})
+     */
     @Override
     public void disable(@Nullable String reason) throws RepositoryException {
-        if (isAdmin) {
+        if (UserUtil.isAdmin(getUserManager().getConfig(), getID())) {
             throw new RepositoryException("The administrator user cannot be disabled.");
         }
 
