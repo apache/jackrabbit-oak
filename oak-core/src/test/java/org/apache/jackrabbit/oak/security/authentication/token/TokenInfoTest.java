@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import java.text.ParseException;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -30,10 +33,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -186,11 +193,10 @@ public class TokenInfoTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testRemoveTokenTreeRemovalFails() {
+    public void testRemoveTokenTreeRemovalFails() throws ParseException {
         TokenInfo info = tokenProvider.createToken(userId, Collections.emptyMap());
         String path = getTokenTree(info).getPath();
         String userPath = Text.getRelativeParent(path, 2);
-        String token = info.getToken();
 
         Tree tokenTree = mock(Tree.class);
         when(tokenTree.remove()).thenReturn(false);
@@ -204,6 +210,12 @@ public class TokenInfoTest extends AbstractTokenTest {
         Root r = mock(Root.class);
         when(r.getTree(path)).thenReturn(tokenTree);
         when(r.getTree(userPath)).thenReturn(root.getTree(userPath));
+        when(r.getTree(NODE_TYPES_PATH)).thenReturn(root.getTree(NODE_TYPES_PATH));
+
+        QueryEngine qe = mock(QueryEngine.class);
+        when(r.getQueryEngine()).thenReturn(qe);
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(),any(Map.class), any(Map.class))).thenReturn(mock(Result.class));
+        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(mock(Result.class));
 
         TokenProviderImpl tp = createTokenProvider(r, getUserConfiguration());
         assertFalse(tp.getTokenInfo(path).remove());
