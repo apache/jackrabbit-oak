@@ -2,20 +2,16 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
 
-import javax.jcr.PropertyType;
 import java.text.ParseException;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -25,9 +21,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -242,80 +235,6 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         assertEquals(expected, executeQuery(query, SQL2));
     }
 
-    @Test
-    public void sortQueriesWithLong() throws Exception {
-        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder().noAsync();
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
-        indexRule.property("foo").propertyIndex().type(PropertyType.TYPENAME_LONG);
-        indexRule.property("bar").propertyIndex();
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(builder, false));
-        root.commit();
-
-        assertSortedLong();
-    }
-
-    @Test
-    public void sortQueriesWithLong_NotIndexed() throws Exception {
-        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder().noAsync();
-        builder.getBuilderTree().setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
-        builder.getBuilderTree().setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
-        indexRule.property("foo").propertyIndex().type(PropertyType.TYPENAME_LONG);
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(builder, false));
-        root.commit();
-
-        assertThat(explain("select [jcr:path] from [nt:base] order by [jcr:score], [foo]"),
-                containsString(indexOptions.getIndexType() + ":test1"));
-        assertThat(explain("select [jcr:path] from [nt:base] order by [foo]"),
-                containsString(indexOptions.getIndexType() + ":test1"));
-
-        List<Tuple> tuples = createDataForLongProp();
-        assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo]", getSortedPaths(tuples, OrderedIndex.OrderDirection.ASC));
-        assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo] DESC", getSortedPaths(tuples, OrderedIndex.OrderDirection.DESC));
-    }
-
-    protected void assertSortedLong() throws CommitFailedException {
-        List<Tuple> tuples = createDataForLongProp();
-        assertEventually(() -> {
-            assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
-                    getSortedPaths(tuples, OrderedIndex.OrderDirection.ASC));
-            assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
-                    getSortedPaths(tuples, OrderedIndex.OrderDirection.DESC));
-        });
-    }
-
-    private List<Tuple> createDataForLongProp() throws CommitFailedException {
-        Tree test = root.getTree("/").addChild("test");
-        List<Long> values = createLongs(100);
-        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
-        for(int i = 0; i < values.size(); i++){
-            Tree child = test.addChild("n"+i);
-            child.setProperty("foo", values.get(i));
-            child.setProperty("bar", "baz");
-            tuples.add(new Tuple(values.get(i), child.getPath()));
-        }
-        root.commit();
-        return tuples;
-    }
-
-    static List<Long> createLongs(int n){
-        List<Long> values = Lists.newArrayListWithCapacity(n);
-        for (long i = 0; i < n; i++){
-            values.add(i);
-        }
-        Collections.shuffle(values);
-        return values;
-    }
-
-    private void assertOrderedQuery(String sql, List<String> paths) {
-        assertOrderedQuery(sql, paths, SQL2, false);
-    }
-
-    private void assertOrderedQuery(String sql, List<String> paths, String language, boolean skipSort) {
-        List<String> result = executeQuery(sql, language, true, skipSort);
-        assertEquals(paths, result);
-    }
-
     private void assertXpathPlan(String query, String planExpectation) throws ParseException {
         assertThat(explainXpath(query), containsString(planExpectation));
     }
@@ -327,44 +246,4 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         return row.getValue("plan").getValue(Type.STRING);
     }
 
-    private String explain(String query){
-        String explain = "explain " + query;
-        return executeQuery(explain, "JCR-SQL2").get(0);
-    }
-
-    private static List<String> getSortedPaths(List<Tuple> tuples, OrderedIndex.OrderDirection dir) {
-        if (OrderedIndex.OrderDirection.DESC == dir) {
-            tuples.sort(Collections.reverseOrder());
-        } else {
-            Collections.sort(tuples);
-        }
-        List<String> paths = Lists.newArrayListWithCapacity(tuples.size());
-        for (Tuple t : tuples) {
-            paths.add(t.path);
-        }
-        return paths;
-    }
-
-    private static class Tuple implements Comparable<Tuple>{
-        final Comparable value;
-        final String path;
-
-        private Tuple(Comparable value, String path) {
-            this.value = value;
-            this.path = path;
-        }
-
-        @Override
-        public int compareTo(Tuple o) {
-            return value.compareTo(o.value);
-        }
-
-        @Override
-        public String toString() {
-            return "Tuple{" +
-                    "value=" + value +
-                    ", path='" + path + '\'' +
-                    '}';
-        }
-    }
 }

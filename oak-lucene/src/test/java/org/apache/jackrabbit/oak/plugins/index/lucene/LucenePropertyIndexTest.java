@@ -1108,6 +1108,46 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void sortQueriesWithLong() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
+        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        root.commit();
+
+        assertSortedLong();
+    }
+
+    @Test
+    public void sortQueriesWithLong_OrderedProps() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
+        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        root.commit();
+
+        assertSortedLong();
+    }
+
+    @Test
+    public void sortQueriesWithLong_NotIndexed() throws Exception {
+        Tree idx = createIndex("test1", Collections.<String>emptySet());
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
+        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        root.commit();
+
+        assertThat(explain("select [jcr:path] from [nt:base] order by [jcr:score], [foo]"), containsString("lucene:test1"));
+
+        assertThat(explain("select [jcr:path] from [nt:base] order by [foo]"), containsString("lucene:test1"));
+
+        List<Tuple> tuples = createDataForLongProp();
+        assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery("select [jcr:path] from [nt:base]  order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+
+    @Test
     public void sortQueriesWithLong_NotIndexed_relativeProps() throws Exception {
         Tree idx = createIndex("test1", Collections.<String>emptySet());
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo/bar"), STRINGS));
@@ -1129,6 +1169,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo/bar]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery("select [jcr:path] from [nt:base]  order by [foo/bar] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+    void assertSortedLong() throws CommitFailedException {
+        List<Tuple> tuples = createDataForLongProp();
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     private List<Tuple> createDataForLongProp() throws CommitFailedException {
