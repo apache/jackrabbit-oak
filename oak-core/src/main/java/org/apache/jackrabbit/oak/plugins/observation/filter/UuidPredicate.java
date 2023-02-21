@@ -69,7 +69,7 @@ public class UuidPredicate implements Predicate<NodeState>, com.google.common.ba
     /**
      * @deprecated use {@link #test(NodeState)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
-    @Deprecated
+    @Deprecated(since = "1.26.0", forRemoval = true)
     @Override
     public boolean apply(NodeState node) {
         GuavaDeprecation.handleCall("OAK-8874");

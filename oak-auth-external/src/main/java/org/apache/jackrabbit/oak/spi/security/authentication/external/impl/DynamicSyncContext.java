@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -104,6 +105,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
             ExternalIdentityRef ref = identity.getExternalId();
             if (!isSameIDP(ref)) {
                 // create result in accordance with sync(String) where status is FOREIGN
+                warnForeign(identity);
                 return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, true, -1), SyncResult.Status.FOREIGN);
             }
             return sync((ExternalGroup) identity, ref);
@@ -286,7 +288,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
             // there exists a group with the same id or principal name but it doesn't belong to the same IDP
             // in consistency with DefaultSyncContext don't sync this very membership into the repository
             // and log a warning about the collision instead.
-            log.warn("Existing group with id '{}' and principal name '{}' is not defined by IDP '{}'.", authorizable.getID(), authorizable.getPrincipal().getName(), idp.getName());
+            warnForeignExisting(authorizable, true);
             return true;
         } else if (!principalName.equals(authorizable.getPrincipal().getName())) {
             // there exists a group with matching ID but principal-mismatch, don't sync this very membership into the 
@@ -350,8 +352,8 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 // clear auto-membership
                 grp.removeMember(authorizable);
                 clearGroupMembership(grp, groupPrincipalNames, toRemove);
-            } else {
-                // some other membership that has not been added by the sync process
+            } else if (!isEveryone(grp)){
+                // some other membership that has not been added by the sync process (but skip for dynamic 'everyone' group)
                 log.warn("Ignoring unexpected membership of '{}' in group '{}' crossing IDP boundary.", authorizable.getID(), grp.getID());
             }
         }
@@ -375,6 +377,14 @@ public class DynamicSyncContext extends DefaultSyncContext {
     
     private static boolean groupsSyncedBefore(@NotNull Authorizable authorizable) throws RepositoryException {
         return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+    }
+
+    private static boolean isEveryone(@NotNull Group group) {
+        try {
+            return EveryonePrincipal.NAME.equals(group.getPrincipal().getName());
+        } catch (RepositoryException e) {
+            return false;
+        }
     }
 
     /**

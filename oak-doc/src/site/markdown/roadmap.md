@@ -25,13 +25,14 @@ releases directly from [trunk](https://github.com/apache/jackrabbit-oak/tree/tru
 
 * [download](https://jackrabbit.apache.org/jcr/downloads.html#latest)
 
+Starting with 1.48.0, these require Java 11.
 
 Maintenance branches
 --------------------
 We currently support the following maintenance branches:
 
 * [Oak 1.22](https://github.com/apache/jackrabbit-oak/tree/1.22/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.22)) - from Java 8 up to Java 13
-* [Oak 1.8](https://github.com/apache/jackrabbit-oak/tree/1.8/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.8)) - from Java 8 up to Java 13
+* [Oak 1.8](https://github.com/apache/jackrabbit-oak/tree/1.8/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.8)) - from Java 8 up to Java 13 - "end of life" planned for Spring 2023
 
 End of life
 -----------

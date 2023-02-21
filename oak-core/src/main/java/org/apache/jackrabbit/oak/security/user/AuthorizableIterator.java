@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RangeIterator;
 import javax.jcr.RepositoryException;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Objects;
@@ -44,6 +46,8 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     private final Iterator<Authorizable> authorizables;
     private final long size;
     private final Set<String> servedIds;
+
+    private static AuthorizableIterator EMPTY = new AuthorizableIterator(Collections.emptyIterator(), 0, false);
 
     @NotNull
     static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
@@ -67,6 +71,11 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
             }
         }
         return new AuthorizableIterator(Iterators.concat(it1, it2), size, filterDuplicates);
+    }
+    
+    @NotNull
+    static AuthorizableIterator empty() {
+        return EMPTY;
     }
 
     private AuthorizableIterator(Iterator<Authorizable> authorizables, long size, boolean filterDuplicates) {

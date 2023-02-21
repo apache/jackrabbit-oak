@@ -160,7 +160,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
         
         Result result = findPrincipals(principalName, true);
-        Iterator<? extends ResultRow> rows = (result == null) ? Iterators.emptyIterator() : result.getRows().iterator();
+        Iterator<? extends ResultRow> rows = (result == null) ? Collections.emptyIterator() : result.getRows().iterator();
         if (rows.hasNext()) {
             return new ExternalGroupPrincipal(principalName, getIdpName(rows.next()));
         }
@@ -257,7 +257,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @Override
     public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) throws RepositoryException {
         if (!isDynamic(group)) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } else {
             Result result = findPrincipals(group.getPrincipal().getName(), true);
             if (result != null) {
@@ -275,26 +275,38 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     @Override
     public boolean isMember(@NotNull Group group, @NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
-        if (authorizable.isGroup() || !isDynamic(group) || !isDynamic(authorizable)) {
+        if (authorizable.isGroup() || !isDynamic(authorizable)) {
             return false;
         } else {
-            String principalName = group.getPrincipal().getName();
-            return isDynamicMember(principalName, authorizable);
+            if (isDynamic(group) && isDynamicMember(group.getPrincipal().getName(), authorizable)) {
+                return true;
+            }
+            // test for inheritance from dynamic groups through cross-IDP membership
+            if (includeInherited) {
+                Iterator<Group> dynamicGroups = getMembership(authorizable, false);
+                while (dynamicGroups.hasNext()) {
+                    Group dynamicGroup = dynamicGroups.next();
+                    if (group.isMember(dynamicGroup)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 
     @Override
     public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
         if (authorizable.isGroup() || !isDynamic(authorizable)) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } else {
             Value[] vs = authorizable.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (vs == null || vs.length == 0) {
-                return Iterators.emptyIterator();
+                return Collections.emptyIterator();
             }
             
             Set<Value> valueSet = ImmutableSet.copyOf(vs);
-            return Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
+            Iterator<Group> declared = Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
                 try {
                     String groupPrincipalName = value.getString();
                     Authorizable gr = userManager.getAuthorizable(new PrincipalImpl(groupPrincipalName));
@@ -303,6 +315,12 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                     return null;
                 }
             }), Objects::nonNull);
+            if (includeInherited) {
+                // retrieve groups inherited from dynamic groups through cross-IDP membership
+                return new InheritedMembershipIterator(declared);
+            } else {
+                return declared;
+            }
         }
     }
 
@@ -355,7 +373,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
 
     @NotNull
-    private Set<Principal> getGroupPrincipals(@NotNull Authorizable authorizable, @NotNull Tree tree) {
+    private Set<Principal> getGroupPrincipals(@NotNull Authorizable authorizable, @NotNull Tree tree) throws RepositoryException {
         if (!tree.exists()) {
             return Collections.emptySet();
         }
@@ -373,6 +391,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                     groupPrincipals.add(new ExternalGroupPrincipal(principalName, idpName));
                 }
 
+                // add inherited local groups (crossing IDP boundary)
+                groupPrincipals.addAll(getInheritedPrincipals(groupPrincipals, idpName));
+
                 // add existing group principals as defined with the _autoMembership_ option.
                 groupPrincipals.addAll(getAutomembershipPrincipals(idpName, authorizable));
                 return groupPrincipals;
@@ -381,7 +402,25 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             }
         } else {
             // resolve automembership for dynamic groups
+            // NOTE: no need to resolve inherited local principals as this is covered by the default principal provider
             return getAutomembershipPrincipals(idpName, authorizable);
+        }
+    }
+
+    /**
+     * Special handling for the case where dynamic groups have been added to local groups
+     * @return set of inherited group principals 
+     */
+    private Set<Principal> getInheritedPrincipals(@NotNull Set<Principal> externalGroupPrincipals, @NotNull String idpName) {
+        if (idpNamesWithDynamicGroups.contains(idpName)) {
+            Set<Principal> inherited = new HashSet<>();
+            for (Principal p : externalGroupPrincipals) {
+                inherited.addAll(DynamicGroupUtil.getInheritedPrincipals(p, userManager));
+            }
+            return inherited;
+        } else {
+            // no dynamic groups created => membership with local groups cannot be created
+            return Collections.emptySet();
         }
     }
 

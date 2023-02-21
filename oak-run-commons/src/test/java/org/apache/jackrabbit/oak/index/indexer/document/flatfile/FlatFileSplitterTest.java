@@ -39,7 +39,8 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
@@ -79,20 +80,22 @@ public class FlatFileSplitterTest {
     private ClassLoader classLoader = getClass().getClassLoader();
     private MemoryBlobStore store = new MemoryBlobStore();
     private NodeStateEntryReader entryReader = new NodeStateEntryReader(store);
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @ClassRule
+    public static TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @ClassRule
+    public static final TestRule restoreClassSystemProperties = new RestoreSystemProperties();
     @Rule
     public final TestRule restoreSystemProperties = new RestoreSystemProperties();
     
-    @Before
-    public void setup() throws IOException {
+    @BeforeClass
+    public static void setup() throws IOException {
         try {
             System.setProperty("java.io.tmpdir", temporaryFolder.newFolder("systemp").getAbsolutePath());
         } catch (IOException e) {
             throw e;
         }
     }
-    
+
     @Test
     public void ntBaseSkipSplit() throws IOException, IllegalAccessException {
         Set<String> splitNodeTypeNames = new HashSet<>();

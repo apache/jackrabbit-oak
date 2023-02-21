@@ -58,7 +58,7 @@ public class BooleanConstraint implements Predicate<Value>, com.google.common.ba
      * @deprecated use {@link #test(Value)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "1.26.0", forRemoval = true)
     public boolean apply(Value value) {
         GuavaDeprecation.handleCall("OAK-8874");
         return test(value);

@@ -71,9 +71,9 @@ public class ElasticIndexNameHelper {
      *
      * Examples:
      * <ul>
-     *     <li>prefix, abc -> prefix.abc</li>
-     *     <li>prefix, xy:abc -> prefix.xyabc</li>
-     *     <li>prefix, /oak:index/abc -> prefix.abc</li>
+     *     <li>prefix, abc -&gt; prefix.abc</li>
+     *     <li>prefix, xy:abc -&gt; prefix.xyabc</li>
+     *     <li>prefix, /oak:index/abc -&gt; prefix.abc</li>
      * </ul>
      * <p>
      * The resulting file name would be truncated to {@link #MAX_NAME_LENGTH}

@@ -23,7 +23,9 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.event.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -49,6 +51,8 @@ public class MergeRunnerTest {
             .filter(Level.INFO)
             .enable(Level.INFO)
             .create();
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
     private final String newline = System.lineSeparator();
     private final List<File> testFiles = Lists.newArrayList();
     private final int threadPoolSize = 1,
@@ -72,7 +76,7 @@ public class MergeRunnerTest {
     public void test() throws Exception {
         lc.starting();
 
-        File tmpDir = new File(FileUtils.getTempDirectory(), Long.toString(System.nanoTime())),
+        File tmpDir = temporaryFolder.newFolder(),
                 mergeDir = new File(tmpDir, "merge-reverse"),
                 sortedFile = new File(tmpDir, "sorted-file.json");
         List<String> expectedLogOutput = Lists.newArrayList(),
@@ -160,7 +164,7 @@ public class MergeRunnerTest {
     public void testReverse() throws Exception {
         lc.starting();
 
-        File tmpDir = new File(FileUtils.getTempDirectory(), Long.toString(System.nanoTime())),
+        File tmpDir = temporaryFolder.newFolder(),
              mergeDir = new File(tmpDir, "merge"),
              sortedFile = new File(tmpDir, "sorted-file.json");
         List<String> expectedLogOutput = Lists.newArrayList(),

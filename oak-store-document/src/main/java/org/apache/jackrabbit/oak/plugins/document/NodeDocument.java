@@ -65,6 +65,7 @@ import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.mergeSorted;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -568,31 +569,48 @@ public final class NodeDocument extends Document {
      *     committed
      * </p>
      *
-     * @param context the revision context.
+     * @param clusterId the clusterId.
+     * @param batchSize the batch size to purge uncommitted revisions
+     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      * @return count of the revision entries purged
      */
-    int purgeUncommittedRevisions(RevisionContext context) {
+
+    int purgeUncommittedRevisions(final int clusterId, final int batchSize,
+                                  final java.util.function.Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
         // only look at revisions in this document.
         // uncommitted revisions are not split off
         Map<Revision, String> localRevisions = getLocalRevisions();
-        UpdateOp op = new UpdateOp(getId(), false);
+        UpdateOp op = new UpdateOp(requireNonNull(getId()), false);
         Set<Revision> uniqueRevisions = new HashSet<>();
         for (Map.Entry<Revision, String> commit : localRevisions.entrySet()) {
             if (!Utils.isCommitted(commit.getValue())) {
                 Revision r = commit.getKey();
-                if (r.getClusterId() == context.getClusterId()) {
+                if (r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                     uniqueRevisions.add(r);
                     removeRevision(op, r);
                 }
             }
+            if (op.getChanges().size() >= batchSize) {
+                store.findAndUpdate(Collection.NODES, op);
+                op = new UpdateOp(requireNonNull(getId()), false);
+            }
         }
+
+        if (op.hasChanges()) {
+            store.findAndUpdate(Collection.NODES, op);
+            op = new UpdateOp(requireNonNull(getId()), false);
+        }
+
+
         for (Revision r : getLocalBranchCommits()) {
             String commitValue = localRevisions.get(r);
-            if (!Utils.isCommitted(commitValue)) {
-                if (r.getClusterId() == context.getClusterId()) {
-                    uniqueRevisions.add(r);
-                    removeBranchCommit(op, r);
-                }
+            if (!Utils.isCommitted(commitValue) && r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
+                uniqueRevisions.add(r);
+                removeBranchCommit(op, r);
+            }
+            if (op.getChanges().size() >= batchSize) {
+                store.findAndUpdate(Collection.NODES, op);
+                op = new UpdateOp(requireNonNull(getId()), false);
             }
         }
 
@@ -606,21 +624,28 @@ public final class NodeDocument extends Document {
      * Purge collision markers with the local clusterId on this document. Use
      * only on start when there are no ongoing or pending commits.
      *
-     * @param context the revision context.
+     * @param clusterId the cluster Id.
+     * @param batchSize the batch size to purge collision markers
+     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
      * @return the number of removed collision markers.
      */
-    int purgeCollisionMarkers(RevisionContext context) {
+    int purgeCollisionMarkers(final int clusterId, final int batchSize,
+                              final java.util.function.Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
         Map<Revision, String> valueMap = getLocalMap(COLLISIONS);
-        UpdateOp op = new UpdateOp(getId(), false);
+        UpdateOp op = new UpdateOp(requireNonNull(getId()), false);
         int purgeCount = 0;
         for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
             Revision r = commit.getKey();
-            if (r.getClusterId() == context.getClusterId()) {
+            if (r.getClusterId() == clusterId && olderThanLastWrittenRootRevPredicate.test(r)) {
                 purgeCount++;
                 removeCollision(op, r);
             }
-        }
 
+            if (op.getChanges().size() >= batchSize) {
+                store.findAndUpdate(Collection.NODES, op);
+                op = new UpdateOp(requireNonNull(getId()), false);
+            }
+        }
         if (op.hasChanges()) {
             store.findAndUpdate(Collection.NODES, op);
         }

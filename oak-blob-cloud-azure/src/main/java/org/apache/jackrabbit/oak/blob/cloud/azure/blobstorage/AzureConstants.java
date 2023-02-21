@@ -71,6 +71,16 @@ public final class AzureConstants {
     public static final String AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION = "maxConnections";
 
     /**
+     * Azure blob storage enable fallback to secondary location for reads
+     */
+    public static final String AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME = "enableSecondaryLocation";
+
+    /**
+     * Is reading from the secondary location enabled by default
+     */
+    public static final boolean AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT = false;
+
+    /**
      *  Proxy host
      */
     public static final String PROXY_HOST = "proxyHost";

@@ -133,7 +133,7 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * <code>READ_ACCESS_CONTROL</code> privilege for the <code>absPath</code> node.
      * @throws RepositoryException  if another error occurs.
      */
-    public boolean hasPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals, @NotNull Privilege[] privileges)
+    boolean hasPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals, @NotNull Privilege[] privileges)
             throws PathNotFoundException, AccessDeniedException, RepositoryException;
 
     /**
@@ -171,8 +171,7 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * privilege for the <code>absPath</code> node.
      * @throws RepositoryException  if another error occurs.
      */
-    @NotNull
-    public Privilege[] getPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals)
+    @NotNull Privilege[] getPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals)
             throws PathNotFoundException, AccessDeniedException, RepositoryException;
 
     /**

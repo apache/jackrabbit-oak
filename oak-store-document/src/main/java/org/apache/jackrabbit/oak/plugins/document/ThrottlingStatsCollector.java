@@ -23,7 +23,8 @@ import java.util.List;
 
 /**
  * Stats Collector for throttling operation.
- * <p/>It's implementation are required to provide the time taken for implementing each operation while throttling is ON.
+ * <p>
+ * It's implementation are required to provide the time taken for implementing each operation while throttling is ON.
  */
 public interface ThrottlingStatsCollector {
 

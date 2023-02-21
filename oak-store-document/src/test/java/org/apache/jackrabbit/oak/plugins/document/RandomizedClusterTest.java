@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.junit.Rule;
 import org.junit.Test;
+import com.google.gson.JsonParser;
 
 /**
  * A simple randomized dual-instance test.
@@ -321,11 +322,12 @@ public class RandomizedClusterTest {
             assertTrue("path: " + p + " is supposed to exist",
                     mk.nodeExists(p, head));
         }
+        JsonParser parser = new JsonParser();
         String expected = "{\":childNodeCount\":0,\"x\":" + value + "}";
         String result = mk.getNodes(p, head, 0, 0, Integer.MAX_VALUE, null);
         expected = normalize(expected);
         result = normalize(result);
-        assertEquals(expected, result);
+        assertEquals(parser.parse(expected), parser.parse(result));
         return true;
     }
 

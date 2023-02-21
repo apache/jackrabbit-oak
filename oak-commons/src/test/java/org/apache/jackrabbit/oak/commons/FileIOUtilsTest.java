@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
@@ -476,6 +477,43 @@ public class FileIOUtilsTest {
 
         assertTrue(f.exists());
         assertTrue(!f2.exists());
+    }
+
+    @Test
+    public void testDeprecatedTransformingComparator() throws Exception {
+        Comparator<String> delegate = new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        };
+        com.google.common.base.Function<String, String> fun = new com.google.common.base.Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return input.toLowerCase(Locale.ENGLISH);
+            }
+        };
+        FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate, fun);
+
+        assertTrue(0 > delegate.compare("A", "a"));
+        assertTrue(0 < delegate.compare("a", "A"));
+        assertTrue(0 == comp.compare("a", "A"));
+    }
+
+    @Test
+    public void testTransformingComparator() throws Exception {
+        Comparator<String> delegate = new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        };
+        java.util.function.Function<String, String> fun = x -> x.toLowerCase(Locale.ENGLISH);
+        FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate, fun);
+
+        assertTrue(0 > delegate.compare("A", "a"));
+        assertTrue(0 < delegate.compare("a", "A"));
+        assertTrue(0 == comp.compare("a", "A"));
     }
 
     private static List<String> getLineBreakStrings() {

@@ -132,13 +132,13 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTrav
  *                          If some state information is found, that means, some data was already dumped. So to avoid again downloading that data, we create two tasks-
  *                          Suppose the traversing range of this sort-work-dir is - _modified in [10, 100) and the state information is (50, doc_id)
  *                          <ol>
- *                              <li>First task will download docs with _modified = 50 and _id < doc_id</li>
+ *                              <li>First task will download docs with _modified = 50 and _id &lt; doc_id</li>
  *                              <li>Second task downloads docs with _modified in [51, 100) </li>
  *                          </ol>
  *                      </li>
  *                  </ol>
  *              </li>
- *              <li>If multiple retries have happened, there would be a list of sort-work-dirs from each of the runs i.e. a List<List<File>>.</li>
+ *              <li>If multiple retries have happened, there would be a list of sort-work-dirs from each of the runs i.e. a {@code List<List<File>>}.</li>
  *              <li>The list should be sorted in order of run i.e. first list would be the list of dirs from first run and last list would be the list of files from the most recent run
  *              which failed.</li>
  *              <li>The data dump files from each of sort-work-dirs of every run would be considered, but for creating further tasks for downloading remaining data

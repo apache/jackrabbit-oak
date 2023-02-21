@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.prefetch;
 
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_PREFETCH;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -52,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,6 +75,11 @@ public class CacheWarmingTest {
     @Before
     public void enablePrefetch() {
         System.setProperty(SYS_PROP_PREFETCH, "true");
+    }
+
+    @AfterClass
+    public static void cleanUp() {
+        MongoUtils.dropCollections(MongoUtils.DB);
     }
 
     @Test

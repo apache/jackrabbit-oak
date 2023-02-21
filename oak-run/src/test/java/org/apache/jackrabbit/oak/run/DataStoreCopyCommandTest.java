@@ -57,7 +57,7 @@ public class DataStoreCopyCommandTest {
     private static final ImmutableSet<String> BLOBS = ImmutableSet.of(BLOB1, BLOB2);
 
     @Rule
-    public TemporaryFolder outDir = new TemporaryFolder();
+    public TemporaryFolder outDir = new TemporaryFolder(new File("target"));
 
     private CloudBlobContainer container;
 
@@ -90,7 +90,9 @@ public class DataStoreCopyCommandTest {
                 "--source-repo",
                 container.getUri().toURL().toString(),
                 "--include-path",
-                BLOB1
+                BLOB1,
+                "--out-dir",
+                outDir.getRoot().getAbsolutePath()
         );
     }
 

@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -74,6 +75,8 @@ public class SplitPersistenceBlobTest {
 
     private SegmentNodeStorePersistence splitPersistence;
 
+    private String sharedPersistenceBlobId;
+
     @Before
     public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, StorageException {
         SegmentNodeStorePersistence sharedPersistence =
@@ -103,7 +106,7 @@ public class SplitPersistenceBlobTest {
             .build();
         base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
 
-        createLoad(base, baseFileStore).getContentIdentity();
+        sharedPersistenceBlobId = createLoad(base, baseFileStore).getContentIdentity();
         baseFileStore.flush();
 
         SegmentNodeStorePersistence localPersistence = new TarPersistence(folder.newFolder());
@@ -127,7 +130,7 @@ public class SplitPersistenceBlobTest {
         throws IOException, CommitFailedException {
         String blobId = createLoad(split, splitFileStore).getContentIdentity();
 
-        assertReferences(2, Sets.newHashSet(baseBlobId, blobId));
+        assertReferences(3, Sets.newHashSet(baseBlobId, sharedPersistenceBlobId, blobId));
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {

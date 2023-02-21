@@ -57,7 +57,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     }
 
     public String getFlatFileStorePath() {
-        return storeFile.getAbsolutePath();
+        return storeFile.getParentFile().getAbsolutePath();
     }
 
     public long getEntryCount() {

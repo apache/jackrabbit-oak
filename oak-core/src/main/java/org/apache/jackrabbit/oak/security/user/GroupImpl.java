@@ -213,16 +213,20 @@ class GroupImpl extends AuthorizableImpl implements Group {
         DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
         Iterator<Authorizable> dynamicMembers = dmp.getMembers(this, includeInherited);
         if (dmp.coversAllMembers(this)) {
-            return dynamicMembers;
+            return AuthorizableIterator.create(true, dynamicMembers, AuthorizableIterator.empty());
         }
 
         // dynamic membership didn't cover all members -> extract from group-tree
         Iterator<Tree> trees = getMembershipProvider().getMembers(getTree(), includeInherited);
         if (!trees.hasNext()) {
-            return dynamicMembers;
+            return AuthorizableIterator.create(true, dynamicMembers, AuthorizableIterator.empty());
         }
         
-        AuthorizableIterator members = AuthorizableIterator.create(trees, userMgr, AuthorizableType.AUTHORIZABLE);
+        Iterator<Authorizable> members = AuthorizableIterator.create(trees, userMgr, AuthorizableType.AUTHORIZABLE);
+        if (includeInherited) {
+            // need to resolve dynamic members of declared and inherited group-members 
+            members = new InheritedMembersIterator(members, dmp);
+        }
         AuthorizableIterator allMembers = AuthorizableIterator.create(true, dynamicMembers, members);
         return new RangeIteratorAdapter(allMembers, allMembers.getSize()); 
     }
