@@ -104,6 +104,25 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void orderByWithRegexProperty() throws Exception {
+        Tree idx = indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false));
+        Tree props = TestUtil.newRulePropTree(idx, "nt:base");
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("baz", "zzzzzz");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("baz", "aaaaaa");
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz", asList("/test/b", "/test/a"));
+        assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz DESC", asList("/test/a", "/test/b"));
+    }
+
+    @Test
     public void orderByFunctionWithRegexProperty() throws Exception {
         Tree idx = indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false));
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
