@@ -21,7 +21,7 @@
 
 ## Before you get started
 
-Before you get started make sure you are familiar with the basic concepts of JCR authentication, and it's implementation in Apache Jackrabbit Oak.
+Before you get started make sure you are familiar with the basic concepts of JCR authentication, and its implementation in Apache Jackrabbit Oak.
 
 External authentication in Oak refers to integrating a third party identity provider like LDAP or SAML into the authentication setup optionally combining it with other built-in authentication mechanisms.
 
