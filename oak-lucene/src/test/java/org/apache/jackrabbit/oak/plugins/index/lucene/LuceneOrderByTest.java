@@ -48,7 +48,7 @@ public class LuceneOrderByTest extends OrderByCommonTest {
         super.orderByScoreAcrossUnion();
     }
 
-    @Ignore("some condition does not work in lucene")
+    @Ignore("multiple DESC conditions do not produce the expected results in lucene")
     @Test
     @Override
     public void orderByMultiProperties() throws Exception {
