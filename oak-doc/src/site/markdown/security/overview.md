@@ -37,6 +37,7 @@ The Oak Security Layer
      * [User and Group Synchronization](authentication/usersync.html)
      * [Identity Management](authentication/identitymanagement.html)
      * [LDAP Integration](authentication/ldap.html)
+     * [Best Practices](authentication/external/bestpractices.html)
 
 ### Authorization
 
@@ -44,6 +45,7 @@ The Oak Security Layer
      * [Access Control Management](accesscontrol.html)
      * [Permission Evaluation](permission.html)
      * [Combining Multiple Authorization Models](authorization/composite.html)
+     * [Best Practices](authorization/bestpractices.html)
   
 #### Access Control Management
 

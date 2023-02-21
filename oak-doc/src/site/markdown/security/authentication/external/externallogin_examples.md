@@ -18,8 +18,92 @@
 Authentication with External Login Module : Examples
 ----------------------------------------------------
 
-- [Integration with Standard Oak Authentication](#standard)
-- [Integration with Pre-Authentication and Login Module Chain](#preauth)
+<!-- MACRO{toc} -->
+
+<a name="standard-sling"></a>
+### Integration with Standard Oak Authentication used for Apache Sling
+
+The following JAAS configuration can be used in combination with Apache Sling.
+
+#### Example JAAS Configuration
+
+      Example {
+         org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule optional;
+         org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
+         org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule sufficient
+                                  sync.handlerName="your-synchandler_name"
+                                  idp.name="your_idp_name";
+         org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl sufficient;
+         
+       };
+
+#### Understanding the Configuration
+
+##### The LoginModule Sequence
+
+- The `GuestLoginModule` is in charge of handling unauthenticated guest login without passing [GuestCredentials].
+  In other words: if no credentials can be obtained during the login phase, an new instance of [GuestCredentials] is 
+  pushed to the shared state and this module succeeds. Due to the _optional_ flag success is not 
+  required and the authentication proceeds down the list of modules.
+  This module helps to cover non-standard guest login with `null` credentials as it is performed by 
+  Apache Sling (compatibility with Jackrabbit 1.0)
+
+- The `TokenLoginModule` is in charge of handling repository authentication 
+  request with `TokenCredentials`: 
+    - _Login Success_: If token-login succeeds the _sufficient_ flag makes sure
+    authentication does not proceed down the `LoginModule` list. This means
+    that it will not hit the `ExternalIdentityProvider` and will not re-sync
+    an external user as long as the login token is valid.
+    - _Login Failure_: If it fails (e.g. other type of `Credentials`) the authentication
+    will proceed down the `LoginModule` list.
+    - _Commit_: If the login failed the login module will test if the
+    `Credentials` passed to the login ask for generation of a new login token.
+    If this login succeeded it will populate the `Subject` with `Principal`s,
+    `Credentials` and `AuthInfo`.
+    
+    NOTE: In this setup the `TokenLoginModule` is expected to only handle
+    subsequent authentication request after having issued a login token.
+    The latter is achieved by providing `Credentials` attributes that force
+    the `TokenLoginModule` to generate a new login token in the _commit_ phase.
+    The application should then use that login toke for subsequent requests.
+  
+    See [Token Authentication and Token Management](../tokenmanagement.html) for
+    details and for a description of the default implementation.
+    
+- The `ExternalLoginModule` is in charge of handling authentication request for
+  users managed by an `ExternalIdentityProvider`.
+    - _Login Success_: If user authentication against the IDP succeeds
+      the module synchronizes the external user into the repository according
+      to the logic defined in the configure `SyncHandler`. If the user
+      has been synced before it might be updated. If and how often a user
+      gets re-synced is an implementation detail of the `SyncHandler`.
+    - _Login Failure_: If the authentication fails (e.g. wrong IDP or invalid
+      `Credentials`), the login will proceed to the `LoginModuleImpl`.
+    - _Commit_: If the login succeeded the login module will populate the 
+      `Subject` with `Principal`s, `Credentials` and `AuthInfo`.
+   
+      NOTE: if no login token is generated upon first login, any subsequent
+      login for _external_ users will end up being handled by this module 
+      (including connection to the IDP) or fail.
+  
+- The `LoginModuleImpl` is in charge of handling authentication request for
+  users managed and created through the repository's user management API;
+  i.e. users that are not defined by an `ExternalIdentityProvider`. This
+  includes built-in system users like the administrator, the guest-user
+  (aka anonymous) or `SystemUsers`. It also handles impersonation logins.
+    - _Login Success_: If regular user authentication (or impersonation) succeeds
+      the _sufficient_ flag makes sure authentication does not proceed 
+      down the `LoginModule` list i.e. omits unnecessarily trying to 
+      authenticate a local user against the external IDP.
+    - _Login Failure_: If the authentication fails (e.g. no local user that
+      could have uid/pw matching the passed `Credentials`), it will
+      continue down the `LoginModule` list. 
+    - _Commit_: If the login succeeded the login module will populate the 
+      `Subject` with `Principal`s, `Credentials` and `AuthInfo`.
+      
+      NOTE: if no login token is generated upon first login, any subsequent
+      login for _local_ users will end up being handled by this module or fail.
+     
 
 <a name="standard"></a>
 ### Integration with Standard Oak Authentication
