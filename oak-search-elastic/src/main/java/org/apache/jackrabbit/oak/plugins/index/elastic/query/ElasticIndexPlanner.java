@@ -38,7 +38,7 @@ public class ElasticIndexPlanner extends FulltextIndexPlanner {
     }
 
     /**
-     * Overrides the basic planner to add support for all the defined properties regardless from the ordered flag since
+     * Overrides the basic planner to add support for all the defined properties regardless of the ordered flag since
      * Elastic supports sorting on all fields without any additional configuration.
      */
     @Override
