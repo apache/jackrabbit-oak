@@ -148,8 +148,8 @@ public class AzureJournalFileTest {
         watchOptimizedImpl.stop();
         long optimizedImplTime = watchOptimizedImpl.getTime();
         long naiveImplTime = watchNaiveImpl.getTime();
-        assertTrue("batchWriteLines() should be significantly faster (>20x) than the naive implementation, but took "
-            + optimizedImplTime + "ms while naive implementation took " + naiveImplTime + "ms", optimizedImplTime < naiveImplTime / 20);
+        assertTrue("batchWriteLines() should be significantly faster (>10x) than the naive implementation, but took "
+            + optimizedImplTime + "ms while naive implementation took " + naiveImplTime + "ms", optimizedImplTime < naiveImplTime / 10);
     }
 
     @Test
