@@ -241,7 +241,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             Tree stopFilter = anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("Stop");
             stopFilter.setProperty("words", "stop1.txt, stop2.txt");
             stopFilter.addChild("stop1.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "was");
+                    .setProperty(JcrConstants.JCR_DATA, "foo");
             stopFilter.addChild("stop2.txt").addChild(JcrConstants.JCR_CONTENT)
                     .setProperty(JcrConstants.JCR_DATA, "and");
         });
@@ -250,7 +250,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         test.setProperty("foo", "fox jumping");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", singletonList("/test")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'fox foo jumping')", singletonList("/test")));
     }
 
     //OAK-4805
