@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -237,6 +238,30 @@ public class MongoDocumentStoreTest {
         List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT),
                 DocumentMK.MANY_CHILDREN_THRESHOLD);
+        assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
+        store.dispose();
+    }
+
+    @Test
+    public void queryWithProjections() {
+        DocumentStore docStore = openDocumentStore();
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+                DocumentMK.MANY_CHILDREN_THRESHOLD, Lists.newArrayList(ID));
+        // since both _id & _modCount are mandatory, so data size should be 2
+        if (MONGO_DB) {
+            docs.forEach(d -> assertEquals(2 , d.data.size()));
+        }
         assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
         store.dispose();
     }
