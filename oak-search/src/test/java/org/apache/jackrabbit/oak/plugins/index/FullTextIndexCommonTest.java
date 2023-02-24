@@ -264,12 +264,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             charFilters.addChild("HTMLStrip");
             Tree mappingFilter = charFilters.addChild("Mapping");
             mappingFilter.setProperty("mapping", "mappings.txt");
-            // Hindu-Arabic numerals conversion from
-            // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-mapping-charfilter.html
-            String mappings = "\"٠\" => \"0\"\n\"١\" => \"1\"\n\"٢\" => \"2\"\n\"٣\" => \"3\"\n\"٤\" => \"4\"\n" +
-                    "\"٥\" => \"5\"\n\"٦\" => \"6\"\n\"٧\" => \"7\"\n\"٨\" => \"8\"\n\"٩\" => \"9\"";
             mappingFilter.addChild("mappings.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, mappings);
+                    .setProperty(JcrConstants.JCR_DATA, getHinduArabicMapping());
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             filters.addChild("LowerCase");
@@ -287,6 +283,13 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, '25015')", singletonList("/test")));
+    }
+
+    protected String getHinduArabicMapping() {
+        // Hindu-Arabic numerals conversion from
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-mapping-charfilter.html
+        return "\"٠\" => \"0\"\n\"١\" => \"1\"\n\"٢\" => \"2\"\n\"٣\" => \"3\"\n\"٤\" => \"4\"\n" +
+                "\"٥\" => \"5\"\n\"٦\" => \"6\"\n\"٧\" => \"7\"\n\"٨\" => \"8\"\n\"٩\" => \"9\"";
     }
 
     //OAK-4805

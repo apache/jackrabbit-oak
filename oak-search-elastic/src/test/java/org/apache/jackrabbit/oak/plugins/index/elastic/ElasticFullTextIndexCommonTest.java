@@ -90,4 +90,9 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
         // standard german analyzer stems verbs (springen -> spring)
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", singletonList("/test")));
     }
+
+    @Override
+    protected String getHinduArabicMapping() {
+        return super.getHinduArabicMapping().replaceAll("\"", "");
+    }
 }
