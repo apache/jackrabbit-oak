@@ -113,7 +113,8 @@ public class ElasticCustomAnalyzer {
 
                     builder.analyzer(analyzerName, new Analyzer(null, JsonData.of(analyzer)));
                 } else { // try to compose the analyzer
-                    builder.tokenizer("custom_tokenizer", tb -> tb.definition(loadTokenizer(defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_TOKENIZER))));
+                    builder.tokenizer("custom_tokenizer", tb ->
+                            tb.definition(loadTokenizer(defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_TOKENIZER))));
 
                     LinkedHashMap<String, TokenFilterDefinition> tokenFilters = loadFilters(
                             defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_FILTERS),
@@ -165,44 +166,12 @@ public class ElasticCustomAnalyzer {
         return filters;
     }
 
-    private static LinkedHashMap<String, TokenFilterDefinition> loadTokenFilters(NodeState state) {
-        LinkedHashMap<String, TokenFilterDefinition> filters = new LinkedHashMap<>();
-        int i = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            String name = normalize(entry.getName());
-            Class<? extends TokenFilterFactory> tff = TokenFilterFactory.lookupClass(name);
-            Optional<Map<String, String>> mapping =
-                    CONFIGURATION_MAPPING.entrySet().stream().filter(k -> k.getKey().isAssignableFrom(tff)).map(Map.Entry::getValue).findFirst();
-            Map<String, Object> args = convertNodeState(entry.getNodeState(), mapping.orElseGet(Collections::emptyMap));
-            args.put(ANALYZER_TYPE, name);
-
-            filters.put("oak_token_filter_" + i++, new TokenFilterDefinition(name, JsonData.of(args)));
-        }
-        return filters;
-    }
-
-    private static LinkedHashMap<String, CharFilterDefinition> loadCharFilters(NodeState state) {
-        LinkedHashMap<String, CharFilterDefinition> filters = new LinkedHashMap<>();
-        int i = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            String name = normalize(entry.getName());
-            Class<? extends CharFilterFactory> cff = CharFilterFactory.lookupClass(name);
-            Optional<Map<String, String>> mapping =
-                    CONFIGURATION_MAPPING.entrySet().stream().filter(k -> k.getKey().isAssignableFrom(cff)).map(Map.Entry::getValue).findFirst();
-            Map<String, Object> args = convertNodeState(entry.getNodeState(), mapping.orElseGet(Collections::emptyMap));
-            args.put(ANALYZER_TYPE, name);
-
-            filters.put("oak_char_filter_" + i++, new CharFilterDefinition(name, JsonData.of(args)));
-        }
-        return filters;
-    }
-
     private static List<String> loadContent(NodeState file, String name) throws IOException {
         List<String> result = new ArrayList<>();
         Blob blob = ConfigUtil.getBlob(file, name);
         Reader content = null;
         try {
-            content = new InputStreamReader(blob.getNewStream(), StandardCharsets.UTF_8);
+            content = new InputStreamReader(Objects.requireNonNull(blob).getNewStream(), StandardCharsets.UTF_8);
             BufferedReader br = null;
             try {
                 br = new BufferedReader(content);
@@ -221,14 +190,22 @@ public class ElasticCustomAnalyzer {
 
     /**
      * Normalizes one of the following values:
-     * - lucene class (eg: org.apache.lucene.analysis.en.EnglishAnalyzer)
-     * - lucene name (eg: Standard)
+     * - lucene class (eg: org.apache.lucene.analysis.en.EnglishAnalyzer -> english)
+     * - lucene name (eg: Standard -> standard)
      * into the elasticsearch compatible value
      */
     private static String normalize(String value) {
+        // this might be a full class, let's tokenize the value
         String[] anlClassTokens = value.split("\\.");
+        // and take the last part
         String name = anlClassTokens[anlClassTokens.length - 1];
-        return name.toLowerCase().replace("analyzer", "");
+        // all options in elastic are lower-case
+        name = name.toLowerCase();
+        // if it ends with analyzer we need to get rid of it
+        if (name.endsWith("analyzer")) {
+            name = name.replace("analyzer", "");
+        }
+        return name;
     }
 
     private static Map<String, Object> convertNodeState(NodeState state) {
