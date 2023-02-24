@@ -65,6 +65,8 @@ class DocumentStoreCheckCommand implements Command {
                     .withOrphan(options.withOrphan())
                     .withBaseVersion(options.withBaseVersion())
                     .withVersionHistory(options.withVersionHistory())
+                    .withPredecessors(options.withPredecessors())
+                    .withSuccessors(options.withSuccessors())
                     .withUuid(options.withUuid())
                     .withProgress(options.withProgress())
                     .isSilent(options.isSilent())
@@ -95,6 +97,10 @@ class DocumentStoreCheckCommand implements Command {
 
         final OptionSpec<Boolean> versionHistory;
 
+        final OptionSpec<Boolean> predecessors;
+
+        final OptionSpec<Boolean> successors;
+
         final OptionSpec<Boolean> uuid;
 
         final OptionSpec<Integer> numThreads;
@@ -111,9 +117,13 @@ class DocumentStoreCheckCommand implements Command {
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             orphan = parser.accepts("orphan", "Check for orphaned nodes")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
-            baseVersion = parser.accepts("baseVersion", "Check base version reference")
+            baseVersion = parser.accepts("baseVersion", "Check jcr:baseVersion reference")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
-            versionHistory = parser.accepts("versionHistory", "Check version history reference")
+            versionHistory = parser.accepts("versionHistory", "Check jcr:versionHistory reference")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            predecessors = parser.accepts("predecessors", "Check jcr:predecessors references")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            successors = parser.accepts("successors", "Check jcr:successors references")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             uuid = parser.accepts("uuid", "Check UUID index entry")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
@@ -153,6 +163,14 @@ class DocumentStoreCheckCommand implements Command {
 
         public boolean withVersionHistory() {
             return versionHistory.value(options);
+        }
+
+        public boolean withPredecessors() {
+            return predecessors.value(options);
+        }
+
+        public boolean withSuccessors() {
+            return successors.value(options);
         }
 
         public boolean withUuid() {
