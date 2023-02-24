@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
-
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
@@ -33,13 +32,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
+
 import static javax.jcr.Property.JCR_PRIMARY_TYPE;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -85,6 +83,19 @@ public class UserImplTest extends AbstractSecurityTest {
     @Test
     public void testAdministratorIsAdmin() throws Exception {
         assertTrue(getAdminUser().isAdmin());
+    }
+
+    @Test
+    public void testUserInAdministratorGroupsIsAdmin() throws RepositoryException, CommitFailedException {
+        Group administratorGroup = getUserManager(root).createGroup(UserConstants.DEFAULT_ADMINISTRATORS_GROUP);
+
+        administratorGroup.addMember(user);
+        root.commit();
+        assertTrue(user.isAdmin());
+
+        administratorGroup.removeMember(user);
+        root.commit();
+        assertFalse(user.isAdmin());
     }
 
     @Test

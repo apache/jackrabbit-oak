@@ -16,27 +16,28 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -57,7 +58,9 @@ public final class UserUtil implements UserConstants {
     }
 
     public static boolean isMemberOfAnAdministratorGroup(@NotNull Authorizable authorizable, @NotNull ConfigurationParameters parameters) {
-        String[] configuredAdministratorGroups = parameters.getConfigValue(ADMINISTRATOR_GROUPS_CONFIG_ID, new String[]{});
+        String[] configuredAdministratorGroups = parameters.getConfigValue(ADMINISTRATOR_GROUPS_CONFIG_ID, new String[]{
+                UserConstants.DEFAULT_ADMINISTRATORS_GROUP
+        });
         @NotNull Set<String> groupIds = getGroupIds(authorizable);
         return Arrays.stream(configuredAdministratorGroups).anyMatch(groupIds::contains);
     }

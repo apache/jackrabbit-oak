@@ -35,8 +35,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import java.util.List;
+import javax.jcr.RepositoryException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -50,6 +54,8 @@ public class UserUtilTest {
 
     private final User u = mock(User.class);
     private final Group g = mock(Group.class);
+
+    private final Authorizable authorizableMock = mock(Authorizable.class);
 
     @NotNull
     private static Tree createTree(@Nullable String ntName) {
@@ -86,6 +92,29 @@ public class UserUtilTest {
 
         assertFalse(UserUtil.isAdmin(config, UserConstants.DEFAULT_ADMIN_ID));
         assertTrue(UserUtil.isAdmin(config, altAdminId));
+    }
+
+    private Group getMockGroupWithId(String id) throws RepositoryException{
+        Group group = mock(Group.class);
+        when(group.getID()).thenReturn(id);
+        return group;
+    }
+
+    @Test
+    public void testIsMemberOfAnAdministratorGroup() throws RepositoryException {
+        ConfigurationParameters config = ConfigurationParameters.of(UserConstants.ADMINISTRATOR_GROUPS_CONFIG_ID, "administrators");
+
+        Set<Group> groupsWithAdministrators = new HashSet<>(Arrays.asList(
+                getMockGroupWithId("group1"),
+                getMockGroupWithId("administrators")));
+        when(authorizableMock.declaredMemberOf()).thenReturn(groupsWithAdministrators.iterator());
+        assertTrue(UserUtil.isMemberOfAnAdministratorGroup(authorizableMock, config));
+
+        Set<Group> groupsWithNoAdministrators = new HashSet<>(Arrays.asList(
+                getMockGroupWithId("group1"),
+                getMockGroupWithId("group2")));
+        when(authorizableMock.declaredMemberOf()).thenReturn(groupsWithNoAdministrators.iterator());
+        assertFalse(UserUtil.isMemberOfAnAdministratorGroup(authorizableMock, config));
     }
 
     @Test
@@ -246,7 +275,7 @@ public class UserUtilTest {
     }
 
 
-    @Test(expected = NullPointerException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testGetAuthorizableIdNullTree() {
         UserUtil.getAuthorizableId(null);
     }
