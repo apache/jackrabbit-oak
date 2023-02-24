@@ -23,22 +23,27 @@ import co.elastic.clients.elasticsearch._types.analysis.TokenFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.TokenizerDefinition;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
+import com.google.common.base.CaseFormat;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -48,7 +53,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -69,16 +73,26 @@ import java.util.stream.StreamSupport;
  */
 public class ElasticCustomAnalyzer {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticCustomAnalyzer.class);
+
     private static final String ANALYZER_TYPE = "type";
 
-    private static final Set<String> IGNORE_PROP_NAMES = new HashSet<>(
-            Arrays.asList(FulltextIndexConstants.ANL_CLASS, FulltextIndexConstants.ANL_NAME, JcrConstants.JCR_PRIMARYTYPE));
+    private static final Set<String> IGNORE_PROP_NAMES = new HashSet<>(Arrays.asList(
+            AbstractAnalysisFactory.LUCENE_MATCH_VERSION_PARAM,
+            FulltextIndexConstants.ANL_CLASS,
+            FulltextIndexConstants.ANL_NAME,
+            JcrConstants.JCR_PRIMARYTYPE)
+    );
 
-    private static final Map<Class<? extends TokenFilterFactory>, Map<String, String>> CONFIGURATION_MAPPING;
+    /*
+     * Mappings for lucene options not available anymore to supported elastic counterparts
+     */
+    private static final Map<Class<? extends AbstractAnalysisFactory>, Map<String, String>> CONFIGURATION_MAPPING;
 
     static {
         CONFIGURATION_MAPPING = new LinkedHashMap<>();
         CONFIGURATION_MAPPING.put(AbstractWordsFileFilterFactory.class, Collections.singletonMap("words", "stopwords"));
+        CONFIGURATION_MAPPING.put(MappingCharFilterFactory.class, Collections.singletonMap("mapping", "mappings"));
     }
 
     @Nullable
@@ -87,20 +101,13 @@ public class ElasticCustomAnalyzer {
             NodeState defaultAnalyzer = state.getChildNode(FulltextIndexConstants.ANL_DEFAULT);
             if (defaultAnalyzer.exists()) {
                 IndexSettingsAnalysis.Builder builder = new IndexSettingsAnalysis.Builder();
-                Map<String, Object> analyzer = new HashMap<>();
+                Map<String, Object> analyzer = convertNodeState(defaultAnalyzer);
                 String builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_CLASS);
                 if (builtIn == null) {
                     builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_NAME);
                 }
                 if (builtIn != null) {
                     analyzer.put(ANALYZER_TYPE, normalize(builtIn));
-
-                    // additional builtin params
-                    for (PropertyState ps : defaultAnalyzer.getProperties()) {
-                        if (!IGNORE_PROP_NAMES.contains(ps.getName())) {
-                            analyzer.put(normalize(ps.getName()), ps.getValue(Type.STRING));
-                        }
-                    }
 
                     // content params, usually stop words
                     for (ChildNodeEntry nodeEntry : defaultAnalyzer.getChildNodeEntries()) {
@@ -153,12 +160,21 @@ public class ElasticCustomAnalyzer {
                                                               BiFunction<String, JsonData, FD> factory) {
         LinkedHashMap<String, FD> filters = new LinkedHashMap<>();
         int i = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            String name = normalize(entry.getName());
-            Class<? extends AbstractAnalysisFactory> tff = lookup.apply(name);
-            Optional<Map<String, String>> mapping =
+        Tree tree = TreeFactory.createReadOnlyTree(state);
+        for (Tree t : tree.getChildren()) {
+            NodeState child = state.getChildNode(t.getName());
+            Class<? extends AbstractAnalysisFactory> tff = lookup.apply(t.getName());
+            String name;
+            try {
+                name = normalize((String) tff.getField("NAME").get(null));
+            } catch (Exception e) {
+                LOG.warn("unable to get the filter name using reflection. Try using the normalized node name", e);
+                name = normalize(t.getName());
+            }
+            Optional<Map<String, String>> mappingOpt =
                     CONFIGURATION_MAPPING.entrySet().stream().filter(k -> k.getKey().isAssignableFrom(tff)).map(Map.Entry::getValue).findFirst();
-            Map<String, Object> args = convertNodeState(entry.getNodeState(), mapping.orElseGet(Collections::emptyMap));
+            Map<String, Object> args = convertNodeState(child, mappingOpt.orElseGet(Collections::emptyMap));
+
             args.put(ANALYZER_TYPE, name);
 
             filters.put(name + "_" + i++, factory.apply(name, JsonData.of(args)));
@@ -199,11 +215,11 @@ public class ElasticCustomAnalyzer {
         String[] anlClassTokens = value.split("\\.");
         // and take the last part
         String name = anlClassTokens[anlClassTokens.length - 1];
-        // all options in elastic are lower-case
-        name = name.toLowerCase();
+        // all options in elastic are in snake case
+        name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, name);
         // if it ends with analyzer we need to get rid of it
-        if (name.endsWith("analyzer")) {
-            name = name.replace("analyzer", "");
+        if (name.endsWith("_analyzer")) {
+            name = name.replace("_analyzer", "");
         }
         return name;
     }

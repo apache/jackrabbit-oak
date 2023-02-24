@@ -218,6 +218,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         setup(singletonList("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
+            anl.setProperty("luceneMatchVersion", "LUCENE_47");
             anl.addChild("stopwords").addChild(JCR_CONTENT).setProperty(JCR_DATA, "dog");
         });
 
@@ -233,7 +234,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
-    public void fulltextSearchWithCustomComposedAnalyzer() throws Exception {
+    public void fulltextSearchWithCustomComposedFilters() throws Exception {
         setup(singletonList("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
@@ -251,6 +252,41 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'fox foo jumping')", singletonList("/test")));
+    }
+
+    @Test
+    public void fulltextSearchWithCustomComposedAnalyzer() throws Exception {
+        setup(singletonList("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
+            charFilters.addChild("HTMLStrip");
+            Tree mappingFilter = charFilters.addChild("Mapping");
+            mappingFilter.setProperty("mapping", "mappings.txt");
+            // Hindu-Arabic numerals conversion from
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-mapping-charfilter.html
+            String mappings = "\"٠\" => \"0\"\n\"١\" => \"1\"\n\"٢\" => \"2\"\n\"٣\" => \"3\"\n\"٤\" => \"4\"\n" +
+                    "\"٥\" => \"5\"\n\"٦\" => \"6\"\n\"٧\" => \"7\"\n\"٨\" => \"8\"\n\"٩\" => \"9\"";
+            mappingFilter.addChild("mappings.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, mappings);
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("LowerCase");
+            Tree stopFilter = filters.addChild("Stop");
+            stopFilter.setProperty("words", "stop1.txt, stop2.txt");
+            stopFilter.addChild("stop1.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "my");
+            stopFilter.addChild("stop2.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "is");
+            filters.addChild("PorterStem");
+        });
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("foo", "My license plate is ٢٥٠١٥");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, '25015')", singletonList("/test")));
     }
 
     //OAK-4805
