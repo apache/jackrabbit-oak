@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 
 import java.util.ArrayList;
@@ -36,6 +37,10 @@ public class ElasticIndexPlanner extends FulltextIndexPlanner {
         super(indexNode, indexPath, filter, sortOrder);
     }
 
+    /**
+     * Overrides the basic planner to add support for all the defined properties regardless of the ordered flag since
+     * Elastic supports sorting on all fields without any additional configuration.
+     */
     @Override
     protected List<QueryIndex.OrderEntry> createSortOrder(IndexDefinition.IndexingRule rule) {
         if (sortOrder == null) {
@@ -48,6 +53,8 @@ public class ElasticIndexPlanner extends FulltextIndexPlanner {
             PropertyDefinition pd = rule.getConfig(propName);
             if (pd != null
                     && o.getPropertyType() != null
+                    // functions on regexp-based properties must be skipped since the values cannot be indexed
+                    && (!pd.isRegexp || !propName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX))
                     && !o.getPropertyType().isArray()) {
                 orderEntries.add(o); // can manage any order desc/asc
             } else if (JcrConstants.JCR_SCORE.equals(propName)) {
