@@ -127,7 +127,7 @@ class ElasticIndexHelper {
 
         // collect analyzer settings
         IndexSettingsAnalysis.Builder analyzerBuilder =
-                ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState());
+                ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
         if (analyzerBuilder == null) {
             analyzerBuilder = new IndexSettingsAnalysis.Builder()
                     .filter("oak_word_delimiter_graph_filter",

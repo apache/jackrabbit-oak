@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import co.elastic.clients.elasticsearch._types.analysis.Analyzer;
+import co.elastic.clients.elasticsearch._types.analysis.CharFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.CustomAnalyzer;
 import co.elastic.clients.elasticsearch._types.analysis.TokenFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.TokenizerDefinition;
@@ -32,6 +33,10 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
+import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
+import org.apache.lucene.analysis.util.CharFilterFactory;
+import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,26 +47,42 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+/**
+ * Loads custom analysis index settings from a JCR NodeState. It also takes care of required transformations from lucene
+ * to elasticsearch configuration options.
+ */
 public class ElasticCustomAnalyzer {
+
+    private static final String ANALYZER_TYPE = "type";
 
     private static final Set<String> IGNORE_PROP_NAMES = new HashSet<>(
             Arrays.asList(FulltextIndexConstants.ANL_CLASS, FulltextIndexConstants.ANL_NAME, JcrConstants.JCR_PRIMARYTYPE));
 
+    private static final Map<Class<? extends TokenFilterFactory>, Map<String, String>> CONFIGURATION_MAPPING;
+
+    static {
+        CONFIGURATION_MAPPING = new LinkedHashMap<>();
+        CONFIGURATION_MAPPING.put(AbstractWordsFileFilterFactory.class, Collections.singletonMap("words", "stopwords"));
+    }
+
     @Nullable
-    public static IndexSettingsAnalysis.Builder buildCustomAnalyzers(NodeState state) {
+    public static IndexSettingsAnalysis.Builder buildCustomAnalyzers(NodeState state, String analyzerName) {
         if (state != null) {
             NodeState defaultAnalyzer = state.getChildNode(FulltextIndexConstants.ANL_DEFAULT);
             if (defaultAnalyzer.exists()) {
@@ -72,12 +93,12 @@ public class ElasticCustomAnalyzer {
                     builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_NAME);
                 }
                 if (builtIn != null) {
-                    analyzer.put("type", normalize(builtIn));
+                    analyzer.put(ANALYZER_TYPE, normalize(builtIn));
 
                     // additional builtin params
                     for (PropertyState ps : defaultAnalyzer.getProperties()) {
                         if (!IGNORE_PROP_NAMES.contains(ps.getName())) {
-                            analyzer.put(normalize(ps.getName()), getValue(ps));
+                            analyzer.put(normalize(ps.getName()), ps.getValue(Type.STRING));
                         }
                     }
 
@@ -90,19 +111,27 @@ public class ElasticCustomAnalyzer {
                         }
                     }
 
-                    builder.analyzer("oak_analyzer", new Analyzer(null, JsonData.of(analyzer)));
+                    builder.analyzer(analyzerName, new Analyzer(null, JsonData.of(analyzer)));
                 } else { // try to compose the analyzer
-                    builder.tokenizer("oak_tokenizer", tb -> tb.definition(loadTokenizer(defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_TOKENIZER))));
+                    builder.tokenizer("custom_tokenizer", tb -> tb.definition(loadTokenizer(defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_TOKENIZER))));
 
-                    LinkedHashMap<String, TokenFilterDefinition> filters = loadTokenFilters(defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_FILTERS));
-                    filters.entrySet().forEach(tfd -> builder.filter(tfd.getKey(), fn -> fn.definition(tfd.getValue())));
+                    LinkedHashMap<String, TokenFilterDefinition> tokenFilters = loadFilters(
+                            defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_FILTERS),
+                            TokenFilterFactory::lookupClass, TokenFilterDefinition::new
+                    );
+                    tokenFilters.forEach((key, value) -> builder.filter(key, fn -> fn.definition(value)));
 
-                    builder.analyzer("oak_analyzer", bf -> {
-                        return bf.custom(CustomAnalyzer.of(cab ->
-                                cab.tokenizer("oak_tokenizer")
-                                        .filter(new ArrayList<>(filters.keySet()))
-                        ));
-                    });
+                    LinkedHashMap<String, CharFilterDefinition> charFilters = loadFilters(
+                            defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_CHAR_FILTERS),
+                            CharFilterFactory::lookupClass, CharFilterDefinition::new
+                    );
+                    charFilters.forEach((key, value) -> builder.charFilter(key, fn -> fn.definition(value)));
+
+                    builder.analyzer(analyzerName, bf -> bf.custom(CustomAnalyzer.of(cab ->
+                            cab.tokenizer("custom_tokenizer")
+                                    .filter(new ArrayList<>(tokenFilters.keySet()))
+                                    .charFilter(new ArrayList<>(charFilters.keySet()))
+                    )));
                 }
                 return builder;
             }
@@ -112,10 +141,28 @@ public class ElasticCustomAnalyzer {
 
     @NotNull
     private static TokenizerDefinition loadTokenizer(NodeState state) {
-        String name = normalize(checkNotNull(state.getString(FulltextIndexConstants.ANL_NAME)));
-        Map<String, String> args = convertNodeState(state);
-        args.put("type", name);
+        String name = normalize(Objects.requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME)));
+        Map<String, Object> args = convertNodeState(state);
+        args.put(ANALYZER_TYPE, name);
         return new TokenizerDefinition(name, JsonData.of(args));
+    }
+
+    private static <FD> LinkedHashMap<String, FD> loadFilters(NodeState state,
+                                                              Function<String, Class<? extends AbstractAnalysisFactory>> lookup,
+                                                              BiFunction<String, JsonData, FD> factory) {
+        LinkedHashMap<String, FD> filters = new LinkedHashMap<>();
+        int i = 0;
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            String name = normalize(entry.getName());
+            Class<? extends AbstractAnalysisFactory> tff = lookup.apply(name);
+            Optional<Map<String, String>> mapping =
+                    CONFIGURATION_MAPPING.entrySet().stream().filter(k -> k.getKey().isAssignableFrom(tff)).map(Map.Entry::getValue).findFirst();
+            Map<String, Object> args = convertNodeState(entry.getNodeState(), mapping.orElseGet(Collections::emptyMap));
+            args.put(ANALYZER_TYPE, name);
+
+            filters.put(name + "_" + i++, factory.apply(name, JsonData.of(args)));
+        }
+        return filters;
     }
 
     private static LinkedHashMap<String, TokenFilterDefinition> loadTokenFilters(NodeState state) {
@@ -123,10 +170,29 @@ public class ElasticCustomAnalyzer {
         int i = 0;
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             String name = normalize(entry.getName());
-            Map<String, String> args = convertNodeState(entry.getNodeState());
-            args.put("type", name);
+            Class<? extends TokenFilterFactory> tff = TokenFilterFactory.lookupClass(name);
+            Optional<Map<String, String>> mapping =
+                    CONFIGURATION_MAPPING.entrySet().stream().filter(k -> k.getKey().isAssignableFrom(tff)).map(Map.Entry::getValue).findFirst();
+            Map<String, Object> args = convertNodeState(entry.getNodeState(), mapping.orElseGet(Collections::emptyMap));
+            args.put(ANALYZER_TYPE, name);
 
             filters.put("oak_token_filter_" + i++, new TokenFilterDefinition(name, JsonData.of(args)));
+        }
+        return filters;
+    }
+
+    private static LinkedHashMap<String, CharFilterDefinition> loadCharFilters(NodeState state) {
+        LinkedHashMap<String, CharFilterDefinition> filters = new LinkedHashMap<>();
+        int i = 0;
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            String name = normalize(entry.getName());
+            Class<? extends CharFilterFactory> cff = CharFilterFactory.lookupClass(name);
+            Optional<Map<String, String>> mapping =
+                    CONFIGURATION_MAPPING.entrySet().stream().filter(k -> k.getKey().isAssignableFrom(cff)).map(Map.Entry::getValue).findFirst();
+            Map<String, Object> args = convertNodeState(entry.getNodeState(), mapping.orElseGet(Collections::emptyMap));
+            args.put(ANALYZER_TYPE, name);
+
+            filters.put("oak_char_filter_" + i++, new CharFilterDefinition(name, JsonData.of(args)));
         }
         return filters;
     }
@@ -134,8 +200,9 @@ public class ElasticCustomAnalyzer {
     private static List<String> loadContent(NodeState file, String name) throws IOException {
         List<String> result = new ArrayList<>();
         Blob blob = ConfigUtil.getBlob(file, name);
-        Reader content = new InputStreamReader(blob.getNewStream(), StandardCharsets.UTF_8);
+        Reader content = null;
         try {
+            content = new InputStreamReader(blob.getNewStream(), StandardCharsets.UTF_8);
             BufferedReader br = null;
             try {
                 br = new BufferedReader(content);
@@ -152,15 +219,6 @@ public class ElasticCustomAnalyzer {
         }
     }
 
-    private static String getValue(PropertyState state) {
-        if (state.getType() == Type.BINARY) {
-
-        } else {
-            return state.getValue(Type.STRING);
-        }
-        return null;
-    }
-
     /**
      * Normalizes one of the following values:
      * - lucene class (eg: org.apache.lucene.analysis.en.EnglishAnalyzer)
@@ -173,12 +231,31 @@ public class ElasticCustomAnalyzer {
         return name.toLowerCase().replace("analyzer", "");
     }
 
-    private static Map<String, String> convertNodeState(NodeState state) {
+    private static Map<String, Object> convertNodeState(NodeState state) {
+        return convertNodeState(state, Collections.emptyMap());
+    }
+
+    private static Map<String, Object> convertNodeState(NodeState state, Map<String, String> mapping) {
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
                 .filter(ps -> ps.getType() != Type.BINARY)
                 .filter(ps -> !ps.isArray())
                 .filter(ps -> !NodeStateUtils.isHidden(ps.getName()))
                 .filter(ps -> !IGNORE_PROP_NAMES.contains(ps.getName()))
-                .collect(Collectors.toMap(PropertyState::getName, ps -> ps.getValue(Type.STRING)));
+                .collect(Collectors.toMap(ps -> {
+                    String remappedName = mapping.get(ps.getName());
+                    return remappedName != null ? remappedName : ps.getName();
+                }, ps -> {
+                    String value = ps.getValue(Type.STRING);
+                    List<String> values = Arrays.asList(value.split(","));
+                    if (values.stream().allMatch(v -> state.hasChildNode(v.trim()))) {
+                        return values.stream().flatMap(v -> {
+                            try {
+                                return loadContent(state.getChildNode(v.trim()), v.trim()).stream();
+                            } catch (IOException e) {
+                                throw new IllegalStateException(e);
+                            }
+                        }).collect(Collectors.toList());
+                    } else return value;
+                }));
     }
 }

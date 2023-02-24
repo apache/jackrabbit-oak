@@ -151,10 +151,6 @@
         <!-- https://github.com/elastic/elasticsearch/issues/29184#issuecomment-662480046 -->
         <exclusion>
           <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-analyzers-common</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-backward-codecs</artifactId>
         </exclusion>
         <exclusion>
