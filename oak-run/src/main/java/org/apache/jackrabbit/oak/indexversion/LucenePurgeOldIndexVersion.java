@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -34,12 +35,12 @@ public class LucenePurgeOldIndexVersion extends PurgeOldIndexVersion {
     }
 
     @Override
-    protected boolean returnIgnoreIsIndexActiveCheck() {
-        return false;
+    protected void preserveDetailsFromIndexDefForPostOp(NodeBuilder builder) {
+        // NOOP
     }
 
     @Override
-    protected void preserveDetailsFromIndexDefForPostOp(NodeBuilder builder) {
-        // NOOP
+    protected IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName) {
+        return new LuceneIndexVersionOperation(indexName);
     }
 }

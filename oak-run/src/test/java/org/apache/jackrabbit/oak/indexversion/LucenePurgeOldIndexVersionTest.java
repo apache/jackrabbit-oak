@@ -264,7 +264,9 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         NodeBuilder rootBuilder = store.getRoot().builder();
         // for disabled indexes, it will still be deleted if no oak mount, but will be kept if oak mount exists
         rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty(":originalType", "lucene");
         rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty(":originalType", "lucene");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1", "fooIndex-4-custom-2"));
@@ -279,6 +281,41 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
         Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+    }
+
+    @Test
+    public void noDeleteForDisabledIndexesIfNoOriginalPropertySet() throws Exception {
+        createTestData(false);
+        createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
+
+        NodeStore store = fixture.getNodeStore();
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        // for disabled indexes, if :originalType property is not set, it will be skipped from IndexPurgeOperation generation list and will be ignored (assuming it was manually marked as disabled)
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1", "fooIndex-4-custom-2"));
+
+        runIndexPurgeCommand(true, 1, "/oak:index/fooIndex,/oak:index");
+        NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
+        //fooIndex-3-custom-1 should exist even if it doesn't have hidden oak mount - because it got ignored from purge operation generation list because of no :originalType set
+        Assert.assertTrue("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
         Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
         Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
     }

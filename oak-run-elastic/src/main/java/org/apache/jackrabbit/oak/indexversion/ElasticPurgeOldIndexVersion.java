@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,16 +95,16 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
     }
 
     @Override
-    protected boolean returnIgnoreIsIndexActiveCheck() {
-        return true;
-    }
-
-    @Override
     protected void preserveDetailsFromIndexDefForPostOp(NodeBuilder builder) {
         PropertyState seedProp = builder.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
         if (seedProp == null) {
             throw new IllegalStateException("Index full name cannot be computed without name seed");
         }
         SEED_VALUE = seedProp.getValue(Type.LONG);
+    }
+
+    @Override
+    protected IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName) {
+        return new ElasticIndexVersionOperation(indexName);
     }
 }

@@ -109,8 +109,8 @@ public abstract class PurgeOldIndexVersion implements Closeable {
             String parentPath = PathUtils.getParentPath(baseIndexPath);
             List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
             LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath, indexNameObjectList);
-            List<IndexVersionOperation> toDeleteIndexNameObjectList = IndexVersionOperation.generateIndexVersionOperationList(
-                    nodeStore.getRoot(), parentPath, indexNameObjectList, purgeThresholdMillis, shouldPurgeBaseIndex, returnIgnoreIsIndexActiveCheck());
+            List<IndexVersionOperation> toDeleteIndexNameObjectList = getIndexVersionOperationImpl(IndexName.parse(baseIndexPath)).generateIndexVersionOperationList(
+                    nodeStore.getRoot(), parentPath, indexNameObjectList, purgeThresholdMillis, shouldPurgeBaseIndex);
             toDeleteIndexNameObjectList.removeIf(item -> (item.getOperation() == IndexVersionOperation.Operation.NOOP));
             if (!toDeleteIndexNameObjectList.isEmpty()) {
                 LOG.info("Found some index need to be purged over base'{}': '{}'", baseIndexPath, toDeleteIndexNameObjectList);
@@ -186,25 +186,16 @@ public abstract class PurgeOldIndexVersion implements Closeable {
                     NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, repositoryIndexPath);
                     if (nodeBuilder.exists()) {
                         String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
-                        // If type = disabled. There can be 2 cases -
-                        // 1. It was marked as disabled by this code , in which case the original type would be moved to orig_type property
-                        // 2. It was marked disabled by someone else.
 
-                        // Skip the run if (type = disabled and orig_type is present and not equal to PurgeOldIndexVersion's impl's  index type)
-                        // OR
-                        // (type != disabled and type is not equal to PurgeOldIndexVersion's impl's  index type)
-                        if ((TYPE_DISABLED.equals(type) && nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME) != null && !getIndexType().equals(nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME).getValue(Type.STRING))) ||
+                        // Skip if either of the below conditions are satisfied -
+                        // 1. type = disabled and there is no :originalType property set (which means the index was not disabled via the PurgeIndexCmd but was set to disabled manually - so we do not touch this index)
+                        // 2. type = disabled and :originalType is not equal to PurgeOldIndexVersion's impl's  index type
+                        // 3. type != disabled and type is not equal to PurgeOldIndexVersion's impl's  index type
+                        if ((TYPE_DISABLED.equals(type) && (nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME) == null || !getIndexType().equals(nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME).getValue(Type.STRING)))) ||
                                 (!TYPE_DISABLED.equals(type) && !getIndexType().equals(type))) {
                             continue;
                         }
 
-                        // If type = disabled and orig_type is not set - this means someone manually marked the index as disabled
-                        // We can't determine the original index implementation in this case - so we let it run for whichever PurgeOldIndexVersion's impl calls it first
-                        // Two scenarios to note here -
-                        // 1. ElasticPurgeOldIndexVersion calls this for a lucene index (deletes the index from oak repo - which we want)
-                        // and then in postDeleteOp tries to delete a non existent remote elastic index - that particular call will simply fail.
-                        // 2. LucenePurgeOldIndexVersion calls this for an elastic index (deletes the index from oak repo)
-                        // and then does a NOOP in postDeleteOp - effectively we are left with a dangling elastic remote index in this case.
                         filteredIndexPaths.add(repositoryIndexPath);
                     }
                 }
@@ -267,13 +258,6 @@ public abstract class PurgeOldIndexVersion implements Closeable {
     protected abstract void postDeleteOp(String idxPath);
 
     /**
-     *
-     * @return true if the isIndexActiveCheck should be skipped
-     * - for cases where index implementation does not have hidden oak mounts
-     */
-    protected abstract boolean returnIgnoreIsIndexActiveCheck();
-
-    /**
      * To preserve any required details from index def builder to be used in post op
      */
     protected abstract void preserveDetailsFromIndexDefForPostOp(NodeBuilder builder);
@@ -282,5 +266,7 @@ public abstract class PurgeOldIndexVersion implements Closeable {
     public void close() throws IOException {
         closer.close();
     }
+
+    protected abstract IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName);
 
 }

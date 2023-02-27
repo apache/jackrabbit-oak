@@ -46,6 +46,7 @@ import javax.jcr.Session;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -123,6 +124,38 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         // check that the disabled base index is not deleted in the subsequent runs.
         Assert.assertTrue("Index:" + "fooIndex-4" + " deleted", indexRootNode.getChildNode("fooIndex-4").exists());
         Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+    }
+
+    @Test
+    public void noDeleteForDisabledIndexes() throws Exception {
+        createTestData(false);
+        createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
+
+        NodeStore store = fixture.getNodeStore();
+        NodeBuilder rootBuilder = store.getRoot().builder();
+
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty(":originalType", "elasticsearch");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        runIndexPurgeCommand(true, 1, "/oak:index/fooIndex,/oak:index");
+        NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertTrue("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
     }
 
     @Test
