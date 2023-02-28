@@ -37,7 +37,11 @@ import javax.jcr.RepositoryException;
 
 import static javax.jcr.Property.JCR_PRIMARY_TYPE;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
