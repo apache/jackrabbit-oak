@@ -40,7 +40,7 @@ public class LucenePurgeOldIndexVersion extends PurgeOldIndexVersion {
     }
 
     @Override
-    protected IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName) {
+    protected IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName) {
         return new LuceneIndexVersionOperation(indexName);
     }
 }

@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.indexversion.PurgeOldIndexVersion;
 public class LucenePurgeOldIndexVersionCommand extends PurgeOldIndexVersionCommand {
 
     @Override
-    protected PurgeOldIndexVersion getPurgeOldIndexVersionImpl() {
+    protected PurgeOldIndexVersion getPurgeOldIndexVersionInstance() {
         return new LucenePurgeOldIndexVersion();
     }
 }

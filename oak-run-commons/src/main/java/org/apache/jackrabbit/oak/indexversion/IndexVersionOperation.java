@@ -105,7 +105,7 @@ public abstract class IndexVersionOperation {
         for (IndexName indexNameObject : disableIndexNameObjectList) {
             String indexName = indexNameObject.getNodeName();
             NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
-            IndexVersionOperation indexVersionOperation = getIndexVersionOperationImpl(indexNameObject);
+            IndexVersionOperation indexVersionOperation = getIndexVersionOperationInstance(indexNameObject);
             if (checkIfDisabledIndexCanBeMarkedForDeletion(indexNode)) {
                 indexVersionOperation.setOperation(Operation.DELETE);
             }
@@ -124,14 +124,14 @@ public abstract class IndexVersionOperation {
                 NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
                 boolean isActiveIndexOldEnough = isActiveIndexOldEnough(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
                 int activeProductVersion = activeIndexNameObject.getProductVersion();
-                indexVersionOperationList.add(getIndexVersionOperationImpl(activeIndexNameObject));
+                indexVersionOperationList.add(getIndexVersionOperationInstance(activeIndexNameObject));
 
                 // the reverseSortedIndexNameList will now contain the remaining indexes,
                 // the active index and disabled index was removed from that list already
                 for (IndexName indexNameObject : reverseSortedIndexNameList) {
                     String indexName = indexNameObject.getNodeName();
                     NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
-                    IndexVersionOperation indexVersionOperation = getIndexVersionOperationImpl(indexNameObject);
+                    IndexVersionOperation indexVersionOperation = getIndexVersionOperationInstance(indexNameObject);
                     // if active index not long enough, NOOP for all indexes
                     if (isActiveIndexOldEnough) {
                         if (indexNameObject.getProductVersion() == activeProductVersion && indexNameObject.getCustomerVersion() == 0) {
@@ -243,7 +243,7 @@ public abstract class IndexVersionOperation {
         DELETE
     }
 
-    protected abstract IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName);
+    protected abstract IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName);
 
     /**
      *

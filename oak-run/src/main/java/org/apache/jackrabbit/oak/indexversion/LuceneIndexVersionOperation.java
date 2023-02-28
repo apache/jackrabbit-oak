@@ -34,7 +34,7 @@ public class LuceneIndexVersionOperation extends IndexVersionOperation {
     }
 
     @Override
-    protected IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName) {
+    protected IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName) {
         return new LuceneIndexVersionOperation(indexName);
     }
 

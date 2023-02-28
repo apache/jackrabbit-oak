@@ -104,7 +104,7 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
     }
 
     @Override
-    protected IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName) {
+    protected IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName) {
         return new ElasticIndexVersionOperation(indexName);
     }
 }

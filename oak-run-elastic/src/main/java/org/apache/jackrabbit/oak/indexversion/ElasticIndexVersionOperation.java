@@ -29,7 +29,7 @@ public class ElasticIndexVersionOperation extends IndexVersionOperation{
     }
 
     @Override
-    protected IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName) {
+    protected IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName) {
         return new ElasticIndexVersionOperation(indexName);
     }
 

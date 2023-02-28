@@ -109,7 +109,7 @@ public abstract class PurgeOldIndexVersion implements Closeable {
             String parentPath = PathUtils.getParentPath(baseIndexPath);
             List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
             LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath, indexNameObjectList);
-            List<IndexVersionOperation> toDeleteIndexNameObjectList = getIndexVersionOperationImpl(IndexName.parse(baseIndexPath)).generateIndexVersionOperationList(
+            List<IndexVersionOperation> toDeleteIndexNameObjectList = getIndexVersionOperationInstance(IndexName.parse(baseIndexPath)).generateIndexVersionOperationList(
                     nodeStore.getRoot(), parentPath, indexNameObjectList, purgeThresholdMillis, shouldPurgeBaseIndex);
             toDeleteIndexNameObjectList.removeIf(item -> (item.getOperation() == IndexVersionOperation.Operation.NOOP));
             if (!toDeleteIndexNameObjectList.isEmpty()) {
@@ -267,6 +267,6 @@ public abstract class PurgeOldIndexVersion implements Closeable {
         closer.close();
     }
 
-    protected abstract IndexVersionOperation getIndexVersionOperationImpl(IndexName indexName);
+    protected abstract IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName);
 
 }

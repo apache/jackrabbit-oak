@@ -49,7 +49,7 @@ public class ElasticPurgeOldIndexVersionCommand extends PurgeOldIndexVersionComm
     }
 
     @Override
-    protected PurgeOldIndexVersion getPurgeOldIndexVersionImpl() {
+    protected PurgeOldIndexVersion getPurgeOldIndexVersionInstance() {
         return new ElasticPurgeOldIndexVersion(indexOpts.getIndexPrefix(), indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
                 indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret());
     }

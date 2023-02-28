@@ -48,7 +48,7 @@ public abstract class PurgeOldIndexVersionCommand implements Command {
             if (!opts.getCommonOpts().isReadWrite()) {
                 LOG.info("Repository connected in read-only mode. Use '--read-write' for write operations");
             }
-            getPurgeOldIndexVersionImpl().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths, shouldPurgeBaseIndex);
+            getPurgeOldIndexVersionInstance().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths, shouldPurgeBaseIndex);
         }
     }
 
@@ -70,5 +70,5 @@ public abstract class PurgeOldIndexVersionCommand implements Command {
         return opts;
     }
 
-    protected abstract PurgeOldIndexVersion getPurgeOldIndexVersionImpl();
+    protected abstract PurgeOldIndexVersion getPurgeOldIndexVersionInstance();
 }
