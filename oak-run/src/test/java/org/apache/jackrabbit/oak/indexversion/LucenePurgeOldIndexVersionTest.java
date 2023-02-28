@@ -349,6 +349,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
         Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
         Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType").getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
         Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
         Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
@@ -411,6 +412,9 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3").getProperty("type").getValue(Type.STRING));
         Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty("type").getValue(Type.STRING));
         Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-3").getProperty(":originalType").getValue(Type.STRING));
+        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty(":originalType").getValue(Type.STRING));
+        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType").getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
     }
 

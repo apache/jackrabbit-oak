@@ -60,7 +60,6 @@ public abstract class PurgeOldIndexVersion implements Closeable {
      * @param isReadWriteRepository bool to indicate if it's read write repository, if yes, the purge index will not execute
      * @param purgeThresholdMillis  the threshold of time length since last time index time to determine, will purge if exceed that
      * @param indexPaths            the index path or parent path
-     *
      * @throws IOException
      * @throws CommitFailedException
      */
@@ -68,6 +67,7 @@ public abstract class PurgeOldIndexVersion implements Closeable {
             IOException, CommitFailedException {
         execute(nodeStore, isReadWriteRepository, purgeThresholdMillis, indexPaths, true);
     }
+
     /**
      * Execute purging index based on the index version naming and last time index time
      *
@@ -76,7 +76,6 @@ public abstract class PurgeOldIndexVersion implements Closeable {
      * @param purgeThresholdMillis  the threshold of time length since last time index time to determine, will purge if exceed that
      * @param indexPaths            the index path or parent path
      * @param shouldPurgeBaseIndex  If set to true, will apply purge operations on active base index i.e. DELETE or DELETE_HIDDEN_AND_DISABLE
-     *
      * @throws IOException
      * @throws CommitFailedException
      */
@@ -191,8 +190,10 @@ public abstract class PurgeOldIndexVersion implements Closeable {
                         // 1. type = disabled and there is no :originalType property set (which means the index was not disabled via the PurgeIndexCmd but was set to disabled manually - so we do not touch this index)
                         // 2. type = disabled and :originalType is not equal to PurgeOldIndexVersion's impl's  index type
                         // 3. type != disabled and type is not equal to PurgeOldIndexVersion's impl's  index type
-                        if ((TYPE_DISABLED.equals(type) && (nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME) == null || !getIndexType().equals(nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME).getValue(Type.STRING)))) ||
-                                (!TYPE_DISABLED.equals(type) && !getIndexType().equals(type))) {
+                        if ((TYPE_DISABLED.equals(type)
+                                && (nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME) == null
+                                || !getIndexType().equals(nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME).getValue(Type.STRING))))
+                                || (!TYPE_DISABLED.equals(type) && !getIndexType().equals(type))) {
                             continue;
                         }
 
@@ -225,7 +226,7 @@ public abstract class PurgeOldIndexVersion implements Closeable {
                 if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE_HIDDEN_AND_DISABLE) {
                     LOG.info("Disabling {}", nodeName);
                     nodeBuilder.setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED, Type.STRING);
-                    // Set this property orig_type so that when the purge job marks this index for deletion in later runs -
+                    // Set this property :originalType so that when the purge job marks this index for deletion in later runs -
                     // the proper post deletion hook can be called based on the original index type.
                     nodeBuilder.setProperty(ORIGINAL_TYPE_PROPERTY_NAME, type, Type.STRING);
                     EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
@@ -246,13 +247,11 @@ public abstract class PurgeOldIndexVersion implements Closeable {
     }
 
     /**
-     *
      * @return IndexType served by the implementation like lucene or elasticsearch
      */
     protected abstract String getIndexType();
 
     /**
-     *
      * @param idxPath - index path on which to perform post delete operations
      */
     protected abstract void postDeleteOp(String idxPath);
