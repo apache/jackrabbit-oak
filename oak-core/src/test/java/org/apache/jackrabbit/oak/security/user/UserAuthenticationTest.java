@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +44,7 @@ import javax.security.auth.login.AccountNotFoundException;
 import javax.security.auth.login.FailedLoginException;
 import javax.security.auth.login.LoginException;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -188,6 +190,29 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testImpersonationByAdministrator() throws Exception {
+        String impersonatedUsername = "impersonated_user";
+        String impersonatedPassword = "impersonated_password";
+        getUserManager(root).createUser(impersonatedUsername, impersonatedPassword);
+        UserAuthentication impersonatedAuthentication = new UserAuthentication(getUserConfiguration(), root, impersonatedUsername);
+        SimpleCredentials sc = new SimpleCredentials(impersonatedUsername, impersonatedPassword.toCharArray());
+
+        Group administratorGroup = getUserManager(root).createGroup(UserConstants.DEFAULT_ADMINISTRATORS_GROUP);
+        administratorGroup.addMember(getTestUser());
+        root.commit();
+        assertTrue(impersonatedAuthentication.authenticate(new ImpersonationCredentials(sc, mockAuthInfo(userId))));
+
+        administratorGroup.removeMember(getTestUser());
+        root.commit();
+        try {
+            impersonatedAuthentication.authenticate(new ImpersonationCredentials(sc, mockAuthInfo(userId)));
+            fail("TestUser is no longer an administrator, so he should not be able to impersonate any other user.");
+        } catch (LoginException e) {
+            assertTrue(e instanceof  FailedLoginException);
+        }
+    }
+
+    @Test
     public void testAuthenticateGuestCredentials() throws Exception {
         UserAuthentication ua = new UserAuthentication(getUserConfiguration(), root, getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ANONYMOUS_ID, UserConstants.DEFAULT_ANONYMOUS_ID));
         assertTrue(ua.authenticate(new GuestCredentials()));
@@ -246,6 +271,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
         AuthInfo ai = mock(AuthInfo.class);
         when(ai.getUserID()).thenReturn(uid);
         when(ai.getAttributeNames()).thenReturn(new String[0]);
+        when(ai.getPrincipals()).thenReturn(Set.of(new PrincipalImpl(uid)));
         return ai;
     }
 }
