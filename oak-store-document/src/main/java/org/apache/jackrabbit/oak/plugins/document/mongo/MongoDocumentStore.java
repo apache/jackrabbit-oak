@@ -158,6 +158,10 @@ public class MongoDocumentStore implements DocumentStore {
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
 
     /**
+     * Document size of 16MB is a limit in Mongo
+     */
+    public static final long SIZE_LIMIT = 16793600;
+    /**
      * nodeNameLimit for node name based on Mongo Version
      */
     private final int nodeNameLimit;
@@ -1074,6 +1078,10 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
 
+            int size = updateOp.toString().length();
+            if(size > SIZE_LIMIT) {
+                LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", updateOp.getId(), size);
+            }
             // conditional update failed or not possible
             // perform operation and get complete document
             Bson query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
@@ -1350,6 +1358,10 @@ public class MongoDocumentStore implements DocumentStore {
         int i = 0;
         for (UpdateOp updateOp : updateOps) {
             String id = updateOp.getId();
+            int size = updateOp.toString().length();
+            if(size > SIZE_LIMIT) {
+                LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", id, size);
+            }
             Bson query = createQueryForUpdate(id, updateOp.getConditions());
             // fail on insert when isNew == false
             boolean failInsert = !updateOp.isNew();
@@ -1365,6 +1377,7 @@ public class MongoDocumentStore implements DocumentStore {
             );
             bulkIds[i++] = id;
         }
+
 
         BulkWriteResult bulkResult;
         Set<String> failedUpdates = new HashSet<String>();
@@ -1410,6 +1423,10 @@ public class MongoDocumentStore implements DocumentStore {
             BasicDBObject doc = new BasicDBObject();
             inserts.add(doc);
             doc.put(Document.ID, update.getId());
+            int size = update.toString().length();
+            if(size > SIZE_LIMIT) {
+                LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", update.getId(), size);
+            }
             UpdateUtils.assertUnconditional(update);
             T target = collection.newDocument(this);
             UpdateUtils.applyChanges(target, update);
@@ -1872,6 +1889,10 @@ public class MongoDocumentStore implements DocumentStore {
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
 
+        int size = updateOp.toString().length();
+        if(size > SIZE_LIMIT) {
+            LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", updateOp.getId(), size);
+        }
         // always increment modCount
         updateOp.increment(Document.MOD_COUNT, 1);
 

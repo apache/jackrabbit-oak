@@ -30,6 +30,9 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
+
+import java.util.Arrays;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsString;
@@ -130,6 +133,31 @@ public class MongoDBExceptionTest {
             assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
                     e.getMessage().contains(toKey));
         }
+    }
+
+    @Test
+    @Ignore
+    public void add16MBDoc() throws Exception {
+        //DocumentStore docStore = openDocumentStore();
+
+        UpdateOp updateOp = new UpdateOp("/", false);
+
+        // create a 1 MB property
+        char[] chars = new char[1024 * 1024];
+
+        Arrays.fill(chars, '0');
+        String content = new String(chars);
+
+        //create more than 16MB properties
+        for (int i = 0; i < 17; i++) {
+            updateOp.set("property"+ Integer.toString(i), content);
+        }
+
+        int size = updateOp.toString().length();
+
+        store.createOrUpdate(Collection.NODES, updateOp);
+        NodeDocument doc = store.find(Collection.NODES, "/");
+        // assertNotNull(doc);
     }
 
     private void setExceptionMsg() {
