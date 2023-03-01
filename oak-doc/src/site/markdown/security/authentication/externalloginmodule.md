@@ -36,8 +36,9 @@ What it does not:
 * provide a transparent oak principal provider.
 * offer services for background synchronization of users and groups
 
-<a name="details"></a>
+See also [Best Practices for External Authentication](external/bestpractices.html).
 
+<a name="details"></a>
 ### Implementation Details
 The external identity and login handling is split into 3 parts:
 

@@ -655,7 +655,7 @@ public class MongoDocumentStore implements DocumentStore {
                 return findUncached(collection, key, docReadPref);
             } catch (MongoException e) {
                 ex = e;
-                LOG.error("findUncachedWithRetry : read fails with an exception" + e, e);
+                LOG.warn("findUncachedWithRetry : read fails with an exception" + e, e);
             }
         }
         if (ex != null) {

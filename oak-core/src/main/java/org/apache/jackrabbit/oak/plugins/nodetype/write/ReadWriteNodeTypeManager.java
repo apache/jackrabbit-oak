@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -29,16 +29,16 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeExistsException;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
@@ -95,28 +95,72 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     }
 
     //----------------------------------------------------< NodeTypeManager >---
-
+    /**
+     * Returns an empty {@code NodeTypeTemplate} which can then be used to
+     * define a node type and passed to {@code NodeTypeManager.registerNodeType}.
+     *
+     * @return A new empty {@code NodeTypeTemplate}.
+     * @since JCR 2.0
+     */
     @Override
     public NodeTypeTemplate createNodeTypeTemplate() {
         return new NodeTypeTemplateImpl(getNamePathMapper());
     }
 
+    /**
+     * Returns a {@code NodeTypeTemplate} from the given definition, which can then be used to
+     * define a node type and passed to {@code NodeTypeManager.registerNodeType}.
+     *
+     * @return A new {@code NodeTypeTemplate}.
+     * @since JCR 2.0
+     */
     @Override
     public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd)
             throws ConstraintViolationException {
         return new NodeTypeTemplateImpl(getNamePathMapper(), ntd);
     }
 
+    /**
+     * Returns an empty {@code NodeDefinitionTemplate} which can then be
+     * used to create a child node definition and attached to a
+     * {@code NodeTypeTemplate}.
+     *
+     * @return A new {@code NodeDefinitionTemplate}.
+     * @since JCR 2.0
+     */
     @Override
     public NodeDefinitionTemplate createNodeDefinitionTemplate() {
         return new NodeDefinitionTemplateImpl(getNamePathMapper());
     }
 
+    /**
+     * Returns an empty {@code PropertyDefinitionTemplate} which can then
+     * be used to create a property definition and attached to a
+     * {@code NodeTypeTemplate}.
+     *
+     * @return A new {@code PropertyDefinitionTemplate}.
+     * @since JCR 2.0
+     */
     @Override
     public PropertyDefinitionTemplate createPropertyDefinitionTemplate() {
         return new PropertyDefinitionTemplateImpl(getNamePathMapper());
     }
 
+    /**
+     * Registers a new node type or updates an existing node type using the specified definition and returns the 
+     * resulting {@code NodeType} object.
+     * <p>
+     * Typically, the object passed to this method will be a {@code NodeTypeTemplate} (a subclass of {@code NodeTypeDefinition})
+     * acquired from {@code NodeTypeManager.createNodeTypeTemplate} and then filled-in with definition information.
+     *
+     * @param ntd an {@code NodeTypeDefinition}.
+     * @param allowUpdate a boolean
+     * @return the registered node type
+     * @throws NodeTypeExistsException if {@code allowUpdate} is {@code false} and the {@code NodeTypeDefinition} 
+     * specifies a node type name that is already registered.
+     * @throws RepositoryException if another error occurs.
+     * @since JCR 2.0
+     */
     @Override
     public NodeType registerNodeType(
             NodeTypeDefinition ntd, boolean allowUpdate)
@@ -125,6 +169,21 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
                 new NodeTypeDefinition[]{ntd}, allowUpdate).nextNodeType();
     }
 
+    /**
+     * Registers or updates the specified array of {@code NodeTypeDefinition} objects. This method is used to register 
+     * or update a set of node types with mutual dependencies. Returns an iterator over the resulting {@code NodeType} objects.
+     * <p>
+     * The effect of the method is "all or nothing"; if an error occurs, no node
+     * types are registered or updated.
+     *
+     * @param ntds a collection of {@code NodeTypeDefinition}s
+     * @param allowUpdate a boolean
+     * @return the registered node types.
+     * @throws NodeTypeExistsException if {@code allowUpdate} is {@code false} and a {@code NodeTypeDefinition} within 
+     * the {@code Collection} specifies a node type name that is already registered.
+     * @throws RepositoryException if another error occurs.
+     * @since JCR 2.0
+     */
     @Override
     public final NodeTypeIterator registerNodeTypes(
             NodeTypeDefinition[] ntds, boolean allowUpdate)
@@ -146,7 +205,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
             refresh();
 
-            List<NodeType> types = new ArrayList<NodeType>(ntds.length);
+            List<NodeType> types = new ArrayList<>(ntds.length);
             for (NodeTypeDefinition ntd : ntds) {
                 types.add(getNodeType(ntd.getName()));
             }
@@ -157,7 +216,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         }
     }
 
-    private static Tree getOrCreateNodeTypes(Root root) {
+    private static @NotNull Tree getOrCreateNodeTypes(@NotNull Root root) {
         Tree types = root.getTree(NODE_TYPES_PATH);
         if (!types.exists()) {
             Tree system = root.getTree('/' + JCR_SYSTEM);
@@ -169,6 +228,14 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         return types;
     }
 
+    /**
+     * Unregisters the specified node type.
+     *
+     * @param name a {@code String}.
+     * @throws NoSuchNodeTypeException if no registered node type exists with the specified name.
+     * @throws RepositoryException if another error occurs.
+     * @since JCR 2.0
+     */
     @Override
     public void unregisterNodeType(String name) throws RepositoryException {
         Root root = getWriteRoot();
@@ -187,6 +254,15 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         }
     }
 
+    /**
+     * Unregisters the specified set of node types. Used to unregister a set of
+     * node types with mutual dependencies.
+     *
+     * @param names a {@code String} array
+     * @throws NoSuchNodeTypeException if one of the names listed is not a registered node type.
+     * @throws RepositoryException if another error occurs.
+     * @since JCR 2.0
+     */
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
         Root root = getWriteRoot();

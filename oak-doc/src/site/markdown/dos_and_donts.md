@@ -122,6 +122,7 @@ c = d.getParent();                              // preferred way to fetch the pa
 ```
 ## Security
 - [Best Practices for Authorization](security/authorization/bestpractices.html)
+- [Best Practices for External Authentication](security/authentication/external/bestpractices.html)
 
 ## Misc
 ### Don't use Thread.interrupt()
