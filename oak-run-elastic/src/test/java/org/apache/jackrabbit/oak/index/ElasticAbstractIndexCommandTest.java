@@ -74,4 +74,11 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
                 elasticRule.getElasticConnectionFromString();
     }
 
+    @After
+    public void tearDown() throws IOException {
+        if (esConnection != null) {
+            esConnection.getClient().indices().delete(i->i
+                    .index(esConnection.getIndexPrefix() + "*"));
+        }
+    }
 }
