@@ -38,7 +38,7 @@ def buildModule(moduleSpec) {
             testOptions = '' 
         } else if (flags == 'it') {
             // integration tests only
-            testOptions = '-PintegrationTesting -Dsurefire.skip.ut=true' 
+            testOptions = '-PintegrationTesting -Dsurefire.skip.ut=true -Dskip.coverage=true' 
         }
     }
     stage(moduleSpec) {
