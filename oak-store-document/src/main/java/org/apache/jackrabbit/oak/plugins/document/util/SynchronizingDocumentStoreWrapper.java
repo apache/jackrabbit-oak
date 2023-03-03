@@ -70,8 +70,8 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
                                                            final String toKey, final String indexedProperty,
                                                            final long startValue, final int limit,
-                                                           final List<String> projections) throws DocumentStoreException {
-        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projections);
+                                                           final List<String> projection) throws DocumentStoreException {
+        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
     }
 
     @Override

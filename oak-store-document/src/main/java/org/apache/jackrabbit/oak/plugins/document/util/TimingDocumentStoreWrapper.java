@@ -190,13 +190,13 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     @NotNull
     public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
                                               final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projections) throws DocumentStoreException {
+                                              final List<String> projection) throws DocumentStoreException {
         try {
             long start = now();
-            List<T> result = base.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projections);
+            List<T> result = base.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
             updateAndLogTimes("query3", start, 0, size(result));
             if (logCommonCall()) {
-                logCommonCall(start, "query3 " + collection + " " + fromKey + " " + toKey + " " + indexedProperty + " " + startValue + " " + limit + " " + projections.toString());
+                logCommonCall(start, "query3 " + collection + " " + fromKey + " " + toKey + " " + indexedProperty + " " + startValue + " " + limit + " " + projection.toString());
             }
             return result;
         } catch (Exception e) {

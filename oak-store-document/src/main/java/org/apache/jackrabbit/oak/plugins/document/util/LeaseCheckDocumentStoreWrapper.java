@@ -89,9 +89,9 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     @Override
     public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
                                               final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projections) {
+                                              final List<String> projection) {
         performLeaseCheck();
-        return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projections);
+        return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
     }
 
     @Override

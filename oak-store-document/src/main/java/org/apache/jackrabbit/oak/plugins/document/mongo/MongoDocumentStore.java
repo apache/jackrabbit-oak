@@ -117,7 +117,6 @@ import static com.google.common.collect.Sets.difference;
 import static com.mongodb.client.model.Projections.include;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -736,8 +735,8 @@ public class MongoDocumentStore implements DocumentStore {
                                               final String indexedProperty,
                                               final long startValue,
                                               final int limit,
-                                              final List<String> projections) throws DocumentStoreException {
-        return queryWithRetry(collection, fromKey, toKey, indexedProperty, startValue, limit, projections, maxQueryTimeMS);
+                                              final List<String> projection) throws DocumentStoreException {
+        return queryWithRetry(collection, fromKey, toKey, indexedProperty, startValue, limit, projection, maxQueryTimeMS);
     }
 
     /**
@@ -751,7 +750,7 @@ public class MongoDocumentStore implements DocumentStore {
                                                         String indexedProperty,
                                                         long startValue,
                                                         int limit,
-                                                        List<String> projections,
+                                                        List<String> projection,
                                                         long maxQueryTime) {
         int numAttempts = queryRetries + 1;
         MongoException ex = null;
@@ -761,7 +760,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
             try {
                 return queryInternal(collection, fromKey, toKey,
-                        indexedProperty, startValue, limit, projections, maxQueryTime);
+                        indexedProperty, startValue, limit, projection, maxQueryTime);
             } catch (MongoException e) {
                 ex = e;
             }
@@ -782,7 +781,7 @@ public class MongoDocumentStore implements DocumentStore {
                                                          String indexedProperty,
                                                          long startValue,
                                                          int limit,
-                                                         List<String> projections,
+                                                         List<String> projection,
                                                          long maxQueryTime) {
         log("query", fromKey, toKey, indexedProperty, startValue, limit);
 
@@ -818,7 +817,7 @@ public class MongoDocumentStore implements DocumentStore {
         boolean isSlaveOk = false;
         int resultSize = 0;
         CacheChangesTracker cacheChangesTracker = null;
-        if (parentId != null && collection == Collection.NODES) {
+        if (parentId != null && collection == Collection.NODES && (projection == null || projection.isEmpty())) {
             cacheChangesTracker = nodesCache.registerTracker(fromKey, toKey);
         }
         try {
@@ -840,11 +839,8 @@ public class MongoDocumentStore implements DocumentStore {
                     result = dbCollection.find(query);
                 }
 
-                if (!projections.isEmpty()) {
-                    // it is mandatory to fetch MOD_COUNT because of cacheChangesTracker
-                    projections.add(MOD_COUNT);
-                    Bson projection = include(projections);
-                    result.projection(projection);
+                if (projection != null && !projection.isEmpty()) {
+                    result.projection(include(projection));
                 }
 
                 result.sort(BY_ID_ASC);

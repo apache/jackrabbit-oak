@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -243,13 +244,13 @@ public class MongoDocumentStoreTest {
     }
 
     @Test
-    public void queryWithProjections() {
+    public void queryWithProjection() {
         DocumentStore docStore = openDocumentStore();
         DocumentNodeStore store = new DocumentMK.Builder()
                 .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
         Revision rev = Revision.newRevision(0);
         List<UpdateOp> inserts = new ArrayList<UpdateOp>();
-        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+        for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
                     new RevisionVector(rev));
             inserts.add(n.asOperation(rev));
@@ -257,12 +258,62 @@ public class MongoDocumentStoreTest {
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                DocumentMK.MANY_CHILDREN_THRESHOLD, Lists.newArrayList(ID));
-        // since both _id & _modCount are mandatory, so data size should be 2
-        if (MONGO_DB) {
-            docs.forEach(d -> assertEquals(2 , d.data.size()));
+                20, newArrayList(MODIFIED_IN_SECS));
+        // since _id is mandatory, so data size should be 2
+        docs.forEach(d -> assertEquals(2 , d.data.size()));
+        assertEquals(10, docs.size());
+        store.dispose();
+    }
+
+    @Test
+    public void queryWithEmptyProjection() {
+        DocumentStore docStore = openDocumentStore();
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
         }
-        assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+                20, newArrayList());
+        if (MONGO_DB) {
+            // we have _modCount as additional field in case we use MongoDocumentStore
+            docs.forEach(d -> assertEquals(4 , d.data.size()));
+        } else {
+            docs.forEach(d -> assertEquals(3 , d.data.size()));
+        }
+        assertEquals(10, docs.size());
+        store.dispose();
+    }
+
+    @Test
+    public void queryWithNullProjection() {
+        DocumentStore docStore = openDocumentStore();
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+                20, null);
+        if (MONGO_DB) {
+            // we have _modCount as additional field in case we use MongoDocumentStore
+            docs.forEach(d -> assertEquals(4 , d.data.size()));
+        } else {
+            docs.forEach(d -> assertEquals(3 , d.data.size()));
+        }
+        assertEquals(10, docs.size());
         store.dispose();
     }
 

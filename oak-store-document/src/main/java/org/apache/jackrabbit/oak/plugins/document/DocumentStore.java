@@ -29,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
-import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 
 /**
@@ -510,7 +509,7 @@ public interface DocumentStore {
      * @param indexedProperty the name of the indexed property (optional)
      * @param startValue the minimum value of the indexed property
      * @param limit the maximum number of entries to return
-     * @param projections {@link List} of projected keys (optional). Keep this empty to fetch all fields on document.
+     * @param projection {@link List} of projected keys (optional). Keep this empty to fetch all fields on document.
      * @return the list (possibly empty)
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
@@ -522,13 +521,23 @@ public interface DocumentStore {
                                                final String indexedProperty,
                                                final long startValue,
                                                final int limit,
-                                               final List<String> projections) throws DocumentStoreException {
-        final Set<String> projectedSet = newHashSet(projections);
-        projectedSet.add(ID);
-        projectedSet.add(MOD_COUNT);
+                                               final List<String> projection) throws DocumentStoreException {
 
         final List<T> list = query(collection, fromKey, toKey, indexedProperty, startValue, limit);
-        list.stream().filter(doc -> !doc.isSealed()).forEach(doc -> doc.keySet().retainAll(projectedSet));
+
+        if (projection == null || projection.isEmpty()) {
+            list.forEach(Document::seal);
+            return list;
+        }
+
+        final Set<String> projectedSet = newHashSet(projection);
+        projectedSet.add(ID);
+
+        list.forEach(t -> {
+            t.unSeal();
+            t.keySet().retainAll(projectedSet);
+            t.seal();
+        });
         return list;
     }
 }

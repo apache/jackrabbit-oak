@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.lang.ref.ReferenceQueue;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +35,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
@@ -872,6 +876,28 @@ public class NodeDocumentTest {
         NodeDocument doc2 = NodeDocument.fromString(ns.getDocumentStore(), json);
         doc2.put("foo", "bar");
         ns.dispose();
+    }
+
+    @Test
+    public void unSealDocument() {
+        final DocumentStore documentStore = mock(DocumentStore.class);
+        final NodeDocument document = new NodeDocument(documentStore);
+        final Map<String, Object> data = new HashMap<>();
+
+        data.put("_id", "1/:node6");
+        data.put("_deleted", new TreeMap<>(){{
+                put("key", "value");
+                put("tree", new TreeMap<>(){{put(1, 2); put(2, new HashMap<>(){{ put("key", "value");}});}});
+                put("hash", new HashMap<>(){{put(1, 2); put(2, new TreeMap<>(){{ put("key", "value");}});}});
+            }});
+
+        document.data = data;
+        document.seal();
+        document.unSeal();
+        assertFalse(document.isSealed());
+        assertTrue(document.data.remove("_id", "1/:node6"));
+        document.seal();
+        assertTrue(document.isSealed());
     }
 
     @Test

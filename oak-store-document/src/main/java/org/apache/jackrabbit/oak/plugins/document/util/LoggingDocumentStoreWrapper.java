@@ -147,10 +147,10 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     @NotNull
     public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
                                               final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projections) throws DocumentStoreException {
+                                              final List<String> projection) throws DocumentStoreException {
         try {
-            logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit, projections.toString());
-            return logResult(() -> store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projections));
+            logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit, projection.toString());
+            return logResult(() -> store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection));
         } catch (Exception e) {
             logException(e);
             throw convert(e);
