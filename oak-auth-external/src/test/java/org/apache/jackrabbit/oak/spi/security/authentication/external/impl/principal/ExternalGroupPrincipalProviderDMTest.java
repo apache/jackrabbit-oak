@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -49,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.apache.jackrabbit.api.security.user.UserManager.SEARCH_TYPE_GROUP;
@@ -59,6 +62,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -447,6 +451,58 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         ExternalGroupPrincipalProvider provider = createPrincipalProvider(root, uc);
         Iterator<Group> groups = provider.getMembership(user, false);
         assertFalse(groups.hasNext());
+    }
+
+    @Test
+    public void testGetMembershipBuildsItemBasedPrincipal() throws Exception {
+        User user = getUserManager(root).getAuthorizable(USER_ID, User.class);
+        assertNotNull(user);
+        
+        Set<Principal> groupPrincipals = principalProvider.getMembershipPrincipals(user.getPrincipal());
+        groupPrincipals.forEach(principal -> {
+            assertTrue(principal instanceof GroupPrincipal);
+            assertEquals(dynamicGroupsEnabled, principal instanceof ItemBasedPrincipal);
+            if (dynamicGroupsEnabled) {
+                try {
+                    String path = ((ItemBasedPrincipal) principal).getPath();
+                    Authorizable gr = getUserManager(root).getAuthorizable(principal);
+                    assertNotNull(gr);
+                    assertTrue(gr.isGroup());
+                    assertEquals(gr.getPath(), path);
+                } catch (RepositoryException e) {
+                    fail("Failed to retrieve path for group " + principal.getName());
+                }
+            }
+        });
+    }
+    
+    @Test
+    public void testItemBasedPrincipalGetPathFails() throws Exception {
+        UserManager um = getUserManager(root);
+        User user = um.getAuthorizable(USER_ID, User.class);
+        assertNotNull(user);
+
+        Set<Principal> groupPrincipals = principalProvider.getMembershipPrincipals(user.getPrincipal());
+        Optional<Principal> gp = groupPrincipals.stream().filter(this::isExternalGroupPrincipal).findFirst();
+        if (gp.isPresent()) {
+            Principal principal = gp.get();
+            assertEquals(dynamicGroupsEnabled, principal instanceof ItemBasedPrincipal);
+            if (dynamicGroupsEnabled) {
+                // remove the group
+                Authorizable a = um.getAuthorizable(principal);
+                assertNotNull(a);
+                a.remove();
+                root.commit();
+                
+                // verify that looking up the path of the principal does not succeed
+                try {
+                    String path = ((ItemBasedPrincipal) principal).getPath();
+                    fail("Group lookup by principal returns null  -> path retrieval must fail. Found "+path);
+                } catch (RepositoryException e) {
+                    // success
+                }
+            }
+        }
     }
     
     //------------------------------------------------------------------------------------------------------------------

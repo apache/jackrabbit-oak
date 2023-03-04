@@ -162,7 +162,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         Result result = findPrincipals(principalName, true);
         Iterator<? extends ResultRow> rows = (result == null) ? Collections.emptyIterator() : result.getRows().iterator();
         if (rows.hasNext()) {
-            return new ExternalGroupPrincipal(principalName, getIdpName(rows.next()));
+            return createExternalGroupPrincipal(principalName, getIdpName(rows.next()));
         }
         return null;
     }
@@ -388,7 +388,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 // we have an 'external' user that has been synchronized with the dynamic-membership option
                 Set<Principal> groupPrincipals = Sets.newHashSet();
                 for (String principalName : ps.getValue(Type.STRINGS)) {
-                    groupPrincipals.add(new ExternalGroupPrincipal(principalName, idpName));
+                    groupPrincipals.add(createExternalGroupPrincipal(principalName, idpName));
                 }
 
                 // add inherited local groups (crossing IDP boundary)
@@ -511,13 +511,43 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
     
     //------------------------------------------------------< inner classes >---
+    
+    private GroupPrincipal createExternalGroupPrincipal(@NotNull String principalName, @Nullable String idpName) {
+        if (idpNamesWithDynamicGroups.contains(idpName)) {
+            return new ExternalGroupPrincipalItemBased(principalName, idpName);
+        } else {
+            return new ExternalGroupPrincipal(principalName, idpName);
+        }
+    }
+
+    /**
+     * Implementation of the {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} interface representing 
+     * external group identities that are represented as authorizable group in the repository's user management i.e.   
+     * the {@code SyncHandler} configured for the IDP with the given name has dynamic-group option enabled.
+     */
+    private final class ExternalGroupPrincipalItemBased extends ExternalGroupPrincipal implements ItemBasedPrincipal {
+
+        private ExternalGroupPrincipalItemBased(@NotNull String principalName, @Nullable String idpName) {
+            super(principalName, idpName);
+        }
+
+        @Override
+        public @NotNull String getPath() throws RepositoryException {
+            Authorizable a = userManager.getAuthorizable(this);
+            if (a == null) {
+                throw new RepositoryException("Cannot determine path for principal '" + getName() + "'. Group with this principal name does not exist.");
+            } else {
+                return a.getPath();
+            }
+        }
+    }
 
     /**
      * Implementation of the {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} interface representing external group
      * identities that are <strong>not</strong> represented as authorizable group
      * in the repository's user management.
      */
-    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
+    private class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
 
         private final String idpName;
         
@@ -621,7 +651,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 String principalName = propValues.next();
                 if (!processed.contains(principalName) && matchesQuery(principalName) ) {
                     processed.add(principalName);
-                    return new ExternalGroupPrincipal(principalName, idpName);
+                    return createExternalGroupPrincipal(principalName, idpName);
                 }
             }
             return null;

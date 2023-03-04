@@ -116,4 +116,8 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
         r.commit();
         return gr;
     }
+    
+    boolean isExternalGroupPrincipal(@NotNull Principal principal) {
+        return principal.getClass().getEnclosingClass().equals(ExternalGroupPrincipalProvider.class);
+    }
 }
