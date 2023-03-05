@@ -16,29 +16,43 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
 import java.util.Map;
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 
+import static org.apache.jackrabbit.oak.security.user.Utils.canImpersonateAllUsers;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_ADMIN_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -67,6 +81,13 @@ public class UtilsTest extends AbstractSecurityTest {
 
     private void assertEqualPath(@NotNull Tree expected, @NotNull Tree result) {
         assertEquals(expected.getPath(), result.getPath());
+    }
+    
+    private @NotNull Principal getAdminPrincipal(@NotNull UserManager userManager) throws Exception {
+        String adminId = getConfig(UserConfiguration.class).getParameters().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
+        User admin = userManager.getAuthorizable(adminId, User.class);
+        assertNotNull(admin);
+        return admin.getPrincipal();
     }
 
     @Test
@@ -155,6 +176,57 @@ public class UtilsTest extends AbstractSecurityTest {
         Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
         when(a.isGroup()).thenReturn(true);
         assertFalse(Utils.isEveryone(a));
+    }
+    
+    @Test
+    public void testCanImpersonateAllNonExisting() throws Exception {
+        Principal principal = new PrincipalImpl("nonExisting");
+        UserManager userManager = getUserManager(root);
+        
+        assertNull(userManager.getAuthorizable(principal));
+        assertFalse(canImpersonateAllUsers(principal, userManager));
+    }
+    
+    @Test
+    public void testCanImpersonateAllForGroup() throws Exception {
+        Principal principal = new PrincipalImpl("aGroup");
+        Group gr = getUserManager(root).createGroup(principal);
+
+        UserManager userManager = spy(getUserManager(root));
+        assertFalse(canImpersonateAllUsers(principal, userManager));
+    }
+    
+    @Test
+    public void testCanImpersonateAllForAdminUser() throws Exception {
+        UserManager userManager = getUserManager(root);
+        Principal adminPrincipal = getAdminPrincipal(userManager);
+        
+        assertTrue(canImpersonateAllUsers(adminPrincipal, userManager));
+        assertTrue(canImpersonateAllUsers(new PrincipalImpl(adminPrincipal.getName()), userManager));
+        
+        GroupPrincipal gp = when(mock(GroupPrincipal.class).getName()).thenReturn(adminPrincipal.getName()).getMock();
+        assertTrue(canImpersonateAllUsers(gp, userManager));
+    }
+
+    @Test
+    public void testCanImpersonateAllForNonAdminUser() throws Exception {
+        User u = getTestUser();
+
+        UserManager userManager = getUserManager(root);
+        String userPrincipalName = u.getPrincipal().getName();
+
+        assertFalse(canImpersonateAllUsers(u.getPrincipal(), userManager));
+        assertFalse(canImpersonateAllUsers(new PrincipalImpl(userPrincipalName), userManager));
+        assertFalse(canImpersonateAllUsers((AdminPrincipal) () -> userPrincipalName, userManager));
+    }
+    
+    @Test
+    public void testCanImpersonateAllLookupFails() throws Exception {
+        UserManager umgrMock = when(mock(UserManager.class).getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException()).getMock();
+
+        Principal adminPrincipal = getAdminPrincipal(getUserManager(root));
+
+        assertFalse(canImpersonateAllUsers(adminPrincipal, umgrMock));
     }
     
     @Test
