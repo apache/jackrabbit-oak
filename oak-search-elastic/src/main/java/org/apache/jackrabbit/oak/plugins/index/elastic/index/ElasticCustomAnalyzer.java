@@ -69,7 +69,7 @@ import java.util.stream.StreamSupport;
 
 /**
  * Loads custom analysis index settings from a JCR NodeState. It also takes care of required transformations from Lucene
- * to elasticsearch configuration options.
+ * to Elasticsearch configuration options.
  */
 public class ElasticCustomAnalyzer {
 
