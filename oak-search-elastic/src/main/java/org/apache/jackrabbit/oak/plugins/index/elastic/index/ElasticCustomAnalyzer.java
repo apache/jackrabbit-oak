@@ -226,7 +226,7 @@ public class ElasticCustomAnalyzer {
         name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, name);
         // if it ends with analyzer we need to get rid of it
         if (name.endsWith("_analyzer")) {
-            name = name.replace("_analyzer", "");
+       name = name.substring(0, name.length() - "_analyzer".length());
         }
         return name;
     }
