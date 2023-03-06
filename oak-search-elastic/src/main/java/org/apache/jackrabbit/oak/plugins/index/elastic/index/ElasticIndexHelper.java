@@ -49,6 +49,8 @@ class ElasticIndexHelper {
     private static final Time INITIAL_REFRESH_INTERVAL = Time.of(b -> b.time("-1"));
     private static final String INITIAL_NUMBER_OF_REPLICAS = "0";
 
+    private static final String OAK_WORD_DELIMITER_GRAPH_FILTER = "oak_word_delimiter_graph_filter";
+
     /**
      * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
      * The returned object can be used to create and index optimized for bulk loads (eg: reindexing) but not for queries.
@@ -130,7 +132,7 @@ class ElasticIndexHelper {
                 ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
         if (analyzerBuilder == null) {
             analyzerBuilder = new IndexSettingsAnalysis.Builder()
-                    .filter("oak_word_delimiter_graph_filter",
+                    .filter(OAK_WORD_DELIMITER_GRAPH_FILTER,
                             tokenFilter -> tokenFilter.definition(
                                     tokenFilterDef -> tokenFilterDef.wordDelimiterGraph(
                                             wdgBuilder -> wdgBuilder.generateWordParts(true)
@@ -143,7 +145,7 @@ class ElasticIndexHelper {
                     .analyzer("oak_analyzer",
                             ab -> ab.custom(
                                     customAnalyzer -> customAnalyzer.tokenizer("standard")
-                                            .filter("lowercase", "oak_word_delimiter_graph_filter")));
+                                            .filter("lowercase", OAK_WORD_DELIMITER_GRAPH_FILTER)));
         }
         // path restrictions support
         analyzerBuilder.analyzer("ancestor_analyzer",

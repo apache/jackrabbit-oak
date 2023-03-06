@@ -171,13 +171,17 @@ public class ElasticCustomAnalyzer {
                 LOG.warn("unable to get the filter name using reflection. Try using the normalized node name", e);
                 name = normalize(t.getName());
             }
-            Optional<Map<String, String>> mappingOpt =
-                    CONFIGURATION_MAPPING.entrySet().stream().filter(k -> k.getKey().isAssignableFrom(tff)).map(Map.Entry::getValue).findFirst();
-            Map<String, Object> args = convertNodeState(child, mappingOpt.orElseGet(Collections::emptyMap));
+            Map<String, String> mappings =
+                    CONFIGURATION_MAPPING.entrySet().stream()
+                            .filter(k -> k.getKey().isAssignableFrom(tff))
+                            .map(Map.Entry::getValue)
+                            .findFirst().orElseGet(Collections::emptyMap);
+            Map<String, Object> args = convertNodeState(child, mappings);
 
             args.put(ANALYZER_TYPE, name);
 
-            filters.put(name + "_" + i++, factory.apply(name, JsonData.of(args)));
+            filters.put(name + "_" + i, factory.apply(name, JsonData.of(args)));
+            i++;
         }
         return filters;
     }
@@ -213,6 +217,9 @@ public class ElasticCustomAnalyzer {
     private static String normalize(String value) {
         // this might be a full class, let's tokenize the value
         String[] anlClassTokens = value.split("\\.");
+        if (anlClassTokens.length == 0) {
+            throw new IllegalStateException("Cannot extract tokens from value " + value);
+        }
         // and take the last part
         String name = anlClassTokens[anlClassTokens.length - 1];
         // all options in elastic are in snake case
