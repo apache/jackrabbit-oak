@@ -91,6 +91,14 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", singletonList("/test")));
     }
 
+    @Test(expected = RuntimeException.class)
+    public void fulltextSearchWithNotExistentAnalyzerName() throws Exception {
+        setup(singletonList("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.setProperty(FulltextIndexConstants.ANL_NAME, "this_does_not_exists");
+        });
+    }
+
     @Override
     protected String getHinduArabicMapping() {
         return super.getHinduArabicMapping().replaceAll("\"", "");

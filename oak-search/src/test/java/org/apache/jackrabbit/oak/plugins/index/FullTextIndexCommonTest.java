@@ -57,6 +57,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "sun.jpg");
+        test.addChild("b").setProperty("analyzed_field", "baz");
         root.commit();
 
         assertEventually(() -> {
@@ -75,6 +76,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "1234abCd5678");
+        test.addChild("b").setProperty("analyzed_field", "baz");
         root.commit();
 
         assertEventually(() -> {
@@ -91,6 +93,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "foo");
+        test.addChild("b").setProperty("analyzed_field", "baz");
         root.commit();
 
         assertEventually(() -> {
@@ -115,6 +118,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("analyzed_field", "foo");
+        test.addChild("b").setProperty("analyzed_field", "baz");
         root.commit();
 
         // Below queries would fail silently (return 0 results with an entry in logs for the query that failed)
@@ -138,6 +142,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         test.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
         test.addChild("b").setProperty("analyzed_field", "bar");
         test.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
+        test.addChild("d").setProperty("analyzed_field", "baz");
 
         root.commit();
 
@@ -158,6 +163,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         test.addChild("e").addChild("temp:c").setProperty("analyzed_field", "bar");
         test.addChild("f").addChild("d").addChild("temp:c").setProperty("analyzed_field", "bar");
         test.addChild("g").addChild("e").addChild("temp:c").setProperty("analyzed_field", "bar");
+        test.addChild("q").addChild("t").addChild("temp:c").setProperty("analyzed_field", "baz");
 
 
         Tree temp = root.getTree("/").addChild("tmp");
@@ -174,8 +180,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             assertQuery("/jcr:root/test//*[j:c/analyzed_field = 'bar']", XPATH, asList("/test/a", "/test/c/d"));
             assertQuery("/jcr:root/test//*[*/analyzed_field = 'bar']", XPATH, asList("/test/a", "/test/c/d", "/test/e", "/test/f/d", "/test/g/e"));
             assertQuery("/jcr:root/test//*[d/*/analyzed_field = 'bar']", XPATH, asList("/test/c", "/test/f"));
-            assertQuery("/jcr:root/test//*[analyzed_field = 'bar']", XPATH, asList("/test/a/j:c","/test/b","/test/c/d/j:c",
-                    "/test/e/temp:c", "/test/f/d/temp:c","/test/g/e/temp:c"));
+            assertQuery("/jcr:root/test//*[analyzed_field = 'bar']", XPATH, asList("/test/a/j:c", "/test/b", "/test/c/d/j:c",
+                    "/test/e/temp:c", "/test/f/d/temp:c", "/test/g/e/temp:c"));
 
             // DIRECT CHILDREN
             assertQuery("/jcr:root/test/*[j:c/analyzed_field = 'bar']", XPATH, singletonList("/test/a"));
@@ -205,12 +211,24 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
         });
 
-        Tree test = root.getTree("/").addChild("test");
-        test.setProperty("foo", "fox jumping");
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "fox jumping");
+        test.addChild("baz").setProperty("foo", "dog eating");
         root.commit();
 
         // standard english analyzer stems verbs (jumping -> jump)
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'jump')", singletonList("/test")));
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'jump')", singletonList("/test"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'jumpingjack')", emptyList());
+        });
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void fulltextSearchWithWrongAnalyzerClass() throws Exception {
+        setup(singletonList("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.BogusAnalyzer");
+        });
     }
 
     @Test
@@ -222,8 +240,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             anl.addChild("stopwords").addChild(JCR_CONTENT).setProperty(JCR_DATA, "dog");
         });
 
-        Tree test = root.getTree("/").addChild("test");
-        test.setProperty("foo", "dog and cat");
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "dog and cat");
+        test.addChild("baz").setProperty("foo", "dog and mouse");
         root.commit();
 
         // standard english analyzer stems verbs (jumping -> jump)
@@ -247,8 +266,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
                     .setProperty(JcrConstants.JCR_DATA, "and");
         });
 
-        Tree test = root.getTree("/").addChild("test");
-        test.setProperty("foo", "fox jumping");
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "fox jumping");
+        test.addChild("baz").setProperty("foo", "dog eating");
         root.commit();
 
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'fox foo jumping')", singletonList("/test")));
@@ -278,8 +298,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             filters.addChild("PorterStem");
         });
 
-        Tree test = root.getTree("/").addChild("test");
-        test.setProperty("foo", "My license plate is ٢٥٠١٥");
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "My license plate is ٢٥٠١٥");
+        test.addChild("baz").setProperty("foo", "My license plate is 6789");
         root.commit();
 
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, '25015')", singletonList("/test")));
@@ -328,8 +349,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         });
 
         Tree test = root.getTree("/").addChild("test");
-        Tree testNodeChild = test.addChild("node");
-        testNodeChild.setProperty("foo", "an aircraft flies");
+        test.addChild("node").setProperty("foo", "an aircraft flies");
+        test.addChild("baz").setProperty("foo", "a pen is on the table");
         root.commit();
 
         assertEventually(() -> {
@@ -344,9 +365,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     @Test
     public void wildcardQueryToLookupUnanalyzedText() throws Exception {
         Tree index = setup(builder -> {
-            builder.indexRule("nt:base").property("propa").analyzed();
-            builder.indexRule("nt:base").property("propb").nodeScopeIndex();
-        }, idx -> idx.addChild(ANALYZERS).setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, true),
+                    builder.indexRule("nt:base").property("propa").analyzed();
+                    builder.indexRule("nt:base").property("propb").nodeScopeIndex();
+                }, idx -> idx.addChild(ANALYZERS).setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, true),
                 "propa", "propb");
 
         Tree rootTree = root.getTree("/");
@@ -356,6 +377,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         Tree node2Tree = rootTree.addChild("node2");
         node2Tree.setProperty("propa", "abc_def");
         node2Tree.setProperty("propb", "abc_def");
+        Tree node3Tree = rootTree.addChild("node3");
+        node3Tree.setProperty("propa", "baz");
+        node3Tree.setProperty("propb", "foo");
         root.commit();
 
         String fullIndexName = indexOptions.getIndexType() + ":" + index.getName();
@@ -389,8 +413,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     private static final BiConsumer<IndexDefinitionBuilder, List<String>> DEFAULT_BUILDER_HOOK = ((builder, analyzedFields) ->
             analyzedFields.forEach(f -> builder.indexRule("nt:base").property(f).analyzed().nodeScopeIndex()));
+
     protected Tree setup() throws Exception {
-        return setup(singletonList("analyzed_field"), idx -> {});
+        return setup(singletonList("analyzed_field"), idx -> {
+        });
     }
 
     protected Tree setup(List<String> analyzedFields, Consumer<Tree> indexHook) throws Exception {
@@ -415,7 +441,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         return index;
     }
 
-    private String explain(String query){
+    private String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
