@@ -24,7 +24,6 @@ import co.elastic.clients.elasticsearch._types.analysis.TokenizerDefinition;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
 import com.google.common.base.CaseFormat;
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -58,7 +57,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -160,6 +158,7 @@ public class ElasticCustomAnalyzer {
                                                               BiFunction<String, JsonData, FD> factory) {
         LinkedHashMap<String, FD> filters = new LinkedHashMap<>();
         int i = 0;
+        //Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(state);
         for (Tree t : tree.getChildren()) {
             NodeState child = state.getChildNode(t.getName());
@@ -187,24 +186,13 @@ public class ElasticCustomAnalyzer {
     }
 
     private static List<String> loadContent(NodeState file, String name) throws IOException {
-        List<String> result = new ArrayList<>();
         Blob blob = ConfigUtil.getBlob(file, name);
-        Reader content = null;
-        try {
-            content = new InputStreamReader(Objects.requireNonNull(blob).getNewStream(), StandardCharsets.UTF_8);
-            BufferedReader br = null;
-            try {
-                br = new BufferedReader(content);
-                String word;
-                while ((word = br.readLine()) != null) {
-                    result.add(word.trim());
-                }
-            } finally {
-                IOUtils.close(br);
+        try (Reader content = new InputStreamReader(Objects.requireNonNull(blob).getNewStream(), StandardCharsets.UTF_8)) {
+            try (BufferedReader br = new BufferedReader(content)) {
+                return br.lines()
+                        .map(String::trim)
+                        .collect(Collectors.toList());
             }
-            return result;
-        } finally {
-            IOUtils.close(content);
         }
     }
 
@@ -226,7 +214,7 @@ public class ElasticCustomAnalyzer {
         name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, name);
         // if it ends with analyzer we need to get rid of it
         if (name.endsWith("_analyzer")) {
-       name = name.substring(0, name.length() - "_analyzer".length());
+            name = name.substring(0, name.length() - "_analyzer".length());
         }
         return name;
     }
@@ -237,11 +225,11 @@ public class ElasticCustomAnalyzer {
 
     private static Map<String, Object> convertNodeState(NodeState state, Map<String, String> mapping) {
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
-                .filter(ps -> ps.getType() != Type.BINARY)
-                .filter(ps -> !ps.isArray())
-                .filter(ps -> !NodeStateUtils.isHidden(ps.getName()))
-                .filter(ps -> !IGNORE_PROP_NAMES.contains(ps.getName()))
-                .collect(Collectors.toMap(ps -> {
+                .filter(ps -> ps.getType() != Type.BINARY &&
+                        !ps.isArray() &&
+                        !NodeStateUtils.isHidden(ps.getName()) &&
+                        !IGNORE_PROP_NAMES.contains(ps.getName())
+                ).collect(Collectors.toMap(ps -> {
                     String remappedName = mapping.get(ps.getName());
                     return remappedName != null ? remappedName : ps.getName();
                 }, ps -> {
