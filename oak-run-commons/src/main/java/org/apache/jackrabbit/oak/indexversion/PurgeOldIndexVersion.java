@@ -27,14 +27,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -222,21 +228,21 @@ public abstract class PurgeOldIndexVersion implements Closeable {
             NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, nodeName);
             if (nodeBuilder.exists()) {
                 String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
-
+                List<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+                        new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider());
+                EditorHook hook = new EditorHook(new IndexUpdateProvider(CompositeIndexEditorProvider.compose(indexEditorProviders)));
                 if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE_HIDDEN_AND_DISABLE) {
                     LOG.info("Disabling {}", nodeName);
                     nodeBuilder.setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED, Type.STRING);
                     // Set this property :originalType so that when the purge job marks this index for deletion in later runs -
                     // the proper post deletion hook can be called based on the original index type.
                     nodeBuilder.setProperty(ORIGINAL_TYPE_PROPERTY_NAME, type, Type.STRING);
-                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
                     store.merge(rootBuilder, hook, CommitInfo.EMPTY);
                     PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, nodeName);
                 } else if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE) {
                     preserveDetailsFromIndexDefForPostOp(nodeBuilder);
                     LOG.info("Deleting {}", nodeName);
                     nodeBuilder.remove();
-                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
                     store.merge(rootBuilder, hook, CommitInfo.EMPTY);
                     postDeleteOp(toDeleteIndexNameObject.getIndexName().getNodeName());
                 }
