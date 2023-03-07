@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.jetbrains.annotations.NotNull;
@@ -95,6 +96,7 @@ public class GenerateVersionInconsistencyReport {
         DocumentNodeStore dns = null;
         try {
             DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(args, closer, h);
+            builder.setBlobStore(new MemoryBlobStore());
 
             dns = builder.setClusterInvisible(true).setReadOnlyMode().build();
             closer.register(Utils.asCloseable(dns));
