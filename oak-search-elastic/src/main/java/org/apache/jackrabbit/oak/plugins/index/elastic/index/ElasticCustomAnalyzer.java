@@ -49,10 +49,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,11 +73,11 @@ public class ElasticCustomAnalyzer {
 
     private static final String ANALYZER_TYPE = "type";
 
-    private static final Set<String> IGNORE_PROP_NAMES = new HashSet<>(Arrays.asList(
+    private static final Set<String> IGNORE_PROP_NAMES = Set.of(
             AbstractAnalysisFactory.LUCENE_MATCH_VERSION_PARAM,
             FulltextIndexConstants.ANL_CLASS,
             FulltextIndexConstants.ANL_NAME,
-            JcrConstants.JCR_PRIMARYTYPE)
+            JcrConstants.JCR_PRIMARYTYPE
     );
 
     /*
@@ -89,8 +87,8 @@ public class ElasticCustomAnalyzer {
 
     static {
         CONFIGURATION_MAPPING = new LinkedHashMap<>();
-        CONFIGURATION_MAPPING.put(AbstractWordsFileFilterFactory.class, Collections.singletonMap("words", "stopwords"));
-        CONFIGURATION_MAPPING.put(MappingCharFilterFactory.class, Collections.singletonMap("mapping", "mappings"));
+        CONFIGURATION_MAPPING.put(AbstractWordsFileFilterFactory.class, Map.of("words", "stopwords"));
+        CONFIGURATION_MAPPING.put(MappingCharFilterFactory.class, Map.of("mapping", "mappings"));
     }
 
     @Nullable
@@ -135,8 +133,8 @@ public class ElasticCustomAnalyzer {
 
                     builder.analyzer(analyzerName, bf -> bf.custom(CustomAnalyzer.of(cab ->
                             cab.tokenizer("custom_tokenizer")
-                                    .filter(new ArrayList<>(tokenFilters.keySet()))
-                                    .charFilter(new ArrayList<>(charFilters.keySet()))
+                                    .filter(List.copyOf(tokenFilters.keySet()))
+                                    .charFilter(List.copyOf(charFilters.keySet()))
                     )));
                 }
                 return builder;

@@ -32,9 +32,7 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
@@ -61,12 +59,12 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'SUN.jpg')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'sun')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(., 'SUN.jpg')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(., 'sun')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, List.of("/test/a"));
         });
     }
 
@@ -83,7 +81,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, emptyList());
             assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, emptyList());
             assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, List.of("/test/a"));
         });
     }
 
@@ -99,14 +97,14 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             // Special characters {':' , '/', '!', '&', '|', '='} are escaped before creating lucene/elastic queries using
             // {@see org.apache.jackrabbit.oak.plugins.index.search.spi.query.FullTextIndex#rewriteQueryText}
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '&=!foo')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '&=!foo')] ", XPATH, List.of("/test/a"));
 
             // Braces are not escaped in the above rewriteQueryText method - we do not change that to maintain backward compatibility
             // So these need explicit escaping or filtering on client side while creating the jcr query
-            assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo\\}')] ", XPATH, singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '\\[foo\\]')] ", XPATH, singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo\\}')] ", XPATH, List.of("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, '\\[foo\\]')] ", XPATH, List.of("/test/a"));
         });
 
     }
@@ -147,8 +145,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[j:c/@analyzed_field = 'bar']", XPATH, asList("/test/a", "/test/c/d"));
-            assertQuery("//*[d/*/@analyzed_field = 'bar']", XPATH, singletonList("/test/c"));
+            assertQuery("//*[j:c/@analyzed_field = 'bar']", XPATH, List.of("/test/a", "/test/c/d"));
+            assertQuery("//*[d/*/@analyzed_field = 'bar']", XPATH, List.of("/test/c"));
         });
     }
 
@@ -177,36 +175,36 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             // ALL CHILDREN
-            assertQuery("/jcr:root/test//*[j:c/analyzed_field = 'bar']", XPATH, asList("/test/a", "/test/c/d"));
-            assertQuery("/jcr:root/test//*[*/analyzed_field = 'bar']", XPATH, asList("/test/a", "/test/c/d", "/test/e", "/test/f/d", "/test/g/e"));
-            assertQuery("/jcr:root/test//*[d/*/analyzed_field = 'bar']", XPATH, asList("/test/c", "/test/f"));
-            assertQuery("/jcr:root/test//*[analyzed_field = 'bar']", XPATH, asList("/test/a/j:c", "/test/b", "/test/c/d/j:c",
+            assertQuery("/jcr:root/test//*[j:c/analyzed_field = 'bar']", XPATH, List.of("/test/a", "/test/c/d"));
+            assertQuery("/jcr:root/test//*[*/analyzed_field = 'bar']", XPATH, List.of("/test/a", "/test/c/d", "/test/e", "/test/f/d", "/test/g/e"));
+            assertQuery("/jcr:root/test//*[d/*/analyzed_field = 'bar']", XPATH, List.of("/test/c", "/test/f"));
+            assertQuery("/jcr:root/test//*[analyzed_field = 'bar']", XPATH, List.of("/test/a/j:c", "/test/b", "/test/c/d/j:c",
                     "/test/e/temp:c", "/test/f/d/temp:c", "/test/g/e/temp:c"));
 
             // DIRECT CHILDREN
-            assertQuery("/jcr:root/test/*[j:c/analyzed_field = 'bar']", XPATH, singletonList("/test/a"));
-            assertQuery("/jcr:root/test/*[*/analyzed_field = 'bar']", XPATH, asList("/test/a", "/test/e"));
-            assertQuery("/jcr:root/test/*[d/*/analyzed_field = 'bar']", XPATH, asList("/test/c", "/test/f"));
-            assertQuery("/jcr:root/test/*[analyzed_field = 'bar']", XPATH, singletonList("/test/b"));
+            assertQuery("/jcr:root/test/*[j:c/analyzed_field = 'bar']", XPATH, List.of("/test/a"));
+            assertQuery("/jcr:root/test/*[*/analyzed_field = 'bar']", XPATH, List.of("/test/a", "/test/e"));
+            assertQuery("/jcr:root/test/*[d/*/analyzed_field = 'bar']", XPATH, List.of("/test/c", "/test/f"));
+            assertQuery("/jcr:root/test/*[analyzed_field = 'bar']", XPATH, List.of("/test/b"));
 
             // EXACT
-            assertQuery("/jcr:root/test/a[j:c/analyzed_field = 'bar']", XPATH, singletonList("/test/a"));
-            assertQuery("/jcr:root/test/a[*/analyzed_field = 'bar']", XPATH, singletonList("/test/a"));
-            assertQuery("/jcr:root/test/c[d/*/analyzed_field = 'bar']", XPATH, singletonList("/test/c"));
-            assertQuery("/jcr:root/test/a/j:c[analyzed_field = 'bar']", XPATH, singletonList("/test/a/j:c"));
+            assertQuery("/jcr:root/test/a[j:c/analyzed_field = 'bar']", XPATH, List.of("/test/a"));
+            assertQuery("/jcr:root/test/a[*/analyzed_field = 'bar']", XPATH, List.of("/test/a"));
+            assertQuery("/jcr:root/test/c[d/*/analyzed_field = 'bar']", XPATH, List.of("/test/c"));
+            assertQuery("/jcr:root/test/a/j:c[analyzed_field = 'bar']", XPATH, List.of("/test/a/j:c"));
 
             // PARENT
             assertQuery("select a.[jcr:path] as [jcr:path] from [nt:base] as a \n" +
                     "  inner join [nt:base] as b on ischildnode(b, a)\n" +
                     "  where isdescendantnode(a, '/tmp') \n" +
                     "  and b.[analyzed_field] = 'bar'\n" +
-                    "  and a.[abc] is not null ", SQL2, asList("/tmp/a", "/tmp/c/d"));
+                    "  and a.[abc] is not null ", SQL2, List.of("/tmp/a", "/tmp/c/d"));
         });
     }
 
     @Test
     public void fulltextSearchWithBuiltInAnalyzerClass() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
         });
@@ -218,14 +216,14 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         // standard english analyzer stems verbs (jumping -> jump)
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'jump')", singletonList("/test"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'jump')", List.of("/test"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'jumpingjack')", emptyList());
         });
     }
 
     @Test(expected = RuntimeException.class)
     public void fulltextSearchWithWrongAnalyzerClass() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.BogusAnalyzer");
         });
@@ -233,7 +231,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void fulltextSearchWithBuiltInAnalyzerClassAndConfigurationParams() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
             anl.setProperty("luceneMatchVersion", "LUCENE_47");
@@ -248,13 +246,13 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         // standard english analyzer stems verbs (jumping -> jump)
         assertEventually(() -> {
             assertQuery("select * from [nt:base] where CONTAINS(*, 'dog')", emptyList());
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'cat')", singletonList("/test"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'cat')", List.of("/test"));
         });
     }
 
     @Test
     public void fulltextSearchWithCustomComposedFilters() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
 
@@ -271,12 +269,12 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         test.addChild("baz").setProperty("foo", "dog eating");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'fox foo jumping')", singletonList("/test")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'fox foo jumping')", List.of("/test")));
     }
 
     @Test
     public void fulltextSearchWithCustomComposedAnalyzer() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
@@ -303,7 +301,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         test.addChild("baz").setProperty("foo", "My license plate is 6789");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, '25015')", singletonList("/test")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, '25015')", List.of("/test")));
     }
 
     protected String getHinduArabicMapping() {
@@ -316,7 +314,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     //OAK-4805
     @Test
     public void badIndexDefinitionShouldLetQEWork() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             //This would allow index def to get committed. Else bad index def can't be created.
             idx.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, "async");
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
@@ -339,7 +337,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void testSynonyms() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
             Tree synFilter = anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("Synonym");
@@ -354,10 +352,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'plane')", singletonList("/test/node"));
-            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'airplane')", singletonList("/test/node"));
-            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'aircraft')", singletonList("/test/node"));
-            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'scars')", singletonList("/test/node"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'plane')", List.of("/test/node"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'airplane')", List.of("/test/node"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'aircraft')", List.of("/test/node"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'scars')", List.of("/test/node"));
         });
     }
 
@@ -389,25 +387,25 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             String query = "select [jcr:path] from [nt:base] where contains('propa', 'abc*')";
             String explanation = explain(query);
             assertThat(explanation, containsString(fullIndexName));
-            assertQuery(query, asList("/node1", "/node2"));
+            assertQuery(query, List.of("/node1", "/node2"));
 
             //unanalyzed wild-card query can still match original term
             query = "select [jcr:path] from [nt:base] where contains('propa', 'abc_d*')";
             explanation = explain(query);
             assertThat(explanation, containsString(fullIndexName));
-            assertQuery(query, singletonList("/node2"));
+            assertQuery(query, List.of("/node2"));
 
             //normal query still works
             query = "select [jcr:path] from [nt:base] where contains(*, 'abc*')";
             explanation = explain(query);
             assertThat(explanation, containsString(fullIndexName));
-            assertQuery(query, asList("/node1", "/node2"));
+            assertQuery(query, List.of("/node1", "/node2"));
 
             //unanalyzed wild-card query can still match original term
             query = "select [jcr:path] from [nt:base] where contains(*, 'abc_d*')";
             explanation = explain(query);
             assertThat(explanation, containsString(fullIndexName));
-            assertQuery(query, singletonList("/node2"));
+            assertQuery(query, List.of("/node2"));
         });
     }
 
@@ -415,7 +413,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
             analyzedFields.forEach(f -> builder.indexRule("nt:base").property(f).analyzed().nodeScopeIndex()));
 
     protected Tree setup() throws Exception {
-        return setup(singletonList("analyzed_field"), idx -> {
+        return setup(List.of("analyzed_field"), idx -> {
         });
     }
 

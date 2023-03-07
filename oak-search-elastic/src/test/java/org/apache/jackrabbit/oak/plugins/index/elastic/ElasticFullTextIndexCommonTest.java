@@ -29,8 +29,6 @@ import org.slf4j.event.Level;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.Collections.singletonList;
-
 public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
 
     @ClassRule
@@ -78,7 +76,7 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
      * analyzers by name are not possible in lucene, this test can run on elastic only
      */
     public void fulltextSearchWithBuiltInAnalyzerName() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_NAME, "german");
         });
@@ -88,12 +86,12 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
         root.commit();
 
         // standard german analyzer stems verbs (springen -> spring)
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", singletonList("/test")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", List.of("/test")));
     }
 
     @Test(expected = RuntimeException.class)
     public void fulltextSearchWithNotExistentAnalyzerName() throws Exception {
-        setup(singletonList("foo"), idx -> {
+        setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_NAME, "this_does_not_exists");
         });
