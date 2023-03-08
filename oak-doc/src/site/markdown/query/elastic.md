@@ -43,7 +43,7 @@ however there are differences:
 * `name` is ignored.
 * `indexPath` is ignored.
 * `analyzers` support the Lucene configuration plus Elasticsearch specific [options][options]. Since Elasticsearch uses
-  a more recent version of Lucene compared to the one in `oak-lucene`, there might be differences in configuration options
+  a more recent version of Lucene compared to the one in `oak-lucene` module, there might be differences in configuration options
   that could require changes when migrating from Lucene to Elasticsearch.
 * `useInExcerpt` does not support regexp relative properties.
 * For property definitions, `sync` and `unique` are ignored.
