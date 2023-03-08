@@ -96,9 +96,13 @@ public abstract class IndexVersionOperation {
             List<IndexName> indexNameObjectList, long purgeThresholdMillis, boolean shouldPurgeBaseIndex) {
         NodeState indexDefParentNode = NodeStateUtils.getNode(rootNode, parentPath);
         List<IndexName> reverseSortedIndexNameList = getReverseSortedIndexNameList(indexNameObjectList);
+        LOG.info("Reverse Sorted list {} ", reverseSortedIndexNameList);
         List<IndexVersionOperation> indexVersionOperationList = new LinkedList<>();
 
         List<IndexName> disableIndexNameObjectList = removeDisabledCustomIndexesFromList(indexDefParentNode, reverseSortedIndexNameList);
+        // Remove the disabled indexes from the reverseSortedIndexNameList since these would be handled differently
+        reverseSortedIndexNameList.removeAll(disableIndexNameObjectList);
+        LOG.info("Disabled index list {}, new reverse sorted list after removing disabled indexes{}", disableIndexNameObjectList, reverseSortedIndexNameList);
         // for disabled indexes, do full deletion if checkIfDisabledIndexCanBeMarkedForDeletion = true, otherwise no action needed
         // checkIfDisabledIndexCanBeMarkedForDeletion - this has different implementations for lucene and elastic.
         // Check individual LuceneIndexVersionOperation#checkIfDisabledIndexCanBeMarkedForDeletion and ElasticIndexVersionOperation#checkIfDisabledIndexCanBeMarkedForDeletion for more details.
@@ -226,7 +230,6 @@ public abstract class IndexVersionOperation {
                     .getChildNode(PathUtils.getName(indexNameObjectList.get(i).getNodeName()));
             if (indexNode.getProperty(TYPE_PROPERTY_NAME) != null && TYPE_DISABLED.equals(indexNode.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING))) {
                 disableIndexNameObjectList.add(indexNameObjectList.get(i));
-                indexNameObjectList.remove(i);
             }
         }
         return disableIndexNameObjectList;
