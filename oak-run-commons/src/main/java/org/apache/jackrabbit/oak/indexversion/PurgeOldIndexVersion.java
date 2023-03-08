@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -255,6 +256,7 @@ public abstract class PurgeOldIndexVersion implements Closeable {
     /**
      * @return IndexType served by the implementation like lucene or elasticsearch
      */
+    @NotNull
     protected abstract String getIndexType();
 
     /**

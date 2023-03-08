@@ -45,8 +45,6 @@ public class ElasticIndexVersionOperation extends IndexVersionOperation{
     protected IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList, String parentPath, NodeState rootNode) {
         // ES doesn't have a concept of active/inactive index as of now (no hidden oak mount to detect this)
         // So here we simply return the highest versioned index
-        IndexName indexNameObject = reverseSortedIndexNameList.get(0);
-        reverseSortedIndexNameList.remove(0);
-        return indexNameObject;
+        return reverseSortedIndexNameList.remove(0);
     }
 }
