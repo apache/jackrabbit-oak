@@ -152,22 +152,6 @@ public class Document implements CacheValue {
     }
 
     /**
-     * UnSeals this document and turns it into a mutable object.
-     *
-     * @see #seal()
-     */
-    void unSeal() {
-        if (sealed.getAndSet(false)) {
-            data = Maps.newHashMap(data);
-            data.entrySet().stream().filter(entry -> entry.getValue() instanceof Map).forEach(entry -> {
-                @SuppressWarnings("unchecked")
-                Map<Object, Object> map = (Map<Object, Object>) entry.getValue();
-                entry.setValue(transformAndUnSeal(map, 1));
-            });
-        }
-    }
-
-    /**
      * Determines if this document is sealed or not
      * @return true if document is sealed.
      */
@@ -229,34 +213,6 @@ public class Document implements CacheValue {
         } else {
             return Collections.unmodifiableMap(map);
         }
-    }
-
-    /**
-     * Transform and un-seal the data of this document.
-     *
-     * @param map   the map to transform.
-     * @param level the level. Zero for the top level map, one for an entry in
-     *              the top level map, etc.
-     * @return the transformed and un-sealed map.
-     * @see #transformAndSeal(Map, String, int)
-     */
-    @NotNull
-    private Map<?, ?> transformAndUnSeal(@NotNull Map<Object, Object> map, final int level) {
-
-        if (map instanceof NavigableMap) {
-            map = Maps.newTreeMap((NavigableMap<Object, Object>) map);
-        } else {
-            map = Maps.newHashMap(map);
-        }
-
-        map.entrySet().forEach(entry -> {
-            Object value = entry.getValue();
-            if (value instanceof Map) {
-                @SuppressWarnings("unchecked") final Map<Object, Object> childMap = (Map<Object, Object>) value;
-                entry.setValue(transformAndUnSeal(childMap, level + 1));
-            }
-        });
-        return map;
     }
 
     @Override

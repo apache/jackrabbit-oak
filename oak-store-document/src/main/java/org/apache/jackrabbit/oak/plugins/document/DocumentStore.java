@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
@@ -526,18 +527,17 @@ public interface DocumentStore {
         final List<T> list = query(collection, fromKey, toKey, indexedProperty, startValue, limit);
 
         if (projection == null || projection.isEmpty()) {
-            list.forEach(Document::seal);
             return list;
         }
 
         final Set<String> projectedSet = newHashSet(projection);
         projectedSet.add(ID);
 
-        list.forEach(t -> {
-            t.unSeal();
-            t.keySet().retainAll(projectedSet);
-            t.seal();
-        });
-        return list;
+        return list.stream().map(t -> {
+            T newDocument = collection.newDocument(this);
+            t.deepCopy(newDocument);
+            newDocument.keySet().retainAll(projectedSet);
+            return newDocument;
+        }).collect(Collectors.toList());
     }
 }
