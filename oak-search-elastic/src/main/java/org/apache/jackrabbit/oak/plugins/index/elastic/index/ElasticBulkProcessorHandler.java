@@ -70,7 +70,7 @@ class ElasticBulkProcessorHandler {
     protected final ElasticIndexDefinition indexDefinition;
     private final NodeBuilder definitionBuilder;
     protected final BulkProcessor bulkProcessor;
-    private boolean waitForESAcknowledgement;
+    private final boolean waitForESAcknowledgement;
 
     /**
      * Coordinates communication between bulk processes. It has a main controller registered at creation time and
@@ -97,7 +97,7 @@ class ElasticBulkProcessorHandler {
                                         @NotNull String indexName,
                                         @NotNull ElasticIndexDefinition indexDefinition,
                                         @NotNull NodeBuilder definitionBuilder,
-                                        @NotNull boolean waitForESAcknowledgement) {
+                                        boolean waitForESAcknowledgement) {
         this.elasticConnection = elasticConnection;
         this.indexName = indexName;
         this.indexDefinition = indexDefinition;
@@ -116,7 +116,7 @@ class ElasticBulkProcessorHandler {
                                                                       @NotNull String indexName,
                                                                       @NotNull ElasticIndexDefinition indexDefinition,
                                                                       @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo,
-                                                                      @NotNull boolean waitForESAcknowledgement) {
+                                                                      boolean waitForESAcknowledgement) {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
 
         if (async != null) {
@@ -295,7 +295,7 @@ class ElasticBulkProcessorHandler {
                                              @NotNull String indexName,
                                              @NotNull ElasticIndexDefinition indexDefinition,
                                              @NotNull NodeBuilder definitionBuilder,
-                                             @NotNull boolean waitForESAcknowledgement) {
+                                             boolean waitForESAcknowledgement) {
             super(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
         }
 
