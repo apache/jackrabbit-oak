@@ -182,7 +182,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEquals(
-                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant simtags:plant ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
+                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant simtags:plant^0.0 ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
                 explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
                 Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
@@ -237,6 +237,17 @@ public class DynamicBoostTest extends AbstractQueryTest {
 
         assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
         assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
+    }
+
+    @Test
+    public void dynamicBoostLiteShouldGiveLessRelevanceToTags() throws Exception {
+        createAssetsIndexAndProperties(true, true);
+        prepareTestAssets();
+
+        assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'long OR plant')",
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+        assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'short OR coffee')",
+                List.of("/test/asset3", "/test/asset2"));
     }
 
     // Section 4. utils and assistant methods
