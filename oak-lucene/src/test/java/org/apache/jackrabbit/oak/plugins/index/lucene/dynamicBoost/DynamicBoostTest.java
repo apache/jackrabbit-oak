@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.dynamicBoost;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -294,13 +293,13 @@ public class DynamicBoostTest extends AbstractQueryTest {
 
             // we try with an array:
             t.getParent().setProperty("updateCount", 5);
-            t.setProperty("confidence", new ArrayList<>(), Type.STRINGS);
+            t.setProperty("confidence", List.of(), Type.STRINGS);
             root.commit();
 
             // we try with an array:
             if (nameProperty) {
                 t.getParent().setProperty("updateCount", 6);
-                t.setProperty("name", new ArrayList<>(), Type.STRINGS);
+                t.setProperty("name", List.of(), Type.STRINGS);
                 root.commit();
             }
 
