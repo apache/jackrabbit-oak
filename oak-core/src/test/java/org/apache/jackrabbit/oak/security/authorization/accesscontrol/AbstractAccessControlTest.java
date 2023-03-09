@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -179,7 +180,14 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
     }
     
     static void assertPolicies(@Nullable AccessControlPolicy[] policies, long expectedSize) {
+        assertPolicies(policies, expectedSize, false);
+    }
+    
+    static void assertPolicies(@Nullable AccessControlPolicy[] policies, long expectedSize, boolean readPolicyExpected) {
         assertNotNull(policies);
         assertEquals(expectedSize, policies.length);
+        if (policies.length > 0) {
+            assertEquals(readPolicyExpected, policies[policies.length - 1] instanceof ReadPolicy);
+        }
     }
 }

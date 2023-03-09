@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +46,24 @@ public final class ReadPolicy implements NamedAccessControlPolicy {
         }
         for (String rp : readPaths) {
             if (Text.isDescendant(rp, oakPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Evaluates if a {@code ReadPolicy} is accessible for a session object. Note that this method does not verify if 
+     * the specified paths point to existing/accessible trees.
+     * 
+     * @param permissionProvider A permission provider used for evaluating access
+     * @param oakPaths The set of configured readable paths.
+     * @return {@code true} if the given permission provider has READ_ACCESS_CONTROL granted on any of the specified 
+     * readable oak paths; {@code false} otherwise.
+     */
+    public static boolean canAccessReadPolicy(@NotNull PermissionProvider permissionProvider, @NotNull String... oakPaths) {
+        for (String path : oakPaths) {
+            if (permissionProvider.isGranted(path, Permissions.PERMISSION_NAMES.get(Permissions.READ_ACCESS_CONTROL))) {
                 return true;
             }
         }

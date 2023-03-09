@@ -64,7 +64,7 @@ public class ImmutablePrincipalPolicyTest extends AbstractPrincipalBasedTest {
         int expectedHashCode = immutable.hashCode();
         ImmutablePrincipalPolicy ipp = new ImmutablePrincipalPolicy(policy.getPrincipal(), policy.getOakPath(), policy.getEntries(), policy.getRestrictionProvider(), policy.getNamePathMapper());
         assertEquals(expectedHashCode, ipp.hashCode());
-        assertEquals(expectedHashCode, new ImmutablePrincipalPolicy(policy).hashCode());
+        assertEquals(ipp.hashCode(), new ImmutablePrincipalPolicy(policy).hashCode());
     }
 
     @Test

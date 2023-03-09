@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.FilterProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -46,6 +47,7 @@ import org.junit.Before;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Collections;
@@ -54,6 +56,8 @@ import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -219,5 +223,17 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @NotNull
     PrincipalBasedAuthorizationConfiguration getPrincipalBasedAuthorizationConfiguration() {
         return principalBasedAuthorizationConfiguration;
+    }
+    
+    static void assertEffectivePolicies(@NotNull AccessControlPolicy[] effective, int expectedPolicies, 
+                                        int principalPolicySize, boolean readPolicyExpected) {
+        assertEquals(expectedPolicies, effective.length);
+        if (principalPolicySize > -1) {
+            assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+            assertEquals(principalPolicySize, ((ImmutablePrincipalPolicy) effective[0]).size());
+        }
+        if (readPolicyExpected) {
+            assertTrue(effective[effective.length-1] instanceof ReadPolicy);
+        }
     }
 }

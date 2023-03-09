@@ -140,14 +140,14 @@ public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetEffectivePolicies() throws Exception {
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(principal));
-        assertEquals(0, effective.length);
+        assertEffectivePolicies(effective, 1, -1, true);
 
         PrincipalPolicyImpl policy = getApplicable();
         policy.addEntry(testJcrPath, privilegesFromNames(JCR_WRITE));
         acMgr.setPolicy(policy.getPath(), policy);
 
         effective = acMgr.getEffectivePolicies(ImmutableSet.of(principal));
-        assertEquals(0, effective.length);
+        assertEffectivePolicies(effective, 1, -1, true);
     }
 
     @Test
