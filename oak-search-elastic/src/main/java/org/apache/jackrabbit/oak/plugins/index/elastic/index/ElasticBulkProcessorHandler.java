@@ -185,8 +185,6 @@ class ElasticBulkProcessorHandler {
             return false;
         }
 
-        LOG.info("Value for waitForESAcknowledgement is {}", waitForESAcknowledgement);
-
         if (waitForESAcknowledgement) {
             try {
                 phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
@@ -278,11 +276,6 @@ class ElasticBulkProcessorHandler {
             } else {
                 updatesMap.put(executionId, Boolean.TRUE);
             }
-
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Bulk identifier -> update status from after bulk = {}", updatesMap);
-            }
-
             phaser.arriveAndDeregister();
         }
 
