@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -28,11 +29,16 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
+import java.security.Principal;
 
-final class Utils {
+public final class Utils {
+
+    private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
     private Utils() {}
 
@@ -82,6 +88,26 @@ final class Utils {
     
     static boolean isEveryone(@NotNull Authorizable authorizable) {
         return authorizable.isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName(authorizable));
+    }
+
+    /**
+     * Return {@code true} if the given principal can impersonate all users. 
+     * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()} 
+     * returns {@code true}.
+     * 
+     * @param principal A non-null principal instance.
+     * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
+     * @return {@code true} if the given principal can impersonate all users; {@code false} if that condition is not met 
+     * or if the evaluation failed.
+     */
+    public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) {
+        try {
+            Authorizable authorizable = userManager.getAuthorizable(principal);
+            return authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+            return false;        
+        }
     }
     
     @Nullable

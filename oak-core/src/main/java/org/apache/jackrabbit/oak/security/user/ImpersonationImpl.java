@@ -26,7 +26,6 @@ import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -177,13 +176,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         } else if (GroupPrincipals.isGroup(principal)) {
             return false;
         } else {
-            try {
-                Authorizable authorizable = user.getUserManager().getAuthorizable(principal);
-                return authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
-            } catch (RepositoryException e) {
-                log.debug(e.getMessage());
-                return false;
-            }
+            return Utils.canImpersonateAllUsers(principal, user.getUserManager());
         }
     }
 
