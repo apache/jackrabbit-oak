@@ -182,7 +182,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEquals(
-                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant simtags:plant^0.0 ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
+                "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant simtags:plant^0.001 ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
                 explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
                 Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
