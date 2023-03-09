@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.dynamicBoost;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -145,8 +143,8 @@ public class DynamicBoostTest extends AbstractQueryTest {
                 explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
 
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
-                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, List.of("/test/asset1", "/test/asset2"));
     }
 
     @Test
@@ -154,7 +152,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(false, false);
         prepareTestAssets();
 
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, List.of("/test/asset1", "/test/asset2"));
     }
 
     @Test
@@ -163,7 +161,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant')",
-                Arrays.asList("/test/asset2", "/test/asset3", "/test/asset1"));
+                List.of("/test/asset2", "/test/asset3", "/test/asset1"));
     }
 
     // dynamic boost: space is explained as OR instead of AND, this should be documented
@@ -173,7 +171,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')", SQL2,
-                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
     }
 
     @Test
@@ -185,8 +183,8 @@ public class DynamicBoostTest extends AbstractQueryTest {
                 "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) :fulltext:plant simtags:plant^0.001 ft:(\"plant\")\n  where contains([a].[*], 'plant') */",
                 explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
         assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
-                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
-        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, Arrays.asList("/test/asset1", "/test/asset2"));
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+        assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, List.of("/test/asset1", "/test/asset2"));
     }
 
     @Test
@@ -194,7 +192,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'FLOWER')", SQL2, Arrays.asList("/test/asset1", "/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'FLOWER')", SQL2, List.of("/test/asset1", "/test/asset2"));
     }
 
     @Test
@@ -202,12 +200,12 @@ public class DynamicBoostTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu?')", SQL2, Arrays.asList("/test/asset3"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'bl?e')", SQL2, Arrays.asList("/test/asset3"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '?lue')", SQL2, Arrays.asList("/test/asset3"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coff*')", SQL2, Arrays.asList("/test/asset2"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'co*ee')", SQL2, Arrays.asList("/test/asset2"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '*ffee')", SQL2, Arrays.asList("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu?')", SQL2, List.of("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'bl?e')", SQL2, List.of("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '?lue')", SQL2, List.of("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coff*')", SQL2, List.of("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'co*ee')", SQL2, List.of("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '*ffee')", SQL2, List.of("/test/asset2"));
     }
 
     @Test
@@ -215,8 +213,8 @@ public class DynamicBoostTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coffee flower')", SQL2, Arrays.asList("/test/asset2"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   plant')", SQL2, Arrays.asList("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coffee flower')", SQL2, List.of("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   plant')", SQL2, List.of("/test/asset3"));
     }
 
     @Test
@@ -225,9 +223,9 @@ public class DynamicBoostTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR flower')", SQL2,
-                Arrays.asList("/test/asset1", "/test/asset2", "/test/asset3"));
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
         assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')", SQL2,
-                Arrays.asList("/test/asset2", "/test/asset3"));
+                List.of("/test/asset2", "/test/asset3"));
     }
 
     @Test
@@ -235,8 +233,8 @@ public class DynamicBoostTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, Arrays.asList("/test/asset3"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')", SQL2, Arrays.asList("/test/asset1"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, List.of("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')", SQL2, List.of("/test/asset1"));
     }
 
     @Test
@@ -380,7 +378,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         factory.queryTermsProvider = new FulltextQueryTermsProviderImpl();
     }
 
-    private Tree createIndex(String nodeType, boolean lite) throws Exception {
+    private Tree createIndex(String nodeType, boolean lite) {
         Tree rootTree = root.getTree("/");
         Tree index = createTestIndexNode(rootTree, LuceneIndexConstants.TYPE_LUCENE);
         index.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
