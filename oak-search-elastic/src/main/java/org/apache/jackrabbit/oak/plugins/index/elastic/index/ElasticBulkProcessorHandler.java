@@ -64,7 +64,7 @@ class ElasticBulkProcessorHandler {
         Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
-    private static boolean waitForESAcknowledgement = true;
+    private static boolean waitForESAcknowledgement;
 
     protected final ElasticConnection elasticConnection;
     protected final String indexName;
