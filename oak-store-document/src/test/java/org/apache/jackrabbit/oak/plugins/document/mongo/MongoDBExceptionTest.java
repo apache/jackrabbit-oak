@@ -32,7 +32,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Ignore;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsString;
@@ -136,32 +138,118 @@ public class MongoDBExceptionTest {
     }
 
     @Test
-    @Ignore
-    public void add16MBDoc() throws Exception {
-        //DocumentStore docStore = openDocumentStore();
+    public void createOrUpdate16MBDoc() {
 
-        UpdateOp updateOp = new UpdateOp("/", false);
+        UpdateOp updateOp = new UpdateOp("/", true);
+        updateOp = create16MBProp(updateOp);
 
-        // create a 1 MB property
-        char[] chars = new char[1024 * 1024];
+        exceptionMsg = "Document to upsert is larger than 1677721";
+        setExceptionMsg();
+        try {
+           store.createOrUpdate(Collection.NODES, updateOp);
+           fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+        }
+    }
 
-        Arrays.fill(chars, '0');
-        String content = new String(chars);
+    @Test
+    public void multiCreateOrUpdate16MBDoc() {
 
-        //create more than 16MB properties
-        for (int i = 0; i < 17; i++) {
-            updateOp.set("property"+ Integer.toString(i), content);
+        List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
+        UpdateOp updateOp = new UpdateOp("/", true);
+        updateOp = create1MBProp(updateOp);
+        UpdateOp updateOp1 = new UpdateOp("/", true);
+        updateOp1 = create1MBProp(updateOp1);
+
+        updateOps.add(updateOp);
+        updateOps.add(updateOp1);
+
+        store.createOrUpdate(Collection.NODES, updateOps);
+        updateOp1 = create16MBProp(updateOp1);
+        updateOps.add(updateOp1);
+
+        exceptionMsg = "Resulting document after update is larger than 16777216";
+        setExceptionMsg();
+
+        try {
+            store.createOrUpdate(Collection.NODES, updateOps);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+        }
+    }
+
+    @Test
+    public void create16MBDoc() {
+
+        List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
+
+        UpdateOp op1 = new UpdateOp("/", true);
+        op1 = create1MBProp(op1);
+
+        UpdateOp op2 = new UpdateOp("/", false);
+        op2 = create16MBProp(op2);
+
+        updateOps.add(op1);
+        updateOps.add(op2);
+        /*more than 16MB*/
+        op2 = create1MBProp(op2);
+        updateOps.add(op2);
+
+        exceptionMsg = "Payload document size is larger than maximum of 16777216.";
+        setExceptionMsg();
+        try {
+            store.create(Collection.NODES, updateOps);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+        }
+    }
+
+    @Test
+    public void findAndUpdate16MBDoc() throws Exception {
+        UpdateOp op = new UpdateOp("/", true);
+        create1MBProp(op);
+        store.createOrUpdate(Collection.NODES, op);
+
+        UpdateOp op1 = new UpdateOp("/", false);
+        create16MBProp(op1);
+        exceptionMsg = "Resulting document after update is larger than 16777216";
+        setExceptionMsg();
+        try {
+            store.findAndUpdate(Collection.NODES, op1);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
         }
 
-        int size = updateOp.toString().length();
-
-        store.createOrUpdate(Collection.NODES, updateOp);
-        NodeDocument doc = store.find(Collection.NODES, "/");
-        // assertNotNull(doc);
     }
 
     private void setExceptionMsg() {
         client.setExceptionBeforeUpdate(exceptionMsg);
         client.setExceptionBeforeQuery(exceptionMsg);
+    }
+
+    private UpdateOp create1MBProp(UpdateOp op) {
+        // create a 1 MB property
+        char[] chars = new char[1024 * 1024];
+        Arrays.fill(chars, '0');
+        String content = new String(chars);
+        op.set("property0", content);
+        return op;
+    }
+    private UpdateOp create16MBProp(UpdateOp op) {
+        // create a 1 MB property
+        char[] chars = new char[1024 * 1024];
+        Arrays.fill(chars, '0');
+        String content = new String(chars);
+        op.set("property0", content);
+
+        //create 16MB property
+        for (int i = 1; i < 16; i++) {
+            op.set("property"+ Integer.toString(i), content);
+        }
+        return op;
     }
 }

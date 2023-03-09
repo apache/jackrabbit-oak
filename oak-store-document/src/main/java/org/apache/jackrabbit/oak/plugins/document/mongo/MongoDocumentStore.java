@@ -49,6 +49,9 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoWriteException;
+import com.mongodb.MongoCommandException;
+import com.mongodb.WriteError;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
@@ -80,6 +83,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.bson.BsonMaximumSizeExceededException;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -160,7 +164,7 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * Document size of 16MB is a limit in Mongo
      */
-    public static final long SIZE_LIMIT = 16793600;
+    public static final long SIZE_LIMIT = 16777216;
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
@@ -1031,6 +1035,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
         final Stopwatch watch = startWatch();
         boolean newEntry = false;
+        Throwable t = null;
         try {
             // get modCount of cached document
             Long modCount = null;
@@ -1059,13 +1064,20 @@ public class MongoDocumentStore implements DocumentStore {
                             Filters.eq(Document.MOD_COUNT, modCount)
                     );
 
-                    UpdateResult result = execute(session -> {
-                        if (session != null) {
-                            return dbCollection.updateOne(session, query, update);
-                        } else {
-                            return dbCollection.updateOne(query, update);
-                        }
-                    }, collection);
+                    UpdateResult result = null;
+                    try {
+                        result = execute(session -> {
+                            if (session != null) {
+                                return dbCollection.updateOne(session, query, update);
+                            } else {
+                                return dbCollection.updateOne(query, update);
+                            }
+                        }, collection);
+                    } catch (MongoWriteException e) {
+                        WriteError error = e.getError();
+                        LOG.warn(e.getMessage(), updateOp.getId());
+                        throw handleException(e, collection, updateOp.getId());
+                    }
                     if (result.getModifiedCount() > 0) {
                         // success, update cached document
                         if (collection == Collection.NODES) {
@@ -1078,23 +1090,25 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
 
-            int size = updateOp.toString().length();
-            if(size > SIZE_LIMIT) {
-                LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", updateOp.getId(), size);
-            }
             // conditional update failed or not possible
             // perform operation and get complete document
             Bson query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
             FindOneAndUpdateOptions options = new FindOneAndUpdateOptions()
                     .returnDocument(ReturnDocument.BEFORE).upsert(upsert);
-            BasicDBObject oldNode = execute(session -> {
-                if (session != null) {
-                    return dbCollection.findOneAndUpdate(session, query, update, options);
-                } else {
-                    return dbCollection.findOneAndUpdate(query, update, options);
-                }
-            }, collection);
-
+            BasicDBObject oldNode = null;
+            try {
+                oldNode = execute(session -> {
+                    if (session != null) {
+                        return dbCollection.findOneAndUpdate(session, query, update, options);
+                    } else {
+                        return dbCollection.findOneAndUpdate(query, update, options);
+                    }
+                }, collection);
+            } catch (MongoWriteException e) {
+                WriteError error = e.getError();
+                LOG.warn(e.getMessage(), updateOp.getId(), updateOp.getConditions(), oldNode.size());
+                throw handleException(e, collection, updateOp.getId());
+            }
             if (oldNode == null && upsert) {
                 newEntry = true;
             }
@@ -1123,7 +1137,13 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return oldDoc;
-        } catch (Exception e) {
+        } catch (MongoCommandException e) {
+            LOG.warn(e.getMessage(), updateOp.getId(), updateOp.getConditions());
+            throw handleException(e, collection, updateOp.getId());
+        } catch (BsonMaximumSizeExceededException e){
+            LOG.warn(e.getMessage(), updateOp.getId());
+            throw handleException(e, collection, updateOp.getId());
+        } catch(Exception e){
             throw handleException(e, collection, updateOp.getId());
         } finally {
             if (lock != null) {
@@ -1358,10 +1378,6 @@ public class MongoDocumentStore implements DocumentStore {
         int i = 0;
         for (UpdateOp updateOp : updateOps) {
             String id = updateOp.getId();
-            int size = updateOp.toString().length();
-            if(size > SIZE_LIMIT) {
-                LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", id, size);
-            }
             Bson query = createQueryForUpdate(id, updateOp.getConditions());
             // fail on insert when isNew == false
             boolean failInsert = !updateOp.isNew();
@@ -1423,10 +1439,6 @@ public class MongoDocumentStore implements DocumentStore {
             BasicDBObject doc = new BasicDBObject();
             inserts.add(doc);
             doc.put(Document.ID, update.getId());
-            int size = update.toString().length();
-            if(size > SIZE_LIMIT) {
-                LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", update.getId(), size);
-            }
             UpdateUtils.assertUnconditional(update);
             T target = collection.newDocument(this);
             UpdateUtils.applyChanges(target, update);
@@ -1487,8 +1499,23 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 insertSuccess = true;
                 return true;
-            } catch (MongoException e) {
-                return false;
+            } catch (BsonMaximumSizeExceededException e) {
+                for (T doc : docs) {
+                    if (doc.toString().length() > SIZE_LIMIT) {
+                        LOG.error("The document with Id={} has size={} is greater than the size limit",
+                                doc.getId(), doc.toString().length(), e.getMessage());
+                    }
+                }
+                throw handleException(e, collection, Document.ID);
+            }
+            catch (MongoException e) {
+                for (T doc : docs) {
+                    if (doc.toString().length() > SIZE_LIMIT) {
+                        LOG.error("The document with Id={} has size={} is greater than the size limit",
+                                doc.getId(), doc.toString().length(), e.getMessage());
+                    }
+                }
+                throw handleException(e, collection, Document.ID);
             }
         } finally {
             stats.doneCreate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids, insertSuccess);
@@ -1889,11 +1916,6 @@ public class MongoDocumentStore implements DocumentStore {
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
 
-        int size = updateOp.toString().length();
-        if(size > SIZE_LIMIT) {
-            LOG.warn("Document with ID={} has size={} that exceeds 16MB size limit", updateOp.getId(), size);
-        }
-        // always increment modCount
         updateOp.increment(Document.MOD_COUNT, 1);
 
         // other updates
