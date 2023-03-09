@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.ByteArrayInputStream;
@@ -118,15 +117,12 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.QUERY_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZERS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_ORIGINAL_TERM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
@@ -141,12 +137,12 @@ import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATH
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
@@ -255,64 +251,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @After
     public void shutdownExecutor(){
         executorService.shutdown();
-    }
-
-    @Test
-    public void fulltextSearchWithCustomAnalyzer() throws Exception {
-        Tree idx = createFulltextIndex(root.getTree("/"), "test");
-        TestUtil.useV2(idx);
-
-        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
-        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "whitespace");
-        anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("stop");
-
-        Tree test = root.getTree("/").addChild("test");
-        test.setProperty("foo", "fox jumping");
-        root.commit();
-
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", asList("/test"));
-    }
-
-    //OAK-4805
-    @Test
-    public void badIndexDefinitionShouldLetQEWork() throws Exception {
-        Tree idx = createFulltextIndex(root.getTree("/"), "badIndex");
-        TestUtil.useV2(idx);
-
-        //This would allow index def to get committed. Else bad index def can't be created.
-        idx.setProperty(ASYNC_PROPERTY_NAME, "async");
-
-        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
-        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
-        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
-        synFilter.setProperty("synonyms", "syn.txt");
-        // Don't add syn.txt to make analyzer (and hence index def) invalid
-        // synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "blah, foo, bar");
-        root.commit();
-
-        //Using this version of executeQuery as we don't want a result row quoting the exception
-        executeQuery("SELECT * FROM [nt:base] where a='b'", SQL2, NO_BINDINGS);
-    }
-
-    @Test
-    public void testSynonyms() throws Exception {
-        Tree idx = createFulltextIndex(root.getTree("/"), "synonymIndex");
-        TestUtil.useV2(idx);
-
-        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
-        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
-        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
-        synFilter.setProperty("synonyms", "syn.txt");
-        synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "plane, airplane, aircraft\nflies=>scars");
-
-        Tree test = root.getTree("/").addChild("test").addChild("node");
-        test.setProperty("foo", "an aircraft flies");
-        root.commit();
-
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'plane')", asList("/test/node"));
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'airplane')", asList("/test/node"));
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'aircraft')", asList("/test/node"));
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'scars')", asList("/test/node"));
     }
 
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
@@ -743,61 +681,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10"), containsString("lucene:test1"));
 
         assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/a", "/test/a/b"));
-    }
-
-    //OAK-4516
-    @Test
-    public void wildcardQueryToLookupUnanalyzedText() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(PROP_TYPE, "lucene");
-        idx.addChild(ANALYZERS).setProperty(INDEX_ORIGINAL_TERM, true);
-        useV2(idx);
-        //Do not provide type information
-        root.commit();
-
-        //setup propa def to be analyzed
-        Tree propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propa");
-        propTree.setProperty(PROP_ANALYZED, true);
-        root.commit();
-
-        //set propb def to be node scope indexed
-        propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propb");
-        propTree.setProperty(PROP_NODE_SCOPE_INDEX, true);
-        root.getTree(idx.getPath()).setProperty(REINDEX_PROPERTY_NAME, true);
-        root.commit();
-
-        Tree rootTree = root.getTree("/");
-        Tree node1Tree = rootTree.addChild("node1");
-        node1Tree.setProperty("propa", "abcdef");
-        node1Tree.setProperty("propb", "abcdef");
-        Tree node2Tree = rootTree.addChild("node2");
-        node2Tree.setProperty("propa", "abc_def");
-        node2Tree.setProperty("propb", "abc_def");
-        root.commit();
-
-        //normal query still works
-        String query = "select [jcr:path] from [nt:base] where contains('propa', 'abc*')";
-        String explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node1", "/node2"));
-
-        //unanalyzed wild-card query can still match original term
-        query = "select [jcr:path] from [nt:base] where contains('propa', 'abc_d*')";
-        explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node2"));
-
-        //normal query still works
-        query = "select [jcr:path] from [nt:base] where contains(*, 'abc*')";
-        explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node1", "/node2"));
-
-        //unanalyzed wild-card query can still match original term
-        query = "select [jcr:path] from [nt:base] where contains(*, 'abc_d*')";
-        explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node2"));
     }
 
     //OAK-4517

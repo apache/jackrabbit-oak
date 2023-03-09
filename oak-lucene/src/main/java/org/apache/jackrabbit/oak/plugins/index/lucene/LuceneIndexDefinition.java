@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.CompressingCodec;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -47,8 +48,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_DEFAULT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_ORIGINAL_TERM;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_ORIGINAL_TERM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
@@ -162,7 +163,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
     private static Map<String, Analyzer> collectAnalyzers(NodeState defn) {
         Map<String, Analyzer> analyzerMap = newHashMap();
         NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(VERSION);
-        NodeState analyzersTree = defn.getChildNode(LuceneIndexConstants.ANALYZERS);
+        NodeState analyzersTree = defn.getChildNode(FulltextIndexConstants.ANALYZERS);
         for (ChildNodeEntry cne : analyzersTree.getChildNodeEntries()) {
             Analyzer a = factory.createInstance(cne.getNodeState());
             analyzerMap.put(cne.getName(), a);
