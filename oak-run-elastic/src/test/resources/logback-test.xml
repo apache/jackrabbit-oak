@@ -29,10 +29,6 @@
     </encoder>
 </appender>
 
-    <logger name="org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler" level="TRACE">
-        <appender-ref ref="file" />
-    </logger>
-
 <root level="INFO">
     <!--
     <appender-ref ref="console"/>
