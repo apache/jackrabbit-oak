@@ -30,10 +30,12 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ElasticIndexDefinition extends IndexDefinition {
 
@@ -75,16 +77,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Hidden property to store similarity tags
      */
     public static final String SIMILARITY_TAGS = ":simTags";
-
-    /**
-     * Node name under which various analyzers are configured
-     */
-    private static final String ANALYZERS = "analyzers";
-
-    /**
-     * Boolean property indicating if in-built analyzer should preserve original term
-     */
-    public static final String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
 
     public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
     public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
@@ -167,6 +159,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .collect(Collectors.toList());
     }
 
+    @Nullable
+    public NodeState getAnalyzersNodeState() {
+        return definition.getChildNode(FulltextIndexConstants.ANALYZERS);
+    }
+
     public String getIndexPrefix() {
         return indexPrefix;
     }
@@ -239,17 +236,17 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Returns {@code true} if original terms need to be preserved at indexing analysis phase
      */
     public boolean analyzerConfigIndexOriginalTerms() {
-        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
-        return getOptionalValue(analyzersTree, INDEX_ORIGINAL_TERM, false);
+        NodeState analyzersTree = definition.getChildNode(FulltextIndexConstants.ANALYZERS);
+        return getOptionalValue(analyzersTree, FulltextIndexConstants.INDEX_ORIGINAL_TERM, false);
     }
 
     public boolean analyzerConfigSplitOnCaseChange() {
-        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
+        NodeState analyzersTree = definition.getChildNode(FulltextIndexConstants.ANALYZERS);
         return getOptionalValue(analyzersTree, SPLIT_ON_CASE_CHANGE, false);
     }
 
     public boolean analyzerConfigSplitOnNumerics() {
-        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
+        NodeState analyzersTree = definition.getChildNode(FulltextIndexConstants.ANALYZERS);
         return getOptionalValue(analyzersTree, SPLIT_ON_NUMERICS, false);
     }
 

@@ -25,6 +25,8 @@ import co.elastic.clients.elasticsearch.indices.GetAliasResponse;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesRequest;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesResponse;
 import co.elastic.clients.json.JsonpUtils;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -96,8 +99,22 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 throw new IllegalStateException("Unable to provision index", e);
             }
         } else indexName = indexDefinition.getIndexAlias();
+        boolean waitForESAcknowledgement = true;
+        PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
+        if (async != null) {
+            // Check if this indexing call is a part of async cycle or a commit hook or called from oak-run for offline reindex
+            // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
+            // Otherwise, it's part of commit hook based indexing due to async property having a value nrt
+            // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
+            // we need to set waitForESAcknowledgement = false only in the second case i.e.
+            // when this is a part of commit hook due to async property having a value nrt
+            if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
+                waitForESAcknowledgement = false;
+            }
+        }
+
         this.bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, commitInfo);
+                .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement);
     }
 
     @TestOnly

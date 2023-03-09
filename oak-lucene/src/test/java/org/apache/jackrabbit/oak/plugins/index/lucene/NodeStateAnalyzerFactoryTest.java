@@ -30,6 +30,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.NodeStateAnalyzerFactory.NodeStateResourceLoader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilterFactory;
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
@@ -48,12 +49,12 @@ import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_CHAR_FILTERS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_CLASS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_CHAR_FILTERS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_CLASS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_FILTERS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_TOKENIZER;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_FILTERS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_TOKENIZER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.junit.Assert.assertArrayEquals;
@@ -80,7 +81,7 @@ public class NodeStateAnalyzerFactoryTest {
         assertEquals("Version field not picked from config",Version.LUCENE_31, analyzer.matchVersion);
 
         byte[] stopWords = newCharArraySet("foo", "bar");
-        createFileNode(nb, LuceneIndexConstants.ANL_STOPWORDS, stopWords);
+        createFileNode(nb, FulltextIndexConstants.ANL_STOPWORDS, stopWords);
         analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
 
         assertTrue("Configured stopword set not used",analyzer.getStopwordSet().contains("foo"));

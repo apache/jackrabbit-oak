@@ -69,7 +69,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -145,12 +144,16 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         // this implementation only takes effect if the complete set of principals can be handled. see also
         // PrincipalBasedAuthorizationConfiguration.getPermissionProvider
         if (canHandle(principals)) {
-            Set<AccessControlPolicy> effective = new HashSet<>(principals.size());
+            List<AccessControlPolicy> effective = new ArrayList<>(principals.size());
             for (Principal principal : principals) {
                 AccessControlPolicy policy = createPolicy(principal, true);
                 if (policy != null) {
                     effective.add(policy);
                 }
+            }
+            // add read-policy if there are configured paths
+            if (ReadPolicy.canAccessReadPolicy(getPermissionProvider(), readPaths.toArray(new String[0]))) {
+                effective.add(ReadPolicy.INSTANCE);
             }
             return effective.toArray(new AccessControlPolicy[0]);
         } else {

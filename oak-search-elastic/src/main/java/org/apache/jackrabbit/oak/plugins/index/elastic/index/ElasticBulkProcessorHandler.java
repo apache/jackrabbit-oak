@@ -64,13 +64,13 @@ class ElasticBulkProcessorHandler {
         Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
-    private static boolean waitForESAcknowledgement = true;
 
     protected final ElasticConnection elasticConnection;
     protected final String indexName;
     protected final ElasticIndexDefinition indexDefinition;
     private final NodeBuilder definitionBuilder;
     protected final BulkProcessor bulkProcessor;
+    private final boolean waitForESAcknowledgement;
 
     /**
      * Coordinates communication between bulk processes. It has a main controller registered at creation time and
@@ -96,11 +96,13 @@ class ElasticBulkProcessorHandler {
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                         @NotNull String indexName,
                                         @NotNull ElasticIndexDefinition indexDefinition,
-                                        @NotNull NodeBuilder definitionBuilder) {
+                                        @NotNull NodeBuilder definitionBuilder,
+                                        boolean waitForESAcknowledgement) {
         this.elasticConnection = elasticConnection;
         this.indexName = indexName;
         this.indexDefinition = indexDefinition;
         this.definitionBuilder = definitionBuilder;
+        this.waitForESAcknowledgement = waitForESAcknowledgement;
         this.bulkProcessor = initBulkProcessor();
     }
 
@@ -113,20 +115,12 @@ class ElasticBulkProcessorHandler {
     public static ElasticBulkProcessorHandler getBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                                                       @NotNull String indexName,
                                                                       @NotNull ElasticIndexDefinition indexDefinition,
-                                                                      @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo) {
+                                                                      @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo,
+                                                                      boolean waitForESAcknowledgement) {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
 
         if (async != null) {
-            // Check if this indexing call is a part of async cycle or a commit hook or called from oak-run for offline reindex
-            // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
-            // Otherwise, it's part of commit hook based indexing due to async property having a value nrt
-            // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
-            // we need to set waitForESAcknowledgement = false only in the second case i.e.
-            // when this is a part of commit hook due to async property having a value nrt
-            if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
-                waitForESAcknowledgement = false;
-            }
-            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
+            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
         }
 
         // commit-info has priority over configuration in index definition
@@ -143,10 +137,10 @@ class ElasticBulkProcessorHandler {
         }
 
         if (SYNC_RT_MODE.equals(syncMode)) {
-            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
+            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
         }
 
-        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
+        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
     }
 
     private BulkProcessor initBulkProcessor() {
@@ -300,8 +294,9 @@ class ElasticBulkProcessorHandler {
         private RealTimeBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                              @NotNull String indexName,
                                              @NotNull ElasticIndexDefinition indexDefinition,
-                                             @NotNull NodeBuilder definitionBuilder) {
-            super(elasticConnection, indexName, indexDefinition, definitionBuilder);
+                                             @NotNull NodeBuilder definitionBuilder,
+                                             boolean waitForESAcknowledgement) {
+            super(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
         }
 
         @Override
