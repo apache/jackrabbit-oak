@@ -64,7 +64,7 @@ class ElasticBulkProcessorHandler {
         Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
-    private static boolean waitForESAcknowledgement = true;
+    private static boolean waitForESAcknowledgement;
 
     protected final ElasticConnection elasticConnection;
     protected final String indexName;
@@ -116,6 +116,9 @@ class ElasticBulkProcessorHandler {
                                                                       @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo) {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
 
+        LOG.info("async value - {}", async);
+        LOG.info("async value not null check - {}", async != null);
+
         if (async != null) {
             // Check if this indexing call is a part of async cycle or a commit hook or called from oak-run for offline reindex
             // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
@@ -123,6 +126,9 @@ class ElasticBulkProcessorHandler {
             // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
             // we need to set waitForESAcknowledgement = false only in the second case i.e.
             // when this is a part of commit hook due to async property having a value nrt
+            LOG.info("commitinfo flag - {}", commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME));
+            LOG.info("async lane switcher flag - {}", AsyncLaneSwitcher.isLaneSwitched(definitionBuilder));
+
             if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
                 waitForESAcknowledgement = false;
             }
