@@ -86,12 +86,6 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         return new PrincipalPolicyImpl(validPrincipal, oakPath, getMgrProvider(root));
     }
 
-    private static void assertEffectivePolicy(@NotNull AccessControlPolicy[] effective, int size) {
-        assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
-        assertEquals(size, ((ImmutablePrincipalPolicy) effective[0]).size());
-    }
-
     @Test(expected = AccessControlException.class)
     public void testGetApplicablePoliciesNullPrincipal() throws Exception {
         acMgr.getApplicablePolicies((Principal) null);
@@ -160,7 +154,8 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     @Test
     public void testGetEffectivePoliciesNothingSet() throws Exception {
-        assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+        assertEffectivePolicies(effective, 1, -1, true);
     }
 
     @Test
@@ -171,12 +166,12 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
         // transient changes => no effective policy
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
-        assertEquals(0, effective.length);
+        assertEffectivePolicies(effective, 1, -1, true);
 
         // after commit => effective policy present
         root.commit();
         effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
-        assertEffectivePolicy(effective, 1);
+        assertEffectivePolicies(effective, 2, 1, true);
     }
 
     @Test
@@ -184,7 +179,8 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         JackrabbitAccessControlPolicy emptyPolicy = acMgr.getApplicablePolicies(validPrincipal)[0];
         acMgr.setPolicy(emptyPolicy.getPath(), emptyPolicy);
         root.commit();
-        assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+        assertEffectivePolicies(effective, 1, -1, true);
     }
 
     @Test
@@ -197,7 +193,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         getUserManager(latestRoot).getAuthorizable(validPrincipal).remove();
         latestRoot.commit();
         try {
-            assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+            assertEffectivePolicies(acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)), 1, -1, true);
         } finally {
             root.refresh();
             getUserManager(root).createSystemUser(id, INTERMEDIATE_PATH);
@@ -227,7 +223,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         latestRoot.getTree(getNamePathMapper().getOakPath(validPrincipal.getPath())).getChild(REP_PRINCIPAL_POLICY).remove();
         latestRoot.commit();
 
-        assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)), 1, -1, true);
     }
 
     @Test(expected = AccessControlException.class)
@@ -445,9 +441,9 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         addPrincipalBasedEntry(policy, PathUtils.ROOT_PATH, JCR_READ);
         root.commit();
 
-        assertEffectivePolicy(acMgr.getEffectivePolicies(testJcrPath), 2);
-        assertEffectivePolicy(acMgr.getEffectivePolicies(testContentJcrPath), 2);
-        assertEffectivePolicy(acMgr.getEffectivePolicies(PathUtils.ROOT_PATH), 1);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(testJcrPath), 1,2, false);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(testContentJcrPath), 1, 2, false);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(PathUtils.ROOT_PATH), 1,1, false);
     }
 
     @Test
