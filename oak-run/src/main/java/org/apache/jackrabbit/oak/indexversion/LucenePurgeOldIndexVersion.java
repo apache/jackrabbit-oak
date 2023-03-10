@@ -16,22 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.run;
+package org.apache.jackrabbit.oak.indexversion;
 
-import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.index.ElasticIndexCommand;
-import org.apache.jackrabbit.oak.index.ElasticPurgeOldIndexVersionCommand;
-import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.run.commons.Modes;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-/*
-Avaialble modes for elastic. Add new elastic operations/commands to be supported here.
- */
-public final class AvailableElasticModes {
-    // list of available Modes for the tool
-    public static final Modes MODES = new Modes(
-            ImmutableMap.<String, Command>builder()
-                    .put("index", new ElasticIndexCommand())
-                    .put("purge-index-versions", new ElasticPurgeOldIndexVersionCommand())
-                    .build());
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
+public class LucenePurgeOldIndexVersion extends PurgeOldIndexVersion {
+    @Override
+    protected String getIndexType() {
+        return TYPE_LUCENE;
+    }
+
+    @Override
+    protected void postDeleteOp(String idxPath) {
+     // NOOP
+    }
+
+    @Override
+    protected void preserveDetailsFromIndexDefForPostOp(NodeBuilder builder) {
+        // NOOP
+    }
+
+    @Override
+    protected IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName) {
+        return new LuceneIndexVersionOperation(indexName);
+    }
 }

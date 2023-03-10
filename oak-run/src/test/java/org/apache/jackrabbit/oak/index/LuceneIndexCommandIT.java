@@ -20,22 +20,13 @@
 package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 
 import com.google.common.io.Files;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
 import static java.nio.charset.Charset.defaultCharset;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -43,7 +34,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class IndexCommandIT extends AbstractIndexCommandTest {
+public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
     @Before
     public void setUp() {
         IndexCommand.setDisableExitOnError(true);

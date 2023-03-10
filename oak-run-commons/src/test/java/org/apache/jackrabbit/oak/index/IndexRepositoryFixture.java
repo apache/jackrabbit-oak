@@ -16,48 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.function.Predicate;
-
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.function.Predicate;
+
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
-public class RepositoryFixture implements Closeable {
+public abstract class IndexRepositoryFixture implements Closeable {
     private final File dir;
     private Repository repository;
     private FileStore fileStore;
     private NodeStore nodeStore;
     private Whiteboard whiteboard;
 
-    public RepositoryFixture(File dir) {
+    public IndexRepositoryFixture(File dir) {
         this(dir, null);
     }
 
-    public RepositoryFixture(File dir, NodeStore nodeStore) {
+    public IndexRepositoryFixture(File dir, NodeStore nodeStore) {
         this.dir = dir;
         this.nodeStore = nodeStore;
     }
@@ -108,7 +102,7 @@ public class RepositoryFixture implements Closeable {
         Oak oak = new Oak(getNodeStore());
 
         oak.withAsyncIndexing("async", 3600); //Effectively disable async indexing
-        configureLuceneProvider(oak);
+        configureIndexProvider(oak);
 
         Jcr jcr = new Jcr(oak);
         Repository repository = jcr.createRepository();
@@ -116,13 +110,8 @@ public class RepositoryFixture implements Closeable {
         return repository;
     }
 
-    private void configureLuceneProvider(Oak oak) throws IOException {
-        LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
-        LuceneIndexProvider provider = new LuceneIndexProvider();
-        oak.with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(ep);
-    }
+    protected abstract void configureIndexProvider(Oak oak) throws IOException;
+
 
     private NodeStore createNodeStore() throws IOException {
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(dir);

@@ -68,7 +68,7 @@ public class PurgeOldIndexVersionIT {
         compositeLibs();
 
         purgeOldIndexVersionLogger.starting();
-        PurgeOldIndexVersion purgeOldIndexVersion = new PurgeOldIndexVersion();
+        PurgeOldIndexVersion purgeOldIndexVersion = new LucenePurgeOldIndexVersion();
         Persistence p = Persistence.openComposite(globalDir, libsDir, config);
         NodeStore n = p.getCompositeNodestore();
         purgeOldIndexVersion.execute(n, true, 1, Arrays.asList("/oak:index"));
@@ -93,7 +93,7 @@ public class PurgeOldIndexVersionIT {
         compositeLibs();
 
         purgeOldIndexVersionLogger.starting();
-        PurgeOldIndexVersion purgeOldIndexVersion = new PurgeOldIndexVersion();
+        PurgeOldIndexVersion purgeOldIndexVersion = new LucenePurgeOldIndexVersion();
         Persistence p = Persistence.openComposite(globalDir, libsDir, config);
         NodeStore n = p.getCompositeNodestore();
         purgeOldIndexVersion.execute(n, true, 1, Arrays.asList("/oak:index"), false);

@@ -27,6 +27,11 @@ public interface IndexConstants {
 
     String TYPE_PROPERTY_NAME = "type";
 
+    /**
+     * Property to hold the value for original index implementation in case the index type is set to disabled.
+     */
+    String ORIGINAL_TYPE_PROPERTY_NAME = ":originalType";
+
     String TYPE_UNKNOWN = "unknown";
 
     String REINDEX_PROPERTY_NAME = "reindex";
