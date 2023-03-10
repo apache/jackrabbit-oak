@@ -370,7 +370,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         
         Root r = getLatestRoot();
         Result aceResult = searchAces(principals, r);
-        Set<AccessControlPolicy> effective = Sets.newTreeSet(new PolicyComparator());
+        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new PolicyComparator());
 
         Set<String> processed = Sets.newHashSet();
         Predicate<Tree> predicate = new PrincipalPredicate(principals);
@@ -393,10 +393,6 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                     processed.add(path);
                 }
             }
-        }
-        // add read-policy if there are readable paths configured where the editing session has READ_ACCESS_CONTROL granted
-        if (ReadPolicy.canAccessReadPolicy(getPermissionProvider(), readPaths.toArray(new String[0]))) {
-            effective.add(ReadPolicy.INSTANCE);
         }
         return effective.toArray(new AccessControlPolicy[0]);
     }

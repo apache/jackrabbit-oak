@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -259,15 +258,6 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         root.commit();
         testRoot.refresh();
         assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
-
-        // make sure test-user has read-accesscontrol permission on any readable-path
-        grant(testPrincipal, PathUtils.ROOT_PATH, JCR_READ_ACCESS_CONTROL);
-        root.commit();
-        testRoot.refresh();
-
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal));;
-        assertPolicies(effective, ImmutableACL.class, 2, 2);
-        assertTrue(effective[1] instanceof ReadPolicy);
     }
 
     @Test(expected = AccessDeniedException.class)

@@ -231,9 +231,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetEffectivePoliciesByPrincipal() throws Exception {
-        // OAK-10135 : include read-policy in effective policies by principal result
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
-        assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ReadPolicy);
+        // NOTE: lookup by principal currently doesn't include READ_POLICY in accordance to default ac implementation
+        assertEquals(0, acMgr.getEffectivePolicies(Collections.singleton(testPrincipal)).length);
     }
 }

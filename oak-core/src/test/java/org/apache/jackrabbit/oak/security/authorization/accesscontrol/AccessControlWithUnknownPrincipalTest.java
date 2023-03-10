@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -31,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
@@ -60,6 +63,7 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
     private final String importBehaviorName;
 
     private AccessControlManagerImpl acMgr;
+    private ValueFactory valueFactory;
 
     public AccessControlWithUnknownPrincipalTest(int importBehavior, String importBehaviorName) {
         this.importBehavior = importBehavior;
@@ -71,6 +75,7 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
         super.before();
 
         acMgr = new AccessControlManagerImpl(root, getNamePathMapper(), getSecurityProvider());
+        valueFactory = getValueFactory(root);
     }
 
     @Override
@@ -175,10 +180,8 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
             AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Collections.singleton(unknown));
             switch (importBehavior) {
                 case ImportBehavior.IGNORE:
-                    assertPolicies(effective, 0, false);
-                    break;
                 case ImportBehavior.BESTEFFORT:
-                    assertPolicies(effective, 1, true);
+                    assertEquals(0, effective.length);
                     break;
                 case ImportBehavior.ABORT:
                 default:
@@ -193,7 +196,7 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
     public void testGetEffectivePoliciesInternalPrincipal() throws Exception {
         Principal unknown = new PrincipalImpl(getUnknownPrincipalName());
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Collections.singleton(unknown));
-        assertPolicies(effective, 1, true);
+        assertEquals(0, effective.length);
     }
 
     @Test

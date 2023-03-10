@@ -1591,14 +1591,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         for (Set<Principal> principals : principalSets) {
             AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
-            assertPolicies(policies, 1, true);
+            assertPolicies(policies, 0);
         }
 
         setupPolicy(testPath);
         // changes not yet persisted -> no effecitve policies found for testprincipal
         for (Set<Principal> principals : principalSets) {
             AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
-            assertPolicies(policies, 1, true);
+            assertPolicies(policies, 0);
         }
 
         root.commit();
@@ -1606,9 +1606,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         for (Set<Principal> principals : principalSets) {
             AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
             if (principals.contains(testPrincipal)) {
-                assertPolicies(policies, 2, true);
+                assertPolicies(policies, 1);
             } else {
-                assertPolicies(policies, 1, true);
+                assertPolicies(policies, 0);
             }
         }
 
@@ -1619,9 +1619,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         for (Set<Principal> principals : principalSets) {
             AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
             if (principals.contains(testPrincipal)) {
-                assertPolicies(policies, 2, true);
+                assertPolicies(policies, 1);
             } else {
-                assertPolicies(policies, 1, true);
+                assertPolicies(policies, 0);
             }
         }
 
@@ -1630,9 +1630,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         for (Set<Principal> principals : principalSets) {
             AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
             if (principals.contains(testPrincipal)) {
-                assertPolicies(policies, 3, true);
+                assertPolicies(policies, 2);
             } else {
-                assertPolicies(policies, 1, true);
+                assertPolicies(policies, 0);
             }
         }
     }
@@ -1651,7 +1651,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         root.commit();
 
         AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principalSet);
-        assertPolicies(policies, 2, true);
+        assertPolicies(policies, 1);
 
         // add another policy
         Tree child = TreeUtil.addChild(root.getTree(testPath), "child", JcrConstants.NT_UNSTRUCTURED);
@@ -1659,7 +1659,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         setupPolicy(childPath);
         root.commit();
 
-        assertPolicies(acMgr.getEffectivePolicies(principalSet), 3, true);
+        assertPolicies(acMgr.getEffectivePolicies(principalSet), 2);
     }
 
     @Test
@@ -1689,7 +1689,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
             root.commit();
 
             AccessControlPolicy[] effectivePolicies = acMgr.getEffectivePolicies(principalSet);
-            assertPolicies(effectivePolicies, 4, true);
+            assertPolicies(effectivePolicies, 3);
 
             assertNull(((JackrabbitAccessControlPolicy) effectivePolicies[0]).getPath());
             assertEquals(testPath, ((JackrabbitAccessControlPolicy) effectivePolicies[1]).getPath());
@@ -1723,7 +1723,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         for (Principal princ : principals) {
             AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(princ));
-            assertPolicies(policies, 2, true);
+            assertPolicies(policies, 1);
             assertTrue(policies[0] instanceof AccessControlList);
 
             AccessControlList acl = (AccessControlList) policies[0];
@@ -1750,7 +1750,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         AccessControlManagerImpl mgr = createAccessControlManager(r, getNamePathMapper());
         AccessControlPolicy[] policies = mgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
-        assertPolicies(policies, 1, true);
+        assertPolicies(policies, 0);
     }
 
     @Test
@@ -1770,7 +1770,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         AccessControlManagerImpl mgr = createAccessControlManager(r, getNamePathMapper());
         AccessControlPolicy[] policies = mgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
-        assertPolicies(policies, 1, true);
+        assertPolicies(policies, 0);
     }
     
     private static QueryEngine mockQueryEngine(@NotNull Tree aceTree) throws Exception {
