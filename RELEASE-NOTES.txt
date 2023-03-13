@@ -61,6 +61,7 @@ Improvement
 Task
 
     [OAK-10086] - oak-core: bump up logging for deprecated Guava based APIs to ERROR
+    [OAK-10098] - Oak Run - PurgeOldIndexVersion - Add support to auto purge ES indexes and delete remote ES indexes as well
     [OAK-10101] - Improve exception message when retrieving String properties
     [OAK-10103] - oak-store-document: remove deprecated SystemPropertySupplier
     [OAK-10104] - Extend version consistency check
