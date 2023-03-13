@@ -32,14 +32,13 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
+public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
@@ -78,9 +77,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, List.of());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, List.of());
+            assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, List.of());
             assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, List.of("/test/a"));
         });
     }
@@ -123,8 +122,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         // due to unescaped special character (which is not handled in backend)
         try {
             customLogs.starting();
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo}')] ", XPATH, emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo]')] ", XPATH, emptyList());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo}')] ", XPATH, List.of());
+            assertQuery("//*[jcr:contains(@analyzed_field, 'foo]')] ", XPATH, List.of());
 
             Assert.assertTrue(customLogs.getLogs().containsAll(getExpectedLogMessage()));
         } finally {
@@ -217,7 +216,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         // standard english analyzer stems verbs (jumping -> jump)
         assertEventually(() -> {
             assertQuery("select * from [nt:base] where CONTAINS(*, 'jump')", List.of("/test"));
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'jumpingjack')", emptyList());
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'jumpingjack')", List.of());
         });
     }
 
@@ -245,7 +244,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         // standard english analyzer stems verbs (jumping -> jump)
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'dog')", emptyList());
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'dog')", List.of());
             assertQuery("select * from [nt:base] where CONTAINS(*, 'cat')", List.of("/test"));
         });
     }
