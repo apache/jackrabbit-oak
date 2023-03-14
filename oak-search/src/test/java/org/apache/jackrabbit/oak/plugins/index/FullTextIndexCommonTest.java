@@ -55,11 +55,39 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         test.addChild("d").setProperty("propa", "howdy! hello again");
         root.commit();
 
-        String query = "//*[jcr:contains(@propa, 'Hello')] ";
+        String query = "//*[jcr:contains(@propa, 'Hello')]";
 
         assertEventually(() -> {
             assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
             assertQuery(query, XPATH, List.of("/test/a", "/test/c", "/test/d"));
+        });
+    }
+
+    @Test
+    public void fullTextQueryWithDifferentBoosts() throws Exception {
+        setup(builder -> {
+                    builder.indexRule("nt:base").property("propa").analyzed().nodeScopeIndex().boost(10);
+                    builder.indexRule("nt:base").property("propb").analyzed().nodeScopeIndex().boost(100);
+                }, idx -> {
+                },
+                "propa", "propb");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "Hello World!");
+        test.addChild("b").setProperty("propb", "Hello World");
+        Tree c = test.addChild("c");
+        c.setProperty("propa", "Hello people");
+        c.setProperty("propb", "Hello folks");
+        test.addChild("d").setProperty("propb", "baz");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/c", "/test/b", "/test/a"), true, true);
+            assertQuery("//*[jcr:contains(., 'Hello')] order by @jcr:score ascending", XPATH,
+                    List.of("/test/a", "/test/b", "/test/c"), true, true);
+            assertQuery("//*[jcr:contains(., 'people')]", XPATH, List.of("/test/c"));
         });
     }
 
@@ -100,9 +128,9 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')] ", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, List.of("/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello OR world')] ", XPATH, List.of("/test/nodea", "/test/nodeb", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello OR world')]", XPATH, List.of("/test/nodea", "/test/nodeb", "/test/nodec", "/test/noded"));
         });
     }
 
@@ -127,8 +155,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')] ", XPATH, List.of("/test/a", "/test/c", "/test/d"));
-            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, List.of("/test/c", "/test/d"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/a", "/test/c", "/test/d"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/c", "/test/d"));
         });
     }
 
@@ -153,8 +181,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')] ", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
         });
     }
 
@@ -183,8 +211,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')] ", XPATH, List.of("/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, List.of("/test/nodec"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec"));
         });
     }
 
@@ -199,7 +227,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() ->
-                assertQuery("//*[jcr:contains(@analyzed_field, 'test123')] ", XPATH, List.of("/test/a"))
+                assertQuery("//*[jcr:contains(@analyzed_field, 'test123')]", XPATH, List.of("/test/a"))
         );
     }
 
@@ -214,7 +242,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() ->
-                assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, List.of("/test/a")));
+                assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')]", XPATH, List.of("/test/a")));
 
         // add nodeScopeIndex at a later stage
         index.getChild("indexRules").getChild("nt:base").getChild("properties")
@@ -224,7 +252,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() ->
-                assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, List.of("/test/a")));
+                assertQuery("//*[jcr:contains(., 'jpg')]", XPATH, List.of("/test/a")));
     }
 
     protected void assertEventually(Runnable r) {

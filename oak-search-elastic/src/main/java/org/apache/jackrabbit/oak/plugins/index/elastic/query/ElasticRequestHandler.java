@@ -547,15 +547,12 @@ public class ElasticRequestHandler {
                     qsqBuilder.boost(Float.valueOf(boost));
                 }
                 BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
-                        .must(m->m
-                                .queryString(qsqBuilder.build()));
+                        .must(m -> m.queryString(qsqBuilder.build()));
                 Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(text);
-                dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s->s.nested(dsq)));
+                dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s -> s.nested(dsq)));
 
                 if (not) {
-                    result.set(BoolQuery.of(b->b
-                            .mustNot(mn->mn
-                                    .bool(bqBuilder.build()))));
+                    result.set(BoolQuery.of(b -> b.mustNot(mn -> mn.bool(bqBuilder.build()))));
                 } else {
                     result.set(bqBuilder.build());
                 }
@@ -806,11 +803,10 @@ public class ElasticRequestHandler {
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
-                .type(TextQueryType.CrossFields);
+                .type(TextQueryType.CrossFields).tieBreaker(0.5d);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                qsqBuilder.fields(pd.name);
-                qsqBuilder.boost(pd.boost);
+                qsqBuilder.fields(pd.name + "^" + pd.boost);
             }
         }
         return qsqBuilder.fields(fieldName);
