@@ -82,7 +82,7 @@ public class IndexUpdate implements Editor, PathSource {
     // This counter is cyclically incremented till indexJcrTypeInvalidLogLimiter and then reset to 0
     private static volatile long cyclicExecutionCount = INDEX_JCR_TYPE_INVALID_LOG_LIMITER;
 
-    // Warnings about missing index providers are rate limitted, so that the log file is not filled with them.
+    // Warnings about missing index providers are rate limited, so the log file is not filled with them.
     // this is the last time such a message was logged (if any).
     private static volatile long lastMissingProviderMessageTime;
 
