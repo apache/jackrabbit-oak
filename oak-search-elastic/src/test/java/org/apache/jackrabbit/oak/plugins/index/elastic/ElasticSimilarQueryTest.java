@@ -36,8 +36,6 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,6 +45,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
@@ -76,11 +75,10 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         // Matches due to terms Hello or bye should be ignored
-        assertEventually(() -> assertQuery(nativeQueryStringWithStopWords,
-                Arrays.asList("/test/a", "/test/e", "/test/f")));
+        assertEventually(() -> assertQuery(nativeQueryStringWithStopWords, List.of("/test/a", "/test/e", "/test/f")));
 
         assertEventually(() -> assertQuery(nativeQueryStringWithoutStopWords,
-                Arrays.asList("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test/f")));
+                List.of("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test/f")));
     }
 
     @Test
@@ -101,11 +99,10 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
         // Matches because of term Hello should be ignored since wl <6 (so /test/ should NOT be in the match list)
         // /test/d should be in match list (because of Worlds term)
-        assertEventually(() -> assertQuery(nativeQueryStringWithMinWordLength,
-                Arrays.asList("/test/a", "/test/c", "/test/d")));
+        assertEventually(() -> assertQuery(nativeQueryStringWithMinWordLength, List.of("/test/a", "/test/c", "/test/d")));
 
         assertEventually(() -> assertQuery(nativeQueryStringWithoutMinWordLength,
-                Arrays.asList("/test/a", "/test/b", "/test/c", "/test/d")));
+                List.of("/test/a", "/test/b", "/test/c", "/test/d")));
     }
 
     @Test
@@ -130,7 +127,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where similar(., '" + p + "')";
 
         assertEventually(() -> assertQuery(query,
-                Arrays.asList(p, "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
+                List.of(p, "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
     }
 
     /**
@@ -222,7 +219,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
         for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
             String[] split = line.split(",");
-            List<Double> values = Arrays.stream(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
             List<Double> actual = toDoubles(bytes);
             assertEquals(values, actual);
@@ -249,10 +246,10 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
         File file = new File(uri);
 
-        Collection<String> children = new LinkedList<>();
+        List<String> children = new LinkedList<>();
         for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
             String[] split = line.split(",");
-            List<Double> values = Arrays.stream(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
             List<Double> actual = toDoubles(bytes);
             assertEquals(values, actual);
