@@ -150,8 +150,8 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'long OR plant')",
-                    List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'titleone OR blue')",
+                    List.of("/test/asset1", "/test/asset3"));
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'short OR coffee')",
                     List.of("/test/asset3", "/test/asset2"));
         });

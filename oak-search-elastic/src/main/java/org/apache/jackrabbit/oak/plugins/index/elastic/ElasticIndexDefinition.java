@@ -78,6 +78,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     public static final String SIMILARITY_TAGS = ":simTags";
 
+    /**
+     * Hidden property to handle dynamic tags for fulltext queries
+     */
+    public static final String DYNAMIC_BOOST_FULLTEXT = ":dynamic-boost-ft";
+
     public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
     public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
 

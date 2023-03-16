@@ -49,10 +49,10 @@ public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
     @Override
     protected String getTestQueryDynamicBoostBasicExplained() {
         return "[dam:Asset] as [a] /* elasticsearch:test-index(/oak:index/test-index) {\"bool\":{\"must\":[{\"bool\":" +
-                "{\"must\":[{\"query_string\":{\"default_operator\":\"and\",\"fields\":[\"title^1.0\",\":fulltext\"]," +
+                "{\"must\":[{\"query_string\":{\"default_operator\":\"and\",\"fields\":[\"title^1.0\",\":dynamic-boost-ft^1.0E-4\",\":fulltext\"]," +
                 "\"query\":\"plant\",\"tie_breaker\":0.5,\"type\":\"cross_fields\"}}],\"should\":[{\"nested\":" +
                 "{\"path\":\"predictedTagsDynamicBoost\",\"query\":{\"function_score\":" +
-                "{\"functions\":[{\"field_value_factor\":{\"field\":\"predictedTagsDynamicBoost.boost\"}}]," +
+                "{\"boost\":9.999999747378752E-5,\"functions\":[{\"field_value_factor\":{\"field\":\"predictedTagsDynamicBoost.boost\"}}]," +
                 "\"query\":{\"match\":{\"predictedTagsDynamicBoost.value\":{\"query\":\"plant\"}}}}},\"score_mode\":\"avg\"}}]}}]}} " +
                 "ft:(\"plant\")\n" +
                 "  where contains([a].[*], 'plant') */";
