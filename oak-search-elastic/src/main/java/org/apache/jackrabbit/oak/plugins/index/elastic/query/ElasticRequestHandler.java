@@ -806,7 +806,8 @@ public class ElasticRequestHandler {
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
-                .type(TextQueryType.CrossFields).tieBreaker(0.5d);
+                .type(TextQueryType.CrossFields)
+                .tieBreaker(0.5d);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
                 qsqBuilder.fields(pd.name + "^" + pd.boost);
