@@ -394,7 +394,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testRepSimilarAsNativeQuery() throws Exception {
+    public void repSimilarAsNativeQuery() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where " +
                 "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
         Tree test = root.getTree("/").addChild("test");
@@ -416,14 +416,14 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testRepSimilarQuery() throws Exception {
+    public void repSimilarQuery() throws Exception {
         String query = "select [jcr:path] from [nt:base] where similar(., '/test/a')";
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello World Hello World");
         test.addChild("b").setProperty("text", "Hello World");
         test.addChild("c").setProperty("text", "World");
         test.addChild("d").setProperty("text", "Hello");
-        test.addChild("e").setProperty("text", "World");
+        test.addChild("e").setProperty("text", "Bye Bye");
         test.addChild("f").setProperty("text", "Hello");
         test.addChild("g").setProperty("text", "World");
         test.addChild("h").setProperty("text", "Hello");
@@ -435,18 +435,19 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             assertTrue(result.hasNext());
             assertEquals("/test/b", result.next());
             assertTrue(result.hasNext());
+            assertQuery(query, List.of("/test/a", "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h"));
         });
     }
 
     @Test
-    public void testRepSimilarXPathQuery() throws Exception {
+    public void repSimilarXPathQuery() throws Exception {
         String query = "//element(*, nt:base)[rep:similar(., '/test/a')]";
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello World Hello World");
         test.addChild("b").setProperty("text", "Hello World");
         test.addChild("c").setProperty("text", "World");
         test.addChild("d").setProperty("text", "Hello");
-        test.addChild("e").setProperty("text", "World");
+        test.addChild("e").setProperty("text", "Bye Bye");
         test.addChild("f").setProperty("text", "Hello");
         test.addChild("g").setProperty("text", "World");
         test.addChild("h").setProperty("text", "Hello");
@@ -457,6 +458,8 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
             assertEquals("/test/b", result.next());
+            assertQuery(query, "xpath",
+                    List.of("/test/a", "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h"));
         });
     }
 

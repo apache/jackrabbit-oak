@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -55,79 +54,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
-
-    /*
-    This test mirror the test org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexQueryTest#testRepSimilarAsNativeQuery
-    Exact same test data, to test out for feature parity
-    The only difference is the same query in lucene returns the doc itself (the one that we need similar docs of) as part of search results
-    whereas in elastic, it doesn't.
-     */
-    @Test
-    public void repSimilarAsNativeQuery() throws Exception {
-
-        createIndex(true);
-
-        String nativeQueryString = "select [jcr:path] from [nt:base] where " +
-                "native('elastic-sim', 'mlt?stream.body=/test/c&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("text", "Hello World");
-        test.addChild("b").setProperty("text", "He said Hello and then the world said Hello as well.");
-        test.addChild("c").setProperty("text", "He said Hi.");
-        root.commit();
-
-        assertEventually(() -> assertQuery(nativeQueryString, Arrays.asList("/test/c", "/test/b")));
-    }
-
-    /*
-    This test mirror the test org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexQueryTest#testRepSimilarQuery
-    Exact same test data, to test out for feature parity
-    The only difference is the same query in lucene returns the doc itself (the one that we need similar docs of) as part of search results
-    whereas in elastic, it doesn't.
-     */
-    @Test
-    public void repSimilarQuery() throws Exception {
-        createIndex(false);
-
-        String query = "select [jcr:path] from [nt:base] where similar(., '/test/a')";
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("text", "Hello World Hello World");
-        test.addChild("b").setProperty("text", "Hello World");
-        test.addChild("c").setProperty("text", "World");
-        test.addChild("d").setProperty("text", "Hello");
-        test.addChild("e").setProperty("text", "Bye Bye");
-        test.addChild("f").setProperty("text", "Hello");
-        test.addChild("g").setProperty("text", "World");
-        test.addChild("h").setProperty("text", "Hello");
-        root.commit();
-
-        assertEventually(() -> assertQuery(query,
-                Arrays.asList("/test/a", "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
-    }
-
-    /*
-    This test mirror the test org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexQueryTest#testRepSimilarXPathQuery
-    Exact same test data, to test out for feature parity
-    The only difference is the same query in lucene returns the doc itself (the one that we need similar docs of) as part of search results
-    whereas in elastic, it doesn't.
-     */
-    @Test
-    public void repSimilarXPathQuery() throws Exception {
-        createIndex(false);
-
-        String query = "//element(*, nt:base)[rep:similar(., '/test/a')]";
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("text", "Hello World Hello World");
-        test.addChild("b").setProperty("text", "Hello World");
-        test.addChild("c").setProperty("text", "World");
-        test.addChild("d").setProperty("text", "Hello");
-        test.addChild("e").setProperty("text", "Bye Bye");
-        test.addChild("f").setProperty("text", "Hello");
-        test.addChild("g").setProperty("text", "World");
-        test.addChild("h").setProperty("text", "Hello");
-        root.commit();
-        assertEventually(() -> assertQuery(query, XPATH,
-                Arrays.asList("/test/a", "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
-    }
 
     @Test
     public void repSimilarWithStopWords() throws Exception {
