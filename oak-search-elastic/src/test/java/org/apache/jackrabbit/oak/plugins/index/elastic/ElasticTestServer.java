@@ -50,6 +50,7 @@ public class ElasticTestServer implements AutoCloseable {
             .put("8.4.1.0", "56797a1bac6ceeaa36d2358f818b14633124d79c5e04630fa3544603d82eaa01")
             .put("8.4.2.0", "5ce81ad043816900a496ad5b3cce7de1d99547ebf92aa1f9856343e48580c71c")
             .put("8.4.3.0", "5c00d43cdd56c5c5d8e9032ad507acea482fb5ca9445861c5cc12ad63af66425")
+            .put("8.5.3.0", "d4c13f68650f9df5ff8c74ec83abc2e416de9c45f991d459326e0e2baf7b0e3f")
             .build();
 
     private static final ElasticTestServer SERVER = new ElasticTestServer();

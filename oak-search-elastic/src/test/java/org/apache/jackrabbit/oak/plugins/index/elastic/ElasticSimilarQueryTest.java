@@ -133,6 +133,24 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
                 Arrays.asList(p, "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
     }
 
+    /**
+     * Validates the workaround for <a href="https://github.com/elastic/elasticsearch/pull/94518">94518</a> produces the
+     * expected results
+     */
+    @Test
+    public void repSimilarQueryWithIgnoredMetadataField() throws Exception {
+        createIndex(false);
+        Tree test = root.getTree("/").addChild("test");
+
+        // the max keyword length is 256, this field will be then listed as _ignored
+        test.addChild("a").setProperty("text", ElasticTestUtils.randomString(1000));
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where similar(., '/test/a')";
+
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
+    }
+
     @Test
     public void similarityTagsAffectRelevance() throws Exception {
         createIndex(false);

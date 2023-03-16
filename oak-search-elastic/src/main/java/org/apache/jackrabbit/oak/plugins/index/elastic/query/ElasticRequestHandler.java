@@ -389,7 +389,10 @@ public class ElasticRequestHandler {
             // We store path as the _id so no need to do anything extra here
             // We expect Similar impl to send a query where text would have evaluated to
             // node path.
-            mlt.like(l -> l.document(d -> d.id(id)));
+            mlt.like(l -> l.document(d -> d.id(id)
+                    // this is needed to workaround https://github.com/elastic/elasticsearch/pull/94518 that causes empty
+                    // results when the _ignored metadata field is part of the input document
+                    .perFieldAnalyzer("_ignored", "keyword")));
         } else {
             // This is for native queries if someone sends additional fields via
             // mlt.fl=field1,field2
