@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.48.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.50.0
 
 Introduction
 ------------
@@ -7,68 +7,84 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.48.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.50.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.48.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.50.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.48.0
+Changes in Oak 1.50.0
 ---------------------
 
 Technical task
 
-    [OAK-10038] - CompositeStoreIT: add workaround for potential NPE in test
-    [OAK-10039] - CompositeTestSupport: improve diagnostics
+    [OAK-10007] - update Guava related deprecations with 'since' and 'forRemoval' properties
+    [OAK-10084] - oak-commons: bump up logging for deprecated Guava based APIs to ERROR
+    [OAK-10085] - oak-core-spi: bump up logging for deprecated Guava based APIs to ERROR
+    [OAK-10109] - deprecate FileIOUtils.TransformingComparator with Guava Function parameter
 
 Bug
 
-    [OAK-10022] - ReadOnlyFileStore#collectBlobReferences throws NullPointerException if azure blob with binary references is missing in the tar directory
-    [OAK-10033] - Conditions on dates use the wrong range
-    [OAK-10048] - DocumentStoreIndexerBase#buildFlatFileStore outputs the wrong path when FlatFileSplitter used
-    [OAK-10051] - oak-run and oak-upgrade JARs incomplete (META-INF/MANIFEST.MF is missing the Main-Class entry)
-    [OAK-10063] - AsyncIndexUpdate - Logger not printing complete message
-    [OAK-10067] - ExternalGroupPrincipalProvider does not resolve inherited groups that cross IDP boundaries
-    [OAK-10078] - antrun for reactor pom fails due to removal of tasks function
-    [OAK-10079] - oak-run-commons tests left over: empty "split" folder (next to "src")
+    [OAK-9827] - Flaky test: SplitPersistenceBlobTest
+    [OAK-9938] - oak-run GenerateVersionInconsistencyReport exception
+    [OAK-10081] - oak-run tests left over "blobs" (next to "src")
+    [OAK-10082] - Group.getMembers() needs to resolve inherited members of dynamic groups
+    [OAK-10090] - update antrun version for reactor pom
+    [OAK-10092] - doc-railroad project fails on Java 11; plexus-component-metadata needs update
+    [OAK-10095] - NullPointerException in FieldFactory.dateToLong
+    [OAK-10112] - avoid use of Guava Iterators.emptyIterator
+    [OAK-10117] - oak-run console does not start up - CommandNameCompleter construction fails
+    [OAK-10120] - SessionImpl.hasCapability is prone to NPE
+    [OAK-10136] - DynamicBoostLite scores matches on tags equally with matches on other fields
+    [OAK-10137] - Static variable referenced from a non-static context
 
 New Feature
 
-    [OAK-10056] - Provide support for Jakarta Region for AWS S3
+    [OAK-10001] - Bump up minimal Java version to 11
 
 Improvement
 
-    [OAK-9800] - Update Maven Plugins and Apache Parent POM to version 29
-    [OAK-10031] - Remove unmerged branches and collisions in batches
-    [OAK-10034] - Periodically clean up unmerged branch commits and collision markers
-    [OAK-10054] - Improved trace level logging of JCR method calls
-    [OAK-10055] - Auto refreshing IndexTracker every hour causes online reindexing to fail
-    [OAK-10061] - WARN when for an external group a local group with the same name is already present
-    [OAK-10071] - Consistently filter duplicate authorizables in iterators
-    [OAK-10074] - AutoMembershipProvider consistency with ExternalPrincipalProvider
+    [OAK-10049] - Enable access to the secondary Azure blobstore service endpoint in Oak blobstore
+    [OAK-10087] - TypeEditor: constraint exception for invalid child node should contain that node's effective type
+    [OAK-10099] - DynamicSyncContext: skip warning for everyone group
+    [OAK-10102] - Disable lazy index download by default
+    [OAK-10119] - Fix AzureJournalFileTest failures on slow Jenkins
+    [OAK-10121] - Extend SessionImpl.hasCapability to cover access control write operations
+    [OAK-10131] - ExternalGroupPrincipalProvider should return ItemBasedPrincipals if dynamic group option is enabled
+    [OAK-10132] - Duplication in XPathConditionVisitor and ImpersonationImpl
 
 Task
 
-    [OAK-10040] - Update animal-sniffer dependency to 1.22
-    [OAK-10041] - Upgrade maven-bundle-plugin to 5.1.8
-    [OAK-10042] - Update checkstyle-plugin dependency to version 3.1.2
-    [OAK-10043] - Upgrade maven-versions-plugin to 2.14.1
-    [OAK-10044] - Javadoc fixes for JDK 11 compat
-    [OAK-10045] - Upgrade gmavenplus-plugin to 1.13.1
-    [OAK-10046] - oak-it-osgi: remove unneeded workaround maven-resources-plugin
-    [OAK-10047] - oak-core: bump up logging for deprecated Guava based APIs to WARN
-    [OAK-10057] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.8
-    [OAK-10059] - webapp: avoid use of Jackrabbit's transitive commons-collections dependency
-    [OAK-10062] - consolidate and update groovy versions to 2.4.21
-    [OAK-10065] - avoid-use of groovy-all artefact
-    [OAK-10066] - update groovy dependency to 2.5.20
-    [OAK-10073] - Additional tests combining dynamic groups and automembership
-    [OAK-10076] - Bump netty dependency from 4.1.68.Final to 4.1.86.Final
+    [OAK-10086] - oak-core: bump up logging for deprecated Guava based APIs to ERROR
+    [OAK-10098] - Oak Run - PurgeOldIndexVersion - Add support to auto purge ES indexes and delete remote ES indexes as well
+    [OAK-10101] - Improve exception message when retrieving String properties
+    [OAK-10103] - oak-store-document: remove deprecated SystemPropertySupplier
+    [OAK-10104] - Extend version consistency check
+    [OAK-10105] - Guava deprecations: set minimal logging level to 'info'
+    [OAK-10110] - add test coverage for FileIOUtils.TransformingComparator
+    [OAK-10111] - oak-search-elastic: add support for custom analyzers
+    [OAK-10113] - Lower error to warn in findUncachedWithRetry, to clarify the severity
+    [OAK-10118] - Inconsistency in 'order by' handling of missing field between Lucene / Elastic
+    [OAK-10122] - it-osgi: update commons-fileupload to 1.5
+    [OAK-10123] - solr-core: update commons-fileupload to 1.5
+    [OAK-10124] - upgrade httpclient/mime to 4.5.14
+    [OAK-10125] - upgrade httpcore to 4.4.16
+    [OAK-10126] - Extend consistency check to cover jcr:predecessors and jcr:successors
+    [OAK-10128] - Disable coverage check for oak-jcr integration tests
+    [OAK-10129] - Disable Sonar checks on PRs from forks - take 2
+    [OAK-10133] - Fix AzureJournalFileTest failing on slow Jenkins
+    [OAK-10134] - Update Oak GitHub actions
+    [OAK-10138] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.9
+
+Documentation
+
+    [OAK-10069] - Best practices on how to setup access control external identities
+    [OAK-10107] - update javdoc of class org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager
 
 
 In addition to the above-mentioned changes, this release contains all

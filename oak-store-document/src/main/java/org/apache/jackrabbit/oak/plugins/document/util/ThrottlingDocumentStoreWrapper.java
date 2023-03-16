@@ -86,6 +86,14 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @NotNull
+    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
+                                              final String indexedProperty, final long startValue, final int limit,
+                                              final List<String> projection) throws DocumentStoreException {
+        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+    }
+
+    @Override
     public <T extends Document> void remove(Collection<T> collection, String key) {
         long throttlingTime = performThrottling(collection);
         try {

@@ -24,11 +24,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -42,6 +45,9 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
 
     private static final int NUM_THREADS = 3;
     private static final int UPDATES_PER_THREAD = 10;
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @Test
     public void concurrent() throws Exception {
@@ -203,5 +209,63 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         assertNotNull(doc);
         Map<Revision, String> valueMap = doc.getValueMap("p");
         assertEquals(3, valueMap.size());
+    }
+
+    @Test
+    public void queryWithProjection() {
+        DocumentStore docStore = mk.getDocumentStore();
+        DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+                20, newArrayList(MODIFIED_IN_SECS));
+        // since _id is mandatory, so data size should be 2
+        docs.forEach(d -> assertEquals(2 , d.keySet().size()));
+        assertEquals(10, docs.size());
+    }
+
+    @Test
+    public void queryWithEmptyProjection() {
+        DocumentStore docStore = mk.getDocumentStore();
+        DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+                20, newArrayList());
+        docs.forEach(d -> assertEquals(4 , d.keySet().size()));
+        assertEquals(10, docs.size());
+    }
+
+    @Test
+    public void queryWithNullProjection() {
+        DocumentStore docStore = mk.getDocumentStore();
+        DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+                20, null);
+        docs.forEach(d -> assertEquals(4 , d.keySet().size()));
+        assertEquals(10, docs.size());
     }
 }
