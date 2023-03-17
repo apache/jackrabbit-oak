@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Iterables;
 
@@ -81,6 +82,10 @@ public class IndexUpdate implements Editor, PathSource {
     // Initial value is set at indexJcrTypeInvalidLogLimiter so that first logging start on first cycle/update itself.
     // This counter is cyclically incremented till indexJcrTypeInvalidLogLimiter and then reset to 0
     private static volatile long cyclicExecutionCount = INDEX_JCR_TYPE_INVALID_LOG_LIMITER;
+
+    // Warnings about missing index providers are rate limited, so the log file is not filled with them.
+    // this is the last time such a message was logged (if any).
+    private static final AtomicLong lastMissingProviderMessageTime = new AtomicLong();
 
     /**
      * <p>
@@ -330,9 +335,17 @@ public class IndexUpdate implements Editor, PathSource {
                     // then we don't need to handle missing handler
                     if (definition.hasProperty(ASYNC_PROPERTY_NAME) && rootState.async == null) {
                         if (!TYPE_DISABLED.equals(type)) {
-                            log.warn("Missing provider for nrt/sync index: {} (rootState.async: {}). " +
-                                    "Please note, it means that index data should be trusted only after this index " +
-                                    "is processed in an async indexing cycle.", definition, rootState.async);
+                            long silenceMessagesSeconds = 60;
+                            long silenceMessagesNanos = silenceMessagesSeconds * 1_000_000_000;
+                            long now = System.nanoTime();
+                            long last = lastMissingProviderMessageTime.get();
+                            if (now > last + silenceMessagesNanos
+                                    && lastMissingProviderMessageTime.compareAndSet(last,  now)) {
+                                log.warn("Missing provider for nrt/sync index: {}. " +
+                                        "Please note, it means that index data should be trusted only after this index " +
+                                        "is processed in an async indexing cycle. " +
+                                        "This message is silenced for {} seconds.", indexPath, silenceMessagesSeconds);
+                            }
                         }
                     } else {
                         rootState.missingProvider.onMissingIndex(type, definition, indexPath);
