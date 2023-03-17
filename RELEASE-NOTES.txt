@@ -53,10 +53,12 @@ Improvement
     [OAK-10087] - TypeEditor: constraint exception for invalid child node should contain that node's effective type
     [OAK-10099] - DynamicSyncContext: skip warning for everyone group
     [OAK-10102] - Disable lazy index download by default
+    [OAK-10114] - Node diff with many changes uses excessive memory
     [OAK-10119] - Fix AzureJournalFileTest failures on slow Jenkins
     [OAK-10121] - Extend SessionImpl.hasCapability to cover access control write operations
     [OAK-10131] - ExternalGroupPrincipalProvider should return ItemBasedPrincipals if dynamic group option is enabled
     [OAK-10132] - Duplication in XPathConditionVisitor and ImpersonationImpl
+    [OAK-10145] - Rate limit the log messages for IndexUpdate
 
 Task
 
@@ -80,6 +82,7 @@ Task
     [OAK-10133] - Fix AzureJournalFileTest failing on slow Jenkins
     [OAK-10134] - Update Oak GitHub actions
     [OAK-10138] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.9
+    [OAK-10144] - allow Javadoc errors on oak-run(-*)
 
 Documentation
 
