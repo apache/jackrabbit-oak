@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Iterables;
 
@@ -84,7 +85,7 @@ public class IndexUpdate implements Editor, PathSource {
 
     // Warnings about missing index providers are rate limited, so the log file is not filled with them.
     // this is the last time such a message was logged (if any).
-    private static volatile long lastMissingProviderMessageTime;
+    private static final AtomicLong lastMissingProviderMessageTime = new AtomicLong();
 
     /**
      * <p>
@@ -334,13 +335,16 @@ public class IndexUpdate implements Editor, PathSource {
                     // then we don't need to handle missing handler
                     if (definition.hasProperty(ASYNC_PROPERTY_NAME) && rootState.async == null) {
                         if (!TYPE_DISABLED.equals(type)) {
-                            long now = System.currentTimeMillis();
-                            if (now > lastMissingProviderMessageTime + 60 * 1000) {
-                                lastMissingProviderMessageTime = now;
-                                log.warn("Missing provider for nrt/sync index: {} (rootState.async: {}). " +
+                            long silenceMessagesSeconds = 60;
+                            long silenceMessagesNanos = silenceMessagesSeconds * 1_000_000_000;
+                            long now = System.nanoTime();
+                            long last = lastMissingProviderMessageTime.get();
+                            if (now > last + silenceMessagesNanos
+                                    && lastMissingProviderMessageTime.compareAndSet(last,  now)) {
+                                log.warn("Missing provider for nrt/sync index: {}. " +
                                         "Please note, it means that index data should be trusted only after this index " +
                                         "is processed in an async indexing cycle. " +
-                                        "This message is silenced for one minute.", definition, rootState.async);
+                                        "This message is silenced for {} seconds.", indexPath, silenceMessagesSeconds);
                             }
                         }
                     } else {
