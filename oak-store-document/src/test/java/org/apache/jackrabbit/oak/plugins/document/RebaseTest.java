@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -46,7 +45,6 @@ public class RebaseTest {
                 .build();
     }
 
-    @Ignore("OAK-10149")
     @Test
     public void rebase() throws Exception {
         NodeBuilder builder = ns.getRoot().builder();

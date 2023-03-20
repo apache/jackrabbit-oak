@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -126,6 +127,48 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
                         }
                     }
                 }
+            }
+        } else if (base instanceof ModifiedNodeState) {
+            ModifiedNodeState mBase = (ModifiedNodeState) base;
+            if (mBase.getBaseState() == this) {
+                // this is the base state of the ModifiedNodeState
+                // do a reverse comparison and report the inverse back to NodeStateDiff
+                return mBase.compareAgainstBaseState(this, new NodeStateDiff() {
+                    @Override
+                    public boolean propertyAdded(PropertyState after) {
+                        return diff.propertyDeleted(after);
+                    }
+
+                    @Override
+                    public boolean propertyChanged(PropertyState before,
+                                                   PropertyState after) {
+                        return diff.propertyChanged(after, before);
+                    }
+
+                    @Override
+                    public boolean propertyDeleted(PropertyState before) {
+                        return diff.propertyAdded(before);
+                    }
+
+                    @Override
+                    public boolean childNodeAdded(String name,
+                                                  NodeState after) {
+                        return diff.childNodeDeleted(name, after);
+                    }
+
+                    @Override
+                    public boolean childNodeChanged(String name,
+                                                    NodeState before,
+                                                    NodeState after) {
+                        return diff.childNodeChanged(name, after, before);
+                    }
+
+                    @Override
+                    public boolean childNodeDeleted(String name,
+                                                    NodeState before) {
+                        return diff.childNodeAdded(name, before);
+                    }
+                });
             }
         }
         // fall back to the generic node state diff algorithm
