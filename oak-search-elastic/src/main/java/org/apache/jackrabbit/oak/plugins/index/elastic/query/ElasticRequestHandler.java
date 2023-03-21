@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -116,7 +115,7 @@ public class ElasticRequestHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticRequestHandler.class);
     private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
     protected final static String SUGGEST_PREFIX = "suggest?term=";
-    private static final List<SortOptions> DEFAULT_SORTS = Arrays.asList(
+    private static final List<SortOptions> DEFAULT_SORTS = List.of(
             SortOptions.of(so -> so.field(f -> f.field("_score").order(SortOrder.Desc))),
             SortOptions.of(so -> so.field(f -> f.field(FieldNames.PATH).order(SortOrder.Asc)))
     );
@@ -389,11 +388,14 @@ public class ElasticRequestHandler {
             // We store path as the _id so no need to do anything extra here
             // We expect Similar impl to send a query where text would have evaluated to
             // node path.
-            mlt.like(l -> l.document(d -> d.id(id)));
+            mlt.like(l -> l.document(d -> d.id(id)
+                    // this is needed to workaround https://github.com/elastic/elasticsearch/pull/94518 that causes empty
+                    // results when the _ignored metadata field is part of the input document
+                    .perFieldAnalyzer("_ignored", "keyword")));
         } else {
             // This is for native queries if someone sends additional fields via
             // mlt.fl=field1,field2
-            mlt.like(l -> l.document(d -> d.fields(Arrays.asList(fields.split(","))).id(id)));
+            mlt.like(l -> l.document(d -> d.fields(List.of(fields.split(","))).id(id)));
         }
         // include the input doc to align the Lucene behaviour TODO: add configuration
         // parameter
@@ -424,7 +426,7 @@ public class ElasticRequestHandler {
             mltParamSetter.accept(MoreLikeThisHelperUtil.MLT_STOP_WORDS, (val) -> {
                 // TODO : Read this from a stopwords text file, configured via index defn maybe
                 // ?
-                mlt.stopWords(Arrays.asList(val.split(",")));
+                mlt.stopWords(List.of(val.split(",")));
             });
 
             if (!shallowMltParams.isEmpty()) {
