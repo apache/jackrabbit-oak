@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,6 +81,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     private final MongoDocumentStore store;
 
+    private final BasicDBObject hint;
     /**
      * The batch size for the query of possibly deleted docs.
      */
@@ -89,6 +91,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public MongoVersionGCSupport(MongoDocumentStore store) {
         super(store);
         this.store = store;
+        if(hasIndex(getNodeCollection(), SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
+            hint = new BasicDBObject();
+            hint.put(SD_TYPE,1);
+            hint.put(SD_MAX_REV_TIME_IN_SECS, 1);
+        } else {
+            hint = null;
+        }
     }
 
     @Override
@@ -127,6 +136,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // With OAK-8351 this switched from 1 to 2 queries (see createQueries)
         // hence we iterate over the queries returned by createQueries
         List<Bson> queries = createQueries(gcTypes, sweepRevs, oldestRevTimeStamp);
+
         Iterable<NodeDocument> allResults = emptyList();
         for (Bson query : queries) {
             // this query uses a timeout of 15min. hitting the timeout will
@@ -136,7 +146,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             // makes any future similar problem more visible than long running
             // queries alone (15min is still long).
             Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
-                    .maxTime(15, TimeUnit.MINUTES),
+                    .maxTime(15, TimeUnit.MINUTES).hint(hint),
                     new Function<BasicDBObject, NodeDocument>() {
                 @Override
                 public NodeDocument apply(BasicDBObject input) {
