@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.lucene.property;
+package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.util.function.Supplier;
 

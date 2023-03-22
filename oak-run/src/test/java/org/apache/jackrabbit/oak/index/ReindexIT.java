@@ -69,7 +69,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class ReindexIT extends AbstractIndexCommandTest {
+public class ReindexIT extends LuceneAbstractIndexCommandTest {
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
     private final PrintStream originalErr = System.err;
 
@@ -111,7 +111,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         command.execute(args);
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
         NodeStore store2 = fixture2.getNodeStore();
         PropertyState reindexCount = getNode(store2.getRoot(), "/oak:index/fooIndex").getProperty(IndexConstants.REINDEX_COUNT);
         assertEquals(1, reindexCount.getValue(Type.LONG).longValue());
@@ -176,7 +176,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         //Phase 2 - Add some more indexable content. This would let us validate that post
         //import
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
         addTestContent(fixture2, "/testNode/b", "foo", 100);
         addTestContent(fixture2, "/testNode/c", "bar", 100);
         fixture2.getAsyncIndexUpdate("async").run();
@@ -211,7 +211,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         //~-----------------------------------------
         //Phase 4 - Validate the import
 
-        RepositoryFixture fixture4 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture4 = new LuceneRepositoryFixture(storeDir);
         int foo4Count = getFooCount(fixture4, "foo");
 
         //new count should be same as previous
@@ -262,7 +262,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         command.execute(args);
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
 
         explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString(TEST_INDEX_PATH));
@@ -327,7 +327,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         command.execute(args);
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
 
         explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString("/oak:index/barIndex"));
@@ -339,7 +339,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));
     }
 
-    private void indexBarPropertyAlso(RepositoryFixture fixture2) throws IOException, RepositoryException {
+    private void indexBarPropertyAlso(IndexRepositoryFixture fixture2) throws IOException, RepositoryException {
         Session session = fixture2.getAdminSession();
         NodeState idxState = NodeStateUtils.getNode(fixture2.getNodeStore().getRoot(), TEST_INDEX_PATH);
         LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder(
@@ -352,7 +352,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         session.logout();
     }
 
-    private int getFooCount(RepositoryFixture fixture, String propName) throws IOException, RepositoryException {
+    private int getFooCount(IndexRepositoryFixture fixture, String propName) throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         String explanation = getQueryPlan(fixture, "select * from [nt:base] where ["+propName+"] is not null");
@@ -365,7 +365,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         return size;
     }
 
-    private static String getQueryPlan(RepositoryFixture fixture, String query) throws RepositoryException, IOException {
+    private static String getQueryPlan(IndexRepositoryFixture fixture, String query) throws RepositoryException, IOException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query explain = qm.createQuery("explain "+query, Query.JCR_SQL2);

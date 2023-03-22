@@ -29,13 +29,17 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 /*
     Main operation of this class is to mark IndexName's with operations
  */
-public class IndexVersionOperation {
+public abstract class IndexVersionOperation {
     private static final Logger LOG = LoggerFactory.getLogger(IndexVersionOperation.class);
 
     private IndexName indexName;
@@ -73,7 +77,7 @@ public class IndexVersionOperation {
      *
      * @return This method returns an IndexVersionOperation list i.e indexNameObjectList marked with operations
      */
-    public static List<IndexVersionOperation> generateIndexVersionOperationList(NodeState rootNode, String parentPath,
+    public List<IndexVersionOperation> generateIndexVersionOperationList(NodeState rootNode, String parentPath,
                                                                                 List<IndexName> indexNameObjectList, long purgeThresholdMillis) {
         return generateIndexVersionOperationList(rootNode, parentPath, indexNameObjectList, purgeThresholdMillis, true);
     }
@@ -89,19 +93,25 @@ public class IndexVersionOperation {
      *
      * @return This method returns an IndexVersionOperation list i.e indexNameObjectList marked with operations
      */
-    public static List<IndexVersionOperation> generateIndexVersionOperationList(NodeState rootNode, String parentPath,
+    public List<IndexVersionOperation> generateIndexVersionOperationList(NodeState rootNode, String parentPath,
             List<IndexName> indexNameObjectList, long purgeThresholdMillis, boolean shouldPurgeBaseIndex) {
         NodeState indexDefParentNode = NodeStateUtils.getNode(rootNode, parentPath);
         List<IndexName> reverseSortedIndexNameList = getReverseSortedIndexNameList(indexNameObjectList);
+        LOG.info("Reverse Sorted list {} ", reverseSortedIndexNameList);
         List<IndexVersionOperation> indexVersionOperationList = new LinkedList<>();
 
         List<IndexName> disableIndexNameObjectList = removeDisabledCustomIndexesFromList(indexDefParentNode, reverseSortedIndexNameList);
-        // for disabled indexes, we check if they exist in read-only repo, it not anymore, do full deletion then, otherwise, no action needed
+        // Remove the disabled indexes from the reverseSortedIndexNameList since these would be handled differently
+        reverseSortedIndexNameList.removeAll(disableIndexNameObjectList);
+        LOG.info("Disabled index list {}, new reverse sorted list after removing disabled indexes{}", disableIndexNameObjectList, reverseSortedIndexNameList);
+        // for disabled indexes, do full deletion if checkIfDisabledIndexCanBeMarkedForDeletion = true, otherwise no action needed
+        // checkIfDisabledIndexCanBeMarkedForDeletion - this has different implementations for lucene and elastic.
+        // Check individual LuceneIndexVersionOperation#checkIfDisabledIndexCanBeMarkedForDeletion and ElasticIndexVersionOperation#checkIfDisabledIndexCanBeMarkedForDeletion for more details.
         for (IndexName indexNameObject : disableIndexNameObjectList) {
             String indexName = indexNameObject.getNodeName();
             NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
-            IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
-            if (!isHiddenOakMountExists(indexNode)) {
+            IndexVersionOperation indexVersionOperation = getIndexVersionOperationInstance(indexNameObject);
+            if (checkIfDisabledIndexCanBeMarkedForDeletion(indexNode)) {
                 indexVersionOperation.setOperation(Operation.DELETE);
             }
             indexVersionOperationList.add(indexVersionOperation);
@@ -119,14 +129,14 @@ public class IndexVersionOperation {
                 NodeState activeIndexNode = indexDefParentNode.getChildNode(PathUtils.getName(activeIndexNameObject.getNodeName()));
                 boolean isActiveIndexOldEnough = isActiveIndexOldEnough(activeIndexNameObject, activeIndexNode, purgeThresholdMillis);
                 int activeProductVersion = activeIndexNameObject.getProductVersion();
-                indexVersionOperationList.add(new IndexVersionOperation(activeIndexNameObject));
+                indexVersionOperationList.add(getIndexVersionOperationInstance(activeIndexNameObject));
 
                 // the reverseSortedIndexNameList will now contain the remaining indexes,
                 // the active index and disabled index was removed from that list already
                 for (IndexName indexNameObject : reverseSortedIndexNameList) {
                     String indexName = indexNameObject.getNodeName();
                     NodeState indexNode = indexDefParentNode.getChildNode(PathUtils.getName(indexName));
-                    IndexVersionOperation indexVersionOperation = new IndexVersionOperation(indexNameObject);
+                    IndexVersionOperation indexVersionOperation = getIndexVersionOperationInstance(indexNameObject);
                     // if active index not long enough, NOOP for all indexes
                     if (isActiveIndexOldEnough) {
                         if (indexNameObject.getProductVersion() == activeProductVersion && indexNameObject.getCustomerVersion() == 0) {
@@ -168,23 +178,6 @@ public class IndexVersionOperation {
                 && n.getCustomerVersion() == 0)).findFirst().isPresent();
     }
 
-    // iterate all indexes from high version to lower version to find the active index, then remove it from the reverseSortedIndexNameList
-    private static IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList, String parentPath, NodeState rootNode) {
-        for (int i = 0; i < reverseSortedIndexNameList.size(); i++) {
-            IndexName indexNameObject = reverseSortedIndexNameList.get(i);
-            String indexName = indexNameObject.getNodeName();
-            String indexPath = PathUtils.concat(parentPath, PathUtils.getName(indexName));
-            if (IndexName.isIndexActive(indexPath, rootNode)) {
-                LOG.info("Found active index '{}'", indexPath);
-                reverseSortedIndexNameList.remove(i);
-                return indexNameObject;
-            } else {
-                LOG.info("The index '{}' isn't active", indexPath);
-            }
-        }
-        return null;
-    }
-
     // do index purge ready based on the active index's last reindexing time is longer enough, we do this for prevent rollback
     private static boolean isActiveIndexOldEnough(IndexName activeIndexName, NodeState activeIndexNode, long purgeThresholdMillis) {
         // the 1st index must be active
@@ -211,7 +204,7 @@ public class IndexVersionOperation {
         return false;
     }
 
-    private static boolean isHiddenOakMountExists(NodeState indexNode) {
+    protected static boolean isHiddenOakMountExists(NodeState indexNode) {
         for (String nodeName : indexNode.getChildNodeNames()) {
             if (nodeName.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
                 return true;
@@ -236,9 +229,8 @@ public class IndexVersionOperation {
         for (int i = 0; i < indexNameObjectList.size(); i++) {
             NodeState indexNode = indexDefParentNode
                     .getChildNode(PathUtils.getName(indexNameObjectList.get(i).getNodeName()));
-            if (indexNode.getProperty("type") != null && "disabled".equals(indexNode.getProperty("type").getValue(Type.STRING))) {
+            if (indexNode.getProperty(TYPE_PROPERTY_NAME) != null && TYPE_DISABLED.equals(indexNode.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING))) {
                 disableIndexNameObjectList.add(indexNameObjectList.get(i));
-                indexNameObjectList.remove(i);
             }
         }
         return disableIndexNameObjectList;
@@ -254,6 +246,25 @@ public class IndexVersionOperation {
         DELETE_HIDDEN_AND_DISABLE,
         DELETE
     }
+
+    protected abstract IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName);
+
+    /**
+     *
+     * @param indexNode - NodeState of a disabled index
+     * @return true if the disabled index with NodeState indexNode can be marked for deletion or not.
+     */
+    protected abstract boolean checkIfDisabledIndexCanBeMarkedForDeletion(NodeState indexNode);
+
+    /**
+     *
+     * @param reverseSortedIndexNameList
+     * @param parentPath
+     * @param rootNode
+     * @return Highest versioned active index's IndexName
+     */
+    @Nullable
+    protected abstract IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList, String parentPath, NodeState rootNode);
 }
 
 

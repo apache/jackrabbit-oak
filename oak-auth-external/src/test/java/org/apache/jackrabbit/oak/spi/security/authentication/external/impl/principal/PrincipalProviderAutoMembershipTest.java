@@ -259,6 +259,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         
         Principal externalGroupPrincipal = getExternalGroupPrincipal(extuser.getPrincipal());
         assertNotNull(externalGroupPrincipal);
+        assertEquals(dynamicGroups, externalGroupPrincipal instanceof ItemBasedPrincipal);
 
         Set<Principal> dynamicGroupMembership = principalProvider.getMembershipPrincipals(externalGroupPrincipal);
         if (dynamicGroups) {
@@ -275,7 +276,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         assertTrue(it.hasNext());
         while (it.hasNext()) {
             Principal p = it.next();
-            if (!(p instanceof ItemBasedPrincipal)) {
+            if (isExternalGroupPrincipal(p)) {
                 return p;
             }
         }

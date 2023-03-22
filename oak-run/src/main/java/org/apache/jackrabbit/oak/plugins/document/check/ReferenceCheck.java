@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -48,24 +48,34 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
     }
 
     @Override
-    protected Optional<Result> runTask(@NotNull Path path,
-                                       @Nullable NodeState state) {
+    protected void runTask(@NotNull Path path,
+                           @Nullable NodeState state,
+                           @NotNull Consumer<Result> resultConsumer) {
         if (state == null) {
-            return Optional.empty();
+            return;
         }
         PropertyState prop = state.getProperty(propertyName);
-        Result result = null;
         if (prop != null) {
-            String ref = prop.getValue(Type.REFERENCE);
-            AtomicReference<String> resolvedPath = new AtomicReference<>("");
-            NodeState target = getNodeByUUID(ref, resolvedPath);
-            if (target == null) {
-                result = new BrokenReference(path, ref, resolvedPath.get());
-            } else if (!isReferenceable(target, ref)) {
-                result = new ReferenceTargetInvalid(path, ref, resolvedPath.get(), target.getString(JCR_UUID));
+            if (prop.isArray()) {
+                for (int i = 0; i < prop.count(); i++) {
+                    checkReference(path, prop.getValue(Type.REFERENCE, i), resultConsumer);
+                }
+            } else {
+                checkReference(path, prop.getValue(Type.REFERENCE), resultConsumer);
             }
         }
-        return Optional.ofNullable(result);
+    }
+
+    private void checkReference(@NotNull Path path,
+                                @NotNull String ref,
+                                @NotNull Consumer<Result> resultConsumer) {
+        AtomicReference<String> resolvedPath = new AtomicReference<>("");
+        NodeState target = getNodeByUUID(ref, resolvedPath);
+        if (target == null) {
+            resultConsumer.accept(new BrokenReference(path, ref, resolvedPath.get()));
+        } else if (!isReferenceable(target, ref)) {
+            resultConsumer.accept(new ReferenceTargetInvalid(path, ref, resolvedPath.get(), target.getString(JCR_UUID)));
+        }
     }
 
     private boolean isReferenceable(@NotNull NodeState node,

@@ -50,6 +50,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.commons.xml.DocumentViewExporter;
 import org.apache.jackrabbit.commons.xml.Exporter;
 import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
@@ -68,6 +69,7 @@ import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
@@ -679,6 +681,7 @@ public class SessionImpl implements JackrabbitSession {
         requireNonNull(target, "parameter 'target' must not be null");
         checkAlive();
 
+        AccessManager accessMgr = sessionContext.getAccessManager();
         if (target instanceof ItemImpl) {
             ItemDelegate dlg = ((ItemImpl<?>) target).dlg;
             if (dlg.isProtected()) {
@@ -696,17 +699,20 @@ public class SessionImpl implements JackrabbitSession {
                 return false;
             }
 
-            AccessManager accessMgr = sessionContext.getAccessManager();
             long permission = Permissions.NO_PERMISSION;
             if (isNode) {
                 Tree tree = ((NodeDelegate) dlg).getTree();
                 if ("addNode".equals(methodName)) {
-                    if (arguments != null && arguments.length > 0) {
+                    String relPath = getFirstArgument(arguments);
+                    if (relPath != null) {
                         // add-node needs to be checked on the (path of) the
                         // new node that has/will be added
-                        String path = PathUtils.concat(tree.getPath(),
-                                sessionContext.getOakName(arguments[0].toString()));
+                        String path = PathUtils.concat(tree.getPath(), sessionContext.getOakPathOrThrow(relPath));
                         return accessMgr.hasPermissions(path, Session.ACTION_ADD_NODE) && !isMountedReadOnly(path);
+                    } else {
+                        // invalid arguments -> cannot verify
+                        log.warn("Cannot verify capability to '{}' due to missing or invalid arguments, required a valid relative path.", methodName);
+                        return false;
                     }
                 } else if ("setPrimaryType".equals(methodName) || "addMixin".equals(methodName)
                         || "removeMixin".equals(methodName)) {
@@ -742,9 +748,39 @@ public class SessionImpl implements JackrabbitSession {
                             && !isMountedReadOnly(dlg.getPath());
                 }
             }
+        } else if (target instanceof AccessControlManager && isPolicyWriteMethod(methodName)) {
+            if (!hasArguments(arguments)) {
+                log.warn("Cannot verify capability to '{}' due to missing arguments.", methodName);
+                return false;
+            }
+            String path = getFirstArgument(arguments);
+            if (path == null) {
+                return getAccessControlManager().hasPrivileges(null, AccessControlUtils.privilegesFromNames(this, PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL));
+            } else {
+                String oakPath = getOakPathOrThrow(path);
+                return !isMountedReadOnly(oakPath) && accessMgr.hasPermissions(oakPath, JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL);
+            }
         }
         // TODO: add more best-effort checks
         return true;
+    }
+
+    private static boolean hasArguments(@Nullable Object[] arguments) {
+        return arguments != null && arguments.length > 0;
+    }
+    
+    @Nullable
+    private static String getFirstArgument(@Nullable Object[] arguments) {
+        if (arguments != null && arguments.length > 0) {
+            Object arg = arguments[0];
+            return (arg == null) ? null : arg.toString();
+        } else {
+            return null;
+        }
+    }
+    
+    private static boolean isPolicyWriteMethod(@NotNull String methodName) {
+        return "setPolicy".equals(methodName) || "removePolicy".equals(methodName);
     }
 
     private boolean isMountedReadOnly(String path) {

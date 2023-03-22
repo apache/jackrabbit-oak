@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.ByteArrayInputStream;
@@ -61,7 +60,6 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -119,15 +117,12 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.QUERY_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZERS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_ORIGINAL_TERM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
@@ -142,12 +137,12 @@ import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATH
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
@@ -256,64 +251,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @After
     public void shutdownExecutor(){
         executorService.shutdown();
-    }
-
-    @Test
-    public void fulltextSearchWithCustomAnalyzer() throws Exception {
-        Tree idx = createFulltextIndex(root.getTree("/"), "test");
-        TestUtil.useV2(idx);
-
-        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
-        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "whitespace");
-        anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("stop");
-
-        Tree test = root.getTree("/").addChild("test");
-        test.setProperty("foo", "fox jumping");
-        root.commit();
-
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", asList("/test"));
-    }
-
-    //OAK-4805
-    @Test
-    public void badIndexDefinitionShouldLetQEWork() throws Exception {
-        Tree idx = createFulltextIndex(root.getTree("/"), "badIndex");
-        TestUtil.useV2(idx);
-
-        //This would allow index def to get committed. Else bad index def can't be created.
-        idx.setProperty(ASYNC_PROPERTY_NAME, "async");
-
-        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
-        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
-        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
-        synFilter.setProperty("synonyms", "syn.txt");
-        // Don't add syn.txt to make analyzer (and hence index def) invalid
-        // synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "blah, foo, bar");
-        root.commit();
-
-        //Using this version of executeQuery as we don't want a result row quoting the exception
-        executeQuery("SELECT * FROM [nt:base] where a='b'", SQL2, NO_BINDINGS);
-    }
-
-    @Test
-    public void testSynonyms() throws Exception {
-        Tree idx = createFulltextIndex(root.getTree("/"), "synonymIndex");
-        TestUtil.useV2(idx);
-
-        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
-        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
-        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
-        synFilter.setProperty("synonyms", "syn.txt");
-        synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "plane, airplane, aircraft\nflies=>scars");
-
-        Tree test = root.getTree("/").addChild("test").addChild("node");
-        test.setProperty("foo", "an aircraft flies");
-        root.commit();
-
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'plane')", asList("/test/node"));
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'airplane')", asList("/test/node"));
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'aircraft')", asList("/test/node"));
-        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'scars')", asList("/test/node"));
     }
 
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
@@ -701,87 +638,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void orderByScore() throws Exception {
-        Tree idx = createIndex("test1", of("propa"));
-        idx.addChild(PROP_NODE).addChild("propa");
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null order by [jcr:score]", asList("/test/a"));
-    }
-
-    // OAK-7370
-    @Ignore("OAK-7370")
-    @Test
-    public void orderByScoreAcrossUnion() throws Exception {
-        Tree idx = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild("test-index");
-        IndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
-        builder.evaluatePathRestrictions();
-        builder.indexRule("nt:base")
-                .property("foo").analyzed().propertyIndex().nodeScopeIndex()
-                .property("p1").propertyIndex()
-                .property("p2").propertyIndex();
-        builder.build(idx);
-        idx.removeProperty("async");
-        root.commit();
-
-        Tree testRoot = root.getTree("/").addChild("test");
-        Tree path1 = testRoot.addChild("path1");
-        Tree path2 = testRoot.addChild("path2");
-
-        Tree c1 = path1.addChild("c1");
-        c1.setProperty("foo", "bar. some extra stuff");
-        c1.setProperty("p1", "d");
-
-        Tree c2 = path2.addChild("c2");
-        c2.setProperty("foo", "bar");
-        c2.setProperty("p2", "d");
-
-        Tree c3 = path2.addChild("c3");
-        c3.setProperty("foo", "bar. some extra stuff... and then some to make it worse than c1");
-        c3.setProperty("p2", "d");
-
-        // create more stuff to get num_docs in index large and hence force union optimization
-        for (int i = 0; i < 10; i++) {
-            testRoot.addChild("extra" + i).setProperty("foo", "stuff");
-        }
-
-        root.commit();
-
-        List<String> expected = asList(c2.getPath(), c1.getPath(), c3.getPath());
-
-        String query;
-
-        // manual union
-        query =
-                "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path1.getPath() + "')" +
-                " union " +
-                "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path2.getPath() + "')" +
-                " order by [jcr:score] desc";
-
-        assertEquals(expected, executeQuery(query, SQL2));
-
-        // no union (estiimated fulltext without union would be same as sub-queries and it won't be optimized
-        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
-                " and (isdescendantnode('" + path1.getPath() + "') or" +
-                " isdescendantnode('" + path2.getPath() + "'))" +
-                " order by [jcr:score] desc";
-
-        assertEquals(expected, executeQuery(query, SQL2));
-
-        // optimization UNION as we're adding constraints to sub-queries that would improve cost of optimized union
-        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
-                " and ( (p1 = 'd' and isdescendantnode('" + path1.getPath() + "')) or" +
-                " (p2 = 'd' and isdescendantnode('" + path2.getPath() + "')))" +
-                " order by [jcr:score] desc";
-
-        assertEquals(expected, executeQuery(query, SQL2));
-    }
-
-    @Test
     public void rangeQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
@@ -825,189 +681,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10"), containsString("lucene:test1"));
 
         assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/a", "/test/a/b"));
-    }
-
-    //OAK-4516
-    @Test
-    public void wildcardQueryToLookupUnanalyzedText() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(PROP_TYPE, "lucene");
-        idx.addChild(ANALYZERS).setProperty(INDEX_ORIGINAL_TERM, true);
-        useV2(idx);
-        //Do not provide type information
-        root.commit();
-
-        //setup propa def to be analyzed
-        Tree propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propa");
-        propTree.setProperty(PROP_ANALYZED, true);
-        root.commit();
-
-        //set propb def to be node scope indexed
-        propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propb");
-        propTree.setProperty(PROP_NODE_SCOPE_INDEX, true);
-        root.getTree(idx.getPath()).setProperty(REINDEX_PROPERTY_NAME, true);
-        root.commit();
-
-        Tree rootTree = root.getTree("/");
-        Tree node1Tree = rootTree.addChild("node1");
-        node1Tree.setProperty("propa", "abcdef");
-        node1Tree.setProperty("propb", "abcdef");
-        Tree node2Tree = rootTree.addChild("node2");
-        node2Tree.setProperty("propa", "abc_def");
-        node2Tree.setProperty("propb", "abc_def");
-        root.commit();
-
-        //normal query still works
-        String query = "select [jcr:path] from [nt:base] where contains('propa', 'abc*')";
-        String explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node1", "/node2"));
-
-        //unanalyzed wild-card query can still match original term
-        query = "select [jcr:path] from [nt:base] where contains('propa', 'abc_d*')";
-        explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node2"));
-
-        //normal query still works
-        query = "select [jcr:path] from [nt:base] where contains(*, 'abc*')";
-        explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node1", "/node2"));
-
-        //unanalyzed wild-card query can still match original term
-        query = "select [jcr:path] from [nt:base] where contains(*, 'abc_d*')";
-        explanation = explain(query);
-        assertThat(explanation, containsString("lucene:test1"));
-        assertQuery(query, asList("/node2"));
-    }
-
-    @Test
-    public void sortOnNodeName() throws Exception {
-        Tree rootTree = root.getTree("/").addChild("test");
-
-        IndexDefinitionBuilder fnNameFunctionIndex = new LuceneIndexDefinitionBuilder().noAsync();
-        LuceneIndexDefinitionBuilder.PropertyRule rule = fnNameFunctionIndex.indexRule("nt:base")
-                .property("nodeName", null)
-                .propertyIndex()
-                .ordered();
-
-        // setup function index on "fn:name()"
-        rule.function("fn:name()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("fnName"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("fnName"));
-
-        // same index as above except for function - "name()"
-        rule.function("name()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("name"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("name"));
-
-        List<String> expected = Lists.newArrayList("/test/oak:index");
-        for (int i = 0; i < 3; i++) {
-            String nodeName = "a" + i;
-            rootTree.addChild(nodeName);
-            expected.add("/test/" + nodeName);
-        }
-        Collections.sort(expected);
-        root.commit();
-
-        String query = "/jcr:root/test/* order by fn:name() option(index tag fnName)";
-        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() ascending option(index tag fnName)";
-        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
-        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
-
-        // order by fn:name() although function index is on "name()"
-        query = "/jcr:root/test/* order by fn:name() option(index tag name)";
-        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() ascending option(index tag name)";
-        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
-        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
-    }
-
-    @Test
-    public void sortOnLocalName() throws Exception {
-        Tree rootTree = root.getTree("/").addChild("test");
-
-        IndexDefinitionBuilder fnNameFunctionIndex = new LuceneIndexDefinitionBuilder().noAsync();
-        IndexDefinitionBuilder.PropertyRule rule = fnNameFunctionIndex.indexRule("nt:base")
-                .property("nodeName", null)
-                .propertyIndex()
-                .ordered();
-
-        // setup function index on "fn:name()"
-        rule.function("fn:local-name()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("fnLocalName"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("fnLocalName"));
-
-        // same index as above except for function - "name()"
-        rule.function("localname()");
-        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("localName"), STRINGS);
-        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("localName"));
-
-        List<String> expected = Lists.newArrayList("/test/oak:index");
-        for (int i = 0; i < 3; i++) {
-            String nodeName = "ja" + i;//'j*' should come after (asc) 'index' in sort order
-            rootTree.addChild(nodeName);
-            expected.add("/test/" + nodeName);
-        }
-
-        //sort expectation based on local name
-        Collections.sort(expected, (s1, s2) -> {
-            final StringBuffer sb1 = new StringBuffer();
-            PathUtils.elements(s1).forEach(elem -> {
-                String[] split = elem.split(":", 2);
-                sb1.append(split[split.length - 1]);
-            });
-            s1 = sb1.toString();
-
-            final StringBuffer sb2 = new StringBuffer();
-            PathUtils.elements(s2).forEach(elem -> {
-                String[] split = elem.split(":", 2);
-                sb2.append(split[split.length - 1]);
-            });
-            s2 = sb2.toString();
-
-            return s1.compareTo(s2);
-        });
-        root.commit();
-
-        String query = "/jcr:root/test/* order by fn:local-name() option(index tag fnLocalName)";
-        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag fnLocalName)";
-        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag fnLocalName)";
-        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
-
-        // order by fn:name() although function index is on "name()"
-        query = "/jcr:root/test/* order by fn:local-name() option(index tag localName)";
-        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag localName)";
-        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
-        assertEquals(expected, executeQuery(query, XPATH));
-
-        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag localName)";
-        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
     }
 
     //OAK-4517
@@ -1355,6 +1028,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery("select [jcr:path] from [nt:base]  order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
     }
+
 
     @Test
     public void sortQueriesWithLong_NotIndexed_relativeProps() throws Exception {

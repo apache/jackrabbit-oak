@@ -21,6 +21,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -107,13 +108,14 @@ public abstract class AsyncNodeStateProcessor extends AsyncDocumentProcessor {
      * method will run as a task with an executor service.
      *
      * @param path the path of the {@code NodeState} to process.
-     * @param state the {@code NodeState} or {@code null} if the node does not
-     *          exist at this path. This may happen for nodes that have been
-     *          deleted but not yet garbage collected.
-     * @return optional result of the task.
+     * @param state the {@code NodeState} or {@code null} if the node
+     *         does not exist at this path. This may happen for nodes that have
+     *         been deleted but not yet garbage collected.
+     * @param resultConsumer consumes the results of this task.
      */
-    protected abstract Optional<Result> runTask(@NotNull Path path,
-                                                @Nullable NodeState state);
+    protected abstract void runTask(@NotNull Path path,
+                                    @Nullable NodeState state,
+                                    @NotNull Consumer<Result> resultConsumer);
 
     protected class NodeStateTask implements Callable<Void> {
 
@@ -129,9 +131,13 @@ public abstract class AsyncNodeStateProcessor extends AsyncDocumentProcessor {
 
         @Override
         public Void call() throws Exception {
-            Path path = document.getPath();
-            NodeState state = document.getNodeAtRevision(ns, headRevision, null);
-            runTask(path, state).ifPresent(this::collect);
+            try {
+                Path path = document.getPath();
+                NodeState state = document.getNodeAtRevision(ns, headRevision, null);
+                runTask(path, state, this::collect);
+            } catch (Exception e) {
+                collect(new ExceptionResult(e));
+            }
             return null;
         }
 

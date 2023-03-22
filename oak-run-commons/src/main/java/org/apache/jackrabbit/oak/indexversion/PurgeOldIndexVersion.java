@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,24 +27,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PurgeOldIndexVersion {
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ORIGINAL_TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
+public abstract class PurgeOldIndexVersion implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeOldIndexVersion.class);
+
+    protected final Closer closer = Closer.create();
 
     /**
      * Execute purging index based on the index version naming and last time index time. This will purge base index.
@@ -52,7 +67,6 @@ public class PurgeOldIndexVersion {
      * @param isReadWriteRepository bool to indicate if it's read write repository, if yes, the purge index will not execute
      * @param purgeThresholdMillis  the threshold of time length since last time index time to determine, will purge if exceed that
      * @param indexPaths            the index path or parent path
-     *
      * @throws IOException
      * @throws CommitFailedException
      */
@@ -60,6 +74,7 @@ public class PurgeOldIndexVersion {
             IOException, CommitFailedException {
         execute(nodeStore, isReadWriteRepository, purgeThresholdMillis, indexPaths, true);
     }
+
     /**
      * Execute purging index based on the index version naming and last time index time
      *
@@ -68,12 +83,12 @@ public class PurgeOldIndexVersion {
      * @param purgeThresholdMillis  the threshold of time length since last time index time to determine, will purge if exceed that
      * @param indexPaths            the index path or parent path
      * @param shouldPurgeBaseIndex  If set to true, will apply purge operations on active base index i.e. DELETE or DELETE_HIDDEN_AND_DISABLE
-     *
      * @throws IOException
      * @throws CommitFailedException
      */
     public void execute(NodeStore nodeStore, boolean isReadWriteRepository, long purgeThresholdMillis, List<String> indexPaths, boolean shouldPurgeBaseIndex) throws
             IOException, CommitFailedException {
+
         List<IndexVersionOperation> purgeIndexList = getPurgeIndexes(nodeStore, purgeThresholdMillis, indexPaths, shouldPurgeBaseIndex);
         if (!purgeIndexList.isEmpty()) {
             if (isReadWriteRepository) {
@@ -89,18 +104,18 @@ public class PurgeOldIndexVersion {
         }
     }
 
-    public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths, boolean shouldPurgeBaseIndex ) throws IOException, CommitFailedException {
+    public List<IndexVersionOperation> getPurgeIndexes(NodeStore nodeStore, long purgeThresholdMillis, List<String> indexPaths, boolean shouldPurgeBaseIndex) throws IOException, CommitFailedException {
         List<IndexVersionOperation> purgeIndexList = new ArrayList<>();
         LOG.info("Getting indexes to purge over index paths '{}'", indexPaths);
         List<String> sanitisedIndexPaths = sanitiseUserIndexPaths(indexPaths);
-        Set<String> indexPathSet = filterIndexPaths(getRepositoryIndexPaths(nodeStore), sanitisedIndexPaths);
+        Set<String> indexPathSet = filterIndexPaths(nodeStore, getRepositoryIndexPaths(nodeStore), sanitisedIndexPaths);
         Map<String, Set<String>> segregateIndexes = segregateIndexes(indexPathSet);
         for (Map.Entry<String, Set<String>> entry : segregateIndexes.entrySet()) {
             String baseIndexPath = entry.getKey();
             String parentPath = PathUtils.getParentPath(baseIndexPath);
             List<IndexName> indexNameObjectList = getIndexNameObjectList(entry.getValue());
             LOG.info("Validate purge index over base of '{}', which includes: '{}'", baseIndexPath, indexNameObjectList);
-            List<IndexVersionOperation> toDeleteIndexNameObjectList = IndexVersionOperation.generateIndexVersionOperationList(
+            List<IndexVersionOperation> toDeleteIndexNameObjectList = getIndexVersionOperationInstance(IndexName.parse(baseIndexPath)).generateIndexVersionOperationList(
                     nodeStore.getRoot(), parentPath, indexNameObjectList, purgeThresholdMillis, shouldPurgeBaseIndex);
             toDeleteIndexNameObjectList.removeIf(item -> (item.getOperation() == IndexVersionOperation.Operation.NOOP));
             if (!toDeleteIndexNameObjectList.isEmpty()) {
@@ -166,13 +181,31 @@ public class PurgeOldIndexVersion {
      * @param commandlineIndexPaths indexpaths provided by user
      * @return returns set of indexpaths which are to be considered for purging
      */
-    private Set<String> filterIndexPaths(Iterable<String> repositoryIndexPaths, List<String> commandlineIndexPaths) {
+    private Set<String> filterIndexPaths(NodeStore store, Iterable<String> repositoryIndexPaths, List<String> commandlineIndexPaths) {
         Set<String> filteredIndexPaths = new HashSet<>();
+        NodeState root = store.getRoot();
+        NodeBuilder rootBuilder = root.builder();
         for (String commandlineIndexPath : commandlineIndexPaths) {
             for (String repositoryIndexPath : repositoryIndexPaths) {
                 if (PurgeOldVersionUtils.isIndexChildNode(commandlineIndexPath, repositoryIndexPath)
                         || PurgeOldVersionUtils.isBaseIndexEqual(commandlineIndexPath, repositoryIndexPath)) {
-                    filteredIndexPaths.add(repositoryIndexPath);
+                    NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, repositoryIndexPath);
+                    if (nodeBuilder.exists()) {
+                        String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
+
+                        // Skip if either of the below conditions are satisfied -
+                        // 1. type = disabled and there is no :originalType property set (which means the index was not disabled via the PurgeIndexCmd but was set to disabled manually - so we do not touch this index)
+                        // 2. type = disabled and :originalType is not equal to PurgeOldIndexVersion's impl's  index type
+                        // 3. type != disabled and type is not equal to PurgeOldIndexVersion's impl's  index type
+                        if ((TYPE_DISABLED.equals(type)
+                                && (nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME) == null
+                                || !getIndexType().equals(nodeBuilder.getProperty(ORIGINAL_TYPE_PROPERTY_NAME).getValue(Type.STRING))))
+                                || (!TYPE_DISABLED.equals(type) && !getIndexType().equals(type))) {
+                            continue;
+                        }
+
+                        filteredIndexPaths.add(repositoryIndexPath);
+                    }
                 }
             }
         }
@@ -195,21 +228,52 @@ public class PurgeOldIndexVersion {
             String nodeName = toDeleteIndexNameObject.getIndexName().getNodeName();
             NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, nodeName);
             if (nodeBuilder.exists()) {
+                String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
+                List<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+                        new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider());
+                EditorHook hook = new EditorHook(new IndexUpdateProvider(CompositeIndexEditorProvider.compose(indexEditorProviders)));
                 if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE_HIDDEN_AND_DISABLE) {
                     LOG.info("Disabling {}", nodeName);
-                    nodeBuilder.setProperty("type", "disabled", Type.STRING);
-                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+                    nodeBuilder.setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED, Type.STRING);
+                    // Set this property :originalType so that when the purge job marks this index for deletion in later runs -
+                    // the proper post deletion hook can be called based on the original index type.
+                    nodeBuilder.setProperty(ORIGINAL_TYPE_PROPERTY_NAME, type, Type.STRING);
                     store.merge(rootBuilder, hook, CommitInfo.EMPTY);
                     PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(store, nodeName);
                 } else if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE) {
+                    preserveDetailsFromIndexDefForPostOp(nodeBuilder);
                     LOG.info("Deleting {}", nodeName);
                     nodeBuilder.remove();
-                    EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
                     store.merge(rootBuilder, hook, CommitInfo.EMPTY);
+                    postDeleteOp(toDeleteIndexNameObject.getIndexName().getNodeName());
                 }
             } else {
                 LOG.error("nodebuilder null for path " + nodeName);
             }
         }
     }
+
+    /**
+     * @return IndexType served by the implementation like lucene or elasticsearch
+     */
+    @NotNull
+    protected abstract String getIndexType();
+
+    /**
+     * @param idxPath - index path on which to perform post delete operations
+     */
+    protected abstract void postDeleteOp(String idxPath);
+
+    /**
+     * To preserve any required details from index def builder to be used in post op
+     */
+    protected abstract void preserveDetailsFromIndexDefForPostOp(NodeBuilder builder);
+
+    @Override
+    public void close() throws IOException {
+        closer.close();
+    }
+
+    protected abstract IndexVersionOperation getIndexVersionOperationInstance(IndexName indexName);
+
 }

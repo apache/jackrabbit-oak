@@ -21,6 +21,7 @@ import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Type;
@@ -47,6 +48,8 @@ class ElasticIndexHelper {
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
     private static final Time INITIAL_REFRESH_INTERVAL = Time.of(b -> b.time("-1"));
     private static final String INITIAL_NUMBER_OF_REPLICAS = "0";
+
+    private static final String OAK_WORD_DELIMITER_GRAPH_FILTER = "oak_word_delimiter_graph_filter";
 
     /**
      * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
@@ -123,41 +126,48 @@ class ElasticIndexHelper {
         if (indexDefinition.getSimilarityProperties().size() > 0) {
             builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
         }
+
+        // collect analyzer settings
+        IndexSettingsAnalysis.Builder analyzerBuilder =
+                ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
+        if (analyzerBuilder == null) {
+            analyzerBuilder = new IndexSettingsAnalysis.Builder()
+                    .filter(OAK_WORD_DELIMITER_GRAPH_FILTER,
+                            tokenFilter -> tokenFilter.definition(
+                                    tokenFilterDef -> tokenFilterDef.wordDelimiterGraph(
+                                            wdgBuilder -> wdgBuilder.generateWordParts(true)
+                                                    .stemEnglishPossessive(true)
+                                                    .generateNumberParts(true)
+                                                    .splitOnNumerics(indexDefinition.analyzerConfigSplitOnNumerics())
+                                                    .splitOnCaseChange(indexDefinition.analyzerConfigSplitOnCaseChange())
+                                                    .preserveOriginal(indexDefinition.analyzerConfigIndexOriginalTerms()))
+                            ))
+                    .analyzer("oak_analyzer",
+                            ab -> ab.custom(
+                                    customAnalyzer -> customAnalyzer.tokenizer("standard")
+                                            .filter("lowercase", OAK_WORD_DELIMITER_GRAPH_FILTER)));
+        }
+        // path restrictions support
+        analyzerBuilder.analyzer("ancestor_analyzer",
+                ab -> ab.custom(customAnalyzer -> customAnalyzer.tokenizer("path_hierarchy")));
+
+        // spellcheck support
+        analyzerBuilder.filter("shingle",
+                tokenFilter -> tokenFilter.definition(
+                        tokenFilterDef -> tokenFilterDef.shingle(
+                                shingle -> shingle.minShingleSize("2").maxShingleSize("3"))));
+        analyzerBuilder.analyzer("trigram",
+                ab -> ab.custom(
+                        customAnalyzer -> customAnalyzer.tokenizer("standard").filter("lowercase", "shingle")));
+
+        // set up the index
         builder.index(indexBuilder -> indexBuilder
                         // static setting: cannot be changed after the index gets created
                         .numberOfShards(Integer.toString(indexDefinition.numberOfShards))
                         // dynamic settings: see #enableIndexRequest
                         .refreshInterval(INITIAL_REFRESH_INTERVAL)
                         .numberOfReplicas(INITIAL_NUMBER_OF_REPLICAS))
-                .analysis(b1 ->
-                        b1.filter("oak_word_delimiter_graph_filter",
-                                        b2 -> b2.definition(
-                                                b3 -> b3.wordDelimiterGraph(
-                                                        wdgBuilder -> wdgBuilder.generateWordParts(true)
-                                                                .stemEnglishPossessive(true)
-                                                                .generateNumberParts(true)
-                                                                .splitOnNumerics(indexDefinition.analyzerConfigSplitOnNumerics())
-                                                                .splitOnCaseChange(indexDefinition.analyzerConfigSplitOnCaseChange())
-                                                                .preserveOriginal(indexDefinition.analyzerConfigIndexOriginalTerms()))
-                                        ))
-                                .filter("shingle",
-                                        b2 -> b2.definition(
-                                                b3 -> b3.shingle(
-                                                        b4 -> b4.minShingleSize("2")
-                                                                .maxShingleSize("3"))))
-                                .analyzer("oak_analyzer",
-                                        b2 -> b2.custom(
-                                                b3 -> b3.tokenizer("standard")
-                                                        .filter("lowercase", "oak_word_delimiter_graph_filter")))
-                                .analyzer("ancestor_analyzer",
-                                        b2 -> b2.custom(
-                                                b3 -> b3.tokenizer("path_hierarchy")))
-                                .analyzer("trigram",
-                                        b2 -> b2.custom(
-                                                b3 -> b3.tokenizer("standard")
-                                                        .filter("lowercase", "shingle")))
-
-                );
+                .analysis(analyzerBuilder.build());
 
         return builder;
     }

@@ -126,10 +126,11 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
                                                              String indexedProperty,
                                                              long startValue,
                                                              int limit,
+                                                             List<String> projection,
                                                              long maxQueryTime) {
             maybeFail();
             return super.queryInternal(collection, fromKey, toKey,
-                    indexedProperty, startValue, limit, maxQueryTime);
+                    indexedProperty, startValue, limit, projection, maxQueryTime);
         }
 
         private void maybeFail() {

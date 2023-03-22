@@ -71,6 +71,6 @@ public final class AvailableModes {
             .put("search-nodes", new SearchNodesCommand())
             .put("segment-copy", new SegmentCopyCommand())
             .put("server", new ServerCommand())
-            .put("purge-index-versions", new PurgeOldIndexVersionCommand())
+            .put("purge-index-versions", new LucenePurgeOldIndexVersionCommand())
             .build());
 }
