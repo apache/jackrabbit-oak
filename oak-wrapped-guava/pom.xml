@@ -33,7 +33,7 @@
     <pref>org.apache.jackrabbit.oak.guava</pref>
   </properties>
 
-  <name>Jackrabbit Oak Guava Wrapper</name>
+  <name>Oak Guava Wrapper</name>
 
   <build>
     <plugins>

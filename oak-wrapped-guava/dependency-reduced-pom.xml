@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>oak-wrapped-guava</artifactId>
   <packaging>bundle</packaging>
-  <name>Jackrabbit Oak Guava Wrapper</name>
+  <name>Oak Guava Wrapper</name>
   <build>
     <plugins>
       <plugin>
