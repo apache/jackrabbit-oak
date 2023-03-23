@@ -25,7 +25,7 @@ releases directly from [trunk](https://github.com/apache/jackrabbit-oak/tree/tru
 
 * [download](https://jackrabbit.apache.org/jcr/downloads.html#latest)
 
-Starting with 1.48.0, these require Java 11.
+Starting with 1.50.0, these require Java 11.
 
 Maintenance branches
 --------------------
