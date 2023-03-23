@@ -38,7 +38,6 @@ public class GuavaDeprecation {
         switch (TLOGLEVEL.toLowerCase(Locale.ENGLISH)) {
             case "error":
             case "warn":
-            case "info":
                 t = TLOGLEVEL.toLowerCase(Locale.ENGLISH);
                 break;
             default:
