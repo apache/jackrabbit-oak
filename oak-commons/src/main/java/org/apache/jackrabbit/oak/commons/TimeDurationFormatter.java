@@ -22,8 +22,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.guava.common.collect.Maps;
 
 /**
  * Format a time duration as human-readable string, inspired by

@@ -31,11 +31,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Strings;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
+import org.apache.jackrabbit.oak.guava.common.base.Charsets;
+import org.apache.jackrabbit.oak.guava.common.base.Strings;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.collect.PeekingIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.jetbrains.annotations.NotNull;
@@ -43,13 +42,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.io.Closeables.close;
-import static com.google.common.io.FileWriteMode.APPEND;
-import static com.google.common.io.Files.asByteSink;
-import static com.google.common.io.Files.move;
-import static com.google.common.io.Files.newWriter;
+import static org.apache.jackrabbit.oak.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.io.Closeables.close;
+import static org.apache.jackrabbit.oak.guava.common.io.FileWriteMode.APPEND;
+import static org.apache.jackrabbit.oak.guava.common.io.Files.asByteSink;
+import static org.apache.jackrabbit.oak.guava.common.io.Files.move;
+import static org.apache.jackrabbit.oak.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.closeQuietly;
@@ -395,7 +394,7 @@ public final class FileIOUtils {
      * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator} instead
      */
     @Deprecated(since = "1.20.0", forRemoval = true)
-    public static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
+    public static class FileLineDifferenceIterator extends com.google.common.collect.AbstractIterator<String> implements Closeable {
         private final PeekingIterator<String> peekMarked;
         private final LineIterator marked;
         private final LineIterator all;
@@ -494,7 +493,7 @@ public final class FileIOUtils {
      * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator} instead
      */
     @Deprecated(since = "1.20.0", forRemoval = true)
-    public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
+    public static class BurnOnCloseFileIterator<T> extends com.google.common.collect.AbstractIterator<T> implements Closeable {
         private final Logger log = LoggerFactory.getLogger(getClass());
 
         private final LineIterator iterator;

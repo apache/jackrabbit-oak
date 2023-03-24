@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

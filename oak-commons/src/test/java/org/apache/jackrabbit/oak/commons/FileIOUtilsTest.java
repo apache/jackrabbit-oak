@@ -39,11 +39,11 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.base.Function;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
+import org.apache.jackrabbit.oak.guava.common.base.Function;
+import org.apache.jackrabbit.oak.guava.common.base.Splitter;
+import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.guava.common.primitives.Longs;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.jetbrains.annotations.Nullable;
@@ -52,10 +52,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.union;
+import static org.apache.jackrabbit.oak.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
@@ -116,7 +116,7 @@ public class FileIOUtilsTest {
         Set<String> actual = newHashSet("a", "z", "e", "b");
 
         File f = folder.newFile();
-        int count = writeStrings(added.iterator(), f, false, new Function<String, String>() {
+        int count = writeStrings(added.iterator(), f, false, new com.google.common.base.Function<String, String>() {
             @Nullable @Override public String apply(@Nullable String input) {
                 return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
             }

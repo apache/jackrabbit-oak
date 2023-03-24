@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.io.Files;
-import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.oak.guava.common.base.Charsets;
+import org.apache.jackrabbit.oak.guava.common.base.Joiner;
+import org.apache.jackrabbit.oak.guava.common.io.Files;
+import org.apache.jackrabbit.oak.guava.common.primitives.Ints;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
-import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.guava.common.collect.Iterables.transform;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
