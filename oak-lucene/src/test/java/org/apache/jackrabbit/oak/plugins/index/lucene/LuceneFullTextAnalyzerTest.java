@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.FullTextAnalyzerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.junit.After;
 import org.junit.Rule;
@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LuceneFullTextIndexCommonTest extends FullTextIndexCommonTest {
+public class LuceneFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule

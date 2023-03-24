@@ -89,6 +89,9 @@ class ElasticIndexHelper {
                                 b2 -> b2.docValues(false)))
                 .properties(FieldNames.FULLTEXT,
                         b1 -> b1.text(
+                                b2 -> b2.analyzer("oak_analyzer")))
+                .properties(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT,
+                        b1 -> b1.text(
                                 b2 -> b2.analyzer("oak_analyzer")));
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)

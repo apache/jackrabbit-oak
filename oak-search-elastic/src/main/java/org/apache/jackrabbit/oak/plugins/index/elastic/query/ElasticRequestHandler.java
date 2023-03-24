@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPropertyRestrictionQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
@@ -544,20 +545,18 @@ public class ElasticRequestHandler {
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 // base query
-                QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr);
+                boolean dbEnabled = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty();
+                QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
                 if (boost != null) {
                     qsqBuilder.boost(Float.valueOf(boost));
                 }
                 BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
-                        .must(m->m
-                                .queryString(qsqBuilder.build()));
+                        .must(m -> m.queryString(qsqBuilder.build()));
                 Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(text);
-                dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s->s.nested(dsq)));
+                dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s -> s.nested(dsq)));
 
                 if (not) {
-                    result.set(BoolQuery.of(b->b
-                            .mustNot(mn->mn
-                                    .bool(bqBuilder.build()))));
+                    result.set(BoolQuery.of(b -> b.mustNot(mn -> mn.bool(bqBuilder.build()))));
                 } else {
                     result.set(bqBuilder.build());
                 }
@@ -572,6 +571,7 @@ public class ElasticRequestHandler {
         return elasticIndexDefinition.getDynamicBoostProperties().stream().map(pd -> NestedQuery.of(n -> n
                 .path(pd.nodeName)
                 .query(q -> q.functionScore(s -> s
+                        .boost(DYNAMIC_BOOST_WEIGHT)
                         .query(fq -> fq.match(m -> m.field(pd.nodeName + ".value").query(FieldValue.of(text))))
                         .functions(f -> f.fieldValueFactor(fv -> fv.field(pd.nodeName + ".boost")))))
                 .scoreMode(ChildScoreMode.Avg))
@@ -803,17 +803,20 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.multiMatch(m -> m.fields(uuid)));
     }
 
-    private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr) {
+    private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr, boolean dynamicBoosEnabled) {
         LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
                 .query(FulltextIndex.rewriteQueryText(text))
                 .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
-                .type(TextQueryType.CrossFields);
+                .type(TextQueryType.CrossFields)
+                .tieBreaker(0.5d);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                qsqBuilder.fields(pd.name);
-                qsqBuilder.boost(pd.boost);
+                qsqBuilder.fields(pd.name + "^" + pd.boost);
             }
+        }
+        if (dynamicBoosEnabled) {
+            qsqBuilder.fields(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT + "^" + DYNAMIC_BOOST_WEIGHT);
         }
         return qsqBuilder.fields(fieldName);
     }

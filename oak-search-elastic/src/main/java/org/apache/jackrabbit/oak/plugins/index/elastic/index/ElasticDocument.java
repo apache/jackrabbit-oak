@@ -113,6 +113,7 @@ public class ElasticDocument {
             builder.startObject();
             {
                 builder.field(FieldNames.PATH, path);
+                Set<String> dbFullText = new LinkedHashSet<>();
                 for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
                     builder.startArray(f.getKey());
                     for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
@@ -120,10 +121,14 @@ public class ElasticDocument {
                         builder.field("value", v.getKey());
                         builder.field("boost", v.getValue());
                         builder.endObject();
-                        // also add into fulltext field
-                        addFulltext(v.getKey());
+                        // add value into the dynamic boost specific fulltext field. We cannot add this in the standard
+                        // field since dynamic boosted terms require lower weight compared to standard terms
+                        dbFullText.add(v.getKey());
                     }
                     builder.endArray();
+                }
+                if (dbFullText.size() > 0) {
+                    builder.field(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT, dbFullText);
                 }
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
