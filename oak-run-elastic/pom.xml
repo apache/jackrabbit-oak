@@ -36,8 +36,9 @@
         Size History:
         105 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
         121 MB : add Elasticsearch Java client along with RHLC: the latter can be removed when the code can be fully migrated to use the new client
+        124 MB : wrapped Guava (can be undone once we remove the original Guava) (OAK-9989)
         -->
-        <max.jar.size>121000000</max.jar.size>
+        <max.jar.size>124000000</max.jar.size>
                       
     </properties>
 
