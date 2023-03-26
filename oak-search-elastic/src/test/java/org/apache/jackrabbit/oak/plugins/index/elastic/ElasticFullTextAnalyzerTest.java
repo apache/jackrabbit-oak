@@ -19,23 +19,22 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.FullTextAnalyzerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
+public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
             new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
-    public ElasticFullTextIndexCommonTest() {
+    public ElasticFullTextAnalyzerTest() {
         this.indexOptions = new ElasticIndexOptions();
     }
 
@@ -57,7 +56,6 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
 
     @Override
     protected List<String> getExpectedLogMessage() {
-        List<String> expectedLogList = new ArrayList<>();
         String log1 = "Error while fetching results from Elastic for [Filter(query=select [jcr:path], [jcr:score]," +
                 " * from [nt:base] as a where contains([analyzed_field], 'foo}') /* xpath: //*[jcr:contains(@analyzed_field, 'foo}')]" +
                 " */ fullText=analyzed_field:\"foo}\", path=*)]";
@@ -66,9 +64,7 @@ public class ElasticFullTextIndexCommonTest extends FullTextIndexCommonTest {
                 " * from [nt:base] as a where contains([analyzed_field], 'foo]') /* xpath: //*[jcr:contains(@analyzed_field, 'foo]')]" +
                 " */ fullText=analyzed_field:\"foo]\", path=*)]";
 
-        expectedLogList.add(log1);
-        expectedLogList.add(log2);
-        return expectedLogList;
+        return List.of(log1, log2);
     }
 
     @Test

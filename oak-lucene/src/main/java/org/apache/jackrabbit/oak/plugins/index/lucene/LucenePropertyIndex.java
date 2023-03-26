@@ -147,6 +147,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexLookupUtil.LUCENE_INDEX_DEFINITION_PREDICATE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.NATIVE_SORT_ORDER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
@@ -1546,7 +1547,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
                 subQuery = tokenToQuery(text, FieldNames.SIMILARITY_TAGS, analyzer);
                 // De-boosting dynamic boost based query so other clauses will have more relevance
-                subQuery.setBoost(0.0001f);
+                subQuery.setBoost(DYNAMIC_BOOST_WEIGHT);
             } else if (augmentor != null) {
                 subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
             }
