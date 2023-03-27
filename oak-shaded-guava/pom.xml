@@ -24,11 +24,11 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>oak-wrapped-guava</artifactId>
+  <artifactId>oak-shaded-guava</artifactId>
   <packaging>bundle</packaging>
 
   <properties>
-    <wrapped.guava.version>20.0</wrapped.guava.version>
+    <shaded.guava.version>20.0</shaded.guava.version>
     <exported.guava.version>20.0</exported.guava.version>
     <pref>org.apache.jackrabbit.oak.guava</pref>
   </properties>
@@ -105,7 +105,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>${wrapped.guava.version}</version>
+      <version>${shaded.guava.version}</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>

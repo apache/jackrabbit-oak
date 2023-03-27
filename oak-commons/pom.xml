@@ -110,7 +110,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-wrapped-guava</artifactId>
+      <artifactId>oak-shaded-guava</artifactId>
       <version>${project.version}</version>
     </dependency>
 
