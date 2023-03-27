@@ -57,6 +57,7 @@
                   <shadedPattern>${pref}</shadedPattern>
                 </relocation>
               </relocations>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
               <createSourcesJar>true</createSourcesJar>
             </configuration>
           </execution>
