@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.commons.io;
 
-import static org.apache.jackrabbit.oak.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import java.io.BufferedWriter;
@@ -32,9 +32,9 @@ import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.oak.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.oak.guava.common.collect.Iterators;
-import org.apache.jackrabbit.oak.guava.common.collect.PeekingIterator;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 
 /**
  * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.

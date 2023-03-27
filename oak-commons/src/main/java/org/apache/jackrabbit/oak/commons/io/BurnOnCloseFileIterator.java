@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.oak.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
 /**
  * Implements a {@link java.io.Closeable} wrapper over a {@link LineIterator}.

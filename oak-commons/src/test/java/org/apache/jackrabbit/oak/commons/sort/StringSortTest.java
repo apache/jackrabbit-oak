@@ -29,10 +29,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.guava.common.base.Joiner;
-import org.apache.jackrabbit.oak.guava.common.collect.Collections2;
-import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.Collections2;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

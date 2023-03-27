@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.commons;
 
 import java.util.UUID;
-import org.apache.jackrabbit.oak.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import org.jetbrains.annotations.NotNull;
 

@@ -30,10 +30,10 @@
   <properties>
     <shaded.guava.version>20.0</shaded.guava.version>
     <exported.guava.version>20.0</exported.guava.version>
-    <pref>org.apache.jackrabbit.oak.guava</pref>
+    <pref>org.apache.jackrabbit.guava</pref>
   </properties>
 
-  <name>Oak Guava Wrapper</name>
+  <name>Jackrabbit Guava Wrapper</name>
 
   <build>
     <plugins>
@@ -69,7 +69,7 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Bundle-SymbolicName>org.apache.jackrabbit.oak.guava</Bundle-SymbolicName>
+            <Bundle-SymbolicName>org.apache.jackrabbit.guava</Bundle-SymbolicName>
             <!-- Export-Package and Import-Package must be declared explicitly since the maven-bundle-plugin executes before maven-shade-plugin, so the guava classes aren't present at this time.
                  Note that these should match the specifications from the MANIFEST.mf file of the guava jar this jar will be based on. -->
             <Export-Package>

@@ -29,11 +29,11 @@ import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.oak.guava.common.base.Joiner;
-import org.apache.jackrabbit.oak.guava.common.base.Splitter;
-import org.apache.jackrabbit.oak.guava.common.base.StandardSystemProperty;
-import org.apache.jackrabbit.oak.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.jetbrains.annotations.Nullable;

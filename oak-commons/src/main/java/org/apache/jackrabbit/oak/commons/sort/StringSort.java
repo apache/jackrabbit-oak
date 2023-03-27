@@ -37,8 +37,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.guava.common.base.Charsets;
-import org.apache.jackrabbit.oak.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;

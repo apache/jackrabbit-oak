@@ -24,7 +24,7 @@ import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 /**
  * Test the PathUtils class.
