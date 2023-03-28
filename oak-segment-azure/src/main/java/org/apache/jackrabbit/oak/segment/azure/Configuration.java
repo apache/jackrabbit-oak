@@ -74,4 +74,10 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
                     "services in order to create services composed of multiple persistence instances. " +
                     "E.g. a SplitPersistence composed of a TAR persistence and an Azure persistence.")
     String role() default "";
+
+    @AttributeDefinition(
+            name = "Azure segment store property to enable fallback to the secondary location",
+            description = "When set to true specifies that requests will be attempted in primary, then in secondary region." +
+                "Default value is '" + AzureSegmentStoreService.DEFAULT_ENABLE_SECONDARY_LOCATION + "'.")
+    boolean enableSecondaryLocation() default AzureSegmentStoreService.DEFAULT_ENABLE_SECONDARY_LOCATION;
 }
