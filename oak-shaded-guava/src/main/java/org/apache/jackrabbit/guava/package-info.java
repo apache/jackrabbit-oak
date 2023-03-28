@@ -18,8 +18,8 @@
  */
 
 /**
- * This package wraps Google's Guava library, relocating it to this package.
+ * This package shades Google's Guava library, relocating it to this package.
  * <p>
  * <em>For Oak internal use only!</em>
  */
-package org.apache.jackrabbit.oak.guava;
+package org.apache.jackrabbit.guava;
