@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.util.ReverseNodeStateDiff;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -126,6 +127,13 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
                         }
                     }
                 }
+            }
+        } else if (base instanceof ModifiedNodeState) {
+            ModifiedNodeState mBase = (ModifiedNodeState) base;
+            if (mBase.getBaseState() == this) {
+                // this is the base state of the ModifiedNodeState
+                // do a reverse comparison and report the inverse back to NodeStateDiff
+                return mBase.compareAgainstBaseState(this, new ReverseNodeStateDiff(diff));
             }
         }
         // fall back to the generic node state diff algorithm

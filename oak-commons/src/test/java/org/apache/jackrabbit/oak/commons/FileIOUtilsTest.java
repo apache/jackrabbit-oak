@@ -39,7 +39,6 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -116,7 +115,7 @@ public class FileIOUtilsTest {
         Set<String> actual = newHashSet("a", "z", "e", "b");
 
         File f = folder.newFile();
-        int count = writeStrings(added.iterator(), f, false, new Function<String, String>() {
+        int count = writeStrings(added.iterator(), f, false, new com.google.common.base.Function<String, String>() {
             @Nullable @Override public String apply(@Nullable String input) {
                 return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
             }
@@ -211,7 +210,7 @@ public class FileIOUtilsTest {
         }
         
         Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
-        Iterator<String> hexEntries = Iterators.transform(boxedEntries, new Function<Long, String>() {
+        Iterator<String> hexEntries = Iterators.transform(boxedEntries, new com.google.common.base.Function<Long, String>() {
                     @Nullable @Override public String apply(@Nullable Long input) {
                         return Long.toHexString(input);
                     }

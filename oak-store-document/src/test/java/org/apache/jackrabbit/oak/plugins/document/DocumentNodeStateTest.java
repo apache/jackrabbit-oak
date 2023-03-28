@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.json.JsopDiff;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -78,5 +81,43 @@ public class DocumentNodeStateTest {
 
         DocumentNodeStoreBranch branch = store.createBranch(store.getRoot());
         asDocumentState(store.getRoot().getChildNode("a")).asBranchRootState(branch);
+    }
+
+    @Test // OAK-10149
+    public void compare() throws Exception {
+        DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("a");
+        builder.setProperty("p", "v");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        DocumentNodeState state = store.getRoot();
+
+        // diff reports the inverse operation because the comparison is done
+        // with the modified state as the base state
+        compareAgainstModified(state, b -> b.setProperty("q", "v"), "^\"/q\":null");
+        compareAgainstModified(state, b -> b.removeProperty("p"), "^\"/p\":\"v\"");
+        compareAgainstModified(state, b -> b.setProperty("p", "w"), "^\"/p\":\"v\"");
+        compareAgainstModified(state, b -> b.child("a").setProperty("p", "v"), "^\"/a/p\":null");
+        compareAgainstModified(state, b -> b.child("a").remove(), "+\"/a\":{}");
+        compareAgainstModified(state, b -> b.child("a").child("b"), "-\"/a/b\"");
+    }
+
+    private void compareAgainstModified(DocumentNodeState root,
+                                        Modification modification,
+                                        String jsopDiff) {
+        NodeBuilder builder = new MemoryNodeBuilder(root);
+        modification.apply(builder);
+        NodeState modified = builder.getNodeState();
+        assertEquals(ModifiedNodeState.class, modified.getClass());
+
+        JsopDiff diff = new JsopDiff();
+        root.compareAgainstBaseState(modified, diff);
+        assertEquals(jsopDiff, diff.toString());
+    }
+
+    private interface Modification {
+
+        void apply(NodeBuilder builder);
     }
 }
