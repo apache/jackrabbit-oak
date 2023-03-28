@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.AbstractIterator;
-
 /**
  * Implements a {@link java.io.Closeable} wrapper over a {@link LineIterator}.
  * Also has a transformer to transform the output. If the underlying file is
@@ -95,7 +93,7 @@ public class BurnOnCloseFileIterator<T> implements Closeable, Iterator<T> {
         });
     }
 
-    private static class Impl<T> extends AbstractIterator<T> implements Closeable {
+    private static class Impl<T> extends com.google.common.collect.AbstractIterator<T> implements Closeable {
         private final Iterator<String> iterator;
         private final Function<String, T> transformer;
         private final File backingFile;

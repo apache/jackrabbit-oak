@@ -33,7 +33,6 @@ import java.util.function.Function;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
-import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.commons.io.FileUtils;
@@ -395,7 +394,7 @@ public final class FileIOUtils {
      * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator} instead
      */
     @Deprecated(since = "1.20.0", forRemoval = true)
-    public static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
+    public static class FileLineDifferenceIterator extends com.google.common.collect.AbstractIterator<String> implements Closeable {
         private final PeekingIterator<String> peekMarked;
         private final LineIterator marked;
         private final LineIterator all;
@@ -494,7 +493,7 @@ public final class FileIOUtils {
      * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator} instead
      */
     @Deprecated(since = "1.20.0", forRemoval = true)
-    public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
+    public static class BurnOnCloseFileIterator<T> extends com.google.common.collect.AbstractIterator<T> implements Closeable {
         private final Logger log = LoggerFactory.getLogger(getClass());
 
         private final LineIterator iterator;
