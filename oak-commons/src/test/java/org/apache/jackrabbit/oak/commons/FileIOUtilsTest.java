@@ -40,7 +40,6 @@ import java.util.Random;
 import java.util.Set;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 import org.apache.commons.io.FileUtils;
@@ -210,7 +209,7 @@ public class FileIOUtilsTest {
         }
         
         Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
-        Iterator<String> hexEntries = Iterators.transform(boxedEntries, new com.google.common.base.Function<Long, String>() {
+        Iterator<String> hexEntries = com.google.common.collect.Iterators.transform(boxedEntries, new com.google.common.base.Function<Long, String>() {
                     @Nullable @Override public String apply(@Nullable Long input) {
                         return Long.toHexString(input);
                     }
