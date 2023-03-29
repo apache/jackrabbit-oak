@@ -68,6 +68,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String TRACK_TOTAL_HITS = "trackTotalHits";
     public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
 
+    public static final String DYNAMIC_MAPPING = "dynamicMapping";
+    // possible values are: true, false, runtime, strict. See https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic.html
+    public static final String DYNAMIC_MAPPING_DEFAULT = "true";
+
+    // when true, fails indexing in case of bulk failures
+    public static final String FAIL_ON_ERROR = "failOnError";
+    public static final boolean FAIL_ON_ERROR_DEFAULT = true;
+
     /**
      * Hidden property for storing a seed value to be used as suffix in remote index name.
      */
@@ -117,6 +125,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final int numberOfReplicas;
     public final int[] queryFetchSizes;
     public final Integer trackTotalHits;
+    public final String dynamicMapping;
+    public final boolean failOnError;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<PropertyDefinition> dynamicBoostProperties;
@@ -138,6 +148,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.queryFetchSizes = Arrays.stream(getOptionalValues(defn, QUERY_FETCH_SIZES, Type.LONGS, Long.class, QUERY_FETCH_SIZES_DEFAULT))
                 .mapToInt(Long::intValue).toArray();
         this.trackTotalHits = getOptionalValue(defn, TRACK_TOTAL_HITS, TRACK_TOTAL_HITS_DEFAULT);
+        this.dynamicMapping = getOptionalValue(defn, DYNAMIC_MAPPING, DYNAMIC_MAPPING_DEFAULT);
+        this.failOnError = getOptionalValue(defn, FAIL_ON_ERROR,
+                Boolean.parseBoolean(System.getProperty(TYPE_ELASTICSEARCH + "." + FAIL_ON_ERROR, ""+ FAIL_ON_ERROR_DEFAULT))
+        );
 
         this.propertiesByName = getDefinedRules()
                 .stream()

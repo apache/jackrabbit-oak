@@ -131,7 +131,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     @Override
-    public void updateDocument(String path, ElasticDocument doc) {
+    public void updateDocument(String path, ElasticDocument doc) throws IOException {
         IndexRequest request = new IndexRequest(indexName)
                 .id(ElasticIndexUtils.idFromPath(path))
                 .source(doc.build(), XContentType.JSON);
@@ -139,7 +139,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     @Override
-    public void deleteDocuments(String path) {
+    public void deleteDocuments(String path) throws IOException {
         DeleteRequest request = new DeleteRequest(indexName).id(ElasticIndexUtils.idFromPath(path));
         bulkProcessorHandler.add(request);
     }
