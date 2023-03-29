@@ -54,6 +54,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.jackrabbit.oak.security.authorization.accesscontrol.AbstractAccessControlTest.assertPolicies;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_POLICY;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_RESTRICTIONS;
 import static org.junit.Assert.assertArrayEquals;
@@ -118,11 +119,6 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
     @Override
     protected NamePathMapper getNamePathMapper() {
         return npMapper;
-    }
-
-    private static void assertPolicies(@Nullable AccessControlPolicy[] policies, long expectedSize) {
-        assertNotNull(policies);
-        assertEquals(expectedSize, policies.length);
     }
 
     private void setupPolicy(@Nullable String path, @Nullable Privilege... privileges) throws RepositoryException {
@@ -515,7 +511,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         acMgr.setPolicy(testPath, acl);
 
         // grant access at childpath
-        setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        setupPolicy(childPath, privs);
         root.commit();
 
         testRoot.refresh();
@@ -523,5 +519,50 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
         AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         assertPolicies(policies, 1);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesByPrincipalsReadPolicy1() throws Exception {
+        // grant test-principal READ access at root node (but not READ_ACCESS_CONTROL)
+        setupPolicy(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ));
+        root.commit();
+
+        testRoot.refresh();
+
+        // effective policies must NOT include ReadPolicy 
+        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
+        assertPolicies(policies, 0, false);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesByPrincipalsReadPolicy2() throws Exception {
+        // grant test-principal READ_ACCESS_CONTROL access at root node (but not READ)
+        setupPolicy(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        root.commit();
+
+        testRoot.refresh();
+
+        // effective policies must include ReadPolicy 
+        // but no path-not-found must be raised if the readable-path is not accessible
+        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
+        // since no other ac-setup exists for 'everyone' principal -> only ReadPolicy is found
+        assertPolicies(policies, 1, true);
+    }
+    
+    @Test
+    public void testGetEffectivePoliciesByPrincipalsIncludesReadPolicy3() throws Exception {
+        // grant test-principal READ and READ_ACCESS_CONTROL at root node 
+        setupPolicy(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        root.commit();
+
+        testRoot.refresh();
+
+        // effective policies must include ReadPolicy 
+        Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+        AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
+        // since no other ac-setup exists for 'everyone' principal -> only ReadPolicy is found
+        assertPolicies(policies, 1, true);
     }
 }

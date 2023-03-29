@@ -16,21 +16,31 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.NamedAccessControlPolicy;
 
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import static org.apache.jackrabbit.oak.security.authorization.accesscontrol.AbstractAccessControlTest.assertPolicies;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -41,11 +51,27 @@ import static org.junit.Assert.fail;
  *
  * @since OAK 1.0
  */
+@RunWith(Parameterized.class)
 public class ReadPolicyTest extends AbstractSecurityTest {
+
+    private final Set<String> configuredPaths;
 
     private Set<String> readPaths;
     private Set<String> subTreePaths = new HashSet<>();
 
+    @Parameterized.Parameters(name = "Configured Readable Paths = {1}")
+    public static Collection<Object[]> parameters() {
+        return Lists.newArrayList(
+                new Object[] {null , "null => default set"},
+                new Object[] {Collections.emptySet(), "empty set"},
+                new Object[] {Collections.emptySet(), "/"+JcrConstants.JCR_SYSTEM}
+        );
+    }
+
+    public ReadPolicyTest(@Nullable Set<String> configuredPaths, @NotNull String name) {
+        this.configuredPaths = configuredPaths;
+    }
+    
     @Override
     @Before
     public void before() throws Exception {
@@ -60,6 +86,16 @@ public class ReadPolicyTest extends AbstractSecurityTest {
             if (children.hasNext()) {
                 subTreePaths.add(children.next().getPath());
             }
+        }
+    }
+
+    @Override
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        if (configuredPaths != null) {
+            ConfigurationParameters params = ConfigurationParameters.of(PermissionConstants.PARAM_READ_PATHS, configuredPaths);
+            return ConfigurationParameters.of(AuthorizationConfiguration.NAME, params);
+        } else {
+            return super.getSecurityConfigParameters();
         }
     }
 
@@ -119,13 +155,22 @@ public class ReadPolicyTest extends AbstractSecurityTest {
             assertTrue(found);
         }
     }
+    
+    @Test
+    public void testGetEffectivePoliciesPrincipalSet() throws Exception {
+        AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(Collections.singleton(EveryonePrincipal.getInstance()));
+        long expSize = (readPaths.isEmpty()) ? 0 : 1;
+        assertPolicies(policies, expSize, true);
+    }
 
     @Test
     public void testGetName() throws Exception {
-        AccessControlPolicy[] policies = getAccessControlManager(root).getPolicies(readPaths.iterator().next());
-        assertEquals(1, policies.length);
-        assertTrue(policies[0] instanceof NamedAccessControlPolicy);
-        assertNotNull(((NamedAccessControlPolicy) policies[0]).getName());
+        if (!readPaths.isEmpty()) {
+            AccessControlPolicy[] policies = getAccessControlManager(root).getPolicies(readPaths.iterator().next());
+            assertEquals(1, policies.length);
+            assertTrue(policies[0] instanceof NamedAccessControlPolicy);
+            assertNotNull(((NamedAccessControlPolicy) policies[0]).getName());
+        }
     }
 
 }
