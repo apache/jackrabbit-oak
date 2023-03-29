@@ -150,7 +150,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.trackTotalHits = getOptionalValue(defn, TRACK_TOTAL_HITS, TRACK_TOTAL_HITS_DEFAULT);
         this.dynamicMapping = getOptionalValue(defn, DYNAMIC_MAPPING, DYNAMIC_MAPPING_DEFAULT);
         this.failOnError = getOptionalValue(defn, FAIL_ON_ERROR,
-                Boolean.parseBoolean(System.getProperty(TYPE_ELASTICSEARCH + "." + FAIL_ON_ERROR, ""+ FAIL_ON_ERROR_DEFAULT))
+                Boolean.parseBoolean(System.getProperty(TYPE_ELASTICSEARCH + "." + FAIL_ON_ERROR, Boolean.toString(FAIL_ON_ERROR_DEFAULT)))
         );
 
         this.propertiesByName = getDefinedRules()
