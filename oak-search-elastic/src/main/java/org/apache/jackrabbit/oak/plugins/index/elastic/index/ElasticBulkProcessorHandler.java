@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -79,9 +80,9 @@ class ElasticBulkProcessorHandler {
     private final Phaser phaser = new Phaser(1); // register main controller
 
     /**
-     * IOException object wrapping any error/exception which occurred while trying to update index in elasticsearch.
+     * Exceptions occurred while trying to update index in elasticsearch
      */
-    private final IOException ioException = new IOException("Exception while indexing. See suppressed for details");
+    private final ConcurrentLinkedQueue<Throwable> suppressedExceptions = new ConcurrentLinkedQueue<>();
 
     /**
      * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids, the boolean
@@ -155,8 +156,10 @@ class ElasticBulkProcessorHandler {
     }
 
     private void checkFailures() throws IOException {
-        if (ioException.getSuppressed().length > 0) {
-            throw ioException;
+        if (suppressedExceptions.size() > 0) {
+            IOException ioe = new IOException("Exception while indexing. See suppressed for details");
+            suppressedExceptions.forEach(ioe::addSuppressed);
+            throw ioe;
         }
     }
 
@@ -252,7 +255,7 @@ class ElasticBulkProcessorHandler {
                     if (bulkItemResponse.isFailed()) {
                         BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
                         if (indexDefinition.failOnError && failure.getCause() != null) {
-                            ioException.addSuppressed(failure.getCause());
+                            suppressedExceptions.add(failure.getCause());
                         }
                         if (!isFailedDocSetFull && failedDocSet.size() < FAILED_DOC_COUNT_FOR_STATUS_NODE) {
                             failedDocSet.add(bulkItemResponse.getId());
@@ -284,7 +287,7 @@ class ElasticBulkProcessorHandler {
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
             LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, throwable);
-            ElasticBulkProcessorHandler.this.ioException.addSuppressed(throwable);
+            suppressedExceptions.add(throwable);
             phaser.arriveAndDeregister();
         }
     }
