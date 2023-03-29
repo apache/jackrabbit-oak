@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -24,10 +23,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
-import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,8 +47,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo248'";
         assertEventually(() -> {
             assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
-
-            assertQuery(propaQuery, singletonList("/test/a248"));
+            assertQuery(propaQuery, List.of("/test/a248"));
         });
 
         // Now we test for 250 < nodes < 500
@@ -63,8 +59,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         String propaQuery2 = "select [jcr:path] from [nt:base] where [propa] = 'foo299'";
         assertEventually(() -> {
             assertThat(explain(propaQuery2), containsString("elasticsearch:test1"));
-
-            assertQuery(propaQuery2, singletonList("/test/a299"));
+            assertQuery(propaQuery2, List.of("/test/a299"));
         });
     }
 
@@ -87,9 +82,9 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
             assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"), containsString("elasticsearch:test2"));
 
-            assertQuery(propaQuery, Arrays.asList("/test/a", "/test/b"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", singletonList("/test/c"));
-            assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", singletonList("/test/d"));
+            assertQuery(propaQuery, List.of("/test/a", "/test/b"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", List.of("/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", List.of("/test/d"));
         });
     }
 
@@ -119,15 +114,15 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             String explanation = explain(propabQuery);
             assertThat(explanation, containsString("elasticsearch:test1(/oak:index/test1) "));
             assertThat(explanation, containsString("{\"term\":{\":nodeName\":{\"value\":\"foo\""));
-            assertQuery(propabQuery, singletonList("/test/foo"));
+            assertQuery(propabQuery, List.of("/test/foo"));
 
-            assertQuery(queryPrefix + "LOCALNAME() = 'bar'", singletonList("/test/sc/bar"));
-            assertQuery(queryPrefix + "LOCALNAME() LIKE 'foo'", singletonList("/test/foo"));
-            assertQuery(queryPrefix + "LOCALNAME() LIKE 'camel%'", singletonList("/test/camelCase"));
+            assertQuery(queryPrefix + "LOCALNAME() = 'bar'", List.of("/test/sc/bar"));
+            assertQuery(queryPrefix + "LOCALNAME() LIKE 'foo'", List.of("/test/foo"));
+            assertQuery(queryPrefix + "LOCALNAME() LIKE 'camel%'", List.of("/test/camelCase"));
 
-            assertQuery(queryPrefix + "NAME() = 'bar'", singletonList("/test/sc/bar"));
-            assertQuery(queryPrefix + "NAME() LIKE 'foo'", singletonList("/test/foo"));
-            assertQuery(queryPrefix + "NAME() LIKE 'camel%'", singletonList("/test/camelCase"));
+            assertQuery(queryPrefix + "NAME() = 'bar'", List.of("/test/sc/bar"));
+            assertQuery(queryPrefix + "NAME() LIKE 'foo'", List.of("/test/foo"));
+            assertQuery(queryPrefix + "NAME() LIKE 'camel%'", List.of("/test/camelCase"));
         });
     }
 
@@ -157,7 +152,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         root.commit();
         assertEventually(() -> {
             assertThat(explain(query), containsString("{\"terms\":{\"propa\":[\"a\",\"e\",\"i\"]}}"));
-            assertQuery(query, SQL2, ImmutableList.of("/test/node-a", "/test/node-e", "/test/node-i"));
+            assertQuery(query, SQL2, List.of("/test/node-a", "/test/node-e", "/test/node-i"));
         });
     }
 
@@ -174,7 +169,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertThat(explain(query), containsString("{\"terms\":{\"propa\":[2,3,5,7]}}"));
-            assertQuery(query, SQL2, ImmutableList.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
+            assertQuery(query, SQL2, List.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
         });
     }
 
@@ -192,7 +187,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertThat(explain(query), containsString("{\"terms\":{\"propa\":[2.0,3.0,5.0,7.0]}}"));
-            assertQuery(query, SQL2, ImmutableList.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
+            assertQuery(query, SQL2, List.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
         });
     }
 
