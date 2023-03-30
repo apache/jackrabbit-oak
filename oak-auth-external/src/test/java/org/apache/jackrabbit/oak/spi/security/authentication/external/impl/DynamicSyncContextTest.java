@@ -49,6 +49,7 @@ import org.junit.Test;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -159,7 +160,8 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
             Group gr = userManager.getAuthorizable(ref.getId(), Group.class);
             assertNotNull(gr);
             assertTrue(gr.isMember(a));
-            assertTrue(Iterators.contains(a.memberOf(), gr));
+            List<String> ids = getIds(a.memberOf());
+            assertTrue("Expected "+ids+ " to contain "+gr.getID(), ids.contains(gr.getID()));
             
             if (Iterables.contains(declaredGroupRefs, ref)) {
                 assertTrue(gr.isDeclaredMember(a));
