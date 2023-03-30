@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -29,7 +28,6 @@ import java.util.stream.StreamSupport;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -43,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.migration.DescendantsIterator;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
+import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManagerUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -168,7 +167,7 @@ public class VersionCopierTest {
         copyVersionStorage(sourceStore, targetStore);
         
         // Remove 1 version for path /foo0 and create a new one
-        removeSpecificVersion(targetStore, "/foo0", "1.0", "1.1");
+        removeSpecificVersion(targetStore, "/foo0", "1.0");
         createNewVersion("/foo0", targetStore, "a");
 
         // copy versions again preserving any new target versions created
@@ -447,31 +446,16 @@ public class VersionCopierTest {
         commit(ns, rootBuilder);
     }
     
-    protected void removeSpecificVersion(NodeStore ns, String path, String version, String successor) throws CommitFailedException {
+    protected void removeSpecificVersion(NodeStore ns, String path, String version) throws CommitFailedException {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder builder = rootBuilder;
         for (String name : PathUtils.elements(path)) {
             builder = builder.child(name);
         }
         String versionableUuid = builder.getString(JCR_UUID);
-
-        // Remove version
-        NodeBuilder versionHistoryRoot = VersionHistoryUtil.getVersionStorage(rootBuilder);
-        NodeBuilder versionHistoryBuilder =
-            VersionHistoryUtil.getVersionHistoryBuilder(versionHistoryRoot, versionableUuid);
-        NodeBuilder versionNode = versionHistoryBuilder.getChildNode(version);
-        NodeBuilder rootVersionNode = versionHistoryBuilder.getChildNode(JCR_ROOTVERSION);
-        NodeBuilder successorVersionNode = versionHistoryBuilder.getChildNode(successor);
-        versionNode.remove();
-        String rootVersionId = rootVersionNode.getString(JCR_UUID);
-        String successorVersionId = successorVersionNode.getString(JCR_UUID);
-        Set<String> successors = new HashSet<>();
-        successors.add(successorVersionId);
-        rootVersionNode.setProperty(JcrConstants.JCR_SUCCESSORS, successors, Type.REFERENCES);
-
-        Set<String> predecessors = new HashSet<>();
-        predecessors.add(rootVersionId);
-        successorVersionNode.setProperty(JCR_PREDECESSORS, predecessors, Type.REFERENCES);
+        String relPath = VersionHistoryUtil.getRelativeVersionHistoryPath(versionableUuid);
+        String versionPath = PathUtils.concat("/", JCR_SYSTEM, JCR_VERSIONSTORAGE + relPath, version);
+        ReadWriteVersionManagerUtil.removeVersion(rootBuilder, versionPath);
         commit(ns, rootBuilder);
     }
 
