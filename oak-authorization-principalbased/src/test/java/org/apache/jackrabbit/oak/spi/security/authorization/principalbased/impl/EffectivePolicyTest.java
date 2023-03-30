@@ -96,8 +96,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEffectivePolicyByPrincipal() throws Exception {
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
-        assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+        assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
         assertEquals(2, entries.size());
@@ -113,8 +112,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEffectivePolicyByPrincipal2() throws Exception {
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal2));
-        assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+        assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
         assertEquals(2, entries.size());

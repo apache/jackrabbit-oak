@@ -20,27 +20,40 @@ import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import javax.jcr.security.AccessControlPolicy;
 import java.util.Comparator;
 
-final class PolicyComparator implements Comparator<JackrabbitAccessControlPolicy> {
+final class PolicyComparator implements Comparator<AccessControlPolicy> {
 
     @Override
-    public int compare(JackrabbitAccessControlPolicy policy1, JackrabbitAccessControlPolicy policy2) {
+    public int compare(AccessControlPolicy policy1, AccessControlPolicy policy2) {
         if (policy1.equals(policy2)) {
             return 0;
+        } else if (policy1 instanceof JackrabbitAccessControlPolicy && policy2 instanceof JackrabbitAccessControlPolicy) {
+            return compare((JackrabbitAccessControlPolicy) policy1, (JackrabbitAccessControlPolicy) policy2);
         } else {
-            String p1 = policy1.getPath();
-            String p2 = policy2.getPath();
-
-            if (p1 == null) {
+            if (policy1 instanceof JackrabbitAccessControlPolicy) {
                 return -1;
-            } else if (p2 == null) {
+            } else if (policy2 instanceof JackrabbitAccessControlPolicy) {
                 return 1;
             } else {
-                int depth1 = PathUtils.getDepth(p1);
-                int depth2 = PathUtils.getDepth(p2);
-                return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
+                return 0;
             }
+        }
+    }
+
+    private static int compare(JackrabbitAccessControlPolicy policy1, JackrabbitAccessControlPolicy policy2) {
+        String p1 = policy1.getPath();
+        String p2 = policy2.getPath();
+
+        if (p1 == null) {
+            return -1;
+        } else if (p2 == null) {
+            return 1;
+        } else {
+            int depth1 = PathUtils.getDepth(p1);
+            int depth2 = PathUtils.getDepth(p2);
+            return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
         }
     }
 }
