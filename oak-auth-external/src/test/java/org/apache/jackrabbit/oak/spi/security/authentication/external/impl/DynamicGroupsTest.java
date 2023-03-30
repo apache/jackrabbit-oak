@@ -302,11 +302,11 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         String groupId2 = declaredGroupRefs.get(1).getId();
         Group local = um.createGroup("localGroup");
         local.addMembers(groupId, groupId2);
-        userManager.createGroup(EveryonePrincipal.getInstance());
+        um.createGroup(EveryonePrincipal.getInstance());
         r.commit();
 
-        Authorizable a = getUserManager(r).getAuthorizable(PREVIOUS_SYNCED_ID);
-        assertFalse(Iterators.contains(a.memberOf(), local));
+        Authorizable a = um.getAuthorizable(PREVIOUS_SYNCED_ID);
+        assertTrue(getIds(a.memberOf()).contains(local.getID()));
         
         // sync again to establish dynamic membership
         syncContext.setForceUserSync(true);
@@ -322,7 +322,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             assertFalse(groupIds.contains("localGroup"));
             assertFalse(local.isMember(a));
         } else {
-            assertEquals((membershipNestingDepth > 1) ? 5 : 4, groupIds.size());
+            assertEquals("Found "+groupIds, (membershipNestingDepth > 1) ? 5 : 4, groupIds.size());
             assertTrue(groupIds.contains("localGroup"));
             assertTrue(local.isMember(a));
             

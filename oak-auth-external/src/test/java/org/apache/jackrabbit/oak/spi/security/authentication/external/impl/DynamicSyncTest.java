@@ -230,8 +230,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
     private static void assertExpectedIds(@NotNull Set<String> expectedIds, @NotNull Iterator<? extends Authorizable>... iterators) {
         for (Iterator<? extends Authorizable> it : iterators) {
             List<String> ids = getIds(it);
-            assertEquals(expectedIds.size(), ids.size());
-            assertTrue(ids.containsAll(expectedIds));
+            assertEquals("Expected "+expectedIds+" found "+ids, expectedIds.size(), ids.size());
+            assertTrue("Expected "+expectedIds+" found "+ids, ids.containsAll(expectedIds));
         }
     }
 }
