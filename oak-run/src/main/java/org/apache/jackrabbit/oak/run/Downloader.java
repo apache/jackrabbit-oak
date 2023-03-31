@@ -28,11 +28,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,14 +63,15 @@ public class Downloader implements Closeable {
     private final int maxRetries;
     private final long retryInitialInterval;
     private final boolean failOnError;
+    private final String checksumAlgorithm;
     private final List<Future<ItemResponse>> responses;
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
-        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000);
+        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000, null);
     }
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int maxRetries, long retryInitialInterval,
-                      boolean failOnError, int slowLogThreshold) {
+                      boolean failOnError, int slowLogThreshold, String checksumAlgorithm) {
         if (concurrency <= 0 || concurrency > 1000) {
             throw new IllegalArgumentException("concurrency range must be between 1 and 1000");
         }
@@ -84,6 +88,18 @@ public class Downloader implements Closeable {
         this.maxRetries = maxRetries;
         this.retryInitialInterval = retryInitialInterval;
         this.failOnError = failOnError;
+        // fail fast in case the algorithm is not supported
+        if (checksumAlgorithm != null && checksumAlgorithm.trim().length() > 0) {
+            this.checksumAlgorithm = checksumAlgorithm.trim();
+            try {
+                MessageDigest.getInstance(checksumAlgorithm);
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            this.checksumAlgorithm = null;
+        }
+
         this.executorService = new ThreadPoolExecutor(
                 (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
@@ -147,14 +163,49 @@ public class Downloader implements Closeable {
             sourceUrl.setConnectTimeout(Downloader.this.connectTimeoutMs);
             sourceUrl.setReadTimeout(Downloader.this.readTimeoutMs);
 
+            // Updating a MessageDigest from multiple threads is not thread safe, so we cannot reuse a single instance.
+            // Creating a new instance is a lightweight operation, no need to increase complexity by creating a pool.
+            MessageDigest md = null;
+            if (Downloader.this.checksumAlgorithm != null && item.checksum != null) {
+                md = MessageDigest.getInstance(Downloader.this.checksumAlgorithm);
+            }
+
             Path destinationPath = Paths.get(item.destination);
             Files.createDirectories(destinationPath.getParent());
-            long size;
+            long size = 0;
             try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
                  FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
-                size = outputStream.getChannel()
-                        .transferFrom(byteChannel, 0, Long.MAX_VALUE);
+                ByteBuffer buffer = ByteBuffer.allocate(1024);
+                int bytesRead;
+                while ((bytesRead = byteChannel.read(buffer)) != -1) {
+                    buffer.flip();
+                    if (md != null) {
+                        md.update(buffer);
+                    }
+                    size += bytesRead;
+                    outputStream.getChannel().write(buffer);
+                    buffer.clear();
+                }
             }
+
+            if (md != null) {
+                byte[] checksumBytes = md.digest();
+
+                // Convert the checksum bytes to a hexadecimal string
+                StringBuilder sb = new StringBuilder();
+                for (byte b : checksumBytes) {
+                    sb.append(String.format("%02x", b));
+                }
+                String checksum = sb.toString();
+                // Warning: most modern checksum algorithms used for cryptographic purposes are designed to be case-insensitive,
+                // to ensure that the same checksum value is produced regardless of the input's case. There may be some
+                // legacy algorithms that are case-sensitive. Using equalsIgnoreCase can be considered safe here.
+                if (!checksum.equalsIgnoreCase(item.checksum)) {
+                    Files.deleteIfExists(destinationPath);
+                    throw new IOException("Checksum does not match! Expected: " + item.checksum + ", Actual: " + checksum);
+                }
+            }
+
             long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
             if (slowLogThreshold > 0 && elapsed >= slowLogThreshold) {
                 LOG.warn("{} [{}] downloaded in {} ms", item.source, IOUtils.humanReadableByteCount(size), elapsed);
@@ -237,12 +288,14 @@ public class Downloader implements Closeable {
     public static class Item {
         public String source;
         public String destination;
+        public String checksum;
 
         @Override
         public String toString() {
             return "Item{" +
                     "source='" + source + '\'' +
                     ", destination='" + destination + '\'' +
+                    (checksum != null ? ", checksum='" + checksum + '\'' : "") +
                     '}';
         }
     }

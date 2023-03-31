@@ -59,6 +59,7 @@ public class DataStoreCopyCommand implements Command {
     private long retryInitialInterval;
     private boolean failOnError;
     private int slowLogThreshold;
+    private String checksumAlgorithm;
 
     @Override
     public void execute(String... args) throws Exception {
@@ -67,7 +68,7 @@ public class DataStoreCopyCommand implements Command {
 
         Stream<String> ids = null;
         try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout, maxRetries,
-                retryInitialInterval, failOnError, slowLogThreshold)) {
+                retryInitialInterval, failOnError, slowLogThreshold, checksumAlgorithm)) {
             if (fileIncludePath != null) {
                 ids = Files.lines(fileIncludePath);
             } else {
@@ -83,6 +84,7 @@ public class DataStoreCopyCommand implements Command {
                     item.source += "?" + sasToken;
                 }
                 item.destination = getDestinationFromId(id);
+                item.checksum = id.replaceAll("-", "");
                 downloader.offer(item);
             });
 
@@ -164,6 +166,8 @@ public class DataStoreCopyCommand implements Command {
         OptionSpec<Boolean> failOnErrorOpt = parser.accepts("fail-on-error",
                         "If true fails the execution immediately after the first error, otherwise it continues processing all the blobs (default false)")
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
+        OptionSpec<String> checksumOpt = parser.accepts("checksum", "The algorithm to compute the checksum (examples: SHA-256, MD5) or empty (the default) to skip checksum validation")
+                .withOptionalArg().ofType(String.class);
 
         OptionSet optionSet = parser.parse(args);
 
@@ -180,6 +184,7 @@ public class DataStoreCopyCommand implements Command {
         this.retryInitialInterval = optionSet.valueOf(retryInitialIntervalOpt);
         this.fileIncludePath = optionSet.valueOf(fileIncludePathOpt);
         this.failOnError = optionSet.valueOf(failOnErrorOpt);
+        this.checksumAlgorithm = optionSet.valueOf(checksumOpt);
     }
 
     protected static void setupLogging() throws IOException {
