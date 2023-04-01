@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.14
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.15
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.14 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.15 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,69 +15,63 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.14
+Changes in Oak 1.22.15
 ----------------------
 
 Technical task
 
-    [OAK-8861] - oak-core-spi: bump up logging for deprecated Guava based APIs to WARN
-    [OAK-8862] - oak-commons: bump up logging for deprecated Guava based APIs to WARN
-    [OAK-9269] - RDB*Store: update postgresql jdbc driver reference to 42.2.18
-    [OAK-9574] - Update Mockito dependency to 3.12.4
-    [OAK-9577] - Update Tomcat dependency to 8.5.71
-    [OAK-9579] - standalone: upgrade spring fwk to 2.5.5
-    [OAK-9915] - remove jackrabbit-data dependency from oak-core
-    [OAK-9916] - remove jackrabbit-data dependency from oak-store-document
-    [OAK-9994] - avoid leaking out transitive dependencies to Guava
-    [OAK-9995] - oak-blob-cloud-azure: unneeded Guava import declaration
-    [OAK-9996] - oak-search-mt: unneeded Guava import declaration
-    [OAK-10015] - Update Mockito dependency to 4.9.0
-    [OAK-10018] - standalone: upgrade spring fwk to 2.5.14
-    [OAK-10024] - improve diagnostics for addNode for invalid relative paths
-    [OAK-10038] - CompositeStoreIT: add workaround for potential NPE in test
+    [OAK-10084] - oak-commons: bump up logging for deprecated Guava based APIs to ERROR
+    [OAK-10085] - oak-core-spi: bump up logging for deprecated Guava based APIs to ERROR
 
 Bug
 
-    [OAK-9487] - WarnLogStringPropertySizeTest may fail with multiple fixtures
-    [OAK-9563] - LastRevSingleNodeRecoveryTest fails in setUp()
-    [OAK-9636] - FileWriter not closed in LocalManifestFile
-    [OAK-9785] - Tar SegmentStore can be corrupted during compaction
-    [OAK-9809] - oak-run server: update Jetty because of outdated servlet API version
-    [OAK-9908] - Recovery may revert committed changes
-    [OAK-9911] - Resource leak in ChunkedBlobStream
+    [OAK-9037] - bundle:manifest fails on Java 15
+    [OAK-9471] - Query for split documents by Revision GC times out
+    [OAK-9512] - PrefixPattern.matches(String) always returns false
+    [OAK-9513] - PrefixPattern ignores empty namespace prefix
+    [OAK-9560] - Javadoc build fails if using Java11
+    [OAK-9700] - RevisionGC may fail with NPE
+    [OAK-10051] - oak-run and oak-upgrade JARs incomplete (META-INF/MANIFEST.MF is missing the Main-Class entry)
+    [OAK-10078] - antrun for reactor pom fails due to removal of tasks function
+    [OAK-10090] - update antrun version for reactor pom
+    [OAK-10117] - oak-run console does not start up - CommandNameCompleter construction fails
 
 Improvement
 
-    [OAK-8874] - deprecate use of Guava Predicate class in oak-core API
-    [OAK-9010] - Standardize handling of system properties
-    [OAK-9017] - use SystemPropertySupplier in RDBConnectionHandler
-    [OAK-9018] - use SystemPropertySupplier in RDBVersionGCSupport
-    [OAK-9019] - use SystemPropertySupplier in RDBMissingLastRevSeeker
-    [OAK-9020] - use SystemPropertySupplier in RDBDocumentStoreDB
-    [OAK-9021] - use SystemPropertySupplier in RDBDataSourceFactory
-    [OAK-9022] - use SystemPropertySupplier in ClusterNodeInfo
-    [OAK-9023] - use SystemPropertySupplier in RDBDocumentStore
-    [OAK-9025] - use SystemPropertySupplier in DocumentNodeStoreService
-    [OAK-9031] - use SystemPropertySupplier in DocumentNodeStore
-    [OAK-9356] - DocumentNodeStore: in dispose(), improve lease update diagnostics
-    [OAK-9420] - slightly misleading debug message in JournalEntry
-    [OAK-10055] - Auto refreshing IndexTracker every hour causes online reindexing to fail
+    [OAK-9177] - Workaround for bug #426 in versions-maven-plugin
+    [OAK-9613] - Define API to retrieve parent or null for a given Item
+    [OAK-9618] - Use s.apache.org redirects for JCR specs/javadocs
+    [OAK-9800] - Update Maven Plugins and Apache Parent POM to version 29
+    [OAK-9819] - Improve Node.hasProperty/getProperty and Node.hasNode/getNode combinations
+    [OAK-10087] - TypeEditor: constraint exception for invalid child node should contain that node's effective type
 
 Task
 
-    [OAK-9028] - upgrade to mockito-core 3.3.3
-    [OAK-9329] - upgrade to mockito-core 3.7.7
-    [OAK-9479] - oak-search-elastic: upgrade jackson-databind to 2.10.5.1
-    [OAK-9581] - oak-examples/standalone: update spring boot dependency to 1.5.22 and cleanup POM
-    [OAK-9926] - Upgrade h2db dependency to 2.1.214
-    [OAK-9947] - upgrade jackson-databind to 2.13.4
-    [OAK-9950] - Upgrade tika to 1.26
-    [OAK-9990] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.7
-    [OAK-10016] - avoid use of deprecated Mockito methods (removed in 4.*)
-    [OAK-10019] - Update slf4j dependency to 1.7.36
-    [OAK-10021] - upgrade jackson-databind to 2.13.4.2
-    [OAK-10057] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.8
-    [OAK-10059] - webapp: avoid use of Jackrabbit's transitive commons-collections dependency
+    [OAK-8883] - Update jar plugin to 3.2.0
+    [OAK-9482] - upgrade httpclient to v 4.5.13
+    [OAK-9831] - Update spotbugs plugin to 4.7.1.0
+    [OAK-9832] - Update jacoco plugin to 0.8.8
+    [OAK-10002] - oak-core: bump up logging for deprecated Guava based APIs to INFO
+    [OAK-10032] - get rid of ant-run plugin dependency
+    [OAK-10040] - Update animal-sniffer dependency to 1.22
+    [OAK-10041] - Upgrade maven-bundle-plugin to 5.1.8
+    [OAK-10042] - Update checkstyle-plugin dependency to version 3.1.2
+    [OAK-10043] - Upgrade maven-versions-plugin to 2.14.1
+    [OAK-10045] - Upgrade gmavenplus-plugin to 1.13.1
+    [OAK-10046] - oak-it-osgi: remove unneeded workaround maven-resources-plugin
+    [OAK-10047] - oak-core: bump up logging for deprecated Guava based APIs to WARN
+    [OAK-10062] - consolidate and update groovy versions to 2.4.21
+    [OAK-10065] - avoid-use of groovy-all artefact
+    [OAK-10066] - update groovy dependency to 2.5.20
+    [OAK-10076] - Bump netty dependency from 4.1.68.Final to 4.1.86.Final
+    [OAK-10094] - Bump up warning level for deprecated uses of java.security.Group to ERROR
+    [OAK-10105] - Guava deprecations: set minimal logging level to 'info'
+    [OAK-10110] - add test coverage for FileIOUtils.TransformingComparator
+    [OAK-10122] - it-osgi: update commons-fileupload to 1.5
+    [OAK-10123] - solr-core: update commons-fileupload to 1.5
+    [OAK-10124] - upgrade httpclient/mime to 4.5.14
+    [OAK-10125] - upgrade httpcore to 4.4.16
+    [OAK-10138] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.9
 
 
 
