@@ -24,16 +24,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -174,7 +175,7 @@ public class Downloader implements Closeable {
             Files.createDirectories(destinationPath.getParent());
             long size = 0;
             try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
-                 FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
+                 FileChannel outputChannel = FileChannel.open(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
                 ByteBuffer buffer = ByteBuffer.allocate(1024);
                 int bytesRead;
                 while ((bytesRead = byteChannel.read(buffer)) != -1) {
@@ -183,7 +184,7 @@ public class Downloader implements Closeable {
                         md.update(buffer);
                     }
                     size += bytesRead;
-                    outputStream.getChannel().write(buffer);
+                    outputChannel.write(buffer);
                     buffer.clear();
                 }
             }
