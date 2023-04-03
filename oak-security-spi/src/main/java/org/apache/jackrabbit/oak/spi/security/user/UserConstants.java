@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import java.util.Collection;
-
 import com.google.common.collect.ImmutableSet;
+
+import java.util.Collection;
 
 /**
  * User management related constants. Please note that all names and paths
@@ -79,14 +79,14 @@ public interface UserConstants {
     String PARAM_ADMIN_ID = "adminId";
 
     /**
-     * Configuration option defining the ID of the administratorGroups field.
+     * Configuration option defining the ID of the impersonatorGroups field.
      */
-    String ADMINISTRATOR_GROUPS_CONFIG_ID = "administratorGroups";
+    String PARAM_IMPERSONATOR_GROUPS_ID = "impersonatorGroups";
 
     /**
-     * Default value for the administrator group {@link #ADMINISTRATOR_GROUPS_CONFIG_ID}.
+     * Default value for the impersonator group {@link #PARAM_IMPERSONATOR_GROUPS_ID}.
      */
-    String DEFAULT_ADMINISTRATORS_GROUP = "administrators";
+    String DEFAULT_IMPERSONATOR_GROUP = "administrators";
 
     /**
      * Configuration option defining if the admin password should be omitted

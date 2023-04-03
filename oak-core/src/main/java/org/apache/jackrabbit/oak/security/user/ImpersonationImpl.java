@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -37,6 +31,13 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -126,15 +127,20 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             return false;
         }
 
+        Set<Principal> principals = subject.getPrincipals();
+        if (isImpersonator(principals)){
+            return true;
+        }
+
         Set<String> principalNames = new HashSet<>();
-        for (Principal principal : subject.getPrincipals()) {
+        for (Principal principal : principals) {
             principalNames.add(principal.getName());
         }
 
         boolean allows = getImpersonatorNames().removeAll(principalNames);
         if (!allows) {
             // check if subject belongs to administrator user
-            for (Principal principal : subject.getPrincipals()) {
+            for (Principal principal : principals) {
                 if (isAdmin(principal)) {
                     allows = true;
                     break;
@@ -178,6 +184,15 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         } else {
             return Utils.canImpersonateAllUsers(principal, user.getUserManager());
         }
+    }
+
+    private boolean isImpersonator(@NotNull Set<Principal> principals) {
+        List<String> impersonatorGroups = List.of(user.getUserManager().getConfig().getConfigValue(
+                PARAM_IMPERSONATOR_GROUPS_ID,
+                new String[]{DEFAULT_IMPERSONATOR_GROUP}));
+        return principals.stream()
+                .map(Principal::getName)
+                .anyMatch(impersonatorGroups::contains);
     }
 
     private boolean isValidPrincipal(@NotNull Principal principal) {

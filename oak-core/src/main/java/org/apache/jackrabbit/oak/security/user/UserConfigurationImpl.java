@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -68,6 +62,12 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
+import java.security.Principal;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Collections;
+
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 /**
@@ -85,10 +85,10 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         String usersPath() default UserConstants.DEFAULT_USER_PATH;
 
         @AttributeDefinition(
-                name = "Administrators groups",
-                description = "List of groups whose members have admin rights.",
+                name = "Impersonator groups",
+                description = "List of groups whose members can impersonate any user.",
                 type = AttributeType.STRING)
-        String[] administratorGroups() default {UserConstants.DEFAULT_ADMINISTRATORS_GROUP};
+        String[] impersonatorGroups() default {};
 
         @AttributeDefinition(
                 name = "Group Path",

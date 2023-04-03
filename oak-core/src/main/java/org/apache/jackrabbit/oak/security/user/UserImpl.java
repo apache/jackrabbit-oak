@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
-import java.security.Principal;
-import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +29,12 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * UserImpl...
@@ -78,16 +79,13 @@ class UserImpl extends AuthorizableImpl implements User {
     //---------------------------------------------------------------< User >---
 
     /**
-     * The user is considered admin if it is the user with the id {@link UserConstants#DEFAULT_ADMIN_ID} or a member of
-     * a group configured as an administrators group using the config id
-     * {@link UserConstants#ADMINISTRATOR_GROUPS_CONFIG_ID}.
+     * The user is considered admin if it is the user with the id {@link UserConstants#DEFAULT_ADMIN_ID}
      *
      * @return true if the user has the id "admin" or a member of a configured administrators group.
      */
     @Override
     public boolean isAdmin() {
-        return UserUtil.isAdmin(getUserManager().getConfig(), getID())
-                || UserUtil.isMemberOfAnAdministratorGroup(this, getUserManager().getConfig());
+        return UserUtil.isAdmin(getUserManager().getConfig(), getID());
     }
 
     @Override

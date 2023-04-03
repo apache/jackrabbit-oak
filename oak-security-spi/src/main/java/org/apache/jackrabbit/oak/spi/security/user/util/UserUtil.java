@@ -57,10 +57,8 @@ public final class UserUtil implements UserConstants {
         return getAdminId(parameters).equals(userId);
     }
 
-    public static boolean isMemberOfAnAdministratorGroup(@NotNull Authorizable authorizable, @NotNull ConfigurationParameters parameters) {
-        String[] configuredAdministratorGroups = parameters.getConfigValue(ADMINISTRATOR_GROUPS_CONFIG_ID, new String[]{
-                UserConstants.DEFAULT_ADMINISTRATORS_GROUP
-        });
+    public static boolean isMemberOfAnImpersonatorGroup(@NotNull Authorizable authorizable, @NotNull ConfigurationParameters parameters) {
+        String[] configuredAdministratorGroups = parameters.getConfigValue(PARAM_IMPERSONATOR_GROUPS_ID, new String[]{});
         @NotNull Set<String> groupIds = getGroupIds(authorizable);
         return Arrays.stream(configuredAdministratorGroups).anyMatch(groupIds::contains);
     }

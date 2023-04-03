@@ -91,7 +91,7 @@ public class UserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testUserInAdministratorGroupsIsAdmin() throws RepositoryException, CommitFailedException {
-        Group administratorGroup = getUserManager(root).createGroup(UserConstants.DEFAULT_ADMINISTRATORS_GROUP);
+        Group administratorGroup = getUserManager(root).createGroup(UserConstants.DEFAULT_IMPERSONATOR_GROUP);
 
         administratorGroup.addMember(user);
         root.commit();

@@ -102,19 +102,19 @@ public class UserUtilTest {
 
     @Test
     public void testIsMemberOfAnAdministratorGroup() throws RepositoryException {
-        ConfigurationParameters config = ConfigurationParameters.of(UserConstants.ADMINISTRATOR_GROUPS_CONFIG_ID, "administrators");
+        ConfigurationParameters config = ConfigurationParameters.of(UserConstants.PARAM_IMPERSONATOR_GROUPS_ID, "administrators");
 
         Set<Group> groupsWithAdministrators = new HashSet<>(Arrays.asList(
                 getMockGroupWithId("group1"),
                 getMockGroupWithId("administrators")));
         when(authorizableMock.declaredMemberOf()).thenReturn(groupsWithAdministrators.iterator());
-        assertTrue(UserUtil.isMemberOfAnAdministratorGroup(authorizableMock, config));
+        assertTrue(UserUtil.isMemberOfAnImpersonatorGroup(authorizableMock, config));
 
         Set<Group> groupsWithNoAdministrators = new HashSet<>(Arrays.asList(
                 getMockGroupWithId("group1"),
                 getMockGroupWithId("group2")));
         when(authorizableMock.declaredMemberOf()).thenReturn(groupsWithNoAdministrators.iterator());
-        assertFalse(UserUtil.isMemberOfAnAdministratorGroup(authorizableMock, config));
+        assertFalse(UserUtil.isMemberOfAnImpersonatorGroup(authorizableMock, config));
     }
 
     @Test

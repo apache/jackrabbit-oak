@@ -190,14 +190,14 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testImpersonationByAdministrator() throws Exception {
+    public void testImpersonationByAdministratorGroupMember() throws Exception {
         String impersonatedUsername = "impersonated_user";
         String impersonatedPassword = "impersonated_password";
         getUserManager(root).createUser(impersonatedUsername, impersonatedPassword);
         UserAuthentication impersonatedAuthentication = new UserAuthentication(getUserConfiguration(), root, impersonatedUsername);
         SimpleCredentials sc = new SimpleCredentials(impersonatedUsername, impersonatedPassword.toCharArray());
 
-        Group administratorGroup = getUserManager(root).createGroup(UserConstants.DEFAULT_ADMINISTRATORS_GROUP);
+        Group administratorGroup = getUserManager(root).createGroup(UserConstants.DEFAULT_IMPERSONATOR_GROUP);
         administratorGroup.addMember(getTestUser());
         root.commit();
         assertTrue(impersonatedAuthentication.authenticate(new ImpersonationCredentials(sc, mockAuthInfo(userId))));
