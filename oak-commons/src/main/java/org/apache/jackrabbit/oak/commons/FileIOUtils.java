@@ -16,6 +16,22 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static java.io.File.createTempFile;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.io.IOUtils.copyLarge;
+import static org.apache.commons.io.LineIterator.closeQuietly;
+import static org.apache.jackrabbit.guava.common.io.Closeables.close;
+import static org.apache.jackrabbit.guava.common.io.FileWriteMode.APPEND;
+import static org.apache.jackrabbit.guava.common.io.Files.asByteSink;
+import static org.apache.jackrabbit.guava.common.io.Files.move;
+import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
+import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
+import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.sortInBatch;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
@@ -26,38 +42,21 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.io.Closeables.close;
-import static com.google.common.io.FileWriteMode.APPEND;
-import static com.google.common.io.Files.asByteSink;
-import static com.google.common.io.Files.move;
-import static com.google.common.io.Files.newWriter;
-import static java.io.File.createTempFile;
-import static org.apache.commons.io.FileUtils.forceDelete;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.commons.io.IOUtils.copyLarge;
-import static org.apache.commons.io.LineIterator.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
-import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
-import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.sortInBatch;
 
 /**
  * Simple File utils
@@ -291,11 +290,11 @@ public final class FileIOUtils {
      */
     public static Set<String> readStringsAsSet(InputStream stream, boolean unescape) throws IOException {
         BufferedReader reader = null;
-        Set<String> set = newHashSet();
+        Set<String> set = new HashSet<>();
         boolean threw = true;
 
         try {
-            reader = new BufferedReader(new InputStreamReader(stream, Charsets.UTF_8));
+            reader = new BufferedReader(new InputStreamReader(stream, UTF_8));
             String line  = null;
             while ((line = reader.readLine()) != null) {
                 if (unescape) {

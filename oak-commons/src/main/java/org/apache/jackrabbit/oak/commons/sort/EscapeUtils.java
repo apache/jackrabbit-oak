@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.commons.sort;
 
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import org.jetbrains.annotations.Nullable;
 

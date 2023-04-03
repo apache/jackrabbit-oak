@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import static com.google.common.collect.Sets.newHashSet;
-
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -497,8 +496,8 @@ public final class PathUtils {
      * @param excludedPaths set of paths to be excluded
      */
     public static void unifyInExcludes(Set<String> includePaths, Set<String> excludedPaths) {
-        Set<String> retain = newHashSet();
-        Set<String> includesRemoved = newHashSet();
+        Set<String> retain = new HashSet<>();
+        Set<String> includesRemoved = new HashSet<>();
         for (String include : includePaths) {
             for (String exclude : excludedPaths) {
                 if (exclude.equals(include) || isAncestor(exclude, include)) {
