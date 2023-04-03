@@ -21,6 +21,7 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -133,7 +134,8 @@ public class VersionCopier {
                 VersionComparator versionComparator = new VersionComparator();
 
                 // version history id not equal
-                boolean conflictingVersionHistory = !targetVersionHistory.getString(JCR_UUID).equals(sourceVersionHistory.getString(JCR_UUID));
+                boolean conflictingVersionHistory =
+                     !Objects.equals(targetVersionHistory.getString(JCR_UUID), sourceVersionHistory.getString(JCR_UUID));
                 if (conflictingVersionHistory) {
                     logger.info("Skipping version history for {}: Conflicting version history found",
                         versionHistoryPath);
@@ -164,7 +166,8 @@ public class VersionCopier {
 
                 // highest source version UUID does not match the corresponding version on target (diverged)
                 boolean conflictingHighestVersion =
-                    !sourceVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID).equals(targetVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID));
+                    !Objects.equals(sourceVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID), 
+                        targetVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID));
                 if (conflictingHighestVersion) {
                     logger.info("Skipping version history for {}: Old base version id changed", versionHistoryPath);
                     return false;
@@ -174,6 +177,9 @@ public class VersionCopier {
         return true;
     }
 
+    /**
+     * Descending numeric versions comparator
+     */
     static class VersionComparator implements Comparator<String> {
         @Override
         public int compare(String v1, String v2) {

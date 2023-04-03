@@ -29,7 +29,6 @@ import java.util.stream.StreamSupport;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -50,7 +49,19 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.JcrConstants.*;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_ROOTVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUCCESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT_FROZEN_NODE_REFERENCEABLE;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.commit;
@@ -467,7 +478,7 @@ public class VersionCopierTest {
         String successorVersionId = successorVersionNode.getString(JCR_UUID);
         Set<String> successors = new HashSet<>();
         successors.add(successorVersionId);
-        rootVersionNode.setProperty(JcrConstants.JCR_SUCCESSORS, successors, Type.REFERENCES);
+        rootVersionNode.setProperty(JCR_SUCCESSORS, successors, Type.REFERENCES);
 
         Set<String> predecessors = new HashSet<>();
         predecessors.add(rootVersionId);
