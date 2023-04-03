@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -181,11 +181,12 @@ public class NodeStateCopier {
     }
     
     private static Set<String> getValues(NodeState nodeState, String prop) {
-        if (nodeState.hasProperty(prop)) {
-            Iterable<String> values = nodeState.getProperty(prop).getValue(Type.STRINGS);
+        PropertyState ps = nodeState.getProperty(prop);
+        if (ps != null) {
+            Iterable<String> values = ps.getValue(Type.STRINGS);
             return StreamSupport.stream(values.spliterator(), false).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
         }
-        return new HashSet<>();
+        return Collections.emptySet();
     }
     
     private static boolean isVersionPropertyEmpty(NodeState source, PropertyState property, boolean preserveOnTarget,
