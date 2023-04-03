@@ -45,6 +45,7 @@
         <include>org.apache.jackrabbit:jackrabbit-data</include>
         <include>org.apache.jackrabbit:oak-api</include>
         <include>org.apache.jackrabbit:oak-jackrabbit-api</include>
+        <include>org.apache.jackrabbit:oak-shaded-guava</include>
         <include>org.apache.jackrabbit:oak-commons</include>
         <include>org.apache.jackrabbit:oak-core</include>
         <include>org.apache.jackrabbit:oak-store-composite</include>
