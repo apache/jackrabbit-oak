@@ -65,14 +65,15 @@ public class Downloader implements Closeable {
     private final long retryInitialInterval;
     private final boolean failOnError;
     private final String checksumAlgorithm;
+    private final int bufferSize;
     private final List<Future<ItemResponse>> responses;
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
-        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000, null);
+        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000, null, 8192);
     }
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int maxRetries, long retryInitialInterval,
-                      boolean failOnError, int slowLogThreshold, String checksumAlgorithm) {
+                      boolean failOnError, int slowLogThreshold, String checksumAlgorithm, int bufferSize) {
         if (concurrency <= 0 || concurrency > 1000) {
             throw new IllegalArgumentException("concurrency range must be between 1 and 1000");
         }
@@ -100,6 +101,7 @@ public class Downloader implements Closeable {
         } else {
             this.checksumAlgorithm = null;
         }
+        this.bufferSize = bufferSize;
 
         this.executorService = new ThreadPoolExecutor(
                 (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
@@ -161,14 +163,14 @@ public class Downloader implements Closeable {
             long t0 = System.nanoTime();
 
             URLConnection sourceUrl = new URL(item.source).openConnection();
-            sourceUrl.setConnectTimeout(Downloader.this.connectTimeoutMs);
-            sourceUrl.setReadTimeout(Downloader.this.readTimeoutMs);
+            sourceUrl.setConnectTimeout(connectTimeoutMs);
+            sourceUrl.setReadTimeout(readTimeoutMs);
 
             // Updating a MessageDigest from multiple threads is not thread safe, so we cannot reuse a single instance.
             // Creating a new instance is a lightweight operation, no need to increase complexity by creating a pool.
             MessageDigest md = null;
-            if (Downloader.this.checksumAlgorithm != null && item.checksum != null) {
-                md = MessageDigest.getInstance(Downloader.this.checksumAlgorithm);
+            if (checksumAlgorithm != null && item.checksum != null) {
+                md = MessageDigest.getInstance(checksumAlgorithm);
             }
 
             Path destinationPath = Paths.get(item.destination);
@@ -176,7 +178,7 @@ public class Downloader implements Closeable {
             long size = 0;
             try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
                  FileChannel outputChannel = FileChannel.open(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
-                ByteBuffer buffer = ByteBuffer.allocate(1024);
+                ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
                 int bytesRead;
                 while ((bytesRead = byteChannel.read(buffer)) != -1) {
                     buffer.flip();
