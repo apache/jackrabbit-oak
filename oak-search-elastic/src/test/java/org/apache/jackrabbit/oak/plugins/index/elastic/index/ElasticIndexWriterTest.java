@@ -63,7 +63,7 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void singleUpdateDocument() {
+    public void singleUpdateDocument() throws IOException {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
 
         ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
@@ -75,7 +75,7 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void singleDeleteDocument() {
+    public void singleDeleteDocument() throws IOException {
         indexWriter.deleteDocuments("/bar");
 
         ArgumentCaptor<DeleteRequest> acDeleteRequest = ArgumentCaptor.forClass(DeleteRequest.class);
@@ -87,7 +87,7 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void multiRequests() {
+    public void multiRequests() throws IOException {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
         indexWriter.updateDocument("/bar", new ElasticDocument("/bar"));
         indexWriter.deleteDocuments("/foo");
@@ -98,7 +98,7 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void longDocumentPath() {
+    public void longDocumentPath() throws IOException {
         String generatedPath = randomString(1024);
 
         indexWriter.updateDocument(generatedPath, new ElasticDocument(generatedPath));

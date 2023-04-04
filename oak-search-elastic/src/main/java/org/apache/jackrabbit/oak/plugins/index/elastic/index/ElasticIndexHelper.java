@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import co.elastic.clients.elasticsearch._types.Time;
+import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
@@ -35,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -71,6 +73,11 @@ class ElasticIndexHelper {
 
     private static ObjectBuilder<TypeMapping> loadMappings(@NotNull TypeMapping.Builder builder,
                                                            @NotNull ElasticIndexDefinition indexDefinition) {
+        builder.dynamic(Arrays
+                .stream(DynamicMapping.values())
+                .filter(dm -> dm.jsonValue().equals(indexDefinition.dynamicMapping))
+                .findFirst().orElse(DynamicMapping.True)
+        );
         mapInternalProperties(builder);
         mapIndexRules(builder, indexDefinition);
         return builder;

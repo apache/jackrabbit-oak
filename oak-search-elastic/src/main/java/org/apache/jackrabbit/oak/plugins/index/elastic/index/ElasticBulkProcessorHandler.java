@@ -18,10 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -45,6 +43,7 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -81,9 +80,9 @@ class ElasticBulkProcessorHandler {
     private final Phaser phaser = new Phaser(1); // register main controller
 
     /**
-     * IOException object wrapping any error/exception which occurred while trying to update index in elasticsearch.
+     * Exceptions occurred while trying to update index in elasticsearch
      */
-    private volatile IOException ioException;
+    private final ConcurrentLinkedQueue<Throwable> suppressedExceptions = new ConcurrentLinkedQueue<>();
 
     /**
      * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids, the boolean
@@ -156,12 +155,23 @@ class ElasticBulkProcessorHandler {
                 .build();
     }
 
+    private void checkFailures() throws IOException {
+        if (suppressedExceptions.size() > 0) {
+            IOException ioe = new IOException("Exception while indexing. See suppressed for details");
+            suppressedExceptions.forEach(ioe::addSuppressed);
+            throw ioe;
+        }
+    }
+
     protected BiConsumer<BulkRequest, ActionListener<BulkResponse>> requestConsumer() {
         // TODO: migrate to ES Java client https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/indexing-bulk.html
         return (request, bulkListener) -> elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
     }
 
-    public void add(DocWriteRequest<?> request) {
+    public void add(DocWriteRequest<?> request) throws IOException {
+        // fail fast: we don't want to wait until the processor gets closed to fail
+        checkFailures();
+
         bulkProcessor.add(request);
         totalOperations++;
     }
@@ -187,9 +197,7 @@ class ElasticBulkProcessorHandler {
             }
         }
 
-        if (ioException != null) {
-            throw ioException;
-        }
+        checkFailures();
 
         if (LOG.isTraceEnabled()) {
             LOG.trace("Bulk identifier -> update status = {}", updatesMap);
@@ -246,6 +254,9 @@ class ElasticBulkProcessorHandler {
                 for (BulkItemResponse bulkItemResponse : bulkResponse) {
                     if (bulkItemResponse.isFailed()) {
                         BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
+                        if (indexDefinition.failOnError && failure.getCause() != null) {
+                            suppressedExceptions.add(failure.getCause());
+                        }
                         if (!isFailedDocSetFull && failedDocSet.size() < FAILED_DOC_COUNT_FOR_STATUS_NODE) {
                             failedDocSet.add(bulkItemResponse.getId());
                         } else {
@@ -276,7 +287,7 @@ class ElasticBulkProcessorHandler {
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
             LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, throwable);
-            ElasticBulkProcessorHandler.this.ioException = new IOException(throwable);
+            suppressedExceptions.add(throwable);
             phaser.arriveAndDeregister();
         }
     }
