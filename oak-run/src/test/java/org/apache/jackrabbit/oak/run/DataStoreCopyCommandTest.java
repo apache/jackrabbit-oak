@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
@@ -39,6 +38,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
@@ -52,9 +54,15 @@ public class DataStoreCopyCommandTest {
     @ClassRule
     public static AzuriteDockerRule AZURITE = new AzuriteDockerRule();
 
-    private static final String BLOB1 = "8897-b9025dc534d4a9fa5920569b373cd714c8cfe5d030ca3f5edb25004894a5";
-    private static final String BLOB2 = "c1f0-8893512e1e00910a9caff05487805632031f15a0bd8ee869c9205da59cb8";
-    private static final ImmutableSet<String> BLOBS = ImmutableSet.of(BLOB1, BLOB2);
+    private static final String BLOB1 = "290F-493C44F5D63D06B374D0A5ABD292FAE38B92CAB2FAE5EFEFE1B0E9347F56";
+    private static final String BLOB2 = "F73F-16EDE021D01EFECF627B5E658BE52293F167CFE06C6B8D0E591CB25B68C9";
+    private static final String BLOB3 = "A096-9499131919BEED06F508FF848DE3D49C227374702466E22D944EAD6ADB8E";
+
+    private static final Map<String, String> BLOBS_WITH_CONTENT = Map.of(
+            BLOB1, "some content",
+            BLOB2, "some other content",
+            BLOB3, "content with different checksum"
+    );
 
     @Rule
     public TemporaryFolder outDir = new TemporaryFolder(new File("target"));
@@ -120,13 +128,14 @@ public class DataStoreCopyCommandTest {
         assertTrue(thirdNode.exists() && thirdNode.isDirectory());
         File blob = new File(thirdNode, blobName);
         assertTrue(blob.exists() && blob.isFile());
-        assertEquals(BLOB1, IOUtils.toString(blob.toURI(), StandardCharsets.UTF_8));
+        assertEquals(BLOBS_WITH_CONTENT.get(BLOB1), IOUtils.toString(blob.toURI(), StandardCharsets.UTF_8));
     }
 
     @Test
     public void allBlobsWithFileIncludePath() throws Exception {
         Path blobs = Files.createTempFile("blobs", "txt");
-        IOUtils.write(BLOB1 + "\n" + BLOB2, Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
+        IOUtils.write(String.join("\n", BLOBS_WITH_CONTENT.keySet()),
+                Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
@@ -140,14 +149,15 @@ public class DataStoreCopyCommandTest {
         );
 
         try (Stream<Path> files = Files.walk(outDir.getRoot().toPath()).filter(p -> p.toFile().isFile())) {
-            assertEquals(2, files.count());
+            assertEquals(3, files.count());
         }
     }
 
     @Test
     public void allBlobsPlusMissingOne() throws Exception {
         Path blobs = Files.createTempFile("blobs", "txt");
-        IOUtils.write(BLOB1 + "\n" + BLOB2 + "\n" + "foo", Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
+        IOUtils.write(String.join("\n", BLOBS_WITH_CONTENT.keySet()) + "\n" + "foo",
+                Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
@@ -161,7 +171,7 @@ public class DataStoreCopyCommandTest {
         );
 
         try (Stream<Path> files = Files.walk(outDir.getRoot().toPath()).filter(p -> p.toFile().isFile())) {
-            assertEquals(2, files.count());
+            assertEquals(3, files.count());
         }
     }
 
@@ -185,7 +195,8 @@ public class DataStoreCopyCommandTest {
     @Test
     public void allBlobsPlusMissingOneWithFailOnError() throws Exception {
         Path blobs = Files.createTempFile("blobs", "txt");
-        IOUtils.write(BLOB1 + "\n" + BLOB2 + "\n" + "foo", Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
+        IOUtils.write(String.join("\n", BLOBS_WITH_CONTENT.keySet()) + "\n" + "foo",
+                Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         assertThrows(RuntimeException.class, () -> cmd.execute(
                 "--source-repo",
@@ -212,16 +223,63 @@ public class DataStoreCopyCommandTest {
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         );
-        assertEquals(Joiner.on(File.separator).join(outDir.getRoot().getAbsolutePath(), "88",
-                        "97", "b9","8897b9025dc534d4a9fa5920569b373cd714c8cfe5d030ca3f5edb25004894a5"),
+        assertEquals(Joiner.on(File.separator).join(outDir.getRoot().getAbsolutePath(), "29",
+                        "0F", "49","290F493C44F5D63D06B374D0A5ABD292FAE38B92CAB2FAE5EFEFE1B0E9347F56"),
                 cmd.getDestinationFromId(BLOB1)
         );
     }
 
+    @Test
+    public void allBlobsWithBogusChecksumAlgorithm() throws Exception {
+        Path blobs = Files.createTempFile("blobs", "txt");
+        IOUtils.write(String.join("\n", BLOBS_WITH_CONTENT.keySet()),
+                Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
+        DataStoreCopyCommand cmd = new DataStoreCopyCommand();
+        assertThrows(RuntimeException.class, () -> cmd.execute(
+                "--source-repo",
+                container.getUri().toURL().toString(),
+                "--file-include-path",
+                blobs.toString(),
+                "--sas-token",
+                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                "--out-dir",
+                outDir.getRoot().getAbsolutePath(),
+                "--checksum",
+                "SHA-foo"
+        ));
+    }
+
+    @Test
+    public void allBlobsWithChecksum() throws Exception {
+        Path blobs = Files.createTempFile("blobs", "txt");
+        IOUtils.write(String.join("\n", BLOBS_WITH_CONTENT.keySet()),
+                Files.newOutputStream(blobs.toFile().toPath()), StandardCharsets.UTF_8);
+        DataStoreCopyCommand cmd = new DataStoreCopyCommand();
+        cmd.execute(
+                "--source-repo",
+                container.getUri().toURL().toString(),
+                "--file-include-path",
+                blobs.toString(),
+                "--sas-token",
+                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                "--out-dir",
+                outDir.getRoot().getAbsolutePath(),
+                "--checksum",
+                "SHA-256"
+        );
+
+        try (Stream<Path> files = Files.walk(outDir.getRoot().toPath()).filter(p -> p.toFile().isFile())) {
+            assertEquals(
+                    Set.of(Path.of(cmd.getDestinationFromId(BLOB1)).getFileName().toString(),
+                            Path.of(cmd.getDestinationFromId(BLOB2)).getFileName().toString()),
+                    files.map(f -> f.getFileName().toString()).collect(Collectors.toSet()));
+        }
+    }
+
     private CloudBlobContainer createBlobContainer() throws Exception {
         container = AZURITE.getContainer("blobstore");
-        for (String blob : BLOBS) {
-            container.getBlockBlobReference(blob).uploadText(blob);
+        for (Map.Entry<String, String> blob : BLOBS_WITH_CONTENT.entrySet()) {
+            container.getBlockBlobReference(blob.getKey()).uploadText(blob.getValue());
         }
         return container;
     }
