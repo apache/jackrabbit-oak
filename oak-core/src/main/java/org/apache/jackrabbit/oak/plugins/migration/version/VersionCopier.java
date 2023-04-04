@@ -16,10 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.plugins.migration.DescendantsIterator;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
@@ -27,7 +33,12 @@ import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_ROOTVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryBuilder;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
@@ -40,6 +51,8 @@ import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistory
  * given date.
  */
 public class VersionCopier {
+
+    private static final Logger logger = LoggerFactory.getLogger(VersionCopier.class);
 
     private final NodeState sourceVersionStorage;
 
@@ -84,6 +97,7 @@ public class VersionCopier {
     /**
      * Copy history filtering versions using passed date and returns {@code
      * true} if the history has been copied.
+     * If preserveOnTarget is true then only copies non-conflicting versions.
      * 
      * @param versionableUuid
      *            Name of the version history node
@@ -98,7 +112,8 @@ public class VersionCopier {
         final NodeState sourceVersionHistory = getVersionHistoryNodeState(sourceVersionStorage, versionableUuid);
         final Calendar lastModified = getVersionHistoryLastModified(sourceVersionHistory);
 
-        if (sourceVersionHistory.exists() && (lastModified.after(minDate) || minDate.getTimeInMillis() == 0)) {
+        if (sourceVersionHistory.exists() && (lastModified.after(minDate) || minDate.getTimeInMillis() == 0) &&
+            hasNoConflicts(versionHistoryPath, versionableUuid, preserveOnTarget, sourceVersionHistory)) {
             NodeStateCopier.builder()
                     .include(versionHistoryPath)
                     .merge(VERSION_STORE_PATH)
@@ -109,6 +124,77 @@ public class VersionCopier {
             return true;
         }
         return false;
+    }
+
+    private boolean hasNoConflicts(String versionHistoryPath, String versionableUuid, boolean preserveOnTarget, NodeState sourceVersionHistory) {
+        // if preserveOnTarget is true then check no conflicts which means version history has moved forward only
+        if (preserveOnTarget) {
+            NodeBuilder targetVersionHistory = getVersionHistoryBuilder(targetVersionStorage, versionableUuid);
+            if (targetVersionHistory.exists()) {
+                VersionComparator versionComparator = new VersionComparator();
+
+                // version history id not equal
+                boolean conflictingVersionHistory =
+                     !Objects.equals(targetVersionHistory.getString(JCR_UUID), sourceVersionHistory.getString(JCR_UUID));
+                if (conflictingVersionHistory) {
+                    logger.info("Skipping version history for {}: Conflicting version history found",
+                        versionHistoryPath);
+                    return false;
+                }
+
+                // Get the version names except jcr:rootVersion
+                List<String> targetVersions =
+                    StreamSupport.stream(targetVersionHistory.getChildNodeNames().spliterator(), false).filter(s -> !s.equals(JCR_ROOTVERSION) && !s.equals(JCR_VERSIONLABELS))
+                        .sorted(versionComparator).collect(Collectors.toList());
+                List<String> sourceVersions =
+                    StreamSupport.stream(sourceVersionHistory.getChildNodeNames().spliterator(), false).filter(s -> !s.equals(JCR_ROOTVERSION) && !s.equals(JCR_VERSIONLABELS))
+                        .sorted(versionComparator).collect(Collectors.toList());
+                // source version only has a rootVersion which means nothing to update
+                boolean noUpdate = sourceVersions.isEmpty() || targetVersions.containsAll(sourceVersions);
+                if (noUpdate) {
+                    logger.info("Skipping version history for {}: No update required", versionHistoryPath);
+                    return false;
+                }
+
+                // highest source version does not exist on target or
+                // all source versions already exist on target (diverged or no diff)
+                boolean diverged = !targetVersions.contains(sourceVersions.get(0));
+                if (diverged) {
+                    logger.info("Skipping version history for {}: Versions diverged", versionHistoryPath);
+                    return false;
+                }
+
+                // highest source version UUID does not match the corresponding version on target (diverged)
+                boolean conflictingHighestVersion =
+                    !Objects.equals(sourceVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID), 
+                        targetVersionHistory.getChildNode(sourceVersions.get(0)).getString(JCR_UUID));
+                if (conflictingHighestVersion) {
+                    logger.info("Skipping version history for {}: Old base version id changed", versionHistoryPath);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Descending numeric versions comparator
+     */
+    static class VersionComparator implements Comparator<String> {
+        @Override
+        public int compare(String v1, String v2) {
+            String[] v1Seg = v1.split("\\.");
+            String[] v2Seg = v2.split("\\.");
+            Iterator<String> i1 = Arrays.asList(v1Seg).iterator();
+            Iterator<String> i2 = Arrays.asList(v2Seg).iterator();
+            while (i1.hasNext() && i2.hasNext()) {
+                int cmp = Integer.compare(Integer.parseInt(i2.next()), Integer.parseInt(i1.next()));
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return Integer.compare(v2Seg.length, v1Seg.length);
+        }
     }
 
     private static final class IsFrozenNodeReferenceable implements Supplier<Boolean> {
