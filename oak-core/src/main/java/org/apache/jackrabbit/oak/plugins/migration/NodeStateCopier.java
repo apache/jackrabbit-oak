@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -32,8 +34,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.copyOf;
@@ -145,28 +150,73 @@ public class NodeStateCopier {
      *
      * @param source The NodeState to copy from.
      * @param target The NodeBuilder to copy to.
+     * @param preserveOnTarget boolean to indicate no changes on target except additions
+     * @param path current path
      * @return Whether changes were made or not.
      */
-    public static boolean copyProperties(NodeState source, NodeBuilder target) {
+    public static boolean copyProperties(NodeState source, NodeBuilder target, boolean preserveOnTarget, String path) {
         boolean hasChanges = false;
 
         // remove removed properties
-        for (final PropertyState property : target.getProperties()) {
-            final String name = property.getName();
-            if (!source.hasProperty(name)) {
-                target.removeProperty(name);
-                hasChanges = true;
+        if (!preserveOnTarget) {
+            for (final PropertyState property : target.getProperties()) {
+                final String name = property.getName();
+                if (!source.hasProperty(name)) {
+                    target.removeProperty(name);
+                    hasChanges = true;
+                }
             }
         }
 
         // add new properties and change changed properties
         for (PropertyState property : source.getProperties()) {
             if (!property.equals(target.getProperty(property.getName()))) {
-                target.setProperty(property);
-                hasChanges = true;
+                if (!isVersionPropertyEmpty(source, property, preserveOnTarget, path)) {
+                    target.setProperty(property);
+                    hasChanges = true;
+                }
             }
         }
         return hasChanges;
+    }
+    
+    private static Set<String> getValues(NodeState nodeState, String prop) {
+        PropertyState ps = nodeState.getProperty(prop);
+        if (ps != null) {
+            Iterable<String> values = ps.getValue(Type.STRINGS);
+            return StreamSupport.stream(values.spliterator(), false).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+        }
+        return Collections.emptySet();
+    }
+    
+    private static boolean isVersionPropertyEmpty(NodeState source, PropertyState property, boolean preserveOnTarget,
+        String path) {
+        if (preserveOnTarget) {
+            if (property.getName().equals(JcrConstants.JCR_UUID) || 
+                property.getName().equals(JcrConstants.JCR_SUCCESSORS) || 
+                property.getName().equals(JcrConstants.JCR_PREDECESSORS)) {
+                boolean versionPropertyEmpty = getValues(source, property.getName()).isEmpty();
+                if (versionPropertyEmpty) {
+                    LOG.info("Version Property {} will be skipped for path {}", property.getName(), path);
+                } else {
+                    LOG.info("Version Property {} will be changed for path {}", property.getName(), path);
+                }
+                return versionPropertyEmpty;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Copies all changed properties from the source NodeState to the target
+     * NodeBuilder instance.
+     *
+     * @param source The NodeState to copy from.
+     * @param target The NodeBuilder to copy to.
+     * @return Whether changes were made or not.
+     */
+    public static boolean copyProperties(NodeState source, NodeBuilder target) {
+        return copyProperties(source, target, false, "");
     }
 
     private boolean copyNodeState(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
@@ -234,8 +284,8 @@ public class NodeStateCopier {
             }
         }
 
-        hasChanges = copyProperties(source, target) || hasChanges;
-
+        hasChanges = copyProperties(source, target, preserveOnTarget, currentPath) || hasChanges;
+        
         if (hasChanges) {
             LOG.trace("Node {} has changes", target);
         }
