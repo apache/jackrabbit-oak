@@ -22,8 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 /**
  * Format a time duration as human-readable string, inspired by
@@ -41,7 +40,7 @@ public class TimeDurationFormatter {
     private static Map<TimeUnit, String> DISPLAYUNIT_ASCII;
 
     static {
-        HashMap<TimeUnit, String> t = Maps.newHashMap();
+        HashMap<TimeUnit, String> t = new HashMap<>();
         t.put(TimeUnit.DAYS, "d");
         t.put(TimeUnit.HOURS, "h");
         t.put(TimeUnit.MINUTES, "min");
@@ -50,7 +49,7 @@ public class TimeDurationFormatter {
         t.put(TimeUnit.MICROSECONDS, "us");
         t.put(TimeUnit.NANOSECONDS, "ns");
         DISPLAYUNIT_ASCII = Collections.unmodifiableMap(t);
-        t = Maps.newHashMap(t);
+        t = new HashMap<>(t);
         // Unicode "MICRO SIGN"
         t.put(TimeUnit.MICROSECONDS, "\u00b5s");
         DISPLAYUNIT = Collections.unmodifiableMap(t);

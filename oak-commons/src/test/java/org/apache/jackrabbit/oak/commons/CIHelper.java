@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.commons;
 
-import static com.google.common.base.Objects.equal;
+import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getenv;
 
-import com.google.common.base.StandardSystemProperty;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 
 /**
  * Utility class for ITs to determine the environment running in.
