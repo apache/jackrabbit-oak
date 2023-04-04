@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.io.Files;
-import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -39,6 +38,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.function.Function;
 
-import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -470,7 +470,7 @@ public class ExternalSortTest {
         Collections.shuffle(testLines);
 
         Comparator<TestLine> cmp = Comparator.naturalOrder();
-        Charset charset = Charsets.UTF_8;
+        Charset charset = StandardCharsets.UTF_8;
 
         Function<String, TestLine> stringToType = line -> line != null ? new TestLine(line) : null;
         Function<TestLine, String> typeToString = tl -> tl != null ? tl.line : null;

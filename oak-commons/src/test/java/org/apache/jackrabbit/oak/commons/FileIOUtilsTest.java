@@ -18,6 +18,26 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.union;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.lineBreakAwareComparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -39,36 +59,16 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.union;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.lineBreakAwareComparator;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 
 /**
