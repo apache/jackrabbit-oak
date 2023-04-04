@@ -140,16 +140,32 @@ public class MongoDBExceptionTest {
     @Test
     public void createOrUpdate16MBDoc() {
 
-        UpdateOp updateOp = new UpdateOp("/", true);
+        UpdateOp updateOp = new UpdateOp("/foo", true);
         updateOp = create16MBProp(updateOp);
-
-        exceptionMsg = "Document to upsert is larger than 1677721";
-        setExceptionMsg();
+        exceptionMsg = "Document to upsert is larger than 16777216";
         try {
-           store.createOrUpdate(Collection.NODES, updateOp);
-           fail("DocumentStoreException expected");
+            store.createOrUpdate(Collection.NODES, updateOp);
+            fail("DocumentStoreException expected");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
+        }
+    }
+
+    @Test
+    public void update16MBDoc() {
+
+        String docName = "/foo";
+        UpdateOp updateOp = new UpdateOp(docName, true);
+        updateOp = create1MBProp(updateOp);
+        store.createOrUpdate(Collection.NODES, updateOp);
+        updateOp = create16MBProp(updateOp);
+        exceptionMsg = "Resulting document after update is larger than 16777216";
+        try {
+            store.createOrUpdate(Collection.NODES, updateOp);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertThat(e.getMessage(), containsString(docName));
         }
     }
 
@@ -157,20 +173,20 @@ public class MongoDBExceptionTest {
     public void multiCreateOrUpdate16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
-        UpdateOp updateOp = new UpdateOp("/", true);
-        updateOp = create1MBProp(updateOp);
-        UpdateOp updateOp1 = new UpdateOp("/", true);
-        updateOp1 = create1MBProp(updateOp1);
 
-        updateOps.add(updateOp);
-        updateOps.add(updateOp1);
+        UpdateOp op = new UpdateOp("/test", true);
+        op = create1MBProp(op);
 
-        store.createOrUpdate(Collection.NODES, updateOps);
-        updateOp1 = create16MBProp(updateOp1);
-        updateOps.add(updateOp1);
+        store.createOrUpdate(Collection.NODES, op);
 
+        UpdateOp op1 = new UpdateOp("/foo", true);
+        op1 = create16MBProp(op1);
+
+        // Updating both doc with 16MB
+        op = create16MBProp(op);
+        updateOps.add(op);
+        updateOps.add(op1);
         exceptionMsg = "Resulting document after update is larger than 16777216";
-        setExceptionMsg();
 
         try {
             store.createOrUpdate(Collection.NODES, updateOps);
@@ -185,20 +201,17 @@ public class MongoDBExceptionTest {
 
         List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
 
-        UpdateOp op1 = new UpdateOp("/", true);
+        UpdateOp op1 = new UpdateOp("/test", true);
         op1 = create1MBProp(op1);
 
-        UpdateOp op2 = new UpdateOp("/", false);
+        UpdateOp op2 = new UpdateOp("/foo", false);
+        op2 = create1MBProp(op2);
         op2 = create16MBProp(op2);
 
         updateOps.add(op1);
         updateOps.add(op2);
-        /*more than 16MB*/
-        op2 = create1MBProp(op2);
-        updateOps.add(op2);
-
+        String id = op2.getId();
         exceptionMsg = "Payload document size is larger than maximum of 16777216.";
-        setExceptionMsg();
         try {
             store.create(Collection.NODES, updateOps);
             fail("DocumentStoreException expected");
@@ -209,20 +222,17 @@ public class MongoDBExceptionTest {
 
     @Test
     public void findAndUpdate16MBDoc() throws Exception {
-        UpdateOp op = new UpdateOp("/", true);
-        create1MBProp(op);
+        UpdateOp op = new UpdateOp("/foo", true);
+        op = create1MBProp(op);
         store.createOrUpdate(Collection.NODES, op);
-
-        UpdateOp op1 = new UpdateOp("/", false);
-        create16MBProp(op1);
+        op = create16MBProp(op);
         exceptionMsg = "Resulting document after update is larger than 16777216";
-        setExceptionMsg();
         try {
-            store.findAndUpdate(Collection.NODES, op1);
+            store.findAndUpdate(Collection.NODES, op);
             fail("DocumentStoreException expected");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
-        }
+       }
 
     }
 

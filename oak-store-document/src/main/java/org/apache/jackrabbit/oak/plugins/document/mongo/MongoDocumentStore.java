@@ -164,7 +164,7 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * Document size of 16MB is a limit in Mongo
      */
-    public static final long SIZE_LIMIT = 16777216;
+    private static final long SIZE_LIMIT = 16777216;
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
@@ -1035,7 +1035,6 @@ public class MongoDocumentStore implements DocumentStore {
         }
         final Stopwatch watch = startWatch();
         boolean newEntry = false;
-        Throwable t = null;
         try {
             // get modCount of cached document
             Long modCount = null;
@@ -1074,8 +1073,9 @@ public class MongoDocumentStore implements DocumentStore {
                             }
                         }, collection);
                     } catch (MongoWriteException e) {
-                        WriteError error = e.getError();
-                        LOG.warn(e.getMessage(), updateOp.getId());
+                        WriteError werr = e.getError();
+                        LOG.error("Failed to update the document with Id={} and size={} with error message '{}'",
+                                updateOp.getId(), updateOp.toString().length(), werr.getMessage());
                         throw handleException(e, collection, updateOp.getId());
                     }
                     if (result.getModifiedCount() > 0) {
@@ -1104,9 +1104,11 @@ public class MongoDocumentStore implements DocumentStore {
                         return dbCollection.findOneAndUpdate(query, update, options);
                     }
                 }, collection);
-            } catch (MongoWriteException e) {
-                WriteError error = e.getError();
-                LOG.warn(e.getMessage(), updateOp.getId(), updateOp.getConditions(), oldNode.size());
+            } catch (MongoCommandException e) {
+                LOG.error("Failed to update the document with Id={} has size={} " +
+                                "with error message '{}'",
+                                updateOp.getId(), updateOp.toString().length(),
+                                SIZE_LIMIT, e.getMessage());
                 throw handleException(e, collection, updateOp.getId());
             }
             if (oldNode == null && upsert) {
@@ -1137,13 +1139,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return oldDoc;
-        } catch (MongoCommandException e) {
-            LOG.warn(e.getMessage(), updateOp.getId(), updateOp.getConditions());
-            throw handleException(e, collection, updateOp.getId());
-        } catch (BsonMaximumSizeExceededException e){
-            LOG.warn(e.getMessage(), updateOp.getId());
-            throw handleException(e, collection, updateOp.getId());
-        } catch(Exception e){
+        } catch (Exception e) {
             throw handleException(e, collection, updateOp.getId());
         } finally {
             if (lock != null) {
@@ -1501,18 +1497,11 @@ public class MongoDocumentStore implements DocumentStore {
                 return true;
             } catch (BsonMaximumSizeExceededException e) {
                 for (T doc : docs) {
-                    if (doc.toString().length() > SIZE_LIMIT) {
-                        LOG.error("The document with Id={} has size={} is greater than the size limit",
-                                doc.getId(), doc.toString().length(), e.getMessage());
-                    }
-                }
-                throw handleException(e, collection, Document.ID);
-            }
-            catch (MongoException e) {
-                for (T doc : docs) {
-                    if (doc.toString().length() > SIZE_LIMIT) {
-                        LOG.error("The document with Id={} has size={} is greater than the size limit",
-                                doc.getId(), doc.toString().length(), e.getMessage());
+                    // doc.getMemory()/2 - converting from UTF-16 to UTF-8
+                    if (doc.getMemory()/2 > SIZE_LIMIT) {
+                        LOG.error("Failed to create the document with Id={} has size={}" +
+                                        " with error message '{}",
+                                doc.getId(), doc.getMemory()/2, SIZE_LIMIT, e.getMessage());
                     }
                 }
                 throw handleException(e, collection, Document.ID);
@@ -1915,7 +1904,7 @@ public class MongoDocumentStore implements DocumentStore {
         BasicDBObject maxUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
-
+        // always increment modCount
         updateOp.increment(Document.MOD_COUNT, 1);
 
         // other updates
