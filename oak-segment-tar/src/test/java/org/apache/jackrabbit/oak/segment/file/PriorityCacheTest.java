@@ -28,10 +28,11 @@ import static org.junit.Assume.assumeTrue;
 
 import java.util.Random;
 
-import com.google.common.base.Predicate;
-import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.junit.Test;
+
+import com.google.common.base.Predicate;
 
 public class PriorityCacheTest {
 

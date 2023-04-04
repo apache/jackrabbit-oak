@@ -23,9 +23,9 @@ import java.util.concurrent.ExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.junit.Test;
 
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.RemovalCause;
-import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 
 /**
  * Test the maximum cache size (for the FileCache).

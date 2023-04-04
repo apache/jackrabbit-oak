@@ -16,29 +16,28 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newTreeMap;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.getFilter;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
@@ -59,15 +58,15 @@ public class OsgiWhiteboard implements Whiteboard {
     private final BundleContext context;
 
     public OsgiWhiteboard(@NotNull BundleContext context) {
-        this.context = checkNotNull(context);
+        this.context = Objects.requireNonNull(context);
     }
 
     @Override
     public <T> Registration register(
             final Class<T> type, final T service, Map<?, ?> properties) {
-        checkNotNull(type);
-        checkNotNull(service);
-        checkNotNull(properties);
+        Objects.requireNonNull(type);
+        Objects.requireNonNull(service);
+        Objects.requireNonNull(properties);
         checkArgument(type.isInstance(service));
 
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
@@ -113,13 +112,13 @@ public class OsgiWhiteboard implements Whiteboard {
     }
 
     private <T> Tracker<T> track(Class<T> type, Filter filter) {
-        checkNotNull(type);
+        Objects.requireNonNull(type);
         final AtomicReference<List<T>> list =
                 new AtomicReference<List<T>>(Collections.<T>emptyList());
         final ServiceTrackerCustomizer customizer =
                 new ServiceTrackerCustomizer() {
                     private final Map<ServiceReference, T> services =
-                            newHashMap();
+                            new HashMap<>();
                     @Override @SuppressWarnings("unchecked")
                     public synchronized Object addingService(
                             ServiceReference reference) {
@@ -186,9 +185,9 @@ public class OsgiWhiteboard implements Whiteboard {
             return singletonList(
                     services.values().iterator().next());
         default:
-            SortedMap<ServiceReference, T> sorted = newTreeMap();
+            SortedMap<ServiceReference, T> sorted = new TreeMap<>();
             sorted.putAll(services);
-            return newArrayList(sorted.values());
+            return new ArrayList<>(sorted.values());
         }
     }
 

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -25,16 +27,14 @@ import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-import com.google.common.cache.AbstractCache;
-import com.google.common.cache.CacheLoader;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.guava.common.cache.AbstractCache;
+import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 /**
  */

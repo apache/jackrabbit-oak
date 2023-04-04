@@ -25,8 +25,7 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.component.ComponentContext;
 
 import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.Objects;
 
 /**
  * Utility methods to use in an OSGi environment.
@@ -47,7 +46,7 @@ public class OsgiUtil {
      * @return The property value serialized as a string, or {@code null}.
      */
     public static String lookup(ComponentContext context, String name) {
-        return asString(checkNotNull(context).getProperties().get(checkNotNull(name)));
+        return asString(Objects.requireNonNull(context).getProperties().get(Objects.requireNonNull(name)));
     }
 
     /**
@@ -60,7 +59,7 @@ public class OsgiUtil {
      * @return The property value serialized as a string, or {@code null}.
      */
     public static String lookup(BundleContext context, String name) {
-        return asString(checkNotNull(context).getProperty(checkNotNull(name)));
+        return asString(Objects.requireNonNull(context).getProperty(Objects.requireNonNull(name)));
     }
 
     /**
@@ -130,7 +129,7 @@ public class OsgiUtil {
      * @return The property value serialized as a string, or {@code null}.
      */
     public static String lookupFrameworkThenConfiguration(ComponentContext context, String nameInComponent, String nameInFramework) {
-        String fromFramework = lookup(checkNotNull(context).getBundleContext(), nameInFramework);
+        String fromFramework = lookup(Objects.requireNonNull(context).getBundleContext(), nameInFramework);
 
         if (fromFramework != null) {
             return fromFramework;

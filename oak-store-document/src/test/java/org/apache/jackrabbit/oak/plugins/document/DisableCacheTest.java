@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.File;
-
-import com.google.common.cache.Cache;
-
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.junit.Assert.assertEquals;
+
+import java.io.File;
+
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class DisableCacheTest {
 

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyList;
 
 import java.util.List;

@@ -29,15 +29,16 @@ import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
-import com.google.common.cache.CacheStats;
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 
 /**
  * Instances of this class manage the deduplication caches used by the {@link

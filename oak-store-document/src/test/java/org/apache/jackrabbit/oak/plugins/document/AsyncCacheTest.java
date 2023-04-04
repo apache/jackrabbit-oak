@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.junit.Assert.assertNull;
+
 import java.io.File;
 
-import com.google.common.cache.Cache;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNull;
 
 public class AsyncCacheTest {
 

@@ -27,7 +27,7 @@ import org.osgi.service.component.ComponentContext;
 import java.util.Dictionary;
 import java.util.Map;
 
-import static com.google.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.appendEscapedLdapValue;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.appendLdapFilterAttribute;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.getFilter;

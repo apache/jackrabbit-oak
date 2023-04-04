@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.lang.Thread.currentThread;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;
@@ -36,6 +35,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.n
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.running;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.succeeded;
 
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -171,8 +171,8 @@ public class ManagementOperation<R> extends FutureTask<R> {
             @NotNull Callable<R> task) {
         super(task);
         this.id = idGen.incrementAndGet();
-        this.name = checkNotNull(name);
-        this.statusMessage = checkNotNull(statusMessage);
+        this.name = Objects.requireNonNull(name);
+        this.statusMessage = Objects.requireNonNull(statusMessage);
     }
 
     /**

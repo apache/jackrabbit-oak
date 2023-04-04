@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import com.google.common.cache.Cache;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.jcr.Repository;
+
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -31,9 +35,6 @@ import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import javax.jcr.Repository;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class PersistentCacheTest extends AbstractTest {
 
