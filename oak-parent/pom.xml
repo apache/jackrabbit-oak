@@ -62,7 +62,7 @@
     <h2.version>2.1.214</h2.version>
     <tika.version>1.26</tika.version>
     <guava.version>15.0</guava.version>
-    <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
+    <guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
     <jackson.version>2.13.5</jackson.version>
     <testcontainers.version>1.17.6</testcontainers.version>
@@ -1079,9 +1079,9 @@
     <profile>
       <id>guava-latest</id>
       <properties>
-        <guava.version>20.0</guava.version>
+        <guava.version>19.0</guava.version>
       </properties>
-	  </profile>
+    </profile>
     <profile>
       <id>rdb-derby</id>
       <dependencies>

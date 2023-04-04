@@ -74,6 +74,7 @@ public abstract class CompositeTestSupport extends TestSupport {
             scr(),
             slingCommonsMetrics(),
             jackrabbit(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-shaded-guava").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-commons").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-api").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-blob").versionAsInProject(),
