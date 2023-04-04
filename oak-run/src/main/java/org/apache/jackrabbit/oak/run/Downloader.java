@@ -69,7 +69,7 @@ public class Downloader implements Closeable {
     private final List<Future<ItemResponse>> responses;
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs) {
-        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000, null, 8192);
+        this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000, null, 16384);
     }
 
     public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int maxRetries, long retryInitialInterval,

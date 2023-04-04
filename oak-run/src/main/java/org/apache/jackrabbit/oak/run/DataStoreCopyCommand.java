@@ -170,8 +170,8 @@ public class DataStoreCopyCommand implements Command {
         OptionSpec<String> checksumOpt = parser.accepts("checksum", "The algorithm to compute the checksum (examples: SHA-256, MD5) or empty (the default) to skip checksum validation")
                 .withOptionalArg().ofType(String.class);
         OptionSpec<Integer> bufferSizeOpt = parser.accepts("buffer-size",
-                        "The buffer size for downloading and checksumming blobs (default 8192[8KB])")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(8192);
+                        "The buffer size for downloading and checksumming blobs (default 16384[16KB])")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(16384);
 
         OptionSet optionSet = parser.parse(args);
 
