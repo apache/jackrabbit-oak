@@ -61,7 +61,7 @@ public final class UserUtil implements UserConstants {
         String[] configuredAdministratorGroups = parameters.getConfigValue(PARAM_IMPERSONATOR_GROUPS_ID, new String[]{});
         @NotNull Set<String> groupIds = getGroupIds(authorizable);
         return Arrays.stream(configuredAdministratorGroups).anyMatch(groupIds::contains);
-    }
+    } //TODO REMOVE
 
     /**
      * Retrieves the group ids of the groups this user is a member of.

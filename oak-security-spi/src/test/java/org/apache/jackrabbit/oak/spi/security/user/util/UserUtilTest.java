@@ -115,7 +115,7 @@ public class UserUtilTest {
                 getMockGroupWithId("group2")));
         when(authorizableMock.declaredMemberOf()).thenReturn(groupsWithNoAdministrators.iterator());
         assertFalse(UserUtil.isMemberOfAnImpersonatorGroup(authorizableMock, config));
-    }
+    } // TODO REMOVE
 
     @Test
     public void testGetAdminId() {
