@@ -223,31 +223,25 @@ public final class TreeUtil {
         return tree;
     }
 
-    public static Tree addChild(
-            @NotNull Tree parent, @NotNull String name,
-            @Nullable String typeName, @NotNull Tree typeRoot,
-            @Nullable String userID) throws RepositoryException {
+    @NotNull
+    public static Tree addChild(@NotNull Tree parent, @NotNull String name, @Nullable String typeName, @NotNull Tree typeRoot, @Nullable String userID) throws RepositoryException {
         if (typeName == null) {
             typeName = getDefaultChildType(typeRoot, parent, name);
             if (typeName == null) {
                 String path = PathUtils.concat(parent.getPath(), name);
-                throw new ConstraintViolationException(
-                        "No default node type available for " + path);
+                throw new ConstraintViolationException("No default node type available for " + path);
             }
         }
 
         Tree type = typeRoot.getChild(typeName);
         if (!type.exists()) {
-            throw new NoSuchNodeTypeException(
-                    "Node type " + typeName + " does not exist");
+            throw noSuchNodeTypeException(typeName);
         } else if (getBoolean(type, JCR_IS_ABSTRACT)
                 // OAK-1013: backwards compatibility for abstract default types
                 && !typeName.equals(getDefaultChildType(typeRoot, parent, name))) {
-            throw new ConstraintViolationException(
-                    "Node type " + typeName + " is abstract");
+            throw abstractNodeTypeException(typeName);
         } else if (getBoolean(type, JCR_ISMIXIN)) {
-            throw new ConstraintViolationException(
-                    "Node type " + typeName + " is a mixin type");
+            throw mixinTypeException(typeName, false);
         }
 
         Tree child = parent.addChild(name);
@@ -257,6 +251,23 @@ public final class TreeUtil {
         }
         autoCreateItems(child, type, typeRoot, userID);
         return child;
+    }
+    
+    private static NoSuchNodeTypeException noSuchNodeTypeException(@NotNull String typeName) {
+        return new NoSuchNodeTypeException(exceptionMessage(typeName, "does not exist"));
+    }
+    
+    private static ConstraintViolationException abstractNodeTypeException(@NotNull String typeName) {
+        return new ConstraintViolationException(exceptionMessage(typeName, "is abstract"));
+    }
+    
+    private static ConstraintViolationException mixinTypeException(@NotNull String typeName, boolean mixinExpected) {
+        String not = (mixinExpected) ? "not " : "";
+        return new ConstraintViolationException(exceptionMessage(typeName, "is "+not+"a mixin type"));
+    }
+    
+    private static String exceptionMessage(@NotNull String typeName, @NotNull String reason) {
+        return String.format("Node type %s %s", typeName, reason);
     }
 
     /**
@@ -302,25 +313,21 @@ public final class TreeUtil {
     public static void addMixin(@NotNull Tree tree, @NotNull String mixinName, @NotNull Tree typeRoot, @Nullable String userID) throws RepositoryException {
         Tree type = typeRoot.getChild(mixinName);
         if (!type.exists()) {
-            throw new NoSuchNodeTypeException(
-                    "Node type " + mixinName + " does not exist");
+            throw noSuchNodeTypeException(mixinName);
         } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
-            throw new ConstraintViolationException(
-                    "Node type " + mixinName + " is abstract");
+            throw abstractNodeTypeException(mixinName);
         } else if (!getBoolean(type, JCR_ISMIXIN)) {
-            throw new ConstraintViolationException(
-                    "Node type " + mixinName + " is a not a mixin type");
+            throw mixinTypeException(mixinName, true);
         }
 
         List<String> mixins = Lists.newArrayList();
         String primary = getName(tree, JCR_PRIMARYTYPE);
-        if (primary != null
-                && Iterables.contains(getNames(type, NodeTypeConstants.REP_PRIMARY_SUBTYPES), primary)) {
+        if (primary != null && Iterables.contains(getNames(type, NodeTypeConstants.REP_PRIMARY_SUBTYPES), primary)) {
             return;
         }
 
         Set<String> subMixins = Sets.newHashSet(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES));
-        for (String mixin : getNames(tree, NodeTypeConstants.JCR_MIXINTYPES)) {
+        for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
             if (mixinName.equals(mixin) || subMixins.contains(mixin)) {
                 return;
             }
@@ -328,77 +335,76 @@ public final class TreeUtil {
         }
 
         mixins.add(mixinName);
-        tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
+        tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
 
         autoCreateItems(tree, type, typeRoot, userID);
     }
 
     public static void autoCreateItems(@NotNull Tree tree, @NotNull Tree type, @NotNull Tree typeRoot, @Nullable String userID)
             throws RepositoryException {
-        // TODO: use a separate rep:autoCreatePropertyDefinitions
-        Tree properties = type.getChild(REP_NAMED_PROPERTY_DEFINITIONS);
-        for (Tree definitions : properties.getChildren()) {
-            String name = definitions.getName();
-            if (name.equals(NodeTypeConstants.REP_PRIMARY_TYPE)
-                    || name.equals(NodeTypeConstants.REP_MIXIN_TYPES)) {
-                continue;
-            } else if (name.equals(NodeTypeConstants.REP_UUID)) {
-                name = JCR_UUID;
-            }
-            for (Tree definition : definitions.getChildren()) {
-                if (getBoolean(definition, JCR_AUTOCREATED)) {
-                    if (!tree.hasProperty(name)) {
-                        PropertyState property =
-                                autoCreateProperty(name, definition, userID);
-                        if (property != null) {
-                            tree.setProperty(property);
-                        } else {
-                            throw new RepositoryException(
-                                    "Unable to auto-create value for "
-                                    + PathUtils.concat(tree.getPath(), name));
-                        }
-                    }
-                    break;
-                }
-            }
-        }
+        
+        autoCreateProperties(tree, type, userID);
 
-        // TODO: use a separate rep:autoCreateChildNodeDefinitions
         // Note that we use only named, non-SNS child node definitions
         // as there can be no reasonable default values for residual or
         // SNS child nodes
         Tree childNodes = type.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS);
         for (Tree definitions : childNodes.getChildren()) {
             String name = definitions.getName();
-            for (Tree definition : definitions.getChildren()) {
-                if (getBoolean(definition, JCR_AUTOCREATED)) {
-                    if (!tree.hasChild(name)) {
-                        String typeName =
-                                getName(definition, JCR_DEFAULTPRIMARYTYPE);
-                        addChild(tree, name, typeName, typeRoot, userID);
-                    }
-                    break;
+            Tree definition = getAutoCreatedDefinition(definitions);
+            if (definition != null && !tree.hasChild(name)) {
+                String typeName = getName(definition, JCR_DEFAULTPRIMARYTYPE);
+                addChild(tree, name, typeName, typeRoot, userID);
+            }
+        }
+    }
+    
+    private static void autoCreateProperties(@NotNull Tree tree, @NotNull Tree type, @Nullable String userID) throws RepositoryException {
+        Tree properties = type.getChild(REP_NAMED_PROPERTY_DEFINITIONS);
+        for (Tree definitions : properties.getChildren()) {
+            String name = definitions.getName();
+            if (name.equals(NodeTypeConstants.REP_PRIMARY_TYPE) || name.equals(NodeTypeConstants.REP_MIXIN_TYPES)) {
+                continue;
+            } else if (name.equals(NodeTypeConstants.REP_UUID)) {
+                name = JCR_UUID;
+            }
+            Tree definition = getAutoCreatedDefinition(definitions);
+            if (definition != null && !tree.hasProperty(name)) {
+                PropertyState property = autoCreateProperty(name, definition, userID);
+                if (property != null) {
+                    tree.setProperty(property);
+                } else {
+                    throw new RepositoryException("Unable to auto-create value for " + PathUtils.concat(tree.getPath(), name));
                 }
             }
         }
     }
+    
+    @Nullable
+    private static Tree getAutoCreatedDefinition(@NotNull Tree definitions) {
+        for (Tree definition : definitions.getChildren()) {
+            if (getBoolean(definition, JCR_AUTOCREATED)) {
+                return definition;
+            }
+        }
+        return null;
+    }
 
+    @Nullable
     public static PropertyState autoCreateProperty(@NotNull String name,
                                                    @NotNull Tree definition,
                                                    @Nullable String userID) {
-        if (JCR_UUID.equals(name)) {
-            String uuid = UUIDUtils.generateUUID();
-            return PropertyStates.createProperty(name, uuid, STRING);
-        } else if (JCR_CREATED.equals(name)) {
-            String now = ISO8601.format(Calendar.getInstance());
-            return PropertyStates.createProperty(name, now, DATE);
-        } else if (JCR_CREATEDBY.equals(name)) {
-            return PropertyStates.createProperty(name, Strings.nullToEmpty(userID), STRING);
-        } else if (JCR_LASTMODIFIED.equals(name)) {
-            String now = ISO8601.format(Calendar.getInstance());
-            return PropertyStates.createProperty(name, now, DATE);
-        } else if (JCR_LASTMODIFIEDBY.equals(name)) {
-            return PropertyStates.createProperty(name, Strings.nullToEmpty(userID), STRING);
+        switch (name) {
+            case JCR_UUID:
+                return PropertyStates.createProperty(name, UUIDUtils.generateUUID(), STRING);
+            case JCR_CREATED:
+            case JCR_LASTMODIFIED:    
+                return PropertyStates.createProperty(name, ISO8601.format(Calendar.getInstance()), DATE);
+            case JCR_CREATEDBY:
+            case JCR_LASTMODIFIEDBY:
+                return PropertyStates.createProperty(name, Strings.nullToEmpty(userID), STRING);
+            default:
+                // no default, continue inspecting the definition
         }
 
         // does the definition have a default value?
@@ -406,12 +412,10 @@ public final class TreeUtil {
         if (values != null) {
             Type<?> type = values.getType();
             if (getBoolean(definition, JCR_MULTIPLE)) {
-                return PropertyStates.createProperty(
-                        name, values.getValue(type), type);
+                return PropertyStates.createProperty(name, values.getValue(type), type);
             } else if (values.count() > 0) {
                 type = type.getBaseType();
-                return PropertyStates.createProperty(
-                        name, values.getValue(type, 0), type);
+                return PropertyStates.createProperty(name, values.getValue(type, 0), type);
             }
         }
 
@@ -426,17 +430,15 @@ public final class TreeUtil {
      * @param childName name of the new child node
      * @return name of the default type, or {@code null} if not available
      */
-    public static String getDefaultChildType(
-            Tree typeRoot, Tree parent, String childName) {
+    @Nullable
+    public static String getDefaultChildType(@NotNull Tree typeRoot, @NotNull Tree parent, @NotNull String childName) {
         String name = dropIndexFromName(childName);
         boolean sns = !name.equals(childName);
         List<Tree> types = getEffectiveType(parent, typeRoot);
 
         // first look for named node definitions
         for (Tree type : types) {
-            Tree definitions = type
-                    .getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)
-                    .getChild(name);
+            Tree definitions = type.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS).getChild(name);
             String defaultName = findDefaultPrimaryType(definitions, sns);
             if (defaultName != null) {
                 return defaultName;
@@ -445,8 +447,7 @@ public final class TreeUtil {
 
         // then check residual definitions
         for (Tree type : types) {
-            Tree definitions = type
-                    .getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            Tree definitions = type.getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
             String defaultName = findDefaultPrimaryType(definitions, sns);
             if (defaultName != null) {
                 return defaultName;
@@ -460,7 +461,8 @@ public final class TreeUtil {
     /**
      * Returns the effective node types of the given node.
      */
-    public static List<Tree> getEffectiveType(Tree tree, Tree typeRoot) {
+    @NotNull
+    public static List<Tree> getEffectiveType(@NotNull Tree tree, @NotNull Tree typeRoot) {
         List<Tree> types = newArrayList();
 
         String primary = getName(tree, JCR_PRIMARYTYPE);
@@ -481,18 +483,18 @@ public final class TreeUtil {
         return types;
     }
 
-    public static String findDefaultPrimaryType(Tree definitions, boolean sns) {
+    @Nullable
+    public static String findDefaultPrimaryType(@NotNull Tree definitions, boolean sns) {
         for (Tree definition : definitions.getChildren()) {
             String defaultName = getName(definition, JCR_DEFAULTPRIMARYTYPE);
-            if (defaultName != null
-                    && (!sns || getBoolean(definition, JCR_SAMENAMESIBLINGS))) {
+            if (defaultName != null && (!sns || getBoolean(definition, JCR_SAMENAMESIBLINGS))) {
                 return defaultName;
             }
         }
         return null;
     }
 
-    public static boolean isNodeType(Tree tree, String typeName, Tree typeRoot) {
+    public static boolean isNodeType(@NotNull Tree tree, @NotNull String typeName, @NotNull Tree typeRoot) {
         String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
         if (typeName.equals(primaryName)) {
             return true;

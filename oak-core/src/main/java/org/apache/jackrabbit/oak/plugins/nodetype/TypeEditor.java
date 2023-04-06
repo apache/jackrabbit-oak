@@ -34,17 +34,17 @@ import static org.apache.jackrabbit.oak.commons.UUIDUtils.isValidUUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
+import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.asPredicate;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -425,9 +425,9 @@ public class TypeEditor extends DefaultEditor {
         }
 
         for (String constraint : constraints.getValue(STRINGS)) {
-            Predicate<Value> predicate = valueConstraint(requiredType, constraint);
+            Predicate<Value> predicate = asPredicate(requiredType, constraint);
             for (Value v : valueFactory.createValues(property)) {
-                if (predicate.apply(v)) {
+                if (predicate.test(v)) {
                     return;
                 }
             }
@@ -464,27 +464,26 @@ public class TypeEditor extends DefaultEditor {
         }
         // verify the presence of all mandatory items
         if (!properties.isEmpty()) {
-            constraintViolation(21, "Mandatory property " + properties.iterator().next() + " not found in a new node");
+            constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
         List<String> names = Lists.newArrayList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
-                constraintViolation(25, "Mandatory child node " + child + " not found in a new node");
+                constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");
             }
         }
-        if (!names.isEmpty()) {
-            for (String name : names) {
-                if (NodeStateUtils.isHidden(name)) {
-                    continue;
-                }
+
+        for (String name : names) {
+            if (!NodeStateUtils.isHidden(name)) {
                 NodeState child = after.getChildNode(name);
                 String primary = child.getName(JCR_PRIMARYTYPE);
                 Iterable<String> mixins = child.getNames(JCR_MIXINTYPES);
                 NodeBuilder childBuilder = builder.getChildNode(name);
                 TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder, false);
                 if (!effective.isValidChildNode(name, editor.getEffective())) {
-                    constraintViolation(25, "Unexpected child node " + name + " found in a new node");
+                    constraintViolation(25, "Unexpected child node '" + name + "' of effective type '" + editor.getEffective()
+                            + "' found in a new node");
                 }
             }
         }

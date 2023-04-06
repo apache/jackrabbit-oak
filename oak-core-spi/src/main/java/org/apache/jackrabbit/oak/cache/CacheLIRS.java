@@ -1160,10 +1160,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 old = e.value;
                 invalidate(key, hash, RemovalCause.REPLACED);
             }
-            e = new Entry<K, V>();
-            e.key = key;
-            e.value = value;
-            e.memory = memory;
+            e = new Entry<K, V>(key, value, memory);
             Entry<K, V>[] array = entries;
             int mask = array.length - 1;
             int index = hash & mask;
@@ -1468,7 +1465,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         /**
          * The key.
          */
-        K key;
+        final K key;
 
         /**
          * The value. Set to null for non-resident-cold entries.
@@ -1510,6 +1507,16 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * The next entry in the map
          */
         Entry<K, V> mapNext;
+
+        Entry(K key, V value, int memory) {
+            this.key = key;
+            this.value = value;
+            this.memory = memory;
+        }
+
+        Entry() {
+            this(null, null, 0);
+        }
 
         /**
          * Whether this entry is hot. Cold entries are in one of the two queues.

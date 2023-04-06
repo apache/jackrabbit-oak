@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -40,11 +42,14 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_SELECTION_POLICY;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -115,6 +120,31 @@ public class IndexDefinitionBuilder {
     public IndexDefinitionBuilder async(String ... asyncVals){
         tree.removeProperty("async");
         tree.setProperty("async", asList(asyncVals), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder tags(String... tagVals) {
+        tree.removeProperty(INDEX_TAGS);
+        tree.setProperty(INDEX_TAGS, asList(tagVals), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder selectionPolicy(String policy) {
+        tree.setProperty(INDEX_SELECTION_POLICY,  checkNotNull(policy));
+        return this;
+    }
+
+    public IndexDefinitionBuilder addTags(String... additionalTagVals) {
+        Set<String> currTags = Collections.emptySet();
+        if (tree.hasProperty(INDEX_TAGS)) {
+            currTags = Sets.newHashSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+        }
+        Set<String> tagVals = Sets.newHashSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        boolean noAdditionalTags = currTags.containsAll(tagVals);
+        if (!noAdditionalTags) {
+            tree.removeProperty(INDEX_TAGS);
+            tree.setProperty(INDEX_TAGS, asList(Iterables.toArray(tagVals, String.class)), STRINGS);
+        }
         return this;
     }
 

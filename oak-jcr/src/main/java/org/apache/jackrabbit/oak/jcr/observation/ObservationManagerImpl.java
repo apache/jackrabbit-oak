@@ -234,12 +234,12 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         boolean noLocal = filter.getNoLocal();
         boolean noExternal = filter.getNoExternal() || listener instanceof ExcludeExternal;
         boolean noInternal = filter.getNoInternal();
-        Set<String> includePaths = getOakPaths(namePathMapper, filter.getAdditionalPaths());
+        Set<String> includePaths = getOakPaths(namePathMapper, filter.getAdditionalPaths(), "include");
         String absPath = filter.getAbsPath();
         if (absPath != null) {
             includePaths.add(namePathMapper.getOakPath(absPath));
         }
-        Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths());
+        Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths(), "exclude");
         PathUtils.unifyInExcludes(includePaths, excludedPaths);
         if (oakEventFilter != null) {
             String[] includeGlobPaths = oakEventFilter.getIncludeGlobPaths();
@@ -388,10 +388,16 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         return conditions;
     }
 
-    private static Set<String> getOakPaths(NamePathMapper mapper, String[] paths) {
+    private static Set<String> getOakPaths(NamePathMapper mapper, String[] paths, String type)
+            throws RepositoryException {
         Set<String> oakPaths = newHashSet();
         for (String path : paths) {
-            oakPaths.add(mapper.getOakPath(path));
+            String oakPath = mapper.getOakPath(path);
+            if (oakPath != null) {
+                oakPaths.add(oakPath);
+            } else {
+                throw new RepositoryException("Invalid " + type + " path: " + path);
+            }
         }
         return oakPaths;
     }

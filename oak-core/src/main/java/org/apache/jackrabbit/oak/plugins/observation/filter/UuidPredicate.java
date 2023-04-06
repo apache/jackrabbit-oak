@@ -22,9 +22,11 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
  * property and the value of that property matches any of the UUIDs that
  * has been passed to the predicate's constructor.
  */
-public class UuidPredicate implements Predicate<NodeState> {
+public class UuidPredicate implements Predicate<NodeState>, com.google.common.base.Predicate<NodeState> {
     private final String[] uuids;
 
     /**
@@ -45,7 +47,7 @@ public class UuidPredicate implements Predicate<NodeState> {
     }
 
     @Override
-    public boolean apply(NodeState node) {
+    public boolean test(NodeState node) {
         if (uuids.length == 0) {
             return false;
         }
@@ -62,5 +64,15 @@ public class UuidPredicate implements Predicate<NodeState> {
             }
         }
         return false;
+    }
+
+    /**
+     * @deprecated use {@link #test(NodeState)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @Deprecated
+    @Override
+    public boolean apply(NodeState node) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return test(node);
     }
 }

@@ -48,27 +48,27 @@ JSR 283 : Content Repository for Java Technology API Specification v2.0
 
 The following sections of the specification deal with security in particular with authentication and authorization.
 
-- 4.2 Login (http://www.day.com/specs/jcr/2.0/4_Connecting.html#4.2%20Login)
-- 4.3 Impersonate (http://www.day.com/specs/jcr/2.0/4_Connecting.html#4.3%20Impersonate)
-- 4.4.1 User (http://www.day.com/specs/jcr/2.0/4_Connecting.html#4.4.1%20User)
-- 9 Permissions and Capabilities (http://www.day.com/specs/jcr/2.0/9_Permissions_and_Capabilities.html)
-- 16 Access Control Management (http://www.day.com/specs/jcr/2.0/16_Access_Control_Management.html)
+- 4.2 Login (https://s.apache.org/jcr-2.0-spec/4_Connecting.html#4.2%20Login)
+- 4.3 Impersonate (https://s.apache.org/jcr-2.0-spec/4_Connecting.html#4.3%20Impersonate)
+- 4.4.1 User (https://s.apache.org/jcr-2.0-spec/4_Connecting.html#4.4.1%20User)
+- 9 Permissions and Capabilities (https://s.apache.org/jcr-2.0-spec/9_Permissions_and_Capabilities.html)
+- 16 Access Control Management (https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html)
 
 You can also find the correspoding parts of the API documentation:
 
 - Login and Impersonation
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Repository.html#login%28javax.jcr.Credentials,%20java.lang.String%29
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Session.html#impersonate%28javax.jcr.Credentials%29
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Repository.html#login%28javax.jcr.Credentials,%20java.lang.String%29
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#impersonate%28javax.jcr.Credentials%29
 - Credentials
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Credentials.html
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Credentials.html
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/GuestCredentials.html
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/SimpleCredentials.html
 - Permission Discovery and JCR Action Constants
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Session.html
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Session.html#hasPermission%28java.lang.String,%20java.lang.String%29
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Session.html#checkPermission%28java.lang.String,%20java.lang.String%29
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#hasPermission%28java.lang.String,%20java.lang.String%29
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#checkPermission%28java.lang.String,%20java.lang.String%29
 - Access Control Management
-        http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/security/package-summary.html
+        https://s.apache.org/jcr-2.0-javadoc/javax/jcr/security/package-summary.html
 
 #### Apache Jackrabbit : API Extensions for JSR 283
 

@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.UnsupportedIndexedPropertyException;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
@@ -59,34 +60,12 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     // 1: seek using historical, paging mode
     // 2: use custom single query directly using RDBDocumentStore API
-    private static final int MODE;
-
     private static final int DEFAULTMODE = 2;
 
-    static {
-        String propName = RDBVersionGCSupport.class.getName() + ".MODE";
-        String value = System.getProperty(propName, "");
-        switch (value) {
-            case "":
-                MODE = DEFAULTMODE;
-                break;
-            case "1":
-                MODE = 1;
-                break;
-            case "2":
-                MODE = 2;
-                break;
-            default:
-                LOG.error("Ignoring unexpected value '" + value + "' for system property " + propName);
-                MODE = DEFAULTMODE;
-                break;
-        }
-
-        if (DEFAULTMODE != MODE) {
-            LOG.info("Strategy for " + RDBVersionGCSupport.class.getName() + " set to " + MODE + " (via system property "
-                    + propName + ")");
-        }
-    }
+    private static final int MODE = SystemPropertySupplier.create(RDBVersionGCSupport.class.getName() + ".MODE", DEFAULTMODE)
+            .loggingTo(LOG).validateWith(value -> (value == 1 || value == 2)).formatSetMessage((name, value) -> String
+                    .format("Strategy for %s set to %s (via system property %s)", RDBVersionGCSupport.class.getName(), value, name))
+            .get();
 
     public RDBVersionGCSupport(RDBDocumentStore store) {
         super(store);

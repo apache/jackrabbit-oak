@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -23,11 +24,11 @@ import java.util.regex.PatternSyntaxException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StringConstraint implements Predicate<Value> {
+public class StringConstraint implements Predicate<Value>, com.google.common.base.Predicate<Value> {
     private static final Logger log = LoggerFactory.getLogger(StringConstraint.class);
 
     private final Pattern pattern;
@@ -46,7 +47,7 @@ public class StringConstraint implements Predicate<Value> {
     }
 
     @Override
-    public boolean apply(Value value) {
+    public boolean test(Value value) {
         if (value == null) {
             return false;
         }
@@ -59,6 +60,16 @@ public class StringConstraint implements Predicate<Value> {
             log.warn("Error checking string constraint " + this, e);
             return false;
         }
+    }
+
+    /**
+     * @deprecated use {@link #test(Value)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @Deprecated
+    @Override
+    public boolean apply(Value value) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return test(value);
     }
 
     @Override

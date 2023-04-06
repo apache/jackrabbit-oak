@@ -183,7 +183,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         NodeBuilder versionNode = vh.getChildNode(versionName);
         String versionId = versionNode.getProperty(JCR_UUID).getValue(Type.STRING);
         // unregister from labels
-        for (String label : getVersionLabels(versionRelPath, versionId)) {
+        for (String label : getVersionLabels(historyRelPath, versionId)) {
             removeVersionLabel(historyRelPath, label);
         }
         // reconnected predecessors and successors of the version being removed
@@ -624,7 +624,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         for (ChildNodeEntry entry : versionHistory.getChildNodeEntries()) {
             String name = entry.getName();
             NodeState node = entry.getNodeState();
-            if (!JCR_ROOTVERSION.equals(name) && isVersion.apply(node)) {
+            if (!JCR_ROOTVERSION.equals(name) && isVersion.test(node)) {
                 return false; // a checked-in version
             }
         }

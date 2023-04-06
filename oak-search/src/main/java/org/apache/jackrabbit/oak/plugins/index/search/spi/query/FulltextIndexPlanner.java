@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
@@ -407,6 +408,9 @@ public class FulltextIndexPlanner {
                 }
             }
             // no tag matches
+            return true;
+        } else if (IndexSelectionPolicy.TAG.equals(definition.getIndexSelectionPolicy())) {
+            // index tags are not specified in query, but required by the "tag" index selection policy
             return true;
         }
         // no tag specified

@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.22.10-SNAPSHOT</version>
+    <version>1.22.16-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -32,11 +32,14 @@
   <packaging>bundle</packaging>
 
   <properties>
+    <!-- Version of Jackrabbit used for testing, see OAK-9889 -->
+    <jackrabbit.test.version>2.20.4</jackrabbit.test.version>
     <known.issues>
       org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings                                  <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc               <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest              <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
+      org.apache.jackrabbit.test.api.NodeTest#testAddNodeLackingMandatoryChildNode                     <!-- OAK-9621 -->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
       org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn <!-- OAK-118 -->
@@ -82,6 +85,7 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreRemovesMixin <!-- OAK-9459 -->
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest
       org.apache.jackrabbit.test.api.version.MergeCheckedoutSubNodeTest
@@ -351,6 +355,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -405,27 +410,27 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-data</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-server</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.test.version}</version>
        <scope>test</scope>
     </dependency>
     <dependency>
@@ -464,6 +469,17 @@
       <groupId>net.lingala.zip4j</groupId>
       <artifactId>zip4j</artifactId>
       <version>1.3.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derby</artifactId>
+      <version>10.14.2.0</version>
       <scope>test</scope>
     </dependency>
     

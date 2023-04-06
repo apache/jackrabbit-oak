@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Collections;
 
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -82,7 +83,7 @@ public class ConfigUtil {
              throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName), e);
         }
     }
-    
+
     public static long getOptionalValue(NodeState definition, String propName, long defaultVal) {
         try {
             PropertyState ps = definition.getProperty(propName);
@@ -116,5 +117,23 @@ public class ConfigUtil {
         checkArgument(contentNode.exists(), "Was expecting to find jcr:content node to read resource %s", resourceName);
         PropertyState property = contentNode.getProperty(JcrConstants.JCR_DATA);
         return property != null ? property.getValue(Type.BINARY) : null;
+    }
+
+    /**
+     * Returns an array of optional values for the a given property
+     */
+    public static<T> T[] getOptionalValues(NodeState definition, String propName, Type<Iterable<T>> type, Class<T> typeParam) {
+        return getOptionalValues(definition, propName, type, typeParam, null);
+    }
+
+    /**
+     * Returns an array of optional values for the a given property if present, otherwise returns the specified default
+     */
+    public static<T> T[] getOptionalValues(NodeState definition, String propName, Type<Iterable<T>> type, Class<T> typeParam, T[] defaultValues) {
+        PropertyState ps = definition.getProperty(propName);
+        if (ps != null) {
+            return Iterables.toArray(ps.getValue(type), typeParam);
+        }
+        return defaultValues;
     }
 }

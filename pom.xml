@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.22.10-SNAPSHOT</version>
+    <version>1.22.16-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -170,10 +170,8 @@
               </execution>
             </executions>
           </plugin>
-          <!-- JCR-2455: Automatic staging of non-Maven release artifacts -->
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
-            <version>1.8</version>
             <executions>
               <execution>
                 <goals>
@@ -181,7 +179,7 @@
                 </goals>
                 <phase>deploy</phase>
                 <configuration>
-                  <tasks>
+                  <target>
                     <mkdir dir="${basedir}/target/${project.version}" />
                     <copy todir="${basedir}/target/${project.version}" flatten="true">
                       <fileset dir="${basedir}">
@@ -270,7 +268,7 @@ An announcement mail template can be found at:
     file://${basedir}/target/announcement.txt
                     </echo>
                     <echo />
-                  </tasks>
+                  </target>
                 </configuration>
               </execution>
             </executions>

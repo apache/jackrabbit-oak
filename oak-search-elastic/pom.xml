@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.22.10-SNAPSHOT</version>
+    <version>1.22.16-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -46,6 +46,11 @@
           <instructions>
             <!-- TODO: of late not embedding this seems to working for locally, BUT it had failed initially. Need to verify-->
             <!-- We need to embed lucene as it's required by various QueryBuilders-->
+            <Import-Package>
+              <!-- OAK-7182 -->${guava.osgi.import},
+              com.codahale.metrics*;version="[3.1, 4)";resolution:=optional,
+              *
+            </Import-Package>
             <Embed-Dependency>
               lucene-core;inline=true
               elasticsearch-rest-high-level-client;inline=true
@@ -125,6 +130,11 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-search</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Logging -->

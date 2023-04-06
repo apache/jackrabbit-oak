@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.22.10-SNAPSHOT</version>
+    <version>1.22.16-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-standalone</artifactId>
@@ -36,7 +36,7 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <spring.boot.version>1.5.21.RELEASE</spring.boot.version>
+    <spring.boot.version>2.5.14</spring.boot.version>
   </properties>
 
   <dependencyManagement>
@@ -180,10 +180,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-    </dependency>
-    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
@@ -209,7 +205,6 @@
       <version>4.2.10</version>
       <classifier>all</classifier>
     </dependency>
-
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.webconsole.plugins.scriptconsole</artifactId>
@@ -217,7 +212,8 @@
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
+      <artifactId>groovy</artifactId>
+      <version>${groovy.version}</version>
     </dependency>
 
     <dependency>
@@ -334,32 +330,4 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-  <profile>
-    <id>disable-test-jdk6</id>
-    <activation>
-      <jdk>1.6</jdk>
-    </activation>
-    <build>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-failsafe-plugin</artifactId>
-          <configuration>
-            <skipTests>true</skipTests>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <configuration>
-            <skipTests>true</skipTests>
-          </configuration>
-        </plugin>
-      </plugins>
-    </build>
-  </profile>
-  </profiles>
-
 </project>

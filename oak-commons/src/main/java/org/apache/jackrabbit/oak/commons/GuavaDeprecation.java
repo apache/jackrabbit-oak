@@ -26,7 +26,7 @@ public class GuavaDeprecation {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuavaDeprecation.class);
 
-    private static final String DEFAULT = "info";
+    private static final String DEFAULT = "error";
 
     private static final String TLOGLEVEL = System.getProperty(GuavaDeprecation.class + ".LOGLEVEL", DEFAULT);
 
@@ -39,7 +39,6 @@ public class GuavaDeprecation {
             case "error":
             case "warn":
             case "info":
-            case "debug":
                 t = TLOGLEVEL.toLowerCase(Locale.ENGLISH);
                 break;
             default:

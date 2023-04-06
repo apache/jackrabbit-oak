@@ -23,17 +23,19 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>18</version>
+    <version>29</version>
     <relativePath />
   </parent>
 
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.22.10-SNAPSHOT</version>
+  <version>1.22.16-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
+    <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
+    <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
@@ -44,7 +46,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.2</jackrabbit.version>
+    <jackrabbit.version>2.20.9</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -53,17 +55,18 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
-    <solr.version>8.8.2</solr.version>
-    <mongo.driver.version>3.12.7</mongo.driver.version>
-    <slf4j.api.version>1.7.30</slf4j.api.version>
-    <slf4j.version>1.7.30</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.2.3</logback.version>
-    <h2.version>1.4.194</h2.version>
-    <tika.version>1.24.1</tika.version>
+    <solr.version>8.11.1</solr.version>
+    <mongo.driver.version>3.12.11</mongo.driver.version>
+    <slf4j.api.version>1.7.36</slf4j.api.version>
+    <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
+    <logback.version>1.2.10</logback.version>
+    <h2.version>2.1.214</h2.version>
+    <tika.version>1.26</tika.version>
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.10.3</jackson.version>
+    <jackson.version>2.13.4</jackson.version>
+    <groovy.version>2.5.20</groovy.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -77,10 +80,6 @@
       Override with -Dsurefire.skip.ut=true when needed -->
     <surefire.skip.ut>false</surefire.skip.ut>
   </properties>
-
-  <prerequisites>
-    <maven>3.2.1</maven>
-  </prerequisites>
 
   <issueManagement>
     <system>Jira</system>
@@ -101,10 +100,7 @@
       <plugins>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
           <configuration>
-            <target>${java.version}</target>
-            <source>${java.version}</source>
             <compilerArgs>
               <!-- OAK-7310 -->
               <arg>-Xpkginfo:always</arg>
@@ -114,7 +110,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>animal-sniffer-maven-plugin</artifactId>
-          <version>1.18</version>
+          <version>1.22</version>
           <configuration>
             <signature>
               <groupId>org.codehaus.mojo.signature</groupId>
@@ -125,12 +121,12 @@
         </plugin>
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.1.1</version>
           <configuration>
-            <source>${java.version}</source>
+            <doclint>none</doclint>
+            <detectJavaApiLink>false</detectJavaApiLink>
             <aggregate>true</aggregate>
             <links>
-              <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
+              <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
               <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
             </links>
@@ -141,7 +137,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>4.2.1</version>
+          <version>5.1.8</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <dependencies>
@@ -257,35 +253,31 @@
           </executions>
         </plugin>
         <plugin>
+          <groupId>org.codehaus.gmavenplus</groupId>
+          <artifactId>gmavenplus-plugin</artifactId>
+          <version>1.13.1</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.8.2</version>
           <configuration>
             <skip>${skip.deployment}</skip>
           </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
-          <version>2.5.3</version>
           <configuration>
             <autoVersionSubmodules>true</autoVersionSubmodules>
           </configuration>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <version>3.2.0</version>
-        </plugin>
-        <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.13</version>
           <configuration>
             <consoleOutput>true</consoleOutput>
           </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -304,7 +296,6 @@
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.22.2</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -321,13 +312,20 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.1.0</version>
+            <version>3.1.2</version>
           </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>3.1.11</version>
+          <version>4.7.1.0</version>
         </plugin>
+        
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.14.1</version>
+        </plugin>
+        
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
         <plugin>
@@ -370,37 +368,17 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.7.1</version>
           <configuration>
             <generateReports>false</generateReports>
             <skip>true</skip>
             <skipDeploy>true</skipDeploy>
+            <relativizeDecorationLinks>false</relativizeDecorationLinks><!-- leave absolute URLs untouched: https://maven.apache.org/plugins/maven-site-plugin/site-mojo.html#relativizeDecorationLinks -->
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-scm-publish-plugin</artifactId>
-          <version>3.0.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.0.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>3.2.1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-clean-plugin</artifactId>
-            <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.5</version>
+          <version>0.8.8</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -463,7 +441,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.1.2</version>
         <executions>
           <execution>
             <goals>
@@ -566,7 +543,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>2.28.2</version>
+        <version>4.9.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -622,7 +599,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.10</version>
+        <version>3.12.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -677,7 +654,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson.version}.2<!--OAK-10021--></version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -687,27 +664,27 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.5.12</version>
+        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient-osgi</artifactId>
-        <version>4.5.12</version>
+        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore</artifactId>
-        <version>4.4.13</version>
+        <version>4.4.16</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore-osgi</artifactId>
-        <version>4.4.13</version>
+        <version>4.4.16</version>
      </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>4.5.12</version>
+        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>com.arakelian</groupId>
@@ -778,7 +755,7 @@
 
    <!--  - - - - - - - - - - - - - - - - - - - will run all the required tests before a release -->
    <profile>
-      <id>release</id>
+      <id>release</id> <!-- needs to be activated manually, not used automatically with m-release-p goals -->
       <properties>
          <nsfixtures />
          <rdb.jdbc-url>jdbc:derby:./target/derby-release-test;create=true</rdb.jdbc-url>
@@ -898,7 +875,6 @@
          <plugins>
             <plugin>
               <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.7.0</version>
               <configuration>
                 <compilerId>javac-with-errorprone</compilerId>
                 <forceJavacCompilerUse>true</forceJavacCompilerUse>
@@ -1072,7 +1048,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.12</version>
+          <version>42.2.18</version>
         </dependency>
       </dependencies>
     </profile>

@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.22.10-SNAPSHOT</version>
+        <version>1.22.16-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -33,7 +33,7 @@
     <name>Oak Segment Tar</name>
 
     <properties>
-        <netty.version>4.1.66.Final</netty.version>
+        <netty.version>4.1.86.Final</netty.version>
         <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
     </properties>
 
@@ -65,6 +65,7 @@
                             com.ning.compress.lzf.util;version="[1.0,2)";resolution:=optional,
                             com.oracle.svm.core.annotate;resolution:=optional,
                             io.netty.internal.tcnative;version="[2.0,3)";resolution:=optional,
+                            io.netty.channel.unix;version="[4.1,5)";resolution:=optional,
                             javax.security.cert;resolution:=optional,
                             lzma.sdk;resolution:=optional,
                             lzma.sdk.lzma;resolution:=optional,
@@ -77,12 +78,16 @@
                             org.apache.logging.log4j;resolution:=optional;version="[2.6,3)",
                             org.apache.logging.log4j.message;resolution:=optional,
                             org.apache.logging.log4j.spi;resolution:=optional,
+                            org.bouncycastle.asn1.pkcs;resolution:=optional,
                             org.bouncycastle.asn1.x500;version="[1.54,2)";resolution:=optional,
                             org.bouncycastle.cert;version="[1.54,2)";resolution:=optional,
                             org.bouncycastle.cert.jcajce;version="[1.54,2)";resolution:=optional,
                             org.bouncycastle.jce.provider;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.openssl;resolution:=optional,
+                            org.bouncycastle.openssl.jcajce;resolution:=optional,
                             org.bouncycastle.operator;version="[1.54,2)";resolution:=optional,
                             org.bouncycastle.operator.jcajce;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.pkcs;resolution:=optional,
                             org.conscrypt;resolution:=optional,
                             org.eclipse.jetty.alpn;version="[1,2)";resolution:=optional,
                             org.eclipse.jetty.npn;version="[1,2)";resolution:=optional,

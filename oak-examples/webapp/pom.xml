@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.22.10-SNAPSHOT</version>
+    <version>1.22.16-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-webapp</artifactId>
@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>7.0.100</tomcat.version>
+    <tomcat.version>8.5.71</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -118,6 +118,11 @@
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
     </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.9.4</version>
+    </dependency>
 
     <!-- Required for Felix WebConsole -->
     <dependency>
@@ -145,7 +150,7 @@
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy</artifactId>
-      <version>2.5.2</version>
+      <version>${groovy.version}</version>
     </dependency>
 
     <dependency>

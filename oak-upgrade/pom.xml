@@ -23,13 +23,18 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.22.10-SNAPSHOT</version>
+    <version>1.22.16-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>oak-upgrade</artifactId>
   <name>Oak upgrade</name>
   <description>Tooling for upgrading Jackrabbit repositories to Oak</description>
+
+  <properties>
+    <!-- Version of Jackrabbit used for integation into oak-upgrade, see OAK-9890 -->
+    <jackrabbit.oakupgrade.version>2.20.4</jackrabbit.oakupgrade.version>
+  </properties>
 
   <build>
     <plugins>
@@ -134,12 +139,12 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.oakupgrade.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-spi</artifactId>
-      <version>${jackrabbit.version}</version>
+      <version>${jackrabbit.oakupgrade.version}</version>
     </dependency>
 
     <!-- it has to match the version used in jackrabbit-core -->
@@ -237,6 +242,12 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derby</artifactId>
+      <version>10.14.2.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

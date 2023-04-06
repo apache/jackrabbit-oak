@@ -81,7 +81,7 @@ String context =
             <ul>
               <li><a href="http://jcp.org/en/jsr/detail?id=170">JSR 170</a></li>
               <li><a href="http://jcp.org/en/jsr/detail?id=283">JSR 283</a></li>
-              <li><a href="http://www.day.com/maven/javax.jcr/javadocs/jcr-2.0/">JCR 2.0 API</a></li>
+              <li><a href="https://s.apache.org/jcr-2.0-javadoc/">JCR 2.0 API</a></li>
             </ul>
           </li>
         </ul>

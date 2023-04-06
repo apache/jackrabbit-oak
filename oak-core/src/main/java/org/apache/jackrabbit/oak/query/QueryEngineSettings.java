@@ -88,6 +88,22 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private final QueryValidator queryValidator = new QueryValidator();
 
+
+    private static final String OAK_QUERY_LENGTH_WARN_LIMIT = "oak.query.length.warn.limit";
+    private static final String OAK_QUERY_LENGTH_ERROR_LIMIT = "oak.query.length.error.limit";
+
+    private final long queryLengthWarnLimit = Long.getLong(OAK_QUERY_LENGTH_WARN_LIMIT, 1024 * 1024); // 1 MB
+    private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
+
+
+    public long getQueryLengthWarnLimit() {
+        return queryLengthWarnLimit;
+    }
+
+    public long getQueryLengthErrorLimit() {
+        return queryLengthErrorLimit;
+    }
+
     public QueryEngineSettings() {
         statisticsProvider = StatisticsProvider.NOOP;
     }

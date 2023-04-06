@@ -137,7 +137,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
         }
 
         private boolean isCache(@NotNull Tree tree) {
-            return (REP_CACHE.equals(tree.getName()) || cachePredicate.apply(tree));
+            return (REP_CACHE.equals(tree.getName()) || cachePredicate.test(tree));
         }
 
         private void checkValidCommit() throws CommitFailedException {

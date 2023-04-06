@@ -18,7 +18,6 @@ package org.apache.jackrabbit.api.security.user;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;

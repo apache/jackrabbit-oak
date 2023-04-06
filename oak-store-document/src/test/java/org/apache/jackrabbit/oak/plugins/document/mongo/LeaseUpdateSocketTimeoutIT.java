@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -46,6 +47,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 public class LeaseUpdateSocketTimeoutIT {
@@ -81,6 +83,7 @@ public class LeaseUpdateSocketTimeoutIT {
     @BeforeClass
     public static void dockerAvailable() {
         assumeTrue(MongoDockerRule.isDockerAvailable());
+        assumeFalse(CIHelper.jenkins()); // OAK-9443
     }
 
     @Before

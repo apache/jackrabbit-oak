@@ -220,7 +220,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             throw accessViolation(5, "Access control policy within access control content (" + accessControlledTree.getPath() + ')');
         }
 
-        if (!requiredMixin.apply(treeProvider.asNodeState(accessControlledTree))) {
+        if (!requiredMixin.test(treeProvider.asNodeState(accessControlledTree))) {
             String msg = "Isolated policy node (" + accessControlledTree.getPath() + "). Parent is not of type " + requiredMixin;
             throw accessViolation(6, msg);
         }

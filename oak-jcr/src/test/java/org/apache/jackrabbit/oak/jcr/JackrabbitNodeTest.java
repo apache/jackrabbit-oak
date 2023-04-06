@@ -36,6 +36,7 @@ import javax.jcr.observation.ObservationManager;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -307,5 +308,32 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         // clean up
         n.remove();
         superuser.save();
+    }
+    
+    public void testGetNodeOrNull() throws Exception {
+        JackrabbitNode jn = (JackrabbitNode) testRootNode; 
+        Node aa = jn.addNode("a/aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        aa.setProperty("p", true);
+        
+        assertNull(jn.getNodeOrNull("notExisting"));
+        assertNull(jn.getNodeOrNull("notExisting/rel/path"));
+        assertNull(jn.getNodeOrNull(JcrConstants.JCR_PRIMARYTYPE));
+        assertNull(jn.getNodeOrNull("a/aa/p"));
+        
+        assertNotNull(jn.getNodeOrNull("a"));
+        assertNotNull(jn.getNodeOrNull("a/aa"));
+    }
+    
+    public void testGetPropertyOrNull() throws Exception {
+        JackrabbitNode jn = (JackrabbitNode) testRootNode;
+        Node aa = jn.addNode("a/aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        aa.setProperty("p", "value");
+
+        assertNull(jn.getPropertyOrNull("notExisting"));
+        assertNull(jn.getPropertyOrNull("notExisting/rel/path"));
+        assertNull(jn.getPropertyOrNull("a/aa"));
+        
+        assertNotNull(jn.getPropertyOrNull(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(jn.getPropertyOrNull("a/aa/p"));
     }
 }

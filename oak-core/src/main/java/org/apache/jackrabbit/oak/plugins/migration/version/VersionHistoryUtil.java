@@ -119,7 +119,7 @@ public class VersionHistoryUtil {
 
 
     private static void getVersionableNodes(NodeState node, NodeState versionStorage, TypePredicate isVersionable, Calendar olderThan, String path, List<String> paths) {
-        if (isVersionable.apply(node)) {
+        if (isVersionable.test(node)) {
             if (olderThan == null) {
                 paths.add(path);
             } else {
@@ -157,7 +157,7 @@ public class VersionHistoryUtil {
 
         // we don't know if the UUID is otherwise referenced,
         // so make sure the node remains referencable
-        if (!isReferenceable.apply(versionableBuilder.getNodeState())) {
+        if (!isReferenceable.test(versionableBuilder.getNodeState())) {
             addMixin(versionableBuilder, MIX_REFERENCEABLE);
         }
 

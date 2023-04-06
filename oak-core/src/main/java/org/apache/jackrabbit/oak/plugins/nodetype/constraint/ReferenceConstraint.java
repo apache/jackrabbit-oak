@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
+import java.util.function.Predicate;
+
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 
-public class ReferenceConstraint implements Predicate<Value> {
+public class ReferenceConstraint implements Predicate<Value>, com.google.common.base.Predicate<Value> {
 
     private final String requiredTargetType;
 
@@ -29,9 +31,19 @@ public class ReferenceConstraint implements Predicate<Value> {
     }
 
     @Override
-    public boolean apply(Value value) {
+    public boolean test(Value value) {
         // TODO implement ReferenceConstraint
         return true;
+    }
+
+    /**
+     * @deprecated use {@link #test(Value)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @Deprecated
+    @Override
+    public boolean apply(Value value) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return test(value);
     }
 
     @Override

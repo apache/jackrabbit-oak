@@ -19,11 +19,16 @@ package org.apache.jackrabbit.oak.jcr.version;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Contains {@link VersionHistory} related tests.
@@ -122,5 +127,41 @@ public class VersionHistoryTest extends AbstractJCRTest {
         String uuid = vMgr.getVersionHistory(n.getPath()).getUUID();
         assertTrue("Session.getNodeByUUID() did not return VersionHistory object for a nt:versionHistory node.",
                 superuser.getNodeByUUID(uuid) instanceof VersionHistory);
+    }
+
+    public void testRemoveVersionLabelWithRemovalOfVersion() throws RepositoryException {
+        int createVersions = 3;
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(mixVersionable);
+        superuser.save();
+        for (int i = 0; i < createVersions; i++) {
+            versionManager.checkout(n.getPath());
+            versionManager.checkin(n.getPath());
+        }
+
+        VersionHistory vhr = versionManager.getVersionHistory(n.getPath());
+        // initialize versionName
+        String versionName = "";
+        VersionIterator allversions = vhr.getAllVersions();
+        int count = 0;
+        while (allversions.hasNext()) {
+            Version version = allversions.nextVersion();
+            if(count == 1) {
+                versionName = version.getName();
+            }
+            count++;
+        }
+        int versionLabelCount = 3;
+        List<String> versionLabels = new ArrayList<>();
+        for(int i = 0; i < versionLabelCount; i++) {
+            String labelName = "Label_" + versionName + "_" + i;
+            vhr.addVersionLabel(versionName, labelName,false);
+            versionLabels.add(labelName);
+        }
+        vhr.removeVersion(versionName);
+        for(String label : versionLabels) {
+            assertFalse("version label should not exist", vhr.hasVersionLabel(label));
+        }
+
     }
 }

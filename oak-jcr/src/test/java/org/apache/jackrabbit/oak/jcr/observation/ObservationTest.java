@@ -34,11 +34,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
@@ -54,6 +57,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
@@ -79,7 +83,6 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.version.VersionException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -870,6 +873,52 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void excludePathInvalid() {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        String invalidPath = TEST_PATH + "/[n]";
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath(TEST_PATH)
+                .setIsDeep(true)
+                .setExcludedPaths(TEST_PATH + "/c", invalidPath)
+                .setEventTypes(ALL_EVENTS);
+        try {
+            oManager.addEventListener(listener, filter);
+            fail("addEventListener() must fail with RepositoryException");
+        } catch (RepositoryException e) {
+            // expected
+            assertThat(e.getMessage(), containsString("exclude"));
+            assertThat(e.getMessage(), containsString(invalidPath));
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e);
+        }
+    }
+
+    @Test
+    public void includePathInvalid() {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        String invalidPath = TEST_PATH + "/[n]";
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath(TEST_PATH)
+                .setAdditionalPaths(invalidPath)
+                .setIsDeep(true)
+                .setEventTypes(ALL_EVENTS);
+        try {
+            oManager.addEventListener(listener, filter);
+            fail("addEventListener() must fail with RepositoryException");
+        } catch (RepositoryException e) {
+            // expected
+            assertThat(e.getMessage(), containsString("include"));
+            assertThat(e.getMessage(), containsString(invalidPath));
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e);
+        }
+    }
+
+    @Test
     public void parentPathExclude() throws ExecutionException, InterruptedException, RepositoryException {
         assumeTrue(observationManager instanceof JackrabbitObservationManager);
 
@@ -956,7 +1005,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         builder.condition(builder.property(Selectors.PARENT, "foo",
                 new Predicate<PropertyState>() {
                     @Override
-                    public boolean apply(PropertyState property) {
+                    public boolean test(PropertyState property) {
                         return "bar".equals(property.getValue(STRING));
                     }
                 }));
@@ -993,7 +1042,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         builder.condition(builder.property(Selectors.fromThis("b/c"), "foo",
                 new Predicate<PropertyState>() {
                     @Override
-                    public boolean apply(PropertyState property) {
+                    public boolean test(PropertyState property) {
                         return "bar".equals(property.getValue(STRING));
                     }
                 }));
