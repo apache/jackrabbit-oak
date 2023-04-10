@@ -1063,21 +1063,13 @@ public class MongoDocumentStore implements DocumentStore {
                             Filters.eq(Document.MOD_COUNT, modCount)
                     );
 
-                    UpdateResult result = null;
-                    try {
-                        result = execute(session -> {
+                    UpdateResult result = execute(session -> {
                             if (session != null) {
                                 return dbCollection.updateOne(session, query, update);
                             } else {
                                 return dbCollection.updateOne(query, update);
                             }
                         }, collection);
-                    } catch (MongoWriteException e) {
-                        WriteError werr = e.getError();
-                        LOG.error("Failed to update the document with Id={} and size={} with error message '{}'",
-                                updateOp.getId(), updateOp.toString().length(), werr.getMessage());
-                        throw handleException(e, collection, updateOp.getId());
-                    }
                     if (result.getModifiedCount() > 0) {
                         // success, update cached document
                         if (collection == Collection.NODES) {
@@ -1095,22 +1087,14 @@ public class MongoDocumentStore implements DocumentStore {
             Bson query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
             FindOneAndUpdateOptions options = new FindOneAndUpdateOptions()
                     .returnDocument(ReturnDocument.BEFORE).upsert(upsert);
-            BasicDBObject oldNode = null;
-            try {
-                oldNode = execute(session -> {
+            BasicDBObject oldNode = execute(session -> {
                     if (session != null) {
                         return dbCollection.findOneAndUpdate(session, query, update, options);
                     } else {
                         return dbCollection.findOneAndUpdate(query, update, options);
                     }
                 }, collection);
-            } catch (MongoCommandException e) {
-                LOG.error("Failed to update the document with Id={} has size={} " +
-                                "with error message '{}'",
-                                updateOp.getId(), updateOp.toString().length(),
-                                SIZE_LIMIT, e.getMessage());
-                throw handleException(e, collection, updateOp.getId());
-            }
+
             if (oldNode == null && upsert) {
                 newEntry = true;
             }
@@ -1139,6 +1123,15 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return oldDoc;
+        } catch (MongoWriteException e) {
+            WriteError werr = e.getError();
+            LOG.error("Failed to update the document with Id={} with error message '{}'",
+                    updateOp.getId(), SIZE_LIMIT, werr.getMessage());
+            throw handleException(e, collection, updateOp.getId());
+        } catch (MongoCommandException e) {
+            LOG.error("Failed to update the document with Id={} with error message '{}' ",
+                    updateOp.getId(), SIZE_LIMIT, e.getMessage());
+            throw handleException(e, collection, updateOp.getId());
         } catch (Exception e) {
             throw handleException(e, collection, updateOp.getId());
         } finally {
@@ -1496,15 +1489,17 @@ public class MongoDocumentStore implements DocumentStore {
                 insertSuccess = true;
                 return true;
             } catch (BsonMaximumSizeExceededException e) {
+                T doct = null;
                 for (T doc : docs) {
+                    doct = doc;
                     // doc.getMemory()/2 - converting from UTF-16 to UTF-8
                     if (doc.getMemory()/2 > SIZE_LIMIT) {
                         LOG.error("Failed to create the document with Id={} has size={}" +
                                         " with error message '{}",
-                                doc.getId(), doc.getMemory()/2, SIZE_LIMIT, e.getMessage());
+                                doc.getId(), doc.getMemory()/2, e.getMessage());
                     }
                 }
-                throw handleException(e, collection, Document.ID);
+                throw handleException(e, collection, doct.getId());
             }
         } finally {
             stats.doneCreate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids, insertSuccess);

@@ -30,7 +30,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -172,7 +171,7 @@ public class MongoDBExceptionTest {
     @Test
     public void multiCreateOrUpdate16MBDoc() {
 
-        List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
+        List<UpdateOp> updateOps = new ArrayList<>();
 
         UpdateOp op = new UpdateOp("/test", true);
         op = create1MBProp(op);
@@ -199,7 +198,7 @@ public class MongoDBExceptionTest {
     @Test
     public void create16MBDoc() {
 
-        List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
+        List<UpdateOp> updateOps = new ArrayList<>();
 
         UpdateOp op1 = new UpdateOp("/test", true);
         op1 = create1MBProp(op1);
@@ -233,7 +232,6 @@ public class MongoDBExceptionTest {
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
        }
-
     }
 
     private void setExceptionMsg() {
@@ -243,23 +241,27 @@ public class MongoDBExceptionTest {
 
     private UpdateOp create1MBProp(UpdateOp op) {
         // create a 1 MB property
-        char[] chars = new char[1024 * 1024];
-        Arrays.fill(chars, '0');
-        String content = new String(chars);
+        String content = create1MBContent();
         op.set("property0", content);
         return op;
     }
+
     private UpdateOp create16MBProp(UpdateOp op) {
         // create a 1 MB property
-        char[] chars = new char[1024 * 1024];
-        Arrays.fill(chars, '0');
-        String content = new String(chars);
+        String content = create1MBContent();
         op.set("property0", content);
 
         //create 16MB property
         for (int i = 1; i < 16; i++) {
-            op.set("property"+ Integer.toString(i), content);
+            op.set("property"+ i, content);
         }
         return op;
+    }
+
+    private String create1MBContent() {
+        char[] chars = new char[1024 * 1024];
+        Arrays.fill(chars, '0');
+        String content = new String(chars);
+        return content;
     }
 }
