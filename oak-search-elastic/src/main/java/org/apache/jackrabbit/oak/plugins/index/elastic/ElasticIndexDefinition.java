@@ -45,7 +45,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final int BULK_ACTIONS_DEFAULT = 250;
 
     public static final String BULK_SIZE_BYTES = "bulkSizeBytes";
-    public static final long BULK_SIZE_BYTES_DEFAULT = 2 * 1024 * 1024; // 2MB
+    public static final long BULK_SIZE_BYTES_DEFAULT = 1 * 1024 * 1024; // 1MB
 
     public static final String BULK_FLUSH_INTERVAL_MS = "bulkFlushIntervalMs";
     public static final long BULK_FLUSH_INTERVAL_MS_DEFAULT = 3000;

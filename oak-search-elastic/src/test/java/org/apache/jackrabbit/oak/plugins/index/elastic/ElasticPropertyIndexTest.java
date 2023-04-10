@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import ch.qos.logback.classic.Level;
+import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -32,7 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
     @Test
-    public void testBulkProcessorFlushLimit() throws Exception {
+    public void testBulkProcessorEventsFlushLimit() throws Exception {
         setIndex("test1", createIndex("propa"));
 
         Tree test = root.getTree("/").addChild("test");
@@ -61,6 +66,43 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             assertThat(explain(propaQuery2), containsString("elasticsearch:test1"));
             assertQuery(propaQuery2, List.of("/test/a299"));
         });
+    }
+
+    @Test
+    public void testBulkProcessorSizeFlushLimit() throws Exception {
+        LogCustomizer customLogger = LogCustomizer
+                .forLogger(
+                        "org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler")
+                .enable(Level.DEBUG).create();
+        try {
+            customLogger.starting();
+        /*
+        Below are the conditions to flush data from bulk processor.
+        1. Based on events by default 250 events.
+        2. Based on size of estimated bulk request size.
+        3. When index writer is closed.
+        To trigger flush on bulk request size, we will load large documents so that
+         instead of event, flush is triggered because of bulk request size.
+         */
+            setIndex("test1", createIndex("propa"));
+            long bulkSize = ElasticIndexDefinition.BULK_SIZE_BYTES_DEFAULT;
+            int docSize = 1024 * 16;
+            // +1 at end leads to bulk size breach, leading to two bulkIds.
+            long docCountBreachingBulkSize = (bulkSize / docSize) + 1;
+            // 250 is the default flush limit for bulk processor
+            Assert.assertTrue(docCountBreachingBulkSize < 250);
+            String random = RandomStringUtils.random(docSize, true, true);
+
+            Tree test = root.getTree("/").addChild("test");
+            for (int i = 1; i <= docCountBreachingBulkSize; i++) {
+                test.addChild("a" + i).setProperty("propa", random + i);
+            }
+            root.commit();
+            Assert.assertEquals(1, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 2 processed with status OK in")).count());
+            Assert.assertEquals(0, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 3 processed with status OK in")).count());
+        } finally {
+            customLogger.finished();
+        }
     }
 
     @Test
@@ -181,7 +223,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         Tree test = root.getTree("/").addChild("test");
         for (int i = 0; i < 10; i++) {
-            test.addChild("node-" + i).setProperty("propa", (double)i);
+            test.addChild("node-" + i).setProperty("propa", (double) i);
         }
         root.commit();
 
