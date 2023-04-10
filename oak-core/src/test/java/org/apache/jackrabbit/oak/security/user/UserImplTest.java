@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
@@ -87,19 +85,6 @@ public class UserImplTest extends AbstractSecurityTest {
     @Test
     public void testAdministratorIsAdmin() throws Exception {
         assertTrue(getAdminUser().isAdmin());
-    }
-
-    @Test
-    public void testUserInAdministratorGroupsIsAdmin() throws RepositoryException, CommitFailedException {
-        Group administratorGroup = getUserManager(root).createGroup(UserConstants.DEFAULT_IMPERSONATOR_GROUP);
-
-        administratorGroup.addMember(user);
-        root.commit();
-        assertTrue(user.isAdmin());
-
-        administratorGroup.removeMember(user);
-        root.commit();
-        assertFalse(user.isAdmin());
     }
 
     @Test

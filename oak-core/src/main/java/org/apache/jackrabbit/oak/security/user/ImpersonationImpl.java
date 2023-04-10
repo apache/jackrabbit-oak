@@ -125,13 +125,13 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     @Override
     public boolean allows(@NotNull Subject subject) {
         Set<Principal> principals = subject.getPrincipals();
-        if (isImpersonator(principals)){
-            return true;
-        }
-
         Set<String> principalNames = new HashSet<>();
         for (Principal principal : principals) {
             principalNames.add(principal.getName());
+        }
+
+        if (isImpersonator(principalNames)){
+            return true;
         }
 
         boolean allows = getImpersonatorNames().removeAll(principalNames);
@@ -183,7 +183,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    private boolean isImpersonator(@NotNull Set<Principal> principals) {
+    private boolean isImpersonator(@NotNull Set<String> principals) {
         Set<String> impersonatorGroups = Set.of(user.getUserManager().getConfig().getConfigValue(
                 PARAM_IMPERSONATOR_GROUPS_ID,
                 new String[]{}));
@@ -192,7 +192,6 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             return false;
         }
         return principals.stream()
-                .map(Principal::getName)
                 .anyMatch(impersonatorGroups::contains);
     }
 

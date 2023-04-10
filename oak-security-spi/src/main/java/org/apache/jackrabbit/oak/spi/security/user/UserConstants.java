@@ -84,11 +84,6 @@ public interface UserConstants {
     String PARAM_IMPERSONATOR_GROUPS_ID = "impersonatorGroups";
 
     /**
-     * Default value for the impersonator group {@link #PARAM_IMPERSONATOR_GROUPS_ID}.
-     */
-    String DEFAULT_IMPERSONATOR_GROUP = "administrators";
-
-    /**
      * Configuration option defining if the admin password should be omitted
      * upon user creation.
      */
