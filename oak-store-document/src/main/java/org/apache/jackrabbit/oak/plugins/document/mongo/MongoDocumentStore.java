@@ -1064,12 +1064,12 @@ public class MongoDocumentStore implements DocumentStore {
                     );
 
                     UpdateResult result = execute(session -> {
-                            if (session != null) {
-                                return dbCollection.updateOne(session, query, update);
-                            } else {
-                                return dbCollection.updateOne(query, update);
-                            }
-                        }, collection);
+                        if (session != null) {
+                            return dbCollection.updateOne(session, query, update);
+                        } else {
+                            return dbCollection.updateOne(query, update);
+                        }
+                    }, collection);
                     if (result.getModifiedCount() > 0) {
                         // success, update cached document
                         if (collection == Collection.NODES) {
@@ -1088,12 +1088,12 @@ public class MongoDocumentStore implements DocumentStore {
             FindOneAndUpdateOptions options = new FindOneAndUpdateOptions()
                     .returnDocument(ReturnDocument.BEFORE).upsert(upsert);
             BasicDBObject oldNode = execute(session -> {
-                    if (session != null) {
-                        return dbCollection.findOneAndUpdate(session, query, update, options);
-                    } else {
-                        return dbCollection.findOneAndUpdate(query, update, options);
-                    }
-                }, collection);
+                if (session != null) {
+                    return dbCollection.findOneAndUpdate(session, query, update, options);
+                } else {
+                    return dbCollection.findOneAndUpdate(query, update, options);
+                }
+            }, collection);
 
             if (oldNode == null && upsert) {
                 newEntry = true;
@@ -1126,11 +1126,11 @@ public class MongoDocumentStore implements DocumentStore {
         } catch (MongoWriteException e) {
             WriteError werr = e.getError();
             LOG.error("Failed to update the document with Id={} with error message '{}'",
-                    updateOp.getId(), SIZE_LIMIT, werr.getMessage());
+                    updateOp.getId(), werr.getMessage());
             throw handleException(e, collection, updateOp.getId());
         } catch (MongoCommandException e) {
             LOG.error("Failed to update the document with Id={} with error message '{}' ",
-                    updateOp.getId(), SIZE_LIMIT, e.getMessage());
+                    updateOp.getId(), e.getMessage());
             throw handleException(e, collection, updateOp.getId());
         } catch (Exception e) {
             throw handleException(e, collection, updateOp.getId());
@@ -1382,7 +1382,6 @@ public class MongoDocumentStore implements DocumentStore {
             );
             bulkIds[i++] = id;
         }
-
 
         BulkWriteResult bulkResult;
         Set<String> failedUpdates = new HashSet<String>();
