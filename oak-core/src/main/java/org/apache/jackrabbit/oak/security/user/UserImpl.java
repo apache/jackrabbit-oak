@@ -16,23 +16,23 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
+import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
-import java.security.Principal;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -41,13 +41,15 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  */
 class UserImpl extends AuthorizableImpl implements User {
 
+    private final boolean isAdmin;
     private final PasswordHistory pwHistory;
 
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
+
+        isAdmin = UserUtil.isAdmin(userManager.getConfig(), id);
         pwHistory = new PasswordHistory(userManager.getConfig());
     }
-
 
     //---------------------------------------------------< AuthorizableImpl >---
     @Override
@@ -77,15 +79,9 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     //---------------------------------------------------------------< User >---
-
-    /**
-     * The user is considered admin if it is the user with the id {@link UserConstants#DEFAULT_ADMIN_ID}
-     *
-     * @return true if the user has the id "admin" or a member of a configured administrators group.
-     */
     @Override
     public boolean isAdmin() {
-        return UserUtil.isAdmin(getUserManager().getConfig(), getID());
+        return isAdmin;
     }
 
     @Override
@@ -133,17 +129,9 @@ class UserImpl extends AuthorizableImpl implements User {
         changePassword(password);
     }
 
-    /**
-     * Disables the user.
-     * <p>
-     * The user with the configured param {@link UserConstants#PARAM_ADMIN_ID} cannot be disabled.
-     *
-     * @throws RepositoryException if the user is the default admin one (configuration param
-     *                             {@link UserConstants#PARAM_ADMIN_ID})
-     */
     @Override
     public void disable(@Nullable String reason) throws RepositoryException {
-        if (UserUtil.isAdmin(getUserManager().getConfig(), getID())) {
+        if (isAdmin) {
             throw new RepositoryException("The administrator user cannot be disabled.");
         }
 
