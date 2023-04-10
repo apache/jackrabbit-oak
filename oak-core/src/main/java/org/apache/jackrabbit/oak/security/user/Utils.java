@@ -100,15 +100,23 @@ public final class Utils {
      * @return {@code true} if the given principal can impersonate all users; {@code false} if that condition is not met 
      * or if the evaluation failed.
      */
-    public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) {
+    public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) { // todo
         try {
             Authorizable authorizable = userManager.getAuthorizable(principal);
-            return authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
+            if (authorizable == null) {
+                return false;
+            }
+
+            User user = (User)authorizable;
+            ImpersonationImpl impersonation = (ImpersonationImpl)user.getImpersonation();
+            return !authorizable.isGroup() &&
+                    (user.isAdmin() || impersonation.isImpersonator(authorizable));
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
             return false;        
         }
     }
+
     
     @Nullable
     private static String getPrincipalName(@NotNull Authorizable authorizable) {

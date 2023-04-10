@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,7 +37,7 @@ import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 import java.security.Principal;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -123,10 +124,6 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     @Override
     public boolean allows(@NotNull Subject subject) {
-        if (subject == null) {
-            return false;
-        }
-
         Set<Principal> principals = subject.getPrincipals();
         if (isImpersonator(principals)){
             return true;
@@ -187,13 +184,43 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private boolean isImpersonator(@NotNull Set<Principal> principals) {
-        List<String> impersonatorGroups = List.of(user.getUserManager().getConfig().getConfigValue(
+        Set<String> impersonatorGroups = Set.of(user.getUserManager().getConfig().getConfigValue(
                 PARAM_IMPERSONATOR_GROUPS_ID,
-                new String[]{DEFAULT_IMPERSONATOR_GROUP}));
+                new String[]{}));
+
+        if (impersonatorGroups.isEmpty()) {
+            return false;
+        }
         return principals.stream()
                 .map(Principal::getName)
                 .anyMatch(impersonatorGroups::contains);
     }
+
+    public boolean isImpersonator(@NotNull Authorizable authorizable) {
+        Set<String> impersonatorGroups = Set.of(user.getUserManager().getConfig().getConfigValue(
+                PARAM_IMPERSONATOR_GROUPS_ID,
+                new String[]{}));
+
+        if (impersonatorGroups.isEmpty()) {
+            return false;
+        }
+
+        try {
+            Iterator<Group> it =  authorizable.memberOf();
+            while (it.hasNext()) {
+                Group group = it.next();
+                if (impersonatorGroups.contains(group.getID())) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (RepositoryException e) {
+            return false;
+        }
+    }
+
+
 
     private boolean isValidPrincipal(@NotNull Principal principal) {
         Principal p = null;
