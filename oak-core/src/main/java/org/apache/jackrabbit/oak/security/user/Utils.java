@@ -100,7 +100,7 @@ public final class Utils {
      * @return {@code true} if the given principal can impersonate all users; {@code false} if that condition is not met 
      * or if the evaluation failed.
      */
-    public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) { // todo
+    public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) {
         try {
             Authorizable authorizable = userManager.getAuthorizable(principal);
             if (authorizable == null) {

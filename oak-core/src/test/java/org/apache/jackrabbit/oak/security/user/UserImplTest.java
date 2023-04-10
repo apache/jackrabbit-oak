@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,9 +32,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
 
 import static javax.jcr.Property.JCR_PRIMARY_TYPE;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
