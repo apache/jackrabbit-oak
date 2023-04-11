@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
@@ -28,7 +29,6 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,7 +45,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -190,35 +189,63 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
     }
 
     @Test
-    public void testIsImpersonatorPrincipals() throws Exception {
-        //todo impersonator
-    }
-
-    @Test
     public void testIsImpersonatorAuthorizable() throws Exception {
-        //todo impersonator
+        String impersonatorGroupId = "impersonators-group";
+        impersonation = getImpersonationWithMockedConfigs(impersonatorGroupId);
+
+        // create authorizable to test
+        AuthorizableImpl authorizableMock = getAuthorizablewithGroup(impersonatorGroupId);
+        assertTrue(impersonation.isImpersonator(authorizableMock));
     }
 
     @Test
-    public void testImpersonationByImpersonationGroupMember() throws Exception {
-        // revoke impersonation rights
-        impersonation.revokeImpersonation(impersonator.getPrincipal());
-
+    public void testImpersonationAllowByImpersonationGroupMember() throws Exception {
         // create group and set it up in configs ->
         // configs.getConfigValue("impersonatorGroups") must return impersonatorGroupId
         String impersonatorGroupId = "impersonators-group";
+        impersonation = getImpersonationWithMockedConfigs(impersonatorGroupId);
 
-        ConfigurationParameters configMock = mock(ConfigurationParameters.class);
-        when(configMock.getConfigValue(eq(UserConstants.PARAM_IMPERSONATOR_GROUPS_ID), any(String[].class)))
-             .thenReturn(new String[] {impersonatorGroupId});
-
-        UserManagerImpl userManagerSpy = spy(user.getUserManager());
-        when(userManagerSpy.getConfig()).thenReturn(configMock);
-
-        // add impersonator to the group -> add groupId to its principals
+        // add impersonator to the group -> it's enough to add groupId to its principals list
         Subject impersonatorSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorGroupId));
+        Subject nonImpersonatorSubject = createSubject(new PrincipalImpl("simple-user"));
 
         // check impersonation.allows(impersonator)
         assertTrue(impersonation.allows(impersonatorSubject));
+        assertFalse(impersonation.allows(nonImpersonatorSubject));
+    }
+
+    private ImpersonationImpl getImpersonationWithMockedConfigs(String impersonatorGroupId) {
+        ConfigurationParameters configMock = mock(ConfigurationParameters.class);
+        when(configMock.getConfigValue(eq(UserConstants.PARAM_IMPERSONATOR_GROUPS_ID), any(String[].class)))
+                .thenReturn(new String[] {impersonatorGroupId});
+
+        UserManagerImpl userManagerMock = mock(UserManagerImpl.class);
+        when(userManagerMock.getConfig()).thenReturn(configMock);
+
+        UserImpl userMock = spy(user);
+        when(userMock.getUserManager()).thenReturn(userManagerMock);
+
+        return new ImpersonationImpl(userMock);
+    }
+
+    private AuthorizableImpl getAuthorizablewithGroup(String groupId) throws RepositoryException {
+        AuthorizableImpl authorizableMock = mock(AuthorizableImpl.class);
+        Group group = mock(Group.class);
+        when(group.getID()).thenReturn(groupId);
+        when(authorizableMock.memberOf()).thenReturn(new Iterator<>() {
+            private boolean hasNext = true;
+            @Override
+            public boolean hasNext() {
+                return hasNext;
+            }
+
+            @Override
+            public Group next() {
+                hasNext = false;
+                return group;
+            }
+        });
+
+        return authorizableMock;
     }
 }
