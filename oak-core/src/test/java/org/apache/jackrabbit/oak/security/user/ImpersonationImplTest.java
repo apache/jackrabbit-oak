@@ -28,6 +28,7 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -41,8 +42,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
@@ -199,10 +204,16 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         // revoke impersonation rights
         impersonation.revokeImpersonation(impersonator.getPrincipal());
 
-        // create group and set it up in configs -> make configs return groupId
+        // create group and set it up in configs ->
+        // configs.getConfigValue("impersonatorGroups") must return impersonatorGroupId
         String impersonatorGroupId = "impersonators-group";
-        ConfigurationParameters configs = spy(((UserManagerImpl)getUserManager(root)).getConfig());
 
+        ConfigurationParameters configMock = mock(ConfigurationParameters.class);
+        when(configMock.getConfigValue(eq(UserConstants.PARAM_IMPERSONATOR_GROUPS_ID), any(String[].class)))
+             .thenReturn(new String[] {impersonatorGroupId});
+
+        UserManagerImpl userManagerSpy = spy(user.getUserManager());
+        when(userManagerSpy.getConfig()).thenReturn(configMock);
 
         // add impersonator to the group -> add groupId to its principals
         Subject impersonatorSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorGroupId));
