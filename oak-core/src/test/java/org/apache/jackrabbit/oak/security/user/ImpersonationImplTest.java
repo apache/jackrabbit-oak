@@ -31,6 +31,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
@@ -183,4 +184,30 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         assertNull(tree.getProperty(UserConstants.REP_IMPERSONATORS));
     }
 
+    @Test
+    public void testIsImpersonatorPrincipals() throws Exception {
+        //todo impersonator
+    }
+
+    @Test
+    public void testIsImpersonatorAuthorizable() throws Exception {
+        //todo impersonator
+    }
+
+    @Test
+    public void testImpersonationByImpersonationGroupMember() throws Exception {
+        // revoke impersonation rights
+        impersonation.revokeImpersonation(impersonator.getPrincipal());
+
+        // create group and set it up in configs -> make configs return groupId
+        String impersonatorGroupId = "impersonators-group";
+        ConfigurationParameters configs = spy(((UserManagerImpl)getUserManager(root)).getConfig());
+
+
+        // add impersonator to the group -> add groupId to its principals
+        Subject impersonatorSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorGroupId));
+
+        // check impersonation.allows(impersonator)
+        assertTrue(impersonation.allows(impersonatorSubject));
+    }
 }

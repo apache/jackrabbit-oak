@@ -228,6 +228,11 @@ public class UtilsTest extends AbstractSecurityTest {
 
         assertFalse(canImpersonateAllUsers(adminPrincipal, umgrMock));
     }
+
+    @Test
+    public void testCanImpersonateAllImpersonatorGroupMember() throws Exception {
+        //todo impersonator
+    }
     
     @Test
     public void testGetTreeFromTreeAware() throws Exception {
