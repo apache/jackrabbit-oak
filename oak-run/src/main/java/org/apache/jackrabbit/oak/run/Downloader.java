@@ -24,17 +24,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -175,19 +172,18 @@ public class Downloader implements Closeable {
 
             Path destinationPath = Paths.get(item.destination);
             Files.createDirectories(destinationPath.getParent());
+
             long size = 0;
-            try (ReadableByteChannel byteChannel = Channels.newChannel(sourceUrl.getInputStream());
-                 FileChannel outputChannel = FileChannel.open(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
-                ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+            try (InputStream inputStream = sourceUrl.getInputStream();
+                 FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
+                byte[] buffer = new byte[bufferSize];
                 int bytesRead;
-                while ((bytesRead = byteChannel.read(buffer)) != -1) {
-                    buffer.flip();
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
                     if (md != null) {
-                        md.update(buffer);
+                        md.update(buffer, 0, bytesRead);
                     }
+                    outputStream.write(buffer, 0, bytesRead);
                     size += bytesRead;
-                    outputChannel.write(buffer);
-                    buffer.clear();
                 }
             }
 
