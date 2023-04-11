@@ -103,14 +103,13 @@ public final class Utils {
     public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) {
         try {
             Authorizable authorizable = userManager.getAuthorizable(principal);
-            if (authorizable == null) {
+            if (authorizable == null || authorizable.isGroup()) {
                 return false;
             }
 
             User user = (User)authorizable;
             ImpersonationImpl impersonation = (ImpersonationImpl)user.getImpersonation();
-            return !authorizable.isGroup() &&
-                    (user.isAdmin() || impersonation.isImpersonator(authorizable));
+            return user.isAdmin() || impersonation.isImpersonator(authorizable);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
             return false;        
