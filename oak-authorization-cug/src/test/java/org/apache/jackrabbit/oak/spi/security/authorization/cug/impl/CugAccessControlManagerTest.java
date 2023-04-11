@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +33,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -622,9 +624,20 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.of(PathUtils.ROOT_PATH), getExclude(), getRootProvider());
         assertEquals(4, acMgr.getEffectivePolicies(ImmutableSet.of(getTestGroupPrincipal(), EveryonePrincipal.getInstance())).length);
     }
-
+    
     @Test
-    public void tesetGetEffectiveByPrincipalNotEnabled() throws Exception {
+    public void testGetEffectiveEmptyPrincipals() throws Exception {
+        setupCugsAndAcls();
+
+        Iterator<AccessControlPolicy> effectiveByPrincipalsPaths = cugAccessControlManager.getEffectivePolicies(Collections.emptySet(), new String[0]);
+        assertFalse(effectiveByPrincipalsPaths.hasNext());
+
+        AccessControlPolicy[] effectiveByPrincipals = cugAccessControlManager.getEffectivePolicies(Collections.emptySet());
+        assertEquals(0, effectiveByPrincipals.length);
+    }
+    
+    @Test
+    public void testGetEffectiveByPrincipalNotEnabled() throws Exception {
         setupCugsAndAcls();
 
         ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
@@ -632,6 +645,95 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
                 CugConstants.PARAM_CUG_ENABLED, false));
         CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, CugSecurityProvider.newTestSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude(), getRootProvider());
         assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(getTestGroupPrincipal(), EveryonePrincipal.getInstance())).length);
+    }
+    
+    @Test
+    public void testGetEffectivePrincipalsEmptyPaths() throws Exception {
+        setupCugsAndAcls();
+
+        Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
+        Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, new String[0]);
+        assertTrue(effective.hasNext());
+        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(principalSet), Iterators.toArray(effective, AccessControlPolicy.class));
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsNullPaths() throws Exception {
+        setupCugsAndAcls();
+
+        Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
+        String[] paths = null;
+        Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, paths);
+        assertTrue(effective.hasNext());
+        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(principalSet), Iterators.toArray(effective, AccessControlPolicy.class));
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsPathsDisabled() throws Exception {
+        setupCugsAndAcls();
+
+        Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
+
+        ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
+                CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
+                CugConstants.PARAM_CUG_ENABLED, false));
+        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, CugSecurityProvider.newTestSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude(), getRootProvider());
+
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principalSet, "/content/a");
+        assertFalse(effective.hasNext());
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsDuplicatePath() throws Exception {
+        setupCugsAndAcls();
+
+        String cugPath = "/content/a";
+        Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
+        Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, cugPath, cugPath);
+        assertTrue(effective.hasNext());
+        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(cugPath), Iterators.toArray(effective, AccessControlPolicy.class));
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsUnsupportedPath() throws Exception {
+        setupCugsAndAcls();
+
+        Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
+        Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, UNSUPPORTED_PATH);
+        assertFalse(effective.hasNext());
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsPropertyPath() throws Exception {
+        setupCugsAndAcls();
+
+        String cugPath = "/content/a";
+        Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
+        Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, cugPath+"/jcr:primaryType");
+        AccessControlPolicy[] expected = Iterators.toArray(cugAccessControlManager.getEffectivePolicies(principalSet, cugPath), AccessControlPolicy.class);
+        assertEquivalentCugs(expected, Iterators.toArray(effective, AccessControlPolicy.class));
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsNullPath() throws Exception {
+        setupCugsAndAcls();
+
+        Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
+        Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, new String[] {null});
+        assertFalse(effective.hasNext());
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsPathsMissingPermission() throws Exception {
+        setupCugsAndAcls();
+
+        // test-user only has read-access on /content (no read-ac permission)
+        try (ContentSession cs = createTestSession()) {
+            Root r = cs.getLatestRoot();
+            CugAccessControlManager m = new CugAccessControlManager(r, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude(), getRootProvider());
+            Iterator<AccessControlPolicy> effective = m.getEffectivePolicies(ImmutableSet.of(getTestGroupPrincipal()), "/content/a");
+            assertFalse(effective.hasNext());
+        }
     }
 
     @Test

@@ -298,4 +298,17 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
         }
         return tp;
     }
+    
+    static void assertEquivalentCugs(@NotNull AccessControlPolicy[] expected, @NotNull AccessControlPolicy[] result) {
+        assertEquals(expected.length, result.length);
+        for (int i = 0; i<expected.length; i++) {
+            assertTrue(expected[i] instanceof CugPolicyImpl);
+            assertTrue(result[i] instanceof CugPolicyImpl);
+            
+            CugPolicyImpl exp = (CugPolicyImpl) expected[i];
+            CugPolicyImpl res = (CugPolicyImpl) result[i];
+            assertEquals(exp.getPath(), res.getPath());
+            assertEquals(exp.getPrincipals(), res.getPrincipals());
+        }
+    }
 }
