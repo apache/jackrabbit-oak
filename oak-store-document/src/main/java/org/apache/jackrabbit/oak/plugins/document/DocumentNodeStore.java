@@ -69,6 +69,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -135,7 +136,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -1324,7 +1324,7 @@ public final class DocumentNodeStore
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (UncheckedExecutionException e) {
+        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
@@ -1384,8 +1384,8 @@ public final class DocumentNodeStore
                 children = readChildren(parent, name, limit);
                 nodeChildrenCache.put(key, children);
             }
-            return children;                
-        } catch (UncheckedExecutionException e) {
+            return children;
+        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
                             + path);
