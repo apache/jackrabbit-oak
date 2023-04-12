@@ -93,7 +93,7 @@ public final class Utils {
     /**
      * Return {@code true} if the given principal can impersonate all users. 
      * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()} 
-     * returns {@code true}.
+     * returns {@code true} OR if the user is an impersonator (member of an impersonator group).
      * 
      * @param principal A non-null principal instance.
      * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}

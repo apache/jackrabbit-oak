@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -230,8 +231,21 @@ public class UtilsTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testCanImpersonateAllImpersonatorGroupMember() throws Exception {
-        //todo impersonator
+    public void testCanImpersonateAllByImpersonatorMember() throws Exception {
+        String impersonatorGroupId = "impersonator-group";
+
+        // mocking userManager's configs <-> adding the impersonatorGroupId to the config
+        UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
+        ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), impersonatorGroupId);
+        when(userManagerSpy.getConfig()).thenReturn(configs);
+
+        // add the test user to the impersonator group
+        Group impersonatorGroup = userManagerSpy.createGroup(impersonatorGroupId);
+        Authorizable authorizable = userManagerSpy.getAuthorizable(getTestUser().getID());
+        impersonatorGroup.addMember(authorizable);
+        root.commit();
+
+        assertTrue(canImpersonateAllUsers(new PrincipalImpl(getTestUser().getID()), userManagerSpy));
     }
     
     @Test
