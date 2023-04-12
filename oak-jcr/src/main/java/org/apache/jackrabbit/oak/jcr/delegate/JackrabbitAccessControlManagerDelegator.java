@@ -20,9 +20,13 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.security.Principal;
+import java.util.Iterator;
 import java.util.Set;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
@@ -81,6 +85,16 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
             @Override
             public AccessControlPolicy @NotNull [] perform() throws RepositoryException {
                 return jackrabbitACManager.getEffectivePolicies(principals);
+            }
+        });
+    }
+
+    @Override
+    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull final Set<Principal> principals, @Nullable final String... absPaths) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
+        return delegate.perform(new SessionOperation<>("getEffectivePolicies(Set,String...)") {
+            @Override
+            public @NotNull Iterator<AccessControlPolicy> perform() throws RepositoryException {
+                return jackrabbitACManager.getEffectivePolicies(principals, absPaths);
             }
         });
     }

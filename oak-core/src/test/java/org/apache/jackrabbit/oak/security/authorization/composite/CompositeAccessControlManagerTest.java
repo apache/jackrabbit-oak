@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -389,6 +390,32 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         assertArrayEquals(new JackrabbitAccessControlPolicy[] {policy}, composite.getEffectivePolicies(principalSet));
 
         verify(mgr, times(1)).getEffectivePolicies(principalSet);
+    }
+
+    @Test
+    public void testEffectivePoliciesByPrincipalAndPathsNotJackrabbitAcMgr() throws Exception {
+        AccessControlManager mgr = mock(AccessControlManager.class);
+
+        Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+        CompositeAccessControlManager composite = createComposite(mgr);
+        assertFalse(composite.getEffectivePolicies(principalSet, ROOT_PATH).hasNext());
+
+        verifyNoInteractions(mgr);
+    }
+
+    @Test
+    public void testEffectivePoliciesByPrincipalAndPaths() throws Exception {
+        JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
+        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getEffectivePolicies(any(Set.class), anyString())).thenReturn(Iterators.singletonIterator(policy));
+
+        Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+        CompositeAccessControlManager composite = createComposite(mgr);
+        
+        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(policy), composite.getEffectivePolicies(principalSet, ROOT_PATH)));
+
+        verify(mgr, times(0)).getEffectivePolicies(principalSet);
+        verify(mgr, times(1)).getEffectivePolicies(principalSet, ROOT_PATH);
     }
 
     @Test
