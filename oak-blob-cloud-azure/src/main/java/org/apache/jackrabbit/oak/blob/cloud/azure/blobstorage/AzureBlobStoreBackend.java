@@ -135,6 +135,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     protected CloudBlobContainer getAzureContainer() throws DataStoreException {
+        BlobRequestOptions requestOptions = getRequestOptions();
+
+        return Utils.getBlobContainer(connectionString, containerName, requestOptions);
+    }
+
+    private BlobRequestOptions getRequestOptions() {
         BlobRequestOptions requestOptions = new BlobRequestOptions();
         if (null != retryPolicy) {
             requestOptions.setRetryPolicyFactory(retryPolicy);
@@ -146,8 +152,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         if (enableSecondaryLocation) {
             requestOptions.setLocationMode(LocationMode.PRIMARY_THEN_SECONDARY);
         }
-
-        return Utils.getBlobContainer(connectionString, containerName, requestOptions);
+        return requestOptions;
     }
 
     @Override
@@ -202,9 +207,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                         AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
                 );
 
+                LOG.info("Using enableSecondaryLocation={}", enableSecondaryLocation);
+
                 CloudBlobContainer azureContainer = getAzureContainer();
 
-                if (createBlobContainer && azureContainer.createIfNotExists()) {
+                if (createBlobContainer && !azureContainer.exists(null, getRequestOptions(), null)) {
+                    azureContainer.create();
                     LOG.info("New container created. containerName={}", containerName);
                 } else {
                     LOG.info("Reusing existing container. containerName={}", containerName);

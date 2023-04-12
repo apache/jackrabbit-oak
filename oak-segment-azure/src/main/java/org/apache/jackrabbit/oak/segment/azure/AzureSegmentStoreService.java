@@ -117,7 +117,7 @@ public class AzureSegmentStoreService {
     }
 
     @NotNull
-    private static AzurePersistence createAzurePersistence(
+    public static AzurePersistence createAzurePersistence(
         String connectionString,
         Configuration configuration,
         boolean createContainer
@@ -128,14 +128,16 @@ public class AzureSegmentStoreService {
             CloudBlobClient cloudBlobClient = cloud.createCloudBlobClient();
             BlobRequestOptions blobRequestOptions = new BlobRequestOptions();
 
+            log.info("Using enableSecondaryLocation={}", configuration.enableSecondaryLocation());
+
             if (configuration.enableSecondaryLocation()) {
                 blobRequestOptions.setLocationMode(LocationMode.PRIMARY_THEN_SECONDARY);
             }
             cloudBlobClient.setDefaultRequestOptions(blobRequestOptions);
 
             CloudBlobContainer container = cloudBlobClient.getContainerReference(configuration.containerName());
-            if (createContainer) {
-                container.createIfNotExists();
+            if (createContainer && !container.exists(null, blobRequestOptions, null)) {
+                container.create();
             }
             String path = normalizePath(configuration.rootPath());
             return new AzurePersistence(container.getDirectoryReference(path));
