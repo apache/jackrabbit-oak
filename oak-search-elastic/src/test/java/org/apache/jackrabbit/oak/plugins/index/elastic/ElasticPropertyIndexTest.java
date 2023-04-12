@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import ch.qos.logback.classic.Level;
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -84,7 +83,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         To trigger flush on bulk request size, we will load large documents so that
          instead of event, flush is triggered because of bulk request size.
          */
-            setIndex("test1", createIndex("propa"));
+            setIndex("test1", createIndex("propa", "propb"));
             long bulkSize = ElasticIndexDefinition.BULK_SIZE_BYTES_DEFAULT;
             int docSize = 1024 * 16;
             // +1 at end leads to bulk size breach, leading to two bulkIds.
@@ -95,9 +94,17 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
             Tree test = root.getTree("/").addChild("test");
             for (int i = 1; i <= docCountBreachingBulkSize; i++) {
-                test.addChild("a" + i).setProperty("propa", random + i);
+                test.addChild("a" + i).setProperty("propa", "foo" + i);
+                test.addChild("a" + i).setProperty("propb", random + i);
             }
             root.commit();
+
+            String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo" + docCountBreachingBulkSize + "'";
+            assertEventually(() -> {
+                assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
+                assertQuery(propaQuery, List.of("/test/a" + docCountBreachingBulkSize));
+            });
+
             Assert.assertEquals(1, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 2 processed with status OK in")).count());
             Assert.assertEquals(0, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 3 processed with status OK in")).count());
         } finally {
