@@ -24,11 +24,12 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.util.Random;
 
-import com.google.common.base.Supplier;
-import com.google.common.cache.CacheStats;
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.base.Supplier;
 
 public class RecordCacheStatsTest {
     private static final String NAME = "cache stats";

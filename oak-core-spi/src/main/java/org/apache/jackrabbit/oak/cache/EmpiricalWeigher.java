@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

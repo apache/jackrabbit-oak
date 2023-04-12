@@ -29,8 +29,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 
 /**
  * Compares the LIRS cache by concurrently reading.

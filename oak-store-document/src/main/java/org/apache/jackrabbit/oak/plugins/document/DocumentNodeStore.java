@@ -35,13 +35,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PATH;
 import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
 import static org.apache.jackrabbit.oak.spi.observation.ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 
 import java.io.Closeable;
@@ -70,46 +68,36 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.cache.Cache;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.UncheckedExecutionException;
-
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.json.JsopStream;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledDocumentDiffer;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
-import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.commons.json.JsopStream;
-import org.apache.jackrabbit.oak.commons.json.JsopWriter;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
+import org.apache.jackrabbit.oak.plugins.document.util.ThrottlingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.plugins.document.util.ThrottlingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -130,12 +118,24 @@ import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -1324,7 +1324,7 @@ public final class DocumentNodeStore
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (UncheckedExecutionException e) {
+        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
@@ -1384,8 +1384,8 @@ public final class DocumentNodeStore
                 children = readChildren(parent, name, limit);
                 nodeChildrenCache.put(key, children);
             }
-            return children;                
-        } catch (UncheckedExecutionException e) {
+            return children;
+        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
                             + path);

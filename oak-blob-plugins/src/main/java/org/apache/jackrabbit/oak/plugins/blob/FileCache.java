@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.copyInputStreamToFile;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -30,16 +33,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Stopwatch;
-import com.google.common.cache.AbstractCache;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.RemovalCause;
-import com.google.common.cache.Weigher;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -50,8 +48,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.copyInputStreamToFile;
+import com.google.common.base.Predicate;
+import com.google.common.base.Stopwatch;
+import com.google.common.cache.AbstractCache;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
 
 /**
  */

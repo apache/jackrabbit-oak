@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
 import java.util.Set;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;

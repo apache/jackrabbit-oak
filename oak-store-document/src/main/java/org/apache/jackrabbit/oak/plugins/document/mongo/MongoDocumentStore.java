@@ -45,7 +45,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.AtomicDouble;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
@@ -54,6 +53,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 
 import com.mongodb.client.model.CreateCollectionOptions;
+
+import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -620,7 +621,7 @@ public class MongoDocumentStore implements DocumentStore {
             } else {
                 return (T) doc;
             }
-        } catch (UncheckedExecutionException e) {
+        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
             t = e.getCause();
         } catch (ExecutionException e) {
             t = e.getCause();
@@ -1573,7 +1574,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return;
-        } catch (UncheckedExecutionException | ExecutionException e) {
+        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException | ExecutionException e) {
             t = e.getCause();
         } catch (RuntimeException e) {
             t = e;

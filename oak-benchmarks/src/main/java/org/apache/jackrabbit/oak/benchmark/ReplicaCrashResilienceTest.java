@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.jcr.LoginException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -113,8 +112,9 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                         writerInfosNode.setProperty(LEVEL1POINTER, level1Pointer);
                         writerInfosNode.setProperty(LEVEL2POINTER, level2Pointer);
                         session.save();
-                    } catch(com.google.common.util.concurrent.UncheckedExecutionException e) {
-                        System.out.println("Got an UncheckedException (levels: "+level1Pointer+"/"+level2Pointer+") from the google cache probably: "+e);
+                    } catch (com.google.common.util.concurrent.UncheckedExecutionException | org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
+                        System.out.println("Got an UncheckedException (levels: " + level1Pointer + "/" + level2Pointer
+                                + ") from the google cache probably: " + e);
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e2) {
@@ -202,8 +202,8 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                                 System.out.println("Reader: verified level1="+level1+", level2="+level2);
                             }
 
-                        } catch(com.google.common.util.concurrent.UncheckedExecutionException e) {
-                            System.out.println("Got an UncheckedException from the google cache probably: "+e);
+                        } catch (com.google.common.util.concurrent.UncheckedExecutionException | org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
+                            System.out.println("Got an UncheckedException from the google cache probably: " + e);
                             try {
                                 Thread.sleep(500);
                             } catch (InterruptedException e2) {

@@ -29,6 +29,7 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache.Key;
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -46,8 +47,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
-
-import com.google.common.cache.Cache;
 
 public class BroadcastTest {
     

@@ -26,17 +26,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.management.openmbean.ArrayType;
-import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
-import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 
 /**

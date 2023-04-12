@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;

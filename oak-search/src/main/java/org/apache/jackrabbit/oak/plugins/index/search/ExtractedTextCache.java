@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -37,9 +39,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -52,8 +54,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * A cache to avoid extracting text of binaries that were already processed (in

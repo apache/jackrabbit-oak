@@ -28,10 +28,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheStats;
-import com.google.common.cache.RemovalNotification;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
 import org.jetbrains.annotations.NotNull;

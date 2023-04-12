@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.jetbrains.annotations.NotNull;
-
-import com.google.common.cache.Weigher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

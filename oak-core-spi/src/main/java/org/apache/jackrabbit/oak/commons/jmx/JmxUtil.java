@@ -19,12 +19,13 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -98,6 +99,6 @@ public final class JmxUtil {
         table.put("type", quoteValueIfRequired(type));
         table.put("name", quoteValueIfRequired(name));
         properties.forEach((key, value) -> table.put(key, quoteValueIfRequired(value)));
-        return ImmutableMap.of("jmx.objectname", new ObjectName(WhiteboardUtils.JMX_OAK_DOMAIN, table));
+        return Collections.singletonMap("jmx.objectname", new ObjectName(WhiteboardUtils.JMX_OAK_DOMAIN, table));
     }
 }

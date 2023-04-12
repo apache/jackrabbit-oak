@@ -17,15 +17,15 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import com.google.common.cache.CacheStats;
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.jetbrains.annotations.NotNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.jetbrains.annotations.NotNull;
 
 public class SegmentCacheStats extends AbstractCacheStats {
     private final @NotNull Supplier<Long> maximumWeight;

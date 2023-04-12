@@ -19,13 +19,11 @@
 
 package org.apache.jackrabbit.oak.spi.gc;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newConcurrentHashSet;
-
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,7 +39,7 @@ public class DelegatingGCMonitor implements GCMonitor {
      * @param gcMonitors
      */
     public DelegatingGCMonitor(@NotNull Collection<? extends GCMonitor> gcMonitors) {
-        this.gcMonitors = newConcurrentHashSet();
+        this.gcMonitors = ConcurrentHashMap.newKeySet();
         this.gcMonitors.addAll(gcMonitors);
     }
 
@@ -49,7 +47,7 @@ public class DelegatingGCMonitor implements GCMonitor {
      * New instance without any delegate.
      */
     public DelegatingGCMonitor() {
-        this(Sets.<GCMonitor>newConcurrentHashSet());
+        this(ConcurrentHashMap.newKeySet() );
     }
 
     /**
@@ -59,7 +57,7 @@ public class DelegatingGCMonitor implements GCMonitor {
      *          {@code GCMonitor} instance when called.
      */
     public Registration registerGCMonitor(@NotNull final GCMonitor gcMonitor) {
-        gcMonitors.add(checkNotNull(gcMonitor));
+        gcMonitors.add(Objects.requireNonNull(gcMonitor));
         return new Registration() {
             @Override
             public void unregister() {

@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Map;
+import java.util.Objects;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -51,13 +50,13 @@ public class CacheStats extends AbstractCacheStats {
             @Nullable Weigher<?, ?> weigher,
             long maxWeight) {
         super(name);
-        this.cache = (Cache<Object, Object>) checkNotNull(cache);
+        this.cache = (Cache<Object, Object>) Objects.requireNonNull(cache);
         this.weigher = (Weigher<Object, Object>) weigher;
         this.maxWeight = maxWeight;
     }
 
     @Override
-    protected com.google.common.cache.CacheStats getCurrentStats() {
+    protected org.apache.jackrabbit.guava.common.cache.CacheStats getCurrentStats() {
         return cache.stats();
     }
 

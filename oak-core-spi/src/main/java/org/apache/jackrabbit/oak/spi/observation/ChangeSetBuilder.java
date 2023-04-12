@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.spi.observation;
 
 import java.util.Set;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.Nullable;
 

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import com.google.common.cache.RemovalCause;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.Path;
