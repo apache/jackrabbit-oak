@@ -34,7 +34,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class PropertyStatesTest {
 

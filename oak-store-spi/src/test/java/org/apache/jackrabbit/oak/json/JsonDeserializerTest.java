@@ -23,7 +23,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Random;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;

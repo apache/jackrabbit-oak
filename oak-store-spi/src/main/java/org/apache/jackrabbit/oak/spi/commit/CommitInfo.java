@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
 import java.util.Map;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Objects;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.jetbrains.annotations.NotNull;

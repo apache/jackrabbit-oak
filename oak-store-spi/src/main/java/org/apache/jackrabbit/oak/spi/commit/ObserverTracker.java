@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import java.io.Closeable;

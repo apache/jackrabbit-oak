@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static com.google.common.base.Objects.toStringHelper;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +25,7 @@ import java.net.URI;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;

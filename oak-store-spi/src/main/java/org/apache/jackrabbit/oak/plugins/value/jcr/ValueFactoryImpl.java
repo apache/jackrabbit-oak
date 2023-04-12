@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.hash.HashCode;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;

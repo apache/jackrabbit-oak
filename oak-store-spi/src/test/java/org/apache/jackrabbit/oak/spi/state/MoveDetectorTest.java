@@ -24,8 +24,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;

@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
  * A node in a content tree consists of child nodes and properties, each

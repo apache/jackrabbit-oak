@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.state;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.initiated;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;

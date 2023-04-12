@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Maps.filterValues;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static org.apache.jackrabbit.guava.common.base.Predicates.not;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
@@ -31,7 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iter
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -41,8 +41,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicates;
 
 /**
  * Immutable snapshot of a mutable node state.
