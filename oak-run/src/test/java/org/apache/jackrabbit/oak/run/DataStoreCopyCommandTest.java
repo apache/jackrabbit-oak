@@ -274,6 +274,11 @@ public class DataStoreCopyCommandTest {
                             Path.of(cmd.getDestinationFromId(BLOB2)).getFileName().toString()),
                     files.map(f -> f.getFileName().toString()).collect(Collectors.toSet()));
         }
+
+        assertEquals(BLOBS_WITH_CONTENT.get(BLOB1),
+                IOUtils.toString(Path.of(cmd.getDestinationFromId(BLOB1)).toUri(), StandardCharsets.UTF_8));
+        assertEquals(BLOBS_WITH_CONTENT.get(BLOB2),
+                IOUtils.toString(Path.of(cmd.getDestinationFromId(BLOB2)).toUri(), StandardCharsets.UTF_8));
     }
 
     private CloudBlobContainer createBlobContainer() throws Exception {
