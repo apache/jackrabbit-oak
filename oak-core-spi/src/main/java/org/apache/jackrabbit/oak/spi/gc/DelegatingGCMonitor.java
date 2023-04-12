@@ -20,10 +20,9 @@
 package org.apache.jackrabbit.oak.spi.gc;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +39,7 @@ public class DelegatingGCMonitor implements GCMonitor {
      * @param gcMonitors
      */
     public DelegatingGCMonitor(@NotNull Collection<? extends GCMonitor> gcMonitors) {
-        this.gcMonitors = Collections.synchronizedSet(new HashSet<>());
+        this.gcMonitors = ConcurrentHashMap.newKeySet();
         this.gcMonitors.addAll(gcMonitors);
     }
 
@@ -48,7 +47,7 @@ public class DelegatingGCMonitor implements GCMonitor {
      * New instance without any delegate.
      */
     public DelegatingGCMonitor() {
-        this(Collections.synchronizedSet(new HashSet<>()));
+        this(ConcurrentHashMap.newKeySet() );
     }
 
     /**
