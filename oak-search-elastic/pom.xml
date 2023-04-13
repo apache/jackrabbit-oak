@@ -33,7 +33,8 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.version>7.17.7</elasticsearch.version>
+    <elasticsearch.hlrc.version>7.17.9</elasticsearch.hlrc.version>
+    <elasticsearch.java.version>8.5.3</elasticsearch.java.version>
   </properties>
 
   <build>
@@ -117,17 +118,17 @@
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-high-level-client</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.hlrc.version}</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-client</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.hlrc.version}</version>
     </dependency>
 	<dependency>
       <groupId>co.elastic.clients</groupId>
       <artifactId>elasticsearch-java</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.java.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -137,7 +138,7 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.hlrc.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.elasticsearch</groupId>

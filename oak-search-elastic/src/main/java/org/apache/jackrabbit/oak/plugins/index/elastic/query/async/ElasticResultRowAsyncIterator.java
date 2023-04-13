@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
@@ -202,7 +203,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private long searchStartTime;
 
         // reference to the last document sort values for search_after queries
-        private List<String> lastHitSortValues;
+        private List<FieldValue> lastHitSortValues;
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
