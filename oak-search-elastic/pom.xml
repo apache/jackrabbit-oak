@@ -128,7 +128,7 @@
 	<dependency>
       <groupId>co.elastic.clients</groupId>
       <artifactId>elasticsearch-java</artifactId>
-      <version>${elasticsearch.java.version}</version>
+      <version>${elasticsearch.java.client.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
