@@ -134,8 +134,8 @@ public class AzureSegmentStoreService {
             cloudBlobClient.setDefaultRequestOptions(blobRequestOptions);
 
             CloudBlobContainer container = cloudBlobClient.getContainerReference(configuration.containerName());
-            if (createContainer) {
-                container.createIfNotExists();
+            if (createContainer && !container.exists()) {
+                container.create();
             }
             String path = normalizePath(configuration.rootPath());
             return new AzurePersistence(container.getDirectoryReference(path));
