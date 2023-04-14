@@ -204,7 +204,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 CloudBlobContainer azureContainer = getAzureContainer();
 
-                if (createBlobContainer && azureContainer.createIfNotExists()) {
+                if (createBlobContainer && !azureContainer.exists()) {
+                    azureContainer.create();
                     LOG.info("New container created. containerName={}", containerName);
                 } else {
                     LOG.info("Reusing existing container. containerName={}", containerName);
