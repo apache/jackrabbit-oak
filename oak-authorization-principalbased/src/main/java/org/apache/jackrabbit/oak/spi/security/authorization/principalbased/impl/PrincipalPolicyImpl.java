@@ -29,9 +29,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Abstra
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -44,6 +46,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -71,15 +74,31 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         this.privilegeBitsProvider = mgrProvider.getPrivilegeBitsProvider();
     }
 
-    boolean addEntry(@NotNull Tree entryTree) throws AccessControlException {
+    boolean addEntry(@NotNull Tree entryTree, @NotNull Collection<String> oakPathToFilter) throws AccessControlException {
         String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         if (Utils.hasValidRestrictions(oakPath, entryTree, restrictionProvider)) {
             PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
             Set<Restriction> restrictions = Utils.readRestrictions(restrictionProvider, oakPath, entryTree);
-            return addEntry(new EntryImpl(oakPath, bits, restrictions));
-        } else {
-            return false;
+            if (matchingEntry(oakPath, restrictions, oakPathToFilter)) {
+                return addEntry(new EntryImpl(oakPath, bits, restrictions));
+            }
         }
+        return false;
+    }
+    
+    private boolean matchingEntry(@Nullable String accessControlledPath, @NotNull Set<Restriction> restrictions, @NotNull Collection<String> oakPathsToFilter) {
+        if (oakPathsToFilter.isEmpty()) {
+            // no filter specified -> add entry without further checks
+            return true;
+        }
+        RestrictionPattern pattern = restrictionProvider.getPattern(accessControlledPath, restrictions);
+        return oakPathsToFilter.stream().anyMatch(filterPath -> {
+            if (filterPath == null) {
+                return accessControlledPath == null;
+            } else {
+                return accessControlledPath != null && Text.isDescendantOrEqual(accessControlledPath, filterPath) && pattern.matches(filterPath);
+            }
+        });
     }
 
     //------------------------------------------< AbstractAccessControlList >---

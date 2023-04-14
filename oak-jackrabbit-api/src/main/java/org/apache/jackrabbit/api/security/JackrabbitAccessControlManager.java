@@ -27,6 +27,8 @@ import javax.jcr.security.Privilege;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -98,6 +100,47 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      */
     @NotNull
     AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
+
+    /**
+     * Returns the {@code AccessControlPolicy} objects that are in effect
+     * for the given {@code Principal}s at the specified absolute paths. This may be policies set through
+     * this API or some implementation specific (default) policies. 
+     * 
+     * Note, that this method will make a best effort approach to reflect the effects of the existing access control setup.
+     * For backwards compatibility this new method comes with a default implementation that calls {@link #getEffectivePolicies(Set)} 
+     * followed by a best effort approach to determine effect on any of specified paths, which does not take the 
+     * effect of restrictions into account.
+     *
+     * @param principals A set of valid principals for which the effective policies should be computed.
+     * @param absPaths The absolute paths for which the effective policies should be computed. In contrast to 
+     * {@link #getEffectivePolicies(String)} this method does not mandate the paths to point to existing nodes.
+     * @return The policies defined for the given principal or an empty iterator.
+     * @throws AccessDeniedException if the session lacks {@code READ_ACCESS_CONTROL} privilege to retrieve the information 
+     * for the given principals or paths.
+     * @throws AccessControlException  if the specified principal does not exist or if another access control related 
+     * exception occurs.
+     * @throws UnsupportedRepositoryOperationException if editing access control policies by principal or path is not 
+     * supported or if this method is not implemented.
+     * @throws RepositoryException If another error occurs.
+     * @since Oak 1.52.0
+     */
+    @NotNull
+    default Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
+        return Arrays.stream(getEffectivePolicies(principals)).filter(policy -> {
+            if (policy instanceof JackrabbitAccessControlPolicy) {
+                String acPath = ((JackrabbitAccessControlPolicy) policy).getPath();
+                return Arrays.stream(absPaths).anyMatch(path -> {
+                    if (path == null) {
+                        return acPath == null;
+                    } else {
+                        return acPath != null && (acPath.equals(path) || path.startsWith(acPath+"/"));
+                    }
+                });
+            }
+            // unable to determine path => include it in the result
+            return true;
+        }).iterator();
+    }
 
     /**
      * Returns whether the given set of <code>Principal</code>s has the specified

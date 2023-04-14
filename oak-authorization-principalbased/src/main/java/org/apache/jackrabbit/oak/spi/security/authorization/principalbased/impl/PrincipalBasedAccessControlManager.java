@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -67,8 +68,10 @@ import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -133,7 +136,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
     public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws RepositoryException {
         JackrabbitAccessControlPolicy policy = null;
         if (canHandle(principal)) {
-            policy = createPolicy(principal, false);
+            policy = createPolicy(principal, false, Collections.emptyList());
         }
         return (policy == null) ? new JackrabbitAccessControlPolicy[0] : new JackrabbitAccessControlPolicy[]{policy};
     }
@@ -146,7 +149,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         if (canHandle(principals)) {
             List<AccessControlPolicy> effective = new ArrayList<>(principals.size());
             for (Principal principal : principals) {
-                AccessControlPolicy policy = createPolicy(principal, true);
+                AccessControlPolicy policy = createPolicy(principal, true, Collections.emptyList());
                 if (policy != null) {
                     effective.add(policy);
                 }
@@ -158,6 +161,30 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             return effective.toArray(new AccessControlPolicy[0]);
         } else {
             return new JackrabbitAccessControlPolicy[0];
+        }
+    }
+
+    @Override
+    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws RepositoryException {
+        // this implementation only takes effect if the complete set of principals can be handled. see also
+        // PrincipalBasedAuthorizationConfiguration.getPermissionProvider
+        if (canHandle(principals)) {
+            Collection<String> oakPaths = getOakPaths(absPaths);
+            List<AccessControlPolicy> effective = new ArrayList<>(principals.size());
+            for (Principal principal : principals) {
+                AccessControlPolicy policy = createPolicy(principal, true, oakPaths);
+                if (policy != null) {
+                    effective.add(policy);
+                }
+            }
+            // add read-policy if there are configured paths
+            boolean hasReadPolicy = oakPaths.isEmpty() || oakPaths.stream().anyMatch(p -> ReadPolicy.hasEffectiveReadPolicy(readPaths, p));
+            if (hasReadPolicy) {
+                effective.add(ReadPolicy.INSTANCE);
+            }
+            return effective.iterator();
+        } else {
+            return Iterators.emptyIterator();
         }
     }
 
@@ -342,7 +369,8 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     @Nullable
     private JackrabbitAccessControlPolicy createPolicy(@NotNull Principal principal,
-                                                       boolean isEffectivePolicy) throws RepositoryException {
+                                                       boolean isEffectivePolicy,
+                                                       @NotNull Collection<String> oakPaths) throws RepositoryException {
         String oakPath = filter.getOakPath(principal);
         Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
         if (isEffectivePolicy) {
@@ -360,7 +388,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             policy = new PrincipalPolicyImpl(principal, oakPath, mgrProvider);
             for (Tree child : policyTree.getChildren()) {
                 if (Utils.isPrincipalEntry(child)) {
-                    policy.addEntry(child);
+                    policy.addEntry(child, oakPaths);
                 }
             }
         }

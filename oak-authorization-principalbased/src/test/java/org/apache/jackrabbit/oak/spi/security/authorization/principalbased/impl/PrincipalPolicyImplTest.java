@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -59,6 +60,7 @@ import java.util.Map;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_ITEM_NAMES;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NODE_PATH;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_SUBTREES;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_EFFECTIVE_PATH;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_PRIVILEGES;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_RESTRICTIONS;
@@ -122,8 +124,16 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
         Iterable props = Iterables.transform(entry.getRestrictions(), Restriction::getProperty);
         Tree rTree = mock(Tree.class);
-        when(rTree.getProperties()).thenReturn(props);
-        when(t.getChild(REP_RESTRICTIONS)).thenReturn(rTree);
+        if (props.iterator().hasNext()) {
+            when(rTree.exists()).thenReturn(true);
+            when(rTree.getProperties()).thenReturn(props);
+            when(t.hasChild(REP_RESTRICTIONS)).thenReturn(true);
+            when(t.getChild(REP_RESTRICTIONS)).thenReturn(rTree);
+        } else {
+            when(rTree.exists()).thenReturn(false);
+            when(t.hasChild(REP_RESTRICTIONS)).thenReturn(false);
+            when(t.getChild(REP_RESTRICTIONS)).thenReturn(rTree);
+        }
         return t;
     }
 
@@ -457,7 +467,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void addEntryTree() throws Exception {
-        assertTrue(emptyPolicy.addEntry(createEntryTree(TEST_OAK_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_WRITE)));
+        assertTrue(emptyPolicy.addEntry(createEntryTree(TEST_OAK_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_WRITE), Collections.emptyList()));
 
         PrincipalPolicyImpl.EntryImpl entry = emptyPolicy.getEntries().get(0);
         assertEquals(testJcrPath, entry.getEffectivePath());
@@ -467,7 +477,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void addEntryTreeRepositoryLevel() throws Exception {
-        assertTrue(emptyPolicy.addEntry(createEntryTree("", PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_WRITE)));
+        assertTrue(emptyPolicy.addEntry(createEntryTree("", PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_WRITE), Collections.emptyList()));
 
         PrincipalPolicyImpl.EntryImpl entry = emptyPolicy.getEntries().get(0);
         assertNull(entry.getEffectivePath());
@@ -476,7 +486,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void addEntryTreeJcrAll() throws Exception {
-        assertTrue(emptyPolicy.addEntry(createEntryTree(TEST_OAK_PATH, JCR_ALL)));
+        assertTrue(emptyPolicy.addEntry(createEntryTree(TEST_OAK_PATH, JCR_ALL), Collections.emptyList()));
 
         PrincipalPolicyImpl.EntryImpl entry = emptyPolicy.getEntries().get(0);
         assertArrayEquals(privilegesFromNames(JCR_ALL), entry.getPrivileges());
@@ -484,7 +494,53 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void addEntryTreeExistingEntry() throws Exception {
-        assertFalse(policy.addEntry(createEntryTree(policy.getEntries().get(0))));
+        assertFalse(policy.addEntry(createEntryTree(policy.getEntries().get(0)), Collections.emptyList()));
+    }
+
+
+    @Test
+    public void addEntryTreeNullPathWithFilter() throws Exception {
+        Tree entryTree = createEntryTree("", JCR_ALL);
+
+        assertTrue(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(null)));
+        
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList("/not/matching/path")));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(PathUtils.ROOT_PATH)));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH)));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH + "/subtree")));
+    }
+    
+    @Test
+    public void addEntryTreeWithFilter() throws Exception {
+        Tree entryTree = createEntryTree(TEST_OAK_PATH, JCR_ALL);
+        
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(null)));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList("/not/matching/path")));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(PathUtils.ROOT_PATH)));
+        
+        assertTrue(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH)));
+        assertTrue(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH + "/subtree")));
+    }
+
+    @Test
+    public void addEntryTreeWithPathFilterAndRestrictions() throws Exception {
+        PrincipalPolicyImpl policy = createPolicy(POLICY_OAK_PATH);
+        policy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_READ), Collections.emptyMap(), 
+                Collections.singletonMap(getJcrName(REP_SUBTREES), new Value[] {getValueFactory(root).createValue("child")}));
+        
+        // create an entry-tree that limits effect to a subtree of TEST_OAK_PATH
+        Tree entryTree = createEntryTree(policy.getEntries().get(0));
+        
+        // paths that don't match the restriction
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(null)));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList("/not/matching/path")));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(PathUtils.ROOT_PATH)));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH)));
+        assertFalse(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH + "/subtree")));
+
+        // paths that match the restriction
+        assertTrue(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH + "/child")));
+        assertTrue(createPolicy(POLICY_OAK_PATH).addEntry(entryTree, Collections.singletonList(TEST_OAK_PATH + "/child/subtree")));
     }
 
     @Test
