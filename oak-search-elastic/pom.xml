@@ -34,7 +34,7 @@
 
   <properties>
     <elasticsearch.hlrc.version>7.17.9</elasticsearch.hlrc.version>
-    <elasticsearch.java.client.version>8.5.3</elasticsearch.java.client.version>
+    <elasticsearch.java.client.version>8.7.0</elasticsearch.java.client.version>
   </properties>
 
   <build>
