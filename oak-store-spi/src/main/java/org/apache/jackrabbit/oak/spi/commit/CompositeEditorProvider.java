@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 
 import java.util.Collection;
@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Aggregation of a list of editor providers into a single provider.

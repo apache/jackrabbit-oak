@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newLinkedList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution.IGNORED;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;

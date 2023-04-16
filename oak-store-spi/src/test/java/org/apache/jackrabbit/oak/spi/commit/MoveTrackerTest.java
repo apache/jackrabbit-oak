@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.commit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.junit.Ignore;
 import org.junit.Test;
 

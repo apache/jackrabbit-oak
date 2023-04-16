@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import static com.google.common.base.Predicates.compose;
-import static com.google.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.base.Predicates.compose;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
@@ -46,10 +46,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.base.Predicates;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;

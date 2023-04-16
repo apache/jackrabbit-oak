@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

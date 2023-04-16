@@ -33,8 +33,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Abstract base class for {@link NodeState} implementations.

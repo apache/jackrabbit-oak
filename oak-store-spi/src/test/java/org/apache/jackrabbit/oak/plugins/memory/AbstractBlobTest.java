@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
