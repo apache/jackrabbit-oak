@@ -396,6 +396,9 @@ name
 
   If `isRegexp` is true, then the property name is a regular expression.
 
+  Special properties such as "jcr:path", "jcr:score" can not be indexed.
+  The path can be indexes using a function-based index in recent versions of Oak.
+
 isRegexp
 : If set to true, then the property name is interpreted as a regular
   expression, and the given definition is applicable for matching property names.
@@ -512,7 +515,7 @@ excludeFromAggregation
 : If set to true, the property is excluded from aggregation [OAK-3981][OAK-3981]
 
 function
-: Since 1.5.11, 1.6.0
+: Since 1.5.11, 1.6.0, 1.42.0
 : Function, for [function-based indexing](#function-based-indexing).
 
 dynamicBoost
@@ -1129,10 +1132,10 @@ contain data for the subtree under `/content/companya`
 
 ### <a name="function-based-indexing"></a>Function-Based Indexing
 
-`@since Oak 1.5.11, 1.6.0`
+`@since Oak 1.5.11, 1.6.0, 1.42.0`
 
 Function-based indexes can for example allow to search (or order by) the lower case version of a property.
-For more details see [OAK-3574][OAK-3574].
+For more details see [OAK-3574][OAK-3574] and [OAK-9625][OAK-9625].
 
 For example using the index definition
 
@@ -1161,6 +1164,8 @@ This allows to search for, and order by, the lower case version of the property 
 Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
 Range conditions are supported ('>', '>=', '<=', '<').
+
+The functions path(), first(), and name() require Oak version 1.42.0 or newer.
 
 ### <a name="dynamic-boost"></a>Dynamic Boost
 
@@ -2185,6 +2190,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379
 [OAK-7739]: https://issues.apache.org/jira/browse/OAK-7739
 [OAK-8971]: https://issues.apache.org/jira/browse/OAK-8971
+[OAK-9625]: https://issues.apache.org/jira/browse/OAK-9625
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
