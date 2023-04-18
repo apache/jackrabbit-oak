@@ -234,12 +234,10 @@ public class UtilsTest extends AbstractSecurityTest {
     public void testCanImpersonateAllByImpersonatorMember() throws Exception {
         String impersonatorGroupId = "impersonator-group";
 
-        // mocking userManager's configs <-> adding the impersonatorGroupId to the config
         UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
         ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), impersonatorGroupId);
         when(userManagerSpy.getConfig()).thenReturn(configs);
 
-        // add the test user to the impersonator group
         Group impersonatorGroup = userManagerSpy.createGroup(impersonatorGroupId);
         Authorizable authorizable = userManagerSpy.getAuthorizable(getTestUser().getID());
         impersonatorGroup.addMember(authorizable);
