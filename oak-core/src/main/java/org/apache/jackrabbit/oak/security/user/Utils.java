@@ -112,7 +112,31 @@ public final class Utils {
             return user.isAdmin() || impersonation.isImpersonator(authorizable);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
-            return false;        
+            return false;
+        }
+    }
+
+    /**
+     * Return {@code true} if the given principal is admin.
+     * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()}
+     * returns {@code true}.
+     *
+     * @param principal A non-null principal instance.
+     * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
+     * @return {@code true} if the given principal is admin; {@code false} if that condition is not met
+     * or if the evaluation failed.
+     */
+    public static boolean isAdmin(@NotNull Principal principal, @NotNull UserManager userManager) {
+        try {
+            Authorizable authorizable = userManager.getAuthorizable(principal);
+            if (authorizable == null || authorizable.isGroup()) {
+                return false;
+            }
+
+            return ((User)authorizable).isAdmin();
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+            return false;
         }
     }
 

@@ -183,10 +183,10 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         if (principal instanceof AdminPrincipal) {
             return true;
         }
-        return Utils.canImpersonateAllUsers(principal, user.getUserManager());
+        return Utils.isAdmin(principal, user.getUserManager());
     }
 
-    private boolean isImpersonator(@NotNull Set<String> principals) {
+    private boolean isImpersonator(@NotNull Set<String> principalNames) {
         Set<String> impersonatorGroups = Set.of(user.getUserManager().getConfig().getConfigValue(
                 PARAM_IMPERSONATOR_GROUPS_ID,
                 new String[]{}));
@@ -194,7 +194,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         if (impersonatorGroups.isEmpty()) {
             return false;
         }
-        return principals.stream()
+        return principalNames.stream()
                 .anyMatch(impersonatorGroups::contains);
     }
 
@@ -218,6 +218,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
             return false;
         } catch (RepositoryException e) {
+            log.debug(e.getMessage());
             return false;
         }
     }
