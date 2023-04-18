@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.query.facet;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
