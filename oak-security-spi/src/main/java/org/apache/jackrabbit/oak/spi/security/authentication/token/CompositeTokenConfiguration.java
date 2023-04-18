@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.List;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;

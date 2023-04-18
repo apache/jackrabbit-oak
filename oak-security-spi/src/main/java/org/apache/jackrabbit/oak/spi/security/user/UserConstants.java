@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.user;
 
 import java.util.Collection;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 /**
  * User management related constants. Please note that all names and paths

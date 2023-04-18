@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.List;
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;

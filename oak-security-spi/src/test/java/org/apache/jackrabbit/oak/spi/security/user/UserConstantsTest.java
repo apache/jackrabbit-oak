@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

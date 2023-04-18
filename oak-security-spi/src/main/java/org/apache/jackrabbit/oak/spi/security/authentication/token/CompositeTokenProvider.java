@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import javax.jcr.Credentials;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

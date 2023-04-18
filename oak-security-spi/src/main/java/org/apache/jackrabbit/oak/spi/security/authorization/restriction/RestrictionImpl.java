@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.jetbrains.annotations.NotNull;

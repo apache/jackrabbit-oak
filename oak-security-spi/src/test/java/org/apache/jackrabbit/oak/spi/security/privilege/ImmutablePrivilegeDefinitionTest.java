@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.mockito.Mockito;
 

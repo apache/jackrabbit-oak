@@ -20,8 +20,8 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;

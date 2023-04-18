@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import java.util.Collection;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 /**

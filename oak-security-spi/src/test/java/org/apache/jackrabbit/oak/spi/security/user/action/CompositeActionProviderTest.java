@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.List;
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
