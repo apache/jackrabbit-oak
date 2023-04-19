@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;

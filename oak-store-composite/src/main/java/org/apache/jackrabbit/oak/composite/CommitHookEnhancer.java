@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 
 class CommitHookEnhancer implements CommitHook {
 

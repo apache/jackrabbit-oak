@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import java.util.List;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecksService;

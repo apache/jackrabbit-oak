@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite.checks;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 
 import java.util.Arrays;
