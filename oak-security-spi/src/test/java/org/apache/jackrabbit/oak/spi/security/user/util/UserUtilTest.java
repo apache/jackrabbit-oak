@@ -246,7 +246,7 @@ public class UserUtilTest {
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testGetAuthorizableIdNullTree() {
         UserUtil.getAuthorizableId(null);
     }
