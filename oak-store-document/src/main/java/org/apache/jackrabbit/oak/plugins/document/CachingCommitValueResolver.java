@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import com.google.common.base.Supplier;
-import com.google.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.cache.Cache;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -27,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.cache.CacheBuilder.newBuilder;
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.cache.CacheBuilder.newBuilder;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 
 /**
  * Resolves the commit value for a given change revision on a document.

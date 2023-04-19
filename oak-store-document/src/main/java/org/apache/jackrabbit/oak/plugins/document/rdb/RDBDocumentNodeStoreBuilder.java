@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static com.google.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 
 import javax.sql.DataSource;
 

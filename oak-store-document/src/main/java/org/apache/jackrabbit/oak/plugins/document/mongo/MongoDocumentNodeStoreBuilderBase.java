@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDBConnection.newMongoDBConnection;
 
 /**

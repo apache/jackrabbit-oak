@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
@@ -50,7 +50,7 @@ public class BundlingConfigHandlerTest {
 
     @Test
     public void detectRegistryUpdate() throws Exception{
-        configHandler.initialize(nodeStore, sameThreadExecutor());
+        configHandler.initialize(nodeStore, newDirectExecutorService());
         addBundlorConfigForAsset();
 
         BundledTypesRegistry registry = configHandler.getRegistry();

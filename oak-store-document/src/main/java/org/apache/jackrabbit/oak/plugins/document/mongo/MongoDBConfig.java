@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;

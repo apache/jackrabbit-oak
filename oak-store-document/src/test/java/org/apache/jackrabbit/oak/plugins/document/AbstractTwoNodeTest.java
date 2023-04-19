@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;

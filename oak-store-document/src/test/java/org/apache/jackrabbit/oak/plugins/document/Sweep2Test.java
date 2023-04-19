@@ -47,7 +47,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.google.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.Cache;
 
 import junitx.util.PrivateAccessor;
 

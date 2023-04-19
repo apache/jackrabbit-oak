@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
+import org.apache.jackrabbit.guava.common.cache.RemovalListener;
+import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
 
 /**
  * Listener which forwards the notifications to a delegate. It is used to bridge

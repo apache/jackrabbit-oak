@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Test handler that does not actually perform recovery, but simply acquires the

@@ -20,9 +20,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Functions;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -36,8 +36,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Functions.compose;
-import static com.google.common.base.Functions.constant;
+import static org.apache.jackrabbit.guava.common.base.Functions.compose;
+import static org.apache.jackrabbit.guava.common.base.Functions.constant;
 import static org.junit.Assert.fail;
 
 public class TestUtils {

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
 
