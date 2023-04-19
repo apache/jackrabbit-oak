@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Set;
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
