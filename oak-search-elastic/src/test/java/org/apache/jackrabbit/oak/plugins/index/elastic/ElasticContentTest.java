@@ -23,9 +23,8 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -184,7 +183,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
                     child.setProperty("a", "text");
                 }
         );
-        root.commit(Collections.singletonMap("sync-mode", "rt"));
+        root.commit(Map.of("sync-mode", "rt"));
 
         List<String> results = IntStream.range(0, 20).mapToObj(i -> "/content/child_" + i).collect(Collectors.toList());
 
@@ -202,9 +201,9 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
             setIndex(p + "_" + UUID.randomUUID(), builder);
         };
 
-        buildIndex.accept("a", Collections.singletonList(1L));
-        buildIndex.accept("b", Arrays.asList(1L, 2L));
-        buildIndex.accept("c", Arrays.asList(3L, 100L));
+        buildIndex.accept("a", List.of(1L));
+        buildIndex.accept("b", List.of(1L, 2L));
+        buildIndex.accept("c", List.of(3L, 100L));
         root.commit();
 
         Tree content = root.getTree("/").addChild("content");
@@ -215,9 +214,9 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
                     child.setProperty("c", "text");
                 }
         );
-        root.commit(Collections.singletonMap("sync-mode", "rt"));
+        root.commit(Map.of("sync-mode", "rt"));
 
-        List<String> results = Arrays.asList("/content/child_0", "/content/child_1", "/content/child_2");
+        List<String> results = IntStream.range(0, 3).mapToObj(i -> "/content/child_" + i).collect(Collectors.toList());
 
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
@@ -242,7 +241,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
             setIndex(p + "_" + UUID.randomUUID(), builder);
         };
 
-        buildIndex.accept("a", Collections.singletonList(10L));
+        buildIndex.accept("a", List.of(10L));
         root.commit();
 
         Tree content = root.getTree("/").addChild("content");
