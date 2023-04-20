@@ -84,6 +84,31 @@ public class VersionGCSupport {
     }
 
     /**
+     * TODO: document me!
+     */
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified) {
+        return filter(getSelectedDocuments(store, NodeDocument.MODIFIED_IN_SECS, fromModified), new Predicate<NodeDocument>() {
+            @Override
+            public boolean apply(NodeDocument input) {
+                return modifiedGreaterThanEquals(input, fromModified)
+                        && modifiedLessThan(input, toModified);
+            }
+
+            private boolean modifiedGreaterThanEquals(NodeDocument doc,
+                                                      long time) {
+                Long modified = doc.getModified();
+                return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
+            }
+
+            private boolean modifiedLessThan(NodeDocument doc,
+                                             long time) {
+                Long modified = doc.getModified();
+                return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
+            }
+        });
+    }
+
+    /**
      * Returns the underlying document store.
      *
      * @return the underlying document store.
