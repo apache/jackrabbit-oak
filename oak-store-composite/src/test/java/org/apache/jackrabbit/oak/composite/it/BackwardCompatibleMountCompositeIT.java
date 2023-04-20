@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.composite.it;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import javax.inject.Inject;
