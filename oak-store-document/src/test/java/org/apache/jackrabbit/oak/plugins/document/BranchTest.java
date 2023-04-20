@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;

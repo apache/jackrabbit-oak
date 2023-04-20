@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.AbstractMap.SimpleImmutableEntry;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

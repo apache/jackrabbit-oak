@@ -46,7 +46,7 @@ import org.h2.mvstore.WriteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 /**
  * A persistent cache for the document store.

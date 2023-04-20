@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**

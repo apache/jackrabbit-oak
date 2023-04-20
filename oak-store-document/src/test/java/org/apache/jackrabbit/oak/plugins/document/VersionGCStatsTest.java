@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.junit.Before;

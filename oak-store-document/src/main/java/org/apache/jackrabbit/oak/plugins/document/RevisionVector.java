@@ -22,11 +22,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.Sets;
-import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -34,10 +34,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.toArray;
-import static com.google.common.collect.Iterators.peekingIterator;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.peekingIterator;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Arrays.sort;
 
 /**

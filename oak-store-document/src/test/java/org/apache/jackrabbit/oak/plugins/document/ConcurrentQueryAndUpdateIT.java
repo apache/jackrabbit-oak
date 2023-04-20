@@ -28,7 +28,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
 

@@ -31,8 +31,8 @@ import java.util.TreeMap;
 import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * A value map contains the versioned values of a property. The key into this

@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import static com.google.common.base.Preconditions.checkElementIndex;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 
 /**
  * Include represents a single path pattern which captures the path which

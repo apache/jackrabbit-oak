@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Suppliers.ofInstance;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static java.util.Objects.isNull;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
@@ -66,10 +66,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
-import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 /**
  * A generic builder for a {@link DocumentNodeStore}. By default the builder
@@ -492,8 +492,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public Executor getExecutor() {
-        if(executor == null){
-            return MoreExecutors.sameThreadExecutor();
+        if (executor == null){
+            return MoreExecutors.newDirectExecutorService();
         }
         return executor;
     }

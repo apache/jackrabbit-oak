@@ -31,8 +31,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 
 public class DocumentPropertyStateTest {

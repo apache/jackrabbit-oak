@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 
 import static org.junit.Assert.assertNotNull;
 

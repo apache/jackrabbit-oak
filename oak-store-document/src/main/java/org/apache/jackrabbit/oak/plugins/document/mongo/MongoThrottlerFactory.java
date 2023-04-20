@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.google.common.util.concurrent.AtomicDouble;
+import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.math.DoubleMath.fuzzyCompare;
+import static org.apache.jackrabbit.guava.common.math.DoubleMath.fuzzyCompare;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 

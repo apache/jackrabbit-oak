@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -51,7 +51,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.create;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.documentState;

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Collections;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;

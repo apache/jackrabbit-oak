@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -30,12 +30,12 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.partition;
-import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.immutableEntry;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Maps.immutableEntry;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;

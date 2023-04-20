@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.AtomicDouble;
+import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
+import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static com.google.common.math.DoubleMath.fuzzyEquals;
+import static org.apache.jackrabbit.guava.common.math.DoubleMath.fuzzyEquals;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.abs;
 import static java.lang.Math.ceil;

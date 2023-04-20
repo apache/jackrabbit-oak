@@ -43,7 +43,6 @@
         <configuration>
           <instructions>
             <Import-Package>
-              <!-- OAK-7182 -->${guava.osgi.import},
               com.mongodb*;version="[3.8, 4)";resolution:=optional,
               org.bson*;version="[3.8, 4)";resolution:=optional,
               *
@@ -114,6 +113,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-shaded-guava</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-api</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -144,11 +148,6 @@
     </dependency>
 
     <!-- General utility libraries -->
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>

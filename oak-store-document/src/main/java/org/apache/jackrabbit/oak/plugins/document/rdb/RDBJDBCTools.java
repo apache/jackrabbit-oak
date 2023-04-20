@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static com.google.common.collect.Iterables.cycle;
-import static com.google.common.collect.Iterables.limit;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -42,7 +42,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 
 /**
  * Convenience methods dealing with JDBC specifics.

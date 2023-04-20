@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.junit.Assert.assertEquals;
 

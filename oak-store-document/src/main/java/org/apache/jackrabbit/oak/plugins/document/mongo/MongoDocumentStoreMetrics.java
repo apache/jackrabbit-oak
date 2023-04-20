@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoDatabase;

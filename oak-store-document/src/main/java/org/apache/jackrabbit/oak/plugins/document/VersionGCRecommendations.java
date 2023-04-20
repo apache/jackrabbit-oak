@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * Gives a recommendation about parameters for the next revision garbage collection run.
