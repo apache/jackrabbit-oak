@@ -51,6 +51,7 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -336,6 +337,23 @@ public class VersionGCTest {
             gc.gc(1, TimeUnit.HOURS);
             assertEquals(0, deletedOnceCountCalls.get());
         }
+    }
+
+    // OAK-10199
+    @Test
+    public void testDetailGcDocumentRead_disabled() throws Exception {
+        DetailGCHelper.disableDetailGC(ns);
+        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        assertNotNull(stats);
+        assertEquals(0, stats.detailGcDocsElapsed);
+    }
+
+    @Test
+    public void testDetailGcDocumentRead_enabled() throws Exception {
+        DetailGCHelper.enableDetailGC(ns);
+        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        assertNotNull(stats);
+        assertNotEquals(0, stats.detailGcDocsElapsed);
     }
 
     private Future<VersionGCStats> gc() {
