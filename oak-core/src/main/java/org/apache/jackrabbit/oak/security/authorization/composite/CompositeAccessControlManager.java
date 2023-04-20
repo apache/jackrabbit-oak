@@ -98,8 +98,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 break;
             }
         }
-        List<AccessControlPolicy> l = policies.build();
-        return l.toArray(new AccessControlPolicy[0]);
+        return policies.build().stream().distinct().toArray(AccessControlPolicy[]::new);
     }
 
     @Override

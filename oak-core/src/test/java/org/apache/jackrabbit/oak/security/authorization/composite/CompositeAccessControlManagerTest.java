@@ -195,6 +195,16 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testGetEffectivePoliciesFiltersDuplicates() throws Exception {
+        TestAcMgr test = new TestAcMgr();
+        test.hasPolicy = true;
+        
+        // create a composite that would result in duplicate effective policies
+        AccessControlManager composite = createComposite(test, test);
+        assertEquals(1, composite.getEffectivePolicies(TEST_PATH).length);
+    }
+
+    @Test
     public void testSetPolicyAtRoot() throws Exception {
         AccessControlPolicyIterator it = acMgr.getApplicablePolicies("/");
         int cnt = 0;
