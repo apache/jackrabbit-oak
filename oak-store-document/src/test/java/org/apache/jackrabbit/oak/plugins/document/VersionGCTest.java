@@ -95,6 +95,7 @@ public class VersionGCTest {
 
     @After
     public void tearDown() throws Exception {
+        DetailGCHelper.disableDetailGC(ns);
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
     }
