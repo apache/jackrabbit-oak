@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;

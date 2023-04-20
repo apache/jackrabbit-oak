@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static org.junit.Assert.assertTrue;
 

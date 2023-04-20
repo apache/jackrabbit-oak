@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.google.common.util.concurrent.AtomicDouble;
+import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.junit.Test;
 

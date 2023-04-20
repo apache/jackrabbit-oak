@@ -37,10 +37,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
-import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
-import static com.google.common.util.concurrent.Uninterruptibles.joinUninterruptibly;
+import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
+import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.joinUninterruptibly;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.junit.Assert.fail;
 

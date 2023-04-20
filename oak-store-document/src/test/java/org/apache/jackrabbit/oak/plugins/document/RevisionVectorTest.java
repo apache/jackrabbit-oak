@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.junit.Test;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;

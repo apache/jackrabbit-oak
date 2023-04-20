@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
 

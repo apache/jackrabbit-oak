@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.jetbrains.annotations.NotNull;
 

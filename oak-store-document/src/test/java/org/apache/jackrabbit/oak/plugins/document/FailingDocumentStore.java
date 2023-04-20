@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 

@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.junit.Test;
 
-import static com.google.common.collect.Iterables.all;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.IS_LAST_REV_UPDATE;
 import static org.junit.Assert.assertTrue;
 

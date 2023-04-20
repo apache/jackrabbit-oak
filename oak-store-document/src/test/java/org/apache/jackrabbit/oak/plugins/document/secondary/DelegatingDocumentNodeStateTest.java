@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;

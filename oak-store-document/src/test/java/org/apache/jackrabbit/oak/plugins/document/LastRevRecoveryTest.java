@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -38,7 +38,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;

@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCol
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -1019,9 +1020,10 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
         JackrabbitAccessControlManager acMgr = mock(JackrabbitAccessControlManager.class);
+        // make sure different policies are returned for subsequent calls of the aggregated configurations
         AccessControlPolicy policy = mock(AccessControlPolicy.class);
-        when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy});
-        when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new AccessControlPolicy[] {policy});
+        when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy}).thenReturn(new AccessControlPolicy[] {ReadPolicy.INSTANCE});
+        when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new AccessControlPolicy[] {policy}).thenReturn(new AccessControlPolicy[] {ReadPolicy.INSTANCE});
 
         AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
         AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);

@@ -40,8 +40,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Sets.union;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

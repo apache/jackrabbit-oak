@@ -27,9 +27,9 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.elementsEqual;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
 
 /**
  * The {@code Path} class is closely modeled after the semantics of

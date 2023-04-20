@@ -23,7 +23,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.jetbrains.annotations.NotNull;
 

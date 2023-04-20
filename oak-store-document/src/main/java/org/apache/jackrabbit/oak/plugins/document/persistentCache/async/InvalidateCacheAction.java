@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
 import java.util.Map;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
