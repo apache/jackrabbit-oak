@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 

@@ -33,7 +33,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.osgi.framework.ServiceRegistration;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import java.util.ArrayList;
 import java.util.Collections;

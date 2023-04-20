@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class ClusterNodeStoreLockTest {
     private NodeStore store = new MemoryNodeStore();

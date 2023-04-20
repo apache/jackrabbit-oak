@@ -37,7 +37,7 @@ import org.junit.Before;
 
 import java.util.Collections;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertNotNull;
 
 /**

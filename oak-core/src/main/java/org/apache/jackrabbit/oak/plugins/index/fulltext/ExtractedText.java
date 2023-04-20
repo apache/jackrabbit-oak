@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.fulltext;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

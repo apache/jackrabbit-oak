@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.itemsave;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.util.List;

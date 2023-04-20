@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.function.Predicate;
 
