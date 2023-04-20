@@ -172,6 +172,28 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    public void indexWithDefaultFetchSizes() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        IntStream.range(0, 20).forEach(n -> {
+                    Tree child = content.addChild("child_" + n);
+                    child.setProperty("a", "text");
+                }
+        );
+        root.commit(Collections.singletonMap("sync-mode", "rt"));
+
+        List<String> results = IntStream.range(0, 20).mapToObj(i -> "/content/child_" + i).collect(Collectors.toList());
+
+        reset(spyMetricHandler);
+        assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
+        verify(spyMetricHandler, times(2)).markQuery(anyString(), anyBoolean());
+    }
+
+    @Test
     public void indexWithCustomFetchSizes() throws Exception {
         BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
             IndexDefinitionBuilder builder = createIndex(p).noAsync();
