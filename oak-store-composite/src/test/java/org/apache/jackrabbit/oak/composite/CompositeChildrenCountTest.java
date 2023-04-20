@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -41,10 +41,10 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.collect.Iterables.cycle;
-import static com.google.common.collect.Iterables.limit;
-import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
