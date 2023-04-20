@@ -46,6 +46,7 @@ public class VersionGCRecommendations {
     final long maxCollect;
     final long deleteCandidateCount;
     final long lastOldestTimestamp;
+    final long fullDetailGCTimestamp;
     final long originalCollectLimit;
 
     private final long precisionMs;
@@ -100,6 +101,8 @@ public class VersionGCRecommendations {
 
         TimeInterval scope = new TimeInterval(oldestPossible, Long.MAX_VALUE);
         scope = scope.notLaterThan(keep.fromMs);
+
+        fullDetailGCTimestamp = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP);
 
         suggestedIntervalMs = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP);
         if (suggestedIntervalMs > 0) {
@@ -217,6 +220,7 @@ public class VersionGCRecommendations {
         // default values
         settings.put(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, 0L);
         settings.put(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, 0L);
+        settings.put(VersionGarbageCollector.SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, -1L);
         if (versionGCDoc != null) {
             for (String k : versionGCDoc.keySet()) {
                 Object value = versionGCDoc.get(k);
@@ -228,7 +232,7 @@ public class VersionGCRecommendations {
         return settings;
     }
 
-    private void setLongSetting(String propName, long val) {
+    void setLongSetting(String propName, long val) {
         UpdateOp updateOp = new UpdateOp(VersionGarbageCollector.SETTINGS_COLLECTION_ID, true);
         updateOp.set(propName, val);
         vgc.getDocumentStore().createOrUpdate(Collection.SETTINGS, updateOp);
