@@ -63,7 +63,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final int NUMBER_OF_REPLICAS_DEFAULT = 1;
 
     public static final String QUERY_FETCH_SIZES = "queryFetchSizes";
-    public static final Long[] QUERY_FETCH_SIZES_DEFAULT = new Long[]{100L, 1000L};
+    public static final Long[] QUERY_FETCH_SIZES_DEFAULT = new Long[]{10L, 100L, 1000L};
 
     public static final String TRACK_TOTAL_HITS = "trackTotalHits";
     public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
