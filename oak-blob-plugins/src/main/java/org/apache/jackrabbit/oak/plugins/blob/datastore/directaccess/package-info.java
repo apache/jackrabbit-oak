@@ -20,9 +20,8 @@
 /**
  * Package related to direct upload/download of data records.
  */
-@Internal
-@Version("1.0.1")
+@Version("1.0.0")
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;
+
