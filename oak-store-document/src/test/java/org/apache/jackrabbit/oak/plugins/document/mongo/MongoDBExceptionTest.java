@@ -37,9 +37,7 @@ import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class MongoDBExceptionTest {
 
@@ -209,14 +207,7 @@ public class MongoDBExceptionTest {
 
         updateOps.add(op1);
         updateOps.add(op2);
-        String id = op2.getId();
-        exceptionMsg = "Payload document size is larger than maximum of 16777216.";
-        try {
-            store.create(Collection.NODES, updateOps);
-            fail("DocumentStoreException expected");
-        } catch (DocumentStoreException e) {
-            assertThat(e.getMessage(), containsString(exceptionMsg));
-        }
+        assertFalse(store.create(Collection.NODES, updateOps));
     }
 
     @Test

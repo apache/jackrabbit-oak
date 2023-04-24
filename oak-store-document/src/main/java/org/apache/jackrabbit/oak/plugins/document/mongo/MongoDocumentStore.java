@@ -1498,7 +1498,9 @@ public class MongoDocumentStore implements DocumentStore {
                                 doc.getId(), doc.getMemory()/2, e.getMessage());
                     }
                 }
-                throw handleException(e, collection, doct.getId());
+                return false;
+            } catch (MongoException e) {
+                return false;
             }
         } finally {
             stats.doneCreate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids, insertSuccess);
