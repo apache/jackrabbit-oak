@@ -107,7 +107,7 @@ public class VersionGCQueryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+                ns, new VersionGCSupport(store), false);
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(11, stats.deletedDocGCCount);
@@ -140,7 +140,7 @@ public class VersionGCQueryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+                ns, new VersionGCSupport(store), false);
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(1, stats.deletedDocGCCount);

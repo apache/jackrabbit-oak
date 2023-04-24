@@ -497,7 +497,7 @@ public class VersionGarbageCollectorIT {
                         });
             }
         };
-        final VersionGarbageCollector gc = new VersionGarbageCollector(store, gcSupport);
+        final VersionGarbageCollector gc = new VersionGarbageCollector(store, gcSupport, false);
         // start GC -> will try to remove /foo and /bar
         Future<VersionGCStats> f = execService.submit(new Callable<VersionGCStats>() {
             @Override
@@ -658,7 +658,7 @@ public class VersionGarbageCollectorIT {
                 return super.getPossiblyDeletedDocs(fromModified, toModified);
             }
         };
-        gcRef.set(new VersionGarbageCollector(store, gcSupport));
+        gcRef.set(new VersionGarbageCollector(store, gcSupport, false));
         VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
         assertTrue(stats.canceled);
         assertEquals(0, stats.deletedDocGCCount);
@@ -710,7 +710,7 @@ public class VersionGarbageCollectorIT {
                 return super.getPossiblyDeletedDocs(prevLastModifiedTime, lastModifiedTime).iterator();
             }
         };
-        gcRef.set(new VersionGarbageCollector(store, gcSupport));
+        gcRef.set(new VersionGarbageCollector(store, gcSupport, false));
         VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
         assertTrue(stats.canceled);
         assertEquals(0, stats.deletedDocGCCount);
@@ -739,7 +739,7 @@ public class VersionGarbageCollectorIT {
                         });
             }
         };
-        final VersionGarbageCollector gc = new VersionGarbageCollector(store, nonReportingGcSupport);
+        final VersionGarbageCollector gc = new VersionGarbageCollector(store, nonReportingGcSupport, false);
         final long maxAgeHours = 1;
         final long clockDelta = HOURS.toMillis(maxAgeHours) + MINUTES.toMillis(5);
 
