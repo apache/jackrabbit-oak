@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -44,6 +45,9 @@ import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
+
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP;
 
 /**
  * Gives a recommendation about parameters for the next revision garbage collection run.
