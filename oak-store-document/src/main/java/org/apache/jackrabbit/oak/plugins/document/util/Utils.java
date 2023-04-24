@@ -895,6 +895,17 @@ public class Utils {
     }
 
     /**
+     * Check whether detailed GC is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if detailed GC is enabled else false
+     */
+    public static boolean isDetailedGCEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreDetailedGCFeature = builder.getDocStoreDetailedGCFeature();
+        return builder.isDetailedGCEnabled() || (docStoreDetailedGCFeature != null && docStoreDetailedGCFeature.isEnabled());
+    }
+
+    /**
      * Returns true if all the revisions in the {@code a} greater or equals
      * to their counterparts in {@code b}. If {@code b} contains revisions
      * for cluster nodes that are not present in {@code a}, return false.
