@@ -33,6 +33,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_DETAILED_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;

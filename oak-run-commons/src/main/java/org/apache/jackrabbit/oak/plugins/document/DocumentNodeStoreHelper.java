@@ -72,8 +72,8 @@ public class DocumentNodeStoreHelper {
     }
 
     public static VersionGarbageCollector createVersionGC(
-            DocumentNodeStore nodeStore, VersionGCSupport gcSupport) {
-        return new VersionGarbageCollector(nodeStore, gcSupport);
+            DocumentNodeStore nodeStore, VersionGCSupport gcSupport, final boolean detailedGCEnabled) {
+        return new VersionGarbageCollector(nodeStore, gcSupport, detailedGCEnabled);
     }
 
     private static Iterable<BlobReferences> scan(DocumentNodeStore store,

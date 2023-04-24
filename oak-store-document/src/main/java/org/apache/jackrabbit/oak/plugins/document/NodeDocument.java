@@ -32,6 +32,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
@@ -66,6 +67,7 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -1667,6 +1669,20 @@ public final class NodeDocument extends Document {
             map = ValueMap.EMPTY;
         }
         return map;
+    }
+
+    /**
+     * Returns all the properties on this document
+     * @return Map of all properties along with their values
+     */
+    @NotNull
+    Map<String, SortedMap<Revision, String>> getProperties() {
+        return data
+                .keySet()
+                .stream()
+                .filter(Utils::isPropertyName)
+                .map(o -> Map.entry(o, getLocalMap(o)))
+                .collect(toMap(Entry::getKey, Entry::getValue));
     }
 
     /**

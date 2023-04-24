@@ -22,6 +22,9 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
@@ -108,16 +111,39 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
         //_deletedOnce == true && _modified >= fromModified && _modified < toModified
-        Bson query = Filters.and(
+        Bson query = and(
                 Filters.eq(DELETED_ONCE, true),
-                Filters.gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                Filters.lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
+                gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
+                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
         );
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).batchSize(batchSize);
 
         return CloseableIterable.wrap(transform(cursor,
                 input -> store.convertFromDBObject(NODES, input)));
+    }
+
+    /**
+     * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
+     * within the given range in sorted order. The two passed modified timestamps
+     * are in milliseconds since the epoch and the implementation will convert them
+     * to seconds at the granularity of the {@link NodeDocument#MODIFIED_IN_SECS}
+     * field and then perform the comparison.
+     *
+     * @param fromModified the lower bound modified timestamp (inclusive)
+     * @param toModified   the upper bound modified timestamp (exclusive)
+     * @return matching documents in sorted order of {@link NodeDocument#MODIFIED_IN_SECS}
+     */
+    @Override
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit) {
+        // _modified >= fromModified && _modified < toModified
+        final Bson query = and(gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
+                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)));
+        final FindIterable<BasicDBObject> cursor = getNodeCollection()
+                .find(query)
+                .sort(new org.bson.Document(MODIFIED_IN_SECS, 1))
+                .limit(limit);
+        return CloseableIterable.wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
     }
 
     @Override
@@ -207,9 +233,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         }
         // OAK-8351: this (last) query only contains SD_TYPE and SD_MAX_REV_TIME_IN_SECS
         // so mongodb should really use that _sdType_1__sdMaxRevTime_1 index
-        result.add(Filters.and(
+        result.add(and(
                 Filters.or(orClauses),
-                Filters.lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
+                lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
                 ));
 
         return result;
@@ -240,16 +266,16 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             Bson idPathClause = Filters.or(
                     Filters.regex(ID, Pattern.compile(".*" + idSuffix)),
                     // previous documents with long paths do not have a '-' in the id
-                    Filters.and(
+                    and(
                             Filters.regex(ID, Pattern.compile("[^-]*")),
                             Filters.regex(PATH, Pattern.compile(".*" + idSuffix))
                     )
             );
 
             long minMaxRevTimeInSecs = Math.min(maxRevTimeInSecs, getModifiedInSecs(r.getTimestamp()));
-            result.add(Filters.and(
+            result.add(and(
                     Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
-                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
+                    lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
                     idPathClause
                     ));
         }
