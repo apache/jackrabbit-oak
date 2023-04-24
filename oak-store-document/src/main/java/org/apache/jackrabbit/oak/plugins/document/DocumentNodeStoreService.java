@@ -138,6 +138,7 @@ public class DocumentNodeStoreService {
     static final String DEFAULT_DB = "oak";
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
+    static final boolean DEFAULT_DETAILED_GC_ENABLED = false;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -187,6 +188,10 @@ public class DocumentNodeStoreService {
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
      */
     private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
+    /**
+     * Feature toggle name to enable detailed GC for Mongo Document Store
+     */
+    private static final String FT_NAME_DEATILED_GC = "FT_DETAILED_GC_OAK-10199";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -225,6 +230,7 @@ public class DocumentNodeStoreService {
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
+    private Feature docStoreDetailedGCFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -261,6 +267,7 @@ public class DocumentNodeStoreService {
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
         noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
+        docStoreDetailedGCFeature = Feature.newFeature(FT_NAME_DEATILED_GC, whiteboard);
 
         registerNodeStoreIfPossible();
     }
