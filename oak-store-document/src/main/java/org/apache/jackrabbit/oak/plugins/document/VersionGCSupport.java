@@ -20,11 +20,14 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static java.util.stream.Collectors.toList;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -59,53 +62,40 @@ public class VersionGCSupport {
      * @param toModified the upper bound modified timestamp (exclusive)
      * @return matching documents.
      */
-    public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified,
-                                                         final long toModified) {
-        return filter(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1), new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument input) {
-                return input.wasDeletedOnce()
-                        && modifiedGreaterThanEquals(input, fromModified)
-                        && modifiedLessThan(input, toModified);
-            }
-
-            private boolean modifiedGreaterThanEquals(NodeDocument doc,
-                                                      long time) {
-                Long modified = doc.getModified();
-                return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
-            }
-
-            private boolean modifiedLessThan(NodeDocument doc,
-                                             long time) {
-                Long modified = doc.getModified();
-                return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
-            }
-        });
+    public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
+        return StreamSupport
+                .stream(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1).spliterator(), false)
+                .filter(input -> input.wasDeletedOnce() && modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
+                .collect(toList());
     }
 
     /**
-     * TODO: document me!
+     * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
+     * within the given range .The two passed modified timestamps are in milliseconds
+     * since the epoch and the implementation will convert them to seconds at
+     * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
+     * then perform the comparison.
+     *
+     * @param fromModified the lower bound modified timestamp (inclusive)
+     * @param toModified the upper bound modified timestamp (exclusive)
+     * @param limit the limit of documents to return
+     * @return matching documents.
      */
-    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified) {
-        return filter(getSelectedDocuments(store, NodeDocument.MODIFIED_IN_SECS, fromModified), new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument input) {
-                return modifiedGreaterThanEquals(input, fromModified)
-                        && modifiedLessThan(input, toModified);
-            }
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit) {
+        return StreamSupport
+                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, fromModified).spliterator(), false)
+                .filter(input -> modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
+                .limit(limit)
+                .collect(toList());
+    }
 
-            private boolean modifiedGreaterThanEquals(NodeDocument doc,
-                                                      long time) {
-                Long modified = doc.getModified();
-                return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
-            }
-
-            private boolean modifiedLessThan(NodeDocument doc,
-                                             long time) {
-                Long modified = doc.getModified();
-                return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
-            }
-        });
+    private boolean modifiedGreaterThanEquals(final NodeDocument doc, final long time) {
+        Long modified = doc.getModified();
+        return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
+    }
+    private boolean modifiedLessThan(final NodeDocument doc, final long time) {
+        Long modified = doc.getModified();
+        return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
     }
 
     /**
@@ -182,6 +172,30 @@ public class VersionGCSupport {
             Utils.closeIfCloseable(docs);
         }
         LOG.debug("find oldest _deletedOnce to be {}", Utils.timestampToString(ts));
+        return ts;
+    }
+
+    /**
+     * Retrieve the time of the oldest modified document.
+     *
+     * @return the timestamp of the oldest modified document.
+     */
+    public long getOldestModifiedTimestamp(final Clock clock) {
+        long ts = 0;
+        long now = clock.getTime();
+        Iterable<NodeDocument> docs = null;
+
+        LOG.info("find oldest modified document");
+        try {
+            docs = getModifiedDocs(ts, now, 1);
+            if (docs.iterator().hasNext()) {
+                Long modified = docs.iterator().next().getModified();
+                return modified != null ? modified : 0L;
+            }
+        } finally {
+            Utils.closeIfCloseable(docs);
+        }
+        LOG.info("find oldest modified document to be {}", Utils.timestampToString(ts));
         return ts;
     }
 
