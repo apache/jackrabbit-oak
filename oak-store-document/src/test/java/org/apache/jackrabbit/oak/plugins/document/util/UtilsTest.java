@@ -50,13 +50,13 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isDetailedGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -182,6 +182,45 @@ public class UtilsTest {
         builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
         boolean throttlingEnabled = isThrottlingEnabled(builder);
         assertTrue("Throttling is enabled via Feature Toggle", throttlingEnabled);
+    }
+
+    @Test
+    public void detailedGCEnabledDefaultValue() {
+        boolean detailedGCEnabled = isDetailedGCEnabled(newDocumentNodeStoreBuilder());
+        assertFalse("Detailed GC is disabled by default", detailedGCEnabled);
+    }
+
+    @Test
+    public void detailedGCExplicitlyDisabled() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setDetailedGCEnabled(false);
+        Feature docStoreDetailedGCFeature = mock(Feature.class);
+        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
+        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
+        assertFalse("Detailed GC is disabled explicitly", detailedGCEnabled);
+    }
+
+    @Test
+    public void detailedGCEnabledViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setDetailedGCEnabled(true);
+        Feature docStoreDetailedGCFeature = mock(Feature.class);
+        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
+        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
+        assertTrue("Detailed GC is enabled via configuration", detailedGCEnabled);
+    }
+
+    @Test
+    public void detailedGCEnabledViaFeatureToggle() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setDetailedGCEnabled(false);
+        Feature docStoreDetailedGCFeature = mock(Feature.class);
+        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
+        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
+        assertTrue("Detailed GC is enabled via Feature Toggle", detailedGCEnabled);
     }
 
     @Test

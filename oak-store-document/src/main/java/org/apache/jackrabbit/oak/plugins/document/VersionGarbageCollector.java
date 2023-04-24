@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -54,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
@@ -66,6 +67,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
+import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 public class VersionGarbageCollector {
@@ -115,6 +117,7 @@ public class VersionGarbageCollector {
 
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
+    private final boolean detailedGCEnabled;
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -122,10 +125,12 @@ public class VersionGarbageCollector {
     private RevisionGCStats gcStats = new RevisionGCStats(StatisticsProvider.NOOP);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
-                            VersionGCSupport gcSupport) {
+                            VersionGCSupport gcSupport,
+                            final boolean detailedGCEnabled) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
+        this.detailedGCEnabled = detailedGCEnabled;
         this.options = new VersionGCOptions();
     }
 
@@ -201,7 +206,7 @@ public class VersionGarbageCollector {
     }
 
     public void setGCMonitor(@NotNull GCMonitor gcMonitor) {
-        this.gcMonitor = checkNotNull(gcMonitor);
+        this.gcMonitor = requireNonNull(gcMonitor);
     }
 
     public VersionGCOptions getOptions() {
@@ -259,6 +264,7 @@ public class VersionGarbageCollector {
     }
 
     public static class VersionGCStats {
+        public long oldestModifiedGced;
         boolean ignoredGCDueToCheckPoint;
         boolean canceled;
         boolean success = true;
@@ -274,14 +280,14 @@ public class VersionGarbageCollector {
         final Stopwatch active = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch checkDeletedDocs = Stopwatch.createUnstarted();
-        final Stopwatch detailGcDocs = Stopwatch.createUnstarted();
+        final Stopwatch detailedGcDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
         long activeElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed, collectAndDeleteSplitDocsElapsed,
-                deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed, detailGcDocsElapsed;
+                deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed, detailedGcDocsElapsed;
 
         @Override
         public String toString() {
@@ -318,6 +324,7 @@ public class VersionGarbageCollector {
 
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
+                    ", oldestModifiedGced=" + oldestModifiedGced +
                     ", canceled=" + canceled +
                     ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
                     ", updateResurrectedGCCount=" + updateResurrectedGCCount +
@@ -331,6 +338,7 @@ public class VersionGarbageCollector {
         void addRun(VersionGCStats run) {
             ++iterationCount;
             this.ignoredGCDueToCheckPoint = run.ignoredGCDueToCheckPoint;
+            this.oldestModifiedGced = run.oldestModifiedGced;
             this.canceled = run.canceled;
             this.success = run.success;
             this.limitExceeded = run.limitExceeded;
@@ -350,7 +358,7 @@ public class VersionGarbageCollector {
                 this.deleteSplitDocsElapsed += run.deleteSplitDocsElapsed;
                 this.sortDocIdsElapsed += run.sortDocIdsElapsed;
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocumentsElapsed;
-                this.detailGcDocsElapsed += run.detailGcDocsElapsed;
+                this.detailedGcDocsElapsed += run.detailedGcDocsElapsed;
             } else {
                 // single run -> read from stop watches
                 this.activeElapsed += run.active.elapsed(MICROSECONDS);
@@ -361,7 +369,7 @@ public class VersionGarbageCollector {
                 this.deleteSplitDocsElapsed += run.deleteSplitDocs.elapsed(MICROSECONDS);
                 this.sortDocIdsElapsed += run.sortDocIds.elapsed(MICROSECONDS);
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
-                this.detailGcDocsElapsed += run.detailGcDocs.elapsed(MICROSECONDS);
+                this.detailedGcDocsElapsed += run.detailedGcDocs.elapsed(MICROSECONDS);
             }
         }
     }
@@ -370,7 +378,7 @@ public class VersionGarbageCollector {
         NONE,
         COLLECTING,
         CHECKING,
-        DETAILGC,
+        DETAILED_GC,
         DELETING,
         SORTING,
         SPLITS_CLEANUP,
@@ -398,7 +406,7 @@ public class VersionGarbageCollector {
             this.watches.put(GCPhase.NONE, Stopwatch.createStarted());
             this.watches.put(GCPhase.COLLECTING, stats.collectDeletedDocs);
             this.watches.put(GCPhase.CHECKING, stats.checkDeletedDocs);
-            this.watches.put(GCPhase.DETAILGC, stats.detailGcDocs);
+            this.watches.put(GCPhase.DETAILED_GC, stats.detailedGcDocs);
             this.watches.put(GCPhase.DELETING, stats.deleteDeletedDocs);
             this.watches.put(GCPhase.SORTING, stats.sortDocIds);
             this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
@@ -525,7 +533,10 @@ public class VersionGarbageCollector {
 
                     collectDeletedDocuments(phases, headRevision, rec);
                     collectSplitDocuments(phases, sweepRevisions, rec);
-                    collectDetailGarbage(phases, headRevision, rec);
+                    if (detailedGCEnabled) {
+                        // run only if enabled
+                        collectDetailedGarbage(phases, headRevision, rec);
+                    }
                 }
             } catch (LimitExceededException ex) {
                 stats.limitExceeded = true;
@@ -555,36 +566,33 @@ public class VersionGarbageCollector {
          * followed by voluntary paused (aka throttling) to avoid excessive load on the
          * system. The full repository scan does not have to finish particularly fast,
          * it is okay that it takes a considerable amount of time.
-         * 
-         * @param headRevision
+         *
+         * @param phases {@link GCPhases}
+         * @param headRevision the current head revision of
          * @throws IOException
          * @throws LimitExceededException
          */
-        private void collectDetailGarbage(GCPhases phases, RevisionVector headRevision, VersionGCRecommendations rec)
+        private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec)
                 throws IOException, LimitExceededException {
-            if (!DETAIL_GC_ENABLED) {
-                // TODO: this toggling should be done nicer asap
-                return;
-            }
             int docsTraversed = 0;
-            DetailGC gc = new DetailGC(headRevision, monitor);
-            try {
-                final long fromModified;
-                final long toModified;
-                if (rec.fullDetailGCTimestamp == -1) {
-                    // then full detail-gc is disabled or over - use regular scope then
-                    fromModified = rec.scope.fromMs;
-                    toModified = rec.scope.toMs;
-                } else {
-                    // then full detail-gc is enabled - use it then
-                    fromModified = rec.fullDetailGCTimestamp; // TODO: once we're passed rec.scope.fromMs we should
-                                                              // disable fullgc
-                    toModified = rec.scope.toMs; // the 'to' here is the max. it will process only eg 1 batch
-                }
-                long oldestGced = fromModified;
-                boolean foundAnything = false;
+            long oldestModifiedGced = rec.scopeFullGC.fromMs;
+            try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
+                final long fromModified = rec.scopeFullGC.fromMs;
+                final long toModified = rec.scopeFullGC.toMs;
+//                if (rec.fullDetailGCTimestamp == -1) {
+//                    // then full detail-gc is disabled or over - use regular scope then
+//                    fromModified = rec.scope.fromMs;
+//                    toModified = rec.scope.toMs;
+//                } else {
+//                    // then full detail-gc is enabled - use it then
+//                    fromModified = rec.fullDetailGCTimestamp; // TODO: once we're passed rec.scope.fromMs we should
+//                    // disable fullgc
+//                    toModified = rec.scope.toMs; // the 'to' here is the max. it will process only eg 1 batch
+//                }
+                // TODO : remove me
+                boolean foundAnything = false; // I think this flag is redundant
                 if (phases.start(GCPhase.COLLECTING)) {
-                    Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModified, toModified);
+                    Iterable<NodeDocument> itr = versionStore.getModifiedDocs(oldestModifiedGced, toModified, 2000);
                     final Stopwatch timer = Stopwatch.createUnstarted();
                     timer.reset().start();
                     try {
@@ -593,44 +601,54 @@ public class VersionGarbageCollector {
                             if (cancel.get()) {
                                 break;
                             }
-                            foundAnything = true;
-                            if (phases.start(GCPhase.DETAILGC)) {
-                                gc.detailGC(doc, phases);
-                                phases.stop(GCPhase.DETAILGC);
+                            if (phases.start(GCPhase.DETAILED_GC)) {
+                                gc.detailedGC(doc, phases);
+                                phases.stop(GCPhase.DETAILED_GC);
                             }
+
+                            // TODO : remove this code, I don't think its possible to fetch these documents
+                            //  who doesn't have _modified field
                             final Long modified = doc.getModified();
                             if (modified == null) {
                                 monitor.warn("collectDetailGarbage : document has no _modified property : {}",
                                         doc.getId());
-                            } else if (modified < oldestGced) {
+                            } else if (modified < oldestModifiedGced) {
                                 monitor.warn(
                                         "collectDetailGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
                                         modified, fromModified, toModified);
                             } else {
-                                oldestGced = modified;
+                                oldestModifiedGced = modified;
                             }
+                            foundAnything = true;
                             docsTraversed++;
                             if (docsTraversed % PROGRESS_BATCH_SIZE == 0) {
                                 monitor.info("Iterated through {} documents so far. {} had detail garbage",
                                         docsTraversed, gc.getNumDocuments());
                             }
+                            // this would never hit, since we are only fetching the oldest 2000 element in batches of 1000
+                            // TODO: remove this if above mentioned logic is fine
                             if (rec.maxCollect > 0 && gc.getNumDocuments() > rec.maxCollect) {
                                 // TODO: how would we recover from this?
+                                // If we don't want above solution, then one of the another solution is to use lower time duration
+                                // as done in document deletion process or use lower limit value or
+                                // we should perform all the update ops in 1 go
                                 throw new LimitExceededException();
                             }
+                            oldestModifiedGced = modified == null ? fromModified : modified;
                         }
                     } finally {
                         Utils.closeIfCloseable(itr);
+                        // why do we need to stop this here, we are already stopping the original gc run.
+                        // can this be removed
                         delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS));
+                        phases.stats.oldestModifiedGced = oldestModifiedGced;
                     }
                     phases.stop(GCPhase.COLLECTING);
-                    if (!cancel.get() && foundAnything) {
-                        // TODO: move to evaluate()
-                        rec.setLongSetting(SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, oldestGced + 1);
-                    }
+//                    if (!cancel.get() && foundAnything) {
+//                        // TODO: move to evaluate()
+//                        rec.setLongSetting(SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, oldestModifiedGced + 1);
+//                    }
                 }
-            } finally {
-                gc.close();
             }
         }
 
@@ -665,8 +683,7 @@ public class VersionGarbageCollector {
                                              VersionGCRecommendations rec)
                 throws IOException, LimitExceededException {
             int docsTraversed = 0;
-            DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel, options, monitor);
-            try {
+            try (DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel, options, monitor)) {
                 if (phases.start(GCPhase.COLLECTING)) {
                     Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(rec.scope.fromMs, rec.scope.toMs);
                     try {
@@ -731,53 +748,69 @@ public class VersionGarbageCollector {
                     gc.updateResurrectedDocuments(phases.stats);
                     phases.stop(GCPhase.UPDATING);
                 }
-            } finally {
-                gc.close();
             }
         }
     }
 
-    private class DetailGC implements Closeable {
+    private static class DetailedGC implements Closeable {
 
         private final RevisionVector headRevision;
         private final GCMonitor monitor;
+        private final AtomicBoolean cancel;
         private int count;
 
-        public DetailGC(@NotNull RevisionVector headRevision, @NotNull GCMonitor monitor) {
-            this.headRevision = checkNotNull(headRevision);
+        public DetailedGC(@NotNull RevisionVector headRevision, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
+            this.headRevision = requireNonNull(headRevision);
             this.monitor = monitor;
+            this.cancel = cancel;
         }
 
-        public void detailGC(NodeDocument doc, GCPhases phases) {
-            deleteSample(doc, phases);
-            deleteUnmergedBranchCommitDocument(doc, phases);
-            deleteDeletedProperties(doc, phases);
-            deleteOldRevisions(doc, phases);
+        public void detailedGC(NodeDocument doc, GCPhases phases) {
+//            deleteSample(doc, phases);
+            UpdateOp updateOp = new UpdateOp(requireNonNull(doc.getId()), false);
+            deleteDeletedProperties(doc, phases, updateOp);
+            deleteUnmergedBranchCommitDocument(doc, phases, updateOp);
+            deleteOldRevisions(doc, phases, updateOp);
         }
 
         /** TODO remove, this is just a skeleton sample */
-        private void deleteSample(NodeDocument doc, GCPhases phases) {
-            if (doc.getId().contains("should_delete")) {
-                if (phases.start(GCPhase.DELETING)) {
-                    monitor.info("deleteSample: should do the deletion now, but this is demo only. I'm still learning");
-                    System.out.println("do the actual deletion");
-                    count++;
-                    phases.stop(GCPhase.DELETING);
+//        private void deleteSample(NodeDocument doc, GCPhases phases) {
+//            if (doc.getId().contains("should_delete")) {
+//                if (phases.start(GCPhase.DELETING)) {
+//                    monitor.info("deleteSample: should do the deletion now, but this is demo only. I'm still learning");
+//                    System.out.println("do the actual deletion");
+//                    count++;
+//                    phases.stop(GCPhase.DELETING);
+//                }
+//            }
+//        }
+
+        private void deleteUnmergedBranchCommitDocument(NodeDocument doc, GCPhases phases, UpdateOp updateOp) {
+            // TODO Auto-generated method stub
+
+        }
+
+        private void deleteDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
+
+            // get Map of all properties along with their values
+            final Map<String, SortedMap<Revision, String>> properties = doc.getProperties();
+
+            // find all the properties which can be removed from document
+            // All the properties whose value is null in their respective
+            // latest revision are eligible to be garbage collected.
+            properties.forEach((propName, revisionStringSortedMap) -> {
+                if (revisionStringSortedMap.keySet()
+                        .stream()
+                        .sorted(REVERSE)
+                        .limit(1)
+                        .anyMatch(revision -> revisionStringSortedMap.get(revision) == null)) {
+                    // set this property for removal
+                    updateOp.remove(propName);
                 }
-            }
+            });
         }
 
-        private void deleteUnmergedBranchCommitDocument(NodeDocument doc, GCPhases phases) {
-            // TODO Auto-generated method stub
-
-        }
-
-        private void deleteDeletedProperties(NodeDocument doc, GCPhases phases) {
-            // TODO Auto-generated method stub
-
-        }
-
-        private void deleteOldRevisions(NodeDocument doc, GCPhases phases) {
+        private void deleteOldRevisions(NodeDocument doc, GCPhases phases, UpdateOp updateOp) {
             // TODO Auto-generated method stub
 
         }
@@ -813,8 +846,8 @@ public class VersionGarbageCollector {
                              @NotNull AtomicBoolean cancel,
                              @NotNull VersionGCOptions options,
                              @NotNull GCMonitor monitor) {
-            this.headRevision = checkNotNull(headRevision);
-            this.cancel = checkNotNull(cancel);
+            this.headRevision = requireNonNull(headRevision);
+            this.cancel = requireNonNull(cancel);
             this.timer = Stopwatch.createUnstarted();
             this.options = options;
             this.monitor = monitor;

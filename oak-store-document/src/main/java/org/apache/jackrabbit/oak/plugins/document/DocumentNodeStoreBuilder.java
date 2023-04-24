@@ -125,6 +125,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean isReadOnlyMode = false;
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
+    private Feature docStoreDetailedGCFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
