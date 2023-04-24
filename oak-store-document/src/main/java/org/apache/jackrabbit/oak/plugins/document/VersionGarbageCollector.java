@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -317,6 +318,7 @@ public class VersionGarbageCollector {
     }
 
     public static class VersionGCStats {
+        public long oldestModifiedGced;
         boolean ignoredGCDueToCheckPoint;
         boolean detailedGCDryRunMode;
         boolean ignoredDetailedGCDueToCheckPoint;
@@ -1185,7 +1187,7 @@ public class VersionGarbageCollector {
                 if (doc.getLocalMap(propName).containsKey(unmergedBCRevision)) {
                     updateOp.removeMapEntry(propName, unmergedBCRevision);
                 }
-            }
+            };
         }
 
         private void collectOldRevisions(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {

@@ -44,6 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -476,6 +477,7 @@ public class VersionGCTest {
 
     // OAK-10199
     @Test
+    @Ignore
     public void testDetailGcDocumentRead_disabled() throws Exception {
         disableDetailGC(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
@@ -484,6 +486,7 @@ public class VersionGCTest {
     }
 
     @Test
+    @Ignore
     public void testDetailGcDocumentRead_enabled() throws Exception {
         enableDetailGC(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);

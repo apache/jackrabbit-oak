@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.gte;
 import static com.mongodb.client.model.Filters.or;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
@@ -119,10 +120,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
         //_deletedOnce == true && _modified >= fromModified && _modified < toModified
-        Bson query = Filters.and(
+        Bson query = and(
                 Filters.eq(DELETED_ONCE, true),
-                Filters.gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                Filters.lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
+                gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
+                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
         );
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).batchSize(batchSize);
@@ -276,9 +277,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         }
         // OAK-8351: this (last) query only contains SD_TYPE and SD_MAX_REV_TIME_IN_SECS
         // so mongodb should really use that _sdType_1__sdMaxRevTime_1 index
-        result.add(Filters.and(
+        result.add(and(
                 Filters.or(orClauses),
-                Filters.lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
+                lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
                 ));
 
         return result;
@@ -309,16 +310,16 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             Bson idPathClause = Filters.or(
                     Filters.regex(ID, Pattern.compile(".*" + idSuffix)),
                     // previous documents with long paths do not have a '-' in the id
-                    Filters.and(
+                    and(
                             Filters.regex(ID, Pattern.compile("[^-]*")),
                             Filters.regex(PATH, Pattern.compile(".*" + idSuffix))
                     )
             );
 
             long minMaxRevTimeInSecs = Math.min(maxRevTimeInSecs, getModifiedInSecs(r.getTimestamp()));
-            result.add(Filters.and(
+            result.add(and(
                     Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
-                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
+                    lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
                     idPathClause
                     ));
         }
