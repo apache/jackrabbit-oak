@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Iterator;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 class CountingIterable<T> implements Iterable<T> {
     private final Iterable<T> delegate;

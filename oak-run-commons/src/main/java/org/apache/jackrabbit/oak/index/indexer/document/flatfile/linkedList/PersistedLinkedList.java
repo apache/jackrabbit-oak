@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
 
 /**
  * A persistent linked list that internally uses the MVStore.

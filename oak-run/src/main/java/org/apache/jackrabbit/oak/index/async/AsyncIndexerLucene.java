@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.async;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
