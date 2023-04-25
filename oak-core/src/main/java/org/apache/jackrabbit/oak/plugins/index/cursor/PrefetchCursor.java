@@ -26,6 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -59,6 +60,11 @@ public class PrefetchCursor extends AbstractCursor {
         this.rootState = rootState;
         this.prefetched = Collections.emptyIterator();
         this.prefetchRelative = prefetchRelative;
+    }
+
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        return cursor.getSize(precision, max);
     }
 
     @Override

@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -96,6 +99,34 @@ public class PrefetchCursorTest {
                 "/content/images/abc.jpg"));
     }
     
+    /**
+     * Test that the PrefetchCursor forwards the getSize() request to the nested
+     * cursor.
+     */
+    @Test
+    public void fastResultSize() {
+        int expectedResult = 123;
+        PrefetchCursor prefetch = new PrefetchCursor(new Cursor() {
+
+            @Override
+            public boolean hasNext() {
+                return false;
+            }
+
+            @Override
+            public long getSize(SizePrecision precision, long max) {
+                return expectedResult;
+            }
+
+            @Override
+            public IndexRow next() {
+                return null;
+            }
+
+        }, null, 0, null, null);
+        assertEquals(expectedResult, prefetch.getSize(null, 0));
+    }
+
     @Test
     public void cursor() {
         List<String> paths = Arrays.asList(
