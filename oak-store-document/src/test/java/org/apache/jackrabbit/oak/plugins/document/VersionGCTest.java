@@ -44,7 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -96,7 +95,7 @@ public class VersionGCTest {
 
     @After
     public void tearDown() throws Exception {
-        DetailGCHelper.disableDetailGC(ns);
+        DetailGCHelper.disableDetailGC(gc);
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
     }
@@ -343,21 +342,19 @@ public class VersionGCTest {
 
     // OAK-10199
     @Test
-    @Ignore
     public void testDetailGcDocumentRead_disabled() throws Exception {
-        DetailGCHelper.disableDetailGC(ns);
+        DetailGCHelper.disableDetailGC(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertNotNull(stats);
-        assertEquals(0, stats.detailedGcDocsElapsed);
+        assertEquals(0, stats.detailedGCDocsElapsed);
     }
 
     @Test
-    @Ignore
     public void testDetailGcDocumentRead_enabled() throws Exception {
-        DetailGCHelper.enableDetailGC(ns);
+        DetailGCHelper.enableDetailGC(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertNotNull(stats);
-        assertNotEquals(0, stats.detailedGcDocsElapsed);
+        assertNotEquals(0, stats.detailedGCDocsElapsed);
     }
 
     // OAK-10199
