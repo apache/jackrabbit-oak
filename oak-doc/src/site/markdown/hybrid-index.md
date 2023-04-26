@@ -22,7 +22,6 @@
   * [Unique Indexes](#unique-indexes)
   * [Property Indexes](#property-indexes)
 * [Drawbacks of current property indexes](#drawbacks-of-current-property-indexes)
-
 * [Proposal](#proposal)
   * [Index Definition](#index-definition)
   * [Index Storage](#index-storage)
@@ -76,13 +75,13 @@ To overcome the drawbacks and still meet the synchronous index requirements we c
 #### <a name="index-definition"></a>Index Definition
 The synchronous index support would need to be enabled via index definition
 
-* async - This needs to have an entry sync
+* async - This needs to have an entry nrt
 * Set sync to true for each property definition which needs to be indexed in a sync way
 ```
 /oak:index/assetType
 - jcr:primaryType = "oak:QueryIndexDefinition"
 - type = "lucene"
-- async = ["async", "sync"]
+- async = ["async", "nrt"]
 + indexRules
     + nt:base
         + properties
@@ -97,7 +96,7 @@ For unique indexes set unique i.e. true
 /oak:index/uuid
 - jcr:primaryType = "oak:QueryIndexDefinition"
 - type = "lucene"
-- async = ["async", "sync"]
+- async = ["async", "nrt"]
 + indexRules
     + nt:base
         + properties
@@ -154,7 +153,7 @@ Here
 
 Here we create new buckets of index values which simplifies the pruning. New buckets would get created after each successful async indexer run and older buckets would get removed. The bucket would in turn have structure similar to content mirror store strategy
 
-For each property being index keep a head property which refers to the current active bucket. This would be changed by IndexPruner. In addition there would be a previous bucket to refer to the last active bucket.
+For each property being index keep a head property which refers to the current active bucket. This would be changed by IndexPruner. In addition, there would be a previous bucket to refer to the last active bucket.
 
 On each run of IndexPruner
 
