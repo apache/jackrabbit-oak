@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
-import static com.mongodb.client.model.Filters.gte;
 import static com.mongodb.client.model.Filters.or;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
@@ -50,6 +49,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import com.mongodb.client.MongoCursor;
@@ -120,10 +120,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
         //_deletedOnce == true && _modified >= fromModified && _modified < toModified
-        Bson query = and(
+        Bson query = Filters.and(
                 Filters.eq(DELETED_ONCE, true),
-                gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
+                Filters.gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
+                Filters.lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
         );
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).batchSize(batchSize);
@@ -277,9 +277,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         }
         // OAK-8351: this (last) query only contains SD_TYPE and SD_MAX_REV_TIME_IN_SECS
         // so mongodb should really use that _sdType_1__sdMaxRevTime_1 index
-        result.add(and(
+        result.add(Filters.and(
                 Filters.or(orClauses),
-                lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
+                Filters.lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
                 ));
 
         return result;
@@ -310,16 +310,16 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             Bson idPathClause = Filters.or(
                     Filters.regex(ID, Pattern.compile(".*" + idSuffix)),
                     // previous documents with long paths do not have a '-' in the id
-                    and(
+                    Filters.and(
                             Filters.regex(ID, Pattern.compile("[^-]*")),
                             Filters.regex(PATH, Pattern.compile(".*" + idSuffix))
                     )
             );
 
             long minMaxRevTimeInSecs = Math.min(maxRevTimeInSecs, getModifiedInSecs(r.getTimestamp()));
-            result.add(and(
+            result.add(Filters.and(
                     Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
-                    lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
+                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
                     idPathClause
                     ));
         }
