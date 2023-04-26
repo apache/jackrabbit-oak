@@ -34,10 +34,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -224,6 +226,68 @@ public class VersionGarbageCollectorIT {
     @Test
     public void gcLongPathSplitDocs() throws Exception {
         gcSplitDocsInternal(Strings.repeat("sub", 120));
+    }
+
+    @Test
+    public void testGCDeletedProps() throws Exception{
+        //1. Create nodes
+        NodeBuilder b1 = store.getRoot().builder();
+
+        // Add property to node & save
+        b1.child("x").setProperty("test", "t", STRING);
+        b1.child("z").setProperty("prop", "foo", STRING);
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // update the property
+        b1 = store.getRoot().builder();
+        b1.getChildNode("z").setProperty("prop", "bar", STRING);
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // update property again
+        b1 = store.getRoot().builder();
+        b1.getChildNode("z").setProperty("prop", "baz", STRING);
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+
+        //Remove property
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.getChildNode("z").removeProperty("prop");
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //2. Check that a deleted property is not collected before maxAge
+        //Clock cannot move back (it moved forward in #1) so double the maxAge
+        clock.waitUntil(clock.getTime() + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(1, stats.deletedPropsGCCount);
+
+        //4. Check that a revived property (deleted and created again) does not get gc
+        NodeBuilder b3 = store.getRoot().builder();
+        b3.child("x").removeProperty("test");
+        store.merge(b3, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        NodeBuilder b4 = store.getRoot().builder();
+        b4.child("x").setProperty("test", "t", STRING);
+        store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
     }
     
     private void gcSplitDocsInternal(String subNodeName) throws Exception {
