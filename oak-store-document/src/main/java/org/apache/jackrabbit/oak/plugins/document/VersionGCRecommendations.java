@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -30,9 +31,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP;
 
 /**
@@ -51,7 +50,7 @@ public class VersionGCRecommendations {
     final long maxCollect;
     final long deleteCandidateCount;
     final long lastOldestTimestamp;
-    final long fullDetailGCTimestamp;
+    final long detailedGCTimestamp;
     final long originalCollectLimit;
 
     private final long precisionMs;
@@ -96,7 +95,7 @@ public class VersionGCRecommendations {
         TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
 
         Map<String, Long> settings = getLongSettings();
-        lastOldestTimestamp = settings.get(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
+        lastOldestTimestamp = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
         if (lastOldestTimestamp == 0) {
             log.debug("No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
             oldestPossible = vgc.getOldestDeletedOnceTimestamp(clock, options.precisionMs) - 1;
@@ -108,17 +107,17 @@ public class VersionGCRecommendations {
         TimeInterval scope = new TimeInterval(oldestPossible, Long.MAX_VALUE);
         scope = scope.notLaterThan(keep.fromMs);
 
-        fullDetailGCTimestamp = settings.get(SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP);
-        if (fullDetailGCTimestamp == 0) {
+        detailedGCTimestamp = settings.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP);
+        if (detailedGCTimestamp == 0) {
             if (log.isDebugEnabled()) {
-                log.debug("No fullDetailGCTimestamp found, querying for the oldest deletedOnce candidate");
+                log.debug("No detailedGCTimestamp found, querying for the oldest deletedOnce candidate");
             }
             oldestPossibleFullGC = vgc.getOldestModifiedTimestamp(clock) - 1;
             if (log.isDebugEnabled()) {
-                log.debug("fullDetailGCTimestamp found: {}", Utils.timestampToString(oldestPossibleFullGC));
+                log.debug("detailedGCTimestamp found: {}", Utils.timestampToString(oldestPossibleFullGC));
             }
         } else {
-            oldestPossibleFullGC = fullDetailGCTimestamp - 1;
+            oldestPossibleFullGC = detailedGCTimestamp - 1;
         }
 
         TimeInterval scopeFullGC = new TimeInterval(oldestPossibleFullGC, Long.MAX_VALUE);
@@ -206,10 +205,8 @@ public class VersionGCRecommendations {
             stats.needRepeat = true;
         } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint) {
             // success, we would not expect to encounter revisions older than this in the future
-//            setLongSetting(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs);
-//            setLongSetting(SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, stats.oldestModifiedGced);
             setLongSetting(ImmutableMap.of(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs,
-                    SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, stats.oldestModifiedGced));
+                    SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, stats.oldestModifiedGced));
 
             int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
             double usedFraction;
@@ -240,11 +237,11 @@ public class VersionGCRecommendations {
 
     private Map<String, Long> getLongSettings() {
         Document versionGCDoc = vgc.getDocumentStore().find(Collection.SETTINGS, VersionGarbageCollector.SETTINGS_COLLECTION_ID, 0);
-        Map<String, Long> settings = Maps.newHashMap();
+        Map<String, Long> settings = new HashMap<>();
         // default values
-        settings.put(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, 0L);
+        settings.put(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, 0L);
         settings.put(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, 0L);
-        settings.put(SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, 0L);
+        settings.put(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, 0L);
         if (versionGCDoc != null) {
             for (String k : versionGCDoc.keySet()) {
                 Object value = versionGCDoc.get(k);
@@ -256,14 +253,11 @@ public class VersionGCRecommendations {
         return settings;
     }
 
-    void setLongSetting(String propName, long val) {
+    private void setLongSetting(String propName, long val) {
         setLongSetting(Map.of(propName, val));
-//        UpdateOp updateOp = new UpdateOp(VersionGarbageCollector.SETTINGS_COLLECTION_ID, true);
-//        updateOp.set(propName, val);
-//        vgc.getDocumentStore().createOrUpdate(Collection.SETTINGS, updateOp);
     }
 
-    void setLongSetting(final Map<String, Long> propValMap) {
+    private void setLongSetting(final Map<String, Long> propValMap) {
         UpdateOp updateOp = new UpdateOp(VersionGarbageCollector.SETTINGS_COLLECTION_ID, true);
         propValMap.forEach(updateOp::set);
         vgc.getDocumentStore().createOrUpdate(Collection.SETTINGS, updateOp);
