@@ -32,7 +32,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
@@ -68,7 +67,6 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -1664,12 +1662,16 @@ public final class NodeDocument extends Document {
 
     /**
      * Returns name of all the properties on this document
+<<<<<<< HEAD
      * <p>
      * Note: property names returned are escaped
      *
      * @return Set of all property names (escaped)
      * @see Utils#unescapePropertyName(String)
      * @see Utils#escapePropertyName(String)
+=======
+     * @return Set of all property names
+>>>>>>> 710308b51a (OAK-10199 : override getModifiedDocs() for RDB and added unit cases for deletedProps)
      */
     @NotNull
     Set<String> getPropertyNames() {
