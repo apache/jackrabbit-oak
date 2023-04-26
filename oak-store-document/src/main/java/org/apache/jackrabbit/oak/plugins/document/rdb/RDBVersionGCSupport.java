@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static java.util.Collections.emptyList;
+import static java.util.List.of;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.EMPTY_KEY_PATTERN;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -82,6 +88,29 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             return getIterator(RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
         } else {
             return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions, Integer.MAX_VALUE, null);
+        }
+    }
+
+    /**
+     * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
+     * within the given range .The two passed modified timestamps are in milliseconds
+     * since the epoch and the implementation will convert them to seconds at
+     * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
+     * then perform the comparison.
+     *
+     * @param fromModified the lower bound modified timestamp (inclusive)
+     * @param toModified   the upper bound modified timestamp (exclusive)
+     * @param limit        the limit of documents to return
+     * @return matching documents.
+     */
+    @Override
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit) {
+        List<QueryCondition> conditions = of(new QueryCondition(MODIFIED_IN_SECS, "<", getModifiedInSecs(toModified)),
+                new QueryCondition(MODIFIED_IN_SECS, ">=", getModifiedInSecs(fromModified)));
+        if (MODE == 1) {
+            return getIterator(EMPTY_KEY_PATTERN, conditions);
+        } else {
+            return store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, conditions, limit, MODIFIED_IN_SECS);
         }
     }
 
@@ -235,6 +264,33 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             return modifiedMs;
         } else {
             LOG.debug("getOldestDeletedOnceTimestamp() -> none found, return current time");
+            return clock.getTime();
+        }
+    }
+
+    /**
+     * Retrieve the time of the oldest modified document.
+     *
+     * @param clock System Clock
+     * @return the timestamp of the oldest modified document.
+     */
+    @Override
+    public long getOldestModifiedTimestamp(Clock clock) {
+        long modifiedMs = Long.MIN_VALUE;
+
+        LOG.info("getOldestModifiedTimestamp() <- start");
+        try {
+            long modifiedSec = store.getMinValue(NODES, MODIFIED_IN_SECS, null, null, EMPTY_KEY_PATTERN, emptyList());
+            modifiedMs = TimeUnit.SECONDS.toMillis(modifiedSec);
+        } catch (DocumentStoreException ex) {
+            LOG.error("getOldestModifiedTimestamp()", ex);
+        }
+
+        if (modifiedMs > 0) {
+            LOG.info("getOldestModifiedTimestamp() -> {}", Utils.timestampToString(modifiedMs));
+            return modifiedMs;
+        } else {
+            LOG.info("getOldestModifiedTimestamp() -> none found, return current time");
             return clock.getTime();
         }
     }
