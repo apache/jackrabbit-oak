@@ -32,7 +32,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
@@ -59,6 +58,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -67,7 +67,6 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -1672,17 +1671,16 @@ public final class NodeDocument extends Document {
     }
 
     /**
-     * Returns all the properties on this document
-     * @return Map of all properties along with their values
+     * Returns name of all the properties on this document
+     * @return Set of all property names
      */
     @NotNull
-    Map<String, SortedMap<Revision, String>> getProperties() {
+    Set<String> getPropertyNames() {
         return data
                 .keySet()
                 .stream()
                 .filter(Utils::isPropertyName)
-                .map(o -> Map.entry(o, getLocalMap(o)))
-                .collect(toMap(Entry::getKey, Entry::getValue));
+                .collect(toSet());
     }
 
     /**
