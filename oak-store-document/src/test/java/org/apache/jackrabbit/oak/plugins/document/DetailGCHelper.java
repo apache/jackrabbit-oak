@@ -18,25 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+
 public class DetailGCHelper {
 
-    public static void setLongSetting(String propName, long val, DocumentNodeStore ns) {
-        UpdateOp updateOp = new UpdateOp(VersionGarbageCollector.SETTINGS_COLLECTION_ID, true);
-        updateOp.set(propName, val);
-        ns.getDocumentStore().createOrUpdate(Collection.SETTINGS, updateOp);
-    }
-
-    public static void enableDetailGC(DocumentNodeStore ns) {
-        VersionGarbageCollector.DETAIL_GC_ENABLED = true;
-        if (ns != null) {
-            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, 0, ns);
+    public static void enableDetailGC(final VersionGarbageCollector vgc) throws IllegalAccessException {
+        if (vgc != null) {
+            writeField(vgc, "detailedGCEnabled", true, true);
         }
     }
 
-    public static void disableDetailGC(DocumentNodeStore ns) {
-        VersionGarbageCollector.DETAIL_GC_ENABLED = false;
-        if (ns != null) {
-            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_FULL_DETAILGC_TIMESTAMP_PROP, -1, ns);
+    public static void disableDetailGC(final VersionGarbageCollector vgc) throws IllegalAccessException {
+        if (vgc != null) {
+            writeField(vgc, "detailedGCEnabled", false, true);
         }
     }
 }

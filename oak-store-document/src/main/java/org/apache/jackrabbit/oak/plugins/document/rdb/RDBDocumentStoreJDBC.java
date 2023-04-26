@@ -715,6 +715,7 @@ public class RDBDocumentStoreJDBC {
         }
 
         if (sortBy != null) {
+            // FIXME : order should be determined via sortBy field
             query.append(" order by ID");
         }
 

@@ -67,6 +67,11 @@ public class VersionGCStatsTest {
         assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS), cumulative.collectAndDeleteSplitDocsElapsed);
         assertEquals(stats.sortDocIds.elapsed(MICROSECONDS), cumulative.sortDocIdsElapsed);
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS), cumulative.updateResurrectedDocumentsElapsed);
+        assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS), cumulative.detailedGCDocsElapsed);
+        assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS), cumulative.deleteDetailedGCDocsElapsed);
+        assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS), cumulative.collectDeletedPropsElapsed);
+        assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS), cumulative.collectDeletedOldRevsElapsed);
+        assertEquals(stats.collectUnmergedBC.elapsed(MICROSECONDS), cumulative.collectUnmergedBCElapsed);
     }
 
     @Test
@@ -83,6 +88,11 @@ public class VersionGCStatsTest {
         assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS) * 2, cumulative.collectAndDeleteSplitDocsElapsed);
         assertEquals(stats.sortDocIds.elapsed(MICROSECONDS) * 2, cumulative.sortDocIdsElapsed);
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS) * 2, cumulative.updateResurrectedDocumentsElapsed);
+        assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.detailedGCDocsElapsed);
+        assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDetailedGCDocsElapsed);
+        assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedPropsElapsed);
+        assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedOldRevsElapsed);
+        assertEquals(stats.collectUnmergedBC.elapsed(MICROSECONDS) * 2, cumulative.collectUnmergedBCElapsed);
     }
 
     private void forEachStopwatch(VersionGCStats stats, Callable c) {
@@ -93,6 +103,11 @@ public class VersionGCStatsTest {
         c.call(stats.collectAndDeleteSplitDocs);
         c.call(stats.sortDocIds);
         c.call(stats.updateResurrectedDocuments);
+        c.call(stats.detailedGCDocs);
+        c.call(stats.deleteDetailedGCDocs);
+        c.call(stats.collectDeletedProps);
+        c.call(stats.collectDeletedOldRevs);
+        c.call(stats.collectUnmergedBC);
     }
     
     private interface Callable {

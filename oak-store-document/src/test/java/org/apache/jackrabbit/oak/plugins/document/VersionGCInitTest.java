@@ -22,6 +22,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGC;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -49,6 +52,20 @@ public class VersionGCInitTest {
 
         vgc = store.find(Collection.SETTINGS, "versionGC");
         assertNotNull(vgc);
+        assertEquals(0L, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
     }
 
+    @Test
+    public void lazyInitializeWithDetailedGC() throws Exception {
+        DocumentStore store = ns.getDocumentStore();
+        Document vgc = store.find(Collection.SETTINGS, "versionGC");
+        assertNull(vgc);
+
+        enableDetailGC(ns.getVersionGarbageCollector());
+        ns.getVersionGarbageCollector().gc(1, TimeUnit.DAYS);
+
+        vgc = store.find(Collection.SETTINGS, "versionGC");
+        assertNotNull(vgc);
+        assertEquals(-1L, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+    }
 }
