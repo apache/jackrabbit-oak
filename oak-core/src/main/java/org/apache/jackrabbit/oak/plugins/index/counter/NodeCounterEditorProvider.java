@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
@@ -48,18 +49,21 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
+    @Reference
+    private StatisticsProvider statisticsProvider;
+
     @Override
     @Nullable
     public Editor getIndexEditor(@NotNull String type,
-            @NotNull NodeBuilder definition, @NotNull NodeState root,
-            @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+                                 @NotNull NodeBuilder definition, @NotNull NodeState root,
+                                 @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
         }
-        int resolution; 
+        int resolution;
         PropertyState s = definition.getProperty(RESOLUTION);
         if (s == null) {
-            resolution = NodeCounterEditor.DEFAULT_RESOLUTION; 
+            resolution = NodeCounterEditor.DEFAULT_RESOLUTION;
         } else {
             resolution = s.getValue(Type.LONG).intValue();
         }
@@ -76,6 +80,11 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
             }
         }
 
+        // can be null during testing
+        if (statisticsProvider == null) {
+            statisticsProvider = StatisticsProvider.NOOP;
+        }
+
         if (NodeCounter.USE_OLD_COUNTER) {
             NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(
                     resolution, seed, definition, root, callback);
@@ -83,7 +92,7 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         } else {
             NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(
                     resolution, seed, definition, root, callback);
-            return new NodeCounterEditor(rootData, mountInfoProvider);
+            return new NodeCounterEditor(rootData, mountInfoProvider, statisticsProvider);
         }
     }
 

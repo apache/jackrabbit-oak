@@ -30,6 +30,9 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -41,15 +44,20 @@ import java.util.Map;
 public class NodeCounterEditor implements Editor {
 
     public static final String DATA_NODE_NAME = ":index";
-    
+
     // the property that is used with the "old" (pseudo-random number generator based) method
     public static final String COUNT_PROPERTY_NAME = ":count";
-    
+
     // the property that is used with the "new" (hash of the path based) method
     public static final String COUNT_HASH_PROPERTY_NAME = ":cnt";
-    
+
+    // the name of the metric that is logged to the jmx console
+    private static final String NODE_COUNT_FROM_ROOT = "NODE_COUNT_FROM_ROOT";
+
     public static final int DEFAULT_RESOLUTION = 1000;
-    
+
+    private final StatisticsProvider statisticsProvider;
+    private final CounterStats nodeCounterMetric;
     private final NodeCounterRoot root;
     private final NodeCounterEditor parent;
     private final String name;
@@ -60,7 +68,7 @@ public class NodeCounterEditor implements Editor {
     private SipHash hash;
 
 
-    NodeCounterEditor(NodeCounterRoot root, MountInfoProvider mountInfoProvider) {
+    NodeCounterEditor(NodeCounterRoot root, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
         this.root = root;
         this.name = "/";
         this.parent = null;
@@ -68,9 +76,11 @@ public class NodeCounterEditor implements Editor {
         this.currentMount = mountInfoProvider.getDefaultMount();
         this.mountCanChange = true;
         this.countOffsets = new HashMap<>();
+        this.statisticsProvider = statisticsProvider;
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root);
     }
 
-    private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash, MountInfoProvider mountInfoProvider) {
+    private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
         this.parent = parent;
         this.root = root;
         this.name = name;
@@ -85,6 +95,9 @@ public class NodeCounterEditor implements Editor {
             this.currentMount = this.parent.currentMount;
             this.mountCanChange = false;
         }
+
+        this.statisticsProvider = statisticsProvider;
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root);
     }
 
     private SipHash getHash() {
@@ -101,24 +114,34 @@ public class NodeCounterEditor implements Editor {
         return h;
     }
 
+    /*
+     * after a restart of the AEM instance the node counter metric might be 0 as its value aren't persisted. But by
+     * then, the node counter _index_ will usually exist, why we try we read from it. If the NodeCounter index
+     * doesn't exist, it will return 0 or -1. So to account for any potential discrepancy, we increment with the
+     * difference between the metric and the node counter index, using the index as the ground truth.
+     */
+    static CounterStats initNodeCounterMetric(CounterStats nodeCounterMetric, NodeState root) {
+        // there could be a positive or negative discrepancy between the metric and the value stored at the index.
+        long delta = NodeCounter.getEstimatedNodeCount(root, "/", false) - nodeCounterMetric.getCount();
+        nodeCounterMetric.inc(delta);
+        return nodeCounterMetric;
+    }
+
     @Override
-    public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+    public void enter(NodeState before, NodeState after) throws CommitFailedException {
         // nothing to do
     }
 
     @Override
-    public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+    public void leave(NodeState before, NodeState after) throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             leaveNew();
             return;
         }
         leaveOld(before, after);
     }
-    
-    private void leaveOld(NodeState before, NodeState after)
-            throws CommitFailedException {
+
+    private void leaveOld(NodeState before, NodeState after) throws CommitFailedException {
         if (countOffsets.isEmpty()) {
             return;
         }
@@ -203,28 +226,24 @@ public class NodeCounterEditor implements Editor {
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         // nothing to do
     }
 
     @Override
-    public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+    public void propertyDeleted(PropertyState before) throws CommitFailedException {
         // nothing to do
     }
-    
+
     @Override
     @Nullable
-    public Editor childNodeChanged(String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         return getChildIndexEditor(name, null);
     }
 
     @Override
     @Nullable
-    public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+    public Editor childNodeAdded(String name, NodeState after) throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,
@@ -240,8 +259,7 @@ public class NodeCounterEditor implements Editor {
 
     @Override
     @Nullable
-    public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+    public Editor childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,
@@ -254,23 +272,24 @@ public class NodeCounterEditor implements Editor {
         count(-1, currentMount);
         return getChildIndexEditor(name, null);
     }
-    
+
     private void count(int offset, Mount mount) {
+        // only change the counter when we are at the root of the editor. Otherwise, we will over count in the children.
+        if (parent == null) {
+            nodeCounterMetric.inc(offset);
+        }
         countOffsets.compute(mount, (m, v) -> v == null ? offset : v + offset);
         if (parent != null) {
             parent.count(offset, mount);
         }
     }
-    
+
     private Editor getChildIndexEditor(String name, SipHash hash) {
-        return new NodeCounterEditor(root, this, name, hash, mountInfoProvider);
+        return new NodeCounterEditor(root, this, name, hash, mountInfoProvider, statisticsProvider);
     }
 
     private boolean supportMounts(String path) {
-        return mountInfoProvider
-                .getNonDefaultMounts()
-                .stream()
-                .anyMatch(m -> m.isSupportFragmentUnder(path) || m.isUnder(path));
+        return mountInfoProvider.getNonDefaultMounts().stream().anyMatch(m -> m.isSupportFragmentUnder(path) || m.isUnder(path));
     }
 
     public static class NodeCounterRoot {
@@ -280,7 +299,7 @@ public class NodeCounterEditor implements Editor {
         final NodeBuilder definition;
         final NodeState root;
         final IndexUpdateCallback callback;
-        
+
         NodeCounterRoot(int resolution, long seed, NodeBuilder definition, NodeState root, IndexUpdateCallback callback) {
             this.resolution = resolution;
             this.seed = seed;
