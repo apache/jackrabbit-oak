@@ -69,8 +69,7 @@ public class NodeCounterEditor implements Editor {
     private SipHash hash;
 
 
-    NodeCounterEditor(NodeCounterRoot root, MountInfoProvider mountInfoProvider,
-                      StatisticsProvider statisticsProvider) {
+    NodeCounterEditor(NodeCounterRoot root, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
         this.root = root;
         this.name = "/";
         this.parent = null;
@@ -79,12 +78,10 @@ public class NodeCounterEditor implements Editor {
         this.mountCanChange = true;
         this.countOffsets = new HashMap<>();
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(
-                statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
     }
 
-    private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash,
-                              MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
+    private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
         this.parent = parent;
         this.root = root;
         this.name = name;
@@ -101,8 +98,7 @@ public class NodeCounterEditor implements Editor {
         }
 
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(
-                statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
     }
 
     private SipHash getHash() {
@@ -206,6 +202,8 @@ public class NodeCounterEditor implements Editor {
                 }
             } else {
                 builder.setProperty(COUNT_HASH_PROPERTY_NAME, count);
+                long delta = count - nodeCounterMetric.getCount();
+                nodeCounterMetric.inc(delta);
             }
         }
     }
@@ -295,11 +293,11 @@ public class NodeCounterEditor implements Editor {
     }
 
     private boolean supportMounts(String path) {
-        return mountInfoProvider.getNonDefaultMounts()
-                                .stream()
-                                .anyMatch(m -> m.isSupportFragmentUnder(path) || m.isUnder(path));
+        return mountInfoProvider
+                .getNonDefaultMounts()
+                .stream()
+                .anyMatch(m -> m.isSupportFragmentUnder(path) || m.isUnder(path));
     }
-
     public static class NodeCounterRoot {
         final int resolution;
         final long seed;
@@ -308,8 +306,7 @@ public class NodeCounterEditor implements Editor {
         final NodeState root;
         final IndexUpdateCallback callback;
 
-        NodeCounterRoot(int resolution, long seed, NodeBuilder definition, NodeState root,
-                        IndexUpdateCallback callback) {
+        NodeCounterRoot(int resolution, long seed, NodeBuilder definition, NodeState root, IndexUpdateCallback callback) {
             this.resolution = resolution;
             this.seed = seed;
             // if resolution is 1000, then the bitMask is 1023 (bits 0..9 set)

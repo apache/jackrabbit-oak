@@ -7,6 +7,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -14,9 +15,20 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.NoSuchWorkspaceException;
+import javax.management.*;
+import javax.security.auth.login.LoginException;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -30,31 +42,47 @@ public class NodeCounterMetricTest {
     QueryEngine qe;
     ContentSession session;
 
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private final MetricStatisticsProvider statsProvider =
+            new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
+
     @Before
     public void before() throws Exception {
         session = createRepository().login(null, null);
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
-
     }
 
     @Test
-    public void testNodeCounterMetric() throws CommitFailedException {
+    public void testMetricWhenAddingNodes() throws CommitFailedException, MalformedObjectNameException, IOException, ReflectionException, InstanceNotFoundException, IntrospectionException, InterruptedException, AttributeNotFoundException, MBeanException, NoSuchWorkspaceException, LoginException {
         // create the nodeCounter index
+        ApproximateCounter.setSeed(10);
         runAsyncIndex();
-        for(int i=0; !nodeExists("oak:index/counter/:index"); i++) {
-            assertTrue("index not ready after 100 iterations", i < 100);
-            Tree t = root.getTree("/").addChild("test" + i);
-            for (int j = 0; j < 100; j++) {
-                t.addChild("n" + j);
-            }
-            root.commit();
-            runAsyncIndex();
-        }
-
-        CounterStats nodeCounterMetrics = NodeCounterEditor.initNodeCounterMetric(new SimpleStats(new AtomicLong(), SimpleStats.Type.COUNTER),  nodeStore.getRoot(), "/");
+        // add some random nodes and wait for the NodeCounterIndex to appear
+        addNodes(5, 5000);
+        MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
+        String name = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
+        Long nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
         long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
-        assertEquals(count, nodeCounterMetrics.getCount());
+        assertEquals(count, nodeCountMetric.longValue());
+    }
+
+    @Test
+    public void testMetricWhenDeletingNodes() throws CommitFailedException, MalformedObjectNameException, ReflectionException, AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException, InterruptedException {
+        ApproximateCounter.setSeed(12);
+        runAsyncIndex();
+        addNodes(10, 2000);
+        MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
+        String name = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
+        Long nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
+        long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
+        assertEquals(count, nodeCountMetric.longValue());
+
+        // ensure that we delete enough nodes for the metric to be updated
+        deleteNodes(10, 200);
+        count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
+        nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
+        assertEquals(count, nodeCountMetric.longValue());
     }
 
     protected ContentRepository createRepository() {
@@ -64,6 +92,7 @@ public class NodeCounterMetricTest {
                 .with(new OpenSecurityProvider())
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeCounterEditorProvider())
+                .with(ManagementFactory.getPlatformMBeanServer())
                 //Effectively disable async indexing auto run
                 //such that we can control run timing as per test requirement
                 .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
@@ -72,6 +101,30 @@ public class NodeCounterMetricTest {
         return oak.createContentRepository();
     }
 
+    private void deleteNodes(int n, int m) throws CommitFailedException {
+        for (int i = 0; i < n; i++) {
+            if (nodeExists("test" + i)) {
+                Tree t = root.getTree("/").getChild("test" + i);
+                for (int j = 0; j < m; j++) {
+                    t.getChild("n" + j).remove();
+                }
+                root.commit();
+                runAsyncIndex();
+            }
+        }
+    }
+
+    private void addNodes(int n, int m) throws CommitFailedException {
+        for (int i = 0; i < n; i++) {
+            Tree t = root.getTree("/").addChild("test" + i);
+            for (int j = 0; j < m; j++) {
+                t.addChild("n" + j);
+            }
+            root.commit();
+            runAsyncIndex();
+        }
+
+    }
     private boolean nodeExists(String path) {
         return NodeStateUtils.getNode(nodeStore.getRoot(), path).exists();
     }
