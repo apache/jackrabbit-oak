@@ -75,13 +75,12 @@ To overcome the drawbacks and still meet the synchronous index requirements we c
 #### <a name="index-definition"></a>Index Definition
 The synchronous index support would need to be enabled via index definition
 
-* async - This needs to have an entry nrt
 * Set sync to true for each property definition which needs to be indexed in a sync way
 ```
 /oak:index/assetType
 - jcr:primaryType = "oak:QueryIndexDefinition"
 - type = "lucene"
-- async = ["async", "nrt"]
+- async = ["async"]
 + indexRules
     + nt:base
         + properties
@@ -96,7 +95,7 @@ For unique indexes set unique i.e. true
 /oak:index/uuid
 - jcr:primaryType = "oak:QueryIndexDefinition"
 - type = "lucene"
-- async = ["async", "nrt"]
+- async = ["async"]
 + indexRules
     + nt:base
         + properties
