@@ -59,8 +59,8 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     @Override
     @Nullable
     public Editor getIndexEditor(@NotNull String type,
-             @NotNull NodeBuilder definition, @NotNull NodeState root,
-             @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+            @NotNull NodeBuilder definition, @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
         }
