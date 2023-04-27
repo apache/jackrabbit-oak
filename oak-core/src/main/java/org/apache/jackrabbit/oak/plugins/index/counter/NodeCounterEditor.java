@@ -45,8 +45,7 @@ public class NodeCounterEditor implements Editor {
 
     public static final String DATA_NODE_NAME = ":index";
 
-    // the property that is used with the "old" (pseudo-random number
-    // generator based) method
+    // the property that is used with the "old" (pseudo-random number generator based) method
     public static final String COUNT_PROPERTY_NAME = ":count";
 
     // the property that is used with the "new" (hash of the path based) method
@@ -78,7 +77,9 @@ public class NodeCounterEditor implements Editor {
         this.mountCanChange = true;
         this.countOffsets = new HashMap<>();
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
+                                                       root.root,
+                                                  "/");
     }
 
     private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
@@ -98,7 +99,9 @@ public class NodeCounterEditor implements Editor {
         }
 
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
+                                                       root.root,
+                                                  "/");
     }
 
     private SipHash getHash() {
@@ -130,12 +133,14 @@ public class NodeCounterEditor implements Editor {
     }
 
     @Override
-    public void enter(NodeState before, NodeState after) throws CommitFailedException {
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
         // nothing to do
     }
 
     @Override
-    public void leave(NodeState before, NodeState after) throws CommitFailedException {
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             leaveNew();
             return;
@@ -143,7 +148,8 @@ public class NodeCounterEditor implements Editor {
         leaveOld(before, after);
     }
 
-    private void leaveOld(NodeState before, NodeState after) throws CommitFailedException {
+    private void leaveOld(NodeState before, NodeState after)
+            throws CommitFailedException {
         if (countOffsets.isEmpty()) {
             return;
         }
@@ -230,24 +236,28 @@ public class NodeCounterEditor implements Editor {
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
         // nothing to do
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) throws CommitFailedException {
+    public void propertyDeleted(PropertyState before)
+            throws CommitFailedException {
         // nothing to do
     }
 
     @Override
     @Nullable
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
         return getChildIndexEditor(name, null);
     }
 
     @Override
     @Nullable
-    public Editor childNodeAdded(String name, NodeState after) throws CommitFailedException {
+    public Editor childNodeAdded(String name, NodeState after)
+            throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,
@@ -263,7 +273,8 @@ public class NodeCounterEditor implements Editor {
 
     @Override
     @Nullable
-    public Editor childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+    public Editor childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
             SipHash h = new SipHash(getHash(), name.hashCode());
             // with bitMask=1024: with a probability of 1:1024,

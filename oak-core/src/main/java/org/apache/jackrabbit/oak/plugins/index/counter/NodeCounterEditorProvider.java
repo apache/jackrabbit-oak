@@ -58,7 +58,9 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
 
     @Override
     @Nullable
-    public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root, @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+    public Editor getIndexEditor(@NotNull String type,
+             @NotNull NodeBuilder definition, @NotNull NodeState root,
+             @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
         }
@@ -93,10 +95,12 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         }
 
         if (NodeCounter.USE_OLD_COUNTER) {
-            NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(resolution, seed, definition, root, callback);
+            NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(
+                    resolution, seed, definition, root, callback);
             return new NodeCounterEditorOld(rootData, null, "/", null);
         } else {
-            NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(resolution, seed, definition, root, callback);
+            NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(
+                    resolution, seed, definition, root, callback);
             return new NodeCounterEditor(rootData, mountInfoProvider, statisticsProvider);
         }
     }
