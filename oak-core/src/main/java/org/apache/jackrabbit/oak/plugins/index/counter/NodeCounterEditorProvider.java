@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.counter;
 
-import java.util.UUID;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -37,6 +35,8 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
+import java.util.UUID;
+
 @Component(service = IndexEditorProvider.class)
 public class NodeCounterEditorProvider implements IndexEditorProvider {
 
@@ -47,7 +47,8 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     public static final String SEED = "seed";
 
     @Reference
-    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
+    private MountInfoProvider mountInfoProvider =
+            Mounts.defaultMountInfoProvider();
 
     @Reference
     private StatisticsProvider statisticsProvider;
@@ -55,7 +56,8 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     @Override
     @Nullable
     public Editor getIndexEditor(@NotNull String type,
-                                 @NotNull NodeBuilder definition, @NotNull NodeState root,
+                                 @NotNull NodeBuilder definition,
+                                 @NotNull NodeState root,
                                  @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
@@ -74,7 +76,8 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         } else {
             seed = 0;
             if (NodeCounter.COUNT_HASH) {
-                // create a random number (that way we can also check if this feature is enabled)
+                // create a random number (that way we can also check if this
+                // feature is enabled)
                 seed = UUID.randomUUID().getMostSignificantBits();
                 definition.setProperty(SEED, seed);
             }
@@ -86,13 +89,16 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         }
 
         if (NodeCounter.USE_OLD_COUNTER) {
-            NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(
+            NodeCounterEditorOld.NodeCounterRoot rootData =
+                    new NodeCounterEditorOld.NodeCounterRoot(
                     resolution, seed, definition, root, callback);
             return new NodeCounterEditorOld(rootData, null, "/", null);
         } else {
-            NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(
+            NodeCounterEditor.NodeCounterRoot rootData =
+                    new NodeCounterEditor.NodeCounterRoot(
                     resolution, seed, definition, root, callback);
-            return new NodeCounterEditor(rootData, mountInfoProvider, statisticsProvider);
+            return new NodeCounterEditor(rootData, mountInfoProvider,
+                                         statisticsProvider);
         }
     }
 
