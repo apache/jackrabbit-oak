@@ -13,27 +13,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.apache.jackrabbit.oak.stats.CounterStats;
-import org.apache.jackrabbit.oak.stats.SimpleStats;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jcr.NoSuchWorkspaceException;
 import javax.management.*;
-import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class NodeCounterMetricTest {
     Whiteboard wb;
@@ -54,7 +46,8 @@ public class NodeCounterMetricTest {
     }
 
     @Test
-    public void testMetricWhenAddingNodes() throws CommitFailedException, MalformedObjectNameException, IOException, ReflectionException, InstanceNotFoundException, IntrospectionException, InterruptedException, AttributeNotFoundException, MBeanException, NoSuchWorkspaceException, LoginException {
+    public void testMetricWhenAddingNodes() throws CommitFailedException, MalformedObjectNameException, IOException,
+            ReflectionException, InstanceNotFoundException, AttributeNotFoundException, MBeanException {
         // create the nodeCounter index
         ApproximateCounter.setSeed(10);
         runAsyncIndex();
@@ -68,7 +61,8 @@ public class NodeCounterMetricTest {
     }
 
     @Test
-    public void testMetricWhenDeletingNodes() throws CommitFailedException, MalformedObjectNameException, ReflectionException, AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException, InterruptedException {
+    public void testMetricWhenDeletingNodes() throws CommitFailedException, MalformedObjectNameException,
+            ReflectionException, AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
         ApproximateCounter.setSeed(12);
         runAsyncIndex();
         addNodes(10, 2000);
