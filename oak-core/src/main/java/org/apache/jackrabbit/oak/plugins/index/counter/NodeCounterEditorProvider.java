@@ -47,17 +47,14 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     public static final String SEED = "seed";
 
     @Reference
-    private MountInfoProvider mountInfoProvider =
-            Mounts.defaultMountInfoProvider();
+    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     @Reference
     private StatisticsProvider statisticsProvider;
 
     @Override
     @Nullable
-    public Editor getIndexEditor(@NotNull String type,
-                                 @NotNull NodeBuilder definition,
-                                 @NotNull NodeState root,
+    public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
                                  @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
@@ -76,8 +73,7 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         } else {
             seed = 0;
             if (NodeCounter.COUNT_HASH) {
-                // create a random number (that way we can also check if this
-                // feature is enabled)
+                // create a random number (that way we can also check if this feature is enabled)
                 seed = UUID.randomUUID().getMostSignificantBits();
                 definition.setProperty(SEED, seed);
             }
@@ -89,16 +85,15 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         }
 
         if (NodeCounter.USE_OLD_COUNTER) {
-            NodeCounterEditorOld.NodeCounterRoot rootData =
-                    new NodeCounterEditorOld.NodeCounterRoot(
-                    resolution, seed, definition, root, callback);
+            NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(resolution, seed,
+                                                                                                     definition, root,
+                                                                                                     callback);
             return new NodeCounterEditorOld(rootData, null, "/", null);
         } else {
-            NodeCounterEditor.NodeCounterRoot rootData =
-                    new NodeCounterEditor.NodeCounterRoot(
-                    resolution, seed, definition, root, callback);
-            return new NodeCounterEditor(rootData, mountInfoProvider,
-                                         statisticsProvider);
+            NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(resolution, seed,
+                                                                                               definition, root,
+                                                                                               callback);
+            return new NodeCounterEditor(rootData, mountInfoProvider, statisticsProvider);
         }
     }
 
