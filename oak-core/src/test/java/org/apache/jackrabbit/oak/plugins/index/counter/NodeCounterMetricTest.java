@@ -52,7 +52,7 @@ public class NodeCounterMetricTest {
             runAsyncIndex();
         }
 
-        CounterStats nodeCounterMetrics = NodeCounterEditor.initNodeCounterMetric(new SimpleStats(new AtomicLong(), SimpleStats.Type.COUNTER),  nodeStore.getRoot());
+        CounterStats nodeCounterMetrics = NodeCounterEditor.initNodeCounterMetric(new SimpleStats(new AtomicLong(), SimpleStats.Type.COUNTER),  nodeStore.getRoot(), "/");
         long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
         assertEquals(count, nodeCounterMetrics.getCount());
     }

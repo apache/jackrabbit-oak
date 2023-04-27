@@ -77,7 +77,7 @@ public class NodeCounterEditor implements Editor {
         this.mountCanChange = true;
         this.countOffsets = new HashMap<>();
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root);
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
     }
 
     private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
@@ -97,7 +97,7 @@ public class NodeCounterEditor implements Editor {
         }
 
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root);
+        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT), root.root, "/");
     }
 
     private SipHash getHash() {
@@ -115,15 +115,16 @@ public class NodeCounterEditor implements Editor {
     }
 
     /*
-     * after a restart of the AEM instance the node counter metric might be 0 as its value aren't persisted. But by
-     * then, the node counter _index_ will usually exist, why we try we read from it. If the NodeCounter index
-     * doesn't exist, it will return 0 or -1. So to account for any potential discrepancy, we increment with the
-     * difference between the metric and the node counter index, using the index as the ground truth.
-     */
-    static CounterStats initNodeCounterMetric(CounterStats nodeCounterMetric, NodeState root) {
-        // there could be a positive or negative discrepancy between the metric and the value stored at the index.
-        long delta = NodeCounter.getEstimatedNodeCount(root, "/", false) - nodeCounterMetric.getCount();
+     If an instance is restarted, the nodeCounterMetric might be 0 when we retrieve it as its value isn't persisted.
+     But by then, the node counter _index_ will usually exist, why we try we read from it. To account for a potential
+     discrepancy, we increment with the difference between the metric and the node counter index, using the index as
+     the ground truth.
+    */
+    static CounterStats initNodeCounterMetric(CounterStats nodeCounterMetric, NodeState root, String path) {
+        long nodeCountFromIndex = NodeCounter.getEstimatedNodeCount(root, path, false);
+        long delta = nodeCountFromIndex != -1 ? nodeCountFromIndex - nodeCounterMetric.getCount() : 0;
         nodeCounterMetric.inc(delta);
+
         return nodeCounterMetric;
     }
 
