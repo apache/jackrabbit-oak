@@ -24,8 +24,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class NodeCounterMetricTest {
     Whiteboard wb;
@@ -48,11 +47,10 @@ public class NodeCounterMetricTest {
     @Test
     public void testMetricWhenAddingNodes() throws CommitFailedException, MalformedObjectNameException, IOException,
             ReflectionException, InstanceNotFoundException, AttributeNotFoundException, MBeanException {
-        // create the nodeCounter index
-        ApproximateCounter.setSeed(10);
+        ApproximateCounter.setSeed(1);
         runAsyncIndex();
-        // add some random nodes and wait for the NodeCounterIndex to appear
-        addNodes(5, 5000);
+        addNodes(5, 5000); // add some random nodes and wait for the NodeCounterIndex to appear
+
         MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
         String name = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
         Long nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
@@ -63,9 +61,10 @@ public class NodeCounterMetricTest {
     @Test
     public void testMetricWhenDeletingNodes() throws CommitFailedException, MalformedObjectNameException,
             ReflectionException, AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
-        ApproximateCounter.setSeed(12);
+        ApproximateCounter.setSeed(42);
         runAsyncIndex();
         addNodes(10, 2000);
+
         MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
         String name = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
         Long nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
@@ -110,6 +109,7 @@ public class NodeCounterMetricTest {
 
     private void addNodes(int n, int m) throws CommitFailedException {
         for (int i = 0; i < n; i++) {
+            assertTrue("index not ready after 100 iterations", i < 100);
             Tree t = root.getTree("/").addChild("test" + i);
             for (int j = 0; j < m; j++) {
                 t.addChild("n" + j);
