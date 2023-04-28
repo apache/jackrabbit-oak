@@ -33,29 +33,26 @@
 
 ### <a name="new-1.6"></a>New in 1.6
 
-Oak 1.6 added support for Lucene Hybrid Index ([OAK-4412](#OAK-4412)). That enables near real time (NRT) support for Lucene based indexes. It also had a limited support for sync indexes. This feature aims to improve that to next level and enable support for sync property indexes.
-
-* JIRA Issue - [OAK-6535](#OAK-6535)
-* [Oakathon August 2017 PresentationHybrid Index v2.pdf](#hybrid-index-v2.pdf)
+In Oak 1.6 ([OAK-4412](#OAK-4412)), we add support for near real time (NRT) and limited support for sync indexes. In [OAK-6535](#OAK-6535) we add support for sync property indexes. See also [Oakathon August 2017 PresentationHybrid Index v2.pdf](#hybrid-index-v2.pdf)
 
 ### <a name="synchronous-index-usecases"></a>Synchronous Index Usecases
 
 Synchronous indexes are required in following usecases
 
 #### <a name="unique-indexes"></a>Unique Indexes
-For unique indexes like uuid index, principal name index it needs to be ensured that indexed value is unique across whole of the repository at time of commit itself. If the indexed value already exists e.g. principal with same name already exist then that commit should fail. To meet this requirement we need synchronous index which get updated as part of commit itself.
+For unique indexes like uuid index, principal name index we need to be ensured that an indexed value is unique across the whole repository on commit. If the indexed value already exists, e.g. principal with same name already exist, then the commit should fail. For this, we need a synchronous index, which get updated as part of commit itself.
 
 #### <a name="property-indexes"></a>Property Indexes
 Depending on application requirements the query results may be
 
-* Eventually Consistent - Any changes done get eventually reflected in query results.
-* Consistent - Any change done gets immediately reflected in query result
+* Eventually Consistent - Any changes eventually gets reflected in query results.
+* Consistent - Any change immediately gets reflected in query results.
 
-For most cases like user driven search eventual consistent search result work fine and hence async indexes can be used. With recent support for NRT indexes (OAK-4412) the user experience get better and changes done by user get reflected very soon in search result.
+For most cases, for example user driven search, eventual consistent search result work fine and hence async indexes can be used. With NRT indexes (OAK-4412), changes done by user get reflected very soon in search results.
 
-However for some cases we need to support fully consistent search results. For e.g. assume there is component which maintains a cache for nodes of type app:Component and uses a observation listener to listen for changes in nodes of type app:Component and upon finding any changes it rebuilds the cache by queriying for all such nodes. For this cache to be correct it needs to be ensured query results are consistent wrt session state associated with the listener. Otherwise it may miss on picking a new component and later request to cache for such component would fail.
+However, for some cases we need to support fully consistent search results. Assume there is component which maintains a cache for nodes of type app:Component, and uses a observation listener to listen for changes in nodes of type app:Component, and upon finding any changes, it rebuilds the cache by queriying for all such nodes. For this cache to be correct, it needs to be ensured query results are consistent with the session associated with the listener. Otherwise it may miss a new component, and a later request to the cache for such component would fail.
 
-For such usecases its required that indexes are synchronous and results provided by index are consistent
+For such use-cases, it's required that indexes are synchronous and results provided by index are consistent.
 
 ### <a name="drawbacks-of-current-property-indexes"></a>Drawbacks of current property indexes
 Oak currently has support for synchronous property indexes which are used to meet above usecases. However the current implementation has certain drawbacks
