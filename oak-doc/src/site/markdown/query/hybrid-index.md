@@ -37,7 +37,7 @@ In Oak 1.6 ([OAK-4412](#OAK-4412)), we add support for near real time (NRT) and 
 
 ### <a name="synchronous-index-usecases"></a>Synchronous Index Usecases
 
-Synchronous indexes are required in following use-cases:
+Synchronous indexes are required in the following use-cases:
 
 #### <a name="unique-indexes"></a>Unique Indexes
 For unique indexes like the uuid index, and the principal name index, we need to be ensured that an indexed value is unique across the whole repository on commit. If the indexed value already exists, e.g. principal with same name already exist, then the commit should fail. For this, we need a synchronous index, which get updated as part of commit itself.
