@@ -72,7 +72,7 @@ public class NodeCounterMetricTest {
         long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
         assertEquals(count, nodeCountMetric.longValue());
 
-        // ensure that we delete enough nodes for the metric to be updated
+        // delete enough nodes for the node counter to be updated
         deleteNodes(10, 200);
         count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
         nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
