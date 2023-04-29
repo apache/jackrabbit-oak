@@ -24,7 +24,7 @@ import java.util.Set;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.NamedAccessControlPolicy;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;

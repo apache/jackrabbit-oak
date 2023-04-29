@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static javax.jcr.version.OnParentVersionAction.ABORT;
 import static javax.jcr.version.OnParentVersionAction.COMPUTE;
 import static javax.jcr.version.OnParentVersionAction.COPY;
@@ -53,7 +53,7 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;

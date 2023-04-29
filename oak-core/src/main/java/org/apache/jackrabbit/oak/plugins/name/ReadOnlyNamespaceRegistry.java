@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static com.google.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;

@@ -19,14 +19,14 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.query.SimpleExcerptProvider.highlight;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 import java.util.Random;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
 
 public class SimpleExcerptProviderTest {

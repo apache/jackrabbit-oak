@@ -30,7 +30,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 public class GlobalNameMapperTest {
 

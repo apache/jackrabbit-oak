@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;

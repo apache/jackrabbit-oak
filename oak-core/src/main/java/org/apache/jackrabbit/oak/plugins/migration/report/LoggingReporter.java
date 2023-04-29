@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.report;
 
-import com.google.common.collect.EvictingQueue;
+import org.apache.jackrabbit.guava.common.collect.EvictingQueue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;

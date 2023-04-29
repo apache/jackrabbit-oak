@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.inventory;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static javax.jcr.Repository.IDENTIFIER_STABILITY;
 import static javax.jcr.Repository.LEVEL_1_SUPPORTED;
 import static javax.jcr.Repository.LEVEL_2_SUPPORTED;
