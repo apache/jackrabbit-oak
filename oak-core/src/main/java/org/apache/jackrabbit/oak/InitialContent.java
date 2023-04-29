@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} the creates

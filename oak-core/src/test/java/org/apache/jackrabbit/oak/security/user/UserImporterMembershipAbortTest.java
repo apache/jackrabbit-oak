@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;

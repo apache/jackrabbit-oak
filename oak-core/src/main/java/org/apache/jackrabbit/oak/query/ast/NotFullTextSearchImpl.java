@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
 
@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class NotFullTextSearchImpl extends FullTextSearchImpl {
     private static final Set<String> KEYWORDS = ImmutableSet.of("or");

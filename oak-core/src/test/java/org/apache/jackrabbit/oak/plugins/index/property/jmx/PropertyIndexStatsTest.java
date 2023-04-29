@@ -24,8 +24,8 @@ import java.util.List;
 
 import javax.management.openmbean.CompositeData;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;

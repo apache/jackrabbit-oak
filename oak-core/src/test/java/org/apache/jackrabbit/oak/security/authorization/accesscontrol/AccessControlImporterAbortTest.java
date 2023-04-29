@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import javax.jcr.security.AccessControlException;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
 

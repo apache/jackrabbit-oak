@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import javax.jcr.GuestCredentials;
 import javax.jcr.security.AccessControlManager;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.ContentSession;

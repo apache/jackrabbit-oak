@@ -19,14 +19,14 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Iterator;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 
 /**
  * Helper class to handle modifications to the hidden

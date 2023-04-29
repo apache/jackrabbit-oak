@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.util.Hashtable;
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;

@@ -29,7 +29,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.ConfigurationSpi;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;

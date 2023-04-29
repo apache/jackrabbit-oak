@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.GuavaDeprecation;
@@ -30,10 +30,10 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.collect.Iterables.any;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;

@@ -46,7 +46,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import junit.framework.AssertionFailedError;
 

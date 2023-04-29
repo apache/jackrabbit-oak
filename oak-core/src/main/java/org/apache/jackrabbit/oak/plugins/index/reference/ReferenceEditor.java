@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
-import static com.google.common.base.Suppliers.memoize;
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -38,8 +38,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.base.Supplier;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;

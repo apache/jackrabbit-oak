@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import javax.jcr.security.AccessControlException;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -27,7 +27,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code GlobPattern} defines a simplistic pattern matching. It consists

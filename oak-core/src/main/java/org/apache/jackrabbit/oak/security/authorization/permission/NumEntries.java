@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.jetbrains.annotations.NotNull;
 
 final class NumEntries {
