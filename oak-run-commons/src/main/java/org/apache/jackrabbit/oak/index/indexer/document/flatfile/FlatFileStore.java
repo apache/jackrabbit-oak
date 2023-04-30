@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;

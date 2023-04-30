@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import static com.google.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;

@@ -30,7 +30,7 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 import org.apache.commons.io.FileUtils;

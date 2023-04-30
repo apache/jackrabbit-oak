@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;

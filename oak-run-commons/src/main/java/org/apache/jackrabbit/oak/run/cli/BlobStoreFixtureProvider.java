@@ -30,9 +30,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.google.common.collect.Maps;
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;

@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import com.google.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
@@ -38,7 +38,7 @@ import org.bson.BsonInt64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class MongoDocumentTraverser {
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentTraverser.class);
