@@ -21,7 +21,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;

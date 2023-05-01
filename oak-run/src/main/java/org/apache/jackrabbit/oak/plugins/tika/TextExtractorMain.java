@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
 
@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionParser;
 

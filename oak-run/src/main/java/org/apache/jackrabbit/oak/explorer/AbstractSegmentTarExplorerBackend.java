@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -46,8 +46,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
 
 /**

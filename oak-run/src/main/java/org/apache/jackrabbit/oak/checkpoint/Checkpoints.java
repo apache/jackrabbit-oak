@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 /**
  * A helper class to manage checkpoints on TarMK and DocumentMK.

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import com.google.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;

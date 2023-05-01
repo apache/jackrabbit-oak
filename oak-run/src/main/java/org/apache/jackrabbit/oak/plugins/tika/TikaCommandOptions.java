@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.File;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;

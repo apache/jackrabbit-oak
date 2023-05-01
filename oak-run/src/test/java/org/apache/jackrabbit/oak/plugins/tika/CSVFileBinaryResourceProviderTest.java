@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.File;
 import java.util.Map;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;

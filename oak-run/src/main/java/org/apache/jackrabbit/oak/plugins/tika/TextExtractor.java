@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.google.common.io.ByteSource;
-import com.google.common.io.CountingInputStream;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;

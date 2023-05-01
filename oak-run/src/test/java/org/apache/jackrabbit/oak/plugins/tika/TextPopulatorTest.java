@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import com.beust.jcommander.internal.Maps;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
@@ -48,7 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

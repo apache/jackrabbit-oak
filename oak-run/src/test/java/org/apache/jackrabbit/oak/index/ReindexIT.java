@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -54,7 +54,7 @@ import java.security.Permission;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static java.lang.System.getSecurityManager;
 import static java.lang.System.setSecurityManager;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
