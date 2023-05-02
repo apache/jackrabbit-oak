@@ -126,9 +126,8 @@ public class NodeCounterEditor implements Editor {
     */
     static CounterStats initNodeCounterMetric(CounterStats nodeCounterMetric, NodeState root, String path) {
         long nodeCountFromIndex = NodeCounter.getEstimatedNodeCount(root, path, false);
-        long delta = nodeCountFromIndex != -1 ? nodeCountFromIndex - nodeCounterMetric.getCount() : 0;
+        long delta = nodeCountFromIndex - nodeCounterMetric.getCount();
         nodeCounterMetric.inc(delta);
-
         return nodeCounterMetric;
     }
 
@@ -290,9 +289,6 @@ public class NodeCounterEditor implements Editor {
 
     private void count(int offset, Mount mount) {
         // only change the counter when we are at the root of the editor. Otherwise, we will over count in the children.
-        if (parent == null) {
-            nodeCounterMetric.inc(offset);
-        }
         countOffsets.compute(mount, (m, v) -> v == null ? offset : v + offset);
         if (parent != null) {
             parent.count(offset, mount);
