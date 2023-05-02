@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.File;
 
-import com.google.common.base.StandardSystemProperty;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;

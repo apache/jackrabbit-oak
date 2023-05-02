@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.TreeTraverser;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 

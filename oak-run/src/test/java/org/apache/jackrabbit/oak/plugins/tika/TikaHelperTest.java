@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

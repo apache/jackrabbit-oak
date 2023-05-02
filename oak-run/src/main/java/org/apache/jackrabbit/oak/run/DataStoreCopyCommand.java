@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
 
 /**
  * Command to concurrently download blobs from an azure datastore using sas token authentication.

@@ -22,7 +22,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newTreeMap;
-import static com.google.common.collect.Sets.intersection;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newTreeSet;
-import static com.google.common.escape.Escapers.builder;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
 import static javax.jcr.PropertyType.BINARY;
 import static javax.jcr.PropertyType.STRING;

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 public enum BinarySourceMapper implements Function<BinaryResource, String> {
     BY_BLOBID {

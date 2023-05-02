@@ -35,7 +35,7 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;

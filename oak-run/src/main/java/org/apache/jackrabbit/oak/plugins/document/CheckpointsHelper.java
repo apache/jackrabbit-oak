@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;

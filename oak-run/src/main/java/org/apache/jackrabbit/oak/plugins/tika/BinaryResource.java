@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.google.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import org.jetbrains.annotations.Nullable;
 

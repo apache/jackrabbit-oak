@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.FluentIterable;
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;

@@ -62,9 +62,9 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.Maps;
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
 

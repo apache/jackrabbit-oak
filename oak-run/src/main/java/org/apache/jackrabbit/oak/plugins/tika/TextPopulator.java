@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.FULLTEXT;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.Splitter;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
 import io.prometheus.client.exporter.PushGateway;
