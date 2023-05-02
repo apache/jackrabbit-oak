@@ -60,6 +60,19 @@ public interface ThrottlingStatsCollector {
                            boolean success, int retryCount);
 
     /**
+     * Called when a update operation was completed which could have affected multiple
+     * documents.
+     * @param throttlingTimeNanos time taken
+     * @param collection the collection
+     * @param ids List of document ids which got updated
+     * @param newEntry true if the document was newly created due to given operation
+     * @param success true if the update was success
+     * @param retryCount number of retries done to get the update
+     */
+    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids, boolean newEntry,
+                           boolean success, int retryCount);
+
+    /**
      * Called when a remove operation for documents was completed.
      *
      * @param throttlingTimeNanos time taken

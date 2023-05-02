@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
@@ -343,6 +344,7 @@ public interface DocumentStore {
      *         if the document wasn't found
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
+     * @see #createOrUpdate(Collection, List)
      */
     @Nullable
     <T extends Document> T findAndUpdate(Collection<T> collection,
@@ -539,5 +541,34 @@ public interface DocumentStore {
             newDocument.keySet().retainAll(projectedSet);
             return newDocument;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * Performs a conditional update (e.g. using
+     * {@link UpdateOp.Condition.Type#EXISTS} and only update the
+     * document if the condition is <code>true</code>. The returned documents are
+     * immutable.
+     * <p>
+     * In case of a {@code DocumentStoreException} (e.g. when a communication
+     * error occurs) only some updates may have been applied. In this case
+     * it is the responsibility of the caller to check which {@link UpdateOp}s
+     * were applied and take appropriate action. The implementation however ensures
+     * that the result of the operations are properly reflected in the document
+     * cache. That is, an implementation could simply evict the documents related
+     * to the given update operations from the cache.
+     *
+     * @param <T> the document type
+     * @param collection the collection
+     * @param updateOps the update operation List
+     * @return the list containing old documents or <code>null</code> if the condition is not met
+     *         or if the document wasn't found. The order in the result list reflects the order
+     *         in the updateOps parameter
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
+     */
+    @NotNull
+    default <T extends Document> List<T> findAndUpdate(final @NotNull Collection<T> collection,
+                                                       final @NotNull List<UpdateOp> updateOps) throws DocumentStoreException {
+        return updateOps.stream().map(op -> findAndUpdate(collection, op)).collect(toList());
     }
 }

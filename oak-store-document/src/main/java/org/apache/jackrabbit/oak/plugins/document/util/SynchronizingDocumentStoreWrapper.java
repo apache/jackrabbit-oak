@@ -118,6 +118,12 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @NotNull
+    public synchronized <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        return store.findAndUpdate(collection, updateOps);
+    }
+
+    @Override
     public synchronized CacheInvalidationStats invalidateCache() {
         return store.invalidateCache();
     }

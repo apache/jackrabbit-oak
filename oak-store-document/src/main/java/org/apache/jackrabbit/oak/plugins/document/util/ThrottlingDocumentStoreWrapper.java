@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -188,6 +189,20 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
                     false, true, 0);
         }
         return oldDoc;
+    }
+
+    @Override
+    @NotNull
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        final long throttlingTime = performThrottling(collection);
+        final List<T> results = new ArrayList<>();
+        try {
+            results.addAll(store.findAndUpdate(collection, updateOps));
+        } finally {
+            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime), collection,
+                    updateOps.stream().map(UpdateOp::getId).collect(toList()), false, true, 0);
+        }
+        return results;
     }
 
     @Override

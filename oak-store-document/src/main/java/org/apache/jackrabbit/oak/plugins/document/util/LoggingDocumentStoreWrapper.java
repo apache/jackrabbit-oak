@@ -283,6 +283,18 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @NotNull
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        try {
+            logMethod("findAndUpdate", collection, updateOps);
+            return logResult(() -> store.findAndUpdate(collection, updateOps));
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
     public CacheInvalidationStats invalidateCache() {
         try {
             logMethod("invalidateCache");
