@@ -33,7 +33,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 public class PropertyTest extends AbstractJCRTest {
 

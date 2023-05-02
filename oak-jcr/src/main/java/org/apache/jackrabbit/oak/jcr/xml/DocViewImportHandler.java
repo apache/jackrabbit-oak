@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * {@code DocViewImportHandler} processes Document View XML SAX events

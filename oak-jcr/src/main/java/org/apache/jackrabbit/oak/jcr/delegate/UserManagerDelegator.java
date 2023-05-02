@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -34,7 +34,7 @@ import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Iterator;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * This implementation of {@code UserManager} delegates back to a

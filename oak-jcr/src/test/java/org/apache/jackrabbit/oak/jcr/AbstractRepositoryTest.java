@@ -46,7 +46,7 @@ import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * Abstract base class for repository tests providing methods for accessing

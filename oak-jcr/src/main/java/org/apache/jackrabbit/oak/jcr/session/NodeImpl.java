@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.transform;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
@@ -65,11 +65,11 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;

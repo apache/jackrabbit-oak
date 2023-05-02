@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -48,7 +48,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;

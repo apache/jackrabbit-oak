@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;

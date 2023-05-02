@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -33,7 +33,7 @@ import java.security.Principal;
 import java.util.Iterator;
 import java.util.Objects;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * Base class for {@link GroupDelegator} and {@link UserDelegator}.

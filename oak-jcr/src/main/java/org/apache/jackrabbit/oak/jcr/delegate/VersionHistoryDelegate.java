@@ -29,8 +29,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 
 /**

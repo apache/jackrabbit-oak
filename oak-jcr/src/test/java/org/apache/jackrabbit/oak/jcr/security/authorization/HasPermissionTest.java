@@ -21,8 +21,8 @@ import java.util.Map;
 
 import javax.jcr.Session;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 

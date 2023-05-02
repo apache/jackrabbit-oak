@@ -30,8 +30,8 @@ import javax.jcr.query.RowIterator;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;

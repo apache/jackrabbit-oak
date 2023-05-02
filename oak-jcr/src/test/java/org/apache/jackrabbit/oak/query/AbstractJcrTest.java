@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query;
 
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.junit.After;

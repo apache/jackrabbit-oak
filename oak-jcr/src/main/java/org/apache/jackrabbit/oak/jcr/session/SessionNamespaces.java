@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.collect.Iterables.toArray;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * {@code SessionNamespaces} implements namespace handling on the JCR

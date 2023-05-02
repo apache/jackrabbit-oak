@@ -34,7 +34,7 @@ import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;

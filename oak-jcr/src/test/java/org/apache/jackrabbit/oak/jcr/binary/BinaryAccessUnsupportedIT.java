@@ -29,7 +29,7 @@ import javax.jcr.Binary;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
