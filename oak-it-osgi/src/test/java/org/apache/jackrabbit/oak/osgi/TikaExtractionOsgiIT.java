@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import com.google.common.collect.Maps;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
@@ -43,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -152,7 +152,7 @@ public class TikaExtractionOsgiIT {
         assertEquals("Unexpected number of properties found in " + VERSION_PROP_RESOURCE_NAME,
                 VERSION_KEYS.length, props.size());
 
-        Map<String, String> versions = Maps.newHashMap();
+        Map<String, String> versions = new HashMap<>();
         for (String versionKey : VERSION_KEYS) {
             String version = props.getProperty(versionKey);
 
