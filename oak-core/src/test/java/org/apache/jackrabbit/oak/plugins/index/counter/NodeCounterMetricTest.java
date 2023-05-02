@@ -18,7 +18,11 @@ package org.apache.jackrabbit.oak.plugins.index.counter;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.*;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -29,10 +33,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.management.*;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.management.ObjectName;
+import javax.management.MalformedObjectNameException;
+import javax.management.MBeanServerConnection;
+import javax.management.ReflectionException;
+import javax.management.InstanceNotFoundException;
+import javax.management.AttributeNotFoundException;
+import javax.management.MBeanException;
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.Executors;
@@ -40,90 +53,115 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+
 
 public class NodeCounterMetricTest {
-    Whiteboard wb;
-    NodeStore nodeStore;
-    Root root;
-    QueryEngine qe;
-    ContentSession session;
-
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private final MetricStatisticsProvider statsProvider =
-            new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
+    private ScheduledExecutorService executor;
+    private MetricStatisticsProvider statsProvider;
+    private static final String mBeanName = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
+    private ObjectName mBeanObjectName;
 
     @Before
-    public void before() throws Exception {
-        session = createRepository().login(null, null);
-        root = session.getLatestRoot();
-        qe = root.getQueryEngine();
+    public void before() throws NoSuchWorkspaceException, LoginException, MalformedObjectNameException {
+        executor = Executors.newSingleThreadScheduledExecutor();
+        statsProvider = new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
+        mBeanObjectName = new ObjectName(mBeanName);
+    }
+
+    @After
+    public void after() {
+        // we have to deregister the statistics provider after each test case, as the call to
+        // ManagementFactory.getPlatformMBeanServer() would otherwise return the mbean server with the statistics
+        // provider from the first test case and reuse it.
+        statsProvider.close();
+        new ExecutorCloser(executor).close();
     }
 
     @Test
-    public void testMetricWhenAddingNodes() throws CommitFailedException, MalformedObjectNameException, IOException,
-            ReflectionException, InstanceNotFoundException, AttributeNotFoundException, MBeanException {
-        ApproximateCounter.setSeed(1);
-        runAsyncIndex();
-        addNodes(5, 5000); // add some random nodes and wait for the NodeCounterIndex to appear
+    public void testMetricWhenAddingNodes() throws CommitFailedException, IOException, ReflectionException,
+            InstanceNotFoundException, AttributeNotFoundException, MBeanException, NoSuchWorkspaceException,
+            LoginException {
+        NodeStore nodeStore = new MemoryNodeStore();
+        Oak oak = getOak(nodeStore);
+        ContentSession session = oak.createContentRepository().login(null, null);
+        Root root = session.getLatestRoot();
+        Whiteboard wb = oak.getWhiteboard();
+        setCounterIndexSeed(root, 2);
+        root.commit();
 
-        MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
-        String name = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
-        Long nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
+        addNodes(10, 5000, root, wb); // add some random nodes and wait for the NodeCounterIndex to appear
+
         long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
+        MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
+        Long nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
         assertEquals(count, nodeCountMetric.longValue());
     }
 
     @Test
-    public void testMetricWhenDeletingNodes() throws CommitFailedException, MalformedObjectNameException,
-            ReflectionException, AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
-        ApproximateCounter.setSeed(42);
-        runAsyncIndex();
-        addNodes(10, 2000);
+    public void testMetricWhenDeletingNodes() throws CommitFailedException, ReflectionException,
+            AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException,
+            NoSuchWorkspaceException, LoginException {
+        NodeStore nodeStore = new MemoryNodeStore();
+        Oak oak = getOak(nodeStore);
+        ContentSession session = oak.createContentRepository().login(null, null);
+        Root root = session.getLatestRoot();
+        Whiteboard wb = oak.getWhiteboard();
+        setCounterIndexSeed(root, 1);
 
-        MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
-        String name = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
-        Long nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
+        addNodes(10, 2000, root, wb);
         long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
+        MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
+        Long nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
         assertEquals(count, nodeCountMetric.longValue());
 
         // delete enough nodes for the node counter to be updated
-        deleteNodes(10, 200);
+        deleteNodes(10, 200, wb, root, nodeStore);
         count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
-        nodeCountMetric = (Long) server.getAttribute(new ObjectName(name), "Count");
+        nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
+        assertEquals(count, nodeCountMetric.longValue());
+
+        deleteNodes(2, 5000, wb, root, nodeStore);
+        count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
+        nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
         assertEquals(count, nodeCountMetric.longValue());
     }
 
-    protected ContentRepository createRepository() {
-        nodeStore = new MemoryNodeStore();
-        Oak oak = new Oak(nodeStore)
+    private Oak getOak(NodeStore nodeStore) {
+        return new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with(new PropertyIndexEditorProvider())
-                .with(new NodeCounterEditorProvider())
-                .with(ManagementFactory.getPlatformMBeanServer())
+                .with(new NodeCounterEditorProvider().with(statsProvider))
                 //Effectively disable async indexing auto run
                 //such that we can control run timing as per test requirement
                 .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
-
-        wb = oak.getWhiteboard();
-        return oak.createContentRepository();
     }
 
-    private void deleteNodes(int n, int m) throws CommitFailedException {
+    private void setCounterIndexSeed(Root root, int seed) throws CommitFailedException {
+        Tree t = root.getTree("/oak:index/counter");
+        t.setProperty("seed", seed);
+        root.commit();
+    }
+
+    private void deleteNodes(int n, int m, Whiteboard wb, Root root, NodeStore nodeStore) throws CommitFailedException {
         for (int i = 0; i < n; i++) {
-            if (nodeExists("test" + i)) {
+            if (nodeExists("test" + i, nodeStore)) {
                 Tree t = root.getTree("/").getChild("test" + i);
                 for (int j = 0; j < m; j++) {
-                    t.getChild("n" + j).remove();
+                    Tree child = t.getChild("n" + j);
+                    child.remove();
                 }
+                t.remove();
                 root.commit();
-                runAsyncIndex();
+                runAsyncIndex(root, wb);
             }
         }
     }
 
-    private void addNodes(int n, int m) throws CommitFailedException {
+    private void addNodes(int n, int m, Root root, Whiteboard wb) throws CommitFailedException {
         for (int i = 0; i < n; i++) {
             assertTrue("index not ready after 100 iterations", i < 100);
             Tree t = root.getTree("/").addChild("test" + i);
@@ -131,14 +169,16 @@ public class NodeCounterMetricTest {
                 t.addChild("n" + j);
             }
             root.commit();
-            runAsyncIndex();
+            runAsyncIndex(root, wb);
         }
 
     }
-    private boolean nodeExists(String path) {
+
+    private boolean nodeExists(String path, NodeStore nodeStore) {
         return NodeStateUtils.getNode(nodeStore.getRoot(), path).exists();
     }
-    private void runAsyncIndex() {
+
+    private void runAsyncIndex(Root root, Whiteboard wb) {
         Runnable async = WhiteboardUtils.getService(
                 wb,
                 Runnable.class, (Predicate<Runnable>) input -> input instanceof AsyncIndexUpdate

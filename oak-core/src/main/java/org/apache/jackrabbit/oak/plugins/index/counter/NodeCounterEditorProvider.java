@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
-import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -36,10 +35,7 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-import java.lang.management.ManagementFactory;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 @Component(service = IndexEditorProvider.class)
 public class NodeCounterEditorProvider implements IndexEditorProvider {
@@ -84,16 +80,6 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
             }
         }
 
-        /*
-         the statistics provider will only be null during test. We are using the MetricStatisticsProvider as this will
-         be registered in the Mbean server (the DefaultStatisticsProvider will not). This is so that we can read the
-         statisticsProvider for the node counter in during testing. Perhaps there is a better way to do this.
-         */
-        if (statisticsProvider == null) {
-            ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
-            statisticsProvider = new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), statsExecutor);
-        }
-
         if (NodeCounter.USE_OLD_COUNTER) {
             NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(
                     resolution, seed, definition, root, callback);
@@ -107,6 +93,16 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
 
     public NodeCounterEditorProvider with(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
+        return this;
+    }
+
+    /*
+     the statistics provider will only be null during test. We are using the MetricStatisticsProvider as this will
+     be registered in the mBean server (the DefaultStatisticsProvider will not). This is so that we can read the
+     statisticsProvider for the node counter during testing.
+     */
+    public NodeCounterEditorProvider with(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
         return this;
     }
 }
