@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static com.google.common.collect.Iterables.isEmpty;
-import static com.google.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -30,9 +30,10 @@ import java.util.Map;
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.MoreObjects;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -325,7 +326,7 @@ public class EventFactory {
 
         @Override
         public String toString() {
-            return Objects.toStringHelper("Event")
+            return MoreObjects.toStringHelper("Event")
                     .add("type", getType())
                     .add("path", getPath())
                     .add("identifier", getIdentifier())

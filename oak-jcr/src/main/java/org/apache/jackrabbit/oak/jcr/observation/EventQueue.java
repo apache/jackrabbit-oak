@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static com.google.common.collect.Lists.newLinkedList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 
 import java.util.LinkedList;
 import java.util.NoSuchElementException;

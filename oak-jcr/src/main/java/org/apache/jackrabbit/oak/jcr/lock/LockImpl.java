@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.lock;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;

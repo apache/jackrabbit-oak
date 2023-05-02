@@ -42,8 +42,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
+import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
+import org.apache.jackrabbit.guava.common.collect.Table;
 
 /**
  * Creates a repository with

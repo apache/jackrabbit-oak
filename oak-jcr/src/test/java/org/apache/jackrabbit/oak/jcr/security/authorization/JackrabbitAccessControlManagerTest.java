@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;

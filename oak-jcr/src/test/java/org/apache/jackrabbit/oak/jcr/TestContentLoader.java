@@ -33,7 +33,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.retention.RetentionPolicy;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;

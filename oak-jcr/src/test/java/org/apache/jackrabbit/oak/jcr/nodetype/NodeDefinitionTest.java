@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import java.util.Arrays;
 import java.util.List;

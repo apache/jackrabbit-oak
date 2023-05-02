@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 
 import javax.jcr.RepositoryException;
@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * {@code VersionDelegate}...

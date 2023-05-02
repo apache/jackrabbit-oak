@@ -35,8 +35,8 @@ import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 
 /**
  * {@code TargetImportHandler} serves as the base class for the concrete

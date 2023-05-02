@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
