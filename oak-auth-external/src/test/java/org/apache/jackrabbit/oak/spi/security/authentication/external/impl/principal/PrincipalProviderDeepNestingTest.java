@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import java.security.Principal;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
