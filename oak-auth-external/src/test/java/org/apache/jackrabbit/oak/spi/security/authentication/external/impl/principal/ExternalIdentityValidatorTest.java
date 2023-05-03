@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CommitFailedException;

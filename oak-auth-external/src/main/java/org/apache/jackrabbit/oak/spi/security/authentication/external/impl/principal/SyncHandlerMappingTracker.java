@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;

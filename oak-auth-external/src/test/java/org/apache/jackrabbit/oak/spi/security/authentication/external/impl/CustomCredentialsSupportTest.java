@@ -26,10 +26,10 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;

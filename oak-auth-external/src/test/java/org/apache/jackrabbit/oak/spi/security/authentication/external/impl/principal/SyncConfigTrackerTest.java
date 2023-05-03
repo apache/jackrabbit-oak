@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ObjectArrays;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipAware;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;

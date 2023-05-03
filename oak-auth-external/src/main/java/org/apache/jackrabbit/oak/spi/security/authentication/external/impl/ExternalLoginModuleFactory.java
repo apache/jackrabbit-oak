@@ -20,7 +20,7 @@ import java.util.Map;
 import javax.management.MalformedObjectNameException;
 import javax.security.auth.spi.LoginModule;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
