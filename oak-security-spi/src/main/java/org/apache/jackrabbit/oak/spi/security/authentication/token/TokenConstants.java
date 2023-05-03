@@ -47,4 +47,10 @@ public interface TokenConstants {
      * Flag set on the TokenCredentials to skip refreshing the token expiration time
      */
     String TOKEN_SKIP_REFRESH = "tokenSkipRefresh";
+
+    /**
+     * Value of the {@link #TOKEN_ATTRIBUTE} property to trigger the creation of a new token.
+     */
+    String TOKEN_ATTRIBUTE_DO_CREATE = "";
+    
 }

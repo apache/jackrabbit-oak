@@ -88,7 +88,7 @@ public class TestCredentialsSupport implements CredentialsSupport {
 
         Creds() {
             attributes = Maps.newHashMap();
-            attributes.put(TokenConstants.TOKEN_ATTRIBUTE, "");
+            attributes.put(TokenConstants.TOKEN_ATTRIBUTE, TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE);
         }
     }
 }

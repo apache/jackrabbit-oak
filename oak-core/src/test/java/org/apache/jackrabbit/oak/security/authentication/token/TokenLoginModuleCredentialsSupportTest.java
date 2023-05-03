@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstant
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -112,7 +113,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
     @Test
     public void testSimpleCredentials() throws Exception {
         SimpleCredentials credentials = (SimpleCredentials) getAdminCredentials();
-        credentials.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, "");
+        credentials.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
 
         try (ContentSession cs = login(credentials)) {
             assertEquals(credentials.getUserID(), cs.getAuthInfo().getUserID());
