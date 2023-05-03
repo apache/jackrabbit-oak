@@ -281,8 +281,8 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
             charFilters.addChild("HTMLStrip");
             Tree mappingFilter = charFilters.addChild("Mapping");
-            mappingFilter.setProperty("mapping", "mapping-ISOLatin1Accent.txt");
-            mappingFilter.addChild("mapping-ISOLatin1Accent.txt").addChild(JcrConstants.JCR_CONTENT)
+            mappingFilter.setProperty("mapping", "mappings.txt");
+            mappingFilter.addChild("mappings.txt").addChild(JcrConstants.JCR_CONTENT)
                     .setProperty(JcrConstants.JCR_DATA, getHinduArabicMapping());
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
