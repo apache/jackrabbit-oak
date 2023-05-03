@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.List;
 import java.util.UUID;
@@ -280,8 +281,8 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
             charFilters.addChild("HTMLStrip");
             Tree mappingFilter = charFilters.addChild("Mapping");
-            mappingFilter.setProperty("mapping", "mappings.txt");
-            mappingFilter.addChild("mappings.txt").addChild(JcrConstants.JCR_CONTENT)
+            mappingFilter.setProperty("mapping", "mapping-ISOLatin1Accent.txt");
+            mappingFilter.addChild("mapping-ISOLatin1Accent.txt").addChild(JcrConstants.JCR_CONTENT)
                     .setProperty(JcrConstants.JCR_DATA, getHinduArabicMapping());
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
@@ -308,6 +309,30 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-mapping-charfilter.html
         return "\"٠\" => \"0\"\n\"١\" => \"1\"\n\"٢\" => \"2\"\n\"٣\" => \"3\"\n\"٤\" => \"4\"\n" +
                 "\"٥\" => \"5\"\n\"٦\" => \"6\"\n\"٧\" => \"7\"\n\"٨\" => \"8\"\n\"٩\" => \"9\"";
+    }
+
+    @Test
+    public void fulltextSearchWithCustomComposedAnalyzerWithComments() throws Exception {
+        String mappings = new String(getClass().getClassLoader()
+                .getResourceAsStream("mapping-ISOLatin1Accent.txt").readAllBytes(), StandardCharsets.UTF_8);
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
+            charFilters.addChild("HTMLStrip");
+            Tree mappingFilter = charFilters.addChild("Mapping");
+            mappingFilter.setProperty("mapping", "mapping-ISOLatin1Accent.txt");
+            mappingFilter.addChild("mapping-ISOLatin1Accent.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, mappings);
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "Ã€");
+        test.addChild("baz").setProperty("foo", "B");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'A')", List.of("/test")));
     }
 
     //OAK-4805

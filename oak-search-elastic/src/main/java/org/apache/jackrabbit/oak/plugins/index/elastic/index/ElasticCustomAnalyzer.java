@@ -189,6 +189,10 @@ public class ElasticCustomAnalyzer {
             try (BufferedReader br = new BufferedReader(content)) {
                 return br.lines()
                         .map(String::trim)
+                        // remove blank lines and comments
+                        .filter(l -> l.length() > 0 && !l.startsWith("#"))
+                        // token/filters configuration does not have to be wrapped in double quotes
+                        .map(l -> l.replaceAll("\"", ""))
                         .collect(Collectors.toList());
             }
         }

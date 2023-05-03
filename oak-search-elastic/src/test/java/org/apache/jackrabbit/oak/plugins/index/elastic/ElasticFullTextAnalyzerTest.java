@@ -93,8 +93,4 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         });
     }
 
-    @Override
-    protected String getHinduArabicMapping() {
-        return super.getHinduArabicMapping().replaceAll("\"", "");
-    }
 }
