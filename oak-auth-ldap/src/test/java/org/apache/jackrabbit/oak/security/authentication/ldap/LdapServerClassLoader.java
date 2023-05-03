@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import com.google.common.io.ByteStreams;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.core.Appender;
