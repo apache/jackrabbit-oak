@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.file.tar.TarReader;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -61,6 +62,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -428,6 +431,44 @@ public class AzureArchiveManagerTest {
                 roFileStore.collectBlobReferences(s -> {
                 });
 
+            }
+        }
+    }
+
+    @Test
+    public void testCollectBlobReferencesDoesNotFailWhenFileIsMissing() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
+        AzurePersistence rwPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        try (FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build()) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            rwFileStore.flush();
+
+            // file with binary references has been created
+            assertTrue(container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
+
+            // delete binary references file
+            container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").delete();
+
+            // create read-only FS
+            AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+            try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
+
+                PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
+                        .getRoot()
+                        .getProperty("foo");
+
+                assertThat(fooProperty, not(nullValue()));
+                assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
+
+                // no exception should be thrown
+                HashSet<String> references = new HashSet<>();
+                roFileStore.collectBlobReferences(reference -> {
+                    references.add(reference);
+                });
+
+                assertTrue("No references should have been collected since reference file has been deleted", references.isEmpty());
             }
         }
     }
