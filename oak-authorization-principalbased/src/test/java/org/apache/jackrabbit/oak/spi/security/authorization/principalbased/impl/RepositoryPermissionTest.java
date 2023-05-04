@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import java.security.Principal;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static javax.jcr.Session.ACTION_READ;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
