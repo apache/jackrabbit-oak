@@ -1125,11 +1125,11 @@ public class MongoDocumentStore implements DocumentStore {
             return oldDoc;
         } catch (MongoWriteException e) {
             WriteError werr = e.getError();
-            LOG.error("Failed to update the document with Id={} with error message '{}'",
+            LOG.error("Failed to update the document with Id={} with MongoWriteException message '{}'",
                     updateOp.getId(), werr.getMessage());
             throw handleException(e, collection, updateOp.getId());
         } catch (MongoCommandException e) {
-            LOG.error("Failed to update the document with Id={} with error message '{}' ",
+            LOG.error("Failed to update the document with Id={} with MongoCommandException message '{}' ",
                     updateOp.getId(), e.getMessage());
             throw handleException(e, collection, updateOp.getId());
         } catch (Exception e) {
@@ -1495,7 +1495,7 @@ public class MongoDocumentStore implements DocumentStore {
                      and just to cover the 16MB+1byte size */
                     if (doc.getMemory()/3 > SIZE_LIMIT) {
                         LOG.error("Failed to create the document with Id={} has size={}" +
-                                        " with error message '{}",
+                                        " with BsonMaximumSizeExceededException message '{}",
                                 doc.getId(), doc.getMemory()/2, e.getMessage());
                     }
                 }
