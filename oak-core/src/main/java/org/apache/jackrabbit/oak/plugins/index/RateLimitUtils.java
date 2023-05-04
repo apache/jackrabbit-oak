@@ -108,6 +108,7 @@ public class RateLimitUtils {
         if (Duration.between(lastJmxBeanCall, now).getSeconds() < 1) {
             return cachedOldestAsyncUpdate;
         }
+        lastJmxBeanCall = now;
         Instant oldestAsyncUpdate = now;
         MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
         try {
