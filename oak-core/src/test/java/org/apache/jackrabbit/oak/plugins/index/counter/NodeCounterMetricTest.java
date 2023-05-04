@@ -94,10 +94,8 @@ public class NodeCounterMetricTest {
 
         addNodes(10, 5000, root, wb); // add some random nodes and wait for the NodeCounterIndex to appear
 
-        long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
         MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
-        Long nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
-        assertEquals(count, nodeCountMetric.longValue());
+        validateMetricCount(nodeStore, server);
     }
 
     @Test
@@ -111,22 +109,24 @@ public class NodeCounterMetricTest {
         Whiteboard wb = oak.getWhiteboard();
         setCounterIndexSeed(root, 1);
 
-        addNodes(10, 2000, root, wb);
-        long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
         MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
-        Long nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
-        assertEquals(count, nodeCountMetric.longValue());
+
+        addNodes(10, 2000, root, wb);
+        validateMetricCount(nodeStore, server);
 
         // delete enough nodes for the node counter to be updated
         deleteNodes(10, 200, wb, root, nodeStore);
-        count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
-        nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
-        assertEquals(count, nodeCountMetric.longValue());
+        validateMetricCount(nodeStore, server);
 
         deleteNodes(2, 5000, wb, root, nodeStore);
-        count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
-        nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
-        assertEquals(count, nodeCountMetric.longValue());
+        validateMetricCount(nodeStore, server);
+    }
+
+    private void validateMetricCount(NodeStore nodeStore, MBeanServerConnection server) throws ReflectionException,
+            AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
+        long count = NodeCounter.getEstimatedNodeCount(nodeStore.getRoot(), "/", false);
+        long nodeCountMetric = (Long) server.getAttribute(mBeanObjectName, "Count");
+        assertEquals(count, nodeCountMetric);
     }
 
     private Oak getOak(NodeStore nodeStore) {
