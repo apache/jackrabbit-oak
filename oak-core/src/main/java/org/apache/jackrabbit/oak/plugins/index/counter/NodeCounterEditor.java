@@ -288,7 +288,6 @@ public class NodeCounterEditor implements Editor {
     }
 
     private void count(int offset, Mount mount) {
-        // only change the counter when we are at the root of the editor. Otherwise, we will over count in the children.
         countOffsets.compute(mount, (m, v) -> v == null ? offset : v + offset);
         if (parent != null) {
             parent.count(offset, mount);

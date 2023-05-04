@@ -49,7 +49,6 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
-
     /*
      the statistics provider will be null for any testcase that is using the nodeCounter. As some of these testcases are
      using default repository builders that we can't modify, we default the statisticsProvider to be the NOOP instance,
