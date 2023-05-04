@@ -1491,8 +1491,9 @@ public class MongoDocumentStore implements DocumentStore {
                 T doct = null;
                 for (T doc : docs) {
                     doct = doc;
-                    // doc.getMemory()/2 - converting from UTF-16 to UTF-8
-                    if (doc.getMemory()/2 > SIZE_LIMIT) {
+                    /* doc.getMemory()/3 - converting from UTF-16 to UTF-8
+                     and just to cover the 16MB+1byte size */
+                    if (doc.getMemory()/3 > SIZE_LIMIT) {
                         LOG.error("Failed to create the document with Id={} has size={}" +
                                         " with error message '{}",
                                 doc.getId(), doc.getMemory()/2, e.getMessage());
