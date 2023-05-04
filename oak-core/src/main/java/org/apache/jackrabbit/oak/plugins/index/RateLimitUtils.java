@@ -99,7 +99,7 @@ public class RateLimitUtils {
      * 
      * The method can be called often without issues. If the last call was less than
      * one second ago, the last returned value is returned. This is to avoid
-     * unnecessary calls to to the JMX beans.
+     * unnecessary calls to the JMX beans.
      * 
      * @param now the current time
      * @return the timestamp of the oldest indexing lane
