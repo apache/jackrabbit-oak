@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
