@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -250,7 +250,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     @Override
     public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws RepositoryException {
         if (principals.isEmpty()) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
         if (absPaths == null || absPaths.length == 0) {
             return Iterators.forArray(getEffectivePolicies(principals));
@@ -267,7 +267,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             }
             return effective.iterator();
         } else {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
     }
 
