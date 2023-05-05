@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
+import org.apache.lucene.analysis.miscellaneous.KeywordMarkerFilterFactory;
 import org.apache.lucene.analysis.synonym.SynonymFilterFactory;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 
@@ -51,6 +52,7 @@ public class ElasticCustomAnalyzerMappings {
         ));
         LUCENE_ELASTIC.put(MappingCharFilterFactory.class, Map.of("mapping", "mappings"));
         LUCENE_ELASTIC.put(SynonymFilterFactory.class, Map.of("tokenizerFactory", "tokenizer"));
+        LUCENE_ELASTIC.put(KeywordMarkerFilterFactory.class, Map.of("protected", "keywords"));
     }
 
     /*

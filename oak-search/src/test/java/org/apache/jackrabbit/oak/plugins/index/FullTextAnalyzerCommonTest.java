@@ -381,6 +381,30 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void fulltextSearchWithProtectedStemmer() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("LowerCase");
+            Tree marker = filters.addChild("KeywordMarker");
+            marker.setProperty("protected", "protected.txt");
+            marker.addChild("protected.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "# some comment here\nrunning");
+            filters.addChild("PorterStem");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "fox running");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'run')", List.of());
+        });
+    }
+
     //OAK-4805
     @Test
     public void badIndexDefinitionShouldLetQEWork() throws Exception {

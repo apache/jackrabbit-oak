@@ -226,8 +226,8 @@ public class ElasticCustomAnalyzer {
                     List<String> languageParts = Arrays.asList(language.split("_"));
                     Collections.reverse(languageParts);
                     language = String.join("_", languageParts);
-                    args.put("language", language);
                 }
+                args.put("language", language);
                 name = "stemmer";
             }
             args.put(ANALYZER_TYPE, name);
