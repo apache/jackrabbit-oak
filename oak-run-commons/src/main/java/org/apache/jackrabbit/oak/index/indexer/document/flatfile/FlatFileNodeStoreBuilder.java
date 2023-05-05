@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Compression;

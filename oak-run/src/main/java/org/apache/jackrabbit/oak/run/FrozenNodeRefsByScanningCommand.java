@@ -56,8 +56,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import com.google.common.io.Closer;
-import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;

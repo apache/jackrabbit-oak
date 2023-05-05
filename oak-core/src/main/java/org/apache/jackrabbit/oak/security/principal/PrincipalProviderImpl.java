@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;

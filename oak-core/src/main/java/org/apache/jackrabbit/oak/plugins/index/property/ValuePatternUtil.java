@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 
 public final class ValuePatternUtil {
     /**

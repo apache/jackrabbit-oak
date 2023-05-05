@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import java.security.Principal;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;

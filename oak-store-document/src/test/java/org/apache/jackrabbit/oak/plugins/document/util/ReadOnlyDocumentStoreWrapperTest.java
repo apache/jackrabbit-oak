@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;

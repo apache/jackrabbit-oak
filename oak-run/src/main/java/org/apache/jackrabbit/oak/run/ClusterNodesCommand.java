@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport;
 import org.apache.jackrabbit.oak.run.commons.Command;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionSpec;
 

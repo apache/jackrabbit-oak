@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static org.apache.jackrabbit.guava.common.base.Predicates.not;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.EXPIRED;
@@ -52,7 +52,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 class NodeCache<K extends CacheValue, V extends  CacheValue>
         implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {

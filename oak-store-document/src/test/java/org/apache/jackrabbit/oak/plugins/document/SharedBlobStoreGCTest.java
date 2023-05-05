@@ -29,9 +29,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
@@ -339,7 +339,7 @@ public class SharedBlobStoreGCTest {
             this.gc = new MarkSweepGarbageCollector(
                             new DocumentBlobReferenceRetriever(ds),
                             (GarbageCollectableBlobStore) ds.getBlobStore(),
-                            MoreExecutors.sameThreadExecutor(),
+                            MoreExecutors.newDirectExecutorService(),
                             "./target", 5, 0, repoId);
             this.startDate = new Date();
             this.seed = seed;

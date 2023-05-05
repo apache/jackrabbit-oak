@@ -30,7 +30,7 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 class PrinterDumper {
     private final File outDir;

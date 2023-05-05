@@ -38,7 +38,7 @@ import org.junit.runners.Parameterized;
 
 import ch.qos.logback.classic.Level;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 @RunWith(Parameterized.class)
 public class ConflictResolutionTest extends AbstractRepositoryTest {

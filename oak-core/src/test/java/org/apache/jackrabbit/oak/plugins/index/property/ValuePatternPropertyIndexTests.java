@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;

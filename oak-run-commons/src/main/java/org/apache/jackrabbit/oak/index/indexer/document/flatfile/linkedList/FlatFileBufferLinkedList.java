@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
-import com.google.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 

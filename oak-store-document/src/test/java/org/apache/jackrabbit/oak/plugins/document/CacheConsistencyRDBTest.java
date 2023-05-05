@@ -37,7 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
 

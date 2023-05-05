@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak;
 
 import ch.qos.logback.classic.Level;
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;

@@ -36,8 +36,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 

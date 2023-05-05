@@ -16,7 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.ImmutableList;
+
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;

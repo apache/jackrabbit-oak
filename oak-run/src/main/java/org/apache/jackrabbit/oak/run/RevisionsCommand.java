@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import java.io.IOException;
 import java.util.List;

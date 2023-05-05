@@ -43,8 +43,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class CacheChangesTrackerTest {
 

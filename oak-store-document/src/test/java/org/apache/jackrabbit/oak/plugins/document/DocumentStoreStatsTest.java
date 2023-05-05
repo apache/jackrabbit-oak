@@ -35,7 +35,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.JOURNAL_CREATE;

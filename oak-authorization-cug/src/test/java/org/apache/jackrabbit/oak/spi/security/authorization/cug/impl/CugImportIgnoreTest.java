@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import javax.jcr.Node;
 import javax.jcr.Value;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;

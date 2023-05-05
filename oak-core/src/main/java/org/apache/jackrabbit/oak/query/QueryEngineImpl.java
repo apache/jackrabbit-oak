@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 import java.text.ParseException;
 import java.util.ArrayList;

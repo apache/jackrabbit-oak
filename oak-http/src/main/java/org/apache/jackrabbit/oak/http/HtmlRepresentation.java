@@ -35,7 +35,7 @@ import org.apache.tika.mime.MediaType;
 import org.apache.tika.sax.XHTMLContentHandler;
 import org.xml.sax.SAXException;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;

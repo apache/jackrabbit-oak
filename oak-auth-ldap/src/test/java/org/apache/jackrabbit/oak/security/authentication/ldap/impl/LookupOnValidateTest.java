@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;

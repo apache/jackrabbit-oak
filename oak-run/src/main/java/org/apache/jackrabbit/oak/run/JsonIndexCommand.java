@@ -51,7 +51,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
-import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;

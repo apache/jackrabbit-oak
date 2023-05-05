@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import java.util.Set;
 
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 /**
  * A delegating IndexStoreStrategy that filters out updates that are not

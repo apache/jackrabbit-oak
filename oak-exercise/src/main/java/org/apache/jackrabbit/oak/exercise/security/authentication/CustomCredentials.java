@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.exercise.security.authentication;
 import java.util.Map;
 import javax.jcr.Credentials;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 class CustomCredentials implements Credentials {
 

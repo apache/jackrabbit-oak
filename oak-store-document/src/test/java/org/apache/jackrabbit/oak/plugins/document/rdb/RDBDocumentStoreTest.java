@@ -47,8 +47,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 

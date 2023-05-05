@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.util.Hashtable;
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
@@ -54,7 +54,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
                 TokenProvider.PARAM_TOKEN_LENGTH, 4));
 
         sc = new SimpleCredentials(getTestUser().getID(), new char[0]);
-        sc.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, "");
+        sc.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE);
     }
 
     @Test

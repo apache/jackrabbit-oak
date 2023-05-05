@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
@@ -36,7 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.function.Predicate;
 
-import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;

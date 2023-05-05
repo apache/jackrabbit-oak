@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Set;
 import javax.jcr.security.Privilege;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;

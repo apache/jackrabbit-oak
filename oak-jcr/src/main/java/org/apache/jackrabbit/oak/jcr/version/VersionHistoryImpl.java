@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import static com.google.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +34,7 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;

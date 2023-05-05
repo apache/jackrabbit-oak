@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;

@@ -25,8 +25,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.jcr.RepositoryException;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
+import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
+import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;

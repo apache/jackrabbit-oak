@@ -23,10 +23,10 @@ import java.util.function.Supplier;
 
 import javax.jcr.Credentials;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Maps.newHashMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -24,13 +24,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Writes nodes in CND format

@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.util.Iterator;
 import java.util.Set;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
+import org.apache.jackrabbit.guava.common.base.Optional;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -33,9 +33,9 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterators.size;
-import static com.google.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.size;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static java.util.Collections.emptyIterator;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;

@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 
-import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 /**
  * <code>MongoDocumentStoreCheckHelper</code>...

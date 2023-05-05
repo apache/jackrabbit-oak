@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.Collections;
 
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;

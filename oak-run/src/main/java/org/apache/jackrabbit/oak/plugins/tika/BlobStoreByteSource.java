@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.google.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.Nullable;
 

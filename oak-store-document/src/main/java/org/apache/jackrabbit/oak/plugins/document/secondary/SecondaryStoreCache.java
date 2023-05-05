@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import com.google.common.collect.EvictingQueue;
+import org.apache.jackrabbit.guava.common.collect.EvictingQueue;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;

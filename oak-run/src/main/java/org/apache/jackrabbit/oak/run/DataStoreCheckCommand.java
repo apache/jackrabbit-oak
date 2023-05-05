@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
-import static com.google.common.base.Stopwatch.createStarted;
-import static com.google.common.io.Closeables.close;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
+import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
+import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.io.File.createTempFile;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.forceDelete;
@@ -44,15 +44,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Maps;
-import com.google.common.io.Closeables;
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;

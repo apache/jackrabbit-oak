@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.client.MongoCollection;

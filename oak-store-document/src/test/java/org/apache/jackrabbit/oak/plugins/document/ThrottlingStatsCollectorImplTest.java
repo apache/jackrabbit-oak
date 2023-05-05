@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import java.util.concurrent.ScheduledExecutorService;
 
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;

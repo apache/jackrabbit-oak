@@ -29,16 +29,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import joptsimple.BuiltinHelpFormatter;
 import joptsimple.HelpFormatter;
 import joptsimple.OptionDescriptor;
 import joptsimple.OptionSpec;
 import joptsimple.internal.Strings;
 
-import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 
 import org.jetbrains.annotations.Nullable;
 

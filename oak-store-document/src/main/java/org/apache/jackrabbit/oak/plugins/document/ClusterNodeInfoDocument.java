@@ -19,14 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.nonNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.fromString;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.getTimestampDifference;
 
-import com.google.common.annotations.VisibleForTesting;
+import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

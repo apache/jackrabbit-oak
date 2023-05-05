@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.size;
-import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
@@ -35,8 +35,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;

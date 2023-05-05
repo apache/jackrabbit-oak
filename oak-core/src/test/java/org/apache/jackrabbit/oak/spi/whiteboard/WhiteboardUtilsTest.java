@@ -28,8 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Set;
 import java.util.SortedSet;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.jetbrains.annotations.NotNull;
 

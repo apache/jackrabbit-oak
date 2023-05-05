@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 

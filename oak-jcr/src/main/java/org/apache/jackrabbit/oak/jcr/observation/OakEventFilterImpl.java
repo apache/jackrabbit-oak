@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 
 import java.util.Arrays;

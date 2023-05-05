@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 
 /**
  * {@link Validator} which checks the presence of conflict markers

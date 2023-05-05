@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.junit.Test;
 

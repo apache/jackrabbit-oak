@@ -40,9 +40,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.ImmutableSet.copyOf;
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Collections.emptySet;
 
 /**

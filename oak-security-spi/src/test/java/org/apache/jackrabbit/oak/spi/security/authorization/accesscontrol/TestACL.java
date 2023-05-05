@@ -24,7 +24,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;

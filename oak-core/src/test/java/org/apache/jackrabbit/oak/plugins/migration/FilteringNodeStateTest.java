@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -34,8 +34,8 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.wrap;

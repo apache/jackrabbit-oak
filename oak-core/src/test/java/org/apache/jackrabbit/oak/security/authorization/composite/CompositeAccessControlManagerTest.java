@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -192,6 +192,16 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         child.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
         assertEquals(1, acMgr.getEffectivePolicies(child.getPath()).length);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesFiltersDuplicates() throws Exception {
+        TestAcMgr test = new TestAcMgr();
+        test.hasPolicy = true;
+        
+        // create a composite that would result in duplicate effective policies
+        AccessControlManager composite = createComposite(test, test);
+        assertEquals(1, composite.getEffectivePolicies(TEST_PATH).length);
     }
 
     @Test

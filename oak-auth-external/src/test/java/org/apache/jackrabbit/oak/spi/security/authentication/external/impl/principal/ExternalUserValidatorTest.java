@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -70,6 +70,7 @@ import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKENS_NODE_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -349,7 +350,7 @@ public class ExternalUserValidatorTest extends ExternalLoginTestBase {
 
             // force creation of login token
             SimpleCredentials sc = new SimpleCredentials(USER_ID, "".toCharArray());
-            sc.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, "");
+            sc.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
             getContentRepository().login(sc, null).close();
 
             root.refresh();

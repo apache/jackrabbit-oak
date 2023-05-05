@@ -42,10 +42,6 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Import-Package>
-                            <!-- OAK-7182 -->${guava.osgi.import},
-                            *
-                        </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.spi.security.authorization.principalbased
                         </Export-Package>
@@ -88,6 +84,11 @@
         <!-- Dependencies to other Oak components -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-shaded-guava</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-jackrabbit-api</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -127,13 +128,6 @@
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>jackrabbit-jcr-commons</artifactId>
             <version>${jackrabbit.version}</version>
-        </dependency>
-
-        <!-- General utility libraries -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <!-- Logging -->

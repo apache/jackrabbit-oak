@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.index;
 import java.io.File;
 
 
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.junit.Before;
 import org.junit.Test;
 

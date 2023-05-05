@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.base.Objects.equal;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -83,13 +83,13 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.version.VersionException;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ForwardingListenableFuture;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 
 import junitx.util.PrivateAccessor;
 

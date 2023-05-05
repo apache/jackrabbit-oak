@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplif
 
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 
 public interface ThreeRolesConstants {
