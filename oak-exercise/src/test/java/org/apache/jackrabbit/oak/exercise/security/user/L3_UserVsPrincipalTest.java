@@ -23,7 +23,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
