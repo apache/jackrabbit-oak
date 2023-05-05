@@ -77,9 +77,11 @@ public class NodeCounterEditor implements Editor {
         this.mountCanChange = true;
         this.countOffsets = new HashMap<>();
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
-                                                       root.root,
-                                                  "/");
+        this.nodeCounterMetric = initNodeCounterMetric(
+                statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
+                root.root,
+                "/"
+        );
     }
 
     private NodeCounterEditor(NodeCounterRoot root, NodeCounterEditor parent, String name, SipHash hash, MountInfoProvider mountInfoProvider, StatisticsProvider statisticsProvider) {
@@ -99,9 +101,11 @@ public class NodeCounterEditor implements Editor {
         }
 
         this.statisticsProvider = statisticsProvider;
-        this.nodeCounterMetric = initNodeCounterMetric(statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
-                                                       root.root,
-                                                  "/");
+        this.nodeCounterMetric = initNodeCounterMetric(
+                statisticsProvider.getCounterStats(NODE_COUNT_FROM_ROOT, StatsOptions.DEFAULT),
+                root.root,
+                "/"
+        );
     }
 
     private SipHash getHash() {
@@ -118,12 +122,17 @@ public class NodeCounterEditor implements Editor {
         return h;
     }
 
-    /*
-     If an instance is restarted, the nodeCounterMetric might be 0 when we retrieve it as its value isn't persisted.
-     But by then, the node counter _index_ will usually exist, why we try we read from it. To account for a potential
-      discrepancy, we increment with the difference between the metric and the  node counter index, using the index
-      as the ground truth.
-    */
+    /**
+     * If an instance is restarted, the nodeCounterMetric might be 0 when we retrieve it as its value isn't persisted.
+     * But by then, the node counter _index_ will usually exist, why we try we read from it. To account for a potential
+     * discrepancy, we increment the metric with the difference between the node counter index and the metric, using the
+     * index as the ground truth.
+     *
+     * @param nodeCounterMetric the counter object that is updated with the counter index information
+     * @param root the root of the repository
+     * @param path the path of which
+     * @return the CounterStats object that has the same value as the node counter index.
+     */
     static CounterStats initNodeCounterMetric(CounterStats nodeCounterMetric, NodeState root, String path) {
         long nodeCountFromIndex = NodeCounter.getEstimatedNodeCount(root, path, false);
         long delta = nodeCountFromIndex - nodeCounterMetric.getCount();
@@ -207,10 +216,16 @@ public class NodeCounterEditor implements Editor {
                 }
             } else {
                 builder.setProperty(COUNT_HASH_PROPERTY_NAME, count);
-                long delta = count - nodeCounterMetric.getCount();
-                nodeCounterMetric.inc(delta);
+                if (parent == null) {
+                    long delta = count - nodeCounterMetric.getCount();
+                    nodeCounterMetric.inc(delta);
+                }
             }
         }
+    }
+
+    private boolean isRoot() {
+        return parent == null;
     }
 
     private NodeBuilder getBuilder(Mount mount) {
@@ -304,6 +319,7 @@ public class NodeCounterEditor implements Editor {
                 .stream()
                 .anyMatch(m -> m.isSupportFragmentUnder(path) || m.isUnder(path));
     }
+
     public static class NodeCounterRoot {
         final int resolution;
         final long seed;
