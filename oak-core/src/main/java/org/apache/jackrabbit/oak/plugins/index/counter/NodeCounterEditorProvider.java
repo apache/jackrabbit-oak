@@ -49,10 +49,10 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
-    /*
-     the statistics provider will be null for any testcase that is using the nodeCounter. As some of these testcases are
+    /**
+     The statistics provider will be null for any testcase that is using the nodeCounter. As some of these testcases are
      using default repository builders that we can't modify, we default the statisticsProvider to be the NOOP instance,
-     as this is the easiest to "instantiate".
+     as this is the easiest to instantiate.
     */
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
@@ -101,11 +101,14 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         return this;
     }
 
-    /*
-    This is mostly intended to be used during testing if there is a need to use a statistics provider that will be
-    registered in the mBean server (e.g. the MetricStatisticsProvider). The DefaultStatisticsProvider and
-    StatisticsProvider.NOOP will not.
-    */
+    /**
+     * This is intended to be used during testing if there is a need to use a statistics provider that can be registered
+     * in the mBean server, e.g. the MetricStatisticsProvider. The DefaultStatisticsProvider and StatisticsProvider.NOOP
+     * will not.
+     *
+     * @param statisticsProvider a statisticsProvider as explained above
+     * @return the current NodeCounterEditor that is being built.
+     */
     public NodeCounterEditorProvider with(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         return this;

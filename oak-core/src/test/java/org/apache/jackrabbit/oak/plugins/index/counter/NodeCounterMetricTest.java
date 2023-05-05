@@ -74,7 +74,7 @@ public class NodeCounterMetricTest {
     @After
     public void after() {
         // we have to deregister the statistics provider after each test case, as the call to
-        // ManagementFactory.getPlatformMBeanServer() would otherwise return the mbean server with the statistics
+        // ManagementFactory.getPlatformMBeanServer() would otherwise return the mBean server with the statistics
         // provider from the first test case and reuse it.
         statsProvider.close();
         new ExecutorCloser(executor).close();
@@ -92,7 +92,8 @@ public class NodeCounterMetricTest {
         setCounterIndexSeed(root, 2);
         root.commit();
 
-        addNodes(10, 5000, root, wb); // add some random nodes and wait for the NodeCounterIndex to appear
+        // add some random nodes and wait for the NodeCounterIndex to appear
+        addNodes(10, 5000, root, wb);
 
         MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
         validateMetricCount(nodeStore, server);
