@@ -93,4 +93,29 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         });
     }
 
+    @Test
+    /*
+     * elastic supports advanced stemmer languages, not available in lucene
+     */
+    public void fulltextSearchWithAdvancedLanguageBasedStemmer() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("LowerCase");
+            Tree stemmer = filters.addChild("stemmer");
+            stemmer.setProperty("language", "dutch_kp");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "edele");
+        test.addChild("baz").setProperty("foo", "other text");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')", List.of("/test"));
+        });
+    }
+
 }

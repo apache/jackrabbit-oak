@@ -315,24 +315,70 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
     public void fulltextSearchWithCustomComposedAnalyzerWithComments() throws Exception {
         String mappings = new String(getClass().getClassLoader()
                 .getResourceAsStream("mapping-ISOLatin1Accent.txt").readAllBytes(), StandardCharsets.UTF_8);
+        String stopwords = new String(getClass().getClassLoader()
+                .getResourceAsStream("stopwords-snowball.txt").readAllBytes(), StandardCharsets.UTF_8);
         setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
-            charFilters.addChild("HTMLStrip");
             Tree mappingFilter = charFilters.addChild("Mapping");
             mappingFilter.setProperty("mapping", "mapping-ISOLatin1Accent.txt");
             mappingFilter.addChild("mapping-ISOLatin1Accent.txt").addChild(JcrConstants.JCR_CONTENT)
                     .setProperty(JcrConstants.JCR_DATA, mappings);
+            Tree synFilter = anl.addChild(FulltextIndexConstants.ANL_FILTERS).addChild("Synonym");
+            synFilter.setProperty("synonyms", "syn.txt");
+            synFilter.setProperty("format", "solr");
+            synFilter.setProperty("expand", "true");
+            synFilter.setProperty("tokenizerFactory", "standard");
+            synFilter.addChild("syn.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "# Synonym mappings can be used for spelling correction too\n" +
+                            "tool => instrument");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("LowerCase");
+            Tree stopFilter = filters.addChild("Stop");
+            stopFilter.setProperty("format", "snowball");
+            stopFilter.setProperty("enablePositionIncrements", "true");
+            stopFilter.setProperty("ignoreCase", "true");
+            stopFilter.setProperty("words", "stopwords-snowball.txt");
+            stopFilter.addChild("stopwords-snowball.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, stopwords);
         });
 
         Tree test = root.getTree("/");
-        test.addChild("test").setProperty("foo", "Ã€");
+        test.addChild("test").setProperty("foo", "IJ");
         test.addChild("baz").setProperty("foo", "B");
+        test.addChild("bar").setProperty("foo", "los");
+        test.addChild("qux").setProperty("foo", "instrument");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'A')", List.of("/test")));
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'IJ')", List.of("/test"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'los')", List.of());
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'tool')", List.of("/qux"));
+        });
+    }
+
+    @Test
+    public void fulltextSearchWithLanguageBasedStemmer() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("LowerCase");
+            filters.addChild("SpanishLightStem");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "torment");
+        test.addChild("baz").setProperty("foo", "other text");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'tormenta')", List.of("/test"));
+        });
     }
 
     //OAK-4805
