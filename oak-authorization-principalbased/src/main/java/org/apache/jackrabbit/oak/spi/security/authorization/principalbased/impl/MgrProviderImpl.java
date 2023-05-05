@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 final class MgrProviderImpl implements MgrProvider {
 
