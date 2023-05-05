@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.accesscontrol;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
