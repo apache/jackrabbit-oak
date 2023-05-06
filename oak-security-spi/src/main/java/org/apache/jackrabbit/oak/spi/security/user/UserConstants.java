@@ -80,9 +80,9 @@ public interface UserConstants {
     String PARAM_ADMIN_ID = "adminId";
 
     /**
-     * Configuration option defining the ID of the impersonatorGroups field.
+     * Configuration option defining the names of the impersonatorPrincipals field.
      */
-    String PARAM_IMPERSONATOR_GROUPS_ID = "impersonatorGroups";
+    String PARAM_IMPERSONATOR_PRINCIPAL_NAMES = "impersonatorPrincipals";
 
     /**
      * Configuration option defining if the admin password should be omitted

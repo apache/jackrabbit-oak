@@ -187,43 +187,16 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private boolean isImpersonator(@NotNull Set<String> principalNames) {
-        Set<String> impersonatorGroups = Set.of(user.getUserManager().getConfig().getConfigValue(
-                PARAM_IMPERSONATOR_GROUPS_ID,
+        Set<String> impersonatorPrincipals = Set.of(user.getUserManager().getConfig().getConfigValue(
+                PARAM_IMPERSONATOR_PRINCIPAL_NAMES,
                 new String[]{}));
 
-        if (impersonatorGroups.isEmpty()) {
+        if (impersonatorPrincipals.isEmpty()) {
             return false;
         }
         return principalNames.stream()
-                .anyMatch(impersonatorGroups::contains);
+                .anyMatch(impersonatorPrincipals::contains);
     }
-
-    public boolean isImpersonator(@NotNull Authorizable authorizable) {
-        Set<String> impersonatorGroups = Set.of(user.getUserManager().getConfig().getConfigValue(
-                PARAM_IMPERSONATOR_GROUPS_ID,
-                new String[]{}));
-
-        if (impersonatorGroups.isEmpty()) {
-            return false;
-        }
-
-        try {
-            Iterator<Group> it =  authorizable.memberOf();
-            while (it.hasNext()) {
-                Group group = it.next();
-                if (impersonatorGroups.contains(group.getID())) {
-                    return true;
-                }
-            }
-
-            return false;
-        } catch (RepositoryException e) {
-            log.debug(e.getMessage());
-            return false;
-        }
-    }
-
-
 
     private boolean isValidPrincipal(@NotNull Principal principal) {
         Principal p = null;

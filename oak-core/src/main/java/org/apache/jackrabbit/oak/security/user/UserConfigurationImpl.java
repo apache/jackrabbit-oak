@@ -69,12 +69,6 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
-import java.security.Principal;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Collections;
-
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 /**
@@ -92,10 +86,10 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         String usersPath() default UserConstants.DEFAULT_USER_PATH;
 
         @AttributeDefinition(
-                name = "Impersonator groups",
-                description = "List of groups whose members can impersonate any user.",
+                name = "Impersonator principals",
+                description = "List of users who can impersonate and groups whose members can impersonate any user.",
                 type = AttributeType.STRING)
-        String[] impersonatorGroups() default {};
+        String[] impersonatorPrincipals() default {};
 
         @AttributeDefinition(
                 name = "Group Path",

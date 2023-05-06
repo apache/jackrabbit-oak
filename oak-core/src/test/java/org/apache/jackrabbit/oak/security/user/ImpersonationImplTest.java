@@ -185,15 +185,6 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
     }
 
     @Test
-    public void testIsImpersonatorAuthorizable() throws Exception {
-        String impersonatorGroupId = "impersonators-group";
-        impersonation = new ImpersonationImpl(ImpersonationTestUtil.getUserWithMockedConfigs(impersonatorGroupId, user));
-        Authorizable authorizableMock = ImpersonationTestUtil.getAuthorizablewithGroup(impersonatorGroupId);
-
-        assertTrue(impersonation.isImpersonator(authorizableMock));
-    }
-
-    @Test
     public void testImpersonationAllowByImpersonationGroupMember() throws Exception {
         String impersonatorGroupId = "impersonators-group";
         impersonation = new ImpersonationImpl(ImpersonationTestUtil.getUserWithMockedConfigs(impersonatorGroupId, user));

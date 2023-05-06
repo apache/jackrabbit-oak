@@ -42,6 +42,7 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 
 import static org.apache.jackrabbit.oak.security.user.Utils.canImpersonateAllUsers;
+import static org.apache.jackrabbit.oak.security.user.Utils.isImpersonator;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_ADMIN_ID;
 import static org.junit.Assert.assertEquals;
@@ -244,6 +245,21 @@ public class UtilsTest extends AbstractSecurityTest {
         root.commit();
 
         assertTrue(canImpersonateAllUsers(new PrincipalImpl(getTestUser().getID()), userManagerSpy));
+    }
+
+    @Test
+    public void testIsImpersonator() throws Exception {
+        String impersonatorName = "impersonator";
+
+        UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
+        ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), impersonatorName);
+        when(userManagerSpy.getConfig()).thenReturn(configs);
+
+        Authorizable authorizableMock = mock(Authorizable.class);
+        when(authorizableMock.getPrincipal()).thenReturn(new PrincipalImpl(impersonatorName));
+        root.commit();
+
+        assertTrue(isImpersonator(authorizableMock, userManagerSpy));
     }
     
     @Test

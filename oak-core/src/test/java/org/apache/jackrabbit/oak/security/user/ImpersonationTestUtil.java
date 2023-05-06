@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 
@@ -52,7 +51,7 @@ public interface ImpersonationTestUtil {
             configMock = mock(ConfigurationParameters.class);
         }
         doReturn(new String[]{impersonatorGroupId})
-                .when(configMock).getConfigValue(eq(UserConstants.PARAM_IMPERSONATOR_GROUPS_ID), any());
+                .when(configMock).getConfigValue(eq(UserConstants.PARAM_IMPERSONATOR_PRINCIPAL_NAMES), any());
 
         return configMock;
     }
