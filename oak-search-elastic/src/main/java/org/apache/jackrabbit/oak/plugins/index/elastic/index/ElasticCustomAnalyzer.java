@@ -66,7 +66,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.*;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.LUCENE_VERSIONS;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.LUCENE_ELASTIC_TRANSFORMERS;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.FILTERS;
 
 /**
  * Loads custom analysis index settings from a JCR NodeState. It also takes care of required transformations from Lucene
@@ -176,7 +178,7 @@ public class ElasticCustomAnalyzer {
 
             String name;
             List<String> content = null;
-            Map<String, String> mappings;
+            List<Function<Map<String, Object>, Map<String, Object>>> transformers;
             try {
                 Class<? extends AbstractAnalysisFactory> tff = lookup.apply(t.getName());
 
@@ -203,23 +205,23 @@ public class ElasticCustomAnalyzer {
                 }
 
                 name = normalize((String) tff.getField("NAME").get(null));
-                mappings = LUCENE_ELASTIC.entrySet().stream()
+                transformers = LUCENE_ELASTIC_TRANSFORMERS.entrySet().stream()
                         .filter(k -> k.getKey().isAssignableFrom(tff))
                         .map(Map.Entry::getValue)
-                        .findFirst().orElseGet(Collections::emptyMap);
+                        .collect(Collectors.toList());
             } catch (Exception e) {
                 LOG.warn("unable introspect lucene internal factories to perform transformations. " +
                         "Current configuration will be used: {}", e.getMessage());
                 name = normalize(t.getName());
-                mappings = Collections.emptyMap();
+                transformers = List.of();
             }
 
-            Map<String, Object> args = convertNodeState(child, mappings, content);
+            Map<String, Object> args = convertNodeState(child, transformers, content);
 
             // stemmer in elastic don't have language based configurations. They all stay under the stemmer config with
             // a language parameter
             if (name.endsWith("_stem")) {
-                String language = STEMMER.get(name);
+                String language = FILTERS.get(name);
                 if (language == null) {
                     language = name.substring(0, name.length() - "_stem".length());
                     // we then have to reverse the named parts
@@ -229,6 +231,10 @@ public class ElasticCustomAnalyzer {
                 }
                 args.put("language", language);
                 name = "stemmer";
+            } else {
+                if (FILTERS.get(name) != null) {
+                    name = FILTERS.get(name);
+                }
             }
             args.put(ANALYZER_TYPE, name);
 
@@ -275,24 +281,18 @@ public class ElasticCustomAnalyzer {
     }
 
     private static Map<String, Object> convertNodeState(NodeState state) {
-        return convertNodeState(state, Map.of(), List.of());
+        return convertNodeState(state, List.of(), List.of());
     }
 
-    private static Map<String, Object> convertNodeState(NodeState state, Map<String, String> mapping, List<String> preloadedContent) {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
+    private static Map<String, Object> convertNodeState(NodeState state, List<Function<Map<String, Object>, Map<String, Object>>> transformers,
+                                                        List<String> preloadedContent) {
+        Map<String, Object> luceneParams = StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
                 .filter(ps -> ps.getType() != Type.BINARY &&
                         !ps.isArray() &&
                         !NodeStateUtils.isHidden(ps.getName()) &&
                         !IGNORE_PROP_NAMES.contains(ps.getName())
                 )
-                .filter(ps -> {
-                    String value = mapping.get(ps.getName());
-                    return value == null || value.length() > 0;
-                })
-                .collect(Collectors.toMap(ps -> {
-                    String remappedName = mapping.get(ps.getName());
-                    return remappedName != null ? remappedName : ps.getName();
-                }, ps -> {
+                .collect(Collectors.toMap(PropertyState::getName, ps -> {
                     String value = ps.getValue(Type.STRING);
                     List<String> values = Arrays.asList(value.split(","));
                     if (values.stream().allMatch(v -> state.hasChildNode(v.trim()))) {
@@ -306,6 +306,10 @@ public class ElasticCustomAnalyzer {
                         }).collect(Collectors.toList()));
                     } else return value;
                 }));
+        return transformers.stream().reduce(luceneParams, (lp, t) -> t.apply(lp), (lp1, lp2) -> {
+            lp1.putAll(lp2);
+            return lp1;
+        });
     }
 
     /**

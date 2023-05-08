@@ -113,9 +113,24 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         test.addChild("baz").setProperty("foo", "other text");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')", List.of("/test"));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')", List.of("/test")));
+    }
+
+    @Test
+    public void fulltextSearchWithElasticOnlyFilters() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("Apostrophe");
         });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "oak's");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'oak')", List.of("/bar")));
     }
 
 }
