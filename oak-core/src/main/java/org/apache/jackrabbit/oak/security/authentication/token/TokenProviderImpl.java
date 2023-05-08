@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -147,11 +146,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     /**
      * Returns {@code true} if {@code SimpleCredentials} can be extracted from
      * the specified credentials object and that simple credentials object has
-     * a {@link #TOKEN_ATTRIBUTE} attribute with an empty value.
+     * a {@link #TOKEN_ATTRIBUTE} attribute with an {@link #TOKEN_ATTRIBUTE_DO_CREATE empty value}.
      *
      * @param credentials The current credentials.
      * @return {@code true} if the specified credentials or those extracted from
-     * {@link ImpersonationCredentials} are supported and and if the (extracted)
+     * {@link ImpersonationCredentials} are supported and if the (extracted)
      * credentials object contain a {@link #TOKEN_ATTRIBUTE} attribute with an
      * empty value; {@code false} otherwise.
      */
@@ -162,7 +161,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             return false;
         } else {
             Object attr = credentialsSupport.getAttributes(creds).get(TOKEN_ATTRIBUTE);
-            return (attr != null && attr.toString().isEmpty());
+            return (attr != null && TOKEN_ATTRIBUTE_DO_CREATE.equals(attr.toString()));
         }
     }
 

@@ -90,4 +90,9 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
     public int getEntrySize(int size) {
         return delegate.getEntrySize(size);
     }
+
+    @Override
+    public boolean isRemote() {
+        return delegate.isRemote();
+    }
 }

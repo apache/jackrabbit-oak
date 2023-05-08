@@ -96,10 +96,10 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         sc.setAttribute("rep:token_key", "value");
         assertFalse(tokenProvider.doCreateToken(sc));
 
-        sc.setAttribute(".token", "existing");
+        sc.setAttribute(TOKEN_ATTRIBUTE, "existing");
         assertFalse(tokenProvider.doCreateToken(sc));
 
-        sc.setAttribute(".token", "");
+        sc.setAttribute(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
         assertTrue(tokenProvider.doCreateToken(sc));
     }
 

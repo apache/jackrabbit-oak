@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE;
+import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -113,7 +114,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
         SimpleCredentials sc = new SimpleCredentials("uid", new char[0]);
         assertFalse(tp.doCreateToken(sc));
 
-        sc.setAttribute(TOKEN_ATTRIBUTE, "");
+        sc.setAttribute(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
         assertTrue(tp.doCreateToken(sc));
     }
 
@@ -128,7 +129,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
         TokenProvider tp = tc.getTokenProvider(root);
         assertFalse(tp.doCreateToken(creds));
 
-        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, "");
+        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
         when(cs.getAttributes(creds)).thenReturn(attMap);
         assertTrue(tp.doCreateToken(creds));
 
@@ -150,7 +151,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
         TokenProvider tp = tc.getTokenProvider(root);
         assertFalse(tp.doCreateToken(creds));
 
-        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, "");
+        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_DO_CREATE);
         when(cs.getAttributes(creds)).thenReturn(attMap);
         assertTrue(tp.doCreateToken(creds));
 

@@ -620,7 +620,16 @@ public class TarReader implements Closeable {
     BinaryReferencesIndex getBinaryReferences() {
         BinaryReferencesIndex index = null;
         try {
-            index = BinaryReferencesIndexLoader.parseBinaryReferencesIndex(archive.getBinaryReferences());
+
+            Buffer binaryReferences = archive.getBinaryReferences();
+            if (binaryReferences == null && archive.isRemote()) {
+
+                // This can happen because segment files and binary references files are flushed one after another in
+                // {@link TarWriter#flush}
+                log.info("The remote archive directory {} still does not have file with binary references written.", archive.getName());
+                return null;
+            }
+            index = BinaryReferencesIndexLoader.parseBinaryReferencesIndex(binaryReferences);
         } catch (InvalidBinaryReferencesIndexException | IOException e) {
             log.warn("Exception while loading binary reference", e);
         }

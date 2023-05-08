@@ -197,4 +197,9 @@ public class SegmentTarReader implements SegmentArchiveReader {
 
         return getEntrySize(buffer.getInt(buffer.limit() - 8));
     }
+
+    @Override
+    public boolean isRemote() {
+        return false;
+    }
 }

@@ -54,7 +54,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
                 TokenProvider.PARAM_TOKEN_LENGTH, 4));
 
         sc = new SimpleCredentials(getTestUser().getID(), new char[0]);
-        sc.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, "");
+        sc.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, TokenConstants.TOKEN_ATTRIBUTE_DO_CREATE);
     }
 
     @Test

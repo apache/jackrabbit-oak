@@ -135,4 +135,9 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
      * @return the decoded file component of this archive.
      */
     protected abstract File archivePathAsFile();
+
+    @Override
+    public boolean isRemote() {
+        return true;
+    }
 }
