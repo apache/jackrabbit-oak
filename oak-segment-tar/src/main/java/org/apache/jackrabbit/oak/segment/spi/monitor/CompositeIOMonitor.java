@@ -18,8 +18,8 @@
 
 package org.apache.jackrabbit.oak.segment.spi.monitor;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newConcurrentHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newConcurrentHashSet;
 import static java.util.Collections.emptySet;
 
 import java.io.File;

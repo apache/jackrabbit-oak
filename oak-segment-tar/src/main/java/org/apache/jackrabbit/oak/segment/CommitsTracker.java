@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Queues.newConcurrentLinkedQueue;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;

@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import static com.google.common.base.Preconditions.checkElementIndex;
-import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSetWithExpectedSize;
 
 import java.util.Set;
 import java.util.UUID;

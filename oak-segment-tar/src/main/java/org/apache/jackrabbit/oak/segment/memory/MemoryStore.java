@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;

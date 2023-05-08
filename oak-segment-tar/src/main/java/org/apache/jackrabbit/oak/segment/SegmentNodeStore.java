@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.io.Closeable;
@@ -76,9 +76,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
         @Nullable
         private final BlobStore blobStore;
-        
+
         private boolean isCreated;
-        
+
         private boolean dispatchChanges = true;
 
         @NotNull
@@ -97,13 +97,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
             this.blobStore = blobStore;
         }
 
-        
+
         @NotNull
         public SegmentNodeStoreBuilder dispatchChanges(boolean dispatchChanges) {
             this.dispatchChanges = dispatchChanges;
             return this;
         }
-        
+
         /**
          * {@link StatisticsProvider} for collecting statistics related to SegmentStore
          * @param statisticsProvider
@@ -169,7 +169,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Nullable
     private final BlobStore blobStore;
-    
+
     private final SegmentNodeStoreStats stats;
 
     private final LoggingHook loggingHook;
@@ -189,7 +189,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         if (scheduler instanceof Observable) {
             return ((Observable) scheduler).addObserver(observer);
         }
-        
+
         return () -> {};
     }
 
@@ -319,7 +319,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     NodeState getCheckpoints() {
         return scheduler.getHeadNodeState().getChildNode(CHECKPOINTS);
     }
-    
+
     public SegmentNodeStoreStats getStats() {
         return stats;
     }
