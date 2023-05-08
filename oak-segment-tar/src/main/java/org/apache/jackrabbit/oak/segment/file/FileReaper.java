@@ -17,13 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

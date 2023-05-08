@@ -21,8 +21,8 @@ import static org.mockito.Mockito.mock;
 
 import java.util.UUID;
 
-import com.google.common.base.Charsets;
-import com.google.common.hash.Hashing;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 

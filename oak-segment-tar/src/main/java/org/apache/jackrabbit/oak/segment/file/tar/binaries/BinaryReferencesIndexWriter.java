@@ -27,7 +27,7 @@ import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 
 /**
  * Maintains the transient state of a binary references index, formats it and

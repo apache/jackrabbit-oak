@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Sets.newConcurrentHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newConcurrentHashSet;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.lang.ref.ReferenceQueue;

@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Suppliers.memoize;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -40,8 +40,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import org.apache.jackrabbit.guava.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -666,14 +666,14 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     //------------------------------------------------------------< Object >--
-    
+
     /**
      * Indicates whether two {@link NodeState} instances are equal to each
      * other. A return value of {@code true} clearly means that the instances
      * are equal, while a return value of {@code false} doesn't necessarily mean
      * the instances are not equal. These "false negatives" are an
      * implementation detail and callers cannot rely on them being stable.
-     * 
+     *
      * @param a
      *            the first {@link NodeState} instance
      * @param b

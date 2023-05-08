@@ -26,7 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

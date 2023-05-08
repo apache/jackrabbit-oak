@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.json.JsonSerializer.DEFAULT_FILTER_EXPRESSION;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -28,8 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -78,7 +78,7 @@ public class RevisionHistory {
     public Iterator<HistoryElement> getHistory(@NotNull JournalFile journal, @NotNull final String path)
             throws IOException {
         checkNotNull(path);
-        
+
         try (JournalReader journalReader = new JournalReader(checkNotNull(journal))) {
             return Iterators.transform(journalReader,
                     new Function<JournalEntry, HistoryElement>() {
@@ -88,7 +88,7 @@ public class RevisionHistory {
                             NodeState node = getNode(store.getHead(), path);
                             return new HistoryElement(entry.getRevision(), node);
                         }
-                }); 
+                });
         }
     }
 

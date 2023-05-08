@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
+import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newFixedThreadPool;
@@ -63,7 +63,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import com.google.common.io.ByteStreams;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -1183,15 +1183,15 @@ public class CompactionAndCleanupIT {
     }
 
     /**
-     * Test asserting OAK-4669: No new generation of tar should be created when the segments are the same 
-     * and when various indices are created. 
+     * Test asserting OAK-4669: No new generation of tar should be created when the segments are the same
+     * and when various indices are created.
      */
     @Test
     public void concurrentWritesCleanupNoNewGen() throws Exception {
         ScheduledExecutorService scheduler = newSingleThreadScheduledExecutor();
         StatisticsProvider statsProvider = new DefaultStatisticsProvider(scheduler);
         final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
-        
+
         File fileStoreFolder = getFileStoreFolder();
 
         final FileStore fileStore = fileStoreBuilder(fileStoreFolder)
@@ -1201,7 +1201,7 @@ public class CompactionAndCleanupIT {
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
                 .build();
-        
+
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(5);
         final AtomicInteger counter = new AtomicInteger();
@@ -1257,11 +1257,11 @@ public class CompactionAndCleanupIT {
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
                 .build();
-        
+
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(100);
         final AtomicInteger counter = new AtomicInteger();
-        
+
         try {
             Callable<Void> concurrentWriteTask = new Callable<Void>() {
                 @Override
@@ -1295,7 +1295,7 @@ public class CompactionAndCleanupIT {
             new ExecutorCloser(scheduler).close();
         }
     }
-    
+
     @Test
     public void randomAccessFileConcurrentReadAndLength() throws Exception {
         final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
@@ -1303,7 +1303,7 @@ public class CompactionAndCleanupIT {
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
                 .build();
-        
+
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(300);
         final AtomicInteger counter = new AtomicInteger();
@@ -1319,7 +1319,7 @@ public class CompactionAndCleanupIT {
                     return null;
                 }
             };
-            
+
             Callable<Void> concurrentCleanupTask = new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
@@ -1327,7 +1327,7 @@ public class CompactionAndCleanupIT {
                     return null;
                 }
             };
-            
+
             Callable<Void> concurrentReferenceCollector = new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {

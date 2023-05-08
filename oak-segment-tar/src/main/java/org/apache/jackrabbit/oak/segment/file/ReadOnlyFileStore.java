@@ -31,8 +31,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
-import com.google.common.io.Closer;
-
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -96,7 +95,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     /**
      * Go to the specified {@code revision}
-     * 
+     *
      * @param revision
      */
     public void setRevision(String revision) {
@@ -126,7 +125,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                     return readSegmentUncached(tarFiles, id);
                 }
             });
-        } catch (ExecutionException | UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
+        } catch (ExecutionException | UncheckedExecutionException e) {
             throw asSegmentNotFoundException(e, id);
         }
     }

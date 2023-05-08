@@ -39,7 +39,7 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -66,7 +66,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     private final CounterStats commitQueueSize;
     private final TimerStats commitTime;
     private final TimerStats queueingTime;
-    
+
     private volatile CommitsTracker commitsTracker;
     private boolean collectStackTraces = COLLECT_STACK_TRACES;
     private int otherWritersLimit = OTHER_WRITERS_LIMIT;
@@ -74,7 +74,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
 
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
-        
+
         this.commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
         this.commitsCount = statisticsProvider.getMeter(COMMITS_COUNT, StatsOptions.DEFAULT);
         this.commitQueueSize = statisticsProvider.getCounterStats(COMMIT_QUEUE_SIZE, StatsOptions.DEFAULT);
@@ -131,13 +131,13 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         return createTabularDataFromCountMap(commitsTracker.getCommitsCountPerGroupLastMinute(), "commitsPerWriterGroup",
                 "writerGroup");
     }
-    
+
     @Override
     public TabularData getCommitsCountForOtherWriters() throws OpenDataException {
         return createTabularDataFromCountMap(commitsTracker.getCommitsCountOthers(), "commitsPerWriter",
                 "writerName");
     }
-    
+
     private TabularData createTabularDataFromCountMap(Map<String, Long> commitsCountMap, String typeName,
             String writerDescription) throws OpenDataException {
         CompositeType commitsPerWriterRowType = new CompositeType(typeName, typeName,
@@ -235,12 +235,12 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         this.collectStackTraces = flag;
         commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
-    
+
     @Override
     public boolean isCollectStackTraces() {
         return collectStackTraces;
     }
-    
+
     @Override
     public int getNumberOfOtherWritersToDetail() {
         return otherWritersLimit;
@@ -251,7 +251,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         this.otherWritersLimit = otherWritersLimit;
         commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
-    
+
     @Override
     public String[] getWriterGroupsForLastMinuteCounts() {
         return writerGroups;

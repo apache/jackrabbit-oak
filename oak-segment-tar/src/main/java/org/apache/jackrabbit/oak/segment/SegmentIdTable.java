@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMapWithExpectedSize;
 import static java.util.Collections.nCopies;
 
 import java.lang.ref.WeakReference;
@@ -64,12 +64,12 @@ public class SegmentIdTable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentIdTable.class);
 
-    
+
     /**
      * The refresh count (for diagnostics and testing).
      */
     private int rebuildCount;
-    
+
     /**
      * The number of used entries (WeakReferences) in this table.
      */
@@ -110,7 +110,7 @@ public class SegmentIdTable {
         references.set(index, new WeakReference<SegmentId>(id));
         entryCount++;
         if (entryCount > references.size() * 0.75) {
-            // more than 75% full            
+            // more than 75% full
             shouldRefresh = true;
         }
         if (shouldRefresh) {
@@ -149,7 +149,7 @@ public class SegmentIdTable {
                 }
             }
         }
-        
+
         if (entryCount != ids.size()) {
             // something is wrong, possibly a concurrency problem, a SegmentId
             // hashcode or equals bug, or a problem with this hash table
@@ -204,37 +204,37 @@ public class SegmentIdTable {
             }
         }
     }
-    
+
     /**
      * Get the number of map rebuild operations (used for testing and diagnostics).
-     * 
+     *
      * @return the rebuild count
      */
     int getMapRebuildCount() {
         return rebuildCount;
     }
-    
+
     /**
      * Get the entry count (used for testing and diagnostics).
-     * 
+     *
      * @return the entry count
      */
     int getEntryCount() {
         return entryCount;
     }
-    
+
     /**
      * Get the size of the internal map (used for testing and diagnostics).
-     * 
+     *
      * @return the map size
      */
     int getMapSize() {
         return references.size();
     }
-    
+
     /**
      * Get the raw list of segment ids (used for testing).
-     * 
+     *
      * @return the raw list
      */
     List<SegmentId> getRawSegmentIdList() {

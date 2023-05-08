@@ -32,7 +32,7 @@ import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 public class PriorityCacheTest {
 

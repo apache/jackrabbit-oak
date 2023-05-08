@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;

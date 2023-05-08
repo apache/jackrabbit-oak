@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPA
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;
