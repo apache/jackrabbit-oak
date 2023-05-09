@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;

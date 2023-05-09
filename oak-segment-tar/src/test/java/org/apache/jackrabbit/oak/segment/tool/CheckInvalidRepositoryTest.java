@@ -25,8 +25,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import java.util.Objects;
 import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
@@ -60,7 +60,7 @@ import static org.junit.Assert.assertTrue;
 public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
     private Output log;
-    
+
     @Override
     @Before
     public void setup() throws Exception {
@@ -79,7 +79,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         assertExpectedOutput(log.outString(), Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent",
             "Searched through 2 revisions"));
 
-        // not sure whether first traversal will fail because of "/a" or "/z" 
+        // not sure whether first traversal will fail because of "/a" or "/z"
         assertExpectedOutput(log.errString(), Lists.newArrayList("Error while traversing /"));
     }
 
@@ -153,7 +153,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         for (int k = 0; k < 10000; k++) {
             FileUtils.writeStringToFile(largeJournalFile, journalLine, true);
         }
-        
+
         int checkResult = check(b -> b
             .withPath(segmentStoreFolder)
             .withJournal(largeJournalFile)
@@ -215,7 +215,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         mockStore.failAfterReadSegmentCount(2);
 
         ConsistencyCheckResult result = checkConsistencyLenient(mockStore, journalFile);
-        
+
         assertTrue(hasAnyHeadRevision(result));
         assertTrue(hasAnyCheckpointRevision(result));
     }
@@ -278,7 +278,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         builderConsumer.accept(builder);
         return builder.build().run();
     }
-    
+
     private static void assertCheckFailed(int checkResult) {
         assertEquals("Check should have failed", 1, checkResult);
     }
@@ -286,13 +286,13 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     private static void assertCheckSucceeded(int checkResult) {
         assertEquals("Check should have succeeded", 0, checkResult);
     }
-    
+
     private static class Output {
         private final StringWriter strOut;
         private final StringWriter strErr;
         private final PrintWriter outWriter;
         private final PrintWriter errWriter;
-        
+
         public Output() {
             strOut = new StringWriter();
             strErr = new StringWriter();

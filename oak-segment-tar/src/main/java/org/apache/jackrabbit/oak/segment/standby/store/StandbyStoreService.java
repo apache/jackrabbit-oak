@@ -24,8 +24,8 @@ import java.io.File;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.segment.file.FileStore;

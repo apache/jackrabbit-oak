@@ -22,7 +22,7 @@ import static java.util.Arrays.fill;
 
 import java.util.Iterator;
 
-import com.google.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
 import org.jetbrains.annotations.NotNull;
 

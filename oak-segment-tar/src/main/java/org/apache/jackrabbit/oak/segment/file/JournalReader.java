@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
 /**
  * Iterator over the revisions in the journal in reverse order

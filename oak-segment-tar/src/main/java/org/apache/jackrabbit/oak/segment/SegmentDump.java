@@ -26,7 +26,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.function.Consumer;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;

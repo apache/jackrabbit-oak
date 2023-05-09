@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -28,7 +28,7 @@ import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 
 /**
  * Partial mapping of keys of type {@code K} to values of type {@link RecordId}. This is

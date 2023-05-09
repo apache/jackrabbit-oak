@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
 

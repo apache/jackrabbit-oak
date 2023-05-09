@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 public class ReaderCacheTest {
 
@@ -56,7 +56,7 @@ public class ReaderCacheTest {
         // but the fast cache should improve the total hit rate
         assertTrue(valueOf(counter), counter.get() < 5000);
     }
-    
+
     @Test
     public void largeEntries() {
         final AtomicInteger counter = new AtomicInteger();
@@ -80,7 +80,7 @@ public class ReaderCacheTest {
         assertTrue(valueOf(counter), counter.get() > 9000);
         assertTrue(valueOf(counter), counter.get() < 10000);
     }
-    
+
     @Test
     public void clear() {
         final AtomicInteger counter = new AtomicInteger();
@@ -100,7 +100,7 @@ public class ReaderCacheTest {
         assertEquals("2", c.get(0, 0, 0, uniqueLoader));
         assertEquals("2", c.get(0, 0, 0, uniqueLoader));
     }
-    
+
     @Test
     public void randomized() {
         ArrayList<Function<Integer, String>> loaderList = new ArrayList<Function<Integer, String>>();
@@ -125,5 +125,5 @@ public class ReaderCacheTest {
             assertEquals(loader.apply(offset), x);
         }
     }
-    
+
 }

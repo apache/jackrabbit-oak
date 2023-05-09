@@ -22,8 +22,8 @@ import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.rou
 import java.io.InputStream;
 import java.io.PushbackInputStream;
 
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
+import org.apache.jackrabbit.guava.common.hash.Hasher;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
@@ -109,7 +109,7 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
     public ByteBuf readChunk(ChannelHandlerContext ctx) throws Exception {
         return readChunk(ctx.alloc());
     }
-    
+
     @Override
     public ByteBuf readChunk(ByteBufAllocator allocator) throws Exception {
         if (isEndOfInput()) {
@@ -173,7 +173,7 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
 
         return mask;
     }
-    
+
     @Override
     public long length() {
         return length;

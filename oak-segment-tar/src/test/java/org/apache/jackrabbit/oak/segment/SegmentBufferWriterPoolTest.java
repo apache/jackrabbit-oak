@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Maps.newConcurrentMap;
-import static com.google.common.collect.Sets.intersection;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;

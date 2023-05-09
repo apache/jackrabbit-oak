@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.apache.jackrabbit.guava.common.base.Strings.isNullOrEmpty;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
@@ -42,7 +42,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;

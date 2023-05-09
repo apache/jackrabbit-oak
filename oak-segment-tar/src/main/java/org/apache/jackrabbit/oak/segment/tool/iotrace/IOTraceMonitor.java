@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static com.google.common.collect.Queues.newConcurrentLinkedQueue;
+import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 import static java.lang.String.join;
 
 import java.io.File;
@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.jetbrains.annotations.NotNull;

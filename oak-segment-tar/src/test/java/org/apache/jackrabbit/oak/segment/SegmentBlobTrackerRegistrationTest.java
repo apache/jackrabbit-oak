@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 
 import java.util.Map;

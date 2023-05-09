@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;

@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
@@ -37,7 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
