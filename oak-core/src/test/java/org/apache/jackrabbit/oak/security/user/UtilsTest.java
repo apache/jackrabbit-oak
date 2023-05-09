@@ -17,7 +17,10 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
+import java.util.Enumeration;
 import java.util.Map;
+
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -248,16 +251,55 @@ public class UtilsTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testIsImpersonator() throws Exception {
+    public void testIsImpersonatorByPrincipal() throws Exception {
         String impersonatorName = "impersonator";
+        Principal impersonatorPrincipal = new PrincipalImpl(impersonatorName);
 
         UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
         ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), impersonatorName);
         when(userManagerSpy.getConfig()).thenReturn(configs);
 
-        Authorizable authorizableMock = mock(Authorizable.class);
-        when(authorizableMock.getPrincipal()).thenReturn(new PrincipalImpl(impersonatorName));
+        PrincipalManager principalManagerMock = ImpersonationTestUtil.getMockedPrincipalManager(impersonatorName, impersonatorPrincipal);
+        when(userManagerSpy.getPrincipalManager()).thenReturn(principalManagerMock);
         root.commit();
+        Authorizable authorizableMock = ImpersonationTestUtil.getAuthorizableWithPrincipal(impersonatorPrincipal);
+
+        assertTrue(isImpersonator(authorizableMock, userManagerSpy));
+    }
+
+    @Test
+    public void testIsImpersonatorByGroup() throws Exception {
+        String userName = "user";
+        String groupName = "impersonator_group";
+        Principal impersonatorPrincipal = new PrincipalImpl(userName);
+        Principal impersonatorGroupPrincipal = new GroupPrincipal() {
+            @Override
+            public boolean isMember(@NotNull Principal member) {
+                if (member.getName().equals(userName)) {
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public Enumeration<? extends Principal> members() {
+                return null;
+            }
+
+            @Override
+            public String getName() {
+                return groupName;
+            }
+        };
+
+        UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
+        ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), groupName);
+        when(userManagerSpy.getConfig()).thenReturn(configs);
+
+        PrincipalManager principalManagerMock = ImpersonationTestUtil.getMockedPrincipalManager(groupName, impersonatorGroupPrincipal);
+        when(userManagerSpy.getPrincipalManager()).thenReturn(principalManagerMock);
+        root.commit();
+        Authorizable authorizableMock = ImpersonationTestUtil.getAuthorizableWithPrincipal(impersonatorPrincipal);
 
         assertTrue(isImpersonator(authorizableMock, userManagerSpy));
     }

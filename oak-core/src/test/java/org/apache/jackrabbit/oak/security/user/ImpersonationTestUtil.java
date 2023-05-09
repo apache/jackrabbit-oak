@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 
 import javax.jcr.RepositoryException;
+import java.security.Principal;
 import java.util.Iterator;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -60,8 +62,17 @@ public interface ImpersonationTestUtil {
         return getMockedConfigs(null, impersonatorGroupId);
     }
 
-    static UserImpl getUserWithMockedConfigs(String impersonatorGroupId, UserImpl user) {
-        ConfigurationParameters configMock = getMockedConfigs(impersonatorGroupId);
+    /**
+
+     * Attaches to a given {@link UserImpl} a {@link ConfigurationParameters}. The config
+     * will have the impersonator principals key set to a given group name.
+
+     * @param impersonatorGroupName the name of the impersonator group
+     * @param user the existing user object to attach a config to
+     * @return a mock user object with mocked configuration parameters
+     */
+    static UserImpl getUserWithMockedConfigs(String impersonatorGroupName, UserImpl user) {
+        ConfigurationParameters configMock = getMockedConfigs(impersonatorGroupName);
 
         UserManagerImpl userManagerMock = spy(user.getUserManager());
         when(userManagerMock.getConfig()).thenReturn(configMock);
@@ -72,42 +83,17 @@ public interface ImpersonationTestUtil {
         return userMock;
     }
 
-    /**
+    static Authorizable getAuthorizableWithPrincipal(Principal principal) throws RepositoryException {
+        Authorizable authorizable = mock(Authorizable.class);
+        when(authorizable.getPrincipal()).thenReturn(principal);
 
-     * Generates an {@link Authorizable} mocked object which is member of a specified group.
-
-     * @param authorizable The authorizable object to be spied. If null, a new mock object will be created.
-     * @param groupId The group ID for the authorizable object to be member of.
-     * @return An authorizable object which is member to the specified group.
-     * @throws RepositoryException If an error occurs while mocking the authorizable object.
-     */
-    static Authorizable getAuthorizablewithGroup(Authorizable authorizable, String groupId) throws RepositoryException {
-        Authorizable authorizableMock;
-        if (authorizable != null) {
-            authorizableMock = spy(authorizable);
-        } else {
-            authorizableMock = mock(Authorizable.class);
-        }
-        Group group = mock(Group.class);
-        when(group.getID()).thenReturn(groupId);
-        when(authorizableMock.memberOf()).thenReturn(new Iterator<>() {
-            private boolean hasNext = true;
-            @Override
-            public boolean hasNext() {
-                return hasNext;
-            }
-
-            @Override
-            public Group next() {
-                hasNext = false;
-                return group;
-            }
-        });
-
-        return authorizableMock;
+        return authorizable;
     }
 
-    static Authorizable getAuthorizablewithGroup(String groupId) throws RepositoryException {
-        return getAuthorizablewithGroup(null, groupId);
+    static PrincipalManager getMockedPrincipalManager(String impersonatorName, Principal principal) {
+        PrincipalManager principalManagerMocked = mock(PrincipalManager.class);
+        when(principalManagerMocked.getPrincipal(impersonatorName)).thenReturn(principal);
+
+        return principalManagerMocked;
     }
 }
