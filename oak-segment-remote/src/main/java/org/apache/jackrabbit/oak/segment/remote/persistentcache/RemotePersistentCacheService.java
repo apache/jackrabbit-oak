@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
