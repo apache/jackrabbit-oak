@@ -19,20 +19,20 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkElementIndex;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkPositionIndex;
-import static com.google.common.base.Preconditions.checkPositionIndexes;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.addAll;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
-import static com.google.common.collect.Lists.partition;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.io.ByteStreams.read;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithExpectedSize;
+import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.min;
 import static java.util.Arrays.asList;
@@ -60,7 +60,7 @@ import java.util.Map;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

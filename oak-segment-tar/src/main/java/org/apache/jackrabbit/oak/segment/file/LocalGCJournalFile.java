@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static java.nio.file.Files.newBufferedWriter;
 import static java.nio.file.Files.readAllLines;
 import static java.nio.file.StandardOpenOption.APPEND;

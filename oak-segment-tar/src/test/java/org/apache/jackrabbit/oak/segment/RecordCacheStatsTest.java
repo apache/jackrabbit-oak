@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 
 public class RecordCacheStatsTest {
     private static final String NAME = "cache stats";

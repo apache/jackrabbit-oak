@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static com.google.common.collect.Iterables.elementsEqual;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createBlobChunkBuffer;
@@ -33,7 +33,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.UUID;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;

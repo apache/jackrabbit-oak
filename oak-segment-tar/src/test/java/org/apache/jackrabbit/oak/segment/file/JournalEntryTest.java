@@ -28,8 +28,8 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.util.List;
 
-import com.google.common.base.Splitter;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;

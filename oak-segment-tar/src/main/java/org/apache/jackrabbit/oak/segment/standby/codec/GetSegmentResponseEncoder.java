@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.util.UUID;
 
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
+import org.apache.jackrabbit.guava.common.hash.Hasher;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;

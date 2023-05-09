@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import java.util.List;
 import java.util.UUID;

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

@@ -25,8 +25,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Suppliers;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;

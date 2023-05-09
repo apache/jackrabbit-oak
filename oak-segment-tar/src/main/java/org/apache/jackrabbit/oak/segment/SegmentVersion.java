@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Collections.max;
 import static java.util.EnumSet.allOf;
 
-import com.google.common.primitives.UnsignedBytes;
+import org.apache.jackrabbit.guava.common.primitives.UnsignedBytes;
 
 /**
  * Version of the segment storage format. <ul> <li>12 = all oak-segment-tar

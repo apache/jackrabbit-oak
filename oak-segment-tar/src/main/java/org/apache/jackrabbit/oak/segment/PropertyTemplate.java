@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import com.google.common.collect.ComparisonChain;
+import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 
 /**
  * A property definition within a template (the property name, the type, and the

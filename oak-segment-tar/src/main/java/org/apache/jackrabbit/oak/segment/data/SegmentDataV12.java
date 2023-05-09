@@ -22,7 +22,7 @@ import java.io.OutputStream;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 
 class SegmentDataV12 implements SegmentData {
 

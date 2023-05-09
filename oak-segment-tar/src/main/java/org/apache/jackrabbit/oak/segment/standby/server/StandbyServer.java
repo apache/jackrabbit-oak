@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.File;
 import java.security.cert.CertificateException;

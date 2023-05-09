@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -170,13 +170,13 @@ public class SegmentRevisionGCMBean
     public String getLastError() {
         return fileStoreGCMonitor.getLastError();
     }
-    
+
     @NotNull
     @Override
     public String getLastLogMessage() {
         return fileStoreGCMonitor.getLastLogMessage();
     }
-    
+
     @NotNull
     @Override
     public String getStatus() {
