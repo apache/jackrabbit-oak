@@ -99,7 +99,7 @@ public final class Utils {
     /**
      * Return {@code true} if the given principal can impersonate all users. 
      * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()} 
-     * returns {@code true} OR if the user is an impersonator (member of an impersonator group).
+     * returns {@code true} OR if the user contains a principal name configured to impersonate all users.
      * 
      * @param principal A non-null principal instance.
      * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
@@ -127,7 +127,7 @@ public final class Utils {
      * are under the PARAM_IMPERSONATOR_PRINCIPAL_NAMES configuration value.
      *
      * @param authorizable A non-null authorizable instance.
-     * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
+     * @param userMng The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
      * @return {@code true} if the given authorizable is an impersonator; {@code false} if that condition is not met
      * or if the evaluation failed.
      */
