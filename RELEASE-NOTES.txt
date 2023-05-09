@@ -23,6 +23,7 @@ Changes in Oak 1.52.0
 
 Technical task
 
+    [OAK-7541] - SegmentCompactionIT's use of com.google.common.util.concurrent.Futures.dereference
     [OAK-9989] - introduce oak-shaded-guava project
     [OAK-10164] - oak-commons: prepare for switch to shaded guava
     [OAK-10169] - improve output of test-assertions
@@ -50,6 +51,7 @@ Technical task
     [OAK-10229] - switch oak-authorization-cug to shaded guava
     [OAK-10230] - switch oak-authorization-principalbased to shaded guava
     [OAK-10231] - switch oak-exercise to shaded guava
+    [OAK-10234] - Update oak-segment-tar with shaded guava
 
 Bug
 
