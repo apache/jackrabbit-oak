@@ -17,16 +17,17 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
+import java.util.Enumeration;
 import java.util.Set;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -186,12 +188,30 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
     @Test
     public void testImpersonationAllowByImpersonationGroupMember() throws Exception {
-        String impersonatorGroupId = "impersonators-group";
-        impersonation = new ImpersonationImpl(ImpersonationTestUtil.getUserWithMockedConfigs(impersonatorGroupId, user));
-        Subject impersonatorSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorGroupId));
+        String impersonatorGroupName = "impersonators-group";
+        String impersonatorMember = "member-of-impersonator-group";
+        impersonation = new ImpersonationImpl(ImpersonationTestUtil.getUserWithMockedConfigs(impersonatorGroupName, user));
+        Subject impersonatorSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorGroupName));
+        Subject impersonatorGroupMemberSubject = createSubject(impersonator.getPrincipal(), new PrincipalImpl(impersonatorMember), new GroupPrincipal() {
+            @Override
+            public boolean isMember(@NotNull Principal member) {
+                return member.getName().equals(impersonatorMember);
+            }
+
+            @Override
+            public @NotNull Enumeration<? extends Principal> members() {
+                return null;
+            }
+
+            @Override
+            public String getName() {
+                return impersonatorGroupName;
+            }
+        });
         Subject nonImpersonatorSubject = createSubject(new PrincipalImpl("simple-user"));
 
         assertTrue(impersonation.allows(impersonatorSubject));
+        assertTrue(impersonation.allows(impersonatorGroupMemberSubject));
         assertFalse(impersonation.allows(nonImpersonatorSubject));
     }
 }

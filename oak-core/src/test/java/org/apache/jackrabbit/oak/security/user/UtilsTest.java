@@ -275,10 +275,7 @@ public class UtilsTest extends AbstractSecurityTest {
         Principal impersonatorGroupPrincipal = new GroupPrincipal() {
             @Override
             public boolean isMember(@NotNull Principal member) {
-                if (member.getName().equals(userName)) {
-                    return true;
-                }
-                return false;
+                return member.getName().equals(userName);
             }
 
             @Override

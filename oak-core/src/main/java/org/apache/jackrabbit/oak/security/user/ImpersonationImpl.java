@@ -131,9 +131,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         Set<Principal> principals = subject.getPrincipals();
         Set<String> principalNames = new HashSet<>();
         for (Principal principal : principals) {
-            if (!GroupPrincipals.isGroup(principal)) {
                 principalNames.add(principal.getName());
-            }
         }
 
         if (isImpersonator(principalNames)){
@@ -182,6 +180,9 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private boolean isAdmin(@NotNull Principal principal) {
         if (principal instanceof AdminPrincipal) {
             return true;
+        }
+        if (GroupPrincipals.isGroup(principal)) {
+            return false;
         }
         return Utils.isAdmin(principal, user.getUserManager());
     }
